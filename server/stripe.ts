@@ -1,149 +1,123 @@
 import Stripe from "stripe";
-import type { Express, Request, Response } from "express";
-import { ENV } from "./_core/env";
-import { getDb } from "./db";
-import { members } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { PRODUCTS } from "./products";
 
-let _stripe: Stripe | null = null;
+// Initialize Stripe with the secret key
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-export function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(ENV.stripeSecretKey, { apiVersion: "2025-04-30.basil" as any });
-  }
-  return _stripe;
+if (!stripeSecretKey) {
+  console.warn("[Stripe] STRIPE_SECRET_KEY not set — Stripe features will be unavailable");
 }
 
-// Product configuration
-export const PRODUCTS = {
-  contractorCircle: {
-    name: "Contractor Circle Membership",
-    description: "Monthly access to the Contractor Circle — weekly coaching calls, template library, course replays, and private Discord community.",
-    priceAmount: 49700, // $497.00 in cents
-    currency: "usd",
-    interval: "month" as const,
-  },
-};
+export const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, { apiVersion: "2025-03-31.basil" as any })
+  : null;
 
-export async function createCheckoutSession(memberId: number, memberEmail: string | null, origin: string) {
-  const stripe = getStripe();
+// Cache for the price ID so we don't look it up every time
+let cachedPriceId: string | null = null;
 
-  const session = await stripe.checkout.sessions.create({
+/**
+ * Get or create the Stripe Price for The Contracting Circle subscription.
+ * Creates the Product and Price in Stripe if they don't exist yet.
+ */
+export async function getOrCreateCirclePriceId(): Promise<string> {
+  if (cachedPriceId) return cachedPriceId;
+  if (!stripe) throw new Error("Stripe is not configured");
+
+  const product = PRODUCTS.contractingCircle;
+
+  // Search for existing product by metadata
+  const existingProducts = await stripe.products.search({
+    query: `metadata["product_key"]:"${product.metadata.product_key}"`,
+  });
+
+  let stripeProduct: Stripe.Product;
+
+  if (existingProducts.data.length > 0) {
+    stripeProduct = existingProducts.data[0];
+  } else {
+    // Create the product
+    stripeProduct = await stripe.products.create({
+      name: product.name,
+      description: product.description,
+      metadata: product.metadata,
+    });
+    console.log(`[Stripe] Created product: ${stripeProduct.id}`);
+  }
+
+  // Search for existing active price on this product
+  const existingPrices = await stripe.prices.list({
+    product: stripeProduct.id,
+    active: true,
+    type: "recurring",
+    limit: 10,
+  });
+
+  const matchingPrice = existingPrices.data.find(
+    (p) =>
+      p.unit_amount === product.priceAmount &&
+      p.currency === product.currency &&
+      p.recurring?.interval === product.interval
+  );
+
+  if (matchingPrice) {
+    cachedPriceId = matchingPrice.id;
+    return cachedPriceId;
+  }
+
+  // Create the price
+  const newPrice = await stripe.prices.create({
+    product: stripeProduct.id,
+    unit_amount: product.priceAmount,
+    currency: product.currency,
+    recurring: { interval: product.interval },
+    metadata: product.metadata,
+  });
+
+  console.log(`[Stripe] Created price: ${newPrice.id}`);
+  cachedPriceId = newPrice.id;
+  return cachedPriceId;
+}
+
+/**
+ * Create a Stripe Checkout Session for The Contracting Circle subscription.
+ */
+export async function createCircleCheckoutSession(params: {
+  origin: string;
+  userId?: number;
+  userEmail?: string;
+  userName?: string;
+}): Promise<string> {
+  if (!stripe) throw new Error("Stripe is not configured");
+
+  const priceId = await getOrCreateCirclePriceId();
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
     payment_method_types: ["card"],
     line_items: [
       {
-        price_data: {
-          currency: PRODUCTS.contractorCircle.currency,
-          product_data: {
-            name: PRODUCTS.contractorCircle.name,
-            description: PRODUCTS.contractorCircle.description,
-          },
-          unit_amount: PRODUCTS.contractorCircle.priceAmount,
-          recurring: { interval: PRODUCTS.contractorCircle.interval },
-        },
+        price: priceId,
         quantity: 1,
       },
     ],
-    customer_email: memberEmail || undefined,
-    client_reference_id: memberId.toString(),
-    metadata: {
-      member_id: memberId.toString(),
-    },
     allow_promotion_codes: true,
-    success_url: `${origin}/circle/welcome?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/circle`,
-  });
+    success_url: `${params.origin}/circle/welcome?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${params.origin}/circle?checkout=cancelled`,
+    metadata: {
+      product_key: "contracting_circle",
+      ...(params.userId && { user_id: params.userId.toString() }),
+      ...(params.userName && { customer_name: params.userName }),
+      ...(params.userEmail && { customer_email: params.userEmail }),
+    },
+    ...(params.userId && { client_reference_id: params.userId.toString() }),
+    ...(params.userEmail && { customer_email: params.userEmail }),
+  };
 
-  return session;
-}
+  const session = await stripe.checkout.sessions.create(sessionParams);
 
-export function registerStripeWebhook(app: Express) {
-  // MUST be registered BEFORE express.json() middleware
-  app.post("/api/stripe/webhook", async (req: Request, res: Response) => {
-    const stripe = getStripe();
-    const sig = req.headers["stripe-signature"] as string;
+  if (!session.url) {
+    throw new Error("Failed to create checkout session URL");
+  }
 
-    let event: Stripe.Event;
-
-    try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        ENV.stripeWebhookSecret
-      );
-    } catch (err: any) {
-      console.error("[Stripe Webhook] Signature verification failed:", err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
-    }
-
-    // Handle test events
-    if (event.id.startsWith("evt_test_")) {
-      console.log("[Stripe Webhook] Test event detected, returning verification response");
-      res.json({ verified: true });
-      return;
-    }
-
-    console.log(`[Stripe Webhook] Received event: ${event.type} (${event.id})`);
-
-    try {
-      switch (event.type) {
-        case "checkout.session.completed": {
-          const session = event.data.object as Stripe.Checkout.Session;
-          const memberId = session.metadata?.member_id;
-          if (memberId) {
-            const db = await getDb();
-            if (db) {
-              await db.update(members).set({
-                stripeCustomerId: session.customer as string,
-                stripeSubscriptionId: session.subscription as string,
-                subscriptionStatus: "active",
-              }).where(eq(members.id, parseInt(memberId)));
-            }
-          }
-          break;
-        }
-
-        case "customer.subscription.updated": {
-          const subscription = event.data.object as Stripe.Subscription;
-          const db = await getDb();
-          if (db) {
-            await db.update(members).set({
-              subscriptionStatus: subscription.status,
-            }).where(eq(members.stripeSubscriptionId, subscription.id));
-          }
-          break;
-        }
-
-        case "customer.subscription.deleted": {
-          const subscription = event.data.object as Stripe.Subscription;
-          const db = await getDb();
-          if (db) {
-            await db.update(members).set({
-              subscriptionStatus: "canceled",
-            }).where(eq(members.stripeSubscriptionId, subscription.id));
-          }
-          break;
-        }
-
-        case "invoice.payment_failed": {
-          const invoice = event.data.object as any;
-          const db = await getDb();
-          const subId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
-          if (db && subId) {
-            await db.update(members).set({
-              subscriptionStatus: "past_due",
-            }).where(eq(members.stripeSubscriptionId, subId));
-          }
-          break;
-        }
-      }
-
-      res.json({ received: true });
-    } catch (error) {
-      console.error("[Stripe Webhook] Processing error:", error);
-      res.status(500).json({ error: "Webhook processing failed" });
-    }
-  });
+  return session.url;
 }

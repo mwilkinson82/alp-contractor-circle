@@ -1,197 +1,376 @@
+/**
+ * Discord OAuth2 flow for Contracting Circle member authentication.
+ *
+ * Flow:
+ * 1. Frontend redirects to /api/discord/login?origin=<origin>&returnPath=<path>
+ * 2. Server redirects to Discord authorization URL
+ * 3. Discord redirects back to /api/discord/callback with code
+ * 4. Server exchanges code for token, fetches user info, upserts member, sets cookie
+ * 5. Server redirects to the member portal
+ */
 import type { Express, Request, Response } from "express";
 import axios from "axios";
-import { ENV } from "./_core/env";
-import { sdk } from "./_core/sdk";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { getDb } from "./db";
-import { members } from "../drizzle/schema";
+import { SignJWT, jwtVerify } from "jose";
+import { parse as parseCookieHeader } from "cookie";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/mysql2";
+import { members, type Member, type InsertMember } from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
-const DISCORD_API = "https://discord.com/api/v10";
-const DISCORD_OAUTH_URL = "https://discord.com/api/oauth2/authorize";
-const DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token";
+// ─── Constants ───────────────────────────────────────────────────────────────
+const DISCORD_API_BASE = "https://discord.com/api/v10";
+const DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize";
+const DISCORD_OAUTH_TOKEN = `${DISCORD_API_BASE}/oauth2/token`;
+const DISCORD_USER_ME = `${DISCORD_API_BASE}/users/@me`;
+const MEMBER_COOKIE_NAME = "member_session";
+const MEMBER_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
+const SCOPES = ["identify", "email"];
 
-function getRedirectUri(origin: string) {
-  return `${origin}/api/discord/callback`;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getDiscordClientId(): string {
+  return process.env.DISCORD_CLIENT_ID || "";
 }
 
-export function registerDiscordRoutes(app: Express) {
-  // Discord OAuth login — redirects to Discord
-  app.get("/api/discord/login", (req: Request, res: Response) => {
-    const origin = (req.query.origin as string) || `${req.protocol}://${req.get("host")}`;
-    const returnPath = (req.query.returnPath as string) || "/portal";
-    const redirectUri = getRedirectUri(origin);
+function getDiscordClientSecret(): string {
+  return process.env.DISCORD_CLIENT_SECRET || "";
+}
 
-    const state = Buffer.from(JSON.stringify({ origin, returnPath })).toString("base64url");
+function getSessionSecret() {
+  return new TextEncoder().encode(ENV.cookieSecret);
+}
 
-    const params = new URLSearchParams({
-      client_id: ENV.discordClientId,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: "identify email guilds",
-      state,
-      prompt: "consent",
-    });
+function isSecureRequest(req: Request): boolean {
+  if (req.protocol === "https") return true;
+  const forwarded = req.headers["x-forwarded-proto"];
+  if (!forwarded) return false;
+  const protos = Array.isArray(forwarded) ? forwarded : forwarded.split(",");
+  return protos.some(p => p.trim().toLowerCase() === "https");
+}
 
-    res.redirect(`${DISCORD_OAUTH_URL}?${params.toString()}`);
+function getMemberCookieOptions(req: Request) {
+  return {
+    httpOnly: true,
+    path: "/",
+    sameSite: "none" as const,
+    secure: isSecureRequest(req),
+    maxAge: MEMBER_SESSION_MAX_AGE,
+  };
+}
+
+// ─── Database helpers ────────────────────────────────────────────────────────
+
+let _db: ReturnType<typeof drizzle> | null = null;
+
+function getDb() {
+  if (!_db && process.env.DATABASE_URL) {
+    _db = drizzle(process.env.DATABASE_URL);
+  }
+  return _db;
+}
+
+export async function upsertMember(data: InsertMember): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+
+  const updateSet: Record<string, unknown> = {};
+  if (data.discordUsername !== undefined) updateSet.discordUsername = data.discordUsername;
+  if (data.discordDisplayName !== undefined) updateSet.discordDisplayName = data.discordDisplayName;
+  if (data.discordAvatar !== undefined) updateSet.discordAvatar = data.discordAvatar;
+  if (data.email !== undefined) updateSet.email = data.email;
+  if (data.stripeCustomerId !== undefined) updateSet.stripeCustomerId = data.stripeCustomerId;
+  if (data.stripeSubscriptionId !== undefined) updateSet.stripeSubscriptionId = data.stripeSubscriptionId;
+  if (data.subscriptionStatus !== undefined) updateSet.subscriptionStatus = data.subscriptionStatus;
+  if (data.memberRole !== undefined) updateSet.memberRole = data.memberRole;
+  updateSet.lastSignedIn = new Date();
+
+  await db.insert(members).values({
+    ...data,
+    lastSignedIn: new Date(),
+  }).onDuplicateKeyUpdate({ set: updateSet });
+}
+
+export async function getMemberByDiscordId(discordId: string): Promise<Member | undefined> {
+  const db = getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(members).where(eq(members.discordId, discordId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getMemberById(id: number): Promise<Member | undefined> {
+  const db = getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(members).where(eq(members.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// ─── Session management ──────────────────────────────────────────────────────
+
+export async function createMemberSession(member: Member): Promise<string> {
+  const secret = getSessionSecret();
+  const expiresAt = Math.floor((Date.now() + MEMBER_SESSION_MAX_AGE) / 1000);
+
+  return new SignJWT({
+    memberId: member.id,
+    discordId: member.discordId,
+    type: "member",
+  })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setExpirationTime(expiresAt)
+    .sign(secret);
+}
+
+export async function verifyMemberSession(
+  cookieValue: string | undefined | null
+): Promise<{ memberId: number; discordId: string } | null> {
+  if (!cookieValue) return null;
+
+  try {
+    const secret = getSessionSecret();
+    const { payload } = await jwtVerify(cookieValue, secret, { algorithms: ["HS256"] });
+    const { memberId, discordId, type } = payload as Record<string, unknown>;
+
+    if (type !== "member" || typeof memberId !== "number" || typeof discordId !== "string") {
+      return null;
+    }
+
+    return { memberId, discordId };
+  } catch {
+    return null;
+  }
+}
+
+export function parseMemberCookie(req: Request): string | undefined {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return undefined;
+  const parsed = parseCookieHeader(cookieHeader);
+  return parsed[MEMBER_COOKIE_NAME];
+}
+
+// ─── Discord API helpers ─────────────────────────────────────────────────────
+
+interface DiscordTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}
+
+interface DiscordUser {
+  id: string;
+  username: string;
+  global_name: string | null;
+  avatar: string | null;
+  email: string | null;
+  verified: boolean;
+}
+
+async function exchangeCodeForToken(code: string, redirectUri: string): Promise<DiscordTokenResponse> {
+  const params = new URLSearchParams({
+    client_id: getDiscordClientId(),
+    client_secret: getDiscordClientSecret(),
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
   });
 
-  // Discord OAuth callback — exchanges code for token, verifies guild membership
+  const { data } = await axios.post<DiscordTokenResponse>(DISCORD_OAUTH_TOKEN, params.toString(), {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+
+  return data;
+}
+
+async function fetchDiscordUser(accessToken: string): Promise<DiscordUser> {
+  const { data } = await axios.get<DiscordUser>(DISCORD_USER_ME, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return data;
+}
+
+// ─── Express routes ──────────────────────────────────────────────────────────
+
+export function registerDiscordOAuthRoutes(app: Express) {
+  /**
+   * GET /api/discord/login
+   * Redirects to Discord authorization page.
+   * Query params:
+   *   - origin: the frontend origin (required for redirect after callback)
+   *   - returnPath: where to redirect after login (default: /portal)
+   */
+  app.get("/api/discord/login", (req: Request, res: Response) => {
+    // Use the request origin so the redirect URI matches the current deployment.
+    // The Discord Developer Portal redirect URI must include this domain.
+    const origin = (req.query.origin as string) || req.headers.origin || `${req.protocol}://${req.get("host")}`;
+    const returnPath = (req.query.returnPath as string) || "/portal";
+    const redirectUri = `${origin}/api/discord/callback`;
+
+    // Encode state: origin + returnPath
+    const state = Buffer.from(JSON.stringify({ origin, returnPath })).toString("base64url");
+
+    const url = new URL(DISCORD_OAUTH_AUTHORIZE);
+    url.searchParams.set("client_id", getDiscordClientId());
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", SCOPES.join(" "));
+    url.searchParams.set("state", state);
+    url.searchParams.set("prompt", "consent");
+
+    res.redirect(302, url.toString());
+  });
+
+  /**
+   * GET /api/discord/callback
+   * Discord redirects here after user authorizes.
+   * Exchanges code for token, fetches user, upserts member, sets session cookie.
+   */
   app.get("/api/discord/callback", async (req: Request, res: Response) => {
     const code = req.query.code as string;
     const stateParam = req.query.state as string;
 
     if (!code || !stateParam) {
-      res.status(400).json({ error: "Missing code or state" });
+      res.status(400).json({ error: "Missing code or state parameter" });
       return;
     }
 
-    let state: { origin: string; returnPath: string };
+    let origin = "";
+    let returnPath = "/portal";
+
     try {
-      state = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+      const stateData = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+      origin = stateData.origin || "";
+      returnPath = stateData.returnPath || "/portal";
     } catch {
-      res.status(400).json({ error: "Invalid state" });
+      res.status(400).json({ error: "Invalid state parameter" });
       return;
     }
 
-    const redirectUri = getRedirectUri(state.origin);
+    const redirectUri = `${origin}/api/discord/callback`;
 
     try {
       // Exchange code for access token
-      const tokenRes = await axios.post(
-        DISCORD_TOKEN_URL,
-        new URLSearchParams({
-          client_id: ENV.discordClientId,
-          client_secret: ENV.discordClientSecret,
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: redirectUri,
-        }).toString(),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-      );
+      const tokenData = await exchangeCodeForToken(code, redirectUri);
 
-      const accessToken = tokenRes.data.access_token;
+      // Fetch Discord user info
+      const discordUser = await fetchDiscordUser(tokenData.access_token);
 
-      // Get user info from Discord
-      const userRes = await axios.get(`${DISCORD_API}/users/@me`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      // ─── Merge email-based member record (created by Stripe webhook) ────
+      // If a member record was created by Stripe (keyed by email, with a
+      // placeholder discordId like "email:..."), merge it with the real Discord
+      // identity so the member gets their subscription status on first login.
+      if (discordUser.email) {
+        const db = getDb();
+        if (db) {
+          const { eq } = await import("drizzle-orm");
+          const emailPlaceholder = `email:${discordUser.email}`;
+          const pendingRecord = await db
+            .select()
+            .from(members)
+            .where(eq(members.discordId, emailPlaceholder))
+            .limit(1);
 
-      const discordUser = userRes.data;
-      const discordId = discordUser.id;
-      const discordUsername = discordUser.username;
-      const displayName = discordUser.global_name || discordUser.username;
-      const email = discordUser.email || null;
-      const avatarHash = discordUser.avatar;
-      const avatarUrl = avatarHash
-        ? `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.${avatarHash.startsWith("a_") ? "gif" : "png"}?size=256`
-        : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator || "0") % 5}.png`;
-
-      // Verify guild membership using bot token
-      let isGuildMember = false;
-      if (ENV.discordBotToken) {
-        try {
-          await axios.get(`${DISCORD_API}/guilds/${ENV.discordGuildId}/members/${discordId}`, {
-            headers: { Authorization: `Bot ${ENV.discordBotToken}` },
-          });
-          isGuildMember = true;
-        } catch (err: any) {
-          if (err?.response?.status === 404) {
-            isGuildMember = false;
+          if (pendingRecord.length > 0) {
+            // Update the placeholder record with the real Discord identity
+            await db
+              .update(members)
+              .set({
+                discordId: discordUser.id,
+                discordUsername: discordUser.username,
+                discordDisplayName: discordUser.global_name || discordUser.username,
+                discordAvatar: discordUser.avatar,
+                lastSignedIn: new Date(),
+              })
+              .where(eq(members.discordId, emailPlaceholder));
+            console.log(`[Discord OAuth] Merged Stripe member record for ${discordUser.email} with Discord ID ${discordUser.id}`);
           } else {
-            console.error("[Discord] Guild member check failed:", err?.response?.status);
-            // If bot check fails, check user's guilds via OAuth
-            try {
-              const guildsRes = await axios.get(`${DISCORD_API}/users/@me/guilds`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
-              isGuildMember = guildsRes.data.some((g: any) => g.id === ENV.discordGuildId);
-            } catch {
-              isGuildMember = false;
-            }
+            // No pending record — standard upsert
+            await upsertMember({
+              discordId: discordUser.id,
+              discordUsername: discordUser.username,
+              discordDisplayName: discordUser.global_name || discordUser.username,
+              discordAvatar: discordUser.avatar,
+              email: discordUser.email,
+            });
           }
         }
       } else {
-        // Fallback: check via user's guilds
-        try {
-          const guildsRes = await axios.get(`${DISCORD_API}/users/@me/guilds`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-          isGuildMember = guildsRes.data.some((g: any) => g.id === ENV.discordGuildId);
-        } catch {
-          isGuildMember = false;
-        }
-      }
-
-      // Upsert member in database
-      const db = await getDb();
-      if (!db) {
-        res.status(500).json({ error: "Database unavailable" });
-        return;
-      }
-
-      const existing = await db.select().from(members).where(eq(members.discordId, discordId)).limit(1);
-
-      if (existing.length > 0) {
-        await db.update(members).set({
-          discordUsername,
-          displayName,
-          email,
-          avatarUrl,
-          lastSignedIn: new Date(),
-        }).where(eq(members.discordId, discordId));
-      } else {
-        await db.insert(members).values({
-          discordId,
-          discordUsername,
-          displayName,
-          email,
-          avatarUrl,
-          memberRole: "member",
-          subscriptionStatus: "none",
-          lastSignedIn: new Date(),
+        // No email from Discord — standard upsert
+        await upsertMember({
+          discordId: discordUser.id,
+          discordUsername: discordUser.username,
+          discordDisplayName: discordUser.global_name || discordUser.username,
+          discordAvatar: discordUser.avatar,
+          email: discordUser.email,
         });
       }
 
-      // Create session token using the SDK
-      const sessionToken = await sdk.createSessionToken(discordId, {
-        name: displayName,
-        expiresInMs: ONE_YEAR_MS,
-      });
-
-      // Also upsert into users table for compatibility
-      const { upsertUser } = await import("./db");
-      await upsertUser({
-        openId: discordId,
-        name: displayName,
-        email,
-        loginMethod: "discord",
-        lastSignedIn: new Date(),
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      // Redirect based on guild membership and subscription
-      const member = await db.select().from(members).where(eq(members.discordId, discordId)).limit(1);
-      const hasActiveSubscription = member[0]?.subscriptionStatus === "active" || member[0]?.subscriptionStatus === "trialing";
-
-      if (!isGuildMember && !hasActiveSubscription) {
-        res.redirect(`${state.origin}/circle`);
-      } else {
-        res.redirect(`${state.origin}${state.returnPath || "/portal"}`);
+      // Fetch the member record to get the ID
+      const member = await getMemberByDiscordId(discordUser.id);
+      if (!member) {
+        res.status(500).json({ error: "Failed to create member record" });
+        return;
       }
-    } catch (error: any) {
-      console.error("[Discord] OAuth callback failed:", error?.response?.data || error.message);
-      res.redirect(`${state.origin}/circle?error=auth_failed`);
+
+      // Create session token and set cookie
+      const sessionToken = await createMemberSession(member);
+      const cookieOptions = getMemberCookieOptions(req);
+      res.cookie(MEMBER_COOKIE_NAME, sessionToken, cookieOptions);
+
+      // Redirect to member portal
+      res.redirect(302, `${origin}${returnPath}`);
+    } catch (error) {
+      console.error("[Discord OAuth] Callback failed:", error);
+      res.redirect(302, `${origin}/circle?error=auth_failed`);
     }
   });
 
-  // Discord logout
+  /**
+   * GET /api/discord/me
+   * Returns the current member's info from the session cookie.
+   */
+  app.get("/api/discord/me", async (req: Request, res: Response) => {
+    const cookie = parseMemberCookie(req);
+    const session = await verifyMemberSession(cookie);
+
+    if (!session) {
+      res.json({ member: null });
+      return;
+    }
+
+    const member = await getMemberById(session.memberId);
+    if (!member) {
+      res.json({ member: null });
+      return;
+    }
+
+    // Build avatar URL
+    const avatarUrl = member.discordAvatar
+      ? `https://cdn.discordapp.com/avatars/${member.discordId}/${member.discordAvatar}.png?size=128`
+      : `https://cdn.discordapp.com/embed/avatars/${parseInt(member.discordId) % 5}.png`;
+
+    res.json({
+      member: {
+        id: member.id,
+        discordId: member.discordId,
+        discordUsername: member.discordUsername,
+        displayName: member.discordDisplayName || member.discordUsername,
+        avatarUrl,
+        email: member.email,
+        subscriptionStatus: member.subscriptionStatus,
+        memberRole: member.memberRole,
+        createdAt: member.createdAt,
+      },
+    });
+  });
+
+  /**
+   * POST /api/discord/logout
+   * Clears the member session cookie.
+   */
   app.post("/api/discord/logout", (req: Request, res: Response) => {
-    const cookieOptions = getSessionCookieOptions(req);
-    res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+    const cookieOptions = getMemberCookieOptions(req);
+    res.clearCookie(MEMBER_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     res.json({ success: true });
   });
 }

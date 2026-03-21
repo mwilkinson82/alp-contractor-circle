@@ -4,27 +4,51 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Circle from "./pages/Circle";
-import Portal from "./pages/Portal";
-import Replays from "./pages/Replays";
-import Welcome from "./pages/Welcome";
-import Admin from "./pages/Admin";
-import Account from "./pages/Account";
-import Templates from "./pages/Templates";
+import ContractingCircle from "./pages/ContractingCircle";
+import CircleWelcome from "./pages/CircleWelcome";
+import MemberPortalLayout from "./components/MemberPortalLayout";
+import PortalDashboard from "./pages/PortalDashboard";
+import PortalReplays from "./pages/PortalReplays";
+import PortalTemplates from "./pages/PortalTemplates";
+import PortalAccount from "./pages/PortalAccount";
+import PortalAdmin from "./pages/PortalAdmin";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/circle"} component={Circle} />
-      <Route path={"/circle/welcome"} component={Welcome} />
-      <Route path={"/portal"} component={Portal} />
-      <Route path={"/portal/replays"} component={Replays} />
-      <Route path={"/portal/templates"} component={Templates} />
-      <Route path={"/portal/account"} component={Account} />
-      <Route path={"/portal/admin"} component={Admin} />
+      {/* Public pages — Circle landing is the homepage */}
+      <Route path={"/"} component={ContractingCircle} />
+      <Route path={"/circle"} component={ContractingCircle} />
+      <Route path={"/circle/welcome"} component={CircleWelcome} />
+
+      {/* Member portal (Discord auth) */}
+      <Route path="/portal">
+        <MemberPortalLayout>
+          <PortalDashboard />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/replays">
+        <MemberPortalLayout>
+          <PortalReplays />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/templates">
+        <MemberPortalLayout>
+          <PortalTemplates />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/account">
+        <MemberPortalLayout>
+          <PortalAccount />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/admin">
+        <MemberPortalLayout>
+          <PortalAdmin />
+        </MemberPortalLayout>
+      </Route>
+
       <Route path={"/404"} component={NotFound} />
-      {/* Default redirect to circle landing */}
-      <Route path={"/"} component={Circle} />
       <Route component={NotFound} />
     </Switch>
   );

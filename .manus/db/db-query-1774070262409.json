@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE replays ADD COLUMN `callDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute ALTER TABLE replays ADD COLUMN `callDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 941
+}

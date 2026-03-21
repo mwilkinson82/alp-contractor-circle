@@ -61,5 +61,26 @@
 - [x] ICS calendar generation tests
 
 ## Deployment
-- [ ] Deploy via Manus hosting
+- [x] Deploy via Manus hosting
 - [ ] Connect custom domain alpcontractorscircle.com
+
+## Pending
+- [x] Write vitest tests for ported code (61 passing, 3 skipped for missing RESEND_API_KEY)
+- [x] Save checkpoint and deploy
+
+## Redesign to Match Original (Ported from GitHub repo)
+- [x] Ported original ContractingCircle landing page with all circle components
+- [x] Ported original PortalDashboard with subscription status, quick links
+- [x] Ported original MemberPortalLayout with sidebar navigation
+- [x] Ported all portal pages (Replays, Templates, Account, Admin)
+- [x] Ported CircleWelcome post-payment page
+- [x] Ported original Midnight Ember theme (index.css)
+- [x] Updated App.tsx: / route → ContractingCircle (removed link-in-bio Home)
+- [x] Updated Discord invite to discord.gg/jnwDPTY6D3
+- [x] Updated Zoom link to real meeting URL
+- [x] Updated Discord OAuth to use dynamic origin
+- [x] Fixed server imports (registerDiscordOAuthRoutes, registerStripeWebhook)
+- [x] Installed resend package
+- [x] Migrated members table columns
+- [x] Migrated replays table columns
+- [x] Fixed TypeScript errors (0 errors)

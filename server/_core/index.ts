@@ -4,8 +4,8 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
-import { registerDiscordRoutes } from "../discord";
-import { registerStripeWebhook } from "../stripe";
+import { registerDiscordOAuthRoutes } from "../discord";
+import { registerStripeWebhook } from "../stripeWebhook";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -41,7 +41,7 @@ async function startServer() {
   
   // OAuth routes
   registerOAuthRoutes(app);
-  registerDiscordRoutes(app);
+  registerDiscordOAuthRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
