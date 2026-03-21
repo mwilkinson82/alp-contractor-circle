@@ -1,6 +1,6 @@
 /**
  * Hook for Discord member authentication state.
- * Separate from useAuth (Manus OAuth) — this is for Contracting Circle members.
+ * Separate from useAuth (Manus OAuth) — this is for Contractor Circle members.
  */
 import { trpc } from "@/lib/trpc";
 import { useCallback } from "react";

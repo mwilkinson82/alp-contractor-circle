@@ -9,7 +9,7 @@ import { Footer } from '@/components/circle/Footer'
 import { AmbientBackground } from '@/components/circle/AmbientBackground'
 import { GradientBar } from '@/components/circle/GradientBar'
 
-export default function ContractingCircle() {
+export default function ContractorCircle() {
   return (
     <div className="relative min-h-screen overflow-x-hidden no-scrollbar grain-overlay">
       <GradientBar />

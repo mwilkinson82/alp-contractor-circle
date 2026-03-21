@@ -138,7 +138,7 @@ export default function PortalAccount() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-heading text-lg font-semibold text-cream">
-                  {subscription?.plan || "The Contracting Circle"}
+                  {subscription?.plan || "The Contractor Circle"}
                 </h3>
                 <p className="text-cream-muted text-sm mt-0.5">
                   ${((subscription?.amount || 49700) / 100).toFixed(0)}/{subscription?.interval || "month"}

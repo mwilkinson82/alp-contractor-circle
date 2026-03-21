@@ -21,7 +21,7 @@ export const appRouter = router({
 
   stripe: router({
     /**
-     * Create a Stripe Checkout Session for The Contracting Circle subscription.
+     * Create a Stripe Checkout Session for The Contractor Circle subscription.
      * This is a public procedure — no login required to start checkout.
      * Stripe handles all payment collection and customer creation.
      */

@@ -18,24 +18,24 @@ function createPublicContext(): TrpcContext {
 
 // ─── Products Configuration ───────────────────────────────────────────────
 describe("Stripe Products Configuration", () => {
-  it("has the correct Contracting Circle product config", () => {
-    const product = PRODUCTS.contractingCircle;
-    expect(product.name).toBe("The Contracting Circle — Founding Member");
+  it("has the correct Contractor Circle product config", () => {
+    const product = PRODUCTS.contractorCircle;
+    expect(product.name).toBe("The Contractor Circle — Founding Member");
     expect(product.priceAmount).toBe(49700); // $497.00
     expect(product.currency).toBe("usd");
     expect(product.interval).toBe("month");
-    expect(product.metadata.product_key).toBe("contracting_circle");
+    expect(product.metadata.product_key).toBe("contractor_circle");
     expect(product.metadata.tier).toBe("founding_member");
   });
 
   it("price amount is correct in cents", () => {
-    const product = PRODUCTS.contractingCircle;
+    const product = PRODUCTS.contractorCircle;
     const priceInDollars = product.priceAmount / 100;
     expect(priceInDollars).toBe(497);
   });
 
   it("product description mentions key features", () => {
-    const product = PRODUCTS.contractingCircle;
+    const product = PRODUCTS.contractorCircle;
     expect(product.description).toContain("Weekly calls");
     expect(product.description).toContain("Discord");
     expect(product.description).toContain("template library");

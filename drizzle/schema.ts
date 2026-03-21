@@ -19,7 +19,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
- * Members table — Contracting Circle members who authenticate via Discord.
+ * Members table — Contractor Circle members who authenticate via Discord.
  * Links Discord identity to Stripe subscription for access control.
  */
 export const members = mysqlTable("members", {
@@ -58,7 +58,7 @@ export type Member = typeof members.$inferSelect;
 export type InsertMember = typeof members.$inferInsert;
 
 /**
- * Replays table — Contracting Circle call recordings hosted on Cloudflare Stream.
+ * Replays table — Contractor Circle call recordings hosted on Cloudflare Stream.
  *
  * Workflow:
  * 1. Download Zoom recording after each Thursday call

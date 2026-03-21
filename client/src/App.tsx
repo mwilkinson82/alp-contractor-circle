@@ -4,7 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ContractingCircle from "./pages/ContractingCircle";
+import ContractorCircle from "./pages/ContractorCircle";
 import CircleWelcome from "./pages/CircleWelcome";
 import MemberPortalLayout from "./components/MemberPortalLayout";
 import PortalDashboard from "./pages/PortalDashboard";
@@ -17,8 +17,8 @@ function Router() {
   return (
     <Switch>
       {/* Public pages — Circle landing is the homepage */}
-      <Route path={"/"} component={ContractingCircle} />
-      <Route path={"/circle"} component={ContractingCircle} />
+      <Route path={"/"} component={ContractorCircle} />
+      <Route path={"/circle"} component={ContractorCircle} />
       <Route path={"/circle/welcome"} component={CircleWelcome} />
 
       {/* Member portal (Discord auth) */}

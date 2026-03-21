@@ -1,5 +1,5 @@
 /**
- * The Contracting Circle — Welcome / Post-Purchase Success Page
+ * The Contractor Circle — Welcome / Post-Purchase Success Page
  * 
  * This is the first thing a new member sees after paying $497/mo.
  * It needs to make them feel like they just made the best decision of their career.
@@ -522,7 +522,7 @@ export default function CircleWelcome() {
                   href="/circle"
                   className="text-cream/40 text-xs hover:text-cream/60 transition-colors"
                 >
-                  ← Back to The Contracting Circle
+                  ← Back to The Contractor Circle
                 </a>
               </motion.div>
             </motion.div>

@@ -9,7 +9,7 @@ import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
  * Register the Stripe webhook endpoint.
  * MUST be called BEFORE express.json() middleware to preserve raw body for signature verification.
  *
- * IMPORTANT: This webhook only processes events that contain metadata.product_key === "contracting_circle".
+ * IMPORTANT: This webhook only processes events that contain metadata.product_key === "contractor_circle".
  * This prevents cross-site webhook noise from other Stripe products on the same account.
  */
 export function registerStripeWebhook(app: Express) {
@@ -54,12 +54,12 @@ export function registerStripeWebhook(app: Express) {
           case "checkout.session.completed": {
             const session = event.data.object as Stripe.Checkout.Session;
 
-            // ─── FILTER: Only process Contracting Circle checkouts ───────────
+            // ─── FILTER: Only process Contractor Circle checkouts ───────────
             // This prevents webhook noise from other products on the same Stripe account.
             const productKey = session.metadata?.product_key;
-            if (productKey !== "contracting_circle") {
+            if (productKey !== "contractor_circle") {
               console.log(
-                `[Stripe Webhook] Ignoring checkout.session.completed — product_key: "${productKey}" is not "contracting_circle"`
+                `[Stripe Webhook] Ignoring checkout.session.completed — product_key: "${productKey}" is not "contractor_circle"`
               );
               break;
             }
@@ -114,7 +114,7 @@ export function registerStripeWebhook(app: Express) {
             // ─── NOTIFY MARSHALL ──────────────────────────────────────────────
             try {
               await notifyOwner({
-                title: "🎉 New Contracting Circle Member!",
+                title: "🎉 New Contractor Circle Member!",
                 content: `New founding member just subscribed!\n\nEmail: ${memberEmail || "N/A"}\nName: ${memberName}\nSession: ${session.id}\nAmount: $497/mo\nWelcome email: ${memberEmail ? "sent" : "skipped (no email)"}\n\nWelcome them to the Discord community!`,
               });
             } catch (err) {
@@ -126,9 +126,9 @@ export function registerStripeWebhook(app: Express) {
           case "customer.subscription.created": {
             const subscription = event.data.object as Stripe.Subscription;
 
-            // Filter: only process Contracting Circle subscriptions
+            // Filter: only process Contractor Circle subscriptions
             const productKey = subscription.metadata?.product_key;
-            if (productKey !== "contracting_circle") {
+            if (productKey !== "contractor_circle") {
               console.log(`[Stripe Webhook] Ignoring subscription.created — product_key: "${productKey}"`);
               break;
             }
@@ -142,9 +142,9 @@ export function registerStripeWebhook(app: Express) {
           case "customer.subscription.updated": {
             const subscription = event.data.object as Stripe.Subscription;
 
-            // Filter: only process Contracting Circle subscriptions
+            // Filter: only process Contractor Circle subscriptions
             const productKey = subscription.metadata?.product_key;
-            if (productKey !== "contracting_circle") {
+            if (productKey !== "contractor_circle") {
               console.log(`[Stripe Webhook] Ignoring subscription.updated — product_key: "${productKey}"`);
               break;
             }
@@ -172,9 +172,9 @@ export function registerStripeWebhook(app: Express) {
           case "customer.subscription.deleted": {
             const subscription = event.data.object as Stripe.Subscription;
 
-            // Filter: only process Contracting Circle subscriptions
+            // Filter: only process Contractor Circle subscriptions
             const productKey = subscription.metadata?.product_key;
-            if (productKey !== "contracting_circle") {
+            if (productKey !== "contractor_circle") {
               console.log(`[Stripe Webhook] Ignoring subscription.deleted — product_key: "${productKey}"`);
               break;
             }

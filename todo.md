@@ -84,3 +84,7 @@
 - [x] Migrated members table columns
 - [x] Migrated replays table columns
 - [x] Fixed TypeScript errors (0 errors)
+
+## Hotfix — Name & OAuth- [x] Fix ALL instances of "Contracting Circle" to "Contractor Circle" across entire project
+- [x] Update Discord OAuth redirect URI to https://alpcontractorcircle.com/api/discord/callback
+- [x] Deploy

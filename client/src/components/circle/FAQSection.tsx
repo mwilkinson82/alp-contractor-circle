@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "Who is The Contracting Circle for?",
+    question: "Who is The Contractor Circle for?",
     answer: "Any contractor who is serious about scaling their business — whether you're doing $500K or $10M+ a year. If you're tired of guessing and want proven systems, live coaching, and a community of operators who actually execute, this is for you.",
   },
   {
@@ -33,7 +33,7 @@ const faqs = [
   },
   {
     question: "What does 'Founding Member' mean?",
-    answer: "Founding members are the first operators to join The Contracting Circle. Your $497/mo rate is locked in permanently — it will never increase for you, even as we add more features and raise the price for new members. You're building this with us from the ground floor.",
+    answer: "Founding members are the first operators to join The Contractor Circle. Your $497/mo rate is locked in permanently — it will never increase for you, even as we add more features and raise the price for new members. You're building this with us from the ground floor.",
   },
 ];
 

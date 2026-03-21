@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useCallback, useState } from "react";
 
 /**
- * Hook to handle Stripe checkout for The Contracting Circle subscription.
+ * Hook to handle Stripe checkout for The Contractor Circle subscription.
  * Opens checkout in a new tab and shows loading state.
  */
 export function useCircleCheckout() {

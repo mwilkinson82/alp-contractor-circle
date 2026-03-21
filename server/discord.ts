@@ -1,5 +1,5 @@
 /**
- * Discord OAuth2 flow for Contracting Circle member authentication.
+ * Discord OAuth2 flow for Contractor Circle member authentication.
  *
  * Flow:
  * 1. Frontend redirects to /api/discord/login?origin=<origin>&returnPath=<path>
@@ -18,6 +18,8 @@ import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
+// Production domain — must be registered in Discord Developer Portal
+const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize";
 const DISCORD_OAUTH_TOKEN = `${DISCORD_API_BASE}/oauth2/token`;
@@ -200,9 +202,11 @@ export function registerDiscordOAuthRoutes(app: Express) {
    *   - returnPath: where to redirect after login (default: /portal)
    */
   app.get("/api/discord/login", (req: Request, res: Response) => {
-    // Use the request origin so the redirect URI matches the current deployment.
-    // The Discord Developer Portal redirect URI must include this domain.
-    const origin = (req.query.origin as string) || req.headers.origin || `${req.protocol}://${req.get("host")}`;
+    // Use the request origin, but always normalise to the production domain when
+    // the request comes from alpcontractorcircle.com so the redirect_uri matches
+    // what is registered in the Discord Developer Portal.
+    const rawOrigin = (req.query.origin as string) || req.headers.origin || `${req.protocol}://${req.get("host")}`;
+    const origin = rawOrigin.includes("alpcontractorcircle.com") ? PRODUCTION_ORIGIN : rawOrigin;
     const returnPath = (req.query.returnPath as string) || "/portal";
     const redirectUri = `${origin}/api/discord/callback`;
 

@@ -23,7 +23,7 @@ function buildWelcomeEmailHtml(params: { name: string }): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to The Contracting Circle</title>
+  <title>Welcome to The Contractor Circle</title>
 </head>
 <body style="margin:0;padding:0;background-color:#08090D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
@@ -283,7 +283,7 @@ export async function sendWelcomeEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "Welcome to The Contracting Circle — Here's How to Get Started",
+      subject: "Welcome to The Contractor Circle — Here's How to Get Started",
       html: buildWelcomeEmailHtml({ name: params.name }),
       text: buildWelcomeEmailText({ name: params.name }),
     });

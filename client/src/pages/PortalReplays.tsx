@@ -1,5 +1,5 @@
 /**
- * Replay Library — Watch past Contracting Circle calls and bootcamp sessions.
+ * Replay Library — Watch past Contractor Circle calls and bootcamp sessions.
  * Videos are hosted on Cloudflare Stream and stored in the database.
  * Marshall adds new replays after each Thursday call via the admin panel.
  */

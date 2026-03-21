@@ -1,5 +1,5 @@
 /**
- * Member-specific tRPC router for the Contracting Circle portal.
+ * Member-specific tRPC router for the Contractor Circle portal.
  * Uses Discord session (member_session cookie) instead of Manus auth.
  */
 import { TRPCError } from "@trpc/server";
@@ -71,7 +71,7 @@ export const memberRouter = router({
         status: member.subscriptionStatus || "none",
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
-        plan: "The Contracting Circle",
+        plan: "The Contractor Circle",
         amount: 497_00,
         currency: "usd",
         interval: "month",
@@ -86,7 +86,7 @@ export const memberRouter = router({
         status: sub.status,
         currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
         cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
-        plan: "The Contracting Circle",
+        plan: "The Contractor Circle",
         amount: price?.unit_amount || 497_00,
         currency: price?.currency || "usd",
         interval: (price?.recurring?.interval as string) || "month",
@@ -97,7 +97,7 @@ export const memberRouter = router({
         status: member.subscriptionStatus || "none",
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
-        plan: "The Contracting Circle",
+        plan: "The Contractor Circle",
         amount: 497_00,
         currency: "usd",
         interval: "month",
@@ -229,7 +229,7 @@ export const memberRouter = router({
           amount: charge.amount,
           currency: charge.currency,
           status: charge.status,
-          description: charge.description || "The Contracting Circle",
+          description: charge.description || "The Contractor Circle",
           createdAt: new Date(charge.created * 1000),
           receiptUrl: charge.receipt_url,
         })),

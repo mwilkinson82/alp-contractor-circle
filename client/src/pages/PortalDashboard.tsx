@@ -1,5 +1,5 @@
 /**
- * Member Dashboard — The Contracting Circle portal home.
+ * Member Dashboard — The Contractor Circle portal home.
  * Shows welcome message, subscription status, quick links, and upcoming events.
  */
 import { useMember } from "@/hooks/useMember";
@@ -115,7 +115,7 @@ export default function PortalDashboard() {
             {greeting}, {firstName}
           </h1>
           <p className="text-cream-muted mt-1">
-            Welcome to your Contracting Circle member portal.
+            Welcome to your Contractor Circle member portal.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -137,7 +137,7 @@ export default function PortalDashboard() {
             </div>
             <div>
               <h2 className="font-heading text-lg font-semibold text-cream">
-                {subscription?.plan || "The Contracting Circle"}
+                {subscription?.plan || "The Contractor Circle"}
               </h2>
               <p className="text-cream-muted text-sm mt-0.5">
                 {subLoading ? (

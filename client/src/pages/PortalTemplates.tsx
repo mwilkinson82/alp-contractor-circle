@@ -1,5 +1,5 @@
 /**
- * Templates Page — Downloadable resources for Contracting Circle members.
+ * Templates Page — Downloadable resources for Contractor Circle members.
  * All templates are real, battle-tested resources built through the ALP framework.
  */
 import { useState, useMemo } from "react";

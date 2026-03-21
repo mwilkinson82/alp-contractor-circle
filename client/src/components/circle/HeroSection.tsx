@@ -114,7 +114,7 @@ export function HeroSection() {
         >
           <AnimatedWords text="The" className="text-cream" delay={0.4} />
           <br />
-          <AnimatedWords text="Contracting" className="text-ember" delay={0.6} />
+          <AnimatedWords text="Contractor" className="text-ember" delay={0.6} />
           <br />
           <AnimatedWords text="Circle" className="text-cream" delay={0.8} />
         </h1>

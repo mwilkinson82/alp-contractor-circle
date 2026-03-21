@@ -49,7 +49,7 @@ function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => st
           Member Portal
         </h1>
         <p className="text-cream-muted mb-8 leading-relaxed">
-          Sign in with your Discord account to access The Contracting Circle member area.
+          Sign in with your Discord account to access The Contractor Circle member area.
         </p>
         <a
           href={getLoginUrl("/portal")}
@@ -61,7 +61,7 @@ function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => st
           Sign in with Discord
         </a>
         <p className="text-cream-muted/50 text-xs mt-6">
-          Only available to Contracting Circle members
+          Only available to Contractor Circle members
         </p>
       </div>
     </div>

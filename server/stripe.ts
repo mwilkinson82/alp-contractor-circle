@@ -16,14 +16,14 @@ export const stripe = stripeSecretKey
 let cachedPriceId: string | null = null;
 
 /**
- * Get or create the Stripe Price for The Contracting Circle subscription.
+ * Get or create the Stripe Price for The Contractor Circle subscription.
  * Creates the Product and Price in Stripe if they don't exist yet.
  */
 export async function getOrCreateCirclePriceId(): Promise<string> {
   if (cachedPriceId) return cachedPriceId;
   if (!stripe) throw new Error("Stripe is not configured");
 
-  const product = PRODUCTS.contractingCircle;
+  const product = PRODUCTS.contractorCircle;
 
   // Search for existing product by metadata
   const existingProducts = await stripe.products.search({
@@ -79,7 +79,7 @@ export async function getOrCreateCirclePriceId(): Promise<string> {
 }
 
 /**
- * Create a Stripe Checkout Session for The Contracting Circle subscription.
+ * Create a Stripe Checkout Session for The Contractor Circle subscription.
  */
 export async function createCircleCheckoutSession(params: {
   origin: string;
@@ -104,7 +104,7 @@ export async function createCircleCheckoutSession(params: {
     success_url: `${params.origin}/circle/welcome?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${params.origin}/circle?checkout=cancelled`,
     metadata: {
-      product_key: "contracting_circle",
+      product_key: "contractor_circle",
       ...(params.userId && { user_id: params.userId.toString() }),
       ...(params.userName && { customer_name: params.userName }),
       ...(params.userEmail && { customer_email: params.userEmail }),
