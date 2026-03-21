@@ -18,7 +18,7 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  window.location.href = `/api/discord/login?origin=${encodeURIComponent(window.location.origin)}&returnPath=${encodeURIComponent(window.location.pathname)}`;
 };
 
 queryClient.getQueryCache().subscribe(event => {

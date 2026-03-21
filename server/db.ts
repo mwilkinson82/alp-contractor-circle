@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, members, replays, type InsertMember, type InsertReplay } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -17,6 +17,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+// ============ USER HELPERS ============
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -85,8 +87,53 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============ MEMBER HELPERS ============
+
+export async function getMemberByDiscordId(discordId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(members).where(eq(members.discordId, discordId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getMemberById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(members).where(eq(members.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllMembers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(members).orderBy(desc(members.createdAt));
+}
+
+// ============ REPLAY HELPERS ============
+
+export async function getPublishedReplays() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(replays).where(eq(replays.isPublished, 1)).orderBy(desc(replays.createdAt));
+}
+
+export async function getAllReplays() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(replays).orderBy(desc(replays.createdAt));
+}
+
+export async function createReplay(replay: InsertReplay) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(replays).values(replay);
+}
+
+export async function deleteReplay(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(replays).where(eq(replays.id, id));
+}

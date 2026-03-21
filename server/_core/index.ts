@@ -4,6 +4,8 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { registerDiscordRoutes } from "../discord";
+import { registerStripeWebhook } from "../stripe";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -30,11 +32,16 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Register Stripe webhook BEFORE express.json() middleware
+  registerStripeWebhook(app);
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // OAuth callback under /api/oauth/callback
+  
+  // OAuth routes
   registerOAuthRoutes(app);
+  registerDiscordRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -59,6 +66,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[Discord] OAuth configured for guild: ${process.env.DISCORD_GUILD_ID || "927273292354711613"}`);
+    console.log(`[Stripe] Webhook endpoint: /api/stripe/webhook`);
   });
 }
 
