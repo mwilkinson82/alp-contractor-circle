@@ -205,6 +205,19 @@ export const memberRouter = router({
     }),
 
   /**
+   * Public: Get count of active members (for social proof on landing page).
+   */
+  count: publicProcedure.query(async () => {
+    const db = getDb();
+    if (!db) return { count: 0 };
+    const rows = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(eq(members.subscriptionStatus, "active"));
+    return { count: rows.length };
+  }),
+
+  /**
    * Get payment history from Stripe for the current member.
    */
   payments: publicProcedure.query(async ({ ctx }) => {

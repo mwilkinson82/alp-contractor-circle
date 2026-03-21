@@ -26,7 +26,8 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "";
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
 const CONTRACTOR_CIRCLE_ROLE_ID = "1484648318662344985"; // Contractor Circle role
-const WELCOME_CHANNEL_ID = "1484648373683355792";         // #welcome channel
+// #welcome channel is read-only (general welcome pinned there)
+const GENERAL_CHAT_CHANNEL_ID = "1484648401483206739";    // #general-chat — personalized welcome messages go here
 const DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize";
 const DISCORD_OAUTH_TOKEN = `${DISCORD_API_BASE}/oauth2/token`;
 const DISCORD_USER_ME = `${DISCORD_API_BASE}/users/@me`;
@@ -341,10 +342,10 @@ export function registerDiscordOAuthRoutes(app: Express) {
           );
           console.log(`[Discord] Assigned Contractor Circle role to ${discordUser.username}`);
 
-          // Post welcome message in #welcome channel (fire-and-forget)
+          // Post personalized welcome message in #general-chat (fire-and-forget)
           const displayName = discordUser.global_name || discordUser.username;
           axios.post(
-            `${DISCORD_API_BASE}/channels/${WELCOME_CHANNEL_ID}/messages`,
+            `${DISCORD_API_BASE}/channels/${GENERAL_CHAT_CHANNEL_ID}/messages`,
             {
               content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Read through this channel for everything you need to get started. We're glad you're here — let's build.`,
             },

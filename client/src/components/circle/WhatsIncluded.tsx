@@ -5,7 +5,7 @@ import { Calendar, BarChart3, GraduationCap, FileText, Users, MessageCircle } fr
 const features = [
   {
     icon: Calendar,
-    title: "Weekly Group Call",
+    title: "Bi-Weekly Group Call",
     subtitle: "Thursday Evenings",
     description: "Live hot seats, Q&A, and strategic teaching sessions led by Marshall. Bring your real problems — leave with real solutions.",
     accent: "from-ember/20 to-ember/5",

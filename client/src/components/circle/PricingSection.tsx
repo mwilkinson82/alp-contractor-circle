@@ -4,7 +4,7 @@ import { Check, Zap, Shield, ArrowRight, Loader2 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 
 const included = [
-  "Weekly group call with Marshall (Thursday evenings)",
+  "Bi-bi-weekly group call with Marshall (Thursday evenings)",
   "Monthly deal reviews — get expert eyes on your proposals",
   "Monthly bootcamp — intensive deep-dive training",
   "Full template library — SOPs, contracts, spreadsheets",

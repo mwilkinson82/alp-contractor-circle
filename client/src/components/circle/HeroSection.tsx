@@ -150,7 +150,7 @@ export function HeroSection() {
           transition={{ duration: 0.9, delay: 1.3, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-wrap justify-center gap-3 mb-10"
         >
-          {["Weekly Calls", "Deal Reviews", "Templates", "Private Community"].map((item, i) => (
+          {["Bi-Weekly Calls", "Deal Reviews", "Templates", "Private Community"].map((item, i) => (
             <motion.span
               key={item}
               initial={{ opacity: 0, y: 15 }}

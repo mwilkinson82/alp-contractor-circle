@@ -8,8 +8,8 @@ const faqs = [
     answer: "Any contractor who is serious about scaling their business — whether you're doing $500K or $10M+ a year. If you're tired of guessing and want proven systems, live coaching, and a community of operators who actually execute, this is for you.",
   },
   {
-    question: "What happens on the weekly calls?",
-    answer: "Every Thursday evening, Marshall leads a live group call. These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
+    question: "What happens on the bi-weekly calls?",
+    answer: "Every other Thursday evening, Marshall leads a live group call. These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
   },
   {
     question: "What are the monthly deal reviews?",

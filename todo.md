@@ -101,3 +101,12 @@
 ## Footer Link Fixes
 - [x] Fix Instagram URL to https://instagram.com/realmarshallwilkinson in both emails
 - [x] Fix website URL to https://alpcontractorschool.com in both emails
+
+## Discord & Landing Page Updates
+- [x] Move Discord welcome message from #welcome to #general-chat
+- [x] Add live member count to landing page hero (e.g. "X of 50 founding spots claimed")
+
+## Copy Fixes
+- [x] Fix "weekly" to "bi-weekly" for calls in both emails (Email #1 and #2)
+- [x] Fix "weekly" to "bi-weekly" on landing page (hero badges, stats, features, etc.)
+- [x] Remove/replace "Daily Live Rooms" stat with "Founding Spots Remaining" (live count from DB)

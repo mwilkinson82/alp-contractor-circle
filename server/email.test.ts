@@ -37,7 +37,7 @@ describe("Welcome Email #1 — HTML", () => {
     expect(html).toContain("Step 2");
     expect(html).toContain("Step 3");
     expect(html).toContain("Join the Discord Community");
-    expect(html).toContain("Add the Weekly Call to Your Calendar");
+    expect(html).toContain("Add the Bi-Weekly Call to Your Calendar");
     expect(html).toContain("Start Executing in the Portal");
   });
 
@@ -61,7 +61,7 @@ describe("Welcome Email #1 — HTML", () => {
 
   it("includes the membership benefits list", () => {
     const html = buildWelcomeEmailHtml({ name: "Test User" });
-    expect(html).toContain("Weekly Thursday group calls");
+    expect(html).toContain("Bi-weekly Thursday group calls");
     expect(html).toContain("Monthly deal reviews");
     expect(html).toContain("template library");
     expect(html).toContain("Discord community");
@@ -112,7 +112,7 @@ describe("Welcome Email #1 — Plain Text", () => {
 
   it("includes the membership benefits", () => {
     const text = buildWelcomeEmailText({ name: "Test" });
-    expect(text).toContain("Weekly Thursday group calls");
+    expect(text).toContain("Bi-weekly Thursday group calls");
     expect(text).toContain("Monthly deal reviews");
   });
 });

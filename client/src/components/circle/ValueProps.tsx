@@ -1,21 +1,30 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 
-const stats = [
-  { value: "$2.5B+", label: "In Construction Experience", numericTarget: 2.5, prefix: "$", suffix: "B+" },
-  { value: "333+", label: "Contractors Trained", numericTarget: 333, prefix: "", suffix: "+" },
-  { value: "Daily", label: "Live Execution Rooms", numericTarget: 0, prefix: "", suffix: "" },
-];
+const FOUNDING_SPOTS = 50;
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-function AnimatedNumber({ target, prefix, suffix, label, isText }: { target: number; prefix: string; suffix: string; label: string; isText?: boolean }) {
+function AnimatedNumber({
+  target,
+  prefix,
+  suffix,
+  label,
+  textValue,
+}: {
+  target: number;
+  prefix: string;
+  suffix: string;
+  label: string;
+  textValue?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!isInView || isText) return;
+    if (!isInView || textValue) return;
     const duration = 2000;
     const steps = 60;
     const increment = target / steps;
@@ -30,9 +39,13 @@ function AnimatedNumber({ target, prefix, suffix, label, isText }: { target: num
       }
     }, duration / steps);
     return () => clearInterval(timer);
-  }, [isInView, target, isText]);
+  }, [isInView, target, textValue]);
 
-  const displayValue = isText ? "Daily" : target >= 100 ? `${prefix}${Math.round(count).toLocaleString()}${suffix}` : `${prefix}${count.toFixed(1)}${suffix}`;
+  const displayValue = textValue
+    ? textValue
+    : target >= 100
+    ? `${prefix}${Math.round(count).toLocaleString()}${suffix}`
+    : `${prefix}${count.toFixed(1)}${suffix}`;
 
   return (
     <motion.div
@@ -63,6 +76,26 @@ export function ValueProps() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
 
+  // Live member count from DB
+  const { data: countData } = trpc.member.count.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+  const memberCount = countData?.count ?? 0;
+  const spotsLeft = Math.max(0, FOUNDING_SPOTS - memberCount);
+
+  const stats = [
+    { label: "In Construction Experience", numericTarget: 2.5, prefix: "$", suffix: "B+" },
+    { label: "Contractors Trained", numericTarget: 333, prefix: "", suffix: "+" },
+    {
+      label: "Founding Spots Remaining",
+      numericTarget: 0,
+      prefix: "",
+      suffix: "",
+      textValue: spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full",
+    },
+  ];
+
   return (
     <section ref={sectionRef} className="relative z-10 py-16 sm:py-24 px-6">
       <div className="max-w-4xl mx-auto">
@@ -75,7 +108,7 @@ export function ValueProps() {
               prefix={stat.prefix}
               suffix={stat.suffix}
               label={stat.label}
-              isText={stat.numericTarget === 0}
+              textValue={stat.textValue}
             />
           ))}
         </div>

@@ -15,22 +15,22 @@ const DISCORD_INVITE = "https://discord.gg/jnwDPTY6D3";
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
 // ─── Add-to-Calendar links for recurring Thursday 7 PM ET meeting ─────────────
-// Recurring weekly on Thursdays
+// Recurring bi-weekly on Thursdays
 const GOOGLE_CALENDAR_URL =
   "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-  "&text=The+Contractor+Circle+%E2%80%94+Weekly+Call+with+Marshall" +
-  "&details=Weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
+  "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
+  "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
   "&recur=RRULE:FREQ%3DWEEKLY;BYDAY%3DTH" +
   "&dates=20260326T230000Z/20260327T003000Z"; // Thursday 7 PM ET = 23:00 UTC
 
 const APPLE_CALENDAR_URL =
-  "https://alpcontractorcircle.com/api/calendar/circle-weekly.ics";
+  "https://alpcontractorcircle.com/api/calendar/circle-biweekly.ics";
 
 const OUTLOOK_CALENDAR_URL =
   "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
-  "&subject=The+Contractor+Circle+%E2%80%94+Weekly+Call+with+Marshall" +
-  "&body=" + encodeURIComponent("Weekly group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
+  "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
+  "&body=" + encodeURIComponent("Bi-weekly group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
   "&startdt=2026-03-26T23:00:00Z&enddt=2026-03-27T00:30:00Z";
 
@@ -141,7 +141,7 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
                 </td>
                 <td style="padding-left:16px;">
                   <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Step 2</p>
-                  <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 8px 0;">Add the Weekly Call to Your Calendar</p>
+                  <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 8px 0;">Add the Bi-Weekly Call to Your Calendar</p>
                   <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0 0 16px 0;">
                     Every <strong style="color:#EDE6DB;">Thursday evening</strong> — group call with Marshall. Come with deals you're working, questions, or challenges. Add it now so you never miss one.
                   </p>
@@ -194,7 +194,7 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
               <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px 0;font-weight:600;text-align:center;">Your Membership Includes</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
                 <td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:2;padding:0 8px;">
-                  ✓ Weekly Thursday group calls with Marshall<br/>
+                  ✓ Bi-weekly Thursday group calls with Marshall<br/>
                   ✓ Monthly deal reviews<br/>
                   ✓ Monthly bootcamp sessions<br/>
                   ✓ Complete template library<br/>
@@ -264,7 +264,7 @@ STEP 1: Join the Discord Community
 Head to the #welcome channel first — read through it, then you'll have access to #general-chat and the exclusive #circle-chat thread.
 → Join Discord: ${DISCORD_INVITE}
 
-STEP 2: Add the Weekly Call to Your Calendar
+STEP 2: Add the Bi-Weekly Call to Your Calendar
 Every Thursday evening — group call with Marshall.
 → Zoom link: ${ZOOM_URL}
 → Add to Google Calendar: ${GOOGLE_CALENDAR_URL}
@@ -278,7 +278,7 @@ Browse the template library, review past call recordings, and start implementing
 ─────────────────────────────────────
 
 YOUR MEMBERSHIP INCLUDES:
-✓ Weekly Thursday group calls with Marshall
+✓ Bi-weekly Thursday group calls with Marshall
 ✓ Monthly deal reviews
 ✓ Monthly bootcamp sessions
 ✓ Complete template library
