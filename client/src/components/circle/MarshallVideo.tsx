@@ -1,6 +1,6 @@
 import { motion, useInView } from "framer-motion";
-import { useRef, useState } from "react";
-import { Play, TrendingUp } from "lucide-react";
+import { useRef } from "react";
+import { TrendingUp } from "lucide-react";
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -112,7 +112,6 @@ function TransformationCard({
 export function MarshallVideo() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-80px" });
-  const [videoPlaying, setVideoPlaying] = useState(false);
 
   return (
     <section ref={sectionRef} className="relative z-10 py-20 sm:py-28 px-6">
@@ -208,53 +207,14 @@ export function MarshallVideo() {
                   }}
                 />
 
-                {/* Coming soon overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {/* Play button */}
-                  <motion.div
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.96 }}
-                    className="relative cursor-pointer mb-4"
-                  >
-                    {/* Outer pulse ring */}
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2"
-                      style={{ borderColor: "oklch(0.72 0.12 55 / 0.3)" }}
-                      animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center border-2"
-                      style={{
-                        borderColor: "oklch(0.72 0.12 55 / 0.5)",
-                        background: "oklch(0.72 0.12 55 / 0.15)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    >
-                      <Play
-                        size={24}
-                        className="text-ember ml-1"
-                        fill="currentColor"
-                      />
-                    </div>
-                  </motion.div>
-
-                  {/* Coming soon label */}
-                  <div
-                    className="px-4 py-2 rounded-full border backdrop-blur-sm"
-                    style={{
-                      borderColor: "oklch(0.72 0.12 55 / 0.3)",
-                      background: "oklch(0.08 0.02 260 / 0.7)",
-                    }}
-                  >
-                    <p
-                      className="text-xs font-semibold tracking-[0.15em] uppercase text-ember"
-                      style={{ fontFamily: "'Sora', sans-serif" }}
-                    >
-                      Video Introduction — Coming Soon
-                    </p>
-                  </div>
-                </div>
+                {/* Cloudflare Video Embed */}
+                <iframe
+                  src="https://iframe.mediadelivery.net/embed/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"
+                  loading="lazy"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen={true}
+                  className="absolute inset-0 w-full h-full"
+                />
 
                 {/* Bottom label bar */}
                 <div
