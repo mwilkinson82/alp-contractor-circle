@@ -31,6 +31,8 @@ interface Template {
   category: Exclude<TemplateCategory, "all">;
   fileType: "pdf" | "docx" | "xlsx";
   downloadUrl: string;
+  /** If set, the modal shows an "Access Document" button linking to Google Drive instead of a download button */
+  googleDriveUrl?: string;
   featured?: boolean;
   badge?: string;
   highlights: string[];
@@ -166,6 +168,26 @@ const TEMPLATES: Template[] = [
       "Companion to the PM Systems presentation deck",
       "Ready-to-use tracking tools and worksheets",
       "Pair with the PDF for the complete PM system",
+    ],
+  },
+  {
+    id: "8",
+    title: "Construction SOPs Template",
+    description: "12 comprehensive standard operating procedures for construction project management.",
+    longDescription: "A complete set of 12 battle-tested Standard Operating Procedures covering every phase of construction project management. Includes Daily Pre-Task Planning (Toolbox Talk), Material Receiving & Inspection, Equipment Daily Inspection, Subcontractor Coordination, Daily Progress Reporting, Change Order Management, RFI Processing, Safety Incident Reporting, Quality Control Inspection, Punch List Management, Project Closeout, and Document Control & Filing.",
+    category: "operations",
+    fileType: "docx",
+    downloadUrl: "https://docs.google.com/document/d/1jjzpZba5u1sQUQ1lEJR3sYsn8jspKrt3z0xDpq8xXD0/copy",
+    googleDriveUrl: "https://docs.google.com/document/d/1jjzpZba5u1sQUQ1lEJR3sYsn8jspKrt3z0xDpq8xXD0/copy",
+    featured: true,
+    badge: "New",
+    pages: "12 SOPs",
+    highlights: [
+      "Daily Pre-Task Planning (Toolbox Talk) with safety checklist",
+      "Material Receiving & Inspection protocol",
+      "Subcontractor Coordination and daily progress reporting",
+      "Change Order Management and RFI Processing workflows",
+      "Safety Incident Reporting, QC Inspection, and Project Closeout",
     ],
   },
 ];
@@ -331,44 +353,61 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
             </div>
           </div>
 
-          {/* Download button */}
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className={`w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all ${
-              done
-                ? "bg-green-500/15 border border-green-500/30 text-green-400"
-                : "bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
-            }`}
-          >
-            {downloading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{progress > 0 ? `Downloading… ${progress}%` : "Preparing download…"}</span>
-              </>
-            ) : done ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Downloaded!</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>Download {ft.label}</span>
-              </>
-            )}
-          </button>
-
-          {/* Progress bar */}
-          {downloading && progress > 0 && (
-            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden -mt-2">
-              <motion.div
-                className="h-full bg-ember rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ ease: "linear" }}
-              />
-            </div>
+          {/* Action button — Google Drive or Download */}
+          {template.googleDriveUrl ? (
+            <a
+              href={template.googleDriveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span>Access Document</span>
+            </a>
+          ) : (
+            <>
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className={`w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all ${
+                  done
+                    ? "bg-green-500/15 border border-green-500/30 text-green-400"
+                    : "bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
+                }`}
+              >
+                {downloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{progress > 0 ? `Downloading… ${progress}%` : "Preparing download…"}</span>
+                  </>
+                ) : done ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Downloaded!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Download {ft.label}</span>
+                  </>
+                )}
+              </button>
+              {/* Progress bar */}
+              {downloading && progress > 0 && (
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden -mt-2">
+                  <motion.div
+                    className="h-full bg-ember rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ ease: "linear" }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </motion.div>

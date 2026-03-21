@@ -131,3 +131,8 @@
 - [x] Rebuild Testimonials: real transformation numbers ($20M, $10M, $2M)
 - [x] Rebuild ValueProps, PricingSection, FAQSection, FinalCTA, Footer
 - [x] Add Julius Davis ($1M → $4M in 6 months) to hero stats ticker
+
+## Portal Fixes (In Progress)
+- [x] Fix Discord Join Community card link — updated to https://discord.gg/KUTmm9D5aW
+- [x] Enable admin role for M Wilkinson (Saxon Capital email) — set via SQL
+- [x] Add Construction SOPs Template (#8) with Google Drive Access Document button

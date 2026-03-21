@@ -476,7 +476,7 @@ export default function CircleWelcome() {
                 title="Join the Community"
                 description="Get instant access to our private Discord community. Introduce yourself, connect with other serious contractors, and start building relationships."
                 cta="Join Discord"
-                ctaLink="https://discord.gg/jnwDPTY6D3"
+                ctaLink="https://discord.gg/KUTmm9D5aW"
                 delay={2.9}
               />
 

@@ -1,0 +1,17 @@
+{
+  "query": "UPDATE members SET memberRole = 'admin' WHERE email = 'Mwilkinson@saxumcapital.com';\nSELECT id, discordUsername, discordDisplayName, email, memberRole FROM members WHERE email = 'Mwilkinson@saxumcapital.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute UPDATE members SET memberRole = 'admin' WHERE email = 'Mwilkinson@saxumcapital.com';\nSELECT id, discordUsername, discordDisplayName, email, memberRole FROM members WHERE email = 'Mwilkinson@saxumcapital.com';",
+  "rows": [
+    {
+      "id": "30001",
+      "discordUsername": "marshallwilkinson",
+      "discordDisplayName": "Marshall Wilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "memberRole": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordUsername\tdiscordDisplayName\temail\tmemberRole\n30001\tmarshallwilkinson\tMarshall Wilkinson\tmwilkinson@saxumcapital.com\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 101
+}

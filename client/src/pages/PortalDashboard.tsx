@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 
-const DISCORD_INVITE = "https://discord.gg/jnwDPTY6D3";
+const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
 // Zoom recurring meeting link for Thursday calls at 12 PM EST
 // Update this URL when the Zoom meeting link changes
