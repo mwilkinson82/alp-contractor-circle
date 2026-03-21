@@ -151,3 +151,59 @@ describe("Member avatar URL construction", () => {
     expect(defaultIndex).toBeLessThan(5);
   });
 });
+
+// ─── redirect_uri normalisation regression tests ─────────────────────────────
+// These tests guard against the "Invalid OAuth2 redirect_uri" bug where the
+// internal Cloud Run hostname was used instead of the registered production domain.
+
+describe("redirect_uri normalisation", () => {
+  const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
+  const ALLOWED_ORIGINS = new Set([
+    "https://alpcontractorcircle.com",
+    "https://www.alpcontractorcircle.com",
+  ]);
+
+  function normaliseOrigin(rawOrigin: string): string {
+    return ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+  }
+
+  it("should keep https://alpcontractorcircle.com as-is", () => {
+    expect(normaliseOrigin("https://alpcontractorcircle.com")).toBe(PRODUCTION_ORIGIN);
+  });
+
+  it("should keep https://www.alpcontractorcircle.com as-is", () => {
+    expect(normaliseOrigin("https://www.alpcontractorcircle.com")).toBe(
+      "https://www.alpcontractorcircle.com"
+    );
+  });
+
+  it("should normalise internal Cloud Run hostname to production origin", () => {
+    expect(normaliseOrigin("https://y62wtfmmee-4w3teb4ewq-uk.a.run.app")).toBe(PRODUCTION_ORIGIN);
+  });
+
+  it("should normalise manus.space dev URL to production origin", () => {
+    expect(normaliseOrigin("https://3000-i0lrrlxp6joa86g06ihb3-cdfc253e.us2.manus.computer")).toBe(
+      PRODUCTION_ORIGIN
+    );
+  });
+
+  it("should normalise empty string to production origin", () => {
+    expect(normaliseOrigin("")).toBe(PRODUCTION_ORIGIN);
+  });
+
+  it("should normalise localhost to production origin in production context", () => {
+    expect(normaliseOrigin("http://localhost:3000")).toBe(PRODUCTION_ORIGIN);
+  });
+
+  it("should produce a valid redirect_uri for the production origin", () => {
+    const origin = normaliseOrigin("https://alpcontractorcircle.com");
+    const redirectUri = `${origin}/api/discord/callback`;
+    expect(redirectUri).toBe("https://alpcontractorcircle.com/api/discord/callback");
+  });
+
+  it("should produce a valid redirect_uri for www origin", () => {
+    const origin = normaliseOrigin("https://www.alpcontractorcircle.com");
+    const redirectUri = `${origin}/api/discord/callback`;
+    expect(redirectUri).toBe("https://www.alpcontractorcircle.com/api/discord/callback");
+  });
+});

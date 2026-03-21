@@ -117,7 +117,7 @@
 - [ ] Build out portal Templates section with real contractor templates
 
 ## Bug Fixes
-- [ ] Fix Discord OAuth redirect URI — login from alpcontractorcircle.com email link fails
+- [x] Fix Discord OAuth redirect URI — normalise to ALLOWED_ORIGINS; Cloud Run hostname fallback was causing mismatch
 - [x] Fix calendar links: bi-weekly Sunday 5 PM ET (not Thursday, not Saturday)
 - [x] Add poster thumbnails to video testimonials (Beau Monde logo, Ahron Gluck logo)
 - [x] Remove 3 fake testimonials, keep only Olive Tree Builds, Sage Construction, Davis Contracting
