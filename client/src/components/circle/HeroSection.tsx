@@ -86,6 +86,23 @@ export function HeroSection() {
         }}
       />
 
+      {/* Top Nav Bar */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 py-5">
+        <div className="flex items-center gap-2">
+          <span className="text-ember font-bold text-lg tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>ALP</span>
+          <span className="text-cream/40 text-sm hidden sm:inline">|</span>
+          <span className="text-cream/60 text-sm hidden sm:inline" style={{ fontFamily: "'DM Sans', sans-serif" }}>Contractor Circle</span>
+        </div>
+        <a
+          href="/portal"
+          className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/80 hover:text-cream text-sm font-medium backdrop-blur-sm"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          <span>Member Login</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </a>
+      </div>
+
       {/* Content */}
       <div className="relative z-10 text-center px-6 max-w-3xl mx-auto pt-24 pb-12">
         {/* Founding Members Badge — animated pulse */}

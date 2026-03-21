@@ -120,3 +120,6 @@
 - [ ] Fix Discord OAuth redirect URI — login from alpcontractorcircle.com email link fails
 - [x] Fix calendar links: bi-weekly Sunday 5 PM ET (not Thursday, not Saturday)
 - [x] Add poster thumbnails to video testimonials (Beau Monde logo, Ahron Gluck logo)
+- [x] Remove 3 fake testimonials, keep only Olive Tree Builds, Sage Construction, Davis Contracting
+- [x] Seed 4 founding members in DB (AJ/Beau Monde, Ronnie/Sage, Nathan/Olive Tree, Dan/Del Monte)
+- [x] Add "Member Login" link to landing page nav that goes to /portal (Discord OAuth)

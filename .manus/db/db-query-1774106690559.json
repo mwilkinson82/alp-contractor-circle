@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, discordUsername, discordDisplayName, memberRole, subscriptionStatus FROM members;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordUsername, discordDisplayName, memberRole, subscriptionStatus FROM members;",
+  "rows": [
+    {
+      "id": "1",
+      "discordUsername": "aj_beaumonde",
+      "discordDisplayName": "AJ",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "2",
+      "discordUsername": "ronnie_silva",
+      "discordDisplayName": "Ronnie Silva",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "3",
+      "discordUsername": "nathan_oliveira",
+      "discordDisplayName": "Nathan Oliveira",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "4",
+      "discordUsername": "dan_delmonte",
+      "discordDisplayName": "Dan Del Monte",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordUsername\tdiscordDisplayName\tmemberRole\tsubscriptionStatus\n1\taj_beaumonde\tAJ\tfounding_member\tactive\n2\tronnie_silva\tRonnie Silva\tfounding_member\tactive\n3\tnathan_oliveira\tNathan Oliveira\tfounding_member\tactive\n4\tdan_delmonte\tDan Del Monte\tfounding_member\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 50
+}

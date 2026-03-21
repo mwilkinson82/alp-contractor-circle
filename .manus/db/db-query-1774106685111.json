@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO members (discordId, discordUsername, discordDisplayName, email, memberRole, subscriptionStatus)\nVALUES \n  ('founding_aj_beau_monde', 'aj_beaumonde', 'AJ', 'aj@beaumonde.com', 'founding_member', 'active'),\n  ('founding_ronnie_sage', 'ronnie_silva', 'Ronnie Silva', 'ronnie@sageconstruction.com', 'founding_member', 'active'),\n  ('founding_nathan_olive', 'nathan_oliveira', 'Nathan Oliveira', 'nathan@olivetreebuilds.com', 'founding_member', 'active'),\n  ('founding_dan_delmonte', 'dan_delmonte', 'Dan Del Monte', 'dan@delmontbuilders.com', 'founding_member', 'active')\nON DUPLICATE KEY UPDATE memberRole = 'founding_member', subscriptionStatus = 'active';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute \nINSERT INTO members (discordId, discordUsername, discordDisplayName, email, memberRole, subscriptionStatus)\nVALUES \n  ('founding_aj_beau_monde', 'aj_beaumonde', 'AJ', 'aj@beaumonde.com', 'founding_member', 'active'),\n  ('founding_ronnie_sage', 'ronnie_silva', 'Ronnie Silva', 'ronnie@sageconstruction.com', 'founding_member', 'active'),\n  ('founding_nathan_olive', 'nathan_oliveira', 'Nathan Oliveira', 'nathan@olivetreebuilds.com', 'founding_member', 'active'),\n  ('founding_dan_delmonte', 'dan_delmonte', 'Dan Del Monte', 'dan@delmontbuilders.com', 'founding_member', 'active')\nON DUPLICATE KEY UPDATE memberRole = 'founding_member', subscriptionStatus = 'active';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 85
+}

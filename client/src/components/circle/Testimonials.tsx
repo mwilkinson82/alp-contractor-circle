@@ -21,24 +21,6 @@ const textTestimonials = [
     company: "Davis Contracting",
     stars: 5,
   },
-  {
-    quote: "Marshall is the real deal. He knows contracting inside and out and can spot the problem fast. He didn't just talk theory — he gave me real fixes that I could implement immediately. Best part is he keeps you moving. No fluff. No wasting time.",
-    name: "ALP Coaching Member",
-    company: "Implemented fixes within 48 hours",
-    stars: 5,
-  },
-  {
-    quote: "Before working with Marshall I felt completely overwhelmed. My business was growing but I was constantly putting out fires. Marshall helped me see what was actually happening underneath everything. The clarity and confidence I got was worth more than any course I've ever purchased.",
-    name: "ALP Training Member",
-    company: "Went from reactive to strategic",
-    stars: 5,
-  },
-  {
-    quote: "This was hands down the best experience I've ever had. He gets into nuance. He asked questions nobody else would ask and identified blind spots I didn't even know existed. It felt like having a world-class expert rewrite my operating system.",
-    name: "ALP Member",
-    company: "Identified critical blind spots",
-    stars: 5,
-  },
 ];
 
 const videoTestimonials = [
