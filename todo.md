@@ -130,3 +130,4 @@
 - [x] Add Marshall video placeholder section
 - [x] Rebuild Testimonials: real transformation numbers ($20M, $10M, $2M)
 - [x] Rebuild ValueProps, PricingSection, FAQSection, FinalCTA, Footer
+- [x] Add Julius Davis ($1M → $4M in 6 months) to hero stats ticker
