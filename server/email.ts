@@ -224,9 +224,9 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
             <td align="center" style="color:rgba(237,230,219,0.3);font-size:12px;line-height:1.6;">
               <p style="margin:0;">Altitude Logic Pressure</p>
               <p style="margin:4px 0 0 0;">
-                <a href="https://instagram.com/marshallwilkinson.alp" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="https://altitudelogicpressure.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
                 <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.5);text-decoration:none;">Member Portal</a>
               </p>
@@ -291,7 +291,7 @@ YOUR MEMBERSHIP INCLUDES:
 — Marshall Wilkinson
 
 Altitude Logic Pressure
-https://altitudelogicpressure.com
+https://alpcontractorschool.com
   `.trim();
 }
 
@@ -424,9 +424,9 @@ export function buildFoundingMemberEmailHtml(params: { name: string }): string {
             <td align="center" style="color:rgba(237,230,219,0.3);font-size:12px;line-height:1.6;">
               <p style="margin:0;">Altitude Logic Pressure</p>
               <p style="margin:4px 0 0 0;">
-                <a href="https://instagram.com/marshallwilkinson.alp" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="https://altitudelogicpressure.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
                 <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.5);text-decoration:none;">Member Portal</a>
               </p>
@@ -483,7 +483,7 @@ FROM MARSHALL:
 Access your member portal: ${PORTAL_URL}
 
 Altitude Logic Pressure
-https://altitudelogicpressure.com
+https://alpcontractorschool.com
   `.trim();
 }
 

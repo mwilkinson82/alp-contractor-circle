@@ -97,3 +97,7 @@
 - [x] Welcome Email #1: add "Create Your Account / Access Portal" CTA button
 - [x] Welcome Email #2: Founding Member announcement email (grandfathered pricing, limited spots, new initiative backstory)
 - [x] Wire both emails to fire sequentially from Stripe webhook on checkout.session.completed
+
+## Footer Link Fixes
+- [x] Fix Instagram URL to https://instagram.com/realmarshallwilkinson in both emails
+- [x] Fix website URL to https://alpcontractorschool.com in both emails
