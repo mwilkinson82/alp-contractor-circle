@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { stripe } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendWelcomeEmail } from "./email";
+import { sendWelcomeEmail, sendFoundingMemberEmail } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 
 /**
@@ -92,26 +92,42 @@ export function registerStripeWebhook(app: Express) {
               }
             }
 
-            // ─── SEND WELCOME EMAIL ───────────────────────────────────────────
+            // ─── SEND WELCOME EMAILS (both fire sequentially) ────────────────────────────────
             if (memberEmail) {
+              // Email #1: Getting Started
               try {
                 const emailResult = await sendWelcomeEmail({
                   to: memberEmail,
                   name: memberName,
                 });
                 if (emailResult.success) {
-                  console.log(`[Stripe Webhook] Welcome email sent to ${memberEmail}`);
+                  console.log(`[Stripe Webhook] Welcome email #1 sent to ${memberEmail}`);
                 } else {
-                  console.warn(`[Stripe Webhook] Welcome email failed: ${emailResult.error}`);
+                  console.warn(`[Stripe Webhook] Welcome email #1 failed: ${emailResult.error}`);
                 }
               } catch (err) {
-                console.warn("[Stripe Webhook] Failed to send welcome email:", err);
+                console.warn("[Stripe Webhook] Failed to send welcome email #1:", err);
               }
-            } else {
-              console.warn("[Stripe Webhook] No email found on checkout session — skipping welcome email");
-            }
 
-            // ─── NOTIFY MARSHALL ──────────────────────────────────────────────
+              // Email #2: Founding Member announcement (slight delay so inbox doesn't get both at once)
+              setTimeout(async () => {
+                try {
+                  const foundingResult = await sendFoundingMemberEmail({
+                    to: memberEmail,
+                    name: memberName,
+                  });
+                  if (foundingResult.success) {
+                    console.log(`[Stripe Webhook] Founding member email #2 sent to ${memberEmail}`);
+                  } else {
+                    console.warn(`[Stripe Webhook] Founding member email #2 failed: ${foundingResult.error}`);
+                  }
+                } catch (err) {
+                  console.warn("[Stripe Webhook] Failed to send founding member email #2:", err);
+                }
+              }, 5000); // 5-second delay between emails
+            } else {
+              console.warn("[Stripe Webhook] No email found on checkout session — skipping welcome emails");
+            }            // ─── NOTIFY MARSHALL ──────────────────────────────────────────────
             try {
               await notifyOwner({
                 title: "🎉 New Contractor Circle Member!",

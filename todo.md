@@ -88,3 +88,12 @@
 ## Hotfix — Name & OAuth- [x] Fix ALL instances of "Contracting Circle" to "Contractor Circle" across entire project
 - [x] Update Discord OAuth redirect URI to https://alpcontractorcircle.com/api/discord/callback
 - [x] Deploy
+
+## Email & Discord Onboarding Fixes
+- [x] Discord: assign member role on OAuth login (not just upsert to DB)
+- [x] Discord: redirect new member to #welcome channel (not power-hour thread)
+- [x] Welcome Email #1: replace "Mark Your Calendar" card with Zoom add-to-calendar card (Google + Apple + Outlook links)
+- [x] Welcome Email #1: update "Start Executing" card to link to portal login (/portal)
+- [x] Welcome Email #1: add "Create Your Account / Access Portal" CTA button
+- [x] Welcome Email #2: Founding Member announcement email (grandfathered pricing, limited spots, new initiative backstory)
+- [x] Wire both emails to fire sequentially from Stripe webhook on checkout.session.completed

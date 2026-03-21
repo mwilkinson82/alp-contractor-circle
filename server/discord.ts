@@ -21,6 +21,12 @@ import { ENV } from "./_core/env";
 // Production domain — must be registered in Discord Developer Portal
 const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
+
+// Guild / channel / role IDs for ALP Discord server
+const GUILD_ID = process.env.DISCORD_GUILD_ID || "";
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
+const CONTRACTOR_CIRCLE_ROLE_ID = "1484648318662344985"; // Contractor Circle role
+const WELCOME_CHANNEL_ID = "1484648373683355792";         // #welcome channel
 const DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize";
 const DISCORD_OAUTH_TOKEN = `${DISCORD_API_BASE}/oauth2/token`;
 const DISCORD_USER_ME = `${DISCORD_API_BASE}/users/@me`;
@@ -314,6 +320,40 @@ export function registerDiscordOAuthRoutes(app: Express) {
       if (!member) {
         res.status(500).json({ error: "Failed to create member record" });
         return;
+      }
+
+      // ─── Assign Contractor Circle role via bot ───────────────────────────
+      // Only attempt if the member has an active subscription
+      if (member.subscriptionStatus === "active" && GUILD_ID && BOT_TOKEN) {
+        try {
+          // Add member to guild (required if they haven't joined via invite yet)
+          await axios.put(
+            `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUser.id}`,
+            { access_token: tokenData.access_token },
+            { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+          ).catch(() => { /* already a member — ignore 204/400 */ });
+
+          // Assign the Contractor Circle role
+          await axios.put(
+            `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUser.id}/roles/${CONTRACTOR_CIRCLE_ROLE_ID}`,
+            {},
+            { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
+          );
+          console.log(`[Discord] Assigned Contractor Circle role to ${discordUser.username}`);
+
+          // Post welcome message in #welcome channel (fire-and-forget)
+          const displayName = discordUser.global_name || discordUser.username;
+          axios.post(
+            `${DISCORD_API_BASE}/channels/${WELCOME_CHANNEL_ID}/messages`,
+            {
+              content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Read through this channel for everything you need to get started. We're glad you're here — let's build.`,
+            },
+            { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+          ).catch((e: any) => console.warn("[Discord] Welcome message failed:", e?.message));
+        } catch (roleErr: any) {
+          // Non-fatal — log and continue
+          console.warn("[Discord] Role assignment failed:", roleErr?.message);
+        }
       }
 
       // Create session token and set cookie
