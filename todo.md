@@ -119,3 +119,4 @@
 ## Bug Fixes
 - [ ] Fix Discord OAuth redirect URI — login from alpcontractorcircle.com email link fails
 - [x] Fix calendar links: bi-weekly Sunday 5 PM ET (not Thursday, not Saturday)
+- [x] Add poster thumbnails to video testimonials (Beau Monde logo, Ahron Gluck logo)

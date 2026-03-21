@@ -46,11 +46,13 @@ const videoTestimonials = [
     label: "Beau Monde — ALP Member",
     src: "https://altitudelogicpressure.com/videos/beau-monde-testimonial.mp4",
     type: "mp4",
+    poster: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/beau-monde-logo_51a79b18.jpeg",
   },
   {
     label: "Ahron Gluck — ALP Member",
     src: "https://altitudelogicpressure.com/videos/ahron-gluck-testimonial.mp4",
     type: "mp4",
+    poster: "https://static.readdy.ai/image/000f6613bbd5bf7f02c140851804a982/1da6446268b37a0a97bf892d70ebae14.jfif",
   },
   {
     label: "ALP Member Results",
@@ -180,6 +182,7 @@ function VideoCarousel() {
               controls
               playsInline
               preload="metadata"
+              poster={(current as any).poster}
             />
           )}
         </div>
