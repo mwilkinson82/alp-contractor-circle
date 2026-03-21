@@ -33,7 +33,7 @@ import { toast } from "sonner";
 type Category = "weekly_calls" | "bootcamp" | "masterclass" | "q_and_a";
 
 const CATEGORY_LABELS: Record<Category, string> = {
-  weekly_calls: "Weekly Call",
+  weekly_calls: "Contractor Circle Call",
   bootcamp: "Bootcamp",
   masterclass: "Masterclass",
   q_and_a: "Q&A Session",

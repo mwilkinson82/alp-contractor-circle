@@ -21,7 +21,7 @@ type ReplayCategory = "all" | "weekly_calls" | "bootcamp" | "masterclass" | "q_a
 
 const CATEGORIES: { value: ReplayCategory; label: string }[] = [
   { value: "all", label: "All Replays" },
-  { value: "weekly_calls", label: "Weekly Calls" },
+  { value: "weekly_calls", label: "Contractor Circle Calls" },
   { value: "bootcamp", label: "Bootcamp" },
   { value: "masterclass", label: "Masterclass" },
   { value: "q_and_a", label: "Q&A Sessions" },
@@ -39,7 +39,7 @@ function categoryColor(cat: string): string {
 
 function categoryLabel(cat: string): string {
   const labels: Record<string, string> = {
-    weekly_calls: "Weekly Call",
+    weekly_calls: "Contractor Circle Call",
     bootcamp: "Bootcamp",
     masterclass: "Masterclass",
     q_and_a: "Q&A",

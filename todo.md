@@ -136,3 +136,7 @@
 - [x] Fix Discord Join Community card link — updated to https://discord.gg/KUTmm9D5aW
 - [x] Enable admin role for M Wilkinson (Saxon Capital email) — set via SQL
 - [x] Add Construction SOPs Template (#8) with Google Drive Access Document button
+
+## New Tasks
+- [x] Create construction checklists and SOP documents and add to template library (3 new docs, 3 new templates #9-11)
+- [x] Fix replay filter label from "Weekly Call" to "Contractor Circle Calls" (PortalReplays + PortalAdmin)
