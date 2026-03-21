@@ -14,15 +14,16 @@ const PORTAL_URL = "https://alpcontractorcircle.com/portal";
 const DISCORD_INVITE = "https://discord.gg/jnwDPTY6D3";
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
-// ─── Add-to-Calendar links for recurring Thursday 7 PM ET meeting ─────────────
-// Recurring bi-weekly on Thursdays
+// ─── Add-to-Calendar links for recurring Sunday 5 PM ET bi-weekly meeting ────────
+// First occurrence: Sunday March 29, 2026 at 5 PM ET = 21:00 UTC
+// Recurring every 2 weeks on Sundays (FREQ=WEEKLY;INTERVAL=2;BYDAY=SU)
 const GOOGLE_CALENDAR_URL =
   "https://calendar.google.com/calendar/render?action=TEMPLATE" +
   "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
   "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&recur=RRULE:FREQ%3DWEEKLY;BYDAY%3DTH" +
-  "&dates=20260326T230000Z/20260327T003000Z"; // Thursday 7 PM ET = 23:00 UTC
+  "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
+  "&dates=20260329T210000Z/20260329T223000Z"; // Sunday 5 PM ET = 21:00 UTC
 
 const APPLE_CALENDAR_URL =
   "https://alpcontractorcircle.com/api/calendar/circle-biweekly.ics";
@@ -30,9 +31,9 @@ const APPLE_CALENDAR_URL =
 const OUTLOOK_CALENDAR_URL =
   "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
   "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-  "&body=" + encodeURIComponent("Bi-weekly group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
+  "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&startdt=2026-03-26T23:00:00Z&enddt=2026-03-27T00:30:00Z";
+  "&startdt=2026-03-29T21:00:00Z&enddt=2026-03-29T22:30:00Z";
 
 // ─── Shared email styles ──────────────────────────────────────────────────────
 const BASE_STYLES = `

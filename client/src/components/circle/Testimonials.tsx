@@ -1,25 +1,61 @@
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import { Quote, Play, Star } from "lucide-react";
+import { useRef, useState } from "react";
+import { Quote, Play, Star, ChevronLeft, ChevronRight } from "lucide-react";
 
 const textTestimonials = [
   {
+    quote: "Marshall's classes are one of a kind. He teaches lessons that would take you YEARS to learn yourself. Within the week I had already seen noticeable changes not only in my business but how I carried myself as a professional.",
+    name: "Nathan Oliveira",
+    company: "Olive Tree Builds",
+    stars: 5,
+  },
+  {
+    quote: "I followed Marshall for about a year, and have been involved in other groups. There is NOTHING like Marshall. This is real world stuff here. My 2nd month as a Contractor and I'm at a quarter million in revenue and have a real scalable business. It's unreal. ALP all day, everyday.",
+    name: "Ronnie Silva",
+    company: "Sage Construction",
+    stars: 5,
+  },
+  {
+    quote: "ALP is Super Impactful! I have tried many other coaching programs and Coaches, and none compare to what I've learned in the past 2 months. So if you are really serious about winning in Business and life. Join ALP! It will change your life.",
+    name: "Julius Davis",
+    company: "Davis Contracting",
+    stars: 5,
+  },
+  {
     quote: "Marshall is the real deal. He knows contracting inside and out and can spot the problem fast. He didn't just talk theory — he gave me real fixes that I could implement immediately. Best part is he keeps you moving. No fluff. No wasting time.",
     name: "ALP Coaching Member",
-    result: "Implemented fixes within 48 hours",
+    company: "Implemented fixes within 48 hours",
     stars: 5,
   },
   {
     quote: "Before working with Marshall I felt completely overwhelmed. My business was growing but I was constantly putting out fires. Marshall helped me see what was actually happening underneath everything. The clarity and confidence I got was worth more than any course I've ever purchased.",
     name: "ALP Training Member",
-    result: "Went from reactive to strategic",
+    company: "Went from reactive to strategic",
     stars: 5,
   },
   {
     quote: "This was hands down the best experience I've ever had. He gets into nuance. He asked questions nobody else would ask and identified blind spots I didn't even know existed. It felt like having a world-class expert rewrite my operating system.",
     name: "ALP Member",
-    result: "Identified critical blind spots",
+    company: "Identified critical blind spots",
     stars: 5,
+  },
+];
+
+const videoTestimonials = [
+  {
+    label: "Beau Monde — ALP Member",
+    src: "https://altitudelogicpressure.com/videos/beau-monde-testimonial.mp4",
+    type: "mp4",
+  },
+  {
+    label: "Ahron Gluck — ALP Member",
+    src: "https://altitudelogicpressure.com/videos/ahron-gluck-testimonial.mp4",
+    type: "mp4",
+  },
+  {
+    label: "ALP Member Results",
+    src: "https://www.youtube.com/embed/j2ztf9b9YbA?si=-LLfcva946RR3mqG",
+    type: "youtube",
   },
 ];
 
@@ -34,56 +70,118 @@ function TestimonialCard({ t, index }: { t: typeof textTestimonials[0]; index: n
       ref={ref}
       initial={{ opacity: 0, y: 50, rotateY: -5 }}
       animate={isInView ? { opacity: 1, y: 0, rotateY: 0 } : {}}
-      transition={{ duration: 0.8, ease: easeOutCubic, delay: index * 0.15 }}
+      transition={{ duration: 0.8, ease: easeOutCubic, delay: index * 0.12 }}
       className="group relative"
       style={{ perspective: "1000px" }}
     >
-      {/* Card */}
-      <div className="relative rounded-2xl p-6 sm:p-8 border border-cream/[0.06] bg-gradient-to-br from-cream/[0.04] to-transparent backdrop-blur-sm overflow-hidden transition-all duration-500 hover:border-ember/20 hover:shadow-[0_0_40px_oklch(0.72_0.12_55/0.08)]">
-        {/* Hover glow */}
+      <div className="relative rounded-2xl p-6 sm:p-8 border border-cream/[0.06] bg-gradient-to-br from-cream/[0.04] to-transparent backdrop-blur-sm overflow-hidden transition-all duration-500 hover:border-ember/20 hover:shadow-[0_0_40px_oklch(0.72_0.12_55/0.08)] h-full">
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
           style={{ background: "radial-gradient(circle at 50% 0%, oklch(0.72 0.12 55 / 0.06), transparent 70%)" }}
         />
-
-        {/* Stars — all 5 filled */}
         <div className="flex gap-1 mb-4">
           {[...Array(t.stars)].map((_, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0 }}
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.3, delay: index * 0.15 + 0.3 + i * 0.05 }}
+              transition={{ duration: 0.3, delay: index * 0.12 + 0.3 + i * 0.05 }}
             >
               <Star size={14} className="text-ember fill-ember" />
             </motion.div>
           ))}
         </div>
-
-        {/* Quote Icon */}
         <div className="absolute top-6 right-6 opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500">
           <Quote size={48} className="text-ember" />
         </div>
-
-        {/* Quote Text */}
         <p className="text-sm sm:text-base text-cream/80 leading-[1.8] mb-6 relative z-10" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           "{t.quote}"
         </p>
-
-        {/* Bottom section */}
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ember/30 to-ember/10 flex items-center justify-center border border-ember/20">
-              <span className="text-sm font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
-                {t.name.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-cream/70" style={{ fontFamily: "'Sora', sans-serif" }}>
-                {t.name}
-              </p>
-              <p className="text-xs text-ember/70">{t.result}</p>
-            </div>
+        <div className="flex items-center gap-3 relative z-10 mt-auto">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ember/30 to-ember/10 flex items-center justify-center border border-ember/20 shrink-0">
+            <span className="text-sm font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
+              {t.name.charAt(0)}
+            </span>
           </div>
+          <div>
+            <p className="text-sm font-semibold text-cream/80" style={{ fontFamily: "'Sora', sans-serif" }}>
+              {t.name}
+            </p>
+            <p className="text-xs text-ember/70">{t.company}</p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function VideoCarousel() {
+  const [active, setActive] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+  const current = videoTestimonials[active];
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ duration: 0.8, ease: easeOutCubic, delay: 0.2 }}
+      className="mb-16"
+    >
+      <div className="relative rounded-2xl overflow-hidden border border-cream/[0.08] bg-midnight-card">
+        {/* Label bar */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream/[0.06]">
+          <div className="flex items-center gap-3">
+            <Play size={16} className="text-ember" fill="currentColor" />
+            <span className="text-sm font-semibold text-cream/80 tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
+              {current.label}
+            </span>
+          </div>
+          {/* Carousel controls */}
+          <div className="flex items-center gap-2">
+            {videoTestimonials.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${i === active ? "bg-ember w-5" : "bg-cream/20 hover:bg-cream/40"}`}
+              />
+            ))}
+            <button
+              onClick={() => setActive((active - 1 + videoTestimonials.length) % videoTestimonials.length)}
+              className="ml-2 p-1 rounded-full border border-cream/10 hover:border-ember/40 text-cream/50 hover:text-ember transition-all"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              onClick={() => setActive((active + 1) % videoTestimonials.length)}
+              className="p-1 rounded-full border border-cream/10 hover:border-ember/40 text-cream/50 hover:text-ember transition-all"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Video */}
+        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+          {current.type === "youtube" ? (
+            <iframe
+              key={current.src}
+              className="absolute inset-0 w-full h-full"
+              src={current.src}
+              title={current.label}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              key={current.src}
+              className="absolute inset-0 w-full h-full object-cover"
+              src={current.src}
+              controls
+              playsInline
+              preload="metadata"
+            />
+          )}
         </div>
       </div>
     </motion.div>
@@ -132,33 +230,8 @@ export function Testimonials() {
           />
         </motion.div>
 
-        {/* Video Testimonial — Featured */}
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-          transition={{ duration: 0.8, ease: easeOutCubic, delay: 0.2 }}
-          className="mb-12"
-        >
-          <div className="relative rounded-2xl overflow-hidden border border-cream/[0.08] bg-midnight-card group">
-            {/* Label */}
-            <div className="px-6 py-4 flex items-center gap-3 border-b border-cream/[0.06]">
-              <Play size={16} className="text-ember" fill="currentColor" />
-              <span className="text-sm font-semibold text-cream/80 tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
-                Hear From ALP Members
-              </span>
-            </div>
-            {/* YouTube Embed */}
-            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/videoseries?si=Q-WWQSwQOpiM6IS4&list=PLV-2OwQiZMZs8mpkGkHBQ0Qy3xEosMyM3"
-                title="ALP Member Testimonials"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </motion.div>
+        {/* Video Testimonials Carousel */}
+        <VideoCarousel />
 
         {/* Text Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

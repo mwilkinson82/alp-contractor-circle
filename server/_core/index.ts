@@ -39,6 +39,35 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
+  // ICS calendar endpoint for Apple Calendar (bi-weekly Sunday 5 PM ET)
+  app.get("/api/calendar/circle-biweekly.ics", (_req, res) => {
+    const ZOOM = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//ALP Contractor Circle//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:The Contractor Circle \u2014 Bi-Weekly Call",
+      "X-WR-TIMEZONE:America/New_York",
+      "BEGIN:VEVENT",
+      "DTSTART:20260329T210000Z",
+      "DTEND:20260329T223000Z",
+      "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SU",
+      "SUMMARY:The Contractor Circle \u2014 Bi-Weekly Call with Marshall",
+      `DESCRIPTION:Bi-weekly Sunday group call with Marshall Wilkinson.\nJoin Zoom: ${ZOOM}`,
+      `LOCATION:${ZOOM}`,
+      `URL:${ZOOM}`,
+      "STATUS:CONFIRMED",
+      "SEQUENCE:0",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename=\"contractor-circle.ics\"');
+    res.send(ics);
+  });
+
   // OAuth routes
   registerOAuthRoutes(app);
   registerDiscordOAuthRoutes(app);

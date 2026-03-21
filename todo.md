@@ -110,3 +110,12 @@
 - [x] Fix "weekly" to "bi-weekly" for calls in both emails (Email #1 and #2)
 - [x] Fix "weekly" to "bi-weekly" on landing page (hero badges, stats, features, etc.)
 - [x] Remove/replace "Daily Live Rooms" stat with "Founding Spots Remaining" (live count from DB)
+
+## Content Updates
+- [ ] Replace fake testimonials with real ones (Nathan Oliveira, Ronnie Silva, Julius Davis + others from screenshots)
+- [ ] Add video testimonial section with Beau Monde MP4, Ahron Gluck MP4, and YouTube video
+- [ ] Build out portal Templates section with real contractor templates
+
+## Bug Fixes
+- [ ] Fix Discord OAuth redirect URI — login from alpcontractorcircle.com email link fails
+- [x] Fix calendar links: bi-weekly Sunday 5 PM ET (not Thursday, not Saturday)
