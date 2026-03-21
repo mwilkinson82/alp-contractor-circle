@@ -7,6 +7,7 @@ import { PricingSection } from '@/components/circle/PricingSection'
 import { FAQSection } from '@/components/circle/FAQSection'
 import { FinalCTA } from '@/components/circle/FinalCTA'
 import { Footer } from '@/components/circle/Footer'
+import InsideTheCircle from '@/components/circle/InsideTheCircle'
 import { AmbientBackground } from '@/components/circle/AmbientBackground'
 import { GradientBar } from '@/components/circle/GradientBar'
 
@@ -19,6 +20,7 @@ export default function ContractorCircle() {
       <ValueProps />
       <WhatsIncluded />
       <MarshallVideo />
+      <InsideTheCircle />
       <Testimonials />
       <PricingSection />
       <FAQSection />
