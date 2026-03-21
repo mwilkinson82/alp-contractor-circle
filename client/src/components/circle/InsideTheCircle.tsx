@@ -19,6 +19,9 @@ const TRANSFORMATION_STATS = [
   { name: "Morgan Tyler", from: "$300K", to: "$10M", company: "Trojan Roofing" },
   { name: "Brian Betancourt", from: "$600K", to: "$20M", company: "18 months" },
   { name: "Julius Davis", from: "$1M", to: "$4M", company: "6 months" },
+  { name: "Dan Del Monte", from: "$2M", to: "$5M", company: "1 year" },
+  { name: "Nathan Oliveira", from: "$1M", to: "$3M", company: "Scaling" },
+  { name: "Andy Ramirez", from: "License", to: "$1.5M", company: "<1 year" },
 ];
 
 const TEMPLATE_PREVIEWS = [
