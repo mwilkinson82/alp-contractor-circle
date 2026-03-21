@@ -2,7 +2,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle2, Users, BookOpen, Zap, ArrowRight } from "lucide-react";
+import { CheckCircle2, Users, BookOpen, Zap, ArrowRight, Star } from "lucide-react";
+
+const MARSHALL_HERO_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero_6156d00c.webp";
 
 export default function Circle() {
   const { isAuthenticated, loading } = useAuth();
@@ -51,28 +54,118 @@ export default function Circle() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative py-24 md:py-36 border-b border-white/5">
-        <div className="absolute inset-0 bg-gradient-to-b from-ember/5 via-transparent to-transparent"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
+      {/* Hero Section — Split layout with Marshall's image */}
+      <section className="relative min-h-[90vh] flex items-center border-b border-white/5 overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-navy-deep via-navy-deep/95 to-navy-deep/60 z-10" />
+        {/* Hero image — full bleed right side */}
+        <div className="absolute inset-0">
+          <img
+            src={MARSHALL_HERO_URL}
+            alt="Marshall Wilkinson speaking at a conference"
+            className="w-full h-full object-cover object-center"
+            style={{ objectPosition: "60% center" }}
+          />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-20">
+          <div className="max-w-2xl">
             <div className="inline-block bg-ember/10 border border-ember/30 text-ember text-sm font-medium px-4 py-1.5 rounded-full mb-8">
               Premium Contractor Coaching
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold font-display mb-6 leading-[1.1] tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-bold font-display mb-6 leading-[1.05] tracking-tight">
               The <span className="text-ember">Contractor</span><br />Circle
             </h1>
-            <p className="text-xl md:text-2xl text-cream-muted mb-10 leading-relaxed max-w-2xl mx-auto">
-              Weekly coaching calls, premium templates, and direct access to 43 years of construction expertise and $2.5B in projects.
+            <p className="text-xl md:text-2xl text-cream-muted mb-4 leading-relaxed max-w-xl">
+              Weekly coaching calls, premium templates, and direct access to 43 years of construction expertise.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={handleJoinNow} size="lg" className="bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg px-8 py-6">
+            <div className="flex items-center gap-2 mb-10">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-5 h-5 fill-ember text-ember" />
+              ))}
+              <span className="text-cream-muted text-sm ml-1">Trusted by 100+ serious contractors</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                onClick={handleJoinNow}
+                size="lg"
+                className="bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg px-8 py-6"
+              >
                 Join for $497/month
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <Button onClick={handleLogin} variant="outline" size="lg" className="border-ember/50 text-ember hover:bg-ember/10 py-6">
+              <Button
+                onClick={handleLogin}
+                variant="outline"
+                size="lg"
+                className="border-ember/50 text-ember hover:bg-ember/10 py-6"
+              >
                 Member Sign In
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Ember gradient at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-navy-deep to-transparent z-20" />
+      </section>
+
+      {/* Social proof bar */}
+      <section className="border-b border-white/5 py-6 bg-navy/50">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 text-center">
+            <StatItem value="$2.5B+" label="In Construction" />
+            <StatItem value="43 Years" label="Experience" />
+            <StatItem value="100+" label="Active Members" />
+            <StatItem value="Weekly" label="Live Coaching" />
+          </div>
+        </div>
+      </section>
+
+      {/* About Marshall — with image on right */}
+      <section className="py-24 md:py-32 border-b border-white/5">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center max-w-5xl mx-auto">
+            <div>
+              <div className="inline-block bg-ember/10 border border-ember/30 text-ember text-sm font-medium px-4 py-1.5 rounded-full mb-6">
+                Your Coach
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold font-display mb-8">
+                Meet <span className="text-ember">Marshall</span>
+              </h2>
+              <div className="space-y-5 text-lg text-cream-muted leading-relaxed">
+                <p>
+                  Marshall Wilkinson is the founder of ALP (Altitude Logic Pressure) and a world-class sales and
+                  business consultant with{" "}
+                  <span className="text-cream font-semibold">43 years of construction experience</span>.
+                </p>
+                <p>
+                  Throughout his career, Marshall has been involved in over{" "}
+                  <span className="text-ember font-semibold">$2.5 billion</span> in construction projects. He's built
+                  multiple 7-figure businesses, scaled teams from 0 to 100+, and developed systems that generate
+                  consistent revenue.
+                </p>
+                <p>
+                  The Contractor Circle is his way of giving back — teaching serious contractors how to scale their
+                  businesses, close bigger deals, and build sustainable operations.
+                </p>
+              </div>
+            </div>
+            {/* Image panel */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-ember/10 rounded-2xl blur-2xl" />
+              <div className="relative rounded-2xl overflow-hidden border border-ember/20 shadow-2xl">
+                <img
+                  src={MARSHALL_HERO_URL}
+                  alt="Marshall Wilkinson on stage"
+                  className="w-full h-80 md:h-96 object-cover object-top"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy-deep/60 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-sm font-semibold text-cream">Marshall Wilkinson</p>
+                  <p className="text-xs text-cream-muted">Founder, ALP — $2.5B in Construction</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -110,33 +203,13 @@ export default function Circle() {
         </div>
       </section>
 
-      {/* About Marshall */}
-      <section className="py-24 md:py-32 border-b border-white/5">
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-bold font-display mb-8">About <span className="text-ember">Marshall</span></h2>
-            <div className="space-y-6 text-lg text-cream-muted leading-relaxed">
-              <p>
-                Marshall Wilkinson is the founder of ALP (Altitude Logic Pressure) and a world-class sales and business consultant with <span className="text-cream font-semibold">43 years of construction experience</span>.
-              </p>
-              <p>
-                Throughout his career, Marshall has been involved in over <span className="text-ember font-semibold">$2.5 billion</span> in construction projects. He's built multiple 7-figure businesses, scaled teams from 0 to 100+, and developed systems that generate consistent revenue.
-              </p>
-              <p>
-                The Contractor Circle is his way of giving back to the community — teaching serious contractors how to scale their businesses, close bigger deals, and build sustainable operations.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing */}
       <section className="py-24 md:py-32 border-b border-white/5">
         <div className="container mx-auto px-4 relative z-10">
           <h2 className="text-4xl md:text-5xl font-bold font-display text-center mb-16">Membership</h2>
           <div className="max-w-md mx-auto">
             <div className="bg-navy border border-ember/30 rounded-2xl p-10 text-center ember-glow relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-ember to-transparent"></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-ember to-transparent" />
               <h3 className="text-2xl font-bold font-display mb-2">Contractor Circle</h3>
               <p className="text-cream-muted mb-8">Everything you need to scale</p>
               <div className="mb-8">
@@ -157,7 +230,10 @@ export default function Circle() {
                   </li>
                 ))}
               </ul>
-              <Button onClick={handleJoinNow} className="w-full bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg py-6">
+              <Button
+                onClick={handleJoinNow}
+                className="w-full bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg py-6"
+              >
                 Join Now
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -171,9 +247,14 @@ export default function Circle() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-bold font-display mb-6">Ready to Scale?</h2>
           <p className="text-xl text-cream-muted mb-10 max-w-2xl mx-auto">
-            Join the Contractor Circle today and get direct access to Marshall and 100+ serious contractors committed to growth.
+            Join the Contractor Circle today and get direct access to Marshall and 100+ serious contractors committed
+            to growth.
           </p>
-          <Button onClick={handleJoinNow} size="lg" className="bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg px-8 py-6">
+          <Button
+            onClick={handleJoinNow}
+            size="lg"
+            className="bg-ember hover:bg-ember-light text-navy-deep font-bold text-lg px-8 py-6"
+          >
             Join for $497/month
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
@@ -188,12 +269,29 @@ export default function Circle() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-navy border border-white/5 rounded-xl p-8 hover:border-ember/30 transition-all ember-glow">
       <div className="w-12 h-12 rounded-lg bg-ember/10 flex items-center justify-center mb-5">{icon}</div>
       <h3 className="text-xl font-bold font-display mb-3">{title}</h3>
       <p className="text-cream-muted leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function StatItem({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div className="text-2xl md:text-3xl font-bold font-display text-ember">{value}</div>
+      <div className="text-sm text-cream-muted mt-1">{label}</div>
     </div>
   );
 }

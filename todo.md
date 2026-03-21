@@ -38,7 +38,7 @@
 - [x] Discord Community card (discord.gg/jnwDPTY6D3)
 
 ## Design
-- [ ] Marshall's hero image from CDN
+- [x] Marshall's hero image from CDN (https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero_6156d00c.webp)
 - [x] Premium dark luxury aesthetic matching original
 - [x] Responsive mobile + desktop layout
 - [x] Ember glow effects, grain overlay
