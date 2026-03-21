@@ -31,7 +31,7 @@ export function Footer() {
             ALP Main Site
           </a>
           <a
-            href="https://instagram.com/marshallwilkinson.alp"
+            href="https://instagram.com/realmarshallwilkinson"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-cream-muted/40 hover:text-ember transition-colors duration-200"

@@ -123,3 +123,10 @@
 - [x] Remove 3 fake testimonials, keep only Olive Tree Builds, Sage Construction, Davis Contracting
 - [x] Seed 4 founding members in DB (AJ/Beau Monde, Ronnie/Sage, Nathan/Olive Tree, Dan/Del Monte)
 - [x] Add "Member Login" link to landing page nav that goes to /portal (Discord OAuth)
+
+## Landing Page Premium Rebuild
+- [x] Rebuild HeroSection: cinematic scroll animations, premium nav, transformation stats bar
+- [x] Rebuild WhatsIncluded: scroll-triggered timeline with outcome-focused copy
+- [x] Add Marshall video placeholder section
+- [x] Rebuild Testimonials: real transformation numbers ($20M, $10M, $2M)
+- [x] Rebuild ValueProps, PricingSection, FAQSection, FinalCTA, Footer

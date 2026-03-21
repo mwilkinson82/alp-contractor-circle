@@ -1,32 +1,87 @@
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { ArrowDown, Zap, Loader2 } from "lucide-react";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { useRef, useEffect } from "react";
+import { ArrowRight, Zap, Loader2 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
 
-// Cinematic text split animation — each word animates individually
-function AnimatedWords({ text, className, delay = 0, style }: { text: string; className?: string; delay?: number; style?: React.CSSProperties }) {
+const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
+
+// Cinematic word-by-word reveal
+function AnimatedWords({
+  text,
+  className,
+  delay = 0,
+  style,
+}: {
+  text: string;
+  className?: string;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
   const words = text.split(" ");
   return (
     <span className={className} style={style}>
       {words.map((word, i) => (
         <motion.span
           key={i}
-          initial={{ opacity: 0, y: 40, rotateX: 45 }}
+          initial={{ opacity: 0, y: 48, rotateX: 50 }}
           animate={{ opacity: 1, y: 0, rotateX: 0 }}
           transition={{
-            duration: 0.7,
-            delay: delay + i * 0.08,
-            ease: [0.22, 1, 0.36, 1],
+            duration: 0.75,
+            delay: delay + i * 0.09,
+            ease: easeOutCubic,
           }}
-          className="inline-block mr-[0.25em]"
-          style={{ perspective: "600px" }}
+          className="inline-block mr-[0.22em]"
+          style={{ perspective: "800px" }}
         >
           {word}
         </motion.span>
       ))}
     </span>
+  );
+}
+
+// Scrolling transformation ticker
+const transformations = [
+  { name: "Brian Betancourt", result: "$600K → $20M in 18 months" },
+  { name: "Morgan Tyler", result: "$300K → $10M first year" },
+  { name: "Ronnie Silva", result: "$2M revenue — 2nd month as contractor" },
+  { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
+  { name: "Brian Betancourt", result: "$600K → $20M in 18 months" },
+  { name: "Morgan Tyler", result: "$300K → $10M first year" },
+  { name: "Ronnie Silva", result: "$2M revenue — 2nd month as contractor" },
+  { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
+];
+
+function TransformationTicker() {
+  return (
+    <div className="relative overflow-hidden w-full py-3 border-y border-cream/[0.06]">
+      {/* Fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: "linear-gradient(90deg, oklch(0.08 0.02 260), transparent)" }} />
+      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: "linear-gradient(-90deg, oklch(0.08 0.02 260), transparent)" }} />
+
+      <motion.div
+        className="flex gap-0 whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, ease: "linear", repeat: Infinity }}
+      >
+        {transformations.map((t, i) => (
+          <span key={i} className="inline-flex items-center gap-3 px-8">
+            <span className="text-xs font-semibold text-ember/80 tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
+              {t.name}
+            </span>
+            <span className="text-cream/20 text-xs">—</span>
+            <span className="text-xs text-cream/50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              {t.result}
+            </span>
+            <span className="text-ember/20 text-base ml-4">◆</span>
+          </span>
+        ))}
+      </motion.div>
+    </div>
   );
 }
 
@@ -37,12 +92,13 @@ export function HeroSection() {
     target: ref,
     offset: ["start start", "end start"],
   });
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
-  const imageY = useTransform(scrollYProgress, [0, 1], [0, 100]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.5], [0.75, 0.95]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.18]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.5], [0.78, 0.97]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, -60]);
 
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section ref={ref} className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background Image with Parallax */}
       <motion.div
         className="absolute inset-0 z-0"
@@ -55,93 +111,106 @@ export function HeroSection() {
         />
       </motion.div>
 
-      {/* MUCH darker overlay — multiple layers for depth */}
+      {/* Multi-layer dark overlay */}
       <motion.div
         className="absolute inset-0 z-[1]"
         style={{
           opacity: overlayOpacity,
-          background: `
-            linear-gradient(180deg, 
-              oklch(0.08 0.02 260 / 0.85) 0%, 
-              oklch(0.08 0.02 260 / 0.75) 30%, 
-              oklch(0.08 0.02 260 / 0.80) 60%, 
-              oklch(0.08 0.02 260 / 0.95) 100%
-            )
-          `,
+          background: `linear-gradient(180deg,
+            oklch(0.08 0.02 260 / 0.88) 0%,
+            oklch(0.08 0.02 260 / 0.72) 25%,
+            oklch(0.08 0.02 260 / 0.78) 55%,
+            oklch(0.08 0.02 260 / 0.97) 100%
+          )`,
         }}
       />
-      {/* Additional vignette layer */}
+      {/* Vignette */}
       <div
-        className="absolute inset-0 z-[2]"
+        className="absolute inset-0 z-[2] pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, transparent 30%, oklch(0.08 0.02 260 / 0.6) 100%)",
+          background: "radial-gradient(ellipse at 50% 40%, transparent 25%, oklch(0.08 0.02 260 / 0.65) 100%)",
         }}
       />
-
-      {/* Animated grain/noise texture */}
-      <div className="absolute inset-0 z-[3] opacity-[0.03] pointer-events-none"
+      {/* Grain */}
+      <div
+        className="absolute inset-0 z-[3] opacity-[0.025] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundSize: "128px 128px",
         }}
       />
 
-      {/* Top Nav Bar */}
+      {/* Top Nav */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 py-5">
-        <div className="flex items-center gap-2">
-          <span className="text-ember font-bold text-lg tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>ALP</span>
-          <span className="text-cream/40 text-sm hidden sm:inline">|</span>
-          <span className="text-cream/60 text-sm hidden sm:inline" style={{ fontFamily: "'DM Sans', sans-serif" }}>Contractor Circle</span>
+        <div className="flex items-center gap-2.5">
+          <span
+            className="text-ember font-bold text-lg tracking-tight"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            ALP
+          </span>
+          <span className="text-cream/25 text-sm hidden sm:inline">|</span>
+          <span
+            className="text-cream/55 text-sm hidden sm:inline"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Contractor Circle
+          </span>
         </div>
         <a
           href="/portal"
-          className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/80 hover:text-cream text-sm font-medium backdrop-blur-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           <span>Member Login</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <ArrowRight size={13} />
         </a>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 text-center px-6 max-w-3xl mx-auto pt-24 pb-12">
-        {/* Founding Members Badge — animated pulse */}
+      {/* Main Content */}
+      <motion.div
+        style={{ y: contentY }}
+        className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pt-28 pb-16"
+      >
+        {/* Eyebrow badge */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-ember/40 bg-ember/10 mb-10 relative"
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: easeOutCubic, delay: 0.15 }}
+          className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-ember/35 bg-ember/8 mb-10 relative"
         >
-          {/* Pulse ring */}
           <motion.div
-            className="absolute inset-0 rounded-full border border-ember/20"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 rounded-full border border-ember/15"
+            animate={{ scale: [1, 1.14, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
           />
-          <Zap size={14} className="text-ember" fill="currentColor" />
-          <span className="text-xs font-semibold tracking-[0.15em] uppercase text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
-            Founding Members — Limited Spots
+          <Zap size={13} className="text-ember" fill="currentColor" />
+          <span
+            className="text-xs font-semibold tracking-[0.15em] uppercase text-ember"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            Founding Members — 4 of 50 Spots Filled
           </span>
         </motion.div>
 
-        {/* Title — cinematic word-by-word reveal */}
+        {/* Title */}
         <h1
           className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.0] tracking-tight mb-6"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          <AnimatedWords text="The" className="text-cream" delay={0.4} />
+          <AnimatedWords text="The" className="text-cream" delay={0.35} />
           <br />
-          <AnimatedWords text="Contractor" className="text-ember" delay={0.6} />
+          <AnimatedWords text="Contractor" className="text-ember" delay={0.55} />
           <br />
-          <AnimatedWords text="Circle" className="text-cream" delay={0.8} />
+          <AnimatedWords text="Circle" className="text-cream" delay={0.75} />
         </h1>
 
-        {/* Animated underline accent */}
+        {/* Animated underline */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ duration: 1.2, delay: 1.2, ease: [0.22, 1, 0.36, 1] }}
-          className="w-24 h-[2px] mx-auto mb-8"
+          transition={{ duration: 1.3, delay: 1.1, ease: easeOutCubic }}
+          className="w-28 h-[2px] mx-auto mb-8"
           style={{
             background: "linear-gradient(90deg, transparent, oklch(0.72 0.12 55), transparent)",
             transformOrigin: "center",
@@ -150,55 +219,45 @@ export function HeroSection() {
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 1.0 }}
-          className="text-lg sm:text-xl md:text-2xl text-cream/80 font-light leading-relaxed mb-4 max-w-2xl mx-auto"
+          transition={{ duration: 1, ease: easeOutCubic, delay: 0.95 }}
+          className="text-lg sm:text-xl md:text-2xl text-cream/80 font-light leading-relaxed mb-3 max-w-2xl mx-auto"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           The elite contractor community & execution engine led by{" "}
           <span className="text-cream font-semibold">Marshall Wilkinson</span>
         </motion.p>
 
-        {/* Feature pills */}
-        <motion.div
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 1.3, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-wrap justify-center gap-3 mb-10"
+          transition={{ duration: 0.9, ease: easeOutCubic, delay: 1.1 }}
+          className="text-sm sm:text-base text-cream/45 max-w-xl mx-auto mb-10 leading-relaxed"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
-          {["Bi-Weekly Calls", "Deal Reviews", "Templates", "Private Community"].map((item, i) => (
-            <motion.span
-              key={item}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.4 + i * 0.1 }}
-              className="px-3 py-1.5 text-xs sm:text-sm text-cream/60 border border-cream/10 rounded-full bg-cream/5 backdrop-blur-sm"
-              style={{ fontFamily: "'Sora', sans-serif" }}
-            >
-              {item}
-            </motion.span>
-          ))}
-        </motion.div>
+          Live coaching. Battle-tested systems. A network of operators who are actually building.
+          <br className="hidden sm:block" />
+          This is where serious contractors come to scale.
+        </motion.p>
 
-        {/* CTA Button — with glow effect */}
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 1.6 }}
-          className="relative inline-block"
+          transition={{ duration: 0.9, ease: easeOutCubic, delay: 1.35 }}
+          className="relative inline-block mb-5"
         >
-          {/* Glow behind button */}
           <motion.div
-            className="absolute inset-0 rounded-xl blur-xl"
-            style={{ background: "oklch(0.72 0.12 55 / 0.3)" }}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            className="absolute inset-0 rounded-xl blur-2xl"
+            style={{ background: "oklch(0.72 0.12 55 / 0.28)" }}
+            animate={{ opacity: [0.28, 0.55, 0.28] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
           <button
             onClick={startCheckout}
             disabled={isLoading}
-            className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_30px_oklch(0.72_0.12_55/0.2)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
+            className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             {isLoading ? (
@@ -209,31 +268,53 @@ export function HeroSection() {
             ) : (
               <>
                 Claim Your Founding Spot
-                <ArrowDown size={18} className="animate-bounce" />
+                <ArrowRight size={18} />
               </>
             )}
           </button>
         </motion.div>
 
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.7, duration: 0.8 }}
+          className="text-xs text-cream/30 mb-14"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          $497/mo · Cancel anytime · Founding rate locked forever
+        </motion.p>
+
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2.5, duration: 1.5 }}
-          className="mt-20"
+          transition={{ delay: 2.2, duration: 1.5 }}
         >
           <motion.div
             animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             className="flex flex-col items-center gap-2"
           >
-            <span className="text-[10px] tracking-[0.3em] uppercase text-cream/20" style={{ fontFamily: "'Sora', sans-serif" }}>
+            <span
+              className="text-[10px] tracking-[0.3em] uppercase text-cream/20"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
               Scroll
             </span>
             <div className="w-[1px] h-8 bg-gradient-to-b from-cream/20 to-transparent" />
           </motion.div>
         </motion.div>
-      </div>
+      </motion.div>
+
+      {/* Transformation Ticker — bottom of hero */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.9, duration: 0.8 }}
+        className="relative z-10 w-full"
+      >
+        <TransformationTicker />
+      </motion.div>
     </section>
   );
 }
