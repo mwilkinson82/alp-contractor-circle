@@ -12,7 +12,7 @@ const transformations = [
     accent: "ember" as const,
   },
   {
-    company: "Tyler Construction",
+    company: "Trojan Roofing",
     before: 300000,
     after: 10000000,
     multiplier: "33×",
@@ -20,12 +20,28 @@ const transformations = [
     accent: "blue" as const,
   },
   {
-    company: "Silva Construction",
+    company: "Sage Construction",
     before: 0,
     after: 2000000,
     multiplier: "∞",
-    period: "2nd Month",
+    period: "1 Year",
     accent: "green" as const,
+  },
+  {
+    company: "Davis Contracting",
+    before: 1000000,
+    after: 4000000,
+    multiplier: "4×",
+    period: "6 Months",
+    accent: "ember" as const,
+  },
+  {
+    company: "ARC Construction Group",
+    before: 0,
+    after: 2000000,
+    multiplier: "∞",
+    period: "1 Year",
+    accent: "blue" as const,
   },
 ];
 
@@ -325,9 +341,9 @@ export function RevenueImpact() {
           style={{ borderColor: "oklch(0.72 0.12 55 / 0.12)" }}
         >
           {[
-            { label: "Total Revenue Generated", value: "$32M+" },
+            { label: "Total Revenue Generated", value: "$39M+" },
             { label: "Avg Growth Multiple", value: "33×" },
-            { label: "Fastest Result", value: "2 Months" },
+            { label: "Fastest Result", value: "6 Months" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p
