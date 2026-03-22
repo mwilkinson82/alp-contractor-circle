@@ -288,3 +288,6 @@
 - [x] Remove 3D perspective tilt/rotation from portal preview cards — proper 3D rotateX perspective instead of Z rotation
 - [x] Fix image cropping so full screenshot is visible (object-top + browser chrome bar + maxHeight)
 - [ ] Redeploy to production
+
+## Portal Preview Image Cropping Fix
+- [x] Make all three portal preview screenshots display fully without any cropping at the top (removed object-cover and maxHeight constraint)

@@ -131,8 +131,7 @@ export function PortalPreview() {
             <img
               src={active.image}
               alt={active.label}
-              className="w-full object-cover object-top"
-              style={{ maxHeight: "600px" }}
+              className="w-full block"
               loading="lazy"
             />
 
