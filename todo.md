@@ -199,3 +199,8 @@
 - [x] Add "Submit a Question" quick link to portal dashboard quick-links grid
 - [x] Submit a Question quick link opens a modal with form + optional file attachment
 - [x] Rebuild WhatsIncluded as bold spoon-feeding benefit stack — large-format outcomes, short punchy copy, no paragraphs
+
+## Portal Templates Fix
+- [x] Fix template modal button: change "Download DOCX" to "Access Document" / "Open in Google Drive" linking to the Google Drive URL
+- [x] Restore real Discord screenshot (AJ Hoover $4.5M bid) in InsideTheCircle Community tab
+- [x] Redesign WhatsIncluded back to premium timeline aesthetic with cleaner punchy copy (no paragraphs, but premium visual design)

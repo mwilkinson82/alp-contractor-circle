@@ -413,62 +413,20 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
             </div>
           </div>
 
-          {/* Action button — Google Drive or Download */}
-          {template.googleDriveUrl ? (
-            <a
-              href={template.googleDriveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              <span>Access Document</span>
-            </a>
-          ) : (
-            <>
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className={`w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all ${
-                  done
-                    ? "bg-green-500/15 border border-green-500/30 text-green-400"
-                    : "bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
-                }`}
-              >
-                {downloading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{progress > 0 ? `Downloading… ${progress}%` : "Preparing download…"}</span>
-                  </>
-                ) : done ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Downloaded!</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>Download {ft.label}</span>
-                  </>
-                )}
-              </button>
-              {/* Progress bar */}
-              {downloading && progress > 0 && (
-                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden -mt-2">
-                  <motion.div
-                    className="h-full bg-ember rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ ease: "linear" }}
-                  />
-                </div>
-              )}
-            </>
-          )}
+          {/* Action button — unified "Access Document" for all templates */}
+          <a
+            href={template.googleDriveUrl || template.downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-sm transition-all bg-ember/15 hover:bg-ember/25 border border-ember/30 text-ember"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            <span>Access Document</span>
+          </a>
         </div>
       </motion.div>
     </motion.div>
