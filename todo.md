@@ -234,3 +234,9 @@
 - [x] Wire Stripe webhook purchase notification email to marshall@marshallwilkinson.com with amount, member name, product
 - [x] Save ALP premium email template as reusable template (server/emailTemplates/alp-premium-template.html)
 - [x] Send congratulations email to Mo at info@smelmasry.co.uk (six-week intensive retention)
+
+## Revenue Impact Redesign
+- [x] Replace personal names with company names (Betancourt Construction, Tyler Construction, Silva Construction)
+- [x] Add scroll-triggered animated progress bars that fill up as section enters viewport
+- [x] Add counting number animation synced to bar fill (counts from before to after revenue)
+- [x] Premium billion-dollar data viz aesthetic — not generic bar chart
