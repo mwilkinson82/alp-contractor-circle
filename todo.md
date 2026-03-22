@@ -172,5 +172,5 @@
 
 ## Countdown Bar & Template Modals
 - [x] Add countdown bar to next call (March 29, 5 PM ET) — sticky top bar with live seconds countdown, dismissible, Claim Spot CTA
-- [ ] Upload real template screenshots and wire each template modal to its own unique image
+- [x] Upload real template screenshots and wire each template modal to its own unique image — 5 CDN images uploaded, each modal now shows the correct screenshot
 - [ ] Send welcome emails to four founding members (awaiting email addresses)

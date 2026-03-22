@@ -24,13 +24,16 @@ const TRANSFORMATION_STATS = [
   { name: "Andy Ramirez", from: "License", to: "$1.5M", company: "<1 year" },
 ];
 
+// Proposal screenshot — the original one already on CDN
+const PROPOSAL_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.55.32PM_565e119b.webp";
+
 const TEMPLATE_PREVIEWS = [
-  { title: "Contractor Proposal Template", category: "Contracts", icon: "📋" },
-  { title: "Construction Agreement", category: "Legal", icon: "⚖️" },
-  { title: "Bid Sheet & Estimating", category: "Sales", icon: "💰" },
-  { title: "Construction SOPs", category: "Operations", icon: "✅" },
-  { title: "Client Communication SOPs", category: "Management", icon: "📞" },
-  { title: "Subcontractor Management", category: "Operations", icon: "👥" },
+  { title: "Contractor Proposal Template", category: "Contracts", icon: "📋", previewImage: PROPOSAL_PREVIEW },
+  { title: "Construction Agreement", category: "Legal", icon: "⚖️", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_agreement_be62bc37.webp" },
+  { title: "Bid Sheet & Estimating", category: "Sales", icon: "💰", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_bid_sheet_estimating_2e7f81a0.webp" },
+  { title: "Construction SOPs", category: "Operations", icon: "✅", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_sops_f1891efb.webp" },
+  { title: "Client Communication SOPs", category: "Management", icon: "📞", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_client_onboarding_2f9dfb29.webp" },
+  { title: "Subcontractor Management", category: "Operations", icon: "👥", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_subcontractor_management_4c166f2a.webp" },
 ];
 
 const PROOF_STATS = [
@@ -43,7 +46,7 @@ const PROOF_STATS = [
 // CDN URLs for assets
 const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.52.43PM_536195dc.webp";
 const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/discord-screenshot_ab4921f0.webp";
-const TEMPLATE_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.55.32PM_565e119b.webp";
+
 
 // ─── Individual card content panels ──────────────────────────────────────────
 
@@ -470,7 +473,7 @@ export default function InsideTheCircle() {
               </button>
             </div>
             <div className="p-6">
-              <img src={TEMPLATE_PREVIEW} alt={selectedTemplate.title} className="w-full rounded-lg border border-white/10 shadow-lg" />
+              <img src={selectedTemplate.previewImage} alt={selectedTemplate.title} className="w-full rounded-lg border border-white/10 shadow-lg" />
               <p className="text-cream-muted text-sm mt-6 leading-relaxed">
                 This is a preview of the {selectedTemplate.title}. When you join the Contractor Circle, you'll get access to this template and 10+ others. All templates are Google Docs — simply make a copy and customize for your business.
               </p>
