@@ -136,7 +136,7 @@ export function SubmitQuestionCTA() {
                   <Send className="w-4 h-4 text-ember" />
                   <span className="text-sm font-semibold text-ember">Submit Question</span>
                 </div>
-                <span className="text-xs text-cream/25">Members only</span>
+                <span className="text-xs font-bold text-red-500 uppercase tracking-wider">Members Only</span>
               </div>
             </div>
           </motion.div>

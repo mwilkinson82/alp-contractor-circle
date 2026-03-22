@@ -211,3 +211,13 @@
 - [x] Add "Submit a Question" CTA button to landing page (not just portal) — DONE: SubmitQuestionCTA component added
 - [x] Verify template "Access Document" button works after publish — VERIFIED: button code is correct
 - [x] Publish all changes to alpcontractorcircle.com — PUBLISHED
+
+## Quick Fixes — March 22 (cont.)
+- [x] Make "Members Only" badge on Submit a Question CTA red instead of current color
+- [x] Fix Discord screenshot not displaying in production — re-uploaded as PNG with correct content-type
+- [x] Fix Cloudflare video not playing in production — confirmed working on live site, Preview panel iframe nesting issue only
+
+## Quick Fixes — March 22 (cont.)
+- [x] Make "Members Only" badge on Submit a Question CTA red instead of current color
+- [x] Fix Discord screenshot not displaying in production — re-uploaded as PNG with correct content-type
+- [x] Fix Cloudflare video not playing in production — confirmed working on live site, Preview panel iframe nesting issue only
