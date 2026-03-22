@@ -269,3 +269,10 @@
   from { width: 0%; }
   to { width: 100%; }
 }
+
+/* Live recording dot pulse */
+@keyframes live-pulse {
+  0% { transform: scale(1); opacity: 0.75; }
+  70% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}

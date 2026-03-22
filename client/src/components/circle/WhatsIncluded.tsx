@@ -92,12 +92,31 @@ function CardContent({
         >
           {item.number}
         </span>
-        <span
-          className="text-[10px] font-medium tracking-[0.12em] uppercase text-cream/30"
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          {item.subtitle}
-        </span>
+        <div className="flex items-center gap-2">
+          {item.number === "01" && (
+            <span className="relative flex items-center justify-center w-3 h-3">
+              {/* Outer pulse ring */}
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-75"
+                style={{
+                  background: "oklch(0.55 0.22 25)",
+                  animation: "live-pulse 1.8s ease-out infinite",
+                }}
+              />
+              {/* Inner solid dot */}
+              <span
+                className="relative inline-flex rounded-full w-2 h-2"
+                style={{ background: "oklch(0.60 0.22 25)" }}
+              />
+            </span>
+          )}
+          <span
+            className="text-[10px] font-medium tracking-[0.12em] uppercase text-cream/30"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            {item.subtitle}
+          </span>
+        </div>
       </div>
 
       <h3
