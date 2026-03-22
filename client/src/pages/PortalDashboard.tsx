@@ -19,6 +19,7 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
@@ -82,6 +83,111 @@ function getNextCallCycle(): string {
   const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
   const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
   return nextCall.toISOString().split("T")[0];
+}
+
+// ─── Full-screen modal question form ─────────────────────────────────────────
+function QuestionModal({ onClose }: { onClose: () => void }) {
+  const [question, setQuestion] = useState("");
+  const [context, setContext] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const utils = trpc.useUtils();
+
+  const submitQuestion = trpc.member.submitQuestion.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setQuestion("");
+      setContext("");
+      utils.member.myQuestions.invalidate();
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-[oklch(0.12_0.02_260)] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 sticky top-0 bg-[oklch(0.12_0.02_260)] z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-ember/10 flex items-center justify-center">
+              <Send className="w-4 h-4 text-ember" />
+            </div>
+            <div>
+              <h3 className="font-heading text-base font-bold text-cream">Submit a Question</h3>
+              <p className="text-cream-muted text-xs">Marshall reviews before each call</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4 text-cream-muted" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6 space-y-5">
+          {submitted ? (
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                <CheckCircle2 className="w-7 h-7 text-green-400" />
+              </div>
+              <div>
+                <p className="text-cream font-semibold text-lg">Question Submitted</p>
+                <p className="text-cream-muted text-sm mt-1">Marshall will review it before the next call.</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="mt-2 px-6 py-2.5 rounded-xl bg-ember/10 border border-ember/20 text-ember text-sm font-semibold hover:bg-ember/20 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                  Your Question <span className="text-ember">*</span>
+                </label>
+                <textarea
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="What's the most important thing you need clarity on before the next call?"
+                  rows={4}
+                  maxLength={1000}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
+                  autoFocus
+                />
+                <p className="text-xs text-cream-muted/40 mt-1 text-right">{question.length}/1000</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                  Context <span className="text-cream-muted/40">(optional)</span>
+                </label>
+                <textarea
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  placeholder="Project size, what you've tried, what's at stake..."
+                  rows={3}
+                  maxLength={2000}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
+                />
+              </div>
+              <button
+                onClick={() => submitQuestion.mutate({ question, context: context || undefined, callCycle: getNextCallCycle() })}
+                disabled={question.trim().length < 10 || submitQuestion.isPending}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                {submitQuestion.isPending ? "Submitting..." : "Submit Question"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function QuestionSubmitWidget() {
@@ -213,6 +319,7 @@ export default function PortalDashboard() {
   const { data: subscription, isLoading: subLoading } = trpc.member.subscription.useQuery(undefined, {
     retry: false,
   });
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
   const firstName = displayName.split(" ")[0];
@@ -260,6 +367,9 @@ export default function PortalDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      {/* Question Modal */}
+      {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
+
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -316,6 +426,29 @@ export default function PortalDashboard() {
           </div>
         )}
       </div>
+
+      {/* Submit a Question — Prominent CTA tile */}
+      <button
+        onClick={() => setQuestionModalOpen(true)}
+        className="w-full group glass-card rounded-2xl p-5 sm:p-6 hover:bg-ember/[0.04] border border-ember/15 hover:border-ember/35 transition-all duration-300 text-left"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-ember/10 group-hover:bg-ember/15 flex items-center justify-center shrink-0 transition-colors">
+            <Send className="w-6 h-6 text-ember" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-heading text-base font-bold text-cream group-hover:text-ember transition-colors">
+              Submit a Question for the Next Call
+            </h3>
+            <p className="text-cream-muted text-sm mt-0.5">
+              Marshall reviews every submission — get your question answered live.
+            </p>
+          </div>
+          <div className="shrink-0 w-8 h-8 rounded-full bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-colors">
+            <Send className="w-3.5 h-3.5 text-ember" />
+          </div>
+        </div>
+      </button>
 
       {/* Quick Links Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

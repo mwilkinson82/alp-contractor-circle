@@ -190,4 +190,12 @@
 - [ ] Fix TypeScript errors in HeroSection (FoundingSpotsBadge component, onCalendarClick prop, duplicate useEffect import)
 - [ ] Fix video thumbnail — use hero CDN image as Cloudflare Stream poster so no open-mouth first frame
 - [ ] Rewrite WhatsIncluded — benefits-first copy, add 5 new value items (Hot Seat Deal Reviews, ALP Rolodex, Pricing Benchmarks, Future Program Access, Direct Question Submission)
-- [ ] Build question submission system — DB schema (call_questions table), tRPC procedures, member submit form in portal, admin review panel with mark-for-call feature
+- [x] Build question submission system — DB schema (call_questions table), tRPC procedures, member submit form in portal, admin review panel with mark-for-call feature
+
+## UX Fixes & WhatsIncluded Rebuild
+- [x] Fix calendar icon on hero badge — scroll to pricing section (non-members get no Zoom link)
+- [x] Fix "Access This Template" button in InsideTheCircle modal — scroll to pricing / trigger checkout
+- [x] Wire live member count in hero badge from trpc.member.count (active Stripe subscribers)
+- [x] Add "Submit a Question" quick link to portal dashboard quick-links grid
+- [x] Submit a Question quick link opens a modal with form + optional file attachment
+- [x] Rebuild WhatsIncluded as bold spoon-feeding benefit stack — large-format outcomes, short punchy copy, no paragraphs

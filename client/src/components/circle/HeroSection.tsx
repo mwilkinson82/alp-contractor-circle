@@ -88,14 +88,14 @@ function NextCallBadge({ onCalendarClick }: { onCalendarClick: () => void }) {
       {/* Divider */}
       <span className="text-cream/15 text-xs">|</span>
 
-      {/* Add to Calendar button */}
+      {/* Join CTA */}
       <button
         onClick={(e) => { e.stopPropagation(); onCalendarClick(); }}
         className="flex items-center gap-1 text-cream/40 hover:text-ember transition-colors duration-200 group"
-        title="Add to Calendar"
+        title="Join to get the Zoom link"
       >
         <CalendarPlus size={13} className="group-hover:scale-110 transition-transform" />
-        <span className="text-[10px] uppercase tracking-wider hidden sm:inline">Add</span>
+        <span className="text-[10px] uppercase tracking-wider hidden sm:inline">Join</span>
       </button>
     </motion.div>
   );
@@ -213,8 +213,11 @@ export function HeroSection() {
   };
 
   const handleCalendarClick = () => {
-    // Non-members: open Google Calendar event (Zoom link is behind portal login)
-    window.open(buildCalendarUrl(), "_blank");
+    // Scroll to pricing section — non-members should buy first, Zoom link is behind portal login
+    const pricingEl = document.getElementById("pricing");
+    if (pricingEl) {
+      pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
   const { scrollYProgress } = useScroll({
     target: ref,

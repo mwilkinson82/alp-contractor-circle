@@ -299,7 +299,13 @@ function TemplateModal({ template, onClose }: { template: typeof TEMPLATE_PREVIE
             Members get this template plus 10+ others as Google Docs — make a copy and customize for your business.
           </p>
           <button
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              setTimeout(() => {
+                const pricingEl = document.getElementById("pricing");
+                if (pricingEl) pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 150);
+            }}
             className="w-full sm:w-auto px-6 py-2.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 text-sm whitespace-nowrap"
           >
             Access This Template

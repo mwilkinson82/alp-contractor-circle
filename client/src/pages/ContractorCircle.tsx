@@ -1,6 +1,6 @@
 import { HeroSection } from '@/components/circle/HeroSection'
 import { ValueProps } from '@/components/circle/ValueProps'
-import { WhatsIncluded } from '@/components/circle/WhatsIncluded'
+import WhatsIncluded from '@/components/circle/WhatsIncluded'
 import { MarshallVideo } from '@/components/circle/MarshallVideo'
 import { Testimonials } from '@/components/circle/Testimonials'
 import { PricingSection } from '@/components/circle/PricingSection'
