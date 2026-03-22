@@ -2,6 +2,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { ArrowRight, Zap, Loader2, CalendarPlus } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
+import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 
 // Anchor: first call Sunday March 29, 2026 at 5 PM ET (21:00 UTC)
@@ -36,7 +37,7 @@ function useCountdown(target: Date) {
 }
 
 // --- NextCallBadge component ---
-function NextCallBadge({ onCalendarClick }: { onCalendarClick: () => void }) {
+function NextCallBadge({ onCalendarClick, isSubscribed }: { onCalendarClick: () => void; isSubscribed: boolean }) {
   const [nextCall] = useState(getNextCallDate);
   const { d, h, m, s } = useCountdown(nextCall);
   const dateStr = nextCall.toLocaleDateString("en-US", {
@@ -88,15 +89,17 @@ function NextCallBadge({ onCalendarClick }: { onCalendarClick: () => void }) {
       {/* Divider */}
       <span className="text-cream/15 text-xs">|</span>
 
-      {/* Join CTA */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onCalendarClick(); }}
-        className="flex items-center gap-1 text-cream/40 hover:text-ember transition-colors duration-200 group"
-        title="Join to get the Zoom link"
-      >
-        <CalendarPlus size={13} className="group-hover:scale-110 transition-transform" />
-        <span className="text-[10px] uppercase tracking-wider hidden sm:inline">Join</span>
-      </button>
+      {/* Join CTA — only show if subscribed */}
+      {isSubscribed && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onCalendarClick(); }}
+          className="flex items-center gap-1 text-cream/40 hover:text-ember transition-colors duration-200 group"
+          title="Add to calendar"
+        >
+          <CalendarPlus size={13} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] uppercase tracking-wider hidden sm:inline">Join</span>
+        </button>
+      )}
     </motion.div>
   );
 }
@@ -195,6 +198,7 @@ function TransformationTicker() {
 export function HeroSection() {
   const ref = useRef<HTMLDivElement>(null);
   const { startCheckout, isLoading } = useCircleCheckout();
+  const { isSubscribed } = useMember();
 
   // Build Google Calendar link for next call
   const buildCalendarUrl = () => {
@@ -213,10 +217,15 @@ export function HeroSection() {
   };
 
   const handleCalendarClick = () => {
-    // Scroll to pricing section — non-members should buy first, Zoom link is behind portal login
-    const pricingEl = document.getElementById("pricing");
-    if (pricingEl) {
-      pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (isSubscribed) {
+      // Subscribed members: open Google Calendar
+      window.open(buildCalendarUrl(), '_blank');
+    } else {
+      // Non-members: scroll to pricing section
+      const pricingEl = document.getElementById("pricing");
+      if (pricingEl) {
+        pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
   const { scrollYProgress } = useScroll({
@@ -417,7 +426,7 @@ export function HeroSection() {
 
         {/* Next Call Badge */}
         <div className="mb-14">
-          <NextCallBadge onCalendarClick={handleCalendarClick} />
+          <NextCallBadge onCalendarClick={handleCalendarClick} isSubscribed={isSubscribed} />
         </div>
 
         {/* Scroll indicator */}

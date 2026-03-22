@@ -1,4 +1,5 @@
 import { HeroSection } from '@/components/circle/HeroSection'
+import { EmailCapture } from '@/components/circle/EmailCapture'
 import { ValueProps } from '@/components/circle/ValueProps'
 import WhatsIncluded from '@/components/circle/WhatsIncluded'
 import { MarshallVideo } from '@/components/circle/MarshallVideo'
@@ -20,6 +21,7 @@ export default function ContractorCircle() {
       <GradientBar />
       <AmbientBackground />
       <HeroSection />
+      <EmailCapture />
       <ValueProps />
       <WhatsIncluded />
       <MarshallVideo />

@@ -298,3 +298,10 @@
 - [x] Replace dashboard screenshot with new one (shows active subscription)
 - [x] Add top padding to all three portal screenshots so headers aren't cut off by browser chrome
 - [x] Re-upload all three screenshots to CDN and update URLs
+
+## Portal Preview Sidebar Crop & New Features
+- [x] Crop sidebar from dashboard screenshot (left ~290px) to make content fit better in mockup
+- [x] Re-upload cropped dashboard screenshot to CDN
+- [x] Implement subscription check for calendar button (only show if subscribed)
+- [x] Add email capture section below hero section (mobile-friendly, not in hero)
+- [x] Test all changes and redeploy (email capture renders, calendar button logic working, no TypeScript errors)
