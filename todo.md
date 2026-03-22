@@ -225,3 +225,7 @@
 ## UX Polish — March 22
 - [x] Move Submit a Question CTA above testimonials (between InsideTheCircle and Testimonials)
 - [x] Rebuild WhatsIncluded timeline animations — scroll-linked spring physics, buttery fade-up, no jerky pop-in
+
+## New Features — March 22 (afternoon)
+- [x] Build premium before/after revenue comparison visual near Member Transformations section
+- [x] Wire email notification to marshall@marshallwilkinson.com when someone submits a question through the portal

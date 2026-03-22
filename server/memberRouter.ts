@@ -11,6 +11,7 @@ import { desc, eq } from "drizzle-orm";
 import { replays, members, callQuestions } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
+import { sendQuestionNotification } from "./email";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 function getDb() {
@@ -242,6 +243,15 @@ export const memberRouter = router({
         callCycle: input.callCycle,
         status: "pending",
       });
+
+      // Send email notification to Marshall
+      sendQuestionNotification({
+        memberName: member.discordUsername || member.email || "A member",
+        question: input.question,
+        context: input.context ?? undefined,
+        callCycle: input.callCycle ?? undefined,
+      }).catch((err) => console.error("[Email] Question notification failed:", err));
+
       return { success: true };
     }),
 

@@ -552,5 +552,70 @@ export async function sendFoundingMemberEmail(params: {
   }
 }
 
+// ─── Question Notification Email to Marshall ─────────────────────────────────
+
+function buildQuestionNotificationHtml(params: { memberName: string; question: string; context?: string; callCycle?: string }) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;color:#f5f0e8;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#c4783e;">New Question Submitted</span>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(196,120,62,0.08),transparent);border:1px solid rgba(196,120,62,0.2);border-radius:16px;padding:32px;margin-bottom:24px;">
+      <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:0 0 8px;">From</p>
+      <p style="font-size:18px;font-weight:700;color:#f5f0e8;margin:0 0 24px;">${params.memberName}</p>
+      ${params.callCycle ? `<p style="font-size:12px;color:rgba(245,240,232,0.4);margin:0 0 16px;">Call Cycle: ${params.callCycle}</p>` : ''}
+      <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:0 0 8px;">Question</p>
+      <p style="font-size:16px;color:#f5f0e8;line-height:1.7;margin:0 0 16px;">${params.question}</p>
+      ${params.context ? `
+      <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:16px 0 8px;">Additional Context</p>
+      <p style="font-size:14px;color:rgba(245,240,232,0.7);line-height:1.6;margin:0;">${params.context}</p>
+      ` : ''}
+    </div>
+    <div style="text-align:center;">
+      <a href="${PORTAL_URL}" style="display:inline-block;padding:12px 32px;background:#c4783e;color:#0a0a0f;font-weight:700;font-size:14px;text-decoration:none;border-radius:8px;">View in Admin Panel</a>
+    </div>
+    <p style="text-align:center;font-size:12px;color:rgba(245,240,232,0.25);margin-top:32px;">ALP Contractor Circle · Question Notification</p>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendQuestionNotification(params: {
+  memberName: string;
+  question: string;
+  context?: string;
+  callCycle?: string;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping question notification");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: "marshall@marshallwilkinson.com",
+      subject: `New Question from ${params.memberName} — Contractor Circle`,
+      html: buildQuestionNotificationHtml(params),
+      text: `New question from ${params.memberName}:\n\n${params.question}${params.context ? `\n\nContext: ${params.context}` : ''}${params.callCycle ? `\n\nCall Cycle: ${params.callCycle}` : ''}`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send question notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Question notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending question notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
 // Export template builders for testing
 export { buildWelcomeEmailHtml as default };
