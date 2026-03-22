@@ -158,3 +158,11 @@
 - [x] Fix broken Discord screenshot image in InsideTheCircle community tab — replaced with inline Discord-style chat UI illustration (no external image dependency)
 - [x] Re-upload real Discord screenshot (AJ Hoover $4.5M bid) to CDN and replace JSX illustration
 - [x] Remove autoplay from Cloudflare Stream iframe, add lazy loading (preload=none, autoplay=false, removed autoplay from allow attribute)
+
+## Mobile UX — InsideTheCircle Carousel
+- [x] Rebuild InsideTheCircle as swipeable mobile carousel with peek-through edge effect
+- [x] Add dot indicators (Instagram-style) below carousel
+- [x] Add "Swipe to explore" animated prompt on mobile
+- [x] Auto-cycle through tabs every 4s (pauses on interaction)
+- [x] Make tab buttons larger with strong active/inactive visual difference
+- [x] Add pulsing glow animation on active tab

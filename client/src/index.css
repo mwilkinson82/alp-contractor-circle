@@ -245,3 +245,27 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Scrollbar-none utility for carousel pill row */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Horizontal bounce animation for swipe hint arrow */
+@keyframes bounce-x {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+.animate-bounce-x {
+  animation: bounce-x 0.9s ease-in-out infinite;
+}
+
+/* Progress fill for auto-cycle indicator */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}

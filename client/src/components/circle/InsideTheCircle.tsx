@@ -1,17 +1,17 @@
 /*
  * Inside the Circle — Premium Showcase Section
- * Shows portal preview, Discord community proof, template library, and social proof
- * Designed to justify the $497/month investment with billion-dollar brand aesthetic
+ * Mobile: swipeable carousel with peek effect, dot indicators, auto-cycle, swipe prompt
+ * Desktop: prominent tab navigation
  */
 
-import { useState } from "react";
-import { ChevronRight, Play, Users, FileText, TrendingUp, Lock, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronRight, Play, Users, FileText, TrendingUp, Lock, X, ChevronLeft } from "lucide-react";
 
 const SHOWCASE_TABS = [
-  { id: "portal", label: "Portal Preview", icon: "🎯" },
-  { id: "discord", label: "Community", icon: "💬" },
-  { id: "templates", label: "Templates", icon: "📄" },
-  { id: "proof", label: "Results", icon: "📈" },
+  { id: "portal", label: "Replay Library", icon: "🎯", shortLabel: "Replays" },
+  { id: "discord", label: "Community", icon: "💬", shortLabel: "Community" },
+  { id: "templates", label: "Templates", icon: "📄", shortLabel: "Templates" },
+  { id: "proof", label: "Results", icon: "📈", shortLabel: "Results" },
 ];
 
 const TRANSFORMATION_STATS = [
@@ -45,18 +45,249 @@ const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/3105196633327242
 const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/discord-screenshot_ab4921f0.webp";
 const TEMPLATE_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.55.32PM_565e119b.webp";
 
+// ─── Individual card content panels ──────────────────────────────────────────
+
+function PortalCard({ onTemplateSelect }: { onTemplateSelect?: never }) {
+  return (
+    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <div className="grid md:grid-cols-2 gap-6 items-center h-full">
+        <div>
+          <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-3">
+            Replay Library
+          </h3>
+          <p className="text-cream-muted mb-5 leading-relaxed text-sm sm:text-base">
+            Every Contractor Circle call is recorded and organized by topic. Watch the ALP Outdoor Living Sales Course, Power Hour sessions, or any past call — on demand.
+          </p>
+          <ul className="space-y-2.5">
+            {["Live call recordings", "Organized by category", "Searchable library", "Lifetime access"].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-cream-muted text-sm">
+                <div className="w-2 h-2 rounded-full bg-ember flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
+          <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
+            <div className="aspect-video bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden">
+              <img src={REPLAY_THUMBNAIL} alt="Replay thumbnail" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-all">
+                <div className="w-14 h-14 rounded-full bg-ember/80 flex items-center justify-center group-hover:bg-ember transition-all shadow-lg">
+                  <Play className="w-6 h-6 text-white fill-white ml-1" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2 mt-3">
+              <div className="h-3 bg-white/10 rounded w-3/4" />
+              <div className="h-2 bg-white/5 rounded w-1/2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiscordCard() {
+  return (
+    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <div className="grid md:grid-cols-2 gap-6 items-center h-full">
+        <div className="order-2 md:order-1 relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
+          <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
+            <div className="rounded-lg overflow-hidden border-2 border-ember/50 shadow-lg shadow-ember/20">
+              <img
+                src={DISCORD_SCREENSHOT}
+                alt="ALP Discord community — AJ Hoover's $4.5M bid discussion with Marshall"
+                className="w-full h-auto block max-h-64 object-cover object-top"
+                loading="lazy"
+              />
+            </div>
+            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "oklch(0.72 0.12 55)", boxShadow: "0 0 12px oklch(0.72 0.12 55 / 0.5)" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-[10px] font-bold text-midnight">LIVE</span>
+            </div>
+          </div>
+        </div>
+        <div className="order-1 md:order-2">
+          <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-3">
+            Private Discord Community
+          </h3>
+          <p className="text-cream-muted mb-5 leading-relaxed text-sm sm:text-base">
+            Join 50 elite contractors in a private Discord. Share deals, ask questions, celebrate wins. See real contractors doing real work — like AJ Hoover managing $4.5M bids on weekends.
+          </p>
+          <ul className="space-y-2.5">
+            {["24/7 member access", "Real deal discussions", "Direct Marshall access", "Exclusive announcements"].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-cream-muted text-sm">
+                <div className="w-2 h-2 rounded-full bg-ember flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TemplatesCard({ onSelect }: { onSelect: (t: typeof TEMPLATE_PREVIEWS[0]) => void }) {
+  return (
+    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-5">
+        11+ Premium Templates & SOPs
+      </h3>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {TEMPLATE_PREVIEWS.map((template) => (
+          <button
+            key={template.title}
+            onClick={() => onSelect(template)}
+            className="group bg-gradient-to-br from-white/10 to-white/5 rounded-lg p-4 border border-white/10 hover:border-ember/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-ember/20 text-left"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-2xl">{template.icon}</span>
+              <ChevronRight className="w-4 h-4 text-cream-muted group-hover:text-ember transition-colors" />
+            </div>
+            <h4 className="font-semibold text-cream text-sm mb-1 group-hover:text-ember transition-colors leading-tight">
+              {template.title}
+            </h4>
+            <p className="text-xs text-cream-muted">{template.category}</p>
+          </button>
+        ))}
+      </div>
+      <p className="text-cream-muted text-sm mt-6 text-center">
+        All templates are Google Docs. Make a copy and customize for your business.
+      </p>
+    </div>
+  );
+}
+
+function ResultsCard() {
+  return (
+    <div className="h-full space-y-4">
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
+          <h3 className="font-heading text-xl font-bold text-cream mb-4">What You Get</h3>
+          <div className="space-y-3">
+            {PROOF_STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className={`p-4 rounded-lg border transition-all duration-300 ${
+                  stat.highlight ? "bg-ember/20 border-ember/50" : "bg-white/5 border-white/10 hover:border-ember/30"
+                }`}
+              >
+                <p className="text-cream-muted text-sm mb-1">{stat.label}</p>
+                <p className={`font-heading text-lg font-bold ${stat.highlight ? "text-ember" : "text-cream"}`}>
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
+          <h3 className="font-heading text-xl font-bold text-cream mb-4">Member Results</h3>
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {TRANSFORMATION_STATS.map((member) => (
+              <div key={member.name} className="p-3 bg-white/5 rounded-lg border border-white/10 hover:border-ember/30 transition-all">
+                <p className="font-semibold text-cream text-sm">{member.name}</p>
+                <p className="text-ember font-bold text-base">{member.from} → {member.to}</p>
+                <p className="text-cream-muted text-xs">{member.company}</p>
+              </div>
+            ))}
+            <div className="p-4 bg-ember/10 rounded-lg border border-ember/30 text-center">
+              <p className="text-cream-muted text-sm font-semibold">Plus dozens more inside the Circle</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="glass-card rounded-2xl p-6 sm:p-8 border border-ember/20 text-center">
+        <p className="text-cream-muted mb-3">Ready to join the elite contractors scaling their businesses?</p>
+        <p className="font-heading text-3xl font-bold text-cream mb-5">
+          $497<span className="text-lg text-cream-muted">/month</span>
+        </p>
+        <button className="px-8 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50">
+          Become a Founding Member
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function InsideTheCircle() {
-  const [activeTab, setActiveTab] = useState("portal");
+  const [activeIndex, setActiveIndex] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATE_PREVIEWS[0] | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const goTo = useCallback((idx: number) => {
+    setActiveIndex(idx);
+  }, []);
+
+  const goNext = useCallback(() => {
+    setActiveIndex((i) => (i + 1) % SHOWCASE_TABS.length);
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setActiveIndex((i) => (i - 1 + SHOWCASE_TABS.length) % SHOWCASE_TABS.length);
+  }, []);
+
+  // Auto-cycle every 4s — pauses after user interaction
+  useEffect(() => {
+    if (hasInteracted) return;
+    autoPlayRef.current = setInterval(goNext, 4000);
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [hasInteracted, goNext]);
+
+  // Hide swipe hint after 3s or first interaction
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSwipeHint(false), 3500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleUserInteraction = useCallback((idx: number) => {
+    setHasInteracted(true);
+    setShowSwipeHint(false);
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    goTo(idx);
+  }, [goTo]);
+
+  // Touch swipe handling
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    // Only treat as horizontal swipe if horizontal movement dominates
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      setHasInteracted(true);
+      setShowSwipeHint(false);
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+  };
+
+  const activeTab = SHOWCASE_TABS[activeIndex].id;
 
   return (
     <section className="relative py-14 sm:py-20 md:py-32 overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-ember/5 pointer-events-none" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-10 sm:mb-16 md:mb-20">
+        <div className="text-center mb-10 sm:mb-14 md:mb-20 px-4 sm:px-6 lg:px-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/10 border border-ember/20 mb-6">
             <Lock className="w-4 h-4 text-ember" />
             <span className="text-sm font-semibold text-ember uppercase tracking-wider">Inside the Circle</span>
@@ -69,202 +300,159 @@ export default function InsideTheCircle() {
           </p>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-8 sm:mb-12">
-          {SHOWCASE_TABS.map((tab) => (
+        {/* ── DESKTOP: Tab Navigation (hidden on mobile) ── */}
+        <div className="hidden sm:flex flex-wrap gap-3 justify-center mb-10 px-4 sm:px-6 lg:px-8">
+          {SHOWCASE_TABS.map((tab, i) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg font-semibold transition-all duration-300 ${
-                activeTab === tab.id
-                  ? "bg-ember text-white shadow-lg shadow-ember/30"
-                  : "bg-white/5 text-cream-muted hover:bg-white/10 border border-white/10"
+              onClick={() => handleUserInteraction(i)}
+              className={`relative px-6 py-3.5 text-base rounded-xl font-semibold transition-all duration-300 ${
+                activeIndex === i
+                  ? "bg-ember text-white shadow-xl shadow-ember/40 scale-105"
+                  : "bg-white/5 text-cream-muted hover:bg-white/10 border border-white/10 hover:border-ember/30"
               }`}
             >
+              {activeIndex === i && (
+                <span className="absolute inset-0 rounded-xl animate-pulse opacity-30 bg-ember pointer-events-none" />
+              )}
               <span className="mr-2">{tab.icon}</span>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
-        <div className="min-h-96">
-          {/* Portal Preview */}
-          {activeTab === "portal" && (
-            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
-                <div>
-                  <h3 className="font-heading text-2xl font-bold text-cream mb-4">
-                    Replay Library
-                  </h3>
-                  <p className="text-cream-muted mb-6 leading-relaxed">
-                    Every Contractor Circle call is recorded and organized by topic. Members access replays on demand — watch the ALP Outdoor Living Sales Course, Power Hour strategy sessions, or any past call.
-                  </p>
-                  <ul className="space-y-3">
-                    {["Live call recordings", "Organized by category", "Searchable library", "Lifetime access"].map((item) => (
-                      <li key={item} className="flex items-center gap-3 text-cream-muted">
-                        <div className="w-2 h-2 rounded-full bg-ember" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
-                  <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-6 border border-white/20 backdrop-blur-sm overflow-hidden">
-                    <div className="aspect-video bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
-                      {/* Thumbnail image */}
-                      <img
-                        src={REPLAY_THUMBNAIL}
-                        alt="Replay thumbnail"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-all">
-                        <div className="w-14 h-14 rounded-full bg-ember/80 flex items-center justify-center group-hover:bg-ember transition-all shadow-lg">
-                          <Play className="w-6 h-6 text-white fill-white ml-1" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-white/10 rounded w-3/4" />
-                      <div className="h-2 bg-white/5 rounded w-1/2" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+        {/* ── MOBILE: Swipe prompt + carousel ── */}
+        <div className="sm:hidden">
+          {/* Swipe prompt — animated, fades out */}
+          <div
+            className={`flex items-center justify-center gap-2 mb-4 px-4 transition-all duration-700 ${
+              showSwipeHint ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+            }`}
+          >
+            <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-ember/15 border border-ember/30">
+              <span className="text-ember text-sm font-semibold">Swipe to explore</span>
+              {/* Animated arrow */}
+              <svg className="w-5 h-5 text-ember animate-bounce-x" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-          )}
+          </div>
 
-          {/* Discord Community */}
-          {activeTab === "discord" && (
-            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
-                <div className="order-2 md:order-1 relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
-                  <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
-                    {/* Real Discord screenshot — AJ Hoover $4.5M bid in #general-chat */}
-                    <div className="rounded-lg overflow-hidden border-2 border-ember/50 shadow-lg shadow-ember/20">
-                      <img
-                        src={DISCORD_SCREENSHOT}
-                        alt="ALP Discord community — AJ Hoover's $4.5M bid discussion with Marshall"
-                        className="w-full h-auto block"
-                        loading="lazy"
-                      />
-                    </div>
-                    {/* Live badge */}
-                    <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "oklch(0.72 0.12 55)", boxShadow: "0 0 12px oklch(0.72 0.12 55 / 0.5)" }}>
-                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span className="text-[10px] font-bold text-midnight">LIVE</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="order-1 md:order-2">
-                  <h3 className="font-heading text-2xl font-bold text-cream mb-4">
-                    Private Discord Community
-                  </h3>
-                  <p className="text-cream-muted mb-6 leading-relaxed">
-                    Join 50 elite contractors in a private Discord. Share deals, ask questions, celebrate wins. See real contractors doing real work — like AJ Hoover managing $4.5M bids on weekends.
-                  </p>
-                  <ul className="space-y-3">
-                    {["24/7 member access", "Real deal discussions", "Direct Marshall access", "Exclusive announcements"].map((item) => (
-                      <li key={item} className="flex items-center gap-3 text-cream-muted">
-                        <div className="w-2 h-2 rounded-full bg-ember" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+          {/* Mobile tab pills — compact, scrollable */}
+          <div className="flex gap-2 px-4 mb-5 overflow-x-auto scrollbar-none pb-1">
+            {SHOWCASE_TABS.map((tab, i) => (
+              <button
+                key={tab.id}
+                onClick={() => handleUserInteraction(i)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  activeIndex === i
+                    ? "bg-ember text-white shadow-lg shadow-ember/40"
+                    : "bg-white/8 text-cream-muted border border-white/15"
+                }`}
+                style={activeIndex === i ? { boxShadow: "0 0 16px oklch(0.72 0.12 55 / 0.5)" } : {}}
+              >
+                <span className="text-base">{tab.icon}</span>
+                <span>{tab.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── MOBILE: Carousel with peek effect ── */}
+        <div
+          className="sm:hidden relative overflow-hidden"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          ref={carouselRef}
+        >
+          {/* Slide track — each slide is 88vw wide, centered, with peek on right */}
+          <div
+            className="flex transition-transform duration-400 ease-out"
+            style={{ transform: `translateX(calc(${activeIndex * -88}vw + ${activeIndex > 0 ? "0px" : "0px"}))`, paddingLeft: "6vw" }}
+          >
+            {SHOWCASE_TABS.map((tab, i) => (
+              <div
+                key={tab.id}
+                className="flex-shrink-0 pr-3"
+                style={{ width: "88vw" }}
+                onClick={() => { if (i !== activeIndex) handleUserInteraction(i); }}
+              >
+                <div className={`transition-all duration-400 ${i === activeIndex ? "opacity-100 scale-100" : "opacity-50 scale-[0.97]"}`}>
+                  {tab.id === "portal" && <PortalCard />}
+                  {tab.id === "discord" && <DiscordCard />}
+                  {tab.id === "templates" && <TemplatesCard onSelect={(t) => { handleUserInteraction(i); setSelectedTemplate(t); }} />}
+                  {tab.id === "proof" && <ResultsCard />}
                 </div>
               </div>
+            ))}
+          </div>
+
+          {/* Prev / Next arrow buttons on mobile */}
+          <button
+            onClick={() => { handleUserInteraction((activeIndex - 1 + SHOWCASE_TABS.length) % SHOWCASE_TABS.length); }}
+            className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+              activeIndex === 0 ? "opacity-0 pointer-events-none" : "opacity-80 hover:opacity-100"
+            }`}
+            style={{ background: "oklch(0.72 0.12 55 / 0.85)", boxShadow: "0 0 12px oklch(0.72 0.12 55 / 0.4)" }}
+            aria-label="Previous"
+          >
+            <ChevronLeft className="w-4 h-4 text-white" />
+          </button>
+          <button
+            onClick={() => { handleUserInteraction((activeIndex + 1) % SHOWCASE_TABS.length); }}
+            className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+              activeIndex === SHOWCASE_TABS.length - 1 ? "opacity-0 pointer-events-none" : "opacity-80 hover:opacity-100"
+            }`}
+            style={{ background: "oklch(0.72 0.12 55 / 0.85)", boxShadow: "0 0 12px oklch(0.72 0.12 55 / 0.4)" }}
+            aria-label="Next"
+          >
+            <ChevronRight className="w-4 h-4 text-white" />
+          </button>
+        </div>
+
+        {/* ── Dot indicators (mobile only) ── */}
+        <div className="sm:hidden flex items-center justify-center gap-2 mt-5 px-4">
+          {SHOWCASE_TABS.map((tab, i) => (
+            <button
+              key={tab.id}
+              onClick={() => handleUserInteraction(i)}
+              aria-label={`Go to ${tab.label}`}
+              className="transition-all duration-300"
+            >
+              <div
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: i === activeIndex ? 24 : 8,
+                  height: 8,
+                  background: i === activeIndex ? "oklch(0.72 0.12 55)" : "oklch(0.72 0.12 55 / 0.3)",
+                  boxShadow: i === activeIndex ? "0 0 8px oklch(0.72 0.12 55 / 0.6)" : "none",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+
+        {/* Progress bar — auto-cycle indicator (mobile only, when not interacted) */}
+        {!hasInteracted && (
+          <div className="sm:hidden mt-3 px-6">
+            <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
+              <div
+                key={activeIndex}
+                className="h-full bg-ember rounded-full"
+                style={{ animation: "progress-fill 4s linear forwards" }}
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Templates */}
-          {activeTab === "templates" && (
-            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-5 sm:mb-8">
-                11+ Premium Templates & SOPs
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {TEMPLATE_PREVIEWS.map((template) => (
-                  <button
-                    key={template.title}
-                    onClick={() => setSelectedTemplate(template)}
-                    className="group bg-gradient-to-br from-white/10 to-white/5 rounded-lg p-4 border border-white/10 hover:border-ember/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-ember/20 text-left"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-2xl">{template.icon}</span>
-                      <ChevronRight className="w-4 h-4 text-cream-muted group-hover:text-ember transition-colors" />
-                    </div>
-                    <h4 className="font-semibold text-cream text-sm mb-1 group-hover:text-ember transition-colors">
-                      {template.title}
-                    </h4>
-                    <p className="text-xs text-cream-muted">{template.category}</p>
-                  </button>
-                ))}
-              </div>
-              <p className="text-cream-muted text-sm mt-8 text-center">
-                All templates are Google Docs. Make a copy and customize for your business. Used across $2.5B+ in construction projects.
-              </p>
-            </div>
-          )}
-
-          {/* Social Proof */}
-          {activeTab === "proof" && (
-            <div className="animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-5 sm:gap-8 mb-8 sm:mb-12">
-                {/* Stats */}
-                <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
-                  <h3 className="font-heading text-xl font-bold text-cream mb-4 sm:mb-6">What You Get</h3>
-                  <div className="space-y-4">
-                    {PROOF_STATS.map((stat) => (
-                      <div
-                        key={stat.label}
-                        className={`p-4 rounded-lg border transition-all duration-300 ${
-                          stat.highlight
-                            ? "bg-ember/20 border-ember/50"
-                            : "bg-white/5 border-white/10 hover:border-ember/30"
-                        }`}
-                      >
-                        <p className="text-cream-muted text-sm mb-1">{stat.label}</p>
-                        <p className={`font-heading text-lg font-bold ${stat.highlight ? "text-ember" : "text-cream"}`}>
-                          {stat.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Transformations - Scrollable */}
-                <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
-                  <h3 className="font-heading text-xl font-bold text-cream mb-4 sm:mb-6">Member Results</h3>
-                  <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-ember/30 scrollbar-track-white/5">
-                    {TRANSFORMATION_STATS.map((member) => (
-                      <div key={member.name} className="p-3 bg-white/5 rounded-lg border border-white/10 hover:border-ember/30 transition-all">
-                        <p className="font-semibold text-cream text-sm">{member.name}</p>
-                        <p className="text-ember font-bold text-base">{member.from} → {member.to}</p>
-                        <p className="text-cream-muted text-xs">{member.company}</p>
-                      </div>
-                    ))}
-                    <div className="p-4 bg-ember/10 rounded-lg border border-ember/30 text-center">
-                      <p className="text-cream-muted text-sm font-semibold">Plus dozens more inside the Circle</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom CTA */}
-              <div className="glass-card rounded-2xl p-6 sm:p-8 md:p-12 border border-ember/20 text-center">
-                <p className="text-cream-muted mb-4">Ready to join the elite contractors scaling their businesses?</p>
-                <p className="font-heading text-3xl font-bold text-cream mb-6">
-                  $497<span className="text-lg text-cream-muted">/month</span>
-                </p>
-                <button className="px-8 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50">
-                  Become a Founding Member
-                </button>
-              </div>
-            </div>
-          )}
+        {/* ── DESKTOP: Tab content ── */}
+        <div className="hidden sm:block max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="min-h-96">
+            {activeTab === "portal" && <PortalCard />}
+            {activeTab === "discord" && <DiscordCard />}
+            {activeTab === "templates" && <TemplatesCard onSelect={setSelectedTemplate} />}
+            {activeTab === "proof" && <ResultsCard />}
+          </div>
         </div>
       </div>
 
@@ -272,27 +460,17 @@ export default function InsideTheCircle() {
       {selectedTemplate && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-background border border-ember/30 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto animate-in scale-in duration-300">
-            {/* Modal Header */}
             <div className="sticky top-0 flex items-center justify-between p-6 border-b border-white/10 bg-background/95 backdrop-blur">
               <div>
                 <h3 className="font-heading text-xl font-bold text-cream">{selectedTemplate.title}</h3>
                 <p className="text-sm text-cream-muted">{selectedTemplate.category}</p>
               </div>
-              <button
-                onClick={() => setSelectedTemplate(null)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all"
-              >
+              <button onClick={() => setSelectedTemplate(null)} className="p-2 hover:bg-white/10 rounded-lg transition-all">
                 <X className="w-5 h-5 text-cream-muted hover:text-cream" />
               </button>
             </div>
-
-            {/* Modal Content - Template Preview */}
             <div className="p-6">
-              <img
-                src={TEMPLATE_PREVIEW}
-                alt={selectedTemplate.title}
-                className="w-full rounded-lg border border-white/10 shadow-lg"
-              />
+              <img src={TEMPLATE_PREVIEW} alt={selectedTemplate.title} className="w-full rounded-lg border border-white/10 shadow-lg" />
               <p className="text-cream-muted text-sm mt-6 leading-relaxed">
                 This is a preview of the {selectedTemplate.title}. When you join the Contractor Circle, you'll get access to this template and 10+ others. All templates are Google Docs — simply make a copy and customize for your business.
               </p>
