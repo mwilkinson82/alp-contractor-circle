@@ -12,6 +12,7 @@ import { replays, members, callQuestions } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 import { sendQuestionNotification } from "./email";
+import { emailSubscribers } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 function getDb() {
@@ -334,6 +335,42 @@ export const memberRouter = router({
         .where(eq(callQuestions.id, input.id));
       return { success: true };
     }),
+
+  /**
+   * Admin: Get all email subscribers.
+   */
+  adminSubscribers: publicProcedure.query(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (member.memberRole !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    }
+
+    const db = getDb();
+    if (!db) return { subscribers: [] };
+
+    try {
+      const rows = await db
+        .select()
+        .from(emailSubscribers)
+        .orderBy(desc(emailSubscribers.createdAt));
+
+      return {
+        subscribers: rows.map(row => ({
+          id: row.id,
+          email: row.email,
+          source: row.source,
+          verified: row.verified,
+          createdAt: row.createdAt,
+        })),
+      };
+    } catch (err) {
+      console.warn("[Member] Failed to fetch subscribers:", err);
+      return { subscribers: [] };
+    }
+  }),
 
   /**
    * Get payment history from Stripe for the current member.

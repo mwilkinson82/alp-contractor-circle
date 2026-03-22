@@ -323,3 +323,26 @@
 - [ ] Send welcome email to Ronnie Silva
 - [ ] Update Dan Del Monte email to dan@delmontebuilders.com
 - [ ] Update Nathan Oliveira email to nathan@olivetreebuilds.ca
+
+## Calendar One-Click Add (March 22)
+- [x] Build one-click "Add to Calendar" button that adds bi-weekly Sunday 5 PM ET Zoom calls to member's Google Calendar
+- [x] Include Zoom meeting link, recurring bi-weekly schedule, and proper event details
+- [x] Wire button in portal dashboard calendar card
+- [x] Test calendar event creation
+## Admin Dashboard for Email Subscribers (March 22)
+- [x] Build admin-only page to view all email subscribers
+- [x] Show subscriber email, signup date, and status
+- [x] Add search and filter functionality
+- [x] Add CSV export feature
+- [x] Wire into member portal navigation
+
+## New Member Signup Notification (March 22)
+- [x] Send email to marshall@marshallwilkinson.com when a new member creates their account (first Discord OAuth login)
+- [x] Include member name, email, Discord username, and signup timestamp
+
+## Anthony Lozado Power Hour Expiration Email (March 22)
+- [x] Send Power Hour expiration email to anthony@lozadocontracting.com
+
+## Welcome Email Fix (March 22)
+- [x] Investigate why founding member welcome emails appear empty in Resend
+- [x] Resend welcome emails to all 4 founding members with full HTML content

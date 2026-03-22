@@ -16,6 +16,7 @@ import {
   Crown,
   ChevronRight,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -26,6 +27,7 @@ const menuItems = [
   { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
+  { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
 ];
 
 function MemberPortalSkeleton() {

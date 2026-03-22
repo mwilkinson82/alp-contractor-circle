@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
+import { CalendarIntegration } from "@/components/portal/CalendarIntegration";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
@@ -428,6 +429,9 @@ export default function PortalDashboard() {
           </div>
         )}
       </div>
+
+      {/* Calendar Integration — Available to all members */}
+      <CalendarIntegration />
 
       {/* Gated content for subscribers only */}
       {isSubscribed ? (

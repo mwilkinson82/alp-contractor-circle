@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { sendNewMemberSignupNotification } from "./email";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 // Production domain — must be registered in Discord Developer Portal
@@ -370,6 +371,15 @@ export function registerDiscordOAuthRoutes(app: Express) {
       const sessionToken = await createMemberSession(member);
       const cookieOptions = getMemberCookieOptions(req);
       res.cookie(MEMBER_COOKIE_NAME, sessionToken, cookieOptions);
+
+      // Send new member signup notification to Marshall (fire-and-forget)
+      if (member.discordUsername && member.email) {
+        sendNewMemberSignupNotification({
+          memberName: member.discordDisplayName || member.discordUsername || "Unknown",
+          memberEmail: member.email,
+          discordUsername: member.discordUsername,
+        }).catch((e: any) => console.warn("[Discord] New member notification failed:", e?.message));
+      }
 
       // Redirect to member portal
       res.redirect(302, `${origin}${returnPath}`);
