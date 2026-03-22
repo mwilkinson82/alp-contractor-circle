@@ -89,69 +89,41 @@ export function PortalPreview() {
           })}
         </div>
 
-        {/* Floating 3D Cards Grid */}
-        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] mb-12 sm:mb-16 flex items-center justify-center perspective">
-          {/* Perspective container */}
-          <div className="relative w-full h-full" style={{ perspective: "1200px" }}>
-            {PORTAL_SCREENSHOTS.map((card, i) => {
-              const isActive = activeTab === i;
-              const isHovered = hoveredCard === card.id;
-              
-              return (
-                <div
-                  key={card.id}
-                  onMouseEnter={() => setHoveredCard(card.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  onClick={() => setActiveTab(i)}
-                  className="absolute inset-0 flex items-center justify-center cursor-pointer transition-all duration-500"
-                  style={{
-                    opacity: isActive ? 1 : 0.4,
-                    transform: isActive 
-                      ? "scale(1) rotateY(0deg) rotateX(0deg) translateZ(0)"
-                      : `scale(0.85) rotateY(${i === 0 ? -25 : i === 2 ? 25 : 0}deg) translateZ(-100px)`,
-                    zIndex: isActive ? 10 : 5 - Math.abs(i - activeTab),
-                    pointerEvents: isActive ? "auto" : "auto",
-                  }}
-                >
-                  {/* Card with 3D tilt and glow */}
-                  <div
-                    className="relative w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl transition-all duration-300"
-                    style={{
-                      transform: isActive && isHovered 
-                        ? `rotateZ(0deg) scale(1.02)` 
-                        : `rotateZ(${card.rotation}deg)`,
-                      boxShadow: isActive 
-                        ? `0 20px 60px rgba(255, 127, 80, 0.3), 0 0 40px rgba(255, 127, 80, 0.1)`
-                        : `0 10px 30px rgba(0, 0, 0, 0.3)`,
-                    }}
-                  >
-                    {/* Glow effect beneath card */}
-                    <div
-                      className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 w-4/5 h-24 rounded-full blur-3xl pointer-events-none"
-                      style={{
-                        background: isActive 
-                          ? "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.2), transparent 70%)"
-                          : "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.05), transparent 70%)",
-                      }}
-                    />
+        {/* Card display with 3D perspective */}
+        <div className="relative mb-12 sm:mb-16" style={{ perspective: "1200px" }}>
+          <div
+            className="relative w-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-500"
+            onMouseEnter={() => setHoveredCard(active.id)}
+            onMouseLeave={() => setHoveredCard(null)}
+            style={{
+              transform: hoveredCard === active.id 
+                ? `rotateZ(0deg) scale(1.02) rotateX(2deg)`
+                : `rotateZ(${active.rotation}deg)`,
+              boxShadow: `0 20px 60px rgba(255, 127, 80, 0.3), 0 0 40px rgba(255, 127, 80, 0.1)`,
+              aspectRatio: "16 / 9",
+            }}
+          >
+            {/* Glow effect beneath card */}
+            <div
+              className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 w-4/5 h-24 rounded-full blur-3xl pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.2), transparent 70%)",
+              }}
+            />
 
-                    {/* Screenshot image */}
-                    <img
-                      src={card.image}
-                      alt={card.label}
-                      className="w-full h-auto block"
-                      loading="lazy"
-                    />
+            {/* Screenshot image */}
+            <img
+              src={active.image}
+              alt={active.label}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
 
-                    {/* Gradient overlay at bottom */}
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-24 sm:h-32 pointer-events-none"
-                      style={{ background: "linear-gradient(to top, oklch(0.12 0.02 260), transparent)" }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+            {/* Gradient overlay at bottom */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-24 sm:h-32 pointer-events-none"
+              style={{ background: "linear-gradient(to top, oklch(0.12 0.02 260), transparent)" }}
+            />
           </div>
         </div>
 

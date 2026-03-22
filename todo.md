@@ -265,3 +265,6 @@
 - [x] Track non-subscriber logins in database for retargeting (login tracking already exists via lastSignedIn in Discord auth)
 
 - [x] Rebuild PortalPreview with floating 3D perspective cards (no browser chrome, premium brand feel)
+
+## Bug Fix — Portal Preview Cards Not Displaying
+- [x] Fix 3D perspective card container — simplified to single active card with proper aspect ratio and overflow handling
