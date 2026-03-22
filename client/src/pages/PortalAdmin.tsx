@@ -17,6 +17,9 @@ import {
   Loader2,
   ExternalLink,
   Shield,
+  MessageCircle,
+  Star,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +68,143 @@ const emptyForm: ReplayFormData = {
   callDate: new Date().toISOString().split("T")[0],
   featured: false,
 };
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  pending: { label: "Pending", color: "text-cream-muted", bg: "bg-white/5" },
+  selected_for_call: { label: "Selected for Call", color: "text-green-400", bg: "bg-green-500/10" },
+  selected_for_bootcamp: { label: "For Bootcamp", color: "text-blue-400", bg: "bg-blue-500/10" },
+  answered: { label: "Answered", color: "text-ember", bg: "bg-ember/10" },
+  archived: { label: "Archived", color: "text-cream-muted/50", bg: "bg-white/5" },
+};
+
+function QuestionsReviewPanel() {
+  const { data, isLoading, refetch } = trpc.member.adminQuestions.useQuery(undefined, { retry: false });
+  const updateStatus = trpc.member.updateQuestionStatus.useMutation({ onSuccess: () => refetch() });
+  const [filter, setFilter] = useState<string>("all");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [noteInputs, setNoteInputs] = useState<Record<number, string>>({});
+
+  const questions = data?.questions || [];
+  const filtered = filter === "all" ? questions : questions.filter((q: any) => q.status === filter);
+  const pendingCount = questions.filter((q: any) => q.status === "pending").length;
+
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="p-6 border-b border-white/5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-ember" />
+            </div>
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-cream">Member Questions</h2>
+              <p className="text-cream-muted text-xs mt-0.5">
+                {pendingCount > 0 ? `${pendingCount} new question${pendingCount > 1 ? "s" : ""} awaiting review` : "All questions reviewed"}
+              </p>
+            </div>
+          </div>
+          {/* Filter tabs */}
+          <div className="flex gap-1.5 flex-wrap">
+            {["all", "pending", "selected_for_call", "selected_for_bootcamp", "answered", "archived"].map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  filter === s ? "bg-ember text-obsidian" : "bg-white/5 text-cream-muted hover:bg-white/10"
+                }`}
+              >
+                {s === "all" ? `All (${questions.length})` : STATUS_CONFIG[s]?.label || s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="divide-y divide-white/5">
+        {isLoading ? (
+          <div className="p-8 text-center text-cream-muted text-sm">Loading questions...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-cream-muted text-sm">No questions in this category yet.</div>
+        ) : (
+          filtered.map((q: any) => {
+            const cfg = STATUS_CONFIG[q.status] || STATUS_CONFIG.pending;
+            const isExpanded = expandedId === q.id;
+            return (
+              <div key={q.id} className="p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-semibold text-ember">
+                        {q.memberName || q.memberUsername || `Member #${q.memberId}`}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                      <span className="text-xs text-cream-muted/50">
+                        {new Date(q.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-cream text-sm leading-relaxed">{q.question}</p>
+                    {q.context && (
+                      <p className="text-cream-muted text-xs mt-1.5 italic">Context: {q.context}</p>
+                    )}
+                    {q.adminNotes && (
+                      <p className="text-ember text-xs mt-1.5">Note: {q.adminNotes}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : q.id)}
+                    className="shrink-0 px-2.5 py-1 rounded-lg bg-white/5 text-cream-muted text-xs hover:bg-white/10 transition-colors"
+                  >
+                    {isExpanded ? "Close" : "Actions"}
+                  </button>
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => updateStatus.mutate({ id: q.id, status: "selected_for_call", adminNotes: noteInputs[q.id] })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors"
+                      >
+                        <Star className="w-3.5 h-3.5" /> Select for Call
+                      </button>
+                      <button
+                        onClick={() => updateStatus.mutate({ id: q.id, status: "selected_for_bootcamp", adminNotes: noteInputs[q.id] })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-medium hover:bg-blue-500/20 transition-colors"
+                      >
+                        <Star className="w-3.5 h-3.5" /> Select for Bootcamp
+                      </button>
+                      <button
+                        onClick={() => updateStatus.mutate({ id: q.id, status: "answered", adminNotes: noteInputs[q.id] })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ember/10 text-ember text-xs font-medium hover:bg-ember/20 transition-colors"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Answered
+                      </button>
+                      <button
+                        onClick={() => updateStatus.mutate({ id: q.id, status: "archived" })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-cream-muted text-xs font-medium hover:bg-white/10 transition-colors"
+                      >
+                        <Archive className="w-3.5 h-3.5" /> Archive
+                      </button>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Add a note (optional)..."
+                        value={noteInputs[q.id] || ""}
+                        onChange={e => setNoteInputs(n => ({ ...n, [q.id]: e.target.value }))}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-cream text-xs placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function PortalAdmin() {
   const { member } = useMember();
@@ -160,6 +300,9 @@ export default function PortalAdmin() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* Questions Review Section */}
+      <QuestionsReviewPanel />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

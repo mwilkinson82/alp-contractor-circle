@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `call_questions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`memberId` int NOT NULL,\n\t`question` text NOT NULL,\n\t`context` text,\n\t`status` enum('pending','selected_for_call','selected_for_bootcamp','answered','archived') NOT NULL DEFAULT 'pending',\n\t`adminNotes` text,\n\t`callCycle` varchar(32),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `call_questions_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute CREATE TABLE `call_questions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`memberId` int NOT NULL,\n\t`question` text NOT NULL,\n\t`context` text,\n\t`status` enum('pending','selected_for_call','selected_for_bootcamp','answered','archived') NOT NULL DEFAULT 'pending',\n\t`adminNotes` text,\n\t`callCycle` varchar(32),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `call_questions_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 524
+}

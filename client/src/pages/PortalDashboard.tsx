@@ -4,6 +4,7 @@
  */
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
 import {
   Crown,
   Calendar,
@@ -15,6 +16,9 @@ import {
   AlertCircle,
   Clock,
   Zap,
+  Send,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
@@ -62,6 +66,145 @@ function StatusBadge({ status }: { status: string }) {
       <Icon className="w-3 h-3" />
       {c.label}
     </span>
+  );
+}
+
+/**
+ * Helper: returns the ISO date string for the next bi-weekly call cycle.
+ */
+function getNextCallCycle(): string {
+  const ANCHOR = new Date(Date.UTC(2025, 2, 29));
+  const now = new Date();
+  const msSinceAnchor = now.getTime() - ANCHOR.getTime();
+  const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));
+  const cyclesPassed = daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
+  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
+  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
+  const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
+  return nextCall.toISOString().split("T")[0];
+}
+
+function QuestionSubmitWidget() {
+  const [expanded, setExpanded] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [context, setContext] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const { data: myQuestionsData } = trpc.member.myQuestions.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
+
+  const submitQuestion = trpc.member.submitQuestion.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setQuestion("");
+      setContext("");
+      utils.member.myQuestions.invalidate();
+      setTimeout(() => setSubmitted(false), 4000);
+    },
+  });
+
+  const pendingCount = myQuestionsData?.questions?.filter(
+    (q: any) => q.status === "pending" || q.status === "selected_for_call" || q.status === "selected_for_bootcamp"
+  ).length ?? 0;
+
+  const statusLabel: Record<string, { label: string; color: string }> = {
+    pending: { label: "Submitted", color: "text-cream-muted" },
+    selected_for_call: { label: "Selected for Call ✓", color: "text-green-400" },
+    selected_for_bootcamp: { label: "Selected for Bootcamp ✓", color: "text-blue-400" },
+    answered: { label: "Answered", color: "text-ember" },
+    archived: { label: "Archived", color: "text-cream-muted/50" },
+  };
+
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between p-6 text-left hover:bg-white/[0.02] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center shrink-0">
+            <Send className="w-5 h-5 text-ember" />
+          </div>
+          <div>
+            <h3 className="font-heading text-sm font-semibold text-cream">Submit a Question for the Next Call</h3>
+            <p className="text-cream-muted text-xs mt-0.5">
+              {pendingCount > 0
+                ? `${pendingCount} question${pendingCount > 1 ? "s" : ""} submitted — Marshall reviews before each call`
+                : "Marshall selects questions to work through live each session"}
+            </p>
+          </div>
+        </div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-cream-muted" /> : <ChevronDown className="w-4 h-4 text-cream-muted" />}
+      </button>
+
+      {/* Expanded form */}
+      {expanded && (
+        <div className="px-6 pb-6 space-y-4 border-t border-white/5">
+          {submitted ? (
+            <div className="pt-4 flex items-center gap-3 text-green-400">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">Question submitted. Marshall will review it before the next call.</span>
+            </div>
+          ) : (
+            <>
+              <div className="pt-4">
+                <label className="block text-xs font-medium text-cream-muted mb-2 uppercase tracking-wider">
+                  Your Question <span className="text-ember">*</span>
+                </label>
+                <textarea
+                  value={question}
+                  onChange={e => setQuestion(e.target.value)}
+                  placeholder="What's the most important thing you need clarity on before the next call?"
+                  rows={3}
+                  maxLength={1000}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
+                />
+                <p className="text-xs text-cream-muted/50 mt-1 text-right">{question.length}/1000</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-cream-muted mb-2 uppercase tracking-wider">
+                  Context / Background <span className="text-cream-muted/50">(optional)</span>
+                </label>
+                <textarea
+                  value={context}
+                  onChange={e => setContext(e.target.value)}
+                  placeholder="Any relevant details — project size, what you've tried, what's at stake..."
+                  rows={2}
+                  maxLength={2000}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
+                />
+              </div>
+              <button
+                onClick={() => submitQuestion.mutate({ question, context: context || undefined, callCycle: getNextCallCycle() })}
+                disabled={question.trim().length < 10 || submitQuestion.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ember text-obsidian text-sm font-semibold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                {submitQuestion.isPending ? "Submitting..." : "Submit Question"}
+              </button>
+            </>
+          )}
+
+          {/* Past questions */}
+          {(myQuestionsData?.questions?.length ?? 0) > 0 && (
+            <div className="pt-2 border-t border-white/5">
+              <p className="text-xs font-medium text-cream-muted uppercase tracking-wider mb-3">Your Submitted Questions</p>
+              <div className="space-y-2">
+                {myQuestionsData!.questions.slice(0, 5).map((q: any) => (
+                  <div key={q.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.03]">
+                    <p className="text-cream text-xs leading-relaxed flex-1">{q.question}</p>
+                    <span className={`text-xs shrink-0 ${statusLabel[q.status]?.color || "text-cream-muted"}`}>
+                      {statusLabel[q.status]?.label || q.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -202,6 +345,9 @@ export default function PortalDashboard() {
           </a>
         ))}
       </div>
+
+      {/* Submit Question for Next Call */}
+      <QuestionSubmitWidget />
 
       {/* Motivational Quote */}
       <div className="glass-card rounded-2xl p-6 md:p-8 text-center">

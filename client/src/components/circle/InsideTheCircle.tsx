@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, Play, Users, FileText, TrendingUp, Lock, X, ChevronLeft } from "lucide-react";
+import { ChevronRight, Play, Users, FileText, TrendingUp, Lock, X, ChevronLeft, ZoomIn, ZoomOut } from "lucide-react";
 
 const SHOWCASE_TABS = [
   { id: "portal", label: "Replay Library", icon: "🎯", shortLabel: "Replays" },
@@ -211,6 +211,100 @@ function ResultsCard() {
         <button className="px-8 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50">
           Become a Founding Member
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Template Modal with zoom/scroll ─────────────────────────────────────────
+
+function TemplateModal({ template, onClose }: { template: typeof TEMPLATE_PREVIEWS[0]; onClose: () => void }) {
+  const [zoom, setZoom] = useState(1);
+  const imgRef = useRef<HTMLDivElement>(null);
+
+  // Close on backdrop click
+  const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const cycleZoom = () => {
+    setZoom((z) => {
+      if (z === 1) return 1.5;
+      if (z === 1.5) return 2.5;
+      return 1;
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6"
+      onClick={handleBackdrop}
+    >
+      <div className="bg-background border border-ember/30 rounded-2xl w-full max-w-3xl flex flex-col" style={{ maxHeight: "92vh" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
+          <div>
+            <h3 className="font-heading text-lg font-bold text-cream">{template.title}</h3>
+            <p className="text-xs text-cream-muted">{template.category} · Tap image to zoom</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={cycleZoom}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-ember/20 border border-white/10 hover:border-ember/40 transition-all text-xs text-cream-muted hover:text-ember"
+              title={zoom < 2.5 ? "Zoom in" : "Reset zoom"}
+            >
+              {zoom < 2.5 ? <ZoomIn className="w-3.5 h-3.5" /> : <ZoomOut className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{zoom === 1 ? "Zoom" : zoom === 1.5 ? "Closer" : "Reset"}</span>
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all">
+              <X className="w-5 h-5 text-cream-muted hover:text-cream" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable image area */}
+        <div
+          ref={imgRef}
+          className="overflow-auto flex-1 cursor-zoom-in"
+          style={{ WebkitOverflowScrolling: "touch" }}
+          onClick={cycleZoom}
+        >
+          <div
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+              width: zoom === 1 ? "100%" : `${100 / zoom}%`,
+              transition: "transform 0.35s cubic-bezier(0.22,1,0.36,1)",
+            }}
+          >
+            <img
+              src={template.previewImage}
+              alt={template.title}
+              className="w-full block"
+              draggable={false}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-white/10 flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <p className="text-cream-muted text-xs leading-relaxed flex-1">
+            Members get this template plus 10+ others as Google Docs — make a copy and customize for your business.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full sm:w-auto px-6 py-2.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 text-sm whitespace-nowrap"
+          >
+            Access This Template
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -461,28 +555,10 @@ export default function InsideTheCircle() {
 
       {/* Template Preview Modal */}
       {selectedTemplate && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-background border border-ember/30 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto animate-in scale-in duration-300">
-            <div className="sticky top-0 flex items-center justify-between p-6 border-b border-white/10 bg-background/95 backdrop-blur">
-              <div>
-                <h3 className="font-heading text-xl font-bold text-cream">{selectedTemplate.title}</h3>
-                <p className="text-sm text-cream-muted">{selectedTemplate.category}</p>
-              </div>
-              <button onClick={() => setSelectedTemplate(null)} className="p-2 hover:bg-white/10 rounded-lg transition-all">
-                <X className="w-5 h-5 text-cream-muted hover:text-cream" />
-              </button>
-            </div>
-            <div className="p-6">
-              <img src={selectedTemplate.previewImage} alt={selectedTemplate.title} className="w-full rounded-lg border border-white/10 shadow-lg" />
-              <p className="text-cream-muted text-sm mt-6 leading-relaxed">
-                This is a preview of the {selectedTemplate.title}. When you join the Contractor Circle, you'll get access to this template and 10+ others. All templates are Google Docs — simply make a copy and customize for your business.
-              </p>
-              <button className="w-full mt-6 px-6 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30">
-                Access This Template
-              </button>
-            </div>
-          </div>
-        </div>
+        <TemplateModal
+          template={selectedTemplate}
+          onClose={() => setSelectedTemplate(null)}
+        />
       )}
     </section>
   );

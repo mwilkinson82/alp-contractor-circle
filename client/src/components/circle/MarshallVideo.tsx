@@ -193,7 +193,7 @@ export function MarshallVideo() {
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 {/* Cloudflare Video Embed — fills the full portrait frame */}
                 <iframe
-                  src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=none&responsive=true"
+                  src={`https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=none&responsive=true&poster=${encodeURIComponent(HERO_IMAGE)}`}
                   loading="lazy"
                   allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
                   allowFullScreen={true}

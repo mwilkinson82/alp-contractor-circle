@@ -99,3 +99,34 @@ export const replays = mysqlTable("replays", {
 
 export type Replay = typeof replays.$inferSelect;
 export type InsertReplay = typeof replays.$inferInsert;
+
+/**
+ * Call questions table — members submit questions before each bi-weekly call.
+ * Marshall reviews and selects which ones to address live or in the monthly bootcamp.
+ */
+export const callQuestions = mysqlTable("call_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Member who submitted the question */
+  memberId: int("memberId").notNull(),
+  /** The question text */
+  question: text("question").notNull(),
+  /** Optional context/background */
+  context: text("context"),
+  /** Status of the question */
+  status: mysqlEnum("status", [
+    "pending",
+    "selected_for_call",
+    "selected_for_bootcamp",
+    "answered",
+    "archived",
+  ]).default("pending").notNull(),
+  /** Admin notes (visible only to Marshall) */
+  adminNotes: text("adminNotes"),
+  /** Which call cycle this was submitted for (ISO date string of the call date) */
+  callCycle: varchar("callCycle", { length: 32 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CallQuestion = typeof callQuestions.$inferSelect;
+export type InsertCallQuestion = typeof callQuestions.$inferInsert;

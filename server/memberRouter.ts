@@ -8,7 +8,7 @@ import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord
 import { stripe } from "./stripe";
 import { drizzle } from "drizzle-orm/mysql2";
 import { desc, eq } from "drizzle-orm";
-import { replays, members } from "../drizzle/schema";
+import { replays, members, callQuestions } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 
@@ -216,6 +216,114 @@ export const memberRouter = router({
       .where(eq(members.subscriptionStatus, "active"));
     return { count: rows.length };
   }),
+
+  /**
+   * Submit a question for the next bi-weekly call.
+   */
+  submitQuestion: publicProcedure
+    .input(
+      z.object({
+        question: z.string().min(10).max(1000),
+        context: z.string().max(2000).optional(),
+        callCycle: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+      await db.insert(callQuestions).values({
+        memberId: member.id,
+        question: input.question,
+        context: input.context,
+        callCycle: input.callCycle,
+        status: "pending",
+      });
+      return { success: true };
+    }),
+
+  /**
+   * Get questions submitted by the current member.
+   */
+  myQuestions: publicProcedure.query(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    const db = getDb();
+    if (!db) return { questions: [] };
+    const rows = await db
+      .select()
+      .from(callQuestions)
+      .where(eq(callQuestions.memberId, member.id))
+      .orderBy(desc(callQuestions.createdAt));
+    return { questions: rows };
+  }),
+
+  /**
+   * Admin: Get all questions with member info for review.
+   */
+  adminQuestions: publicProcedure
+    .input(z.object({ status: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const db = getDb();
+      if (!db) return { questions: [] };
+      const rows = await db
+        .select({
+          id: callQuestions.id,
+          memberId: callQuestions.memberId,
+          question: callQuestions.question,
+          context: callQuestions.context,
+          status: callQuestions.status,
+          adminNotes: callQuestions.adminNotes,
+          callCycle: callQuestions.callCycle,
+          createdAt: callQuestions.createdAt,
+          memberName: members.discordDisplayName,
+          memberUsername: members.discordUsername,
+        })
+        .from(callQuestions)
+        .leftJoin(members, eq(callQuestions.memberId, members.id))
+        .orderBy(desc(callQuestions.createdAt));
+      return { questions: rows };
+    }),
+
+  /**
+   * Admin: Update question status.
+   */
+  updateQuestionStatus: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.enum(["pending", "selected_for_call", "selected_for_bootcamp", "answered", "archived"]),
+        adminNotes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+      await db
+        .update(callQuestions)
+        .set({ status: input.status, adminNotes: input.adminNotes })
+        .where(eq(callQuestions.id, input.id));
+      return { success: true };
+    }),
 
   /**
    * Get payment history from Stripe for the current member.

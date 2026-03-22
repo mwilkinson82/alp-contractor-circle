@@ -1,7 +1,8 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
-import { ArrowRight, Zap, Loader2 } from "lucide-react";
+import { ArrowRight, Zap, Loader2, CalendarPlus } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
+import { trpc } from "@/lib/trpc";
 
 // Anchor: first call Sunday March 29, 2026 at 5 PM ET (21:00 UTC)
 const FIRST_CALL_UTC = Date.UTC(2026, 2, 29, 21, 0, 0);
@@ -35,7 +36,7 @@ function useCountdown(target: Date) {
 }
 
 // --- NextCallBadge component ---
-function NextCallBadge() {
+function NextCallBadge({ onCalendarClick }: { onCalendarClick: () => void }) {
   const [nextCall] = useState(getNextCallDate);
   const { d, h, m, s } = useCountdown(nextCall);
   const dateStr = nextCall.toLocaleDateString("en-US", {
@@ -47,7 +48,7 @@ function NextCallBadge() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.55, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-cream/10 bg-cream/[0.04] backdrop-blur-sm"
+      className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 rounded-xl border border-cream/10 bg-cream/[0.04] backdrop-blur-sm"
       style={{ fontFamily: "'Sora', monospace" }}
     >
       {/* Live dot */}
@@ -74,7 +75,7 @@ function NextCallBadge() {
       <span className="text-cream/15 text-xs">|</span>
 
       {/* Countdown units */}
-      <div className="flex items-baseline gap-1.5">
+      <div className="flex items-baseline gap-1">
         {[{ v: d, l: "d" }, { v: h, l: "h" }, { v: m, l: "m" }, { v: s, l: "s" }].map(({ v, l }, i) => (
           <span key={i} className="flex items-baseline gap-0.5">
             <span className="tabular-nums text-xs font-bold text-cream/80">{String(v).padStart(2, "0")}</span>
@@ -83,11 +84,31 @@ function NextCallBadge() {
           </span>
         ))}
       </div>
+
+      {/* Divider */}
+      <span className="text-cream/15 text-xs">|</span>
+
+      {/* Add to Calendar button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onCalendarClick(); }}
+        className="flex items-center gap-1 text-cream/40 hover:text-ember transition-colors duration-200 group"
+        title="Add to Calendar"
+      >
+        <CalendarPlus size={13} className="group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] uppercase tracking-wider hidden sm:inline">Add</span>
+      </button>
     </motion.div>
   );
 }
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
+
+// Live founding spots badge
+function FoundingSpotsBadge() {
+  const { data } = trpc.member.count.useQuery(undefined, { refetchInterval: 30000 });
+  const filled = data?.count ?? 4;
+  return <span>Founding Members — {filled} of 50 Spots Filled</span>;
+}
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -174,6 +195,27 @@ function TransformationTicker() {
 export function HeroSection() {
   const ref = useRef<HTMLDivElement>(null);
   const { startCheckout, isLoading } = useCircleCheckout();
+
+  // Build Google Calendar link for next call
+  const buildCalendarUrl = () => {
+    const nextCall = getNextCallDate();
+    // Format: YYYYMMDDTHHmmssZ
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const end = new Date(nextCall.getTime() + 90 * 60 * 1000); // 90 min
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: "ALP Contractor Circle — Live Call with Marshall Wilkinson",
+      dates: `${fmt(nextCall)}/${fmt(end)}`,
+      details: "Join the ALP Contractor Circle live call. Members: log in at alpcontractorcircle.com/portal for the Zoom link.",
+      location: "alpcontractorcircle.com/portal",
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  };
+
+  const handleCalendarClick = () => {
+    // Non-members: open Google Calendar event (Zoom link is behind portal login)
+    window.open(buildCalendarUrl(), "_blank");
+  };
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -275,8 +317,8 @@ export function HeroSection() {
             className="text-[10px] sm:text-xs font-semibold tracking-[0.1em] sm:tracking-[0.15em] uppercase text-ember"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Founding Members — 4 of 50 Spots Filled
-          </span>
+            <FoundingSpotsBadge />
+        </span>
         </motion.div>
 
         {/* Title */}
@@ -372,7 +414,7 @@ export function HeroSection() {
 
         {/* Next Call Badge */}
         <div className="mb-14">
-          <NextCallBadge />
+          <NextCallBadge onCalendarClick={handleCalendarClick} />
         </div>
 
         {/* Scroll indicator */}
