@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE members SET email = 'dan@delmontebuilders.com' WHERE id = 4; UPDATE members SET email = 'nathan@olivetreebuilds.ca' WHERE id = 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute UPDATE members SET email = 'dan@delmontebuilders.com' WHERE id = 4; UPDATE members SET email = 'nathan@olivetreebuilds.ca' WHERE id = 3;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 89
+}

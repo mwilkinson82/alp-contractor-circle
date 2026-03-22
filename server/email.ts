@@ -144,7 +144,7 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
                   <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Step 2</p>
                   <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 8px 0;">Add the Bi-Weekly Call to Your Calendar</p>
                   <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0 0 16px 0;">
-                    Every <strong style="color:#EDE6DB;">Thursday evening</strong> — group call with Marshall. Come with deals you're working, questions, or challenges. Add it now so you never miss one.
+                    Every <strong style="color:#EDE6DB;">Sunday at 5 PM ET</strong> — group call with Marshall. Come with deals you're working, questions, or challenges. Add it now so you never miss one.
                   </p>
                   <!-- Calendar buttons -->
                   <table role="presentation" cellpadding="0" cellspacing="0"><tr>
@@ -195,7 +195,7 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
               <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px 0;font-weight:600;text-align:center;">Your Membership Includes</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
                 <td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:2;padding:0 8px;">
-                  ✓ Bi-weekly Thursday group calls with Marshall<br/>
+                  ✓ Bi-weekly Sunday group calls with Marshall (5 PM ET)<br/>
                   ✓ Monthly deal reviews<br/>
                   ✓ Monthly bootcamp sessions<br/>
                   ✓ Complete template library<br/>
@@ -266,7 +266,7 @@ Head to the #welcome channel first — read through it, then you'll have access 
 → Join Discord: ${DISCORD_INVITE}
 
 STEP 2: Add the Bi-Weekly Call to Your Calendar
-Every Thursday evening — group call with Marshall.
+Every Sunday at 5 PM ET — group call with Marshall.
 → Zoom link: ${ZOOM_URL}
 → Add to Google Calendar: ${GOOGLE_CALENDAR_URL}
 → Add to Apple Calendar: ${APPLE_CALENDAR_URL}
@@ -279,7 +279,7 @@ Browse the template library, review past call recordings, and start implementing
 ─────────────────────────────────────
 
 YOUR MEMBERSHIP INCLUDES:
-✓ Bi-weekly Thursday group calls with Marshall
+✓ Bi-weekly Sunday group calls with Marshall (5 PM ET)
 ✓ Monthly deal reviews
 ✓ Monthly bootcamp sessions
 ✓ Complete template library

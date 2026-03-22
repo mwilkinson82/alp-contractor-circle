@@ -315,3 +315,11 @@
 - [x] Generate social media preview image (Open Graph) (1200x630px with headline, benefits, and icon)
 - [x] Add favicon and OG meta tags to HTML (favicon + OpenGraph + Twitter Card)
 - [x] Test all changes and redeploy
+
+## New Member Subscriptions
+- [ ] Grant active subscription to AJ Hoover (ajhoover@mac.com)
+- [ ] Grant active subscription to Ronnie Silva (office@sageconstructiondevelopment.com)
+- [ ] Send welcome email to AJ Hoover
+- [ ] Send welcome email to Ronnie Silva
+- [ ] Update Dan Del Monte email to dan@delmontebuilders.com
+- [ ] Update Nathan Oliveira email to nathan@olivetreebuilds.ca

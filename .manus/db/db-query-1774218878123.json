@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, discordId, discordUsername, email, memberRole, subscriptionStatus FROM members LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordUsername, email, memberRole, subscriptionStatus FROM members LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "discordId": "founding_aj_beau_monde",
+      "discordUsername": "aj_beaumonde",
+      "email": "aj@beaumonde.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "2",
+      "discordId": "founding_ronnie_sage",
+      "discordUsername": "ronnie_silva",
+      "email": "ronnie@sageconstruction.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "3",
+      "discordId": "founding_nathan_olive",
+      "discordUsername": "nathan_oliveira",
+      "email": "nathan@olivetreebuilds.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "4",
+      "discordId": "founding_dan_delmonte",
+      "discordUsername": "dan_delmonte",
+      "email": "dan@delmontbuilders.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "30001",
+      "discordId": "927272166049865807",
+      "discordUsername": "marshallwilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "memberRole": "admin",
+      "subscriptionStatus": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordUsername\temail\tmemberRole\tsubscriptionStatus\n1\tfounding_aj_beau_monde\taj_beaumonde\taj@beaumonde.com\tfounding_member\tactive\n2\tfounding_ronnie_sage\tronnie_silva\tronnie@sageconstruction.com\tfounding_member\tactive\n3\tfounding_nathan_olive\tnathan_oliveira\tnathan@olivetreebuilds.com\tfounding_member\tactive\n4\tfounding_dan_delmonte\tdan_delmonte\tdan@delmontbuilders.com\tfounding_member\tactive\n30001\t927272166049865807\tmarshallwilkinson\tmwilkinson@saxumcapital.com\tadmin\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 126
+}
