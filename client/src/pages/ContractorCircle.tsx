@@ -22,9 +22,9 @@ export default function ContractorCircle() {
       <WhatsIncluded />
       <MarshallVideo />
       <InsideTheCircle />
+      <RevenueImpact />
       <SubmitQuestionCTA />
       <Testimonials />
-      <RevenueImpact />
       <PricingSection />
       <FAQSection />
       <FinalCTA />

@@ -111,9 +111,10 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
   const isInView = useInView(ref, { once: true, margin: "-60px" });
   const a = ACCENT[t.accent];
 
+  // Dynamic max: use the highest 'after' value across all transformations
   const maxVal = 20_000_000;
-  const beforePct = t.before === 0 ? 0 : Math.max((t.before / maxVal) * 100, 3);
-  const afterPct = Math.max((t.after / maxVal) * 100, 8);
+  const beforePct = t.before === 0 ? 0 : Math.max((t.before / t.after) * 100, 3);
+  const afterPct = 100; // Always fill to 100% for visual impact
 
   // Count up the "after" revenue number
   const countedAfter = useCountUp(t.after, 1800, isInView, t.before);
@@ -136,7 +137,7 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
         />
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 relative gap-3 sm:gap-0">
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center border"
@@ -157,10 +158,10 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
             initial={{ opacity: 0, scale: 0.5 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.35 + index * 0.12 }}
-            className="px-4 py-2 rounded-full border"
+            className="px-4 py-2 rounded-full border self-start sm:self-auto"
             style={{ borderColor: a.border, background: a.bg }}
           >
-            <span className="text-xl sm:text-2xl font-black" style={{ color: a.color, fontFamily: "'Sora', sans-serif" }}>
+            <span className="text-lg sm:text-2xl font-black" style={{ color: a.color, fontFamily: "'Sora', sans-serif" }}>
               {t.multiplier}
             </span>
           </motion.div>
@@ -176,7 +177,7 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
               {t.before === 0 ? "$0" : formatRevenue(t.before)}
             </span>
           </div>
-          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "oklch(0.14 0.02 260)" }}>
+          <div className="h-2 sm:h-2.5 rounded-full overflow-hidden" style={{ background: "oklch(0.14 0.02 260)" }}>
             <motion.div
               className="h-full rounded-full"
               initial={{ width: 0 }}
@@ -214,7 +215,7 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
             </span>
             {/* Live counting number */}
             <span
-              className="text-2xl sm:text-3xl font-black tabular-nums"
+              className="text-xl sm:text-3xl font-black tabular-nums"
               style={{
                 color: a.color,
                 fontFamily: "'Sora', sans-serif",
@@ -227,7 +228,7 @@ function TransformationRow({ t, index }: { t: (typeof transformations)[0]; index
           </div>
 
           {/* Animated bar */}
-          <div className="h-5 rounded-full overflow-hidden relative" style={{ background: "oklch(0.14 0.02 260)" }}>
+          <div className="h-4 sm:h-5 rounded-full overflow-hidden relative" style={{ background: "oklch(0.14 0.02 260)" }}>
             <motion.div
               className="h-full rounded-full relative"
               initial={{ width: 0 }}
@@ -341,9 +342,9 @@ export function RevenueImpact() {
           style={{ borderColor: "oklch(0.72 0.12 55 / 0.12)" }}
         >
           {[
-            { label: "Total Revenue Generated", value: "$39M+" },
+            { label: "Total Revenue Generated", value: "$100M+" },
             { label: "Avg Growth Multiple", value: "33×" },
-            { label: "Fastest Result", value: "6 Months" },
+            { label: "Fastest Result", value: "1 Month" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p
