@@ -247,3 +247,10 @@
 - [x] Redesign countdown timer — replace generic elongated card with premium integrated badge/banner
 - [x] Fix $500/month → $497/month in countdown timer copy
 - [x] Remove redundancy: ensure contractor stories aren't repeated across multiple sections
+
+## Power Hour Access Expiration Email
+- [x] Draft professional Power Hour expiration email to Anthony Lozado — sent preview to Marshall for aesthetic approval
+- [ ] Send final email to Anthony Lozado (anthony@lozadocontracting.com) after Marshall approves
+
+## Bug Fix — Video Not Playing
+- [ ] Fix video not playing in MarshallVideo section after By The Numbers redesign
