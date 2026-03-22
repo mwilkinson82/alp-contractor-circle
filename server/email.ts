@@ -706,3 +706,90 @@ export async function sendPurchaseNotification(params: {
 
 // Export template builders for testing
 export { buildWelcomeEmailHtml as default };
+
+// ─── Email Subscriber Notification to Marshall ──────────────────────────────
+export async function sendSubscriberNotification(params: {
+  email: string;
+  isNew: boolean;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping subscriber notification");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const subject = params.isNew 
+      ? `New Email Subscriber — ${params.email}`
+      : `Email Already Subscribed — ${params.email}`;
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: "marshall@marshallwilkinson.com",
+      subject,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#08090D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+          
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:24px;font-weight:700;">
+              ${params.isNew ? '✓ New Subscriber' : '→ Already Subscribed'}
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          
+          <tr>
+            <td style="color:rgba(237,230,219,0.75);font-size:15px;line-height:1.8;padding:0 8px;">
+              <p style="margin:0;">
+                <strong style="color:#D4915C;">Email:</strong> ${params.email}
+              </p>
+              <p style="margin:16px 0 0 0;color:rgba(237,230,219,0.6);font-size:13px;">
+                ${params.isNew 
+                  ? 'This email was just added to your subscriber list from the homepage email capture form.' 
+                  : 'This email was already in your subscriber list.'}
+              </p>
+            </td>
+          </tr>
+          
+          <tr><td style="height:32px;"></td></tr>
+          <tr><td style="height:1px;background:rgba(237,230,219,0.1);"></td></tr>
+          <tr><td style="height:16px;"></td></tr>
+          
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.5);font-size:12px;">
+              The Contractor Circle | ALP
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `,
+      text: `${subject}\n\nEmail: ${params.email}\n\n${params.isNew ? 'New subscriber from homepage email capture.' : 'Email was already subscribed.'}`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send subscriber notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Subscriber notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending subscriber notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

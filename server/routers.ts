@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
+import { subscribeEmail } from "./db";
+import { sendSubscriberNotification } from "./email";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -69,6 +71,27 @@ export const appRouter = router({
   }),
 
   member: memberRouter,
+
+  email: router({
+    subscribe: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const result = await subscribeEmail(input.email);
+        
+        if (result.success) {
+          await sendSubscriberNotification({
+            email: input.email,
+            isNew: result.isNew,
+          });
+        }
+        
+        return {
+          success: result.success,
+          isNew: result.isNew,
+          error: result.error,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

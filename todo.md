@@ -305,3 +305,13 @@
 - [x] Implement subscription check for calendar button (only show if subscribed)
 - [x] Add email capture section below hero section (mobile-friendly, not in hero)
 - [x] Test all changes and redeploy (email capture renders, calendar button logic working, no TypeScript errors)
+
+## Email Capture, Favicon & Social Preview
+- [x] Create email_subscribers table in database schema
+- [x] Create tRPC endpoint for email capture (subscribe mutation)
+- [x] Integrate EmailCapture form with backend endpoint
+- [x] Add owner notification email when someone subscribes (marshall@marshallwilkinson.com)
+- [x] Create favicon for ALP Contractor Circle (geometric circle + checkmark icon in ember/midnight colors)
+- [x] Generate social media preview image (Open Graph) (1200x630px with headline, benefits, and icon)
+- [x] Add favicon and OG meta tags to HTML (favicon + OpenGraph + Twitter Card)
+- [x] Test all changes and redeploy

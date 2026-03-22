@@ -130,3 +130,24 @@ export const callQuestions = mysqlTable("call_questions", {
 
 export type CallQuestion = typeof callQuestions.$inferSelect;
 export type InsertCallQuestion = typeof callQuestions.$inferInsert;
+
+/**
+ * Email subscribers table — captures emails from the homepage email capture form.
+ * Used for marketing campaigns and pre-launch notifications.
+ */
+export const emailSubscribers = mysqlTable("email_subscribers", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Email address */
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  /** Source of subscription (e.g., 'homepage_capture') */
+  source: varchar("source", { length: 64 }).default("homepage_capture").notNull(),
+  /** Whether the email has been verified */
+  verified: boolean("verified").default(false).notNull(),
+  /** Timestamp when subscribed */
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Last updated */
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+export type InsertEmailSubscriber = typeof emailSubscribers.$inferInsert;

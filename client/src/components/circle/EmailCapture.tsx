@@ -1,28 +1,27 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 export function EmailCapture() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const subscribeMutation = trpc.email.subscribe.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || loading) return;
+    if (!email || subscribeMutation.isPending) return;
 
-    setLoading(true);
+    setError('');
     try {
-      // TODO: Replace with actual API endpoint to save email
-      // For now, just show success state
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await subscribeMutation.mutateAsync({ email });
       setSubmitted(true);
       setEmail('');
       setTimeout(() => setSubmitted(false), 3000);
-    } catch (error) {
-      console.error('Error submitting email:', error);
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      console.error('Error submitting email:', err);
+      setError(err.message || 'Failed to subscribe. Please try again.');
     }
   };
 
@@ -54,14 +53,14 @@ export function EmailCapture() {
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={loading || submitted}
+              disabled={subscribeMutation.isPending || submitted}
               className="flex-1 px-4 py-3 rounded-lg bg-cream/5 border border-cream/10 text-cream placeholder-cream/40 focus:outline-none focus:border-ember/50 focus:bg-cream/8 transition-all disabled:opacity-50"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
               required
             />
             <button
               type="submit"
-              disabled={loading || !email || submitted}
+              disabled={subscribeMutation.isPending || !email || submitted}
               className="px-6 py-3 rounded-lg bg-ember hover:bg-ember-light text-midnight font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-wait whitespace-nowrap"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
@@ -69,7 +68,7 @@ export function EmailCapture() {
                 <>
                   <span>✓ Subscribed</span>
                 </>
-              ) : loading ? (
+              ) : subscribeMutation.isPending ? (
                 <>
                   <span className="inline-block w-4 h-4 border-2 border-midnight/30 border-t-midnight rounded-full animate-spin" />
                   <span>Subscribing...</span>
@@ -83,6 +82,7 @@ export function EmailCapture() {
             </button>
           </form>
 
+          {error && <p className="text-sm text-red-400 text-center mt-2">{error}</p>}
           <p className="text-xs text-cream/40 mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             No spam. Unsubscribe anytime.
           </p>

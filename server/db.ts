@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, emailSubscribers } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +87,42 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+// Email subscriber helpers
+export async function subscribeEmail(email: string): Promise<{ success: boolean; isNew: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot subscribe email: database not available");
+    return { success: false, isNew: false, error: "Database not available" };
+  }
+
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Check if email already exists
+    const existing = await db
+      .select()
+      .from(emailSubscribers)
+      .where(eq(emailSubscribers.email, normalizedEmail))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return { success: true, isNew: false }; // Already subscribed
+    }
+
+    // Insert new subscriber
+    await db.insert(emailSubscribers).values({
+      email: normalizedEmail,
+      source: "homepage_capture",
+      verified: false,
+    });
+
+    return { success: true, isNew: true };
+  } catch (error) {
+    console.error("[Database] Failed to subscribe email:", error);
+    return { success: false, isNew: false, error: String(error) };
+  }
 }
 
 // TODO: add feature queries here as your schema grows.
