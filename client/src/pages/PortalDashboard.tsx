@@ -21,6 +21,7 @@ import {
   ChevronUp,
   X,
 } from "lucide-react";
+import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
@@ -449,6 +450,9 @@ export default function PortalDashboard() {
           </div>
         </div>
       </button>
+
+      {/* Success Stories Form */}
+      <SuccessStoriesForm />
 
       {/* Quick Links Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

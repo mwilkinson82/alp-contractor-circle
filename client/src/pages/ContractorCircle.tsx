@@ -7,6 +7,7 @@ import { PricingSection } from '@/components/circle/PricingSection'
 import { FAQSection } from '@/components/circle/FAQSection'
 import { SubmitQuestionCTA } from '@/components/circle/SubmitQuestionCTA'
 import { RevenueImpact } from '@/components/circle/RevenueImpact'
+import { JoinCircleCountdown } from '@/components/circle/JoinCircleCountdown'
 import { FinalCTA } from '@/components/circle/FinalCTA'
 import { Footer } from '@/components/circle/Footer'
 import InsideTheCircle from '@/components/circle/InsideTheCircle'
@@ -25,6 +26,7 @@ export default function ContractorCircle() {
       <RevenueImpact />
       <SubmitQuestionCTA />
       <Testimonials />
+      <JoinCircleCountdown />
       <PricingSection />
       <FAQSection />
       <FinalCTA />

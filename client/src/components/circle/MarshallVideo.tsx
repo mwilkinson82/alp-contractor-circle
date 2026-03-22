@@ -8,24 +8,24 @@ const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8s
 
 const transformations = [
   {
-    name: "Brian Betancourt",
+    name: "Betancourt Core Construction",
     from: "$600K",
     to: "$20M",
     period: "18 months",
     color: "ember",
   },
   {
-    name: "Morgan Tyler",
+    name: "Trojan Roofing",
     from: "$300K",
     to: "$10M",
     period: "first year",
     color: "blue",
   },
   {
-    name: "Ronnie Silva",
+    name: "Sage Construction",
     from: "$0",
     to: "$2M",
-    period: "2nd month as contractor",
+    period: "1 year as contractor",
     color: "ember",
   },
 ];

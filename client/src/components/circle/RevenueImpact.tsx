@@ -4,7 +4,7 @@ import { TrendingUp, ArrowRight } from "lucide-react";
 
 const transformations = [
   {
-    company: "Betancourt Construction",
+    company: "Betancourt Core Construction",
     before: 600000,
     after: 20000000,
     multiplier: "33×",
@@ -28,7 +28,7 @@ const transformations = [
     accent: "green" as const,
   },
   {
-    company: "Davis Contracting",
+    company: "Julius Davis Contracting",
     before: 1000000,
     after: 4000000,
     multiplier: "4×",
