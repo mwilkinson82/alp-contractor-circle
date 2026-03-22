@@ -283,3 +283,8 @@
 ## Sage Construction Stat Fix
 - [x] Fix Sage Construction ticker stat from "2nd month" to "1 year"
 - [ ] Publish to production
+
+## Portal Preview Card Fixes
+- [x] Remove 3D perspective tilt/rotation from portal preview cards — proper 3D rotateX perspective instead of Z rotation
+- [x] Fix image cropping so full screenshot is visible (object-top + browser chrome bar + maxHeight)
+- [ ] Redeploy to production

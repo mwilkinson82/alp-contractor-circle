@@ -8,7 +8,6 @@ const PORTAL_SCREENSHOTS = [
     icon: Layout,
     image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/portal-dashboard-preview.png",
     description: "Your command center — upcoming calls, quick links, question submission, and everything you need in one place.",
-    rotation: -6,
   },
   {
     id: "replays",
@@ -16,7 +15,6 @@ const PORTAL_SCREENSHOTS = [
     icon: Play,
     image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/portal-replay-preview.png",
     description: "Every Contractor Circle call, bootcamp, and masterclass recorded and organized. Watch on demand, anytime.",
-    rotation: 0,
   },
   {
     id: "templates",
@@ -24,13 +22,12 @@ const PORTAL_SCREENSHOTS = [
     icon: FileText,
     image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/portal-templates-preview.png",
     description: "11+ battle-tested templates — proposals, contracts, SOPs, bid sheets — built on the ALP framework. Ready to use.",
-    rotation: 6,
   },
 ];
 
 export function PortalPreview() {
   const [activeTab, setActiveTab] = useState(1);
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const active = PORTAL_SCREENSHOTS[activeTab];
 
   return (
@@ -89,40 +86,69 @@ export function PortalPreview() {
           })}
         </div>
 
-        {/* Card display with 3D perspective */}
-        <div className="relative mb-12 sm:mb-16" style={{ perspective: "1200px" }}>
+        {/* Card display with proper 3D perspective */}
+        <div className="relative mb-12 sm:mb-16" style={{ perspective: "1800px" }}>
+          {/* Reflection/shadow on surface beneath */}
           <div
-            className="relative w-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-500"
-            onMouseEnter={() => setHoveredCard(active.id)}
-            onMouseLeave={() => setHoveredCard(null)}
+            className="absolute -bottom-8 left-[10%] right-[10%] h-16 rounded-[50%] blur-2xl pointer-events-none transition-all duration-500"
             style={{
-              transform: hoveredCard === active.id 
-                ? `rotateZ(0deg) scale(1.02) rotateX(2deg)`
-                : `rotateZ(${active.rotation}deg)`,
-              boxShadow: `0 20px 60px rgba(255, 127, 80, 0.3), 0 0 40px rgba(255, 127, 80, 0.1)`,
-              aspectRatio: "16 / 9",
+              background: isHovered
+                ? "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.25), transparent 70%)"
+                : "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.15), transparent 70%)",
+            }}
+          />
+
+          <div
+            className="relative w-full rounded-2xl overflow-hidden transition-all duration-700 ease-out"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={{
+              transform: isHovered
+                ? "rotateX(0deg) scale(1.01)"
+                : "rotateX(8deg)",
+              transformOrigin: "center bottom",
+              boxShadow: isHovered
+                ? "0 30px 80px rgba(0,0,0,0.5), 0 0 60px rgba(255,127,80,0.15), inset 0 1px 0 rgba(255,255,255,0.08)"
+                : "0 40px 100px rgba(0,0,0,0.6), 0 0 40px rgba(255,127,80,0.1), inset 0 1px 0 rgba(255,255,255,0.06)",
             }}
           >
-            {/* Glow effect beneath card */}
-            <div
-              className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 w-4/5 h-24 rounded-full blur-3xl pointer-events-none"
-              style={{
-                background: "radial-gradient(ellipse, oklch(0.72 0.12 55 / 0.2), transparent 70%)",
-              }}
-            />
+            {/* Browser chrome bar */}
+            <div className="bg-[#1a1a2e] border-b border-white/[0.06] px-4 py-2.5 flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                <div className="w-3 h-3 rounded-full bg-green-500/70" />
+              </div>
+              <div className="flex-1 flex justify-center">
+                <div className="bg-white/[0.06] rounded-md px-4 py-1 text-xs text-cream/30 font-mono max-w-xs w-full text-center">
+                  alpcontractorcircle.com/portal
+                </div>
+              </div>
+              <div className="w-12" />
+            </div>
 
-            {/* Screenshot image */}
+            {/* Screenshot image — object-top so the top of the page is always visible */}
             <img
               src={active.image}
               alt={active.label}
-              className="w-full h-full object-cover"
+              className="w-full object-cover object-top"
+              style={{ maxHeight: "600px" }}
               loading="lazy"
             />
 
-            {/* Gradient overlay at bottom */}
+            {/* Gradient fade at bottom to blend into page */}
             <div
-              className="absolute bottom-0 left-0 right-0 h-24 sm:h-32 pointer-events-none"
+              className="absolute bottom-0 left-0 right-0 h-20 sm:h-28 pointer-events-none"
               style={{ background: "linear-gradient(to top, oklch(0.12 0.02 260), transparent)" }}
+            />
+
+            {/* Subtle screen glare effect */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-opacity duration-700"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.01) 100%)",
+                opacity: isHovered ? 0.6 : 1,
+              }}
             />
           </div>
         </div>
