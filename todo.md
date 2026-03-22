@@ -229,3 +229,8 @@
 ## New Features — March 22 (afternoon)
 - [x] Build premium before/after revenue comparison visual near Member Transformations section
 - [x] Wire email notification to marshall@marshallwilkinson.com when someone submits a question through the portal
+
+## Stripe Purchase Notification & Email Template
+- [x] Wire Stripe webhook purchase notification email to marshall@marshallwilkinson.com with amount, member name, product
+- [x] Save ALP premium email template as reusable template (server/emailTemplates/alp-premium-template.html)
+- [x] Send congratulations email to Mo at info@smelmasry.co.uk (six-week intensive retention)

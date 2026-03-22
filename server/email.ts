@@ -617,5 +617,92 @@ export async function sendQuestionNotification(params: {
   }
 }
 
+// ─── Purchase Notification Email to Marshall ────────────────────────────────
+
+function buildPurchaseNotificationHtml(params: { memberName: string; memberEmail: string; amount: string; product: string; sessionId: string }) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;color:#f5f0e8;">
+  <div style="max-width:600px;margin:0 auto;padding:48px 24px;">
+    <div style="width:60px;height:3px;background:linear-gradient(90deg,#c4783e,#d4944e);border-radius:2px;margin:0 auto 40px;"></div>
+    <div style="text-align:center;margin-bottom:40px;">
+      <span style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c4783e;font-weight:600;">New Purchase</span>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(196,120,62,0.06),rgba(196,120,62,0.02));border:1px solid rgba(196,120,62,0.18);border-radius:20px;padding:40px 32px;">
+      <p style="font-size:22px;font-weight:700;color:#f5f0e8;margin:0 0 28px;line-height:1.3;">New Member Purchased!</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid rgba(196,120,62,0.1);">
+            <span style="font-size:12px;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:1px;">Name</span><br/>
+            <span style="font-size:16px;font-weight:600;color:#f5f0e8;">${params.memberName}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid rgba(196,120,62,0.1);">
+            <span style="font-size:12px;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:1px;">Email</span><br/>
+            <span style="font-size:16px;color:#f5f0e8;">${params.memberEmail}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid rgba(196,120,62,0.1);">
+            <span style="font-size:12px;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:1px;">Amount Paid</span><br/>
+            <span style="font-size:24px;font-weight:700;color:#c4783e;">${params.amount}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 0;">
+            <span style="font-size:12px;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:1px;">Product</span><br/>
+            <span style="font-size:16px;font-weight:600;color:#f5f0e8;">${params.product}</span>
+          </td>
+        </tr>
+      </table>
+      <div style="width:40px;height:2px;background:linear-gradient(90deg,#c4783e,transparent);border-radius:1px;margin:24px 0;"></div>
+      <p style="font-size:12px;color:rgba(245,240,232,0.3);margin:0;">Session: ${params.sessionId}</p>
+    </div>
+    <div style="text-align:center;margin-top:32px;">
+      <a href="https://alpcontractorcircle.com/portal" style="display:inline-block;padding:12px 32px;background:#c4783e;color:#0a0a0f;font-weight:700;font-size:14px;text-decoration:none;border-radius:8px;">View in Admin Panel</a>
+    </div>
+    <p style="text-align:center;font-size:11px;color:rgba(245,240,232,0.2);margin-top:32px;">ALP Contractor Circle &middot; Purchase Notification</p>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendPurchaseNotification(params: {
+  memberName: string;
+  memberEmail: string;
+  amount: string;
+  product: string;
+  sessionId: string;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping purchase notification");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: "marshall@marshallwilkinson.com",
+      subject: `New Purchase: ${params.memberName} — ${params.amount} (${params.product})`,
+      html: buildPurchaseNotificationHtml(params),
+      text: `New purchase!\n\nName: ${params.memberName}\nEmail: ${params.memberEmail}\nAmount: ${params.amount}\nProduct: ${params.product}\nSession: ${params.sessionId}`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send purchase notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Purchase notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending purchase notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
 // Export template builders for testing
 export { buildWelcomeEmailHtml as default };

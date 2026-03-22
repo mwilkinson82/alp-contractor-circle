@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { stripe } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendWelcomeEmail, sendFoundingMemberEmail } from "./email";
+import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 
 /**
@@ -127,7 +127,7 @@ export function registerStripeWebhook(app: Express) {
               }, 5000); // 5-second delay between emails
             } else {
               console.warn("[Stripe Webhook] No email found on checkout session — skipping welcome emails");
-            }            // ─── NOTIFY MARSHALL ──────────────────────────────────────────────
+            }            // ─── NOTIFY MARSHALL (in-app + email) ─────────────────────────────
             try {
               await notifyOwner({
                 title: "🎉 New Contractor Circle Member!",
@@ -135,6 +135,22 @@ export function registerStripeWebhook(app: Express) {
               });
             } catch (err) {
               console.warn("[Stripe Webhook] Failed to send owner notification:", err);
+            }
+
+            // ─── EMAIL PURCHASE NOTIFICATION TO MARSHALL ─────────────────────────
+            try {
+              const amountPaid = session.amount_total
+                ? `$${(session.amount_total / 100).toFixed(2)}`
+                : "$497/mo";
+              await sendPurchaseNotification({
+                memberName,
+                memberEmail: memberEmail || "N/A",
+                amount: amountPaid,
+                product: "Contractor Circle — Founding Member",
+                sessionId: session.id,
+              });
+            } catch (err) {
+              console.warn("[Stripe Webhook] Failed to send purchase notification email:", err);
             }
             break;
           }

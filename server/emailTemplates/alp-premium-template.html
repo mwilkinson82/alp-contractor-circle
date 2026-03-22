@@ -1,0 +1,75 @@
+<!--
+  ALP Premium Email Template
+  ==========================
+  Reusable dark-themed email template with ember accents.
+  
+  Variables to replace:
+  {{HEADER_LABEL}}  - Top label (e.g., "Altitude Logic Pressure", "The Contractor Circle")
+  {{GREETING}}      - Opening line (e.g., "Congratulations, Mo.")
+  {{BODY}}          - Main body HTML paragraphs (each wrapped in <p> with the body style)
+  {{SIGNOFF}}       - Sign-off line (e.g., "To your success,")
+  {{FOOTER_TEXT}}    - Footer text (e.g., "Altitude Logic Pressure · marshallwilkinson.com")
+  
+  Body paragraph style to copy:
+  <p style="font-size:16px;color:rgba(245,240,232,0.8);line-height:1.8;margin:0 0 20px;">Your text here</p>
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;color:#f5f0e8;">
+  <div style="max-width:600px;margin:0 auto;padding:48px 24px;">
+
+    <!-- Top accent line -->
+    <div style="width:60px;height:3px;background:linear-gradient(90deg,#c4783e,#d4944e);border-radius:2px;margin:0 auto 40px;"></div>
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:40px;">
+      <span style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c4783e;font-weight:600;">{{HEADER_LABEL}}</span>
+    </div>
+
+    <!-- Main card -->
+    <div style="background:linear-gradient(135deg,rgba(196,120,62,0.06),rgba(196,120,62,0.02));border:1px solid rgba(196,120,62,0.18);border-radius:20px;padding:40px 32px;">
+
+      <!-- Greeting -->
+      <p style="font-size:22px;font-weight:700;color:#f5f0e8;margin:0 0 28px;line-height:1.3;">
+        {{GREETING}}
+      </p>
+
+      <!-- Body -->
+      {{BODY}}
+
+      <!-- Divider -->
+      <div style="width:40px;height:2px;background:linear-gradient(90deg,#c4783e,transparent);border-radius:1px;margin:32px 0;"></div>
+
+      <!-- Sign-off -->
+      <p style="font-size:16px;color:#c4783e;font-weight:600;font-style:italic;margin:0 0 28px;">
+        {{SIGNOFF}}
+      </p>
+
+      <!-- Signature block -->
+      <div style="border-top:1px solid rgba(196,120,62,0.15);padding-top:24px;">
+        <p style="font-size:18px;font-weight:700;color:#f5f0e8;margin:0 0 4px;">
+          Marshall Wilkinson
+        </p>
+        <p style="font-size:13px;color:rgba(245,240,232,0.45);margin:0 0 2px;letter-spacing:0.5px;">
+          Founder, ALP
+        </p>
+        <p style="font-size:12px;color:rgba(196,120,62,0.6);margin:0;letter-spacing:0.5px;">
+          $2.5B+ in Construction
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;margin-top:40px;">
+      <p style="font-size:11px;color:rgba(245,240,232,0.2);margin:0;">
+        {{FOOTER_TEXT}}
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
