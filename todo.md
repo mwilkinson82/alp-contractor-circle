@@ -268,3 +268,10 @@
 
 ## Bug Fix — Portal Preview Cards Not Displaying
 - [x] Fix 3D perspective card container — simplified to single active card with proper aspect ratio and overflow handling
+
+## Bug Fix — Portal Preview CDN Content-Type
+- [x] Re-upload portal screenshots via storage API with correct image/png content-type (was application/octet-stream)
+- [x] Update PortalPreview component with new CDN URLs
+- [x] Verify all three tabs render correctly on live site after deploy
+- [x] Re-upload ALL CDN images site-wide (hero, discord screenshot, template previews, replay thumbnail, zoom logo, beau-monde logo) with correct content-types
+- [x] Update all CDN URLs in components to use clean paths (no hash suffixes)

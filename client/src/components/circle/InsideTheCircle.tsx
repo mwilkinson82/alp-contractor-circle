@@ -25,15 +25,15 @@ const TRANSFORMATION_STATS = [
 ];
 
 // Proposal screenshot — the original one already on CDN
-const PROPOSAL_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.55.32PM_565e119b.webp";
+const PROPOSAL_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/proposal-preview.webp";
 
 const TEMPLATE_PREVIEWS = [
   { title: "Contractor Proposal Template", category: "Contracts", icon: "📋", previewImage: PROPOSAL_PREVIEW },
-  { title: "Construction Agreement", category: "Legal", icon: "⚖️", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_agreement_be62bc37.webp" },
-  { title: "Bid Sheet & Estimating", category: "Sales", icon: "💰", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_bid_sheet_estimating_2e7f81a0.webp" },
-  { title: "Construction SOPs", category: "Operations", icon: "✅", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_sops_f1891efb.webp" },
-  { title: "Client Communication SOPs", category: "Management", icon: "📞", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_client_onboarding_2f9dfb29.webp" },
-  { title: "Subcontractor Management", category: "Operations", icon: "👥", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_subcontractor_management_4c166f2a.webp" },
+  { title: "Construction Agreement", category: "Legal", icon: "⚖️", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_agreement.webp" },
+  { title: "Bid Sheet & Estimating", category: "Sales", icon: "💰", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_bid_sheet_estimating.webp" },
+  { title: "Construction SOPs", category: "Operations", icon: "✅", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_construction_sops.webp" },
+  { title: "Client Communication SOPs", category: "Management", icon: "📞", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_client_onboarding.webp" },
+  { title: "Subcontractor Management", category: "Operations", icon: "👥", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_subcontractor_management.webp" },
 ];
 
 const PROOF_STATS = [
@@ -44,8 +44,8 @@ const PROOF_STATS = [
 ];
 
 // CDN URLs for assets
-const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.52.43PM_536195dc.webp";
-const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/discord-screenshot_a0097d89.png";
+const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/replay-thumbnail.webp";
+const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/discord-screenshot.png";
 
 
 // ─── Individual card content panels ──────────────────────────────────────────

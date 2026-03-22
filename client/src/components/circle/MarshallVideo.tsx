@@ -4,7 +4,7 @@ import { Maximize2, TrendingUp, Users, Zap, Clock } from "lucide-react";
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
+const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero.webp";
 
 const stats = [
   {

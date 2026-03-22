@@ -122,7 +122,7 @@ function CardContent({ item, accentClass }: { item: (typeof timelineItems)[0]; a
         </span>
         <div className="flex items-center gap-2">
           {(item as any).zoomBadge && (
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/zoom-logo_27b51e9e.png" alt="Zoom" className="w-3 h-3 shrink-0" />
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/zoom-logo.png" alt="Zoom" className="w-3 h-3 shrink-0" />
           )}
           {item.isLive && (
             <span className="relative flex items-center justify-center w-3 h-3 shrink-0">

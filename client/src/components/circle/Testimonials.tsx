@@ -28,7 +28,7 @@ const videoTestimonials = [
     label: "Beau Monde — ALP Member",
     src: "https://altitudelogicpressure.com/videos/beau-monde-testimonial.mp4",
     type: "mp4",
-    poster: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/beau-monde-logo_51a79b18.jpeg",
+    poster: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/beau-monde-logo.jpeg",
   },
   {
     label: "Ahron Gluck — ALP Member",

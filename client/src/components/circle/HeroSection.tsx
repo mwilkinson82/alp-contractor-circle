@@ -101,7 +101,7 @@ function NextCallBadge({ onCalendarClick }: { onCalendarClick: () => void }) {
   );
 }
 
-const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
+const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero.webp";
 
 // Live founding spots badge
 function FoundingSpotsBadge() {
