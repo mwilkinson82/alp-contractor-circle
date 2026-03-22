@@ -5,6 +5,7 @@ import { MarshallVideo } from '@/components/circle/MarshallVideo'
 import { Testimonials } from '@/components/circle/Testimonials'
 import { PricingSection } from '@/components/circle/PricingSection'
 import { FAQSection } from '@/components/circle/FAQSection'
+import { SubmitQuestionCTA } from '@/components/circle/SubmitQuestionCTA'
 import { FinalCTA } from '@/components/circle/FinalCTA'
 import { Footer } from '@/components/circle/Footer'
 import InsideTheCircle from '@/components/circle/InsideTheCircle'
@@ -21,6 +22,7 @@ export default function ContractorCircle() {
       <MarshallVideo />
       <InsideTheCircle />
       <Testimonials />
+      <SubmitQuestionCTA />
       <PricingSection />
       <FAQSection />
       <FinalCTA />

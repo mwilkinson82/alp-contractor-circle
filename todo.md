@@ -204,3 +204,10 @@
 - [x] Fix template modal button: change "Download DOCX" to "Access Document" / "Open in Google Drive" linking to the Google Drive URL
 - [x] Restore real Discord screenshot (AJ Hoover $4.5M bid) in InsideTheCircle Community tab
 - [x] Redesign WhatsIncluded back to premium timeline aesthetic with cleaner punchy copy (no paragraphs, but premium visual design)
+
+## Bug Fixes — March 22 Batch
+- [x] Discord screenshot still blank in Community tab — FIXED: removed max-h and object-top constraints
+- [ ] Video section not playing — Cloudflare iframe not rendering (video ID may be invalid)
+- [x] Add "Submit a Question" CTA button to landing page (not just portal) — DONE: SubmitQuestionCTA component added
+- [x] Verify template "Access Document" button works after publish — VERIFIED: button code is correct
+- [ ] Publish all changes to alpcontractorcircle.com — READY TO PUBLISH
