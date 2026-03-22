@@ -1,6 +1,6 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Maximize2 } from "lucide-react";
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -168,13 +168,13 @@ export function MarshallVideo() {
         </motion.div>
 
         {/* Main layout: video + transformation cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
-          {/* Video placeholder */}
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_340px] gap-8 items-start justify-center">
+          {/* Video — portrait 9:16 */}
           <motion.div
             initial={{ opacity: 0, y: 40, scale: 0.96 }}
             animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
             transition={{ duration: 0.9, ease: easeOutCubic, delay: 0.15 }}
-            className="relative"
+            className="relative mx-auto w-full max-w-[360px] lg:max-w-[400px]"
           >
             {/* Ambient glow */}
             <div
@@ -189,42 +189,28 @@ export function MarshallVideo() {
               className="relative rounded-2xl overflow-hidden border"
               style={{ borderColor: "oklch(0.72 0.12 55 / 0.2)" }}
             >
-              {/* 16:9 container */}
-              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                {/* Background image */}
-                <img
-                  src={HERO_IMAGE}
-                  alt="Marshall Wilkinson"
-                  className="absolute inset-0 w-full h-full object-cover object-top"
-                />
-
-                {/* Dark overlay */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, oklch(0.08 0.02 260 / 0.3) 0%, oklch(0.08 0.02 260 / 0.6) 100%)",
-                  }}
-                />
-
-                {/* Cloudflare Video Embed */}
+              {/* 9:16 portrait container */}
+              <div className="relative w-full" style={{ paddingBottom: "177.78%" }}>
+                {/* Cloudflare Video Embed — fills the full portrait frame */}
                 <iframe
                   src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"
                   loading="lazy"
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
                   allowFullScreen={true}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="Marshall Wilkinson — ALP Contractor Circle"
                 />
+              </div>
 
-                {/* Bottom label bar */}
-                <div
-                  className="absolute bottom-0 left-0 right-0 px-5 py-4 border-t"
-                  style={{
-                    borderColor: "oklch(0.72 0.12 55 / 0.12)",
-                    background: "oklch(0.08 0.02 260 / 0.85)",
-                    backdropFilter: "blur(12px)",
-                  }}
-                >
+              {/* Label bar below the video (outside the iframe so it's never covered) */}
+              <div
+                className="px-5 py-3 border-t flex items-center justify-between"
+                style={{
+                  borderColor: "oklch(0.72 0.12 55 / 0.15)",
+                  background: "oklch(0.08 0.02 260 / 0.95)",
+                }}
+              >
+                <div>
                   <p
                     className="text-sm font-semibold text-cream/80"
                     style={{ fontFamily: "'Sora', sans-serif" }}
@@ -238,6 +224,26 @@ export function MarshallVideo() {
                     Founder, ALP · $2.5B+ in Construction
                   </p>
                 </div>
+                {/* Fullscreen hint icon */}
+                <button
+                  onClick={() => {
+                    const iframe = document.querySelector(
+                      "iframe[src*='videodelivery.net']"
+                    ) as HTMLIFrameElement | null;
+                    if (iframe) {
+                      if (iframe.requestFullscreen) iframe.requestFullscreen();
+                    }
+                  }}
+                  className="ml-3 flex-shrink-0 p-2 rounded-lg transition-colors"
+                  style={{
+                    background: "oklch(0.72 0.12 55 / 0.12)",
+                    color: "oklch(0.72 0.12 55)",
+                  }}
+                  title="Fullscreen"
+                  aria-label="Open video fullscreen"
+                >
+                  <Maximize2 size={14} />
+                </button>
               </div>
             </div>
           </motion.div>
