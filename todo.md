@@ -153,3 +153,6 @@
 - [x] Fix video aspect ratio from 9:16 back to 16:9 (video is landscape, not portrait — 9:16 creates massive black bars)
 - [x] Fix stats section mobile spacing — "46 of 50 Founding Spots Remaining" cramped on mobile
 - [x] Full mobile optimization pass on entire landing page (hero, ticker, stats, WhatsIncluded, MarshallVideo, InsideTheCircle, testimonials, pricing, FAQ)
+
+## Bug Fixes
+- [x] Fix broken Discord screenshot image in InsideTheCircle community tab — replaced with inline Discord-style chat UI illustration (no external image dependency)
