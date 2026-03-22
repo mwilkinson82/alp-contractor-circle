@@ -275,3 +275,11 @@
 - [x] Verify all three tabs render correctly on live site after deploy
 - [x] Re-upload ALL CDN images site-wide (hero, discord screenshot, template previews, replay thumbnail, zoom logo, beau-monde logo) with correct content-types
 - [x] Update all CDN URLs in components to use clean paths (no hash suffixes)
+
+## Sage Construction Stat Fix
+- [x] Fix Sage Construction ticker stat from "2nd month" to "1 year"
+- [ ] Publish to production
+
+## Sage Construction Stat Fix
+- [x] Fix Sage Construction ticker stat from "2nd month" to "1 year"
+- [ ] Publish to production

@@ -151,12 +151,12 @@ function AnimatedWords({
 const transformations = [
   { name: "CNY Group", result: "$600K → $20M in 18 months" },
   { name: "Trojan Roofing", result: "$300K → $10M first year" },
-  { name: "Sage Construction", result: "$2M revenue — 2nd month as contractor" },
+  { name: "Sage Construction", result: "$2M revenue — 1st year as contractor" },
   { name: "Davis Contracting", result: "$1M → $4M in 6 months" },
   { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
   { name: "CNY Group", result: "$600K → $20M in 18 months" },
   { name: "Trojan Roofing", result: "$300K → $10M first year" },
-  { name: "Sage Construction", result: "$2M revenue — 2nd month as contractor" },
+  { name: "Sage Construction", result: "$2M revenue — 1st year as contractor" },
   { name: "Davis Contracting", result: "$1M → $4M in 6 months" },
   { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
 ];
