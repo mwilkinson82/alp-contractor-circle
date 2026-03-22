@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     question: "What happens on the bi-weekly calls?",
-    answer: "Every other Sunday at 5 PM ET, Marshall leads a live group call (starting March 29th). These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
+    answer: "Sundays bi-weekly at 5 PM ET, Marshall leads a live group call (starting March 29). These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
   },
   {
     question: "What are the monthly deal reviews?",

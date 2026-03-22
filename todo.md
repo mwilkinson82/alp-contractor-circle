@@ -177,3 +177,8 @@
 
 ## Countdown Bar Redesign
 - [x] Redesign countdown bar to airport departures board style — always show "Next Contractor Circle Call" label on mobile, removed "Claim Spot" CTA, clean three-column layout (label | countdown | dismiss)
+
+## Call Schedule Badge (Replaces Sticky Bar)
+- [x] Remove sticky countdown bar from landing page
+- [x] Fix all "every other Sunday" copy to "Sundays bi-weekly · 5 PM ET · Starting March 29"
+- [x] Build animated next-call badge embedded in hero section (premium, not salesy) — inline badge below CTA with live dot, date, countdown

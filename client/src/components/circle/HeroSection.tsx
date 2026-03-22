@@ -1,7 +1,91 @@
-import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
-import { useRef, useEffect } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef, useEffect, useState } from "react";
 import { ArrowRight, Zap, Loader2 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
+
+// Anchor: first call Sunday March 29, 2026 at 5 PM ET (21:00 UTC)
+const FIRST_CALL_UTC = Date.UTC(2026, 2, 29, 21, 0, 0);
+const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
+
+function getNextCallDate(): Date {
+  const now = Date.now();
+  const msSinceAnchor = now - FIRST_CALL_UTC;
+  if (msSinceAnchor < 0) return new Date(FIRST_CALL_UTC);
+  const cyclesPassed = Math.floor(msSinceAnchor / CYCLE_MS);
+  return new Date(FIRST_CALL_UTC + (cyclesPassed + 1) * CYCLE_MS);
+}
+
+function useCountdown(target: Date) {
+  const calc = (t: Date) => {
+    const total = t.getTime() - Date.now();
+    if (total <= 0) return { d: 0, h: 0, m: 0, s: 0 };
+    return {
+      d: Math.floor(total / 86400000),
+      h: Math.floor((total % 86400000) / 3600000),
+      m: Math.floor((total % 3600000) / 60000),
+      s: Math.floor((total % 60000) / 1000),
+    };
+  };
+  const [t, setT] = useState(() => calc(target));
+  useEffect(() => {
+    const id = setInterval(() => setT(calc(target)), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  return t;
+}
+
+// --- NextCallBadge component ---
+function NextCallBadge() {
+  const [nextCall] = useState(getNextCallDate);
+  const { d, h, m, s } = useCountdown(nextCall);
+  const dateStr = nextCall.toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1.55, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-cream/10 bg-cream/[0.04] backdrop-blur-sm"
+      style={{ fontFamily: "'Sora', monospace" }}
+    >
+      {/* Live dot */}
+      <span className="relative flex items-center justify-center w-2 h-2 shrink-0">
+        <span
+          className="absolute inline-flex h-full w-full rounded-full opacity-60"
+          style={{ background: "oklch(0.60 0.22 25)", animation: "live-pulse 1.8s ease-out infinite" }}
+        />
+        <span className="relative inline-flex rounded-full w-1.5 h-1.5" style={{ background: "oklch(0.60 0.22 25)" }} />
+      </span>
+
+      {/* Label */}
+      <span className="text-[10px] uppercase tracking-widest text-cream/40 font-medium">
+        Next Call
+      </span>
+
+      {/* Divider */}
+      <span className="text-cream/15 text-xs">|</span>
+
+      {/* Date */}
+      <span className="text-xs text-ember/80 font-semibold">{dateStr} · 5 PM ET</span>
+
+      {/* Divider */}
+      <span className="text-cream/15 text-xs">|</span>
+
+      {/* Countdown units */}
+      <div className="flex items-baseline gap-1.5">
+        {[{ v: d, l: "d" }, { v: h, l: "h" }, { v: m, l: "m" }, { v: s, l: "s" }].map(({ v, l }, i) => (
+          <span key={i} className="flex items-baseline gap-0.5">
+            <span className="tabular-nums text-xs font-bold text-cream/80">{String(v).padStart(2, "0")}</span>
+            <span className="text-[9px] text-cream/30 uppercase">{l}</span>
+            {i < 3 && <span className="text-cream/20 text-xs ml-0.5">:</span>}
+          </span>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
 
@@ -280,11 +364,16 @@ export function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.7, duration: 0.8 }}
-          className="text-xs text-cream/30 mb-14"
+          className="text-xs text-cream/30 mb-6"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           $497/mo · Cancel anytime · Founding rate locked forever
         </motion.p>
+
+        {/* Next Call Badge */}
+        <div className="mb-14">
+          <NextCallBadge />
+        </div>
 
         {/* Scroll indicator */}
         <motion.div
