@@ -103,7 +103,7 @@ function DiscordCard() {
               <img
                 src={DISCORD_SCREENSHOT}
                 alt="ALP Discord community — AJ Hoover's $4.5M bid discussion with Marshall"
-                className="w-full h-auto block max-h-64 object-cover object-top"
+                className="w-full h-auto block"
                 loading="lazy"
               />
             </div>
