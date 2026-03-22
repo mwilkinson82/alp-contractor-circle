@@ -21,7 +21,7 @@ export function PricingSection() {
   const { startCheckout, isLoading } = useCircleCheckout();
 
   return (
-    <section id="pricing" ref={ref} className="relative z-10 py-20 sm:py-28 px-6">
+    <section id="pricing" ref={ref} className="relative z-10 py-14 sm:py-20 lg:py-28 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -87,7 +87,7 @@ export function PricingSection() {
             style={{ background: "radial-gradient(ellipse at center, oklch(0.72 0.12 55 / 0.06), transparent 70%)" }}
           />
 
-          <div className="relative rounded-2xl p-8 sm:p-10 bg-gradient-to-b from-cream/[0.04] to-midnight border border-ember/10 backdrop-blur-sm overflow-hidden">
+          <div className="relative rounded-2xl p-6 sm:p-8 lg:p-10 bg-gradient-to-b from-cream/[0.04] to-midnight border border-ember/10 backdrop-blur-sm overflow-hidden">
             {/* Subtle inner glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-ember/40 to-transparent" />
 
@@ -123,7 +123,7 @@ export function PricingSection() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-32 h-16 rounded-full bg-ember/10 blur-2xl" />
                 </div>
-                <span className="text-6xl sm:text-7xl font-bold text-cream relative" style={{ fontFamily: "'Sora', sans-serif" }}>
+                <span className="text-5xl sm:text-6xl lg:text-7xl font-bold text-cream relative" style={{ fontFamily: "'Sora', sans-serif" }}>
                   $497
                 </span>
                 <span className="text-xl text-cream/40 relative">/mo</span>

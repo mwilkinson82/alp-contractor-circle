@@ -50,32 +50,32 @@ export default function InsideTheCircle() {
   const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATE_PREVIEWS[0] | null>(null);
 
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden">
+    <section className="relative py-14 sm:py-20 md:py-32 overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-ember/5 pointer-events-none" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16 md:mb-20">
+        <div className="text-center mb-10 sm:mb-16 md:mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/10 border border-ember/20 mb-6">
             <Lock className="w-4 h-4 text-ember" />
             <span className="text-sm font-semibold text-ember uppercase tracking-wider">Inside the Circle</span>
           </div>
-          <h2 className="font-heading text-4xl md:text-5xl font-bold text-cream mb-4">
+          <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold text-cream mb-4">
             This Is What You Get
           </h2>
-          <p className="text-cream-muted text-lg max-w-2xl mx-auto">
+          <p className="text-cream-muted text-base sm:text-lg max-w-2xl mx-auto">
             Live replays, battle-tested templates, private community, and direct access to Marshall. Everything serious contractors need to scale.
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-3 justify-center mb-12">
+        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-8 sm:mb-12">
           {SHOWCASE_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg font-semibold transition-all duration-300 ${
                 activeTab === tab.id
                   ? "bg-ember text-white shadow-lg shadow-ember/30"
                   : "bg-white/5 text-cream-muted hover:bg-white/10 border border-white/10"
@@ -91,8 +91,8 @@ export default function InsideTheCircle() {
         <div className="min-h-96">
           {/* Portal Preview */}
           {activeTab === "portal" && (
-            <div className="glass-card rounded-2xl p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                 <div>
                   <h3 className="font-heading text-2xl font-bold text-cream mb-4">
                     Replay Library
@@ -138,8 +138,8 @@ export default function InsideTheCircle() {
 
           {/* Discord Community */}
           {activeTab === "discord" && (
-            <div className="glass-card rounded-2xl p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                 <div className="order-2 md:order-1 relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
                   <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
@@ -179,11 +179,11 @@ export default function InsideTheCircle() {
 
           {/* Templates */}
           {activeTab === "templates" && (
-            <div className="glass-card rounded-2xl p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
-              <h3 className="font-heading text-2xl font-bold text-cream mb-8">
+            <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-12 border border-ember/20 animate-in fade-in duration-500">
+              <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-5 sm:mb-8">
                 11+ Premium Templates & SOPs
               </h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {TEMPLATE_PREVIEWS.map((template) => (
                   <button
                     key={template.title}
@@ -210,10 +210,10 @@ export default function InsideTheCircle() {
           {/* Social Proof */}
           {activeTab === "proof" && (
             <div className="animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <div className="grid md:grid-cols-2 gap-5 sm:gap-8 mb-8 sm:mb-12">
                 {/* Stats */}
-                <div className="glass-card rounded-2xl p-8 border border-ember/20">
-                  <h3 className="font-heading text-xl font-bold text-cream mb-6">What You Get</h3>
+                <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
+                  <h3 className="font-heading text-xl font-bold text-cream mb-4 sm:mb-6">What You Get</h3>
                   <div className="space-y-4">
                     {PROOF_STATS.map((stat) => (
                       <div
@@ -234,8 +234,8 @@ export default function InsideTheCircle() {
                 </div>
 
                 {/* Transformations - Scrollable */}
-                <div className="glass-card rounded-2xl p-8 border border-ember/20">
-                  <h3 className="font-heading text-xl font-bold text-cream mb-6">Member Results</h3>
+                <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
+                  <h3 className="font-heading text-xl font-bold text-cream mb-4 sm:mb-6">Member Results</h3>
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-ember/30 scrollbar-track-white/5">
                     {TRANSFORMATION_STATS.map((member) => (
                       <div key={member.name} className="p-3 bg-white/5 rounded-lg border border-white/10 hover:border-ember/30 transition-all">
@@ -252,7 +252,7 @@ export default function InsideTheCircle() {
               </div>
 
               {/* Bottom CTA */}
-              <div className="glass-card rounded-2xl p-8 md:p-12 border border-ember/20 text-center">
+              <div className="glass-card rounded-2xl p-6 sm:p-8 md:p-12 border border-ember/20 text-center">
                 <p className="text-cream-muted mb-4">Ready to join the elite contractors scaling their businesses?</p>
                 <p className="font-heading text-3xl font-bold text-cream mb-6">
                   $497<span className="text-lg text-cream-muted">/month</span>

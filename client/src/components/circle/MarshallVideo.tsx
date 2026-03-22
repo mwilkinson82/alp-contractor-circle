@@ -114,7 +114,7 @@ export function MarshallVideo() {
   const isInView = useInView(sectionRef, { once: true, margin: "-80px" });
 
   return (
-    <section ref={sectionRef} className="relative z-10 py-20 sm:py-28 px-6">
+    <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 lg:py-28 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -168,13 +168,13 @@ export function MarshallVideo() {
         </motion.div>
 
         {/* Main layout: video + transformation cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-[auto_340px] gap-8 items-start justify-center">
-          {/* Video — portrait 9:16 */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 sm:gap-8 items-start">
+          {/* Video — 16:9 landscape */}
           <motion.div
             initial={{ opacity: 0, y: 40, scale: 0.96 }}
             animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
             transition={{ duration: 0.9, ease: easeOutCubic, delay: 0.15 }}
-            className="relative mx-auto w-full max-w-[360px] lg:max-w-[400px]"
+            className="relative w-full"
           >
             {/* Ambient glow */}
             <div
@@ -189,8 +189,8 @@ export function MarshallVideo() {
               className="relative rounded-2xl overflow-hidden border"
               style={{ borderColor: "oklch(0.72 0.12 55 / 0.2)" }}
             >
-              {/* 9:16 portrait container */}
-              <div className="relative w-full" style={{ paddingBottom: "177.78%" }}>
+              {/* 16:9 landscape container */}
+              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 {/* Cloudflare Video Embed — fills the full portrait frame */}
                 <iframe
                   src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"

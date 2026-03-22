@@ -178,14 +178,14 @@ export function Testimonials() {
   const isInView = useInView(sectionRef, { once: true, margin: "-80px" });
 
   return (
-    <section ref={sectionRef} className="relative z-10 py-20 sm:py-28 px-6">
+    <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 lg:py-28 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease: easeOutCubic }}
-          className="text-center mb-16"
+          className="text-center mb-10 sm:mb-16"
         >
           <motion.p
             initial={{ opacity: 0, letterSpacing: "0.5em" }}

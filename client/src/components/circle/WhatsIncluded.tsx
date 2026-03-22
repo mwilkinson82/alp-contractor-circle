@@ -294,10 +294,10 @@ export function WhatsIncluded() {
   const isHeaderInView = useInView(headerRef, { once: true, margin: "-60px" });
 
   return (
-    <section className="relative z-10 py-20 sm:py-28 px-6">
+    <section className="relative z-10 py-14 sm:py-20 lg:py-28 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
         {/* Section Header */}
-        <div ref={headerRef} className="text-center mb-20">
+        <div ref={headerRef} className="text-center mb-12 sm:mb-16 lg:mb-20">
           <motion.p
             initial={{ opacity: 0, letterSpacing: "0.5em" }}
             animate={isHeaderInView ? { opacity: 1, letterSpacing: "0.2em" } : {}}
@@ -312,7 +312,7 @@ export function WhatsIncluded() {
             initial={{ opacity: 0, y: 30 }}
             animate={isHeaderInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease: easeOutCubic, delay: 0.1 }}
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight mb-5"
+            className="text-2xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight mb-4 sm:mb-5"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             Not a Course.{" "}

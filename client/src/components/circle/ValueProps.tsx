@@ -12,6 +12,7 @@ function AnimatedNumber({
   label,
   textValue,
   delay = 0,
+  large = false,
 }: {
   target: number;
   prefix: string;
@@ -19,6 +20,7 @@ function AnimatedNumber({
   label: string;
   textValue?: string;
   delay?: number;
+  large?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
@@ -54,7 +56,7 @@ function AnimatedNumber({
       initial={{ opacity: 0, y: 35, scale: 0.92 }}
       animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
       transition={{ duration: 0.8, ease: easeOutCubic, delay }}
-      className="text-center relative group px-4"
+      className="text-center relative group px-3 py-2"
     >
       {/* Glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -62,7 +64,11 @@ function AnimatedNumber({
       </div>
 
       <p
-        className="text-3xl sm:text-4xl md:text-5xl font-bold text-ember mb-2 relative"
+        className={`font-bold text-ember mb-1.5 relative leading-none ${
+          large
+            ? "text-4xl sm:text-5xl md:text-6xl"
+            : "text-3xl sm:text-4xl md:text-5xl"
+        }`}
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {displayValue}
@@ -88,47 +94,55 @@ export function ValueProps() {
   const memberCount = countData?.count ?? 0;
   const spotsLeft = Math.max(0, FOUNDING_SPOTS - memberCount);
 
-  const stats = [
-    {
-      label: "In Construction Experience",
-      numericTarget: 2.5,
-      prefix: "$",
-      suffix: "B+",
-      delay: 0,
-    },
-    {
-      label: "Contractors Trained",
-      numericTarget: 333,
-      prefix: "",
-      suffix: "+",
-      delay: 0.12,
-    },
-    {
-      label: "Founding Spots Remaining",
-      numericTarget: 0,
-      prefix: "",
-      suffix: "",
-      textValue: spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full",
-      delay: 0.24,
-    },
-  ];
-
   return (
     <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 px-6">
       <div className="max-w-4xl mx-auto">
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-6 mb-12">
-          {stats.map((stat) => (
+        {/* Stats — mobile: 2 top + 1 bottom centered; sm+: 3 columns */}
+        <div className="mb-12">
+          {/* Top row: $2.5B+ and 333+ */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-6 mb-4 sm:mb-0">
             <AnimatedNumber
-              key={stat.label}
-              target={stat.numericTarget}
-              prefix={stat.prefix}
-              suffix={stat.suffix}
-              label={stat.label}
-              textValue={stat.textValue}
-              delay={stat.delay}
+              target={2.5}
+              prefix="$"
+              suffix="B+"
+              label="In Construction Experience"
+              delay={0}
             />
-          ))}
+            <AnimatedNumber
+              target={333}
+              prefix=""
+              suffix="+"
+              label="Contractors Trained"
+              delay={0.12}
+            />
+            {/* On sm+ screens, show the third stat inline */}
+            <div className="hidden sm:block">
+              <AnimatedNumber
+                target={0}
+                prefix=""
+                suffix=""
+                label="Founding Spots Remaining"
+                textValue={spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full"}
+                delay={0.24}
+                large={true}
+              />
+            </div>
+          </div>
+
+          {/* On mobile only: third stat centered below */}
+          <div className="sm:hidden flex justify-center mt-2">
+            <div className="w-full max-w-[200px]">
+              <AnimatedNumber
+                target={0}
+                prefix=""
+                suffix=""
+                label="Founding Spots Remaining"
+                textValue={spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full"}
+                delay={0.24}
+                large={true}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Divider */}

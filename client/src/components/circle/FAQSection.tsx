@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     question: "What happens on the bi-weekly calls?",
-    answer: "Every other Thursday evening, Marshall leads a live group call. These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
+    answer: "Every other Sunday evening at 5 PM ET, Marshall leads a live group call. These rotate between hot seats (bring your real challenges), Q&A sessions, and focused teaching on topics like sales, estimating, hiring, and operations. You'll leave every call with something actionable.",
   },
   {
     question: "What are the monthly deal reviews?",
@@ -89,7 +89,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 
 export function FAQSection() {
   return (
-    <section className="relative z-10 py-16 sm:py-24 px-6">
+    <section className="relative z-10 py-12 sm:py-16 lg:py-24 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -111,7 +111,7 @@ export function FAQSection() {
         </motion.div>
 
         {/* FAQ Items */}
-        <div className="glass-card rounded-xl px-6 sm:px-8">
+        <div className="glass-card rounded-xl px-4 sm:px-6 lg:px-8">
           {faqs.map((faq, i) => (
             <FAQItem key={i} question={faq.question} answer={faq.answer} index={i} />
           ))}

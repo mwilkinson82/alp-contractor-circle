@@ -172,14 +172,14 @@ export function HeroSection() {
       {/* Main Content */}
       <motion.div
         style={{ y: contentY }}
-        className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pt-28 pb-16"
+          className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16"
       >
         {/* Eyebrow badge */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.7, ease: easeOutCubic, delay: 0.15 }}
-          className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-ember/35 bg-ember/8 mb-10 relative"
+          className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border border-ember/35 bg-ember/8 mb-8 sm:mb-10 relative"
         >
           <motion.div
             className="absolute inset-0 rounded-full border border-ember/15"
@@ -188,7 +188,7 @@ export function HeroSection() {
           />
           <Zap size={13} className="text-ember" fill="currentColor" />
           <span
-            className="text-xs font-semibold tracking-[0.15em] uppercase text-ember"
+            className="text-[10px] sm:text-xs font-semibold tracking-[0.1em] sm:tracking-[0.15em] uppercase text-ember"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             Founding Members — 4 of 50 Spots Filled
@@ -197,7 +197,7 @@ export function HeroSection() {
 
         {/* Title */}
         <h1
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.0] tracking-tight mb-6"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.0] tracking-tight mb-5 sm:mb-6"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
           <AnimatedWords text="The" className="text-cream" delay={0.35} />
@@ -224,7 +224,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: easeOutCubic, delay: 0.95 }}
-          className="text-lg sm:text-xl md:text-2xl text-cream/80 font-light leading-relaxed mb-3 max-w-2xl mx-auto"
+          className="text-base sm:text-xl md:text-2xl text-cream/80 font-light leading-relaxed mb-3 max-w-2xl mx-auto"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           The elite contractor community & execution engine led by{" "}
@@ -235,7 +235,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: easeOutCubic, delay: 1.1 }}
-          className="text-sm sm:text-base text-cream/45 max-w-xl mx-auto mb-10 leading-relaxed"
+          className="text-sm sm:text-base text-cream/45 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           Live coaching. Battle-tested systems. A network of operators who are actually building.
@@ -259,7 +259,7 @@ export function HeroSection() {
           <button
             onClick={startCheckout}
             disabled={isLoading}
-            className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
+            className="relative inline-flex items-center gap-3 px-7 sm:px-10 py-4 sm:py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             {isLoading ? (

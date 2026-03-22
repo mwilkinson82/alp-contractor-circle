@@ -11,7 +11,7 @@ export function FinalCTA() {
   const { startCheckout, isLoading } = useCircleCheckout();
 
   return (
-    <section ref={ref} className="relative z-10 py-20 sm:py-28 px-6 overflow-hidden">
+    <section ref={ref} className="relative z-10 py-14 sm:py-20 lg:py-28 px-4 sm:px-6 overflow-hidden">
       {/* Background glow */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -80,7 +80,7 @@ export function FinalCTA() {
           <button
             onClick={startCheckout}
             disabled={isLoading}
-            className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
+            className="relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-10 py-4 sm:py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-sm sm:text-base lg:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 disabled:cursor-wait cursor-pointer"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             {isLoading ? (
