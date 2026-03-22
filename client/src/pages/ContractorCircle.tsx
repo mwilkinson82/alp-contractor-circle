@@ -10,10 +10,12 @@ import { Footer } from '@/components/circle/Footer'
 import InsideTheCircle from '@/components/circle/InsideTheCircle'
 import { AmbientBackground } from '@/components/circle/AmbientBackground'
 import { GradientBar } from '@/components/circle/GradientBar'
+import { CallCountdownBar } from '@/components/circle/CallCountdownBar'
 
 export default function ContractorCircle() {
   return (
     <div className="relative min-h-screen overflow-x-hidden no-scrollbar grain-overlay">
+      <CallCountdownBar />
       <GradientBar />
       <AmbientBackground />
       <HeroSection />

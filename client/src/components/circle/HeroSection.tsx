@@ -172,7 +172,7 @@ export function HeroSection() {
       {/* Main Content */}
       <motion.div
         style={{ y: contentY }}
-          className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16"
+          className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-32 sm:pt-36 pb-12 sm:pb-16"
       >
         {/* Eyebrow badge */}
         <motion.div

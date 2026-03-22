@@ -169,3 +169,8 @@
 
 ## Call Date Update
 - [x] Update first call date to Sunday March 29th across all site copy — replaced all Thursday references with Sunday, updated bi-weekly logic to anchor on March 29 (skips Easter April 20 naturally)
+
+## Countdown Bar & Template Modals
+- [x] Add countdown bar to next call (March 29, 5 PM ET) — sticky top bar with live seconds countdown, dismissible, Claim Spot CTA
+- [ ] Upload real template screenshots and wire each template modal to its own unique image
+- [ ] Send welcome emails to four founding members (awaiting email addresses)
