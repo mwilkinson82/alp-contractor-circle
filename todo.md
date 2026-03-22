@@ -240,3 +240,10 @@
 - [x] Add scroll-triggered animated progress bars that fill up as section enters viewport
 - [x] Add counting number animation synced to bar fill (counts from before to after revenue)
 - [x] Premium billion-dollar data viz aesthetic — not generic bar chart
+
+## March 22 — Redundancy Fix & Name Corrections
+- [x] Replace ALL personal names with company names site-wide (Ronnie Silva→Sage Construction, Morgan Tyler→Trojan Roofing, Brian Betancourt→CNY Group, Julius Davis→Davis Contracting, Dan Del Monte→Del Monte Builders, Nathan Oliveira→Olive Tree Builds, Andy Ramirez→ARC Construction Group, Betancourt Core Construction→CNY Group)
+- [x] Replace Member Transformations cards (next to video) with "By The Numbers" stats block ($100M+, 15+ companies, 33×, 1 month)
+- [x] Redesign countdown timer — replace generic elongated card with premium integrated badge/banner
+- [x] Fix $500/month → $497/month in countdown timer copy
+- [x] Remove redundancy: ensure contractor stories aren't repeated across multiple sections

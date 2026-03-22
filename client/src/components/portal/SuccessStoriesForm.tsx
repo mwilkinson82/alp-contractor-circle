@@ -144,7 +144,7 @@ export function SuccessStoriesForm() {
                     name="companyName"
                     value={formData.companyName}
                     onChange={handleInputChange}
-                    placeholder="e.g., Betancourt Core Construction"
+                    placeholder="e.g., Your Company Name"
                     required
                     className="bg-slate-800/50 border-slate-700 text-cream placeholder:text-cream/40"
                   />

@@ -1,109 +1,120 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { TrendingUp, Maximize2 } from "lucide-react";
+import { Maximize2, TrendingUp, Users, Zap, Clock } from "lucide-react";
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/F8sHs44hWg957N49MHxas2/marshall_hero_6c478c8c.webp";
 
-const transformations = [
+const stats = [
   {
-    name: "Betancourt Core Construction",
-    from: "$600K",
-    to: "$20M",
-    period: "18 months",
-    color: "ember",
+    icon: TrendingUp,
+    value: "$100M+",
+    label: "Revenue Generated",
+    description: "Across all ALP members",
+    accent: "ember" as const,
   },
   {
-    name: "Trojan Roofing",
-    from: "$300K",
-    to: "$10M",
-    period: "first year",
-    color: "blue",
+    icon: Users,
+    value: "15+",
+    label: "Companies Scaling",
+    description: "Actively growing right now",
+    accent: "blue" as const,
   },
   {
-    name: "Sage Construction",
-    from: "$0",
-    to: "$2M",
-    period: "1 year as contractor",
-    color: "ember",
+    icon: Zap,
+    value: "33×",
+    label: "Highest Multiplier",
+    description: "$600K to $20M",
+    accent: "ember" as const,
+  },
+  {
+    icon: Clock,
+    value: "1 Mo",
+    label: "Fastest Result",
+    description: "Time to first revenue jump",
+    accent: "blue" as const,
   },
 ];
 
-function TransformationCard({
-  t,
+const ACCENT = {
+  ember: {
+    color: "oklch(0.72 0.12 55)",
+    bg: "oklch(0.72 0.12 55 / 0.08)",
+    border: "oklch(0.72 0.12 55 / 0.2)",
+    glow: "oklch(0.72 0.12 55 / 0.15)",
+  },
+  blue: {
+    color: "oklch(0.65 0.12 240)",
+    bg: "oklch(0.65 0.12 240 / 0.08)",
+    border: "oklch(0.65 0.12 240 / 0.2)",
+    glow: "oklch(0.65 0.12 240 / 0.15)",
+  },
+};
+
+function StatCard({
+  stat,
   index,
   isInView,
 }: {
-  t: (typeof transformations)[0];
+  stat: (typeof stats)[0];
   index: number;
   isInView: boolean;
 }) {
-  const isEmber = t.color === "ember";
-  const accentColor = isEmber ? "oklch(0.72 0.12 55)" : "oklch(0.55 0.1 240)";
-  const accentClass = isEmber ? "text-ember" : "text-blue-accent";
-  const borderStyle = {
-    borderColor: isEmber
-      ? "oklch(0.72 0.12 55 / 0.2)"
-      : "oklch(0.55 0.1 240 / 0.2)",
-  };
-  const bgStyle = {
-    background: isEmber
-      ? "linear-gradient(135deg, oklch(0.72 0.12 55 / 0.06), transparent)"
-      : "linear-gradient(135deg, oklch(0.55 0.1 240 / 0.06), transparent)",
-  };
+  const a = ACCENT[stat.accent];
+  const Icon = stat.icon;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      initial={{ opacity: 0, y: 24, scale: 0.95 }}
       animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ duration: 0.7, ease: easeOutCubic, delay: 0.3 + index * 0.12 }}
-      className="rounded-2xl p-5 sm:p-6 border"
-      style={{ ...borderStyle, ...bgStyle }}
+      transition={{ duration: 0.6, ease: easeOutCubic, delay: 0.25 + index * 0.1 }}
+      className="relative rounded-2xl p-5 border overflow-hidden group"
+      style={{ borderColor: a.border, background: `linear-gradient(135deg, ${a.bg}, transparent)` }}
     >
-      <div className="flex items-start justify-between mb-3">
+      {/* Hover glow */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 50% 0%, ${a.glow}, transparent 70%)` }}
+      />
+
+      <div className="relative z-10">
+        {/* Icon */}
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center border"
+          className="w-9 h-9 rounded-xl flex items-center justify-center border mb-3"
+          style={{ borderColor: a.border, background: a.bg }}
+        >
+          <Icon size={16} style={{ color: a.color }} />
+        </div>
+
+        {/* Value */}
+        <p
+          className="text-2xl sm:text-3xl font-black leading-none mb-1"
           style={{
-            borderColor: isEmber
-              ? "oklch(0.72 0.12 55 / 0.25)"
-              : "oklch(0.55 0.1 240 / 0.25)",
-            background: isEmber
-              ? "oklch(0.72 0.12 55 / 0.1)"
-              : "oklch(0.55 0.1 240 / 0.1)",
+            color: a.color,
+            fontFamily: "'Sora', sans-serif",
+            letterSpacing: "-0.03em",
+            textShadow: `0 0 20px ${a.glow}`,
           }}
         >
-          <TrendingUp size={14} className={accentClass} />
-        </div>
-        <span
-          className="text-[10px] font-semibold tracking-[0.15em] uppercase text-cream/30"
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          {t.period}
-        </span>
-      </div>
+          {stat.value}
+        </p>
 
-      <p
-        className="text-xs font-semibold text-cream/50 mb-2"
-        style={{ fontFamily: "'Sora', sans-serif" }}
-      >
-        {t.name}
-      </p>
+        {/* Label */}
+        <p
+          className="text-xs font-semibold text-cream/60 mb-0.5"
+          style={{ fontFamily: "'Sora', sans-serif" }}
+        >
+          {stat.label}
+        </p>
 
-      <div className="flex items-center gap-2">
-        <span
-          className="text-sm text-cream/35 line-through"
-          style={{ fontFamily: "'Sora', sans-serif" }}
+        {/* Description */}
+        <p
+          className="text-[10px] text-cream/30"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
-          {t.from}
-        </span>
-        <span className="text-cream/20 text-xs">→</span>
-        <span
-          className={`text-xl sm:text-2xl font-bold ${accentClass}`}
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          {t.to}
-        </span>
+          {stat.description}
+        </p>
       </div>
     </motion.div>
   );
@@ -167,7 +178,7 @@ export function MarshallVideo() {
           />
         </motion.div>
 
-        {/* Main layout: video + transformation cards */}
+        {/* Main layout: video + stats */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 sm:gap-8 items-start">
           {/* Video — 16:9 landscape */}
           <motion.div
@@ -191,7 +202,6 @@ export function MarshallVideo() {
             >
               {/* 16:9 landscape container */}
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                {/* Cloudflare Video Embed — fills the full portrait frame */}
                 <iframe
                   src={`https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=none&responsive=true&poster=${encodeURIComponent(HERO_IMAGE)}`}
                   loading="lazy"
@@ -202,7 +212,7 @@ export function MarshallVideo() {
                 />
               </div>
 
-              {/* Label bar below the video (outside the iframe so it's never covered) */}
+              {/* Label bar below the video */}
               <div
                 className="px-5 py-3 border-t flex items-center justify-between"
                 style={{
@@ -224,7 +234,6 @@ export function MarshallVideo() {
                     Founder, ALP · $2.5B+ in Construction
                   </p>
                 </div>
-                {/* Fullscreen hint icon */}
                 <button
                   onClick={() => {
                     const iframe = document.querySelector(
@@ -248,40 +257,21 @@ export function MarshallVideo() {
             </div>
           </motion.div>
 
-          {/* Transformation cards */}
-          <div className="space-y-4">
+          {/* By The Numbers — stats block */}
+          <div className="space-y-3">
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, ease: easeOutCubic, delay: 0.2 }}
-              className="text-xs font-semibold tracking-[0.2em] uppercase text-cream/30 mb-5"
+              className="text-xs font-semibold tracking-[0.2em] uppercase text-cream/30 mb-4"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              Member Transformations
+              By The Numbers
             </motion.p>
 
-            {transformations.map((t, i) => (
-              <TransformationCard
-                key={t.name}
-                t={t}
-                index={i}
-                isInView={isInView}
-              />
+            {stats.map((stat, i) => (
+              <StatCard key={stat.label} stat={stat} index={i} isInView={isInView} />
             ))}
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, ease: easeOutCubic, delay: 0.65 }}
-              className="pt-2"
-            >
-              <p
-                className="text-xs text-cream/30 leading-relaxed"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                Results vary. These are real members who committed to the process, showed up consistently, and executed on what they learned.
-              </p>
-            </motion.div>
           </div>
         </div>
       </div>

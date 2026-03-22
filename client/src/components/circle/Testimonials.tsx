@@ -5,20 +5,20 @@ import { Quote, Play, Star, ChevronLeft, ChevronRight } from "lucide-react";
 const textTestimonials = [
   {
     quote: "Marshall's classes are one of a kind. He teaches lessons that would take you YEARS to learn yourself. Within the week I had already seen noticeable changes not only in my business but how I carried myself as a professional.",
-    name: "Nathan Oliveira",
-    company: "Olive Tree Builds",
+    name: "Olive Tree Builds",
+    company: "ALP Member",
     stars: 5,
   },
   {
     quote: "I followed Marshall for about a year, and have been involved in other groups. There is NOTHING like Marshall. This is real world stuff here. My 2nd month as a Contractor and I'm at a quarter million in revenue and have a real scalable business. It's unreal. ALP all day, everyday.",
-    name: "Ronnie Silva",
-    company: "Sage Construction",
+    name: "Sage Construction",
+    company: "ALP Member",
     stars: 5,
   },
   {
     quote: "ALP is Super Impactful! I have tried many other coaching programs and Coaches, and none compare to what I've learned in the past 2 months. So if you are really serious about winning in Business and life. Join ALP! It will change your life.",
-    name: "Julius Davis",
-    company: "Davis Contracting",
+    name: "Davis Contracting",
+    company: "ALP Member",
     stars: 5,
   },
 ];

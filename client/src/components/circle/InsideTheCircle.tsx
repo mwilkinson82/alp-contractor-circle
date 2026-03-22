@@ -15,13 +15,13 @@ const SHOWCASE_TABS = [
 ];
 
 const TRANSFORMATION_STATS = [
-  { name: "Ronnie Silva", from: "$2M", to: "First Year", company: "Sage Construction" },
-  { name: "Morgan Tyler", from: "$300K", to: "$10M", company: "Trojan Roofing" },
-  { name: "Brian Betancourt", from: "$600K", to: "$20M", company: "18 months" },
-  { name: "Julius Davis", from: "$1M", to: "$4M", company: "6 months" },
-  { name: "Dan Del Monte", from: "$2M", to: "$5M", company: "1 year" },
-  { name: "Nathan Oliveira", from: "$1M", to: "$3M", company: "Scaling" },
-  { name: "Andy Ramirez", from: "License", to: "$1.5M", company: "<1 year" },
+  { name: "Sage Construction", from: "$2M", to: "First Year", company: "ALP Member" },
+  { name: "Trojan Roofing", from: "$300K", to: "$10M", company: "First Year" },
+  { name: "CNY Group", from: "$600K", to: "$20M", company: "18 months" },
+  { name: "Davis Contracting", from: "$1M", to: "$4M", company: "6 months" },
+  { name: "Del Monte Builders", from: "$2M", to: "$5M", company: "1 year" },
+  { name: "Olive Tree Builds", from: "$1M", to: "$3M", company: "Scaling" },
+  { name: "ARC Construction Group", from: "License", to: "$1.5M", company: "<1 year" },
 ];
 
 // Proposal screenshot — the original one already on CDN
@@ -166,6 +166,13 @@ function TemplatesCard({ onSelect }: { onSelect: (t: typeof TEMPLATE_PREVIEWS[0]
 }
 
 function ResultsCard() {
+  const RESULT_STATS = [
+    { value: "$100M+", label: "Total Revenue Generated", highlight: true },
+    { value: "15+", label: "Companies Actively Scaling", highlight: false },
+    { value: "33×", label: "Highest Growth Multiple", highlight: true },
+    { value: "1 Mo", label: "Fastest Time to Results", highlight: false },
+  ];
+
   return (
     <div className="h-full space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
@@ -188,18 +195,18 @@ function ResultsCard() {
           </div>
         </div>
         <div className="glass-card rounded-2xl p-5 sm:p-8 border border-ember/20">
-          <h3 className="font-heading text-xl font-bold text-cream mb-4">Member Results</h3>
-          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-            {TRANSFORMATION_STATS.map((member) => (
-              <div key={member.name} className="p-3 bg-white/5 rounded-lg border border-white/10 hover:border-ember/30 transition-all">
-                <p className="font-semibold text-cream text-sm">{member.name}</p>
-                <p className="text-ember font-bold text-base">{member.from} → {member.to}</p>
-                <p className="text-cream-muted text-xs">{member.company}</p>
+          <h3 className="font-heading text-xl font-bold text-cream mb-4">By The Numbers</h3>
+          <div className="space-y-3">
+            {RESULT_STATS.map((stat) => (
+              <div key={stat.label} className={`p-4 rounded-lg border transition-all duration-300 ${
+                stat.highlight ? "bg-ember/10 border-ember/30" : "bg-white/5 border-white/10 hover:border-ember/30"
+              }`}>
+                <p className={`font-heading text-2xl font-black ${stat.highlight ? "text-ember" : "text-cream"}`}>
+                  {stat.value}
+                </p>
+                <p className="text-cream-muted text-sm mt-1">{stat.label}</p>
               </div>
             ))}
-            <div className="p-4 bg-ember/10 rounded-lg border border-ember/30 text-center">
-              <p className="text-cream-muted text-sm font-semibold">Plus dozens more inside the Circle</p>
-            </div>
           </div>
         </div>
       </div>
@@ -208,7 +215,13 @@ function ResultsCard() {
         <p className="font-heading text-3xl font-bold text-cream mb-5">
           $497<span className="text-lg text-cream-muted">/month</span>
         </p>
-        <button className="px-8 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50">
+        <button
+          onClick={() => {
+            const pricingEl = document.getElementById("pricing");
+            if (pricingEl) pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          className="px-8 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50 cursor-pointer"
+        >
           Become a Founding Member
         </button>
       </div>
