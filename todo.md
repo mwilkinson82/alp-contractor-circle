@@ -263,3 +263,5 @@
 - [ ] Add Zoom call mockup graphic in a prominent location (optional enhancement for future)
 - [x] Build frosted glass experience for non-subscribers (blurred/locked content, persistent subscribe banner, every locked element has CTA)
 - [x] Track non-subscriber logins in database for retargeting (login tracking already exists via lastSignedIn in Discord auth)
+
+- [x] Rebuild PortalPreview with floating 3D perspective cards (no browser chrome, premium brand feel)
