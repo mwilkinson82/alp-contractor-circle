@@ -42,7 +42,7 @@ const PROOF_STATS = [
 
 // CDN URLs for assets
 const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.52.43PM_536195dc.webp";
-const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at6.10.42PM_2d4e8f1a.webp";
+const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/discord-screenshot_ab4921f0.webp";
 const TEMPLATE_PREVIEW = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Screenshot2026-03-21at7.55.32PM_565e119b.webp";
 
 export default function InsideTheCircle() {
@@ -143,60 +143,14 @@ export default function InsideTheCircle() {
                 <div className="order-2 md:order-1 relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
                   <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
-                    {/* Discord-style chat UI illustration */}
-                    <div className="rounded-lg overflow-hidden border-2 border-ember/50 shadow-lg shadow-ember/20" style={{ background: "#1e1f22" }}>
-                      {/* Discord sidebar + main layout */}
-                      <div className="flex" style={{ minHeight: 260 }}>
-                        {/* Sidebar */}
-                        <div className="flex flex-col gap-1 p-2 shrink-0" style={{ width: 48, background: "#1e1f22", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-                          {/* Server icon */}
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white mb-1" style={{ background: "oklch(0.72 0.12 55)" }}>A</div>
-                          <div className="w-8 h-[1px] mx-auto" style={{ background: "rgba(255,255,255,0.1)" }} />
-                          {["#","@","🔔"].map((icon, i) => (
-                            <div key={i} className="w-8 h-8 rounded-lg flex items-center justify-center text-xs" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>{icon}</div>
-                          ))}
-                        </div>
-                        {/* Channel list */}
-                        <div className="flex flex-col p-2 shrink-0" style={{ width: 120, background: "#2b2d31", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-                          <p className="text-[9px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "rgba(255,255,255,0.35)" }}>ALP Circle</p>
-                          {["# general","# deal-reviews","# wins","# templates","# announcements"].map((ch, i) => (
-                            <div key={ch} className="flex items-center gap-1 px-2 py-1 rounded text-[10px] mb-0.5" style={{ background: i === 1 ? "rgba(255,255,255,0.08)" : "transparent", color: i === 1 ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)" }}>
-                              <span>{ch}</span>
-                            </div>
-                          ))}
-                          <p className="text-[9px] font-bold uppercase tracking-wider mt-3 mb-1 px-1" style={{ color: "rgba(255,255,255,0.25)" }}>Members</p>
-                          {["Marshall W.","AJ Hoover","Brian B."].map((name) => (
-                            <div key={name} className="flex items-center gap-1.5 px-1 py-0.5">
-                              <div className="w-4 h-4 rounded-full shrink-0" style={{ background: "oklch(0.72 0.12 55 / 0.6)" }} />
-                              <span className="text-[9px] truncate" style={{ color: "rgba(255,255,255,0.45)" }}>{name}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Chat area */}
-                        <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden" style={{ background: "#313338" }}>
-                          <p className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.25)" }}># deal-reviews</p>
-                          {[
-                            { name: "Marshall W.", color: "oklch(0.72 0.12 55)", msg: "Let's break down AJ's $4.5M bid. First — your margin is too thin on labor. Here's how to fix it 👇", time: "Today at 5:02 PM" },
-                            { name: "AJ Hoover", color: "#7289da", msg: "Just closed it. $4.5M contract signed. This community is unreal 🔥", time: "Today at 5:18 PM" },
-                            { name: "Brian B.", color: "#43b581", msg: "From $600K to $20M in 18 months. The deal review sessions are the reason.", time: "Today at 5:31 PM" },
-                          ].map((m) => (
-                            <div key={m.name} className="flex gap-2">
-                              <div className="w-6 h-6 rounded-full shrink-0 mt-0.5" style={{ background: m.color + "80" }} />
-                              <div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-[10px] font-semibold" style={{ color: m.color }}>{m.name}</span>
-                                  <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.25)" }}>{m.time}</span>
-                                </div>
-                                <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>{m.msg}</p>
-                              </div>
-                            </div>
-                          ))}
-                          {/* Input bar */}
-                          <div className="mt-auto rounded-lg px-3 py-2 text-[10px]" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                            Message #deal-reviews
-                          </div>
-                        </div>
-                      </div>
+                    {/* Real Discord screenshot — AJ Hoover $4.5M bid in #general-chat */}
+                    <div className="rounded-lg overflow-hidden border-2 border-ember/50 shadow-lg shadow-ember/20">
+                      <img
+                        src={DISCORD_SCREENSHOT}
+                        alt="ALP Discord community — AJ Hoover's $4.5M bid discussion with Marshall"
+                        className="w-full h-auto block"
+                        loading="lazy"
+                      />
                     </div>
                     {/* Live badge */}
                     <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "oklch(0.72 0.12 55)", boxShadow: "0 0 12px oklch(0.72 0.12 55 / 0.5)" }}>

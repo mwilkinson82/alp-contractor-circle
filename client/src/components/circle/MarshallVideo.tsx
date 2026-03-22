@@ -193,9 +193,9 @@ export function MarshallVideo() {
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 {/* Cloudflare Video Embed — fills the full portrait frame */}
                 <iframe
-                  src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"
+                  src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=none&responsive=true"
                   loading="lazy"
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
                   allowFullScreen={true}
                   className="absolute inset-0 w-full h-full border-0"
                   title="Marshall Wilkinson — ALP Contractor Circle"
