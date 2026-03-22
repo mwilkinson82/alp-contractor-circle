@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
+import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/portal", adminOnly: false },
@@ -80,6 +81,8 @@ export default function MemberPortalLayout({
 
   if (loading) return <MemberPortalSkeleton />;
   if (!isAuthenticated) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
+
+  const isSubscribed = member?.subscriptionStatus === 'active' || member?.subscriptionStatus === 'trialing';
 
   const avatarUrl = member?.avatarUrl;
   const displayName = member?.displayName || member?.discordUsername || "Member";
@@ -230,6 +233,7 @@ export default function MemberPortalLayout({
 
         {/* Page Content */}
         <main className="flex-1 p-6 md:p-8 overflow-auto">
+          <SubscriptionBanner isSubscribed={isSubscribed} />
           {children}
         </main>
       </div>

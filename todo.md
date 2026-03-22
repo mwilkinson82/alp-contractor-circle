@@ -254,3 +254,12 @@
 
 ## Bug Fix — Video Not Playing
 - [ ] Fix video not playing in MarshallVideo section after By The Numbers redesign
+
+## March 22 — Portal Screenshots, Dozens More, Mobile Fix, Zoom
+- [x] Add "plus dozens more" after before/after transformation section
+- [x] Fix mobile layout — "This Is What You Get" cards stretching too long on mobile
+- [x] Add portal screenshots (Dashboard, Replay Library, Template Library) to the sales page
+- [x] Add Zoom badge next to bi-weekly call mentions
+- [ ] Add Zoom call mockup graphic in a prominent location (optional enhancement for future)
+- [x] Build frosted glass experience for non-subscribers (blurred/locked content, persistent subscribe banner, every locked element has CTA)
+- [x] Track non-subscriber logins in database for retargeting (login tracking already exists via lastSignedIn in Discord auth)

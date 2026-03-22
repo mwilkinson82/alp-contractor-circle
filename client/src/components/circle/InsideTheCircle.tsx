@@ -52,8 +52,8 @@ const DISCORD_SCREENSHOT = "https://d2xsxph8kpxj0f.cloudfront.net/31051966333272
 
 function PortalCard({ onTemplateSelect }: { onTemplateSelect?: never }) {
   return (
-    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
-      <div className="grid md:grid-cols-2 gap-6 items-center h-full">
+    <div className="glass-card rounded-2xl p-4 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center h-full">
         <div>
           <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-3">
             Replay Library
@@ -94,8 +94,8 @@ function PortalCard({ onTemplateSelect }: { onTemplateSelect?: never }) {
 
 function DiscordCard() {
   return (
-    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
-      <div className="grid md:grid-cols-2 gap-6 items-center h-full">
+    <div className="glass-card rounded-2xl p-4 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center h-full">
         <div className="order-2 md:order-1 relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-ember/20 to-transparent rounded-xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
           <div className="relative bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 border border-white/20 backdrop-blur-sm overflow-hidden">
@@ -136,29 +136,29 @@ function DiscordCard() {
 
 function TemplatesCard({ onSelect }: { onSelect: (t: typeof TEMPLATE_PREVIEWS[0]) => void }) {
   return (
-    <div className="glass-card rounded-2xl p-5 sm:p-8 md:p-10 border border-ember/20 h-full">
-      <h3 className="font-heading text-xl sm:text-2xl font-bold text-cream mb-5">
+    <div className="glass-card rounded-2xl p-4 sm:p-8 md:p-10 border border-ember/20 h-full">
+      <h3 className="font-heading text-lg sm:text-2xl font-bold text-cream mb-4 sm:mb-5">
         11+ Premium Templates & SOPs
       </h3>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         {TEMPLATE_PREVIEWS.map((template) => (
           <button
             key={template.title}
             onClick={() => onSelect(template)}
-            className="group bg-gradient-to-br from-white/10 to-white/5 rounded-lg p-4 border border-white/10 hover:border-ember/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-ember/20 text-left"
+            className="group bg-gradient-to-br from-white/10 to-white/5 rounded-lg p-3 sm:p-4 border border-white/10 hover:border-ember/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-ember/20 text-left"
           >
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-2xl">{template.icon}</span>
-              <ChevronRight className="w-4 h-4 text-cream-muted group-hover:text-ember transition-colors" />
+            <div className="flex items-start justify-between mb-1.5 sm:mb-3">
+              <span className="text-lg sm:text-2xl">{template.icon}</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cream-muted group-hover:text-ember transition-colors" />
             </div>
-            <h4 className="font-semibold text-cream text-sm mb-1 group-hover:text-ember transition-colors leading-tight">
+            <h4 className="font-semibold text-cream text-xs sm:text-sm mb-0.5 sm:mb-1 group-hover:text-ember transition-colors leading-tight">
               {template.title}
             </h4>
-            <p className="text-xs text-cream-muted">{template.category}</p>
+            <p className="text-[10px] sm:text-xs text-cream-muted">{template.category}</p>
           </button>
         ))}
       </div>
-      <p className="text-cream-muted text-sm mt-6 text-center">
+      <p className="text-cream-muted text-xs sm:text-sm mt-4 sm:mt-6 text-center">
         All templates are Google Docs. Make a copy and customize for your business.
       </p>
     </div>

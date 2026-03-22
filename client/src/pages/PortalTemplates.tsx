@@ -20,6 +20,8 @@ import {
   Loader2,
   FileDown,
 } from "lucide-react";
+import { useMember } from "@/hooks/useMember";
+import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 
 type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance";
 
@@ -438,6 +440,7 @@ export default function PortalTemplates() {
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const { isSubscribed } = useMember();
 
   const filteredTemplates = useMemo(() => {
     return TEMPLATES.filter(t => {
@@ -451,6 +454,7 @@ export default function PortalTemplates() {
   const featuredTemplates = TEMPLATES.filter(t => t.featured);
 
   return (
+    <SubscriptionGate isSubscribed={isSubscribed}>
     <>
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
@@ -645,5 +649,6 @@ export default function PortalTemplates() {
         )}
       </AnimatePresence>
     </>
+    </SubscriptionGate>
   );
 }

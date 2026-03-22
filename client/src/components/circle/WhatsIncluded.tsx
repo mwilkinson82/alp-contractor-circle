@@ -13,6 +13,7 @@ const timelineItems = [
     accent: "ember" as const,
     stat: "Live every 2 weeks",
     isLive: true,
+    zoomBadge: true,
   },
   {
     icon: BarChart3,
@@ -23,6 +24,7 @@ const timelineItems = [
     hook: "Members have added six figures to a single deal from one session.",
     accent: "blue" as const,
     stat: "Real proposals. Real feedback.",
+    zoomBadge: true,
   },
   {
     icon: MessageSquare,
@@ -43,6 +45,7 @@ const timelineItems = [
     hook: "Estimating. Hiring. Sales. Operations. One system per month.",
     accent: "blue" as const,
     stat: "12 bootcamps per year",
+    zoomBadge: true,
   },
   {
     icon: FileText,
@@ -118,6 +121,9 @@ function CardContent({ item, accentClass }: { item: (typeof timelineItems)[0]; a
           {item.number}
         </span>
         <div className="flex items-center gap-2">
+          {(item as any).zoomBadge && (
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/zoom-logo_27b51e9e.png" alt="Zoom" className="w-3 h-3 shrink-0" />
+          )}
           {item.isLive && (
             <span className="relative flex items-center justify-center w-3 h-3 shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "oklch(0.55 0.22 25)", animation: "live-pulse 1.8s ease-out infinite" }} />

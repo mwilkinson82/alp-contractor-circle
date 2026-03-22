@@ -27,11 +27,15 @@ export function useMember() {
     return `/api/discord/login?origin=${encodeURIComponent(origin)}&returnPath=${encodeURIComponent(returnPath)}`;
   }, []);
 
+  const subscriptionStatus = meQuery.data?.subscriptionStatus;
+  const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+
   return {
     member: meQuery.data ?? null,
     loading: meQuery.isLoading,
     error: meQuery.error,
     isAuthenticated: Boolean(meQuery.data),
+    isSubscribed,
     logout,
     getLoginUrl,
     refresh: () => meQuery.refetch(),

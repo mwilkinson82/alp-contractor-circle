@@ -11,6 +11,7 @@ import { JoinCircleCountdown } from '@/components/circle/JoinCircleCountdown'
 import { FinalCTA } from '@/components/circle/FinalCTA'
 import { Footer } from '@/components/circle/Footer'
 import InsideTheCircle from '@/components/circle/InsideTheCircle'
+import { PortalPreview } from '@/components/circle/PortalPreview'
 import { AmbientBackground } from '@/components/circle/AmbientBackground'
 import { GradientBar } from '@/components/circle/GradientBar'
 export default function ContractorCircle() {
@@ -23,6 +24,7 @@ export default function ContractorCircle() {
       <WhatsIncluded />
       <MarshallVideo />
       <InsideTheCircle />
+      <PortalPreview />
       <RevenueImpact />
       <SubmitQuestionCTA />
       <Testimonials />

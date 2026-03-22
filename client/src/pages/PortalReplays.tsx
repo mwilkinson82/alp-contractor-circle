@@ -16,6 +16,8 @@ import {
   Video,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useMember } from "@/hooks/useMember";
+import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 
 type ReplayCategory = "all" | "weekly_calls" | "bootcamp" | "masterclass" | "q_and_a";
 
@@ -92,6 +94,7 @@ export default function PortalReplays() {
   const [activeCategory, setActiveCategory] = useState<ReplayCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeVideo, setActiveVideo] = useState<{ embedUrl: string; title: string } | null>(null);
+  const { isSubscribed } = useMember();
 
   const { data, isLoading, error } = trpc.member.replays.useQuery();
   const allReplays = data?.replays ?? [];
@@ -147,6 +150,7 @@ export default function PortalReplays() {
   }
 
   return (
+    <SubscriptionGate isSubscribed={isSubscribed}>
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div>
@@ -340,5 +344,6 @@ export default function PortalReplays() {
         />
       )}
     </div>
+    </SubscriptionGate>
   );
 }

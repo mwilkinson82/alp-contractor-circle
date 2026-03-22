@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
+import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
@@ -316,7 +317,7 @@ function QuestionSubmitWidget() {
 }
 
 export default function PortalDashboard() {
-  const { member } = useMember();
+  const { member, isSubscribed } = useMember();
   const { data: subscription, isLoading: subLoading } = trpc.member.subscription.useQuery(undefined, {
     retry: false,
   });
@@ -428,31 +429,54 @@ export default function PortalDashboard() {
         )}
       </div>
 
-      {/* Submit a Question — Prominent CTA tile */}
-      <button
-        onClick={() => setQuestionModalOpen(true)}
-        className="w-full group glass-card rounded-2xl p-5 sm:p-6 hover:bg-ember/[0.04] border border-ember/15 hover:border-ember/35 transition-all duration-300 text-left"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-ember/10 group-hover:bg-ember/15 flex items-center justify-center shrink-0 transition-colors">
-            <Send className="w-6 h-6 text-ember" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-heading text-base font-bold text-cream group-hover:text-ember transition-colors">
-              Submit a Question for the Next Call
-            </h3>
-            <p className="text-cream-muted text-sm mt-0.5">
-              Marshall reviews every submission — get your question answered live.
-            </p>
-          </div>
-          <div className="shrink-0 w-8 h-8 rounded-full bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-colors">
-            <Send className="w-3.5 h-3.5 text-ember" />
-          </div>
-        </div>
-      </button>
+      {/* Gated content for subscribers only */}
+      {isSubscribed ? (
+        <>
+          {/* Submit a Question — Prominent CTA tile */}
+          <button
+            onClick={() => setQuestionModalOpen(true)}
+            className="w-full group glass-card rounded-2xl p-5 sm:p-6 hover:bg-ember/[0.04] border border-ember/15 hover:border-ember/35 transition-all duration-300 text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-ember/10 group-hover:bg-ember/15 flex items-center justify-center shrink-0 transition-colors">
+                <Send className="w-6 h-6 text-ember" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading text-base font-bold text-cream group-hover:text-ember transition-colors">
+                  Submit a Question for the Next Call
+                </h3>
+                <p className="text-cream-muted text-sm mt-0.5">
+                  Marshall reviews every submission — get your question answered live.
+                </p>
+              </div>
+              <div className="shrink-0 w-8 h-8 rounded-full bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-colors">
+                <Send className="w-3.5 h-3.5 text-ember" />
+              </div>
+            </div>
+          </button>
 
-      {/* Success Stories Form */}
-      <SuccessStoriesForm />
+          {/* Success Stories Form */}
+          <SuccessStoriesForm />
+        </>
+      ) : (
+        /* Non-subscriber CTA */
+        <div className="glass-card rounded-2xl p-6 md:p-8 border border-ember/20 text-center">
+          <div className="w-14 h-14 rounded-full bg-ember/10 flex items-center justify-center mx-auto mb-4">
+            <Crown className="w-7 h-7 text-ember" />
+          </div>
+          <h3 className="font-heading text-xl font-bold text-cream mb-2">Unlock Full Portal Access</h3>
+          <p className="text-cream-muted text-sm mb-6 max-w-md mx-auto">
+            You're previewing the Contractor Circle portal. Subscribe to unlock live call access, question submissions, templates, replays, and the private Discord community.
+          </p>
+          <a
+            href="/circle#pricing"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50"
+          >
+            <Crown className="w-4 h-4" />
+            Become a Member — $497/mo
+          </a>
+        </div>
+      )}
 
       {/* Quick Links Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

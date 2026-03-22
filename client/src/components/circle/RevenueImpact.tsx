@@ -333,6 +333,20 @@ export function RevenueImpact() {
           ))}
         </div>
 
+        {/* Plus dozens more */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="text-center mt-8 mb-2"
+        >
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border" style={{ borderColor: 'oklch(0.72 0.12 55 / 0.15)', background: 'oklch(0.72 0.12 55 / 0.05)' }}>
+            <span className="text-sm font-semibold text-ember tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
+              + Dozens More Contractors Scaling With ALP
+            </span>
+          </div>
+        </motion.div>
+
         {/* Summary stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
