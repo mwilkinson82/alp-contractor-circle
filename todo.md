@@ -291,3 +291,10 @@
 
 ## Portal Preview Image Cropping Fix
 - [x] Make all three portal preview screenshots display fully without any cropping at the top (removed object-cover and maxHeight constraint)
+
+## Subscription & Image Fixes
+- [x] Grant Marshall (owner) an active subscription in the database (members id=30001, subscriptionStatus=active)
+- [x] Fix portal preview images — headers still cut off behind browser chrome bar (added 30px top padding + new screenshots)
+- [x] Replace dashboard screenshot with new one (shows active subscription)
+- [x] Add top padding to all three portal screenshots so headers aren't cut off by browser chrome
+- [x] Re-upload all three screenshots to CDN and update URLs

@@ -1,0 +1,121 @@
+{
+  "query": "DESCRIBE members; SELECT * FROM members LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute DESCRIBE members; SELECT * FROM members LIMIT 10;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "discordId",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "discordUsername",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "discordDisplayName",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "email",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "discordAvatar",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "memberRole",
+      "Type": "enum('member','founding_member','admin')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "member",
+      "Extra": ""
+    },
+    {
+      "Field": "stripeCustomerId",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "stripeSubscriptionId",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "subscriptionStatus",
+      "Type": "enum('active','canceled','past_due','trialing','incomplete','none')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "none",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "lastSignedIn",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    }
+  ],
+  "messages": [
+    "id\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tdiscordAvatar\tmemberRole\tstripeCustomerId\tstripeSubscriptionId\tsubscriptionStatus\tcreatedAt\tupdatedAt\tlastSignedIn",
+    "1\tfounding_aj_beau_monde\taj_beaumonde\tAJ\taj@beaumonde.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45",
+    "2\tfounding_ronnie_sage\tronnie_silva\tRonnie Silva\tronnie@sageconstruction.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45",
+    "3\tfounding_nathan_olive\tnathan_oliveira\tNathan Oliveira\tnathan@olivetreebuilds.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45",
+    "4\tfounding_dan_delmonte\tdan_delmonte\tDan Del Monte\tdan@delmontbuilders.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45",
+    "30001\t927272166049865807\tmarshallwilkinson\tMarshall Wilkinson\tmwilkinson@saxumcapital.com\t5b79b208617a6adf75cfe43584efa10b\tadmin\tNULL\tNULL\tnone\t2026-03-21 21:17:03\t2026-03-21 21:26:28\t2026-03-21 21:17:03"
+  ],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\ndiscordId\tvarchar(64)\tNO\tUNI\tNULL\t\ndiscordUsername\tvarchar(128)\tYES\t\tNULL\t\ndiscordDisplayName\ttext\tYES\t\tNULL\t\nemail\tvarchar(320)\tYES\t\tNULL\t\ndiscordAvatar\tvarchar(256)\tYES\t\tNULL\t\nmemberRole\tenum('member','founding_member','admin')\tNO\t\tmember\t\nstripeCustomerId\tvarchar(128)\tYES\t\tNULL\t\nstripeSubscriptionId\tvarchar(128)\tYES\t\tNULL\t\nsubscriptionStatus\tenum('active','canceled','past_due','trialing','incomplete','none')\tNO\t\tnone\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nlastSignedIn\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nid\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tdiscordAvatar\tmemberRole\tstripeCustomerId\tstripeSubscriptionId\tsubscriptionStatus\tcreatedAt\tupdatedAt\tlastSignedIn\n1\tfounding_aj_beau_monde\taj_beaumonde\tAJ\taj@beaumonde.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45\n2\tfounding_ronnie_sage\tronnie_silva\tRonnie Silva\tronnie@sageconstruction.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45\n3\tfounding_nathan_olive\tnathan_oliveira\tNathan Oliveira\tnathan@olivetreebuilds.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45\n4\tfounding_dan_delmonte\tdan_delmonte\tDan Del Monte\tdan@delmontbuilders.com\tNULL\tfounding_member\tNULL\tNULL\tactive\t2026-03-21 15:24:45\t2026-03-21 15:24:45\t2026-03-21 15:24:45\n30001\t927272166049865807\tmarshallwilkinson\tMarshall Wilkinson\tmwilkinson@saxumcapital.com\t5b79b208617a6adf75cfe43584efa10b\tadmin\tNULL\tNULL\tnone\t2026-03-21 21:17:03\t2026-03-21 21:26:28\t2026-03-21 21:17:03\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
