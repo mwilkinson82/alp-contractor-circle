@@ -168,7 +168,7 @@ export default function PortalReplays() {
             Replays Coming Soon
           </h3>
           <p className="text-cream-muted text-sm max-w-sm mx-auto">
-            Recordings from each Thursday call will appear here after the session. Check back after your first call!
+            Recordings from each Sunday call will appear here after the session. Check back after your first call!
           </p>
         </div>
       )}
@@ -326,7 +326,7 @@ export default function PortalReplays() {
       {allReplays.length > 0 && (
         <div className="glass-card rounded-xl p-5 text-center">
           <p className="text-cream-muted text-sm">
-            New recordings are added after each Thursday call. Check back regularly for fresh content.
+            New recordings are added after each Sunday call. Check back regularly for fresh content.
           </p>
         </div>
       )}

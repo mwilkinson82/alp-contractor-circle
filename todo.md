@@ -166,3 +166,6 @@
 - [x] Auto-cycle through tabs every 4s (pauses on interaction)
 - [x] Make tab buttons larger with strong active/inactive visual difference
 - [x] Add pulsing glow animation on active tab
+
+## Call Date Update
+- [x] Update first call date to Sunday March 29th across all site copy — replaced all Thursday references with Sunday, updated bi-weekly logic to anchor on March 29 (skips Easter April 20 naturally)

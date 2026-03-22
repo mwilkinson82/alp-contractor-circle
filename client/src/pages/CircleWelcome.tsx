@@ -484,7 +484,7 @@ export default function CircleWelcome() {
                 step={3}
                 icon="📅"
                 title="Mark Your Calendar"
-                description="Your first bi-weekly call is coming up on Thursday evening. Come with questions, deals you're working, or challenges you're facing. Marshall and the community are here to help you win."
+                description="Your first bi-weekly call is Sunday, March 29th at 5 PM ET. Come with questions, deals you're working, or challenges you're facing. Marshall and the community are here to help you win."
                 delay={3.2}
               />
 

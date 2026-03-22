@@ -19,21 +19,30 @@ import {
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
-// Zoom recurring meeting link for Thursday calls at 12 PM EST
+// Zoom recurring meeting link for bi-weekly Sunday calls at 5 PM ET
 // Update this URL when the Zoom meeting link changes
 const ZOOM_CALL_LINK = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
-/** Returns the next Thursday at 12:00 PM EST as a formatted string */
-function getNextThursday(): string {
+/**
+ * Returns the next Contractor Circle call date as a formatted string.
+ * Calls are bi-weekly on Sundays at 5 PM ET, starting March 29, 2025.
+ * Easter (April 20, 2025) is an off-week — the schedule skips it naturally
+ * because March 29 → April 13 → April 27 (skipping April 20).
+ */
+function getNextCallSunday(): string {
+  // Anchor date: first call is Sunday March 29, 2025
+  const ANCHOR = new Date(Date.UTC(2025, 2, 29)); // March 29, 2025 UTC
   const now = new Date();
-  // Convert to EST (UTC-5 standard, UTC-4 daylight)
-  const estOffset = -4; // EDT (daylight saving)
-  const estNow = new Date(now.getTime() + (now.getTimezoneOffset() + estOffset * 60) * 60000);
-  const dayOfWeek = estNow.getDay(); // 0=Sun, 4=Thu
-  const daysUntilThursday = (4 - dayOfWeek + 7) % 7 || 7; // always next Thursday
-  const nextThursday = new Date(estNow);
-  nextThursday.setDate(estNow.getDate() + daysUntilThursday);
-  return nextThursday.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  // Work in UTC days
+  const msSinceAnchor = now.getTime() - ANCHOR.getTime();
+  const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));
+  // How many 14-day cycles have passed?
+  const cyclesPassed = daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
+  // Next call = anchor + (cyclesPassed + 1) * 14 days, unless today IS a call day
+  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
+  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
+  const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
+  return nextCall.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -98,7 +107,7 @@ export default function PortalDashboard() {
     {
       icon: Calendar,
       title: "Next Live Call",
-      description: `${getNextThursday()} at 12 PM EST`,
+      description: `${getNextCallSunday()} at 5 PM ET`,
       href: ZOOM_CALL_LINK,
       external: true,
       color: "text-ember",

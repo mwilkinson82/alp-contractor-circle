@@ -189,7 +189,7 @@ export default function PortalAdmin() {
       <div className="glass-card rounded-xl p-5 border border-ember/10">
         <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
           <Video className="w-4 h-4 text-ember" />
-          How to add a new replay after each Thursday call
+          How to add a new replay after each Sunday call
         </h3>
         <ol className="space-y-2 text-sm text-cream-muted">
           <li className="flex gap-3">
