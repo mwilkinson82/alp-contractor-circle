@@ -21,8 +21,8 @@ export default function ContractorCircle() {
       <WhatsIncluded />
       <MarshallVideo />
       <InsideTheCircle />
-      <Testimonials />
       <SubmitQuestionCTA />
+      <Testimonials />
       <PricingSection />
       <FAQSection />
       <FinalCTA />

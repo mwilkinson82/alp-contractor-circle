@@ -221,3 +221,7 @@
 - [x] Make "Members Only" badge on Submit a Question CTA red instead of current color
 - [x] Fix Discord screenshot not displaying in production — re-uploaded as PNG with correct content-type
 - [x] Fix Cloudflare video not playing in production — confirmed working on live site, Preview panel iframe nesting issue only
+
+## UX Polish — March 22
+- [x] Move Submit a Question CTA above testimonials (between InsideTheCircle and Testimonials)
+- [x] Rebuild WhatsIncluded timeline animations — scroll-linked spring physics, buttery fade-up, no jerky pop-in
