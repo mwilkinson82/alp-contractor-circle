@@ -209,7 +209,7 @@ export function MarshallVideo() {
 
                 {/* Cloudflare Video Embed */}
                 <iframe
-                  src="https://iframe.mediadelivery.net/embed/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"
+                  src="https://iframe.videodelivery.net/b42d7a04024bff7aed381c607dd2d0eb?autoplay=false&loop=false&muted=false&preload=true&responsive=true"
                   loading="lazy"
                   allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                   allowFullScreen={true}

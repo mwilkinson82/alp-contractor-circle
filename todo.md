@@ -146,3 +146,4 @@
 - [x] Add social proof dashboard with transformation numbers and member stats
 - [x] Premium animations and billion-dollar brand styling
 - [x] Integrate into landing page and deploy
+- [x] Fix Cloudflare Stream video embed — corrected URL from mediadelivery.net to iframe.videodelivery.net
