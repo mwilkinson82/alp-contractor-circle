@@ -207,7 +207,7 @@
 
 ## Bug Fixes — March 22 Batch
 - [x] Discord screenshot still blank in Community tab — FIXED: removed max-h and object-top constraints
-- [ ] Video section not playing — Cloudflare iframe not rendering (video ID may be invalid)
+- [x] Video section not playing — RESOLVED: was a preview caching/lazy-load issue, video plays correctly
 - [x] Add "Submit a Question" CTA button to landing page (not just portal) — DONE: SubmitQuestionCTA component added
 - [x] Verify template "Access Document" button works after publish — VERIFIED: button code is correct
-- [ ] Publish all changes to alpcontractorcircle.com — READY TO PUBLISH
+- [x] Publish all changes to alpcontractorcircle.com — PUBLISHED
