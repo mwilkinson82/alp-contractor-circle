@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, discordDisplayName, subscriptionStatus, memberRole FROM members ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordDisplayName, subscriptionStatus, memberRole FROM members ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "discordDisplayName": "AJ Hoover",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "2",
+      "discordDisplayName": "Ronnie Silva",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "3",
+      "discordDisplayName": "Nathan Oliveira",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "4",
+      "discordDisplayName": "Dan Del Monte",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "30001",
+      "discordDisplayName": "Marshall Wilkinson",
+      "subscriptionStatus": "active",
+      "memberRole": "admin"
+    },
+    {
+      "id": "60001",
+      "discordDisplayName": "Nathan Oliveira",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "60002",
+      "discordDisplayName": "AJ Hoover",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "90001",
+      "discordDisplayName": "Ronnie Silva",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "150001",
+      "discordDisplayName": "Michael E",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "150002",
+      "discordDisplayName": "Joaquin Lescano",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordDisplayName\tsubscriptionStatus\tmemberRole\n1\tAJ Hoover\tactive\tfounding_member\n2\tRonnie Silva\tactive\tfounding_member\n3\tNathan Oliveira\tactive\tfounding_member\n4\tDan Del Monte\tactive\tfounding_member\n30001\tMarshall Wilkinson\tactive\tadmin\n60001\tNathan Oliveira\tnone\tmember\n60002\tAJ Hoover\tnone\tmember\n90001\tRonnie Silva\tnone\tmember\n150001\tMichael E\tnone\tmember\n150002\tJoaquin Lescano\tnone\tmember\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
