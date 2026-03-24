@@ -355,3 +355,10 @@
 - [ ] Update founding member count from 5 to 7 of 50
 - [ ] Fix bare domain alpcontractorcircle.com not serving latest version
 - [ ] Redeploy with all three domains
+
+## CRITICAL: Stripe Checkout Button Not Working (March 24)
+- [ ] Fix "Claim Your Founding Spot" buttons to redirect to Stripe checkout
+
+## CRITICAL: Checkout broken in Instagram in-app browser (March 24)
+- [x] Fix window.open() being blocked by in-app browsers (Instagram, TikTok, Facebook)
+- [x] Use window.location.href for mobile/in-app browsers instead of window.open()
