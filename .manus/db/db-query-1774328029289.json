@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, discordUsername, discordDisplayName, email, memberRole, subscriptionStatus, createdAt, lastSignedIn FROM members WHERE id IN (150001, 150002);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordUsername, discordDisplayName, email, memberRole, subscriptionStatus, createdAt, lastSignedIn FROM members WHERE id IN (150001, 150002);",
+  "rows": [
+    {
+      "id": "150001",
+      "discordUsername": "3argledup_86404",
+      "discordDisplayName": "Michael E",
+      "email": "michael@mecontractingpros.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active",
+      "createdAt": "2026-03-24 02:06:38",
+      "lastSignedIn": "2026-03-24 02:06:38"
+    },
+    {
+      "id": "150002",
+      "discordUsername": "joaquinlescano_43897",
+      "discordDisplayName": "Joaquin Lescano",
+      "email": "lescano0456@gmail.com",
+      "memberRole": "founding_member",
+      "subscriptionStatus": "active",
+      "createdAt": "2026-03-24 02:14:49",
+      "lastSignedIn": "2026-03-24 02:14:50"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordUsername\tdiscordDisplayName\temail\tmemberRole\tsubscriptionStatus\tcreatedAt\tlastSignedIn\n150001\t3argledup_86404\tMichael E\tmichael@mecontractingpros.com\tfounding_member\tactive\t2026-03-24 02:06:38\t2026-03-24 02:06:38\n150002\tjoaquinlescano_43897\tJoaquin Lescano\tlescano0456@gmail.com\tfounding_member\tactive\t2026-03-24 02:14:49\t2026-03-24 02:14:50\n",
+  "stderr": "",
+  "execution_time_ms": 119
+}

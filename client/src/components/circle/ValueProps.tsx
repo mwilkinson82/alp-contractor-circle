@@ -87,12 +87,8 @@ export function ValueProps() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
 
-  const { data: countData } = trpc.member.count.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
-  });
-  const memberCount = countData?.count ?? 0;
-  const spotsLeft = Math.max(0, FOUNDING_SPOTS - memberCount);
+  // Hardcoded: 7 founding members, 43 spots remaining
+  const spotsLeft = 43;
 
   return (
     <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 px-6">
