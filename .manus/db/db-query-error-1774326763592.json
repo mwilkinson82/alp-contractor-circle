@@ -1,0 +1,8 @@
+{
+  "query": "SELECT subscription_status, COUNT(*) as cnt FROM members GROUP BY subscription_status;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT subscription_status, COUNT(*) as cnt FROM members GROUP BY subscription_status;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'subscription_status' in 'group statement'"
+  ]
+}

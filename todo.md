@@ -346,3 +346,12 @@
 ## Welcome Email Fix (March 22)
 - [x] Investigate why founding member welcome emails appear empty in Resend
 - [x] Resend welcome emails to all 4 founding members with full HTML content
+
+## Founding Member Count & Naming Fix (March 24)
+- [ ] Update founding member count from 5 to 7 of 50
+- [ ] Ensure "Contractor Circle" (not "Contracting Circle") everywhere
+
+## Bare Domain Fix & Count Update (March 24)
+- [ ] Update founding member count from 5 to 7 of 50
+- [ ] Fix bare domain alpcontractorcircle.com not serving latest version
+- [ ] Redeploy with all three domains
