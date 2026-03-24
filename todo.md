@@ -362,3 +362,4 @@
 ## CRITICAL: Checkout broken in Instagram in-app browser (March 24)
 - [x] Fix window.open() being blocked by in-app browsers (Instagram, TikTok, Facebook)
 - [x] Use window.location.href for mobile/in-app browsers instead of window.open()
+- [ ] Fix Stripe webhook secret mismatch - redeploy to push correct whsec value to production
