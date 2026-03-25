@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, Play, Users, FileText, TrendingUp, Lock, X, ChevronLeft, ZoomIn, ZoomOut } from "lucide-react";
+import { useMemberCount } from "@/hooks/useMemberCount";
 
 const SHOWCASE_TABS = [
   { id: "portal", label: "Replay Library", icon: "🎯", shortLabel: "Replays" },
@@ -36,12 +37,7 @@ const TEMPLATE_PREVIEWS = [
   { title: "Subcontractor Management", category: "Operations", icon: "👥", previewImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/template_subcontractor_management.webp" },
 ];
 
-const PROOF_STATS = [
-  { label: "Founding Members", value: "9 of 50", highlight: true },
-  { label: "Bi-Weekly Live Calls", value: "Sundays 5 PM ET", highlight: false },
-  { label: "Premium Templates", value: "11+", highlight: false },
-  { label: "Private Discord", value: "24/7 Access", highlight: false },
-];
+// PROOF_STATS is now generated dynamically inside the component via useMemberCount
 
 // CDN URLs for assets
 const REPLAY_THUMBNAIL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/replay-thumbnail.webp";
@@ -166,6 +162,14 @@ function TemplatesCard({ onSelect }: { onSelect: (t: typeof TEMPLATE_PREVIEWS[0]
 }
 
 function ResultsCard() {
+  const { count, total } = useMemberCount();
+  const PROOF_STATS = [
+    { label: "Founding Members", value: `${count} of ${total}`, highlight: true },
+    { label: "Bi-Weekly Live Calls", value: "Sundays 5 PM ET", highlight: false },
+    { label: "Premium Templates", value: "11+", highlight: false },
+    { label: "Private Discord", value: "24/7 Access", highlight: false },
+  ];
+
   const RESULT_STATS = [
     { value: "$100M+", label: "Total Revenue Generated", highlight: true },
     { value: "15+", label: "Companies Actively Scaling", highlight: false },

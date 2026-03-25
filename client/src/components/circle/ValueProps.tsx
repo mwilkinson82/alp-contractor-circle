@@ -1,6 +1,6 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { trpc } from "@/lib/trpc";
+import { useMemberCount } from "@/hooks/useMemberCount";
 
 const FOUNDING_SPOTS = 50;
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -87,8 +87,8 @@ export function ValueProps() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
 
-  // Hardcoded: 7 founding members, 43 spots remaining
-  const spotsLeft = 43;
+  // Dynamic: pull active member count from Supabase
+  const { remaining: spotsLeft } = useMemberCount();
 
   return (
     <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 px-6">

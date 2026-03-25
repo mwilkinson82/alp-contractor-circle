@@ -57,38 +57,39 @@ describe("Supabase Client", () => {
 
     const testEmail = `vitest-${Date.now()}@test-cleanup.example.com`;
 
-    // Insert test member
-    const result = await upsertSupabaseMember({
-      name: "Vitest Test Member",
-      email: testEmail,
-      subscriptionStatus: "active",
-      foundingMember: true,
-      stripeSessionId: "cs_test_vitest_123",
-      stripeCustomerId: "cus_test_vitest_123",
-    });
+    // Guarantee cleanup even if assertions fail mid-test
+    try {
+      // Insert test member
+      const result = await upsertSupabaseMember({
+        name: "Vitest Test Member",
+        email: testEmail,
+        subscriptionStatus: "active",
+        foundingMember: true,
+        stripeSessionId: "cs_test_vitest_123",
+        stripeCustomerId: "cus_test_vitest_123",
+      });
 
-    expect(result.success).toBe(true);
+      expect(result.success).toBe(true);
 
-    // Verify the record exists
-    const { data, error } = await client!
-      .from("members")
-      .select("*")
-      .eq("email", testEmail)
-      .single();
+      // Verify the record exists
+      const { data, error } = await client!
+        .from("members")
+        .select("*")
+        .eq("email", testEmail)
+        .single();
 
-    expect(error).toBeNull();
-    expect(data).not.toBeNull();
-    expect(data!.name).toBe("Vitest Test Member");
-    expect(data!.subscription_status).toBe("active");
-    expect(data!.founding_member).toBe(true);
-    expect(data!.stripe_session_id).toBe("cs_test_vitest_123");
-
-    // Clean up — delete the test record
-    const { error: deleteError } = await client!
-      .from("members")
-      .delete()
-      .eq("email", testEmail);
-
-    expect(deleteError).toBeNull();
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data!.name).toBe("Vitest Test Member");
+      expect(data!.subscription_status).toBe("active");
+      expect(data!.founding_member).toBe(true);
+      expect(data!.stripe_session_id).toBe("cs_test_vitest_123");
+    } finally {
+      // Always clean up — runs even if assertions throw
+      await client!
+        .from("members")
+        .delete()
+        .eq("email", testEmail);
+    }
   });
 });

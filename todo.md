@@ -365,3 +365,7 @@
 - [x] Fix Stripe webhook secret mismatch - redeploy to push correct whsec value to production
 - [x] Fix SEO: add meta keywords, description, structured data, and Open Graph tags to landing page
 - [x] Fix Stripe webhook: insert new member into Supabase BEFORE sending welcome email
+- [x] Make hero badge member count dynamic from Supabase (was hardcoded "9 of 50")
+- [x] Make stat section "spots remaining" dynamic (50 minus active members)
+- [x] Make Results tab founding member count dynamic from Supabase
+- [x] Create shared Supabase member count hook for all three locations

@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { ArrowRight, Zap, Loader2, CalendarPlus } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 import { useMember } from "@/hooks/useMember";
+import { useMemberCount } from "@/hooks/useMemberCount";
 import { trpc } from "@/lib/trpc";
 
 // Anchor: first call Sunday March 29, 2026 at 5 PM ET (21:00 UTC)
@@ -106,9 +107,10 @@ function NextCallBadge({ onCalendarClick, isSubscribed }: { onCalendarClick: () 
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero.webp";
 
-// Live founding spots badge
+// Live founding spots badge — now dynamic from Supabase
 function FoundingSpotsBadge() {
-  return <span>Founding Members — 9 of 50 Spots Filled</span>;
+  const { count, total } = useMemberCount();
+  return <span>Founding Members — {count} of {total} Spots Filled</span>;
 }
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];

@@ -6,6 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { subscribeEmail } from "./db";
 import { sendSubscriberNotification } from "./email";
+import { getSupabaseClient } from "./supabaseClient";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -71,6 +72,37 @@ export const appRouter = router({
   }),
 
   member: memberRouter,
+
+  circle: router({
+    /**
+     * Get the current active member count from Supabase.
+     * Public endpoint — used by the landing page to show dynamic founding member counts.
+     * Cached for 60s on the client via staleTime.
+     */
+    memberCount: publicProcedure.query(async () => {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return { count: 9, total: 50 }; // Fallback if Supabase not configured
+      }
+
+      try {
+        const { count, error } = await supabase
+          .from("members")
+          .select("*", { count: "exact", head: true })
+          .eq("subscription_status", "active");
+
+        if (error) {
+          console.warn("[Circle] Failed to get member count from Supabase:", error.message);
+          return { count: 9, total: 50 };
+        }
+
+        return { count: count ?? 9, total: 50 };
+      } catch (err) {
+        console.warn("[Circle] Error querying Supabase member count:", err);
+        return { count: 9, total: 50 };
+      }
+    }),
+  }),
 
   email: router({
     subscribe: publicProcedure
