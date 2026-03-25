@@ -364,3 +364,4 @@
 - [x] Use window.location.href for mobile/in-app browsers instead of window.open()
 - [x] Fix Stripe webhook secret mismatch - redeploy to push correct whsec value to production
 - [x] Fix SEO: add meta keywords, description, structured data, and Open Graph tags to landing page
+- [x] Fix Stripe webhook: insert new member into Supabase BEFORE sending welcome email

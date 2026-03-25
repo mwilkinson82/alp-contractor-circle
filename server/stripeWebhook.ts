@@ -4,6 +4,7 @@ import { stripe } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
+import { upsertSupabaseMember } from "./supabaseClient";
 
 /**
  * Register the Stripe webhook endpoint.
@@ -89,6 +90,29 @@ export function registerStripeWebhook(app: Express) {
                 console.log(`[Stripe Webhook] Member record created/updated for ${memberEmail}`);
               } catch (err) {
                 console.warn("[Stripe Webhook] Failed to upsert member record:", err);
+              }
+            }
+
+            // ─── INSERT INTO SUPABASE MEMBERS TABLE ─────────────────────────────
+            // This is the external Supabase DB that the portal uses for login.
+            // MUST happen BEFORE welcome email so the member can log in immediately.
+            if (memberEmail) {
+              try {
+                const supaResult = await upsertSupabaseMember({
+                  name: memberName,
+                  email: memberEmail,
+                  subscriptionStatus: "active",
+                  foundingMember: true,
+                  stripeSessionId: session.id,
+                  stripeCustomerId,
+                });
+                if (supaResult.success) {
+                  console.log(`[Stripe Webhook] Supabase member record created/updated for ${memberEmail}`);
+                } else {
+                  console.warn(`[Stripe Webhook] Supabase upsert failed: ${supaResult.error}`);
+                }
+              } catch (err) {
+                console.warn("[Stripe Webhook] Failed to upsert Supabase member record:", err);
               }
             }
 
