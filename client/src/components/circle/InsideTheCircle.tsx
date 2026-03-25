@@ -37,7 +37,7 @@ const TEMPLATE_PREVIEWS = [
 ];
 
 const PROOF_STATS = [
-  { label: "Founding Members", value: "8 of 50", highlight: true },
+  { label: "Founding Members", value: "9 of 50", highlight: true },
   { label: "Bi-Weekly Live Calls", value: "Sundays 5 PM ET", highlight: false },
   { label: "Premium Templates", value: "11+", highlight: false },
   { label: "Private Discord", value: "24/7 Access", highlight: false },
