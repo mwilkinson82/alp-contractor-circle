@@ -108,7 +108,7 @@ const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYL
 
 // Live founding spots badge
 function FoundingSpotsBadge() {
-  return <span>Founding Members — 7 of 50 Spots Filled</span>;
+  return <span>Founding Members — 8 of 50 Spots Filled</span>;
 }
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
