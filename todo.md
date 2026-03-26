@@ -369,3 +369,7 @@
 - [x] Make stat section "spots remaining" dynamic (50 minus active members)
 - [x] Make Results tab founding member count dynamic from Supabase
 - [x] Create shared Supabase member count hook for all three locations
+- [x] Create leads table in Supabase with RLS policies
+- [x] Insert 3 initial lead records (Mateo, bbell, rob)
+- [x] Automate subscribe form to insert into leads table alongside notification email
+- [x] Write tests for leads functionality

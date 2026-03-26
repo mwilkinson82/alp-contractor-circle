@@ -6,7 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { subscribeEmail } from "./db";
 import { sendSubscriberNotification } from "./email";
-import { getSupabaseClient } from "./supabaseClient";
+import { getSupabaseClient, insertSupabaseLead } from "./supabaseClient";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -108,8 +108,16 @@ export const appRouter = router({
     subscribe: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
+        // 1. Insert into local MySQL subscribers table
         const result = await subscribeEmail(input.email);
         
+        // 2. Insert into Supabase leads table (fire-and-forget, don't block the response)
+        insertSupabaseLead({
+          email: input.email,
+          source: "contractor-circle-subscribe",
+        }).catch((err) => console.error("[Leads] Failed to insert Supabase lead:", err));
+
+        // 3. Send notification email to Marshall
         if (result.success) {
           await sendSubscriberNotification({
             email: input.email,

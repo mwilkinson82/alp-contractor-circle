@@ -66,3 +66,39 @@ export async function upsertSupabaseMember(params: {
   console.log(`[Supabase] Member upserted successfully: ${params.email}`, data);
   return { success: true };
 }
+
+/**
+ * Insert a lead into the Supabase `leads` table.
+ *
+ * Uses upsert on the unique `email` column so duplicate submissions
+ * don't create duplicate records — the source is updated on conflict.
+ */
+export async function insertSupabaseLead(params: {
+  name?: string | null;
+  email: string;
+  source: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { success: false, error: "Supabase client not configured" };
+  }
+
+  const { error } = await supabase
+    .from("leads")
+    .upsert(
+      {
+        name: params.name || null,
+        email: params.email.toLowerCase().trim(),
+        source: params.source,
+      },
+      { onConflict: "email" }
+    );
+
+  if (error) {
+    console.error("[Supabase] Failed to insert lead:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  console.log(`[Supabase] Lead inserted: ${params.email} (source: ${params.source})`);
+  return { success: true };
+}
