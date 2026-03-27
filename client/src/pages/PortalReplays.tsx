@@ -184,11 +184,11 @@ export default function PortalReplays() {
             <Star className="w-4 h-4 text-ember" />
             <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Featured</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {featuredReplays.map(replay => (
               <button
                 key={replay.id}
-                className="group glass-card rounded-xl p-5 text-left hover:bg-white/[0.03] transition-all duration-300 border border-ember/10"
+                className="group glass-card rounded-xl p-4 sm:p-5 text-left hover:bg-white/[0.03] transition-all duration-300 border border-ember/10"
                 onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title })}
               >
                 {/* Cloudflare Stream thumbnail */}
@@ -236,8 +236,8 @@ export default function PortalReplays() {
 
       {/* Search and Filter — only show if there are replays */}
       {allReplays.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream-muted" />
             <input
               type="text"
@@ -247,18 +247,19 @@ export default function PortalReplays() {
               className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/30 focus:ring-1 focus:ring-ember/20 transition-all"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
             {CATEGORIES.map(cat => (
               <button
                 key={cat.value}
                 onClick={() => setActiveCategory(cat.value)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                   activeCategory === cat.value
                     ? "bg-ember/15 text-ember border border-ember/20"
                     : "bg-white/5 text-cream-muted hover:text-cream border border-transparent"
                 }`}
               >
-                {cat.label}
+                <span className="hidden sm:inline">{cat.label}</span>
+                <span className="sm:hidden">{cat.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
@@ -277,7 +278,7 @@ export default function PortalReplays() {
             filteredReplays.map(replay => (
               <button
                 key={replay.id}
-                className="group w-full glass-card rounded-xl p-4 md:p-5 text-left hover:bg-white/[0.03] transition-all duration-300 flex items-center gap-4"
+                className="group w-full glass-card rounded-xl p-3 sm:p-4 md:p-5 text-left hover:bg-white/[0.03] transition-all duration-300 flex items-center gap-3 sm:gap-4"
                 onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title })}
               >
                 {/* Thumbnail */}

@@ -362,7 +362,7 @@ export default function PortalAdmin() {
 
       {/* Add / Edit Form */}
       {showForm && (
-        <div className="glass-card rounded-2xl p-6 md:p-8 border border-ember/20">
+        <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/20">
           <h2 className="font-heading text-lg font-semibold text-cream mb-6">
             {editingId ? "Edit Replay" : "Add New Replay"}
           </h2>

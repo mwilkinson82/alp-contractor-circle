@@ -71,7 +71,7 @@ export default function PortalAccount() {
       </div>
 
       {/* Profile Card */}
-      <div className="glass-card rounded-2xl p-6 md:p-8">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-2 mb-6">
           <User className="w-4 h-4 text-ember" />
           <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Profile</h2>
@@ -122,7 +122,7 @@ export default function PortalAccount() {
       </div>
 
       {/* Subscription Card */}
-      <div className="glass-card rounded-2xl p-6 md:p-8">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-2 mb-6">
           <CreditCard className="w-4 h-4 text-ember" />
           <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Subscription</h2>
@@ -180,7 +180,7 @@ export default function PortalAccount() {
       </div>
 
       {/* Payment History */}
-      <div className="glass-card rounded-2xl p-6 md:p-8">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-2 mb-6">
           <Receipt className="w-4 h-4 text-ember" />
           <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Payment History</h2>

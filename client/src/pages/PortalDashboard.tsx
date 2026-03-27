@@ -229,7 +229,7 @@ function QuestionSubmitWidget() {
       {/* Header */}
       <button
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between p-6 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center shrink-0">
@@ -249,7 +249,7 @@ function QuestionSubmitWidget() {
 
       {/* Expanded form */}
       {expanded && (
-        <div className="px-6 pb-6 space-y-4 border-t border-white/5">
+        <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 border-t border-white/5">
           {submitted ? (
             <div className="pt-4 flex items-center gap-3 text-green-400">
               <CheckCircle2 className="w-5 h-5" />
@@ -394,7 +394,7 @@ export default function PortalDashboard() {
       </div>
 
       {/* Subscription Status Card */}
-      <div className="glass-card rounded-2xl p-6 md:p-8">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center">
@@ -464,7 +464,7 @@ export default function PortalDashboard() {
         </>
       ) : (
         /* Non-subscriber CTA */
-        <div className="glass-card rounded-2xl p-6 md:p-8 border border-ember/20 text-center">
+        <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/20 text-center">
           <div className="w-14 h-14 rounded-full bg-ember/10 flex items-center justify-center mx-auto mb-4">
             <Crown className="w-7 h-7 text-ember" />
           </div>
@@ -515,7 +515,7 @@ export default function PortalDashboard() {
       <QuestionSubmitWidget />
 
       {/* Motivational Quote */}
-      <div className="glass-card rounded-2xl p-6 md:p-8 text-center">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 text-center">
         <blockquote className="text-cream/80 text-lg md:text-xl font-heading italic leading-relaxed max-w-2xl mx-auto">
           "The difference between a contractor and a business owner is the system they build around themselves."
         </blockquote>

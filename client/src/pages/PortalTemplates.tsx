@@ -484,7 +484,7 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
 
       {/* Modal */}
       <motion.div
-        className="relative w-full max-w-lg glass-card rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+        className="relative w-full max-w-lg glass-card rounded-2xl overflow-hidden shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
         initial={{ scale: 0.92, y: 24, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.92, y: 24, opacity: 0 }}
@@ -493,7 +493,7 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
       >
         {/* Header graphic */}
         <div
-          className="relative flex flex-col items-center justify-center px-8 pt-10 pb-8"
+          className="relative flex flex-col items-center justify-center px-5 sm:px-8 pt-8 sm:pt-10 pb-6 sm:pb-8"
           style={{ background: `radial-gradient(ellipse at 50% 0%, ${ft.accent}18 0%, transparent 70%)` }}
         >
           {/* Close */}
@@ -536,7 +536,7 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
         </div>
 
         {/* Body */}
-        <div className="px-8 pb-8 space-y-5">
+        <div className="px-5 sm:px-8 pb-6 sm:pb-8 space-y-5">
           {/* Description */}
           <p className="text-cream-muted text-sm leading-relaxed text-center">
             {template.longDescription}
@@ -603,7 +603,7 @@ function TemplateRequestForm() {
   }
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8 border border-ember/10">
+    <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/10">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-9 h-9 rounded-lg bg-ember/10 flex items-center justify-center">
           <Lightbulb className="w-5 h-5 text-ember" />
@@ -758,7 +758,7 @@ export default function PortalTemplates() {
               <Star className="w-4 h-4 text-ember" />
               <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Featured Templates</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {featuredTemplates.map((template, i) => {
                 const ft = FILE_CONFIG[template.fileType];
                 const Icon = ft.icon;
@@ -768,7 +768,7 @@ export default function PortalTemplates() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.07 }}
-                    className="group glass-card rounded-xl p-5 flex flex-col hover:bg-white/[0.04] transition-all duration-300 border border-ember/10 cursor-pointer"
+                    className="group glass-card rounded-xl p-3 sm:p-5 flex flex-col hover:bg-white/[0.04] transition-all duration-300 border border-ember/10 cursor-pointer"
                     onClick={() => setSelectedTemplate(template)}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -802,8 +802,8 @@ export default function PortalTemplates() {
         )}
 
         {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream-muted" />
             <input
               type="text"
@@ -813,7 +813,7 @@ export default function PortalTemplates() {
               className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/30 focus:ring-1 focus:ring-ember/20 transition-all"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
             {CATEGORIES.map(cat => {
               const Icon = cat.icon;
               const count = cat.value === "all" ? TEMPLATES.length : TEMPLATES.filter(t => t.category === cat.value).length;
@@ -821,14 +821,15 @@ export default function PortalTemplates() {
                 <button
                   key={cat.value}
                   onClick={() => setActiveCategory(cat.value)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                     activeCategory === cat.value
                       ? "bg-ember/15 text-ember border border-ember/20"
                       : "bg-white/5 text-cream-muted hover:text-cream border border-transparent"
                   }`}
                 >
                   <Icon className="w-3 h-3" />
-                  {cat.label}
+                  <span className="hidden sm:inline">{cat.label}</span>
+                  <span className="sm:hidden">{cat.label.split(' ')[0]}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeCategory === cat.value ? "bg-ember/20 text-ember" : "bg-white/10 text-cream-muted"}`}>
                     {count}
                   </span>
@@ -865,33 +866,33 @@ export default function PortalTemplates() {
                     className="group glass-card rounded-xl overflow-hidden hover:bg-white/[0.04] transition-all duration-300 cursor-pointer"
                     onClick={() => setSelectedTemplate(template)}
                   >
-                    <div className="flex items-center gap-4 p-4 md:p-5">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${ft.bg} flex items-center justify-center shrink-0`}>
-                        <Icon className={`w-5 h-5 md:w-6 md:h-6 ${ft.color}`} />
+                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 md:p-5">
+                      <div className={`w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg ${ft.bg} flex items-center justify-center shrink-0`}>
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${ft.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${ft.bg} ${ft.color}`}>
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-medium uppercase tracking-wider ${ft.bg} ${ft.color}`}>
                             {ft.label}
                           </span>
-                          <span className="text-cream-muted text-[10px] uppercase tracking-wider">
+                          <span className="text-cream-muted text-[9px] sm:text-[10px] uppercase tracking-wider hidden sm:inline">
                             {template.category}
                           </span>
                           {template.badge && (
-                            <span className="text-[9px] font-semibold text-ember bg-ember/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="text-[9px] font-semibold text-ember bg-ember/10 px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider">
                               {template.badge}
                             </span>
                           )}
                         </div>
-                        <h3 className="font-heading text-sm font-semibold text-cream group-hover:text-ember transition-colors">
+                        <h3 className="font-heading text-xs sm:text-sm font-semibold text-cream group-hover:text-ember transition-colors leading-tight">
                           {template.title}
                         </h3>
                         <p className="text-cream-muted text-xs mt-1 line-clamp-1 hidden sm:block">
                           {template.description}
                         </p>
                       </div>
-                      <div className="shrink-0 w-9 h-9 rounded-lg bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-all">
-                        <Download className="w-4 h-4 text-ember" />
+                      <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-all">
+                        <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-ember" />
                       </div>
                     </div>
                   </motion.div>

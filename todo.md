@@ -377,3 +377,7 @@
 - [ ] Add tRPC submitTemplateRequest mutation
 - [ ] Build Template Request UI section in portal templates page
 - [ ] Write vitest tests for template request submission
+
+## Mobile Responsiveness — Portal Pages
+- [ ] Fix PortalTemplates category filter badges — horizontal scroll on mobile
+- [ ] Full portal mobile responsiveness audit and fix (all portal pages)

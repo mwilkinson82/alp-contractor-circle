@@ -234,7 +234,7 @@ export default function MemberPortalLayout({
         )}
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
           <SubscriptionBanner isSubscribed={isSubscribed} />
           {children}
         </main>

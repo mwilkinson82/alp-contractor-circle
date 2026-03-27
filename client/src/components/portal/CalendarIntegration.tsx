@@ -75,8 +75,8 @@ export function CalendarIntegration() {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8">
-      <div className="flex items-start gap-4 mb-6">
+    <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
+      <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-6">
         <div className="w-12 h-12 rounded-xl bg-blue-accent/10 flex items-center justify-center shrink-0">
           <Calendar className="w-6 h-6 text-blue-accent" />
         </div>
