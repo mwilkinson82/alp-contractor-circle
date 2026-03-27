@@ -373,3 +373,7 @@
 - [x] Insert 3 initial lead records (Mateo, bbell, rob)
 - [x] Automate subscribe form to insert into leads table alongside notification email
 - [x] Write tests for leads functionality
+- [ ] Create Supabase template_requests table with RLS policies
+- [ ] Add tRPC submitTemplateRequest mutation
+- [ ] Build Template Request UI section in portal templates page
+- [ ] Write vitest tests for template request submission

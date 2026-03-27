@@ -20,8 +20,11 @@ import {
   Loader2,
   FileDown,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useMember } from "@/hooks/useMember";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
+import { Send, Lightbulb, CheckCircle } from "lucide-react";
 
 type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance";
 
@@ -576,6 +579,133 @@ function TemplateModal({ template, onClose }: { template: Template; onClose: () 
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Template Request Form ───────────────────────────────────────────────────
+function TemplateRequestForm() {
+  const { user } = useAuth();
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const submitRequest = trpc.circle.submitTemplateRequest.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setTitle("");
+      setDescription("");
+    },
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !title.trim() || !description.trim()) return;
+    submitRequest.mutate({ memberName: name, memberEmail: email, templateTitle: title, description });
+  }
+
+  return (
+    <div className="glass-card rounded-2xl p-6 md:p-8 border border-ember/10">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-lg bg-ember/10 flex items-center justify-center">
+          <Lightbulb className="w-5 h-5 text-ember" />
+        </div>
+        <div>
+          <h2 className="font-heading text-base font-semibold text-cream">Request a Template or SOP</h2>
+          <p className="text-cream-muted text-xs mt-0.5">Tell us what you need — we build the library around you.</p>
+        </div>
+      </div>
+
+      {submitted ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-3 py-8 text-center"
+        >
+          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-green-400" />
+          </div>
+          <p className="font-heading text-sm font-semibold text-cream">Request Submitted</p>
+          <p className="text-cream-muted text-xs max-w-xs">
+            Marshall reviews every request personally. If it's a fit for the library, it gets built.
+          </p>
+          <button
+            onClick={() => setSubmitted(false)}
+            className="mt-2 text-xs text-ember hover:underline"
+          >
+            Submit another request
+          </button>
+        </motion.div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-cream-muted uppercase tracking-wider">Your Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="First Last"
+                required
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40 focus:ring-1 focus:ring-ember/20 transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-cream-muted uppercase tracking-wider">Your Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                required
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40 focus:ring-1 focus:ring-ember/20 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-cream-muted uppercase tracking-wider">Template or SOP Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Pre-Construction Meeting Agenda, Lien Waiver Template..."
+              required
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40 focus:ring-1 focus:ring-ember/20 transition-all"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-cream-muted uppercase tracking-wider">What do you need and why?</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Describe the template or SOP you need and how you'd use it on the job..."
+              required
+              rows={4}
+              className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-cream placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40 focus:ring-1 focus:ring-ember/20 transition-all resize-none"
+            />
+          </div>
+
+          {submitRequest.error && (
+            <p className="text-red-400 text-xs">{submitRequest.error.message}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitRequest.isPending || !name.trim() || !email.trim() || !title.trim() || !description.trim()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-ember text-white text-sm font-semibold rounded-lg hover:bg-ember/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {submitRequest.isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+            ) : (
+              <><Send className="w-4 h-4" /> Submit Request</>
+            )}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function PortalTemplates() {
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -771,12 +901,8 @@ export default function PortalTemplates() {
           </AnimatePresence>
         </div>
 
-        {/* Info Note */}
-        <div className="glass-card rounded-xl p-5 text-center">
-          <p className="text-cream-muted text-sm">
-            New templates are added regularly. Have a template request? Drop it in the Discord.
-          </p>
-        </div>
+        {/* Template Request Section */}
+        <TemplateRequestForm />
       </div>
 
       {/* Preview Modal */}

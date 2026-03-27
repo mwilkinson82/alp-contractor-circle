@@ -102,3 +102,35 @@ export async function insertSupabaseLead(params: {
   console.log(`[Supabase] Lead inserted: ${params.email} (source: ${params.source})`);
   return { success: true };
 }
+
+/**
+ * Insert a template request into the Supabase `template_requests` table.
+ */
+export async function insertTemplateRequest(params: {
+  memberName: string;
+  memberEmail: string;
+  templateTitle: string;
+  description: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { success: false, error: "Supabase client not configured" };
+  }
+
+  const { error } = await supabase
+    .from("template_requests")
+    .insert({
+      member_name: params.memberName.trim(),
+      member_email: params.memberEmail.toLowerCase().trim(),
+      template_title: params.templateTitle.trim(),
+      description: params.description.trim(),
+    });
+
+  if (error) {
+    console.error("[Supabase] Failed to insert template request:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  console.log(`[Supabase] Template request submitted by: ${params.memberEmail}`);
+  return { success: true };
+}

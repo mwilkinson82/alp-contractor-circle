@@ -6,7 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { subscribeEmail } from "./db";
 import { sendSubscriberNotification } from "./email";
-import { getSupabaseClient, insertSupabaseLead } from "./supabaseClient";
+import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -74,6 +74,31 @@ export const appRouter = router({
   member: memberRouter,
 
   circle: router({
+    /**
+     * Submit a template or SOP request from a member.
+     */
+    submitTemplateRequest: publicProcedure
+      .input(z.object({
+        memberName: z.string().min(1, "Name is required"),
+        memberEmail: z.string().email("Valid email required"),
+        templateTitle: z.string().min(3, "Template title is required"),
+        description: z.string().min(10, "Please provide a brief description"),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await insertTemplateRequest({
+          memberName: input.memberName,
+          memberEmail: input.memberEmail,
+          templateTitle: input.templateTitle,
+          description: input.description,
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || "Failed to submit template request");
+        }
+
+        return { success: true };
+      }),
+
     /**
      * Get the current active member count from Supabase.
      * Public endpoint — used by the landing page to show dynamic founding member counts.
