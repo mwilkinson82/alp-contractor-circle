@@ -85,6 +85,13 @@
       "when": 1774776397318,
       "tag": "0011_redundant_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1774793804250,
+      "tag": "0012_thin_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

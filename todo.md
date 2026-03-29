@@ -548,12 +548,12 @@
 ## Critical Scheduler UX Issues (March 29 - User Feedback)
 - [x] Fix modal trigger: clicking activity row should open detail modal (currently requires double-click near TF column)
 - [x] Make it obvious where to click on row to open modal (add visual indicator or make entire row clickable)
-- [ ] Add drag-to-pan Gantt chart: grab timeline or chart area and drag to scroll left/right
+- [x] Add drag-to-pan Gantt chart: grab timeline or chart area and drag to scroll left/right
 - [x] Fix dropdown menu text colors: white text on tan background is unreadable (change dropdown text to dark color)
 - [ ] Add relationship connector handles: hover near Gantt bar edges to show upside-down right-angle handles with arrows
 - [ ] Drag connector line from one bar to another to create FS/SS/SF/FF relationships (currently not visible)
 - [ ] PDF export: add live preview modal showing what PDF will look like on chosen page size
-- [ ] PDF export: activity names should appear above bars in PDF (currently missing)
+- [x] PDF export: activity names should appear above bars in PDF (currently missing)
 - [ ] PDF export: add columnized header/footer configuration (choose 3-5 columns, assign data to each column)
 - [ ] PDF export: show preview of header/footer content so user knows what will print
 - [ ] WBS tree: make WBS editable (currently read-only numbers)
@@ -563,13 +563,26 @@
 - [ ] Fix font colors in table: ensure all text is readable (some rows have light text on light background)
 
 ## Critical Workflow Improvements (March 29 - User Feedback Round 2)
-- [ ] PDF export: activity names/descriptions must appear above bars in Gantt (not just in table)
-- [ ] Activity ID management: add prefix system (e.g., "E" for electrical, "P" for plumbing)
-- [ ] Activity ID sequences: configurable interval (E1, E2, E3 or E100, E105, E110)
-- [ ] Activity ID auto-increment: when adding activities, auto-generate next ID in sequence
-- [ ] Bulk activity creation: "Add N activities" dialog (add 5, 10, 50 at once)
-- [ ] Bulk activities: creates all with auto-generated IDs immediately in table
-- [ ] Add activity button in table header (top of activity list, not just bottom)
-- [ ] Add activity button in toolbar or multiple locations
-- [ ] Bulk add accessible from both header and bottom of table
-- [ ] Activity ID field in add-activity dialog (user can set prefix and starting number)
+- [x] PDF export: activity names/descriptions must appear above bars in Gantt (not just in table)
+- [x] Activity ID management: add prefix system (e.g., "E" for electrical, "P" for plumbing)
+- [x] Activity ID sequences: configurable interval (E1, E2, E3 or E100, E105, E110)
+- [x] Activity ID auto-increment: when adding activities, auto-generate next ID in sequence
+- [x] Bulk activity creation: "Add N activities" dialog (add 5, 10, 50 at once)
+- [x] Bulk activities: creates all with auto-generated IDs immediately in table
+- [x] Add activity button in table header (top of activity list, not just bottom)
+- [x] Add activity button in toolbar or multiple locations
+- [x] Bulk add accessible from both header and bottom of table
+- [x] Activity ID field in add-activity dialog (user can set prefix and starting number)
+
+## Milestone Support & Relationship Editing (March 29)
+- [x] Add activityType field to activities table (task/milestone)
+- [x] Activity type selector (Task/Milestone) in Add Activity dialog
+- [x] Activity type selector in Activity Detail modal
+- [x] Milestone renders as diamond on Gantt chart
+- [x] Duration auto-set to 0 when milestone selected
+- [x] Relationship editing in Activity Detail modal: add/delete relationships with dropdown
+- [x] Delete relationship button (trash icon) on each relationship
+- [x] Add predecessor inline: select activity, type (FS/SS/FF/SF), lag
+- [x] Bulk Add Activities in three-dot menu
+- [x] Activity ID Settings in three-dot menu
+- [x] All modal/dropdown text colors fixed to dark (text-gray-900)

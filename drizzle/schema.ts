@@ -237,6 +237,8 @@ export const activities = mysqlTable("activities", {
   barColor: varchar("barColor", { length: 16 }),
   /** WBS node ID (references schedule_wbs.id) */
   wbsId: int("wbsId"),
+  /** Activity type: task (regular bar) or milestone (diamond, 0 duration) */
+  activityType: varchar("activityType", { length: 16 }).default("task").notNull(),
   /** Optional notes */
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

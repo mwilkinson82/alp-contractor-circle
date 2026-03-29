@@ -163,7 +163,7 @@ function toDate(d: string | Date | null): Date | null {
 
 // ─── Drag state types ─────────────────────────────────────────────────────────
 
-type DragMode = "none" | "resize-left" | "resize-right" | "connect";
+type DragMode = "none" | "resize-left" | "resize-right" | "connect" | "pan";
 
 interface DragState {
   mode: DragMode;
@@ -174,6 +174,8 @@ interface DragState {
   currentY: number;
   originalDuration: number;
   fromEdge: "start" | "finish";
+  scrollStartX?: number;
+  scrollStartY?: number;
 }
 
 interface BarRect {
@@ -353,7 +355,26 @@ export default function GanttChart({
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const { cx, cy } = getCanvasCoords(e);
     const hit = hitTestBar(cx, cy);
-    if (!hit) return;
+    if (!hit) {
+      // No bar hit — start pan mode
+      e.preventDefault();
+      const el = containerRef.current;
+      setDragState({
+        mode: "pan",
+        activityId: 0,
+        startX: e.clientX,
+        startY: e.clientY,
+        currentX: e.clientX,
+        currentY: e.clientY,
+        originalDuration: 0,
+        fromEdge: "start",
+        scrollStartX: el?.scrollLeft ?? 0,
+        scrollStartY: el?.scrollTop ?? 0,
+      });
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "grabbing";
+      return;
+    }
 
     if (hit.edge === "start" || hit.edge === "finish") {
       if (e.altKey || e.metaKey) {
@@ -390,6 +411,17 @@ export default function GanttChart({
     const { cx, cy } = getCanvasCoords(e);
 
     if (dragState) {
+      if (dragState.mode === "pan") {
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+        const el = containerRef.current;
+        if (el) {
+          el.scrollLeft = (dragState.scrollStartX ?? 0) - dx;
+          el.scrollTop = (dragState.scrollStartY ?? 0) - dy;
+        }
+        return;
+      }
+
       setDragState((prev) => prev ? { ...prev, currentX: cx, currentY: cy } : null);
 
       if (dragState.mode === "connect") {
@@ -415,7 +447,7 @@ export default function GanttChart({
       setHoveredActivity(null);
       setHoveredEdge(null);
       const canvas = canvasRef.current;
-      if (canvas) canvas.style.cursor = "default";
+      if (canvas) canvas.style.cursor = "grab";
     }
   }, [getCanvasCoords, hitTestBar, hitTestBarAny, dragState]);
 
@@ -429,6 +461,13 @@ export default function GanttChart({
       if (row?.type === "activity" && row.activity) {
         onSelectActivity(row.activity.id === selectedActivityId ? null : row.activity.id);
       }
+      return;
+    }
+
+    if (dragState.mode === "pan") {
+      setDragState(null);
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "grab";
       return;
     }
 
@@ -712,7 +751,7 @@ export default function GanttChart({
 
       // ── Activity bar ──────────────────────────────────────────────────
 
-      if (act.duration === 0) {
+      if (act.duration === 0 || (act as any).activityType === "milestone") {
         // Milestone diamond
         const cx = barX;
         const cy = barY + BAR_HEIGHT / 2;

@@ -672,6 +672,8 @@ export const scheduleRouter = router({
         calendarId: z.number().optional(),
         notes: z.string().optional(),
         afterActivityId: z.number().optional(), // insert after this activity
+        activityType: z.enum(["task", "milestone"]).default("task"),
+        activityId: z.string().optional(), // manual override for activity ID
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -705,15 +707,19 @@ export const scheduleRouter = router({
         }
       }
 
+      // Use manual activityId if provided, otherwise auto-generated
+      const finalActivityId = input.activityId || activityId;
+
       const { id } = await sdb.createActivity({
         scheduleId: input.scheduleId,
-        activityId,
+        activityId: finalActivityId,
         name: input.name,
-        duration: input.duration,
+        duration: input.activityType === "milestone" ? 0 : input.duration,
         wbs: input.wbs,
         calendarId: input.calendarId || null,
         notes: input.notes,
         sortOrder,
+        activityType: input.activityType,
       });
 
       // Recalculate CPM
@@ -738,6 +744,7 @@ export const scheduleRouter = router({
         activityId: z.string().nullable().optional(),
         barColor: z.string().nullable().optional(),
         wbsId: z.number().nullable().optional(),
+        activityType: z.enum(["task", "milestone"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -756,6 +763,7 @@ export const scheduleRouter = router({
       if (data.activityId !== undefined) updateData.activityId = data.activityId;
       if (data.barColor !== undefined) updateData.barColor = data.barColor;
       if (data.wbsId !== undefined) updateData.wbsId = data.wbsId;
+      if (data.activityType !== undefined) updateData.activityType = data.activityType;
 
       await sdb.updateActivity(id, updateData);
       await recalculateAndPersist(scheduleId);

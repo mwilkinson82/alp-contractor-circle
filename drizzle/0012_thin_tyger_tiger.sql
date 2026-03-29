@@ -1,0 +1,1 @@
+ALTER TABLE `activities` ADD `activityType` varchar(16) DEFAULT 'task' NOT NULL;
