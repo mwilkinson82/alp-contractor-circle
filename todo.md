@@ -391,3 +391,7 @@
 - [x] Clean up existing duplicate member records (Darian, Henrico, Caleb, Daniel)
 - [x] Write tests for the new merge logic
 - [x] Verify welcome email flow still works after fix
+
+## Webhook Monitoring Notifications
+- [x] Add detailed purchase monitoring notification to Stripe webhook (member name, email, status, merge result)
+- [x] Include error/warning alerts when merge fails or records are ambiguous

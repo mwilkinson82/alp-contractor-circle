@@ -151,11 +151,77 @@ export function registerStripeWebhook(app: Express) {
               }, 5000); // 5-second delay between emails
             } else {
               console.warn("[Stripe Webhook] No email found on checkout session — skipping welcome emails");
-            }            // ─── NOTIFY MARSHALL (in-app + email) ─────────────────────────────
+            }            // ─── DETAILED MONITORING NOTIFICATION TO MARSHALL ─────────────────
+            // Sends a comprehensive status report so Marshall can verify everything
+            // worked correctly without needing to check the database manually.
             try {
+              // Check if the member record was actually created/found in MySQL
+              let mysqlStatus = "UNKNOWN";
+              let mysqlDetails = "";
+              try {
+                const memberRecord = await getMemberByEmail(memberEmail || "");
+                if (memberRecord) {
+                  const hasRealDiscord = memberRecord.discordId && !memberRecord.discordId.startsWith("email:");
+                  mysqlStatus = "OK";
+                  mysqlDetails = [
+                    `  Record ID: ${memberRecord.id}`,
+                    `  Discord linked: ${hasRealDiscord ? "YES (" + memberRecord.discordId + ")" : "NO (pending Discord login)"}`,
+                    `  Subscription: ${memberRecord.subscriptionStatus}`,
+                    `  Role: ${memberRecord.memberRole}`,
+                    `  Stripe Customer: ${memberRecord.stripeCustomerId || "N/A"}`,
+                  ].join("\n");
+                } else {
+                  mysqlStatus = "WARNING";
+                  mysqlDetails = "  Member record NOT found after upsert — check logs";
+                }
+              } catch (dbErr: any) {
+                mysqlStatus = "ERROR";
+                mysqlDetails = `  Database check failed: ${dbErr.message}`;
+              }
+
+              // Count total active members
+              let activeCount = "?";
+              try {
+                const { getSupabaseClient } = await import("./supabaseClient");
+                const supabase = getSupabaseClient();
+                if (supabase) {
+                  const { count } = await supabase
+                    .from("members")
+                    .select("*", { count: "exact", head: true })
+                    .eq("subscription_status", "active");
+                  activeCount = String(count ?? "?");
+                }
+              } catch { /* non-fatal */ }
+
+              const amountDisplay = session.amount_total
+                ? `$${(session.amount_total / 100).toFixed(2)}`
+                : "$497/mo";
+
               await notifyOwner({
-                title: "🎉 New Contractor Circle Member!",
-                content: `New founding member just subscribed!\n\nEmail: ${memberEmail || "N/A"}\nName: ${memberName}\nSession: ${session.id}\nAmount: $497/mo\nWelcome email: ${memberEmail ? "sent" : "skipped (no email)"}\n\nWelcome them to the Discord community!`,
+                title: `New Purchase: ${memberName}`,
+                content: [
+                  `NEW CONTRACTOR CIRCLE PURCHASE`,
+                  ``,
+                  `Member: ${memberName}`,
+                  `Email: ${memberEmail || "N/A"}`,
+                  `Amount: ${amountDisplay}`,
+                  `Stripe Session: ${session.id}`,
+                  `Stripe Customer: ${stripeCustomerId || "N/A"}`,
+                  ``,
+                  `--- DATABASE STATUS ---`,
+                  `MySQL: ${mysqlStatus}`,
+                  mysqlDetails,
+                  ``,
+                  `--- EMAIL STATUS ---`,
+                  `Welcome email #1: ${memberEmail ? "SENT" : "SKIPPED (no email)"}`,
+                  `Founding member email #2: ${memberEmail ? "QUEUED (5s delay)" : "SKIPPED"}`,
+                  ``,
+                  `--- PORTAL STATUS ---`,
+                  `Active founding members: ${activeCount} of 50`,
+                  ``,
+                  `NEXT: Member needs to log in via Discord at alpcontractorcircle.com/portal.`,
+                  `If their Discord email differs from ${memberEmail || "their Stripe email"}, the merge system will handle it automatically.`,
+                ].join("\n"),
               });
             } catch (err) {
               console.warn("[Stripe Webhook] Failed to send owner notification:", err);
