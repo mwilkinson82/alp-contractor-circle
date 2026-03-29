@@ -599,6 +599,9 @@
 - [ ] Only member dashboard, scheduler, and protected features should require login
 
 ## SEO Title Fix (March 29)
-- [ ] Change site title from "ALP Contractor Circle Member Portal" to "ALP Contractor Circle"
-- [ ] Update meta description to match (remove "member portal" language)
-- [ ] Update OG tags to match
+- [x] Change site title from "ALP Contractor Circle Member Portal" to "ALP Contractor Circle"
+- [x] Update meta description to match (remove "member portal" language)
+- [x] Update OG tags to match
+- [x] Reduce keywords from 25 to 6 focused keywords
+- [x] Shorten description from 288 to 130 characters
+- [x] Add Marshall Wilkinson as primary keyword
