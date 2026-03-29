@@ -639,3 +639,12 @@
 - [x] Add header configuration to PDF export - PdfExportPreview includes 3-5 column configuration
 - [x] Add 3-column footer configuration to PDF - Footer columns configurable in preview modal
 - [x] Fix WBS modal scrolling - Added max-h-64 overflow-y-auto to WBS tree container
+
+
+## WBS Grouping Visual Enhancements (March 29 - Session 2)
+- [ ] Add WBS group color customization to database schema (wbsGroupColors table)
+- [ ] Show WBS description in group headers (not just WBS number)
+- [ ] Make WBS group headers bold and prominent
+- [ ] Add color picker UI for WBS group customization (like P6)
+- [ ] Store WBS group color preferences per schedule
+- [ ] Apply custom colors to group header backgrounds with white text
