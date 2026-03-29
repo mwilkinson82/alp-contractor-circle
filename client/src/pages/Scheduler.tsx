@@ -611,8 +611,33 @@ export default function Scheduler() {
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(act);
     }
-    return Array.from(groups.entries()).map(([group, acts]) => ({ group, activities: acts }));
-  }, [sortedActivities, groupBy, codeAssignments, codeCategories]);
+    // Sort groups: for WBS grouping, use hierarchical tree order (parents before children)
+    const entries = Array.from(groups.entries());
+    if (groupBy === "wbs" && wbsNodes.length > 0) {
+      // Build a flat ordered list from the WBS tree (depth-first)
+      const buildWbsOrder = (nodes: any[], parentId: number | null = null): string[] => {
+        const children = nodes.filter((n: any) => (n.parentId || null) === parentId);
+        children.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code, undefined, { numeric: true }));
+        const result: string[] = [];
+        for (const child of children) {
+          result.push(`${child.code} \u2014 ${child.name}`);
+          result.push(...buildWbsOrder(nodes, child.id));
+        }
+        return result;
+      };
+      const wbsOrder = buildWbsOrder(wbsNodes);
+      entries.sort((a, b) => {
+        const ai = wbsOrder.indexOf(a[0]);
+        const bi = wbsOrder.indexOf(b[0]);
+        // Put known WBS groups first in tree order, unknown groups at the end
+        if (ai === -1 && bi === -1) return a[0].localeCompare(b[0], undefined, { numeric: true });
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
+    }
+    return entries.map(([group, acts]) => ({ group, activities: acts }));
+  }, [sortedActivities, groupBy, codeAssignments, codeCategories, wbsNodes]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
   const activeColumns = useMemo(() => {

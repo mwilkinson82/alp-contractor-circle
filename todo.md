@@ -739,3 +739,6 @@
 - [x] Fix WBS parent-child assignment bug — was using w.code instead of w.id for parent select value
 - [x] Make WBS parent relationship editable — added parent dropdown to inline edit mode in WBSTree
 - [x] Ensure WBS tree correctly reflects parent-child hierarchy
+
+## WBS Grouping Sort Order Fix (March 29 - Session 13)
+- [x] Fix WBS grouping sort order — uses hierarchical depth-first tree traversal so parents always appear before children

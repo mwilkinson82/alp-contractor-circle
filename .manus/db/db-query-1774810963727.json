@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, code, name, parentId FROM schedule_wbs WHERE scheduleId = 1 ORDER BY code;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, code, name, parentId FROM schedule_wbs WHERE scheduleId = 1 ORDER BY code;",
+  "rows": [
+    {
+      "id": "1",
+      "code": "1.0",
+      "name": "Smith Residence",
+      "parentId": "NULL"
+    },
+    {
+      "id": "2",
+      "code": "1.1",
+      "name": "General Conditions",
+      "parentId": "1"
+    },
+    {
+      "id": "4",
+      "code": "2.0",
+      "name": "Construction",
+      "parentId": "1"
+    },
+    {
+      "id": "6",
+      "code": "2.1",
+      "name": "Sitework",
+      "parentId": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\tname\tparentId\n1\t1.0\tSmith Residence\tNULL\n2\t1.1\tGeneral Conditions\t1\n4\t2.0\tConstruction\t1\n6\t2.1\tSitework\t4\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}
