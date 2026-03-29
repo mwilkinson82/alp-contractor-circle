@@ -27,6 +27,8 @@ export interface PdfExportOptions {
     isCritical: boolean;
     percentComplete: string;
     wbs: string | null;
+    activityType?: "task" | "milestone";
+    barColor?: string;
   }>;
 
   // Relationships (for Gantt arrows)
@@ -386,23 +388,54 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         const barWidth = Math.max(x2 - x1, 1);
         const barY = y + (rowH - barH) / 2;
 
-        // Bar color: critical = red, non-critical = green
-        if (act.isCritical) {
-          doc.setFillColor(...colors.critical);
+        // Determine bar color (custom > critical/non-critical)
+        let barColor: [number, number, number];
+        if (act.barColor) {
+          const hex = act.barColor.replace('#', '');
+          barColor = [
+            parseInt(hex.substring(0, 2), 16),
+            parseInt(hex.substring(2, 4), 16),
+            parseInt(hex.substring(4, 6), 16)
+          ];
+        } else if (act.isCritical) {
+          barColor = colors.critical;
         } else {
-          doc.setFillColor(...colors.green);
+          barColor = colors.green;
         }
-        doc.roundedRect(x1, barY, barWidth, barH, 0.5, 0.5, "F");
 
-        // Progress fill (darker shade)
-        const pct = parseFloat(act.percentComplete) / 100;
-        if (pct > 0 && pct < 1) {
-          if (act.isCritical) {
-            doc.setFillColor(180, 20, 20);
-          } else {
-            doc.setFillColor(16, 120, 50);
+        // Draw milestone (diamond) or bar
+        if (act.activityType === "milestone" || act.duration === 0) {
+          // Draw diamond marker for milestone
+          const diamondSize = barH * 1.5;
+          const diamondX = x1;
+          const diamondY = barY + barH / 2;
+          const half = diamondSize / 2;
+          
+          // Draw filled diamond using lines
+          doc.setDrawColor(...barColor);
+          doc.setLineWidth(0.3);
+          doc.setFillColor(...barColor);
+          
+          // Draw diamond outline
+          doc.line(diamondX, diamondY - half, diamondX + half, diamondY);
+          doc.line(diamondX + half, diamondY, diamondX, diamondY + half);
+          doc.line(diamondX, diamondY + half, diamondX - half, diamondY);
+          doc.line(diamondX - half, diamondY, diamondX, diamondY - half);
+          
+          // Fill center with small square
+          doc.rect(diamondX - half / 3, diamondY - half / 3, (2 * half) / 3, (2 * half) / 3, "F");
+        } else {
+          // Draw regular bar
+          doc.setFillColor(...barColor);
+          doc.roundedRect(x1, barY, barWidth, barH, 0.5, 0.5, "F");
+
+          // Progress fill (darker shade)
+          const pct = parseFloat(act.percentComplete) / 100;
+          if (pct > 0 && pct < 1) {
+            const darkColor = barColor.map(c => Math.max(0, c - 60)) as [number, number, number];
+            doc.setFillColor(...darkColor);
+            doc.roundedRect(x1, barY, barWidth * pct, barH, 0.5, 0.5, "F");
           }
-          doc.roundedRect(x1, barY, barWidth * pct, barH, 0.5, 0.5, "F");
         }
 
         // Float bar (dashed extension)

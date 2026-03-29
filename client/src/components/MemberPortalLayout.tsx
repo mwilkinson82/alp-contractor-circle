@@ -27,7 +27,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/portal", adminOnly: false },
   { icon: PlayCircle, label: "Replay Library", path: "/portal/replays", adminOnly: false },
   { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
-  { icon: CalendarRange, label: "CPM Scheduler", path: "/portal/scheduler", adminOnly: false },
+  { icon: CalendarRange, label: "CPM Scheduler", path: "/portal/scheduler", adminOnly: true },
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
@@ -151,6 +151,16 @@ export default function MemberPortalLayout({
                 </button>
               );
             })}
+            {/* Coming Soon Badge for Non-Admins */}
+            {!isAdmin && (
+              <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-cream-muted/50 cursor-not-allowed opacity-60">
+                <CalendarRange className="w-4 h-4" />
+                <span>CPM Scheduler</span>
+                <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
+                  Coming soon
+                </span>
+              </div>
+            )}
           </nav>
 
           {/* User Profile */}
@@ -225,6 +235,16 @@ export default function MemberPortalLayout({
                   </button>
                 );
               })}
+              {/* Coming Soon Badge for Non-Admins (Mobile) */}
+              {!isAdmin && (
+                <div className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted/50 cursor-not-allowed opacity-60">
+                  <CalendarRange className="w-5 h-5" />
+                  <span>CPM Scheduler</span>
+                  <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
+                    Coming soon
+                  </span>
+                </div>
+              )}
               <div className="border-t border-white/5 pt-4 mt-4">
                 <button
                   onClick={logout}

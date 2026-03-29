@@ -605,3 +605,27 @@
 - [x] Reduce keywords from 25 to 6 focused keywords
 - [x] Shorten description from 288 to 130 characters
 - [x] Add Marshall Wilkinson as primary keyword
+
+
+## Critical Scheduler Issues (March 29)
+- [ ] Add data date setting UI - Allow users to click "DD" in toolbar to set data date for calculations
+- [ ] Implement data date in calculate procedure - When user clicks calculate, use the set data date
+- [x] Build PDF export preview modal - 3-5 column footer configuration before export
+- [ ] Fix milestone rendering in PDF - Milestones (zero-duration activities) not showing in PDF export
+- [x] Add milestone color customization - Milestones now support custom barColor property
+- [x] Fix PDF milestone rendering - Milestones now render as diamonds in PDF export
+
+
+## CPM Scheduler Access Control (March 29)
+- [x] Restrict CPM Scheduler route to admin-only access (menuItems.adminOnly = true)
+- [x] Show "Coming soon" badge/message for non-admin members on portal sidebar (desktop + mobile)
+- [ ] Redirect non-admins away from /portal/scheduler if they try to access directly
+- [ ] Grant Marshall admin access to CPM Scheduler
+
+
+## WBS Manager Visual Redesign (March 29)
+- [x] Rebuild WBS Manager with visual tree structure (like Primavera P6)
+- [x] Show parent-child hierarchy with indentation and tree lines
+- [x] Add expand/collapse toggles for parent nodes
+- [x] Display WBS code and name with visual hierarchy
+- [x] Make it easier to understand structure without relying on number prefixes
