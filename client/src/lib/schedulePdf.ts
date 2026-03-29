@@ -117,6 +117,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     showGantt,
     showCriticalPathOnly,
     footerConfig,
+    headerConfig,
   } = options;
 
   const filteredActivities = showCriticalPathOnly
@@ -157,27 +158,59 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     doc.setFillColor(...colors.gold);
     doc.rect(0, headerHeight - 0.6, pageWidth, 0.6, "F");
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...colors.gold);
-    doc.text(companyName || "ALP Contractor Circle", margin, 8);
+    const ctx = { pageNum: 0, totalPages: 0, scheduleName, dataDate, projectStartDate, companyName, projectName };
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...colors.white);
-    doc.text(projectName || scheduleName, margin, 14);
+    if (headerConfig) {
+      // Use configurable header columns
+      const cols = headerConfig.columns;
+      const usableWidth = pageWidth - 2 * margin;
+      const midY = headerHeight / 2 + 1;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(180, 190, 210);
-    doc.text(scheduleName, margin, 19);
+      // Left column - always bold gold
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...colors.gold);
+      doc.text(resolveToken(headerConfig.left, ctx), margin, midY - 3);
 
-    const rightX = pageWidth - margin;
-    doc.setFontSize(7);
-    doc.setTextColor(180, 190, 210);
-    doc.text(`Data Date: ${dataDate ? formatDateFull(dataDate) : "Not set"}`, rightX, 8, { align: "right" });
-    doc.text(`Project Start: ${formatDateFull(projectStartDate)}`, rightX, 13, { align: "right" });
-    doc.text(`Run Date: ${lastCalculatedAt ? new Date(lastCalculatedAt).toLocaleString() : "—"}`, rightX, 18, { align: "right" });
+      // Other columns in white
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...colors.white);
+
+      if (cols === 3) {
+        doc.text(resolveToken(headerConfig.center, ctx), pageWidth / 2, midY, { align: "center" });
+        doc.text(resolveToken(headerConfig.right, ctx), pageWidth - margin, midY, { align: "right" });
+      } else if (cols === 5) {
+        const seg = usableWidth / 5;
+        doc.text(resolveToken(headerConfig.centerLeft || "", ctx), margin + seg, midY);
+        doc.text(resolveToken(headerConfig.center, ctx), pageWidth / 2, midY, { align: "center" });
+        doc.text(resolveToken(headerConfig.centerRight || "", ctx), margin + seg * 3, midY);
+        doc.text(resolveToken(headerConfig.right, ctx), pageWidth - margin, midY, { align: "right" });
+      }
+    } else {
+      // Default header layout
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...colors.gold);
+      doc.text(companyName || "ALP Contractor Circle", margin, 8);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...colors.white);
+      doc.text(projectName || scheduleName, margin, 14);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(180, 190, 210);
+      doc.text(scheduleName, margin, 19);
+
+      const rightX = pageWidth - margin;
+      doc.setFontSize(7);
+      doc.setTextColor(180, 190, 210);
+      doc.text(`Data Date: ${dataDate ? formatDateFull(dataDate) : "Not set"}`, rightX, 8, { align: "right" });
+      doc.text(`Project Start: ${formatDateFull(projectStartDate)}`, rightX, 13, { align: "right" });
+      doc.text(`Run Date: ${lastCalculatedAt ? new Date(lastCalculatedAt).toLocaleString() : "—"}`, rightX, 18, { align: "right" });
+    }
   }
 
   // ─── Draw Footer ────────────────────────────────────────────────────────────

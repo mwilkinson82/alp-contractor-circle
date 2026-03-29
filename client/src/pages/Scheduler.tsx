@@ -367,6 +367,12 @@ export default function Scheduler() {
   const [idSettingsStart, setIdSettingsStart] = useState("1000");
   const [idSettingsInterval, setIdSettingsInterval] = useState("10");
 
+  /* ── Multi-Select State ──────────────────────────────────────────────── */
+  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<number>>(new Set());
+  const [lastClickedId, setLastClickedId] = useState<number | null>(null);
+  const [showBulkWbsDialog, setShowBulkWbsDialog] = useState(false);
+  const [bulkWbsTarget, setBulkWbsTarget] = useState("");
+
   /* ── Form State ───────────────────────────────────────────────────────── */
   const [newActName, setNewActName] = useState("");
   const [newActDuration, setNewActDuration] = useState("5");
@@ -747,7 +753,7 @@ export default function Scheduler() {
       name: detailName,
       duration: parseInt(detailDuration) || 1,
       activityId: detailActivityId || null,
-      wbs: detailWbs || undefined,
+      wbs: detailWbs === "__none__" ? null : (detailWbs || undefined),
       calendarId: detailCalendarId ? parseInt(detailCalendarId) : undefined,
       barColor: detailBarColor || null,
       percentComplete: Math.min(100, Math.max(0, parseFloat(detailPercentComplete) || 0)),
@@ -1175,12 +1181,15 @@ export default function Scheduler() {
                     const isOpenStart = openEnds.openStarts.some((a) => a.id === act.id);
                     const isOpenFinish = openEnds.openFinishes.some((a) => a.id === act.id);
                     const hasOpenEnd = isOpenStart || isOpenFinish;
+                    const isSelected = selectedActivityIds.has(act.id);
                     return (
                       <div
                         key={act.id}
                         className={`text-xs items-center px-2 gap-1 h-8 cursor-pointer transition-colors ${
-                          act.id === selectedActivityId
+                          isSelected
                             ? "bg-blue-100 border-l-2 border-l-blue-600 ring-1 ring-blue-300"
+                            : act.id === selectedActivityId
+                            ? "bg-blue-50 border-l-2 border-l-blue-400"
                             : act.isCritical
                             ? "hover:bg-red-50/50 border-l-2 border-l-red-400"
                             : hasOpenEnd
@@ -1188,8 +1197,35 @@ export default function Scheduler() {
                             : "hover:bg-gray-50 border-l-2 border-l-transparent"
                         }`}
                         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
-                        onClick={() => openActivityDetail(act)}
-                        title="Click to edit activity details"
+                        onClick={(e) => {
+                          if (e.shiftKey && lastClickedId !== null) {
+                            // Shift+click: select range
+                            const allActs = groupedActivities.flatMap(g => g.activities);
+                            const idx1 = allActs.findIndex(a => a.id === lastClickedId);
+                            const idx2 = allActs.findIndex(a => a.id === act.id);
+                            if (idx1 >= 0 && idx2 >= 0) {
+                              const start = Math.min(idx1, idx2);
+                              const end = Math.max(idx1, idx2);
+                              const newSet = new Set(selectedActivityIds);
+                              for (let i = start; i <= end; i++) newSet.add(allActs[i].id);
+                              setSelectedActivityIds(newSet);
+                            }
+                          } else if (e.ctrlKey || e.metaKey) {
+                            // Ctrl/Cmd+click: toggle single
+                            const newSet = new Set(selectedActivityIds);
+                            if (newSet.has(act.id)) newSet.delete(act.id);
+                            else newSet.add(act.id);
+                            setSelectedActivityIds(newSet);
+                            setLastClickedId(act.id);
+                          } else {
+                            // Normal click: open detail, clear selection
+                            setSelectedActivityIds(new Set());
+                            openActivityDetail(act);
+                          }
+                          setLastClickedId(act.id);
+                        }}
+                        onDoubleClick={() => openActivityDetail(act)}
+                        title={selectedActivityIds.size > 0 ? "Shift+click to extend selection, Ctrl+click to toggle" : "Click to edit, Shift/Ctrl+click to multi-select"}
                       >
                         {/* Row actions */}
                         <div className="flex items-center gap-0.5">
@@ -1407,9 +1443,9 @@ export default function Scheduler() {
                     <Select value={detailWbs} onValueChange={setDetailWbs}>
                       <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
                       <SelectContent className="bg-white border-gray-200">
-                      <SelectItem value=" " className="text-gray-900">None (top level)</SelectItem>
+                      <SelectItem value="__none__" className="text-gray-900">None (top level)</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={String(w.id)} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
                       ))}                      </SelectContent>
                     </Select>
                   ) : (
@@ -1672,7 +1708,19 @@ export default function Scheduler() {
               </div>
               <div>
                 <Label className="text-xs text-gray-600">WBS (optional)</Label>
-                <Input value={newActWbs} onChange={(e) => setNewActWbs(e.target.value)} placeholder="e.g., 2.0" className="mt-1 border-gray-300" />
+                {wbsNodes.length > 0 ? (
+                  <Select value={newActWbs || "__none__"} onValueChange={(v) => setNewActWbs(v === "__none__" ? "" : v)}>
+                    <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="__none__" className="text-gray-900">None</SelectItem>
+                      {wbsNodes.map((w: any) => (
+                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={newActWbs} onChange={(e) => setNewActWbs(e.target.value)} placeholder="e.g., 2.0" className="mt-1 border-gray-300" />
+                )}
               </div>
             </div>
           </div>
@@ -2563,6 +2611,16 @@ export default function Scheduler() {
               centerRight: fCols.length >= 4 ? contentToToken(fCols[fCols.length - 2]?.content || "empty") : undefined,
               right: fCols[fCols.length - 1] ? contentToToken(fCols[fCols.length - 1].content) : "",
             };
+            // Build header config from the preview modal's column settings
+            const hCols = config.headerColumns || [];
+            const headerConfig = {
+              columns: config.headerColumnCount || 3,
+              left: hCols[0] ? contentToToken(hCols[0].content) : "",
+              centerLeft: hCols.length >= 4 ? contentToToken(hCols[1]?.content || "empty") : undefined,
+              center: hCols.length === 3 ? contentToToken(hCols[1]?.content || "empty") : hCols.length === 5 ? contentToToken(hCols[2]?.content || "empty") : contentToToken(hCols[1]?.content || "empty"),
+              centerRight: hCols.length >= 4 ? contentToToken(hCols[hCols.length - 2]?.content || "empty") : undefined,
+              right: hCols[hCols.length - 1] ? contentToToken(hCols[hCols.length - 1].content) : "",
+            };
             await generateSchedulePdf({
               scheduleName: schedule.schedule.name,
               projectStartDate: new Date(schedule.schedule.projectStartDate),
@@ -2575,6 +2633,7 @@ export default function Scheduler() {
               projectName: pdfProjectName,
               footerText: "",
               footerConfig,
+              headerConfig,
               pageSize: config.pageSize,
               orientation: config.orientation,
               showGantt: config.showGantt,
@@ -2590,6 +2649,86 @@ export default function Scheduler() {
           }
         }}
       />
+
+      {/* ── Floating Selection Toolbar ──────────────────────────────────────── */}
+      {selectedActivityIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-700">
+            {selectedActivityIds.size} {selectedActivityIds.size === 1 ? "activity" : "activities"} selected
+          </span>
+          <div className="w-px h-5 bg-gray-200" />
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            onClick={() => { setBulkWbsTarget(""); setShowBulkWbsDialog(true); }}
+          >
+            <FolderTree className="w-3.5 h-3.5 mr-1.5" /> Assign WBS
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-red-300 text-red-600 hover:bg-red-50"
+            onClick={() => {
+              if (scheduleId && confirm(`Delete ${selectedActivityIds.size} selected activities?`)) {
+                Array.from(selectedActivityIds).forEach(id => deleteActivityMut.mutate({ id, scheduleId }));
+                setSelectedActivityIds(new Set());
+              }
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-gray-500"
+            onClick={() => setSelectedActivityIds(new Set())}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
+      <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>
+        <DialogContent className="max-w-sm bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Select a WBS code to assign to all selected activities at once.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Select value={bulkWbsTarget || "__none__"} onValueChange={(v) => setBulkWbsTarget(v === "__none__" ? "" : v)}>
+              <SelectTrigger className="border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
+              <SelectContent className="bg-white border-gray-200">
+                <SelectItem value="__none__" className="text-gray-900">None (remove WBS)</SelectItem>
+                {wbsNodes.map((w: any) => (
+                  <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkWbsDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => {
+                if (!scheduleId) return;
+                const wbsValue = bulkWbsTarget || null;
+                Array.from(selectedActivityIds).forEach(id => {
+                  updateActivityMut.mutate({ id, scheduleId, wbs: wbsValue });
+                });
+                toast.success(`WBS ${wbsValue ? `set to ${wbsValue}` : "cleared"} for ${selectedActivityIds.size} activities`);
+                setSelectedActivityIds(new Set());
+                setShowBulkWbsDialog(false);
+              }}
+            >
+              Assign to {selectedActivityIds.size} Activities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

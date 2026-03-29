@@ -672,3 +672,16 @@
 - [x] Fix legend overlapping with footer - Legend positioned with proper spacing above footer
 - [x] Reduce wasted space - Gantt paginated with proper row heights
 - [x] Wire footer config from preview modal to PDF generator with token replacement
+
+
+## Critical WBS & PDF Fixes (March 29 - Session 4)
+- [x] Fix WBS assignment not sticking - Changed Select value from database ID to WBS code so it matches correctly
+- [x] Fix WBS modal not showing current value - detailWbs now initialized from act.wbs which matches Select item values
+- [x] Add bulk WBS assignment - Shift/Ctrl+click multi-select with floating toolbar and bulk WBS assignment dialog
+- [ ] Wire PDF header configuration - Header columns from preview modal need to be passed to PDF generator like footer
+
+## PDF Export Preview Modal Fixes (March 29 - Session 5)
+- [x] Make modal wider (max-w-5xl, 95vw) so column dropdowns don't overflow
+- [x] Fix canvas preview rendering - delayed init with canvasReady state, proper dpr scaling
+- [x] Use flex-wrap layout for column dropdowns that adapt to 3 or 5 columns
+- [x] Wire header config from preview modal to PDF generator with token resolution
