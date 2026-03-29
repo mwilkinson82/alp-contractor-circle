@@ -714,3 +714,28 @@
 
 ## Checkbox Shift-Click Range Selection Fix (March 29 - Session 10)
 - [x] Fix checkbox shift-click to select range of activities between first and last click for mass WBS assignment
+
+## Shift-Click & Modal Width Fix (March 29 - Session 11)
+- [x] Fix shift-click range selection — prevented row click from interfering with checkbox, added target check
+- [x] Make activity detail modal wider — max-w-3xl
+- [x] Make schedule creation modal wider — max-w-2xl
+- [x] Widen all narrow modals in the scheduler — all sm->lg, lg->2xl, etc.
+- [x] Fix all text color/legibility issues — rewrote dropdown-menu, select, dialog, popover components with explicit white bg + gray-900 text
+- [x] Fix three-dot dropdown menu (Edit details, Insert activity) — fixed at component level
+- [x] Fix data date and today's date lines in Gantt — normalized today to midnight UTC to align with data date
+- [x] PDF export: table is now optional ("Include Activity Table" checkbox, off by default)
+- [x] PDF export: page numbering fixed — footers drawn after all pages created
+- [x] PDF export: page break handling improved — table section skipped when showTable=false
+
+## Layout Manager & WBS Colors (March 29 - Session 12)
+- [ ] Build Layout Manager — "Layout" button in toolbar that opens modal with saved view configurations
+- [ ] Layout saves: grouping, column visibility, sort order, WBS colors
+- [ ] Layout preview thumbnails in the modal
+- [ ] WBS color editing accessible from WBS manager (already built, needs to be discoverable)
+- [ ] Hierarchical WBS color differentiation — parent vs child nodes get distinct colors automatically
+- [ ] Persist last-used layout so schedule reopens with the same grouping/view
+
+## WBS Parent-Child Bug Fix (March 29 - Session 12)
+- [x] Fix WBS parent-child assignment bug — was using w.code instead of w.id for parent select value
+- [x] Make WBS parent relationship editable — added parent dropdown to inline edit mode in WBSTree
+- [x] Ensure WBS tree correctly reflects parent-child hierarchy

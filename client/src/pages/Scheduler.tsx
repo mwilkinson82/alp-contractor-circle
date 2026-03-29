@@ -1245,8 +1245,11 @@ export default function Scheduler() {
                         }`}
                         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
                         onClick={(e) => {
+                          // Don't handle if click originated from checkbox or dropdown
+                          const target = e.target as HTMLElement;
+                          if (target.tagName === 'INPUT' || target.closest('button') || target.closest('[role="menu"]')) return;
                           if (e.shiftKey && lastClickedId !== null) {
-                            // Shift+click: select range
+                            e.preventDefault();
                             const allActs = groupedActivities.flatMap(g => g.activities);
                             const idx1 = allActs.findIndex(a => a.id === lastClickedId);
                             const idx2 = allActs.findIndex(a => a.id === act.id);
@@ -1258,14 +1261,12 @@ export default function Scheduler() {
                               setSelectedActivityIds(newSet);
                             }
                           } else if (e.ctrlKey || e.metaKey) {
-                            // Ctrl/Cmd+click: toggle single
                             const newSet = new Set(selectedActivityIds);
                             if (newSet.has(act.id)) newSet.delete(act.id);
                             else newSet.add(act.id);
                             setSelectedActivityIds(newSet);
                             setLastClickedId(act.id);
                           } else {
-                            // Normal click: open detail, clear selection
                             setSelectedActivityIds(new Set());
                             openActivityDetail(act);
                           }
@@ -1315,12 +1316,12 @@ export default function Scheduler() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="bg-white border-gray-200 text-gray-900">
-                              <DropdownMenuItem onClick={() => openActivityDetail(act)} className="text-foreground">
+                              <DropdownMenuItem onClick={() => openActivityDetail(act)} className="text-gray-900">
                                 <Settings className="w-3.5 h-3.5 mr-2" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 if (scheduleId) addActivityMut.mutate({ scheduleId, name: "New Activity", duration: 5, afterActivityId: act.id });
-                              }} className="text-foreground">
+                              }} className="text-gray-900">
                                 <Plus className="w-3.5 h-3.5 mr-2" /> Insert Below
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -1481,7 +1482,7 @@ export default function Scheduler() {
 
       {/* ── Activity Detail Modal ───────────────────────────────────────────── */}
       <Dialog open={showActivityDetailModal} onOpenChange={setShowActivityDetailModal}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-3xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Activity Details</DialogTitle>
             <DialogDescription>Edit all properties of this activity.</DialogDescription>
@@ -1530,7 +1531,7 @@ export default function Scheduler() {
                             : "None (top level)"}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         <SelectItem value="__none__" className="text-gray-900">None (top level)</SelectItem>
                         {wbsNodes.map((w: any) => (
                           <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
@@ -1551,7 +1552,7 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Calendar</Label>
                   <Select value={detailCalendarId} onValueChange={setDetailCalendarId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Default" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
                       <SelectItem value=" " className="text-gray-900">Default Calendar</SelectItem>
                       {calendars.map((cal: any) => (
                         <SelectItem key={cal.id} value={String(cal.id)} className="text-gray-900">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
@@ -1594,7 +1595,7 @@ export default function Scheduler() {
                       <SelectTrigger className="mt-0.5 border-gray-300 text-xs h-8">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         <SelectItem value="ASAP" className="text-gray-900 text-xs">As Soon As Possible</SelectItem>
                         <SelectItem value="ALAP" className="text-gray-900 text-xs">As Late As Possible</SelectItem>
                         <SelectItem value="SNET" className="text-gray-900 text-xs">Start No Earlier Than</SelectItem>
@@ -1758,7 +1759,7 @@ export default function Scheduler() {
 
       {/* ── Add Activity Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Add Activity</DialogTitle>
             <DialogDescription>Create a new task or milestone in this schedule.</DialogDescription>
@@ -1800,7 +1801,7 @@ export default function Scheduler() {
                 {wbsNodes.length > 0 ? (
                   <Select value={newActWbs || "__none__"} onValueChange={(v) => setNewActWbs(v === "__none__" ? "" : v)}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
                       <SelectItem value="__none__" className="text-gray-900">None</SelectItem>
                       {wbsNodes.map((w: any) => (
                         <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
@@ -1839,7 +1840,7 @@ export default function Scheduler() {
 
       {/* ── Bulk Add Activities Dialog ──────────────────────────────────────── */}
       <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Bulk Add Activities</DialogTitle>
             <DialogDescription>Create multiple activities at once with auto-generated IDs.</DialogDescription>
@@ -2028,7 +2029,7 @@ export default function Scheduler() {
 
       {/* ── Activity ID Settings Dialog ─────────────────────────────────────── */}
       <Dialog open={showIdSettingsDialog} onOpenChange={setShowIdSettingsDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Activity ID Settings</DialogTitle>
             <DialogDescription>Configure how new Activity IDs are generated.</DialogDescription>
@@ -2075,7 +2076,7 @@ export default function Scheduler() {
 
       {/* ── Add Relationship Dialog ─────────────────────────────────────────── */}
       <Dialog open={showRelationshipDialog} onOpenChange={setShowRelationshipDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Add Relationship</DialogTitle>
             <DialogDescription>Define a logic tie between two activities.</DialogDescription>
@@ -2085,9 +2086,9 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Predecessor</Label>
               <Select value={newRelPred} onValueChange={setNewRelPred}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select predecessor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
+                <SelectContent className="bg-white border-gray-200 max-h-60 text-gray-900">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)} className="text-foreground">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="text-gray-900">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2096,9 +2097,9 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Successor</Label>
               <Select value={newRelSucc} onValueChange={setNewRelSucc}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select successor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
+                <SelectContent className="bg-white border-gray-200 max-h-60 text-gray-900">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)} className="text-foreground">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="text-gray-900">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2108,7 +2109,7 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600">Type</Label>
                 <Select value={newRelType} onValueChange={setNewRelType}>
                   <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
                       <SelectItem value="FS" className="text-gray-900">Finish-to-Start (FS)</SelectItem>
                       <SelectItem value="SS" className="text-gray-900">Start-to-Start (SS)</SelectItem>
                       <SelectItem value="FF" className="text-gray-900">Finish-to-Finish (FF)</SelectItem>
@@ -2141,7 +2142,7 @@ export default function Scheduler() {
 
       {/* ── Save Baseline Dialog ────────────────────────────────────────────── */}
       <Dialog open={showBaselineDialog} onOpenChange={setShowBaselineDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Save Baseline</DialogTitle>
             <DialogDescription>Save the current schedule as the original baseline for comparison.</DialogDescription>
@@ -2170,7 +2171,7 @@ export default function Scheduler() {
 
       {/* ── Save Update Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Save Schedule Update</DialogTitle>
             <DialogDescription>
@@ -2208,7 +2209,7 @@ export default function Scheduler() {
 
       {/* ── Set Data Date Dialog ────────────────────────────────────────────── */}
       <Dialog open={showDataDatePicker} onOpenChange={setShowDataDatePicker}>
-        <DialogContent className="bg-white border-gray-200 max-w-xs text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Set Data Date</DialogTitle>
             <DialogDescription>The data date is the "as-of" date for CPM calculations. It is independent of today's calendar date.</DialogDescription>
@@ -2271,7 +2272,7 @@ export default function Scheduler() {
                   <SelectTrigger className="border-gray-300 text-sm" id="newCalWorkWeek">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
+                  <SelectContent className="bg-white border-gray-200 text-gray-900">
                     <SelectItem value="5day" className="text-gray-900">5-Day (Mon-Fri)</SelectItem>
                     <SelectItem value="6day" className="text-gray-900">6-Day (Mon-Sat)</SelectItem>
                     <SelectItem value="7day" className="text-gray-900">7-Day</SelectItem>
@@ -2449,7 +2450,7 @@ export default function Scheduler() {
 
       {/* ── Schedule Health Dialog ───────────────────────────────────────────── */}
       <Dialog open={showScheduleHealth} onOpenChange={setShowScheduleHealth}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Schedule Health Check</DialogTitle>
             <DialogDescription>Review schedule integrity and identify issues.</DialogDescription>
@@ -2557,7 +2558,7 @@ export default function Scheduler() {
 
       {/* ── Schedule Info Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showScheduleInfo} onOpenChange={setShowScheduleInfo}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Schedule Information</DialogTitle>
           </DialogHeader>
@@ -2581,7 +2582,7 @@ export default function Scheduler() {
 
        {/* ── Gantt Display Settings Dialog ──────────────────────────────────── */}
       <Dialog open={showGanttSettings} onOpenChange={setShowGanttSettings}>
-        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Gantt Display Settings</DialogTitle>
             <DialogDescription>Customize how activity labels appear on the Gantt chart.</DialogDescription>
@@ -2620,7 +2621,7 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Font Family</Label>
               <Select value={ganttFontFamily} onValueChange={setGanttFontFamily}>
                 <SelectTrigger className="mt-1 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200">
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   <SelectItem value="DM Sans" className="text-gray-900">DM Sans</SelectItem>
                   <SelectItem value="Arial" className="text-gray-900">Arial</SelectItem>
                   <SelectItem value="Helvetica" className="text-gray-900">Helvetica</SelectItem>
@@ -2666,8 +2667,8 @@ export default function Scheduler() {
               onUpdateColor={(id, groupColor, groupTextColor) => {
                 if (scheduleId) updateWbsMut.mutate({ id, scheduleId, groupColor, groupTextColor });
               }}
-              onUpdateNode={(id, code, name) => {
-                if (scheduleId) updateWbsMut.mutate({ id, scheduleId, code, name });
+              onUpdateNode={(id, code, name, parentId) => {
+                if (scheduleId) updateWbsMut.mutate({ id, scheduleId, code, name, parentId });
               }}
             />
 
@@ -2688,10 +2689,10 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Parent (optional)</Label>
                   <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="None (top level)" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
                       <SelectItem value=" " className="text-gray-900">None</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={String(w.id)} className="text-gray-900">{w.code} — {w.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -2724,7 +2725,7 @@ export default function Scheduler() {
 
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
-        <DialogContent className="bg-white border-gray-200 max-w-md text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Advanced Filters</DialogTitle>
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
@@ -2749,11 +2750,11 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 text-foreground">
-                  <SelectItem value="none" className="text-foreground">No lookahead filter</SelectItem>
-                  <SelectItem value="1week" className="text-foreground">1-Week Lookahead</SelectItem>
-                  <SelectItem value="2week" className="text-foreground">2-Week Lookahead</SelectItem>
-                  <SelectItem value="4week" className="text-foreground">4-Week Lookahead</SelectItem>
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
+                  <SelectItem value="none" className="text-gray-900">No lookahead filter</SelectItem>
+                  <SelectItem value="1week" className="text-gray-900">1-Week Lookahead</SelectItem>
+                  <SelectItem value="2week" className="text-gray-900">2-Week Lookahead</SelectItem>
+                  <SelectItem value="4week" className="text-gray-900">4-Week Lookahead</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2881,6 +2882,7 @@ export default function Scheduler() {
               pageSize: config.pageSize,
               orientation: config.orientation,
               showGantt: config.showGantt,
+              showTable: config.showTable ?? false,
               showCriticalPathOnly: config.criticalPathOnly,
             });
             toast.success("PDF exported successfully");
@@ -2935,7 +2937,7 @@ export default function Scheduler() {
 
       {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
       <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>
-        <DialogContent className="max-w-sm bg-white">
+        <DialogContent className="max-w-lg bg-white text-gray-900">
           <DialogHeader>
             <DialogTitle className="text-gray-900">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
@@ -2945,7 +2947,7 @@ export default function Scheduler() {
           <div className="space-y-3 py-2">
             <Select value={bulkWbsTarget || "__none__"} onValueChange={(v) => setBulkWbsTarget(v === "__none__" ? "" : v)}>
               <SelectTrigger className="border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="bg-white border-gray-200 text-gray-900">
                 <SelectItem value="__none__" className="text-gray-900">None (remove WBS)</SelectItem>
                 {wbsNodes.map((w: any) => (
                   <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>

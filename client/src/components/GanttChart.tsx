@@ -1072,6 +1072,7 @@ export default function GanttChart({
 
     if (showTodayLine) {
       const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to midnight so it aligns with data date
       const todayX = daysBetween(rangeStart, today) * pixelsPerDay + offsetX;
       if (todayX > 0 && todayX < visibleWidth) {
         ctx.strokeStyle = COLORS.todayLine;

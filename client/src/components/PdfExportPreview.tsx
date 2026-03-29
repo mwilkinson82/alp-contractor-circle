@@ -16,6 +16,7 @@ export interface PdfHeaderFooterConfig {
   pageSize: "letter" | "legal" | "tabloid";
   orientation: "landscape" | "portrait";
   showGantt: boolean;
+  showTable: boolean;
   criticalPathOnly: boolean;
 }
 
@@ -94,6 +95,7 @@ export function PdfExportPreview({
   const [pageSize, setPageSize] = useState<"letter" | "legal" | "tabloid">("tabloid");
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
   const [showGantt, setShowGantt] = useState(true);
+  const [showTable, setShowTable] = useState(false);
   const [criticalPathOnly, setCriticalPathOnly] = useState(false);
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -522,6 +524,7 @@ export function PdfExportPreview({
       pageSize,
       orientation,
       showGantt,
+      showTable,
       criticalPathOnly,
     });
   };
@@ -693,6 +696,10 @@ export function PdfExportPreview({
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={showGantt} onCheckedChange={(c) => setShowGantt(!!c)} />
                   <span className="text-xs text-gray-700">Include Gantt Chart</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={showTable} onCheckedChange={(c) => setShowTable(!!c)} />
+                  <span className="text-xs text-gray-700">Include Activity Table</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={criticalPathOnly} onCheckedChange={(c) => setCriticalPathOnly(!!c)} />

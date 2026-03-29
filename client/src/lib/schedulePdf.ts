@@ -76,6 +76,7 @@ export interface PdfExportOptions {
 
   // Display options
   showGantt: boolean;
+  showTable: boolean;
   showCriticalPathOnly: boolean;
 }
 
@@ -142,6 +143,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     pageSize,
     orientation,
     showGantt,
+    showTable,
     showCriticalPathOnly,
     footerConfig,
     headerConfig,
@@ -377,53 +379,55 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     doc.text("  ·  Critical Path Only", margin + doc.getTextWidth(statsText), statsY);
   }
 
-  // ─── Activity Table (full width) ───────────────────────────────────────────
-  const tableStartY = statsY + 4;
+  // ─── Activity Table (only if showTable is true) ───────────────────────────
+  if (showTable) {
+    const tableStartY = statsY + 4;
 
-  autoTable(doc, {
-    startY: tableStartY,
-    margin: { left: margin, right: margin, bottom: footerHeight + 4 },
-    head: [selectedColumns.map((c) => c.header)],
-    body: tableData.map((row) => selectedColumns.map((c) => (row as any)[c.dataKey])),
-    theme: "plain",
-    styles: {
-      fontSize: 7,
-      cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 },
-      textColor: colors.text,
-      lineColor: colors.border,
-      lineWidth: 0.1,
-    },
-    headStyles: {
-      fillColor: colors.navy,
-      textColor: colors.gold,
-      fontStyle: "bold",
-      fontSize: 7,
-    },
-    alternateRowStyles: {
-      fillColor: colors.warmGray,
-    },
-    bodyStyles: {
-      fillColor: colors.white,
-    },
-    columnStyles: columnWidths.reduce((acc, w, i) => {
-      acc[i] = { cellWidth: w };
-      return acc;
-    }, {} as Record<number, { cellWidth: number }>),
-    didParseCell: (data) => {
-      if (data.section === "body") {
-        const rowData = tableData[data.row.index];
-        if (rowData?._isCritical) {
-          if (data.column.index === 0) {
-            data.cell.styles.textColor = colors.critical;
-            data.cell.styles.fontStyle = "bold";
+    autoTable(doc, {
+      startY: tableStartY,
+      margin: { left: margin, right: margin, bottom: footerHeight + 4 },
+      head: [selectedColumns.map((c) => c.header)],
+      body: tableData.map((row) => selectedColumns.map((c) => (row as any)[c.dataKey])),
+      theme: "plain",
+      styles: {
+        fontSize: 7,
+        cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 },
+        textColor: colors.text,
+        lineColor: colors.border,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: colors.navy,
+        textColor: colors.gold,
+        fontStyle: "bold",
+        fontSize: 7,
+      },
+      alternateRowStyles: {
+        fillColor: colors.warmGray,
+      },
+      bodyStyles: {
+        fillColor: colors.white,
+      },
+      columnStyles: columnWidths.reduce((acc, w, i) => {
+        acc[i] = { cellWidth: w };
+        return acc;
+      }, {} as Record<number, { cellWidth: number }>),
+      didParseCell: (data) => {
+        if (data.section === "body") {
+          const rowData = tableData[data.row.index];
+          if (rowData?._isCritical) {
+            if (data.column.index === 0) {
+              data.cell.styles.textColor = colors.critical;
+              data.cell.styles.fontStyle = "bold";
+            }
           }
         }
-      }
-    },
-    didDrawPage: () => {
-      drawHeader();
-    },
-  });
+      },
+      didDrawPage: () => {
+        drawHeader();
+      },
+    });
+  }
 
   // ─── Gantt Chart Section ────────────────────────────────────────────────────
   if (showGantt && filteredActivities.length > 0) {
@@ -449,9 +453,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       return;
     }
 
-    // Start Gantt on a new page
-    doc.addPage();
-    drawHeader();
+    // Start Gantt on a new page (or continue on first page if no table)
+    if (showTable) {
+      doc.addPage();
+      drawHeader();
+    }
 
     const ganttTop = headerHeight + 10;
     const legendHeight = 8;
