@@ -1,0 +1,1 @@
+ALTER TABLE `activities` ADD `isOnLongestPath` boolean DEFAULT false NOT NULL;

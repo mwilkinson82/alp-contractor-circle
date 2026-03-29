@@ -648,3 +648,18 @@
 - [ ] Add color picker UI for WBS group customization (like P6)
 - [ ] Store WBS group color preferences per schedule
 - [ ] Apply custom colors to group header backgrounds with white text
+
+
+## Critical Scheduler Fixes (March 29 - Session 3)
+- [x] Fix milestone color not updating - Now uses act.barColor for milestone diamonds in Gantt
+- [x] Fix data date picker - DD button now prominent with amber pulse when unset, defaults to today, opens date picker dialog
+- [ ] Add Gantt text customization - Font size, color, and font family controls for activity descriptions
+
+
+## Critical Scheduler Fixes (March 29 - Session 4)
+- [x] Fix WBS grouping - Show WBS description with bold styling and custom colors in group headers
+- [x] Add activity date constraints - ASAP, ALAP, SNET, SNLT, FNET, FNLT, MSO, MFO with date picker in activity modal
+- [x] Enhance calendar management - Full CRUD with 5/6/7-day options, holiday picker, workday overrides, US holidays auto-add
+- [x] Apply Gantt font customization - Font size slider, color picker, font family selector with live preview in Gantt Settings dialog
+- [ ] Rebuild PDF export preview - Visual schedule preview with header/footer 3-column configuration
+- [x] Add longest path filter - Traces driving predecessors from terminal activity, stored in DB, filterable in UI

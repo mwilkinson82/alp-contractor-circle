@@ -130,6 +130,7 @@ async function recalculateAndPersist(scheduleId: number) {
           totalFloat: result.totalFloat,
           freeFloat: result.freeFloat,
           isCritical: result.isCritical,
+          isOnLongestPath: result.isOnLongestPath,
         },
       });
     }
@@ -745,6 +746,8 @@ export const scheduleRouter = router({
         barColor: z.string().nullable().optional(),
         wbsId: z.number().nullable().optional(),
         activityType: z.enum(["task", "milestone"]).optional(),
+        constraintType: z.enum(["ASAP", "ALAP", "SNET", "SNLT", "FNET", "FNLT", "MSO", "MFO"]).optional(),
+        constraintDate: z.date().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -764,6 +767,8 @@ export const scheduleRouter = router({
       if (data.barColor !== undefined) updateData.barColor = data.barColor;
       if (data.wbsId !== undefined) updateData.wbsId = data.wbsId;
       if (data.activityType !== undefined) updateData.activityType = data.activityType;
+      if (data.constraintType !== undefined) updateData.constraintType = data.constraintType;
+      if (data.constraintDate !== undefined) updateData.constraintDate = data.constraintDate;
 
       await sdb.updateActivity(id, updateData);
       await recalculateAndPersist(scheduleId);
@@ -1097,6 +1102,7 @@ export const scheduleRouter = router({
           lateFinish: a.lateFinish,
           totalFloat: a.totalFloat,
           isCritical: a.isCritical,
+          isOnLongestPath: a.isOnLongestPath,
         })),
       };
     }),

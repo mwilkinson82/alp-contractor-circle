@@ -70,6 +70,9 @@ interface GanttChartProps {
   showTodayLine: boolean;
   onDurationChange?: (activityId: number, newDuration: number) => void;
   onRelationshipCreate?: (predecessorId: number, successorId: number, type: string) => void;
+  ganttFontSize?: number;   // px, default 9
+  ganttFontColor?: string;  // hex, default labelText
+  ganttFontFamily?: string; // e.g. "DM Sans", "Arial"
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -204,6 +207,9 @@ export default function GanttChart({
   showTodayLine,
   onDurationChange,
   onRelationshipCreate,
+  ganttFontSize = 9,
+  ganttFontColor,
+  ganttFontFamily = "DM Sans",
 }: GanttChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -752,11 +758,12 @@ export default function GanttChart({
       // ── Activity bar ──────────────────────────────────────────────────
 
       if (act.duration === 0 || (act as any).activityType === "milestone") {
-        // Milestone diamond
+        // Milestone diamond — use custom barColor if set, else default
         const cx = barX;
         const cy = barY + BAR_HEIGHT / 2;
         const size = 6;
-        ctx.fillStyle = COLORS.milestone;
+        const milestoneFill = act.barColor || COLORS.milestone;
+        ctx.fillStyle = milestoneFill;
         ctx.beginPath();
         ctx.moveTo(cx, cy - size);
         ctx.lineTo(cx + size, cy);
@@ -764,11 +771,15 @@ export default function GanttChart({
         ctx.lineTo(cx - size, cy);
         ctx.closePath();
         ctx.fill();
+        // Stroke for visibility
+        ctx.strokeStyle = milestoneFill;
+        ctx.lineWidth = 1;
+        ctx.stroke();
         barRects.push({ activityId: act.id, x: cx - size, y: cy - size, w: size * 2, h: size * 2, isMilestone: true });
 
         // Label above milestone
-        ctx.fillStyle = COLORS.labelText;
-        ctx.font = "9px 'DM Sans', sans-serif";
+        ctx.fillStyle = ganttFontColor || COLORS.labelText;
+        ctx.font = `${ganttFontSize}px '${ganttFontFamily}', sans-serif`;
         ctx.textAlign = "left";
         ctx.fillText(act.name, cx + size + 4, cy + 3);
       } else {
@@ -810,13 +821,14 @@ export default function GanttChart({
         ctx.lineWidth = 1;
 
         // Activity label ABOVE the bar
-        ctx.fillStyle = COLORS.labelText;
-        ctx.font = "9px 'DM Sans', sans-serif";
+        ctx.fillStyle = ganttFontColor || COLORS.labelText;
+        ctx.font = `${ganttFontSize}px '${ganttFontFamily}', sans-serif`;
         ctx.textAlign = "left";
         ctx.textBaseline = "bottom";
         const labelMaxWidth = Math.max(barW, 120); // Allow label to extend beyond short bars
-        const maxChars = Math.floor(labelMaxWidth / 5.5);
-        const label = act.name.length > maxChars ? act.name.slice(0, maxChars) + "…" : act.name;
+        const charWidth = ganttFontSize * 0.6;
+        const maxChars = Math.floor(labelMaxWidth / charWidth);
+        const label = act.name.length > maxChars ? act.name.slice(0, maxChars) + "\u2026" : act.name;
         ctx.fillText(label, barX, barY - 2);
         ctx.textBaseline = "alphabetic";
 

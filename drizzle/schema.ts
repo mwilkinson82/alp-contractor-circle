@@ -229,6 +229,7 @@ export const activities = mysqlTable("activities", {
   freeFloat: int("freeFloat"),
   /** Whether this activity is on the critical path */
   isCritical: boolean("isCritical").default(false).notNull(),
+  isOnLongestPath: boolean("isOnLongestPath").default(false).notNull(),
   /** Sort order within the schedule */
   sortOrder: int("sortOrder").default(0).notNull(),
   /** Calendar override for this activity (null = use schedule default) */
@@ -239,6 +240,10 @@ export const activities = mysqlTable("activities", {
   wbsId: int("wbsId"),
   /** Activity type: task (regular bar) or milestone (diamond, 0 duration) */
   activityType: varchar("activityType", { length: 16 }).default("task").notNull(),
+  /** Constraint type for scheduling (e.g. ASAP, SNET, SNLT, FNET, FNLT, MSO, MFO) */
+  constraintType: varchar("constraintType", { length: 16 }).default("ASAP").notNull(),
+  /** Constraint date (used with SNET, SNLT, FNET, FNLT, MSO, MFO) */
+  constraintDate: timestamp("constraintDate"),
   /** Optional notes */
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

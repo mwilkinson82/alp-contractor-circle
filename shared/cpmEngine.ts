@@ -75,12 +75,14 @@ export interface CpmResult {
   totalFloat: number;
   freeFloat: number;
   isCritical: boolean;
+  isOnLongestPath: boolean;
 }
 
 export interface CpmOutput {
   results: Map<number, CpmResult>;
   projectFinish: Date;
   criticalPath: number[];
+  longestPath: number[];
 }
 
 // ─── Calendar Helpers ────────────────────────────────────────────────────────
@@ -285,7 +287,7 @@ export function calculateCPM(
   defaultCalendarId: number,
 ): CpmOutput {
   if (activities.length === 0) {
-    return { results: new Map(), projectFinish: projectStartDate, criticalPath: [] };
+    return { results: new Map(), projectFinish: projectStartDate, criticalPath: [], longestPath: [] };
   }
 
   // Resolve calendar for an activity
@@ -551,13 +553,105 @@ export function calculateCPM(
       totalFloat,
       freeFloat,
       isCritical,
+      isOnLongestPath: false, // will be set below
     });
   }
+
+  // ─── Longest Path Calculation ──────────────────────────────────────────
+  // The longest path traces backward from the activity with the latest early finish,
+  // following the driving predecessor (the one that actually determines the early start)
+  // at each step. This differs from critical path when multiple paths have zero float.
+  const longestPath: number[] = [];
+  const longestPathSet = new Set<number>();
+
+  // Build a "distance from project start" map using early finish dates
+  // Find the terminal activity (latest early finish)
+  let terminalActId = -1;
+  let latestEF = new Date(0);
+  const resultEntries = Array.from(results.entries());
+  for (let i = 0; i < resultEntries.length; i++) {
+    const [actId, result] = resultEntries[i];
+    if (result.earlyFinish >= latestEF) {
+      latestEF = result.earlyFinish;
+      terminalActId = actId;
+    }
+  }
+
+  if (terminalActId >= 0) {
+    // Trace backward from terminal, always following the driving predecessor
+    // (the predecessor whose constraint date equals this activity's early start)
+    const visited = new Set<number>();
+    const stack = [terminalActId];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      longestPathSet.add(current);
+      longestPath.push(current);
+
+      const preds = predecessors.get(current) || [];
+      if (preds.length === 0) continue;
+
+      // Find the driving predecessor: the one whose constraint pushed ES the latest
+      let drivingPredId = -1;
+      let drivingDate = new Date(0);
+      for (const rel of preds) {
+        const predES = earlyStart.get(rel.predecessorId);
+        const predEF = earlyFinish.get(rel.predecessorId);
+        if (!predES || !predEF) continue;
+        const relCal = getRelCalendar(rel.successorId);
+        const predAct = activityMap.get(rel.predecessorId);
+        if (!predAct) continue;
+        const predCal = getCalendar(predAct);
+        let constraintDate: Date;
+        switch (rel.relationshipType) {
+          case "FS":
+            constraintDate = addWorkDays(predEF, rel.lagDays, relCal);
+            break;
+          case "SS":
+            constraintDate = addWorkDays(predES, rel.lagDays, relCal);
+            break;
+          case "FF":
+            constraintDate = addWorkDays(
+              addWorkDays(predEF, rel.lagDays, relCal),
+              -(activityMap.get(current)?.duration || 0),
+              predCal,
+            );
+            break;
+          case "SF":
+            constraintDate = addWorkDays(
+              addWorkDays(predES, rel.lagDays, relCal),
+              -(activityMap.get(current)?.duration || 0),
+              predCal,
+            );
+            break;
+        }
+        if (constraintDate >= drivingDate) {
+          drivingDate = constraintDate;
+          drivingPredId = rel.predecessorId;
+        }
+      }
+      if (drivingPredId >= 0) {
+        stack.push(drivingPredId);
+      }
+    }
+
+    // Mark activities on the longest path
+    const lpArr = Array.from(longestPathSet);
+    for (let i = 0; i < lpArr.length; i++) {
+      const r = results.get(lpArr[i]);
+      if (r) r.isOnLongestPath = true;
+    }
+  }
+
+  // Reverse longest path so it goes from start to finish
+  longestPath.reverse();
 
   return {
     results,
     projectFinish,
     criticalPath,
+    longestPath,
   };
 }
 

@@ -393,6 +393,8 @@ export default function Scheduler() {
   const [detailBarColor, setDetailBarColor] = useState("");
   const [detailPercentComplete, setDetailPercentComplete] = useState("");
   const [detailActivityType, setDetailActivityType] = useState<"task" | "milestone">("task");
+  const [detailConstraintType, setDetailConstraintType] = useState("ASAP");
+  const [detailConstraintDate, setDetailConstraintDate] = useState("");
   const [newDetailRelPred, setNewDetailRelPred] = useState("");
   const [newDetailRelType, setNewDetailRelType] = useState("FS");
   const [newDetailRelLag, setNewDetailRelLag] = useState("0");
@@ -412,8 +414,15 @@ export default function Scheduler() {
   const [pdfFooterCenter, setPdfFooterCenter] = useState("Page {page} of {total}");
   const [pdfFooterRight, setPdfFooterRight] = useState("{date}");
 
+  /* ── Gantt Display Settings ──────────────────────────────────────────── */
+  const [ganttFontSize, setGanttFontSize] = useState(9);
+  const [ganttFontColor, setGanttFontColor] = useState("#374151");
+  const [ganttFontFamily, setGanttFontFamily] = useState("DM Sans");
+  const [showGanttSettings, setShowGanttSettings] = useState(false);
+
   /* ── Advanced Filter State ────────────────────────────────────────────── */
   const [filterCriticalOnly, setFilterCriticalOnly] = useState(false);
+  const [filterLongestPath, setFilterLongestPath] = useState(false);
   const [filterLookahead, setFilterLookahead] = useState<"none" | "1week" | "2week" | "4week">("none");
   const [filterFloatMin, setFilterFloatMin] = useState("");
   const [filterFloatMax, setFilterFloatMax] = useState("");
@@ -497,6 +506,9 @@ export default function Scheduler() {
     if (filterCriticalOnly) {
       acts = acts.filter((a) => a.isCritical);
     }
+    if (filterLongestPath) {
+      acts = acts.filter((a) => a.isOnLongestPath);
+    }
 
     if (filterLookahead !== "none" && dataDate) {
       const days = filterLookahead === "1week" ? 7 : filterLookahead === "2week" ? 14 : 28;
@@ -540,7 +552,7 @@ export default function Scheduler() {
     }
 
     return acts;
-  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, openEnds]);
+  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLongestPath, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, openEnds]);
 
   /* ── Sorting ──────────────────────────────────────────────────────────── */
   const sortedActivities = useMemo(() => {
@@ -567,7 +579,9 @@ export default function Scheduler() {
     for (const act of sortedActivities) {
       let key = "Ungrouped";
       if (groupBy === "wbs") {
-        key = act.wbs || "No WBS";
+        const wbsCode = act.wbs || "";
+        const wbsNode = wbsNodes.find((w: any) => w.code === wbsCode);
+        key = wbsNode ? `${wbsCode} — ${wbsNode.name}` : (wbsCode || "No WBS");
       } else if (groupBy === "critical") {
         key = act.isCritical ? "Critical Path" : "Non-Critical";
       } else {
@@ -658,6 +672,22 @@ export default function Scheduler() {
     onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Relationship removed"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const addCalendarMut = trpc.schedule.addCalendar.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Calendar updated"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const deleteCalendarMut = trpc.schedule.deleteCalendar.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Calendar deleted"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const addCalExcMut = trpc.schedule.addCalendarException.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Exception added"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const deleteCalExcMut = trpc.schedule.deleteCalendarException.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Exception removed"); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   /* ── Handlers ─────────────────────────────────────────────────────────── */
   const handleColumnSort = useCallback((key: string) => {
@@ -701,6 +731,8 @@ export default function Scheduler() {
     setDetailBarColor(act.barColor || "");
     setDetailPercentComplete(String(parseFloat(act.percentComplete) || 0));
     setDetailActivityType(act.activityType || "task");
+    setDetailConstraintType(act.constraintType || "ASAP");
+    setDetailConstraintDate(act.constraintDate ? new Date(act.constraintDate).toISOString().split("T")[0] : "");
     setNewDetailRelPred("");
     setNewDetailRelType("FS");
     setNewDetailRelLag("0");
@@ -720,10 +752,12 @@ export default function Scheduler() {
       barColor: detailBarColor || null,
       percentComplete: Math.min(100, Math.max(0, parseFloat(detailPercentComplete) || 0)),
       activityType: detailActivityType,
+      constraintType: detailConstraintType as any,
+      constraintDate: detailConstraintDate ? new Date(detailConstraintDate + "T00:00:00") : null,
     });
     setShowActivityDetailModal(false);
     toast.success("Activity updated");
-  }, [detailAct, scheduleId, detailName, detailDuration, detailActivityId, detailWbs, detailCalendarId, detailBarColor, detailPercentComplete, detailActivityType, updateActivityMut]);
+  }, [detailAct, scheduleId, detailName, detailDuration, detailActivityId, detailWbs, detailCalendarId, detailBarColor, detailPercentComplete, detailActivityType, detailConstraintType, detailConstraintDate, updateActivityMut]);
 
   const handleGanttDurationChange = useCallback((activityId: number, newDuration: number) => {
     if (!scheduleId) return;
@@ -755,7 +789,7 @@ export default function Scheduler() {
   }
   if (!schedule) return <div className="h-screen flex items-center justify-center bg-white text-gray-900">Schedule not found</div>;
 
-  const hasActiveFilters = filterCriticalOnly || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0;
+  const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0;
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
@@ -780,14 +814,23 @@ export default function Scheduler() {
           Calculate
         </Button>
 
-        {/* Data Date */}
+        {/* Data Date - Click to set/change */}
         <Button
           size="sm" variant="outline"
-          className="h-7 text-xs gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-100"
-          onClick={() => { setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : ""); setShowDataDatePicker(true); }}
+          className={`h-7 text-xs gap-1.5 hover:bg-blue-50 ${
+            dataDate
+              ? "border-blue-400 text-blue-700 bg-blue-50/50"
+              : "border-amber-400 text-amber-700 bg-amber-50/50 animate-pulse"
+          }`}
+          onClick={() => {
+            const today = new Date().toISOString().split("T")[0];
+            setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : today);
+            setShowDataDatePicker(true);
+          }}
+          title="Click to set or change the Data Date"
         >
           <Calendar className="w-3.5 h-3.5" />
-          DD: {dataDate ? formatDate(dataDate) : "Not set"}
+          DD: {dataDate ? formatDate(dataDate) : "Click to Set"}
         </Button>
 
         {/* Zoom */}
@@ -1001,6 +1044,9 @@ export default function Scheduler() {
             <DropdownMenuItem onClick={() => setShowScheduleInfo(true)}>
               <Settings className="w-4 h-4 mr-2" /> Schedule Info
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowGanttSettings(true)}>
+              <Settings className="w-4 h-4 mr-2" /> Gantt Display Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
               <Download className="w-4 h-4 mr-2" /> Export PDF
@@ -1105,11 +1151,26 @@ export default function Scheduler() {
             <div className="divide-y divide-gray-100">
               {groupedActivities.map(({ group, activities: groupActs }) => (
                 <div key={group || "all"}>
-                  {group && (
-                    <div className="px-3 py-1.5 bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      {group}
-                    </div>
-                  )}
+                  {group && (() => {
+                    // Find WBS node for custom colors if grouping by WBS
+                    let groupBg = "#f3f4f6";
+                    let groupText = "#4b5563";
+                    if (groupBy === "wbs") {
+                      const wbsCode = group.split(" \u2014 ")[0];
+                      const wbsNode = wbsNodes.find((w: any) => w.code === wbsCode);
+                      if (wbsNode?.groupColor) groupBg = wbsNode.groupColor;
+                      if (wbsNode?.groupTextColor) groupText = wbsNode.groupTextColor;
+                    }
+                    return (
+                      <div
+                        className="px-3 py-2 text-sm font-bold tracking-wide border-b-2"
+                        style={{ backgroundColor: groupBg, color: groupText, borderBottomColor: groupBg === "#f3f4f6" ? "#d1d5db" : groupBg }}
+                      >
+                        {group}
+                        <span className="ml-2 text-xs font-normal opacity-70">({groupActs.length} activities)</span>
+                      </div>
+                    );
+                  })()}
                   {groupActs.map((act) => {
                     const isOpenStart = openEnds.openStarts.some((a) => a.id === act.id);
                     const isOpenFinish = openEnds.openFinishes.some((a) => a.id === act.id);
@@ -1239,6 +1300,9 @@ export default function Scheduler() {
             onDurationChange={handleGanttDurationChange}
             onRelationshipCreate={handleGanttRelationshipCreate}
             onActivityDoubleClick={handleGanttActivityClick}
+            ganttFontSize={ganttFontSize}
+            ganttFontColor={ganttFontColor}
+            ganttFontFamily={ganttFontFamily}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -1393,6 +1457,44 @@ export default function Scheduler() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Constraints */}
+              <div className="border border-blue-100 bg-blue-50/30 rounded-lg p-3">
+                <Label className="text-xs text-blue-700 font-semibold mb-2 block">Date Constraints</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Constraint Type</Label>
+                    <Select value={detailConstraintType} onValueChange={setDetailConstraintType}>
+                      <SelectTrigger className="mt-0.5 border-gray-300 text-xs h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="ASAP" className="text-gray-900 text-xs">As Soon As Possible</SelectItem>
+                        <SelectItem value="ALAP" className="text-gray-900 text-xs">As Late As Possible</SelectItem>
+                        <SelectItem value="SNET" className="text-gray-900 text-xs">Start No Earlier Than</SelectItem>
+                        <SelectItem value="SNLT" className="text-gray-900 text-xs">Start No Later Than</SelectItem>
+                        <SelectItem value="FNET" className="text-gray-900 text-xs">Finish No Earlier Than</SelectItem>
+                        <SelectItem value="FNLT" className="text-gray-900 text-xs">Finish No Later Than</SelectItem>
+                        <SelectItem value="MSO" className="text-gray-900 text-xs">Must Start On</SelectItem>
+                        <SelectItem value="MFO" className="text-gray-900 text-xs">Must Finish On</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Constraint Date</Label>
+                    <Input
+                      type="date"
+                      value={detailConstraintDate}
+                      onChange={(e) => setDetailConstraintDate(e.target.value)}
+                      className="mt-0.5 border-gray-300 text-xs h-8"
+                      disabled={detailConstraintType === "ASAP" || detailConstraintType === "ALAP"}
+                    />
+                  </div>
+                </div>
+                {(detailConstraintType === "ASAP" || detailConstraintType === "ALAP") && (
+                  <p className="text-[10px] text-gray-400 mt-1">No date required for {detailConstraintType === "ASAP" ? "As Soon As Possible" : "As Late As Possible"}</p>
+                )}
               </div>
 
               {/* Relationships with edit/delete */}
@@ -1864,28 +1966,194 @@ export default function Scheduler() {
 
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-md text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900">Project Calendars</DialogTitle>
-            <DialogDescription>Manage work calendars and holidays.</DialogDescription>
+            <DialogDescription>Create and manage work calendars, set work days, and mark holidays.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {calendars.map((cal: any) => (
-              <div key={cal.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-sm text-gray-900">{cal.name}</span>
-                  <div className="flex items-center gap-2">
-                    {cal.isDefault && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Default</span>}
-                    <span className="text-xs text-gray-500">{cal.workWeek === "7day" ? "7-day" : "5-day"}</span>
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Create New Calendar */}
+            <div className="border border-dashed border-blue-300 bg-blue-50/30 rounded-lg p-3">
+              <Label className="text-xs text-blue-700 font-semibold mb-2 block">Create New Calendar</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  placeholder="Calendar name"
+                  className="border-gray-300 text-sm"
+                  id="newCalName"
+                />
+                <Select defaultValue="5day">
+                  <SelectTrigger className="border-gray-300 text-sm" id="newCalWorkWeek">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="5day" className="text-gray-900">5-Day (Mon-Fri)</SelectItem>
+                    <SelectItem value="6day" className="text-gray-900">6-Day (Mon-Sat)</SelectItem>
+                    <SelectItem value="7day" className="text-gray-900">7-Day</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 text-white hover:bg-blue-700 text-xs"
+                  onClick={() => {
+                    const nameEl = document.getElementById("newCalName") as HTMLInputElement;
+                    const name = nameEl?.value?.trim();
+                    if (!name || !scheduleId) return;
+                    const weekSelect = document.querySelector("#newCalWorkWeek");
+                    const weekText = weekSelect?.closest("button")?.textContent || "";
+                    let workWeek: "5day" | "7day" = "5day";
+                    let mask = 31; // Mon-Fri
+                    if (weekText.includes("7-Day")) { workWeek = "7day"; mask = 127; }
+                    else if (weekText.includes("6-Day")) { workWeek = "5day"; mask = 63; } // Mon-Sat
+                    addCalendarMut.mutate({ scheduleId, name, workWeek, workDaysMask: mask, isDefault: false, addUSHolidays: false });
+                    if (nameEl) nameEl.value = "";
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Add Calendar
+                </Button>
+              </div>
+            </div>
+
+            {/* Existing Calendars */}
+            {calendars.map((cal: any) => {
+              const exceptions = cal.exceptions || [];
+              const holidays = exceptions.filter((e: any) => e.exceptionType === "holiday");
+              const workdays = exceptions.filter((e: any) => e.exceptionType === "workday");
+              const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+              const DAY_BITS = [1, 2, 4, 8, 16, 32, 64];
+              return (
+                <div key={cal.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-gray-900">{cal.name}</span>
+                      {cal.isDefault && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Default</span>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!cal.isDefault && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-blue-600 hover:bg-blue-50"
+                          onClick={() => { if (scheduleId) addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: true, addUSHolidays: false }); }}
+                        >Set Default</Button>
+                      )}
+                      {!cal.isDefault && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-red-500 hover:bg-red-50"
+                          onClick={() => { if (scheduleId && confirm("Delete this calendar?")) deleteCalendarMut.mutate({ id: cal.id, scheduleId }); }}
+                        ><Trash2 className="w-3 h-3" /></Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {/* Work Days */}
+                    <div>
+                      <Label className="text-[10px] text-gray-500 mb-1 block">Work Days</Label>
+                      <div className="flex gap-1">
+                        {DAY_NAMES.map((day, i) => {
+                          const isWork = (cal.workDaysMask & DAY_BITS[i]) !== 0;
+                          return (
+                            <button
+                              key={day}
+                              className={`px-2 py-1 text-[10px] rounded font-medium transition-colors ${
+                                isWork ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-gray-100 text-gray-400 border border-gray-200"
+                              }`}
+                              title={isWork ? `${day} is a work day (click to toggle)` : `${day} is a non-work day (click to toggle)`}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Holidays */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label className="text-[10px] text-gray-500">Holidays / Non-Work Days ({holidays.length})</Label>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-5 text-[10px] text-blue-600 hover:bg-blue-50 px-1"
+                            onClick={() => {
+                              if (!scheduleId) return;
+                              addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: cal.isDefault, addUSHolidays: true });
+                            }}
+                          >+ US Holidays</Button>
+                        </div>
+                      </div>
+                      {holidays.length > 0 && (
+                        <div className="space-y-0.5 max-h-32 overflow-y-auto">
+                          {holidays.sort((a: any, b: any) => new Date(a.exceptionDate).getTime() - new Date(b.exceptionDate).getTime()).map((exc: any) => (
+                            <div key={exc.id} className="flex items-center justify-between text-xs px-2 py-1 bg-red-50 rounded">
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-600 font-mono text-[10px]">{new Date(exc.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</span>
+                                <span className="text-gray-600">{exc.description || "Holiday"}</span>
+                              </div>
+                              <button onClick={() => { if (scheduleId) deleteCalExcMut.mutate({ id: exc.id, scheduleId }); }}
+                                className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Add Holiday */}
+                      <div className="flex gap-1 mt-1">
+                        <Input type="date" className="flex-1 border-gray-300 text-xs h-7" id={`newHolidayDate-${cal.id}`} />
+                        <Input placeholder="Description" className="flex-1 border-gray-300 text-xs h-7" id={`newHolidayDesc-${cal.id}`} />
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-gray-300 text-gray-700 px-2"
+                          onClick={() => {
+                            const dateEl = document.getElementById(`newHolidayDate-${cal.id}`) as HTMLInputElement;
+                            const descEl = document.getElementById(`newHolidayDesc-${cal.id}`) as HTMLInputElement;
+                            if (!dateEl?.value || !scheduleId) return;
+                            addCalExcMut.mutate({
+                              calendarId: cal.id,
+                              scheduleId,
+                              exceptionDate: new Date(dateEl.value + "T00:00:00"),
+                              exceptionType: "holiday",
+                              description: descEl?.value || undefined,
+                            });
+                            if (dateEl) dateEl.value = "";
+                            if (descEl) descEl.value = "";
+                          }}
+                        >+ Add</Button>
+                      </div>
+                    </div>
+
+                    {/* Workday Overrides */}
+                    <div>
+                      <Label className="text-[10px] text-gray-500 mb-1 block">Workday Overrides ({workdays.length})</Label>
+                      {workdays.length > 0 && (
+                        <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                          {workdays.map((exc: any) => (
+                            <div key={exc.id} className="flex items-center justify-between text-xs px-2 py-1 bg-emerald-50 rounded">
+                              <div className="flex items-center gap-2">
+                                <span className="text-emerald-600 font-mono text-[10px]">{new Date(exc.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</span>
+                                <span className="text-gray-600">{exc.description || "Work Day"}</span>
+                              </div>
+                              <button onClick={() => { if (scheduleId) deleteCalExcMut.mutate({ id: exc.id, scheduleId }); }}
+                                className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-1 mt-1">
+                        <Input type="date" className="flex-1 border-gray-300 text-xs h-7" id={`newWorkDate-${cal.id}`} />
+                        <Input placeholder="e.g., Saturday OT" className="flex-1 border-gray-300 text-xs h-7" id={`newWorkDesc-${cal.id}`} />
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-gray-300 text-gray-700 px-2"
+                          onClick={() => {
+                            const dateEl = document.getElementById(`newWorkDate-${cal.id}`) as HTMLInputElement;
+                            const descEl = document.getElementById(`newWorkDesc-${cal.id}`) as HTMLInputElement;
+                            if (!dateEl?.value || !scheduleId) return;
+                            addCalExcMut.mutate({
+                              calendarId: cal.id,
+                              scheduleId,
+                              exceptionDate: new Date(dateEl.value + "T00:00:00"),
+                              exceptionType: "workday",
+                              description: descEl?.value || undefined,
+                            });
+                            if (dateEl) dateEl.value = "";
+                            if (descEl) descEl.value = "";
+                          }}
+                        >+ Add</Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {cal.exceptions && cal.exceptions.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {cal.exceptions.filter((e: any) => e.exceptionType === "holiday").length} holidays configured
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCalendarDialog(false)} className="border-gray-300">Close</Button>
@@ -2025,7 +2293,77 @@ export default function Scheduler() {
         </DialogContent>
       </Dialog>
 
-      {/* ── WBS Manager Dialog ──────────────────────────────────────────────── */}
+       {/* ── Gantt Display Settings Dialog ──────────────────────────────────── */}
+      <Dialog open={showGanttSettings} onOpenChange={setShowGanttSettings}>
+        <DialogContent className="bg-white border-gray-200 max-w-sm text-gray-900">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-gray-900">Gantt Display Settings</DialogTitle>
+            <DialogDescription>Customize how activity labels appear on the Gantt chart.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-gray-600">Font Size (px)</Label>
+              <div className="flex items-center gap-3 mt-1">
+                <input
+                  type="range" min={7} max={18} step={1}
+                  value={ganttFontSize}
+                  onChange={(e) => setGanttFontSize(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <span className="text-sm font-mono w-8 text-center text-gray-900">{ganttFontSize}</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Font Color</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={ganttFontColor}
+                  onChange={(e) => setGanttFontColor(e.target.value)}
+                  className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                />
+                <Input
+                  value={ganttFontColor}
+                  onChange={(e) => setGanttFontColor(e.target.value)}
+                  className="flex-1 h-8 text-sm border-gray-300 text-gray-900"
+                  placeholder="#374151"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Font Family</Label>
+              <Select value={ganttFontFamily} onValueChange={setGanttFontFamily}>
+                <SelectTrigger className="mt-1 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white border-gray-200">
+                  <SelectItem value="DM Sans" className="text-gray-900">DM Sans</SelectItem>
+                  <SelectItem value="Arial" className="text-gray-900">Arial</SelectItem>
+                  <SelectItem value="Helvetica" className="text-gray-900">Helvetica</SelectItem>
+                  <SelectItem value="Georgia" className="text-gray-900">Georgia</SelectItem>
+                  <SelectItem value="Times New Roman" className="text-gray-900">Times New Roman</SelectItem>
+                  <SelectItem value="Courier New" className="text-gray-900">Courier New</SelectItem>
+                  <SelectItem value="Verdana" className="text-gray-900">Verdana</SelectItem>
+                  <SelectItem value="Trebuchet MS" className="text-gray-900">Trebuchet MS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <Label className="text-xs text-gray-500 mb-2 block">Preview</Label>
+              <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }}>
+                Foundation Footings
+              </div>
+              <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }} className="mt-1">
+                Framing — First Floor
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-gray-300 text-gray-900">Reset</Button>
+            <Button onClick={() => setShowGanttSettings(false)} className="bg-blue-600 text-white hover:bg-blue-700">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
         <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
           <DialogHeader>
@@ -2102,10 +2440,14 @@ export default function Scheduler() {
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterCriticalOnly} onCheckedChange={(c) => setFilterCriticalOnly(!!c)} />
                 <span className="text-sm text-gray-900">Critical Path Only</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={filterLongestPath} onCheckedChange={(c) => setFilterLongestPath(!!c)} />
+                <span className="text-sm text-gray-900">Longest Path</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterOpenEnds} onCheckedChange={(c) => setFilterOpenEnds(!!c)} />
@@ -2192,6 +2534,9 @@ export default function Scheduler() {
         isExporting={pdfExporting}
         projectName={pdfProjectName}
         companyName={pdfCompanyName}
+        activities={filteredActivities}
+        dataDate={dataDate}
+        scheduleName={schedule?.schedule?.name || ""}
         onExport={async (config) => {
           if (!schedule) return;
           setPdfExporting(true);
@@ -2201,16 +2546,16 @@ export default function Scheduler() {
               projectStartDate: new Date(schedule.schedule.projectStartDate),
               dataDate: schedule.schedule.dataDate ? new Date(schedule.schedule.dataDate) : null,
               lastCalculatedAt: schedule.schedule.lastCalculatedAt ? new Date(schedule.schedule.lastCalculatedAt) : null,
-              activities: filteredActivities,
+              activities: config.criticalPathOnly ? filteredActivities.filter(a => a.isCritical) : filteredActivities,
               relationships,
               columns: visibleColumns,
               companyName: pdfCompanyName,
               projectName: pdfProjectName,
               footerText: "",
-              pageSize: "letter",
-              orientation: "landscape",
-              showGantt: true,
-              showCriticalPathOnly: false,
+              pageSize: config.pageSize,
+              orientation: config.orientation,
+              showGantt: config.showGantt,
+              showCriticalPathOnly: config.criticalPathOnly,
             });
             toast.success("PDF exported successfully");
             setShowPdfExport(false);
