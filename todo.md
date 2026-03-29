@@ -395,3 +395,17 @@
 ## Webhook Monitoring Notifications
 - [x] Add detailed purchase monitoring notification to Stripe webhook (member name, email, status, merge result)
 - [x] Include error/warning alerts when merge fails or records are ambiguous
+
+## Reactivate Subscription
+- [ ] Add reactivateSubscription procedure to memberRouter.ts
+- [ ] Add reactivate button to PortalAccount.tsx (visible when cancelAtPeriodEnd is true)
+
+## Admin Members Dashboard
+- [ ] Create admin members page with full member list
+- [ ] Show subscription status, Discord link status, Stripe customer ID, last login
+- [ ] Add route to App.tsx and navigation in MemberPortalLayout
+- [ ] Admin-only access (memberRole === 'admin')
+
+## Failed Payment Notification
+- [ ] Add notification to invoice.payment_failed webhook handler
+- [ ] Include member name, amount, and failure reason in notification

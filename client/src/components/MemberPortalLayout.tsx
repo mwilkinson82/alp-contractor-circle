@@ -28,6 +28,7 @@ const menuItems = [
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
+  { icon: Users, label: "Members", path: "/portal/members", adminOnly: true },
 ];
 
 function MemberPortalSkeleton() {

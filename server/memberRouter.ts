@@ -405,6 +405,78 @@ export const memberRouter = router({
   }),
 
   /**
+   * Reactivate a subscription that was set to cancel at period end.
+   */
+  reactivateSubscription: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (!member.stripeSubscriptionId || !stripe) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No active subscription found" });
+    }
+
+    try {
+      const sub = await stripe.subscriptions.update(member.stripeSubscriptionId, {
+        cancel_at_period_end: false,
+      }) as any;
+      return {
+        success: true,
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: sub.current_period_end
+          ? new Date(sub.current_period_end * 1000)
+          : null,
+      };
+    } catch (err: any) {
+      console.error("[Member] Failed to reactivate subscription:", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to reactivate subscription. Please try again or contact support.",
+      });
+    }
+  }),
+
+  /**
+   * Admin: Get all members with subscription and Discord status.
+   */
+  adminMembers: publicProcedure.query(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (member.memberRole !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    }
+
+    const db = getDb();
+    if (!db) return { members: [] };
+
+    const rows = await db
+      .select()
+      .from(members)
+      .orderBy(desc(members.createdAt));
+
+    return {
+      members: rows.map(m => ({
+        id: m.id,
+        discordId: m.discordId,
+        discordUsername: m.discordUsername,
+        displayName: m.discordDisplayName || m.discordUsername,
+        email: m.email,
+        subscriptionStatus: m.subscriptionStatus,
+        memberRole: m.memberRole,
+        stripeCustomerId: m.stripeCustomerId,
+        stripeSubscriptionId: m.stripeSubscriptionId,
+        hasDiscord: !m.discordId?.startsWith("email:"),
+        avatarUrl: m.discordAvatar
+          ? `https://cdn.discordapp.com/avatars/${m.discordId}/${m.discordAvatar}.png?size=64`
+          : null,
+        createdAt: m.createdAt,
+      })),
+    };
+  }),
+
+  /**
    * Get payment history from Stripe for the current member.
    */
   payments: publicProcedure.query(async ({ ctx }) => {

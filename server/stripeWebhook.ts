@@ -338,11 +338,42 @@ export function registerStripeWebhook(app: Express) {
           }
 
           case "invoice.payment_failed": {
-            const invoice = event.data.object as Stripe.Invoice;
+            const failedInvoice = event.data.object as Stripe.Invoice;
+            const failedCustId = typeof failedInvoice.customer === "string"
+              ? failedInvoice.customer
+              : (failedInvoice.customer as any)?.id || "unknown";
+            const failedEmail = (failedInvoice as any).customer_email || "unknown";
+            const failedName = (failedInvoice as any).customer_name || failedEmail;
+            const failedAmount = failedInvoice.amount_due
+              ? `$${(failedInvoice.amount_due / 100).toFixed(2)}`
+              : "unknown";
+            const attemptNum = (failedInvoice as any).attempt_count || 1;
+
             console.log(
-              `[Stripe Webhook] Invoice payment failed — id: ${invoice.id}, customer: ${invoice.customer}`
+              `[Stripe Webhook] Invoice payment failed — id: ${failedInvoice.id}, customer: ${failedCustId}, email: ${failedEmail}`
             );
-            // Future: Notify member, retry logic
+
+            try {
+              await notifyOwner({
+                title: `Payment Failed — ${failedName}`,
+                content: [
+                  `A payment has failed for a Contractor Circle member.`,
+                  ``,
+                  `Member: ${failedName}`,
+                  `Email: ${failedEmail}`,
+                  `Amount: ${failedAmount}`,
+                  `Attempt: #${attemptNum}`,
+                  `Stripe Customer: ${failedCustId}`,
+                  `Invoice: ${failedInvoice.id}`,
+                  ``,
+                  `Action needed: Reach out to the member to update their payment method.`,
+                  `Stripe will automatically retry the payment. If it continues to fail,`,
+                  `the subscription will eventually be canceled.`,
+                ].join("\n"),
+              });
+            } catch (notifErr) {
+              console.error("[Stripe Webhook] Failed to send payment failure notification:", notifErr);
+            }
             break;
           }
 

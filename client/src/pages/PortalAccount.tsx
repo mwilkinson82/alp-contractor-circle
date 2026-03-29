@@ -57,6 +57,11 @@ export default function PortalAccount() {
       utils.member.subscription.invalidate();
     },
   });
+  const reactivateMutation = trpc.member.reactivateSubscription.useMutation({
+    onSuccess: () => {
+      utils.member.subscription.invalidate();
+    },
+  });
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
   const memberRole = member?.memberRole || "member";
@@ -178,6 +183,13 @@ export default function PortalAccount() {
                   <AlertCircle className="w-4 h-4" />
                   Your subscription is set to cancel at the end of the current billing period.
                 </p>
+                <button
+                  onClick={() => reactivateMutation.mutate()}
+                  disabled={reactivateMutation.isPending}
+                  className="mt-3 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-all disabled:opacity-50"
+                >
+                  {reactivateMutation.isPending ? "Reactivating..." : "Keep My Subscription"}
+                </button>
               </div>
             )}
 
