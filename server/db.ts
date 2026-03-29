@@ -126,3 +126,18 @@ export async function subscribeEmail(email: string): Promise<{ success: boolean;
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// Activity ID generation helper
+/**
+ * Generate the next Activity ID for a schedule based on its ID settings.
+ * For example: prefix="E", start=100, interval=5 → "E100", "E105", "E110", etc.
+ */
+export function generateNextActivityId(
+  prefix: string,
+  currentNext: number,
+  interval: number
+): { activityId: string; nextNumber: number } {
+  const activityId = `${prefix}${currentNext}`;
+  const nextNumber = currentNext + interval;
+  return { activityId, nextNumber };
+}

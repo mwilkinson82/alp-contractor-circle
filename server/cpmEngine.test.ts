@@ -13,6 +13,7 @@ import {
   isWorkDay,
   getUSConstructionHolidays,
   generateNextActivityId,
+  generateNextActivityIdFromExisting,
   DAY_BITS,
   PRESET_MASKS,
   type CpmActivity,
@@ -221,20 +222,34 @@ describe("US Construction Holidays", () => {
 // ─── Activity ID Generation ──────────────────────────────────────────────────
 
 describe("generateNextActivityId", () => {
+  it("generates ID with prefix and interval", () => {
+    expect(generateNextActivityId("E", 100, 5)).toBe("E100");
+  });
+
+  it("works with different prefixes", () => {
+    expect(generateNextActivityId("P", 1, 1)).toBe("P1");
+  });
+
+  it("handles large intervals", () => {
+    expect(generateNextActivityId("A", 1000, 10)).toBe("A1000");
+  });
+});
+
+describe("generateNextActivityIdFromExisting (legacy)", () => {
   it("returns A1010 for empty list", () => {
-    expect(generateNextActivityId([])).toBe("A1010");
+    expect(generateNextActivityIdFromExisting([])).toBe("A1010");
   });
 
   it("increments by 10 from max", () => {
-    expect(generateNextActivityId(["A1010", "A1020"])).toBe("A1030");
+    expect(generateNextActivityIdFromExisting(["A1010", "A1020"])).toBe("A1030");
   });
 
   it("handles non-standard IDs gracefully", () => {
-    expect(generateNextActivityId(["A1010", "custom", "A1050"])).toBe("A1060");
+    expect(generateNextActivityIdFromExisting(["A1010", "custom", "A1050"])).toBe("A1060");
   });
 
   it("returns A1010 when no valid IDs exist", () => {
-    expect(generateNextActivityId(["custom", "xyz"])).toBe("A1010");
+    expect(generateNextActivityIdFromExisting(["custom", "xyz"])).toBe("A1010");
   });
 });
 

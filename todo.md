@@ -561,3 +561,15 @@
 - [ ] WBS tree: add description field for each WBS node (e.g., "1.0 Smith Residence", "1.1 General Conditions", "1.2 Submittals")
 - [ ] WBS tree: support multi-level hierarchy (1.0, 1.1, 1.1.1, 1.2, etc.)
 - [ ] Fix font colors in table: ensure all text is readable (some rows have light text on light background)
+
+## Critical Workflow Improvements (March 29 - User Feedback Round 2)
+- [ ] PDF export: activity names/descriptions must appear above bars in Gantt (not just in table)
+- [ ] Activity ID management: add prefix system (e.g., "E" for electrical, "P" for plumbing)
+- [ ] Activity ID sequences: configurable interval (E1, E2, E3 or E100, E105, E110)
+- [ ] Activity ID auto-increment: when adding activities, auto-generate next ID in sequence
+- [ ] Bulk activity creation: "Add N activities" dialog (add 5, 10, 50 at once)
+- [ ] Bulk activities: creates all with auto-generated IDs immediately in table
+- [ ] Add activity button in table header (top of activity list, not just bottom)
+- [ ] Add activity button in toolbar or multiple locations
+- [ ] Bulk add accessible from both header and bottom of table
+- [ ] Activity ID field in add-activity dialog (user can set prefix and starting number)

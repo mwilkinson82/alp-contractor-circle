@@ -675,12 +675,21 @@ export const scheduleRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const { schedule } = await requireScheduleOwner(ctx.req, input.scheduleId);
 
-      // Generate next activity ID
+      // Generate next activity ID using schedule settings
+      const activityId = generateNextActivityId(
+        schedule.activityIdPrefix,
+        schedule.activityIdNext,
+        schedule.activityIdInterval
+      );
+      const nextNumber = schedule.activityIdNext + schedule.activityIdInterval;
+
+      // Update schedule's activityIdNext for next time
+      await sdb.updateSchedule(input.scheduleId, { activityIdNext: nextNumber });
+
+      // Get existing activities for sort order
       const existingActs = await sdb.getActivitiesBySchedule(input.scheduleId);
-      const existingIds = existingActs.map((a) => a.activityId);
-      const activityId = generateNextActivityId(existingIds);
 
       // Determine sort order
       let sortOrder = existingActs.length;
@@ -774,6 +783,67 @@ export const scheduleRouter = router({
       await requireScheduleOwner(ctx.req, input.scheduleId);
       const updates = input.activityIds.map((id, i) => ({ id, data: { sortOrder: i } }));
       await sdb.bulkUpdateActivities(updates);
+      return { success: true };
+    }),
+
+  bulkAddActivities: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        count: z.number().min(1).max(500),
+        namePrefix: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { schedule } = await requireScheduleOwner(ctx.req, input.scheduleId);
+      const existingActs = await sdb.getActivitiesBySchedule(input.scheduleId);
+      let currentNext = schedule.activityIdNext;
+      const createdIds: { id: number; activityId: string }[] = [];
+
+      for (let i = 0; i < input.count; i++) {
+        const activityId = generateNextActivityId(
+          schedule.activityIdPrefix,
+          currentNext,
+          schedule.activityIdInterval
+        );
+        currentNext += schedule.activityIdInterval;
+        const name = input.namePrefix ? `${input.namePrefix} ${i + 1}` : `Activity ${i + 1}`;
+        const sortOrder = existingActs.length + i;
+        const { id } = await sdb.createActivity({
+          scheduleId: input.scheduleId,
+          activityId,
+          name,
+          duration: 1,
+          sortOrder,
+        });
+        createdIds.push({ id, activityId });
+      }
+
+      await sdb.updateSchedule(input.scheduleId, { activityIdNext: currentNext });
+      await recalculateAndPersist(input.scheduleId);
+      return { createdIds, count: createdIds.length };
+    }),
+
+  updateScheduleIdSettings: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        activityIdPrefix: z.string().min(1).max(10).optional(),
+        activityIdStart: z.number().min(1).optional(),
+        activityIdInterval: z.number().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { scheduleId, ...settings } = input;
+      await requireScheduleOwner(ctx.req, scheduleId);
+      const updates: any = {};
+      if (settings.activityIdPrefix !== undefined) updates.activityIdPrefix = settings.activityIdPrefix;
+      if (settings.activityIdStart !== undefined) {
+        updates.activityIdStart = settings.activityIdStart;
+        updates.activityIdNext = settings.activityIdStart;
+      }
+      if (settings.activityIdInterval !== undefined) updates.activityIdInterval = settings.activityIdInterval;
+      await sdb.updateSchedule(scheduleId, updates);
       return { success: true };
     }),
 

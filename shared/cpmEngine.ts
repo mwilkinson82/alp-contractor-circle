@@ -563,7 +563,23 @@ export function calculateCPM(
 
 // ─── Utility: Generate next activity ID ──────────────────────────────────────
 
-export function generateNextActivityId(existingIds: string[]): string {
+/**
+ * Generate the next Activity ID for a schedule based on its ID settings.
+ * For example: prefix="E", nextNumber=100, interval=5 → "E100", then next is 105
+ */
+export function generateNextActivityId(
+  prefix: string,
+  nextNumber: number,
+  interval: number
+): string {
+  return `${prefix}${nextNumber}`;
+}
+
+/**
+ * Legacy function: generate Activity ID from existing IDs (for backward compatibility)
+ * Kept for templates and other legacy code paths
+ */
+export function generateNextActivityIdFromExisting(existingIds: string[]): string {
   if (existingIds.length === 0) return "A1010";
 
   const numbers = existingIds

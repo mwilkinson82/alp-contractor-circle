@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `schedules` ADD `activityIdPrefix` varchar(10) DEFAULT 'A' NOT NULL;\nALTER TABLE `schedules` ADD `activityIdStart` int DEFAULT 1 NOT NULL;\nALTER TABLE `schedules` ADD `activityIdInterval` int DEFAULT 1 NOT NULL;\nALTER TABLE `schedules` ADD `activityIdNext` int DEFAULT 1 NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute ALTER TABLE `schedules` ADD `activityIdPrefix` varchar(10) DEFAULT 'A' NOT NULL;\nALTER TABLE `schedules` ADD `activityIdStart` int DEFAULT 1 NOT NULL;\nALTER TABLE `schedules` ADD `activityIdInterval` int DEFAULT 1 NOT NULL;\nALTER TABLE `schedules` ADD `activityIdNext` int DEFAULT 1 NOT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2537
+}

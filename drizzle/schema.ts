@@ -178,6 +178,14 @@ export const schedules = mysqlTable("schedules", {
   status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
   /** Which template this was created from (null if blank) */
   templateId: varchar("templateId", { length: 64 }),
+  /** Activity ID prefix (e.g. E for electrical, P for plumbing) */
+  activityIdPrefix: varchar("activityIdPrefix", { length: 10 }).default("A").notNull(),
+  /** Activity ID starting number (e.g. 1, 100, 1000) */
+  activityIdStart: int("activityIdStart").default(1).notNull(),
+  /** Activity ID interval/increment (e.g. 1, 5, 10) */
+  activityIdInterval: int("activityIdInterval").default(1).notNull(),
+  /** Next activity ID number to assign (e.g. 1010, 1020) */
+  activityIdNext: int("activityIdNext").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

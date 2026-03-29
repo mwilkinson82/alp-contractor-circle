@@ -416,6 +416,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.setLineDashPattern([], 0);
           }
         }
+
+        // Activity name above bar
+        doc.setFontSize(4);
+        doc.setTextColor(...colors.text);
+        const barLabel = act.name.substring(0, 20);
+        const labelX = x1 + (barWidth / 2);
+        doc.text(barLabel, labelX, barY - 1, { align: "center", maxWidth: barWidth - 0.5 });
       }
     });
 
