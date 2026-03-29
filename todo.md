@@ -395,3 +395,9 @@
 ## Webhook Monitoring Notifications
 - [x] Add detailed purchase monitoring notification to Stripe webhook (member name, email, status, merge result)
 - [x] Include error/warning alerts when merge fails or records are ambiguous
+
+## Test Cleanup and Member Count Fix
+- [x] Delete 4 Vitest test records from Supabase
+- [x] Add deleteSupabaseTestRecords function to supabaseClient.ts
+- [x] Fix supabaseClient.test.ts cleanup to prevent test record accumulation
+- [x] Verify founding member badge now shows correct count (12 of 50)
