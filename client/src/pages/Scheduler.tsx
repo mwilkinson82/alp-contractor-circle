@@ -2541,6 +2541,28 @@ export default function Scheduler() {
           if (!schedule) return;
           setPdfExporting(true);
           try {
+            // Build footer config from the preview modal's column settings
+            const contentToToken = (c: string) => {
+              switch (c) {
+                case "company": return "{companyName}";
+                case "project": return "{projectName}";
+                case "schedule": return "{scheduleName}";
+                case "date": return "{date}";
+                case "datadate": return "Data Date: {dataDate}";
+                case "page": return "Page {page} of {total}";
+                case "empty": return "";
+                default: return "";
+              }
+            };
+            const fCols = config.footerColumns || [];
+            const footerConfig = {
+              columns: config.footerColumnCount || 3,
+              left: fCols[0] ? contentToToken(fCols[0].content) : "",
+              centerLeft: fCols.length >= 4 ? contentToToken(fCols[1]?.content || "empty") : undefined,
+              center: fCols.length === 3 ? contentToToken(fCols[1]?.content || "empty") : fCols.length === 5 ? contentToToken(fCols[2]?.content || "empty") : contentToToken(fCols[1]?.content || "empty"),
+              centerRight: fCols.length >= 4 ? contentToToken(fCols[fCols.length - 2]?.content || "empty") : undefined,
+              right: fCols[fCols.length - 1] ? contentToToken(fCols[fCols.length - 1].content) : "",
+            };
             await generateSchedulePdf({
               scheduleName: schedule.schedule.name,
               projectStartDate: new Date(schedule.schedule.projectStartDate),
@@ -2552,6 +2574,7 @@ export default function Scheduler() {
               companyName: pdfCompanyName,
               projectName: pdfProjectName,
               footerText: "",
+              footerConfig,
               pageSize: config.pageSize,
               orientation: config.orientation,
               showGantt: config.showGantt,

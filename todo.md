@@ -663,3 +663,12 @@
 - [x] Apply Gantt font customization - Font size slider, color picker, font family selector with live preview in Gantt Settings dialog
 - [ ] Rebuild PDF export preview - Visual schedule preview with header/footer 3-column configuration
 - [x] Add longest path filter - Traces driving predecessors from terminal activity, stored in DB, filterable in UI
+
+
+## PDF Export Overhaul (March 29)
+- [x] Fix table width - Auto-size columns to fill full page width with grow property
+- [x] Fix Gantt activity labels truncated - Dynamic label width based on longest name (60-100mm)
+- [x] Fix Gantt bar labels overlapping - Labels placed to right of bars instead of above
+- [x] Fix legend overlapping with footer - Legend positioned with proper spacing above footer
+- [x] Reduce wasted space - Gantt paginated with proper row heights
+- [x] Wire footer config from preview modal to PDF generator with token replacement
