@@ -225,6 +225,10 @@ export const activities = mysqlTable("activities", {
   sortOrder: int("sortOrder").default(0).notNull(),
   /** Calendar override for this activity (null = use schedule default) */
   calendarId: int("calendarId"),
+  /** Custom bar color for Gantt (hex, e.g. "#FF0000"). Null = auto (red=critical, green=non-critical) */
+  barColor: varchar("barColor", { length: 16 }),
+  /** WBS node ID (references schedule_wbs.id) */
+  wbsId: int("wbsId"),
   /** Optional notes */
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -233,6 +237,28 @@ export const activities = mysqlTable("activities", {
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = typeof activities.$inferInsert;
+
+/**
+ * WBS (Work Breakdown Structure) nodes — hierarchical tree structure for organizing activities.
+ * e.g. 1.0 Sitework → 1.1 Clearing → 1.2 Grading, 2.0 Foundation → 2.1 Excavation → 2.2 Footings
+ */
+export const scheduleWbs = mysqlTable("schedule_wbs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Parent WBS node (null = top level) */
+  parentId: int("parentId"),
+  /** WBS code e.g. "1.0", "1.1", "2.0" */
+  code: varchar("code", { length: 32 }).notNull(),
+  /** WBS name e.g. "Sitework", "Foundation" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Sort order within parent */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ScheduleWbs = typeof scheduleWbs.$inferSelect;
+export type InsertScheduleWbs = typeof scheduleWbs.$inferInsert;
 
 /**
  * Activity relationships (logic ties) — defines predecessor/successor links.

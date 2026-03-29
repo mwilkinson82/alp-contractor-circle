@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `schedule_wbs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`scheduleId` int NOT NULL,\n\t`parentId` int,\n\t`code` varchar(32) NOT NULL,\n\t`name` varchar(256) NOT NULL,\n\t`sortOrder` int NOT NULL DEFAULT 0,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `schedule_wbs_id` PRIMARY KEY(`id`)\n);\nALTER TABLE `activities` ADD `barColor` varchar(16);\nALTER TABLE `activities` ADD `wbsId` int;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute CREATE TABLE `schedule_wbs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`scheduleId` int NOT NULL,\n\t`parentId` int,\n\t`code` varchar(32) NOT NULL,\n\t`name` varchar(256) NOT NULL,\n\t`sortOrder` int NOT NULL DEFAULT 0,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `schedule_wbs_id` PRIMARY KEY(`id`)\n);\nALTER TABLE `activities` ADD `barColor` varchar(16);\nALTER TABLE `activities` ADD `wbsId` int;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 910
+}

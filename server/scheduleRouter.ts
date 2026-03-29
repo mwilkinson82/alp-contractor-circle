@@ -379,6 +379,9 @@ export const scheduleRouter = router({
         calendarsWithExceptions.push({ ...cal, exceptions });
       }
 
+      // Get WBS nodes
+      const wbsNodes = await sdb.getWbsBySchedule(input.id);
+
       // Get baselines/updates (metadata only, not full snapshots)
       const baselines = await sdb.getBaselinesBySchedule(input.id);
       const baselineMeta = baselines.map((b) => ({
@@ -400,6 +403,7 @@ export const scheduleRouter = router({
         codeCategories,
         codeAssignments,
         baselines: baselineMeta,
+        wbsNodes,
       };
     }),
 
@@ -722,6 +726,9 @@ export const scheduleRouter = router({
         actualFinish: z.date().nullable().optional(),
         calendarId: z.number().nullable().optional(),
         notes: z.string().nullable().optional(),
+        activityId: z.string().nullable().optional(),
+        barColor: z.string().nullable().optional(),
+        wbsId: z.number().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -737,6 +744,9 @@ export const scheduleRouter = router({
       if (data.actualFinish !== undefined) updateData.actualFinish = data.actualFinish;
       if (data.calendarId !== undefined) updateData.calendarId = data.calendarId;
       if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.activityId !== undefined) updateData.activityId = data.activityId;
+      if (data.barColor !== undefined) updateData.barColor = data.barColor;
+      if (data.wbsId !== undefined) updateData.wbsId = data.wbsId;
 
       await sdb.updateActivity(id, updateData);
       await recalculateAndPersist(scheduleId);
@@ -1154,6 +1164,112 @@ export const scheduleRouter = router({
       await sdb.deleteCalendarException(input.id);
       await recalculateAndPersist(input.scheduleId);
       return { success: true };
+    }),
+
+  // ── WBS (Work Breakdown Structure) ──────────────────────────────────────
+
+  getWbs: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      return sdb.getWbsBySchedule(input.scheduleId);
+    }),
+
+  createWbsNode: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        parentId: z.number().nullable().optional(),
+        code: z.string().min(1).max(32),
+        name: z.string().min(1).max(256),
+        sortOrder: z.number().default(0),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const { id } = await sdb.createWbsNode({
+        scheduleId: input.scheduleId,
+        parentId: input.parentId ?? null,
+        code: input.code,
+        name: input.name,
+        sortOrder: input.sortOrder,
+      });
+      return { id };
+    }),
+
+  updateWbsNode: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        scheduleId: z.number(),
+        parentId: z.number().nullable().optional(),
+        code: z.string().min(1).max(32).optional(),
+        name: z.string().min(1).max(256).optional(),
+        sortOrder: z.number().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const { id, scheduleId, ...data } = input;
+      await sdb.updateWbsNode(id, data);
+      return { success: true };
+    }),
+
+  deleteWbsNode: publicProcedure
+    .input(z.object({ id: z.number(), scheduleId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      await sdb.deleteWbsNode(input.id);
+      return { success: true };
+    }),
+
+  // ── Schedule Health / Open Ends ─────────────────────────────────────────
+
+  getScheduleHealth: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const acts = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const rels = await sdb.getRelationshipsBySchedule(input.scheduleId);
+
+      const actIds = new Set(acts.map((a) => a.id));
+      const hasPredecessor = new Set<number>();
+      const hasSuccessor = new Set<number>();
+
+      for (const r of rels) {
+        if (actIds.has(r.successorId)) hasPredecessor.add(r.successorId);
+        if (actIds.has(r.predecessorId)) hasSuccessor.add(r.predecessorId);
+      }
+
+      const openStarts = acts.filter((a) => !hasPredecessor.has(a.id)).map((a) => ({
+        id: a.id,
+        activityId: a.activityId,
+        name: a.name,
+      }));
+
+      const openFinishes = acts.filter((a) => !hasSuccessor.has(a.id)).map((a) => ({
+        id: a.id,
+        activityId: a.activityId,
+        name: a.name,
+      }));
+
+      const criticalCount = acts.filter((a) => a.isCritical).length;
+      const negativeFloat = acts.filter((a) => (a.totalFloat ?? 0) < 0).map((a) => ({
+        id: a.id,
+        activityId: a.activityId,
+        name: a.name,
+        totalFloat: a.totalFloat,
+      }));
+
+      return {
+        totalActivities: acts.length,
+        criticalActivities: criticalCount,
+        criticalPercentage: acts.length > 0 ? Math.round((criticalCount / acts.length) * 100) : 0,
+        openStarts,
+        openFinishes,
+        negativeFloat,
+        relationshipCount: rels.length,
+      };
     }),
 
   // ── Templates ────────────────────────────────────────────────────────────

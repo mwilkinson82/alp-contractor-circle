@@ -450,7 +450,7 @@
 - [x] Standalone full-screen layout (opens in own tab from portal)
 - [x] Split-pane UI: activity table on left, Gantt chart on right (P6-style)
 - [x] Interactive Gantt chart with dependency arrows, critical path in red, zoom (day/week/month)
-- [ ] Drag to adjust activity durations on Gantt
+- [x] Drag to adjust activity durations on Gantt
 - [x] Activity management UI: add/edit/delete, assign codes, set predecessors/successors
 - [x] Activity codes system: custom categories, code values, filter/group/sort Gantt
 - [x] Baseline support: save named baselines, baseline bars on Gantt, variance tracking
@@ -488,3 +488,58 @@
 - [x] Relationship type auto-determined by edge combination (R→L=FS, R→R=FF, L→L=SS, L→R=SF)
 - [x] Toast confirmation on relationship creation
 - [x] Visual feedback: line follows cursor during drag, highlights valid drop targets
+
+## Scheduler Feedback Fixes (Round 1)
+- [x] Zoom-to-fit: squeeze/compress Gantt to show all activities in one viewport
+- [x] Data date line should be solid BLUE (not amber), today line stays dashed
+- [x] Switch scheduler to light/white theme (not black background) — off-white or tan like Claude artifacts
+- [x] Critical activities = red bars, non-critical = green bars (not amber/gold)
+- [x] Custom bar colors: click bar → modal → change color
+- [x] Bar labels: show activity name above or below the bar (not inside) to handle short-duration activities
+- [x] Activity detail modal: click bar or row → modal with all editable fields (name, duration, relationships, calendars, codes, color, activity ID)
+- [x] Editable activity ID field
+- [x] Sorting: sort by activity ID, early start, early finish, etc. (separate from grouping)
+- [x] Advanced filter modal: critical checkbox, 1-week lookahead, 2-week lookahead, date range (start/finish within period), float range
+- [ ] PDF export preview: live preview of what the PDF will look like on chosen page size
+- [ ] PDF fit vs custom sizing option
+- [ ] PDF header/footer size controls (adjustable height for header and footer)
+- [ ] PDF preview includes header and footer content
+
+## WBS Management & Activity ID Filtering
+- [x] WBS table in database (hierarchical: parent/child, code, name)
+- [x] WBS CRUD procedures (create/edit/delete WBS nodes)
+- [x] WBS Manager UI (tree view to create/edit WBS hierarchy)
+- [x] WBS assignment in activity detail modal (dropdown/tree picker)
+- [x] Filter by WBS branch (show only activities under a WBS node)
+- [ ] Group by WBS hierarchy in activity table
+- [x] Filter by custom Activity ID (search/filter in toolbar)
+- [x] Activity detail modal: include WBS assignment, activity ID, all editable fields
+
+## Open Ends Detection & Schedule Health
+- [x] Detect open starts: activities missing predecessors (except first activity)
+- [x] Detect open finishes: activities missing successors (except last activity)
+- [x] Schedule Health panel after recalculation: total activities, critical count/%, open starts list, open finishes list, negative float activities, longest path duration
+- [x] Warning icon/highlight on activities with open ends in activity table
+- [ ] Click open-end activity in health panel to select and scroll to it in Gantt
+
+## Column Header Sorting
+- [x] Clickable column headers to sort ascending/descending (click once = asc, again = desc, third = clear)
+- [x] Sort arrow indicator on active sort column
+- [x] Works on all columns: ID, Name, Duration, ES, EF, LS, LF, TF, FF, % Complete, variance columns
+
+## Scheduler UI/UX Overhaul (March 29)
+- [x] Convert scheduler to light/white theme (off-white/tan background)
+- [x] Activity detail modal: click row to edit all fields (name, duration, WBS, calendar, color, activity ID, % complete)
+- [x] WBS Manager: create/edit/delete WBS hierarchy, assign to activities
+- [x] Column header click-to-sort (ascending/descending/clear with arrow indicators)
+- [x] Activity ID search filter in toolbar
+- [x] Advanced filter modal: critical path, 1-week/2-week/4-week lookahead, date range, float range
+- [x] Open ends detection: activities missing predecessors/successors
+- [x] Schedule health panel: total activities, critical count, open starts/finishes, longest path
+- [x] Zoom-to-fit button for Gantt chart
+- [x] Bar colors: critical=red, non-critical=green, custom per activity
+- [x] Activity names displayed above bars (not inside)
+- [x] Data date line solid blue, today line dashed gray
+- [x] updateActivity procedure accepts activityId, barColor, wbsId fields
+- [x] PDF export updated to light theme (navy header, gold accents, white table, green/red bars)
+- [x] All 146 tests passing, 0 TypeScript errors

@@ -1,6 +1,7 @@
 /**
  * Schedule PDF Export — generates a professional PDF with activity table and Gantt chart.
  * Uses jsPDF + jspdf-autotable for the table, and custom drawing for the Gantt.
+ * Light/professional theme matching the scheduler UI.
  */
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -104,50 +105,54 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   const headerHeight = 22;
   const footerHeight = 12;
 
-  // ─── Color Palette ──────────────────────────────────────────────────────────
+  // ─── Light Theme Color Palette ──────────────────────────────────────────────
   const colors = {
-    ember: [217, 119, 6] as [number, number, number],       // #D97706
-    dark: [15, 15, 15] as [number, number, number],          // #0F0F0F
-    darkCard: [24, 24, 24] as [number, number, number],      // #181818
-    border: [50, 50, 50] as [number, number, number],        // #323232
-    text: [245, 245, 245] as [number, number, number],       // #F5F5F5
-    muted: [140, 140, 140] as [number, number, number],      // #8C8C8C
-    critical: [220, 38, 38] as [number, number, number],     // #DC2626
+    navy: [13, 27, 42] as [number, number, number],           // #0D1B2A
+    gold: [201, 168, 76] as [number, number, number],          // #C9A84C
+    darkGold: [160, 120, 48] as [number, number, number],      // #A07830
+    steelBlue: [74, 111, 165] as [number, number, number],     // #4A6FA5
     white: [255, 255, 255] as [number, number, number],
-    green: [34, 197, 94] as [number, number, number],        // #22C55E
+    offWhite: [250, 248, 244] as [number, number, number],     // #FAF8F4
+    warmGray: [245, 243, 239] as [number, number, number],     // #F5F3EF
+    text: [30, 30, 30] as [number, number, number],            // #1E1E1E
+    muted: [120, 120, 120] as [number, number, number],        // #787878
+    border: [210, 210, 210] as [number, number, number],       // #D2D2D2
+    critical: [220, 38, 38] as [number, number, number],       // #DC2626
+    green: [22, 163, 74] as [number, number, number],          // #16A34A
+    lightCritical: [254, 242, 242] as [number, number, number],// #FEF2F2
   };
 
   // ─── Draw Header ────────────────────────────────────────────────────────────
   function drawHeader() {
-    // Background bar
-    doc.setFillColor(...colors.darkCard);
+    // Navy background bar
+    doc.setFillColor(...colors.navy);
     doc.rect(0, 0, pageWidth, headerHeight, "F");
 
-    // Ember accent line
-    doc.setFillColor(...colors.ember);
-    doc.rect(0, headerHeight - 0.5, pageWidth, 0.5, "F");
+    // Gold accent line at bottom of header
+    doc.setFillColor(...colors.gold);
+    doc.rect(0, headerHeight - 0.6, pageWidth, 0.6, "F");
 
     // Company name (left)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(...colors.ember);
+    doc.setTextColor(...colors.gold);
     doc.text(companyName || "ALP Contractor Circle", margin, 8);
 
     // Project name (left, below company)
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...colors.text);
+    doc.setTextColor(...colors.white);
     doc.text(projectName || scheduleName, margin, 14);
 
     // Schedule name (left, below project)
     doc.setFontSize(7);
-    doc.setTextColor(...colors.muted);
+    doc.setTextColor(180, 190, 210);
     doc.text(scheduleName, margin, 19);
 
     // Right side info
     const rightX = pageWidth - margin;
     doc.setFontSize(7);
-    doc.setTextColor(...colors.muted);
+    doc.setTextColor(180, 190, 210);
     doc.text(`Data Date: ${dataDate ? formatDateFull(dataDate) : "Not set"}`, rightX, 8, { align: "right" });
     doc.text(`Project Start: ${formatDateFull(projectStartDate)}`, rightX, 13, { align: "right" });
     doc.text(`Run Date: ${lastCalculatedAt ? new Date(lastCalculatedAt).toLocaleString() : "—"}`, rightX, 18, { align: "right" });
@@ -251,16 +256,16 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       lineWidth: 0.1,
     },
     headStyles: {
-      fillColor: colors.darkCard,
-      textColor: colors.ember,
+      fillColor: colors.navy,
+      textColor: colors.gold,
       fontStyle: "bold",
       fontSize: 6.5,
     },
     alternateRowStyles: {
-      fillColor: [20, 20, 20],
+      fillColor: colors.warmGray,
     },
     bodyStyles: {
-      fillColor: colors.dark,
+      fillColor: colors.white,
     },
     columnStyles: selectedColumns.reduce((acc, col, i) => {
       acc[i] = { cellWidth: col.width };
@@ -305,7 +310,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     const ganttLeft = margin;
     const ganttRight = pageWidth - margin;
     const ganttWidth = ganttRight - ganttLeft;
-    const ganttTop = headerHeight + 6;
+    const ganttTop = headerHeight + 8;
     const ganttBottom = pageHeight - footerHeight - 4;
     const ganttHeight = ganttBottom - ganttTop;
 
@@ -335,6 +340,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.setDrawColor(...colors.border);
         doc.setLineWidth(0.1);
         doc.line(x, ganttTop, x, ganttTop + filteredActivities.length * rowH);
+        doc.setTextColor(...colors.muted);
         doc.text(
           current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
           x + 1, ganttTop - 1
@@ -347,11 +353,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     if (dataDate) {
       const ddX = dateToX(dataDate);
       if (ddX >= chartLeft && ddX <= ganttRight) {
-        doc.setDrawColor(...colors.ember);
-        doc.setLineWidth(0.3);
+        doc.setDrawColor(...colors.steelBlue);
+        doc.setLineWidth(0.4);
         doc.line(ddX, ganttTop - 2, ddX, ganttTop + filteredActivities.length * rowH);
         doc.setFontSize(5);
-        doc.setTextColor(...colors.ember);
+        doc.setTextColor(...colors.steelBlue);
         doc.text("DD", ddX + 0.5, ganttTop - 2.5);
       }
     }
@@ -369,7 +375,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
 
       // Alternating row background
       if (i % 2 === 0) {
-        doc.setFillColor(20, 20, 20);
+        doc.setFillColor(...colors.warmGray);
         doc.rect(chartLeft, y, chartWidth, rowH, "F");
       }
 
@@ -380,18 +386,22 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         const barWidth = Math.max(x2 - x1, 1);
         const barY = y + (rowH - barH) / 2;
 
-        // Bar color
+        // Bar color: critical = red, non-critical = green
         if (act.isCritical) {
           doc.setFillColor(...colors.critical);
         } else {
-          doc.setFillColor(...colors.ember);
+          doc.setFillColor(...colors.green);
         }
         doc.roundedRect(x1, barY, barWidth, barH, 0.5, 0.5, "F");
 
-        // Progress fill
+        // Progress fill (darker shade)
         const pct = parseFloat(act.percentComplete) / 100;
         if (pct > 0 && pct < 1) {
-          doc.setFillColor(act.isCritical ? 180 : 180, act.isCritical ? 20 : 90, act.isCritical ? 20 : 0);
+          if (act.isCritical) {
+            doc.setFillColor(180, 20, 20);
+          } else {
+            doc.setFillColor(16, 120, 50);
+          }
           doc.roundedRect(x1, barY, barWidth * pct, barH, 0.5, 0.5, "F");
         }
 
@@ -416,18 +426,18 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     // Critical bar
     doc.setFillColor(...colors.critical);
     doc.rect(ganttLeft, legendY, 8, 2.5, "F");
-    doc.setTextColor(...colors.muted);
+    doc.setTextColor(...colors.text);
     doc.text("Critical Path", ganttLeft + 10, legendY + 2);
 
     // Normal bar
-    doc.setFillColor(...colors.ember);
+    doc.setFillColor(...colors.green);
     doc.rect(ganttLeft + 35, legendY, 8, 2.5, "F");
     doc.text("Non-Critical", ganttLeft + 45, legendY + 2);
 
     // Data date
     if (dataDate) {
-      doc.setDrawColor(...colors.ember);
-      doc.setLineWidth(0.3);
+      doc.setDrawColor(...colors.steelBlue);
+      doc.setLineWidth(0.4);
       doc.line(ganttLeft + 70, legendY, ganttLeft + 70, legendY + 2.5);
       doc.text("Data Date", ganttLeft + 72, legendY + 2);
     }

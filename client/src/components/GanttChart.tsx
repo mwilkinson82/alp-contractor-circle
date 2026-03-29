@@ -1,18 +1,20 @@
 /**
  * GanttChart — Interactive canvas-based Gantt chart with:
- * - Activity bars (colored by critical path status)
+ * - Light/white theme (off-white background)
+ * - Critical bars = red, non-critical = green, custom colors per activity
+ * - Activity labels ABOVE bars (not inside) to handle short-duration activities
+ * - Zoom-to-fit: compress entire Gantt into viewport
  * - Drag-to-resize: grab left/right edge of bar to change duration
  * - Drag-to-connect: L-shaped handles on bar edges, drag line to create relationships
  * - Toggleable dependency arrows
- * - Toggleable data date line (solid) and today line (dashed)
+ * - Data date line = solid BLUE, today line = dashed gray
  * - Dual-target comparison overlay (Target 1 + Target 2 bars)
- * - Time scale headers (day/week/month)
- * - Click to select activity
+ * - Click bar or row to open activity detail modal
  */
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 
-type ZoomLevel = "day" | "week" | "month";
+type ZoomLevel = "day" | "week" | "month" | "fit";
 
 interface Activity {
   id: number;
@@ -26,6 +28,7 @@ interface Activity {
   percentComplete: string;
   actualStart: Date | null;
   actualFinish: Date | null;
+  barColor?: string | null;
 }
 
 interface Relationship {
@@ -60,6 +63,7 @@ interface GanttChartProps {
   zoom: ZoomLevel;
   selectedActivityId: number | null;
   onSelectActivity: (id: number | null) => void;
+  onActivityDoubleClick?: (id: number) => void;
   groupedActivities: GroupedActivities[];
   showArrows: boolean;
   showDataDateLine: boolean;
@@ -70,41 +74,47 @@ interface GanttChartProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 32;
+const ROW_HEIGHT = 36;
 const HEADER_HEIGHT = 48;
 const BAR_HEIGHT = 14;
-const BAR_Y_OFFSET = 4;
+const BAR_Y_OFFSET = 14; // Push bar down to leave room for label above
 const TARGET_BAR_HEIGHT = 5;
 const ARROW_HEAD_SIZE = 4;
 const HANDLE_RADIUS = 5;
-const EDGE_HIT_ZONE = 8; // pixels from bar edge to detect resize drag
+const EDGE_HIT_ZONE = 8;
 
-// Colors
+// Light theme colors
 const COLORS = {
-  critical: "#ef4444",
-  criticalFill: "#dc2626",
-  normal: "#d4915c",
-  normalFill: "#c9a96e",
-  target1: "#6b7280",
-  target1Fill: "#4b5563",
+  critical: "#dc2626",
+  criticalFill: "#ef4444",
+  normal: "#16a34a",
+  normalFill: "#22c55e",
+  target1: "#9ca3af",
+  target1Fill: "#6b7280",
   target2: "#8b5cf6",
   target2Fill: "#7c3aed",
   milestone: "#eab308",
-  progress: "#22c55e",
-  arrow: "#9ca3af",
-  arrowCritical: "#ef4444",
-  todayLine: "#3b82f6",
-  dataDateLine: "#f59e0b",
-  gridLine: "rgba(255,255,255,0.04)",
-  headerBg: "rgba(15,15,30,0.9)",
-  headerText: "rgba(255,255,255,0.5)",
-  headerTextBold: "rgba(255,255,255,0.7)",
-  selectedBg: "rgba(212,145,92,0.08)",
-  groupBg: "rgba(255,255,255,0.03)",
-  handleFill: "#d4915c",
+  progress: "#3b82f6",
+  arrow: "#6b7280",
+  arrowCritical: "#dc2626",
+  todayLine: "#9ca3af",
+  dataDateLine: "#2563eb", // Solid BLUE
+  gridLine: "rgba(0,0,0,0.06)",
+  headerBg: "#f8f5f0", // Warm off-white/tan
+  headerText: "rgba(0,0,0,0.45)",
+  headerTextBold: "rgba(0,0,0,0.7)",
+  selectedBg: "rgba(37,99,235,0.08)",
+  groupBg: "rgba(0,0,0,0.03)",
+  rowBg: "#faf8f5", // Very light warm white
+  rowAltBg: "#f5f2ed", // Slightly darker for alternating rows
+  handleFill: "#2563eb",
   handleStroke: "#fff",
-  connectLine: "#60a5fa",
-  connectLineValid: "#22c55e",
+  connectLine: "#3b82f6",
+  connectLineValid: "#16a34a",
+  labelText: "rgba(0,0,0,0.7)",
+  barBorder: "rgba(0,0,0,0.15)",
+  headerBorder: "rgba(0,0,0,0.1)",
+  weekendBg: "rgba(0,0,0,0.02)",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -163,7 +173,6 @@ interface DragState {
   currentX: number;
   currentY: number;
   originalDuration: number;
-  // For connect mode: which edge we started from
   fromEdge: "start" | "finish";
 }
 
@@ -186,6 +195,7 @@ export default function GanttChart({
   zoom,
   selectedActivityId,
   onSelectActivity,
+  onActivityDoubleClick,
   groupedActivities,
   showArrows,
   showDataDateLine,
@@ -196,21 +206,18 @@ export default function GanttChart({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const [containerHeight, setContainerHeight] = useState(600);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
 
-  // Drag interaction state
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoveredActivity, setHoveredActivity] = useState<number | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<"start" | "finish" | "body" | null>(null);
   const [dropTarget, setDropTarget] = useState<{ activityId: number; edge: "start" | "finish" } | null>(null);
 
-  // Store bar rects for hit testing (updated each render)
   const barRectsRef = useRef<BarRect[]>([]);
 
   // ─── Compute layout ──────────────────────────────────────────────────────
-
-  const pixelsPerDay = zoom === "day" ? 40 : zoom === "week" ? 14 : 4;
 
   // Flatten grouped activities for row index mapping
   const flatRows = useMemo(() => {
@@ -229,7 +236,6 @@ export default function GanttChart({
     return rows;
   }, [groupedActivities]);
 
-  // Activity ID -> row index
   const activityRowMap = useMemo(() => {
     const map = new Map<number, number>();
     for (const row of flatRows) {
@@ -269,6 +275,18 @@ export default function GanttChart({
     return { rangeStart: start, rangeEnd: end, totalDays: daysBetween(start, end) };
   }, [activities, target1Activities, target2Activities, projectStartDate, dataDate]);
 
+  // Compute pixels per day based on zoom level (including "fit")
+  const pixelsPerDay = useMemo(() => {
+    if (zoom === "fit") {
+      // Fit entire schedule into the visible container width
+      const availableWidth = containerWidth - 20; // small padding
+      if (totalDays <= 0) return 4;
+      const ppd = Math.max(1, availableWidth / totalDays);
+      return Math.min(ppd, 40); // cap at day-level zoom
+    }
+    return zoom === "day" ? 40 : zoom === "week" ? 14 : 4;
+  }, [zoom, containerWidth, totalDays]);
+
   const totalWidth = totalDays * pixelsPerDay;
   const totalHeight = HEADER_HEIGHT + flatRows.length * ROW_HEIGHT;
 
@@ -278,7 +296,10 @@ export default function GanttChart({
     const el = containerRef.current;
     if (!el) return;
     const obs = new ResizeObserver((entries) => {
-      for (const entry of entries) setContainerWidth(entry.contentRect.width);
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+        setContainerHeight(entry.contentRect.height);
+      }
     });
     obs.observe(el);
     return () => obs.disconnect();
@@ -296,7 +317,7 @@ export default function GanttChart({
     const bars = barRectsRef.current;
     for (let i = bars.length - 1; i >= 0; i--) {
       const bar = bars[i];
-      if (bar.isMilestone) continue; // Can't resize milestones
+      if (bar.isMilestone) continue;
       if (cy >= bar.y && cy <= bar.y + bar.h) {
         if (cx >= bar.x - EDGE_HIT_ZONE && cx <= bar.x + EDGE_HIT_ZONE) {
           return { bar, edge: "start" };
@@ -335,7 +356,6 @@ export default function GanttChart({
     if (!hit) return;
 
     if (hit.edge === "start" || hit.edge === "finish") {
-      // Check if Alt/Option key is held for connect mode
       if (e.altKey || e.metaKey) {
         e.preventDefault();
         setDragState({
@@ -349,7 +369,6 @@ export default function GanttChart({
           fromEdge: hit.edge,
         });
       } else {
-        // Resize mode
         e.preventDefault();
         const act = activities.find((a) => a.id === hit.bar.activityId);
         if (!act) return;
@@ -364,9 +383,6 @@ export default function GanttChart({
           fromEdge: hit.edge,
         });
       }
-    } else if (hit.edge === "body") {
-      // If hovering over handle area (near edges), start connect
-      // Otherwise just select
     }
   }, [getCanvasCoords, hitTestBar, activities]);
 
@@ -377,7 +393,6 @@ export default function GanttChart({
       setDragState((prev) => prev ? { ...prev, currentX: cx, currentY: cy } : null);
 
       if (dragState.mode === "connect") {
-        // Check for drop target
         const hit = hitTestBarAny(cx, cy);
         if (hit && hit.bar.activityId !== dragState.activityId) {
           setDropTarget({ activityId: hit.bar.activityId, edge: hit.edge });
@@ -388,26 +403,19 @@ export default function GanttChart({
       return;
     }
 
-    // Hover detection
     const hit = hitTestBar(cx, cy);
     if (hit) {
       setHoveredActivity(hit.bar.activityId);
       setHoveredEdge(hit.edge);
-
-      // Update cursor
       const canvas = canvasRef.current;
       if (canvas) {
-        if (hit.edge === "start" || hit.edge === "finish") {
-          canvas.style.cursor = "col-resize";
-        } else {
-          canvas.style.cursor = "pointer";
-        }
+        canvas.style.cursor = (hit.edge === "start" || hit.edge === "finish") ? "col-resize" : "pointer";
       }
     } else {
       setHoveredActivity(null);
       setHoveredEdge(null);
       const canvas = canvasRef.current;
-      if (canvas) canvas.style.cursor = "pointer";
+      if (canvas) canvas.style.cursor = "default";
     }
   }, [getCanvasCoords, hitTestBar, hitTestBarAny, dragState]);
 
@@ -442,7 +450,6 @@ export default function GanttChart({
     }
 
     if (dragState.mode === "connect" && dropTarget && onRelationshipCreate) {
-      // Determine relationship type from edges
       const fromEdge = dragState.fromEdge;
       const toEdge = dropTarget.edge;
       let relType: string;
@@ -450,7 +457,7 @@ export default function GanttChart({
       if (fromEdge === "finish" && toEdge === "start") relType = "FS";
       else if (fromEdge === "finish" && toEdge === "finish") relType = "FF";
       else if (fromEdge === "start" && toEdge === "start") relType = "SS";
-      else relType = "SF"; // start → finish
+      else relType = "SF";
 
       onRelationshipCreate(dragState.activityId, dropTarget.activityId, relType);
 
@@ -463,9 +470,25 @@ export default function GanttChart({
     setDropTarget(null);
   }, [dragState, dropTarget, pixelsPerDay, onDurationChange, onRelationshipCreate, activities, getCanvasCoords, scrollTop, flatRows, selectedActivityId, onSelectActivity]);
 
+  const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onActivityDoubleClick) return;
+    const { cx, cy } = getCanvasCoords(e);
+    const hit = hitTestBar(cx, cy);
+    if (hit) {
+      onActivityDoubleClick(hit.bar.activityId);
+      return;
+    }
+    // Also check row click
+    const adjustedY = cy + scrollTop - HEADER_HEIGHT;
+    const rowIndex = Math.floor(adjustedY / ROW_HEIGHT);
+    const row = flatRows.find((r) => r.rowIndex === rowIndex);
+    if (row?.type === "activity" && row.activity) {
+      onActivityDoubleClick(row.activity.id);
+    }
+  }, [getCanvasCoords, hitTestBar, onActivityDoubleClick, scrollTop, flatRows]);
+
   const handleMouseLeave = useCallback(() => {
     if (dragState) {
-      // Cancel drag on mouse leave
       setDragState(null);
       setDropTarget(null);
     }
@@ -481,7 +504,7 @@ export default function GanttChart({
 
     const dpr = window.devicePixelRatio || 1;
     const visibleWidth = containerWidth;
-    const visibleHeight = containerRef.current?.clientHeight || 600;
+    const visibleHeight = containerHeight;
 
     canvas.width = visibleWidth * dpr;
     canvas.height = visibleHeight * dpr;
@@ -492,12 +515,14 @@ export default function GanttChart({
     if (!ctx) return;
 
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, visibleWidth, visibleHeight);
+
+    // ── Clear with light background ────────────────────────────────────
+    ctx.fillStyle = COLORS.rowBg;
+    ctx.fillRect(0, 0, visibleWidth, visibleHeight);
 
     const offsetX = -scrollLeft;
     const offsetY = -scrollTop;
 
-    // Collect bar rects for hit testing
     const barRects: BarRect[] = [];
 
     // ── Draw time scale header ──────────────────────────────────────────
@@ -513,12 +538,17 @@ export default function GanttChart({
       while (current <= rangeEnd) {
         const x = daysBetween(rangeStart, current) * pixelsPerDay + offsetX;
         if (x > -pixelsPerDay && x < visibleWidth + pixelsPerDay) {
+          // Weekend shading
+          if (current.getDay() === 0 || current.getDay() === 6) {
+            ctx.fillStyle = COLORS.weekendBg;
+            ctx.fillRect(x, HEADER_HEIGHT, pixelsPerDay, visibleHeight);
+          }
           ctx.fillStyle = COLORS.headerText;
           ctx.font = "10px 'DM Sans', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(formatDay(current), x + pixelsPerDay / 2, HEADER_HEIGHT - 6);
           ctx.fillStyle = current.getDay() === 0 || current.getDay() === 6
-            ? "rgba(239,68,68,0.4)" : COLORS.headerText;
+            ? "rgba(220,38,38,0.5)" : COLORS.headerText;
           ctx.fillText(formatDayOfWeek(current), x + pixelsPerDay / 2, HEADER_HEIGHT - 18);
           ctx.beginPath();
           ctx.moveTo(x, HEADER_HEIGHT);
@@ -533,7 +563,7 @@ export default function GanttChart({
         }
         current = addDays(current, 1);
       }
-    } else if (zoom === "week") {
+    } else if (zoom === "week" || (zoom === "fit" && pixelsPerDay >= 5)) {
       let current = startOfWeek(new Date(rangeStart));
       while (current <= rangeEnd) {
         const x = daysBetween(rangeStart, current) * pixelsPerDay + offsetX;
@@ -557,6 +587,7 @@ export default function GanttChart({
         current = addDays(current, 7);
       }
     } else {
+      // Month view (or fit with very compressed zoom)
       let current = startOfMonth(new Date(rangeStart));
       while (current <= rangeEnd) {
         const x = daysBetween(rangeStart, current) * pixelsPerDay + offsetX;
@@ -583,7 +614,8 @@ export default function GanttChart({
     }
 
     // Header bottom border
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = COLORS.headerBorder;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, HEADER_HEIGHT);
     ctx.lineTo(visibleWidth, HEADER_HEIGHT);
@@ -603,10 +635,20 @@ export default function GanttChart({
       if (row.type === "group") {
         ctx.fillStyle = COLORS.groupBg;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+        ctx.fillStyle = COLORS.headerTextBold;
+        ctx.font = "bold 10px 'DM Sans', sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(row.group || "", 8, y + ROW_HEIGHT / 2 + 3);
         continue;
       }
 
       const act = row.activity!;
+
+      // Alternating row background
+      if (row.rowIndex % 2 === 1) {
+        ctx.fillStyle = COLORS.rowAltBg;
+        ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+      }
 
       // Selected row highlight
       if (act.id === selectedActivityId) {
@@ -647,7 +689,7 @@ export default function GanttChart({
           const t1x = daysBetween(rangeStart, t1Start) * pixelsPerDay + offsetX;
           const t1w = Math.max(daysBetween(t1Start, t1Finish) * pixelsPerDay, 3);
           ctx.fillStyle = COLORS.target1Fill;
-          ctx.globalAlpha = 0.45;
+          ctx.globalAlpha = 0.35;
           ctx.fillRect(t1x, barY + BAR_HEIGHT + 2, t1w, TARGET_BAR_HEIGHT);
           ctx.globalAlpha = 1;
         }
@@ -662,7 +704,7 @@ export default function GanttChart({
           const t2x = daysBetween(rangeStart, t2Start) * pixelsPerDay + offsetX;
           const t2w = Math.max(daysBetween(t2Start, t2Finish) * pixelsPerDay, 3);
           ctx.fillStyle = COLORS.target2Fill;
-          ctx.globalAlpha = 0.45;
+          ctx.globalAlpha = 0.35;
           ctx.fillRect(t2x, barY + BAR_HEIGHT + 2 + (t1Act ? TARGET_BAR_HEIGHT + 1 : 0), t2w, TARGET_BAR_HEIGHT);
           ctx.globalAlpha = 1;
         }
@@ -684,10 +726,22 @@ export default function GanttChart({
         ctx.closePath();
         ctx.fill();
         barRects.push({ activityId: act.id, x: cx - size, y: cy - size, w: size * 2, h: size * 2, isMilestone: true });
+
+        // Label above milestone
+        ctx.fillStyle = COLORS.labelText;
+        ctx.font = "9px 'DM Sans', sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(act.name, cx + size + 4, cy + 3);
       } else {
+        // Determine bar color: custom > critical/non-critical default
+        const barFillColor = act.barColor || (act.isCritical ? COLORS.criticalFill : COLORS.normalFill);
+        const barStrokeColor = act.barColor
+          ? (act.barColor + "cc") // slightly darker for border
+          : (act.isCritical ? COLORS.critical : COLORS.normal);
+
         // Bar background
         const radius = 3;
-        ctx.fillStyle = act.isCritical ? COLORS.criticalFill : COLORS.normalFill;
+        ctx.fillStyle = barFillColor;
         ctx.beginPath();
         ctx.roundRect(barX, barY, barW, BAR_HEIGHT, radius);
         ctx.fill();
@@ -697,7 +751,7 @@ export default function GanttChart({
         if (pct > 0) {
           const progressW = barW * (pct / 100);
           ctx.fillStyle = COLORS.progress;
-          ctx.globalAlpha = 0.5;
+          ctx.globalAlpha = 0.4;
           ctx.beginPath();
           ctx.roundRect(barX, barY, progressW, BAR_HEIGHT, radius);
           ctx.fill();
@@ -708,25 +762,24 @@ export default function GanttChart({
         const isHovered = hoveredActivity === act.id;
         const isDropCandidate = dropTarget?.activityId === act.id;
         ctx.strokeStyle = isDropCandidate ? COLORS.connectLineValid
-          : isHovered ? "#fff"
-          : act.isCritical ? COLORS.critical : COLORS.normal;
+          : isHovered ? "#000"
+          : barStrokeColor;
         ctx.lineWidth = isHovered || isDropCandidate ? 2 : 1;
         ctx.beginPath();
         ctx.roundRect(barX, barY, barW, BAR_HEIGHT, radius);
         ctx.stroke();
         ctx.lineWidth = 1;
 
-        // Activity label on bar
-        if (barW > 60) {
-          ctx.fillStyle = "rgba(255,255,255,0.9)";
-          ctx.font = "bold 9px 'DM Sans', sans-serif";
-          ctx.textAlign = "left";
-          ctx.textBaseline = "middle";
-          const maxChars = Math.floor(barW / 6);
-          const label = act.name.length > maxChars ? act.name.slice(0, maxChars) + "…" : act.name;
-          ctx.fillText(label, barX + 4, barY + BAR_HEIGHT / 2);
-          ctx.textBaseline = "alphabetic";
-        }
+        // Activity label ABOVE the bar
+        ctx.fillStyle = COLORS.labelText;
+        ctx.font = "9px 'DM Sans', sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "bottom";
+        const labelMaxWidth = Math.max(barW, 120); // Allow label to extend beyond short bars
+        const maxChars = Math.floor(labelMaxWidth / 5.5);
+        const label = act.name.length > maxChars ? act.name.slice(0, maxChars) + "…" : act.name;
+        ctx.fillText(label, barX, barY - 2);
+        ctx.textBaseline = "alphabetic";
 
         // ── Connector handles (show on hover) ────────────────────────────
         if (isHovered && !dragState) {
@@ -737,11 +790,9 @@ export default function GanttChart({
           ctx.strokeStyle = COLORS.handleStroke;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          // L-shaped arrow pointing left
           ctx.arc(lhX, lhY, HANDLE_RADIUS, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
-          // Inner arrow ◄
           ctx.fillStyle = "#fff";
           ctx.beginPath();
           ctx.moveTo(lhX + 2, lhY);
@@ -760,7 +811,6 @@ export default function GanttChart({
           ctx.arc(rhX, rhY, HANDLE_RADIUS, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
-          // Inner arrow ►
           ctx.fillStyle = "#fff";
           ctx.beginPath();
           ctx.moveTo(rhX - 2, rhY);
@@ -770,12 +820,10 @@ export default function GanttChart({
           ctx.fill();
         }
 
-        // Store bar rect for hit testing
         barRects.push({ activityId: act.id, x: barX, y: barY, w: barW, h: BAR_HEIGHT, isMilestone: false });
       }
     }
 
-    // Update ref for hit testing
     barRectsRef.current = barRects;
 
     // ── Draw dependency arrows (toggleable) ─────────────────────────────
@@ -802,24 +850,24 @@ export default function GanttChart({
 
         switch (rel.relationshipType) {
           case "FS":
-            startX = predBarEnd; startY = predY + ROW_HEIGHT / 2;
-            endX = succBarX; endY = succY + ROW_HEIGHT / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "SS":
-            startX = predBarX; startY = predY + ROW_HEIGHT / 2;
-            endX = succBarX; endY = succY + ROW_HEIGHT / 2;
+            startX = predBarX; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "FF":
-            startX = predBarEnd; startY = predY + ROW_HEIGHT / 2;
-            endX = succBarEnd; endY = succY + ROW_HEIGHT / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarEnd; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "SF":
-            startX = predBarX; startY = predY + ROW_HEIGHT / 2;
-            endX = succBarEnd; endY = succY + ROW_HEIGHT / 2;
+            startX = predBarX; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarEnd; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           default:
-            startX = predBarEnd; startY = predY + ROW_HEIGHT / 2;
-            endX = succBarX; endY = succY + ROW_HEIGHT / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
         }
 
         const isCriticalRel = predAct.isCritical && succAct.isCritical;
@@ -854,7 +902,6 @@ export default function GanttChart({
       ctx.beginPath();
       ctx.moveTo(dragState.startX, dragState.startY);
 
-      // Draw an L-shaped line like dependency arrows
       const midX = dragState.startX + (dragState.fromEdge === "finish" ? 10 : -10);
       ctx.lineTo(midX, dragState.startY);
       ctx.lineTo(midX, dragState.currentY);
@@ -922,19 +969,23 @@ export default function GanttChart({
       }
 
       // Duration label near cursor
-      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
       const labelW = 60;
-      const labelH = 20;
-      ctx.fillRect(dragState.currentX - labelW / 2, dragState.currentY - 30, labelW, labelH);
+      const labelH = 22;
+      const lx = dragState.currentX - labelW / 2;
+      const ly = dragState.currentY - 32;
+      ctx.beginPath();
+      ctx.roundRect(lx, ly, labelW, labelH, 4);
+      ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.font = "bold 11px 'DM Sans', sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(`${newDuration}d`, dragState.currentX, dragState.currentY - 20);
+      ctx.fillText(`${newDuration}d`, dragState.currentX, ly + labelH / 2);
       ctx.textBaseline = "alphabetic";
     }
 
-    // ── Data Date line ──────────────────────────────────────────────────
+    // ── Data Date line (solid BLUE) ────────────────────────────────────
 
     if (showDataDateLine && dataDate) {
       const ddX = daysBetween(rangeStart, dataDate) * pixelsPerDay + offsetX;
@@ -947,21 +998,31 @@ export default function GanttChart({
         ctx.lineTo(ddX, visibleHeight);
         ctx.stroke();
 
+        // Label at top
         ctx.fillStyle = COLORS.dataDateLine;
         ctx.font = "bold 9px 'DM Sans', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("DATA DATE", ddX, HEADER_HEIGHT - 4);
+
+        // Small triangle indicator
+        ctx.beginPath();
+        ctx.moveTo(ddX - 5, HEADER_HEIGHT);
+        ctx.lineTo(ddX + 5, HEADER_HEIGHT);
+        ctx.lineTo(ddX, HEADER_HEIGHT + 6);
+        ctx.closePath();
+        ctx.fillStyle = COLORS.dataDateLine;
+        ctx.fill();
       }
     }
 
-    // ── Today line ──────────────────────────────────────────────────────
+    // ── Today line (dashed gray) ────────────────────────────────────────
 
     if (showTodayLine) {
       const today = new Date();
       const todayX = daysBetween(rangeStart, today) * pixelsPerDay + offsetX;
       if (todayX > 0 && todayX < visibleWidth) {
         ctx.strokeStyle = COLORS.todayLine;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(todayX, HEADER_HEIGHT);
@@ -978,7 +1039,7 @@ export default function GanttChart({
   }, [
     activities, relationships, target1Activities, target2Activities,
     flatRows, activityRowMap, rangeStart, rangeEnd, totalDays,
-    pixelsPerDay, zoom, scrollLeft, scrollTop, containerWidth,
+    pixelsPerDay, zoom, scrollLeft, scrollTop, containerWidth, containerHeight,
     selectedActivityId, showArrows, showDataDateLine, showTodayLine, dataDate,
     hoveredActivity, hoveredEdge, dragState, dropTarget,
   ]);
@@ -997,14 +1058,15 @@ export default function GanttChart({
     <div
       ref={containerRef}
       className="h-full overflow-auto relative"
+      style={{ backgroundColor: COLORS.rowBg }}
       onScroll={handleScroll}
     >
-      {/* Interaction hint */}
+      {/* Interaction hints */}
       {hoveredActivity && hoveredEdge && !dragState && (
         <div className="absolute top-1 right-1 z-10 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
           {hoveredEdge === "start" || hoveredEdge === "finish"
             ? "Drag to resize · Alt+Drag to connect"
-            : "Click to select"}
+            : "Click to select · Double-click to edit"}
         </div>
       )}
       {dragState?.mode === "connect" && (
@@ -1024,6 +1086,7 @@ export default function GanttChart({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onDoubleClick={handleDoubleClick}
           className="absolute top-0 left-0"
           style={{ position: "sticky", top: 0, left: 0 }}
         />

@@ -14,6 +14,7 @@ import {
   scheduleBaselines,
   projectCalendars,
   calendarExceptions,
+  scheduleWbs,
   type InsertSchedule,
   type InsertActivity,
   type InsertActivityRelationship,
@@ -23,6 +24,7 @@ import {
   type InsertScheduleBaseline,
   type InsertProjectCalendar,
   type InsertCalendarException,
+  type InsertScheduleWbs,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -354,4 +356,43 @@ export async function addCalendarException(data: InsertCalendarException) {
 export async function deleteCalendarException(id: number) {
   const db = requireDb();
   await db.delete(calendarExceptions).where(eq(calendarExceptions.id, id));
+}
+
+// ─── WBS (Work Breakdown Structure) ─────────────────────────────────────────
+
+export async function createWbsNode(data: InsertScheduleWbs) {
+  const db = requireDb();
+  const result = await db.insert(scheduleWbs).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getWbsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db
+    .select()
+    .from(scheduleWbs)
+    .where(eq(scheduleWbs.scheduleId, scheduleId))
+    .orderBy(asc(scheduleWbs.sortOrder));
+}
+
+export async function updateWbsNode(id: number, data: Partial<InsertScheduleWbs>) {
+  const db = requireDb();
+  await db.update(scheduleWbs).set(data).where(eq(scheduleWbs.id, id));
+}
+
+export async function deleteWbsNode(id: number) {
+  const db = requireDb();
+  // Unlink activities from this WBS node
+  await db.update(activities).set({ wbsId: null }).where(eq(activities.wbsId, id));
+  // Delete child WBS nodes recursively
+  const children = await db.select({ id: scheduleWbs.id }).from(scheduleWbs).where(eq(scheduleWbs.parentId, id));
+  for (const child of children) {
+    await deleteWbsNode(child.id);
+  }
+  await db.delete(scheduleWbs).where(eq(scheduleWbs.id, id));
+}
+
+export async function deleteWbsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  await db.delete(scheduleWbs).where(eq(scheduleWbs.scheduleId, scheduleId));
 }
