@@ -15,6 +15,8 @@ import PortalAdmin from "./pages/PortalAdmin";
 import PortalSubscribers from "./pages/PortalSubscribers";
 import AdminMembers from "./pages/AdminMembers";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import ScheduleList from "./pages/ScheduleList";
+import Scheduler from "./pages/Scheduler";
 
 function Router() {
   return (
@@ -65,6 +67,14 @@ function Router() {
           <AdminAnalytics />
         </MemberPortalLayout>
       </Route>
+
+      {/* CPM Schedule Builder */}
+      <Route path="/portal/scheduler">
+        <MemberPortalLayout>
+          <ScheduleList />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/scheduler/:id" component={Scheduler} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

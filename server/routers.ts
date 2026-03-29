@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
+import { scheduleRouter } from "./scheduleRouter";
 import { subscribeEmail } from "./db";
 import { sendSubscriberNotification } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
@@ -72,6 +73,7 @@ export const appRouter = router({
   }),
 
   member: memberRouter,
+  schedule: scheduleRouter,
 
   circle: router({
     /**

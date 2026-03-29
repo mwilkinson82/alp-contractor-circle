@@ -1,4 +1,4 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, decimal, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing Manus auth flow.
@@ -151,3 +151,236 @@ export const emailSubscribers = mysqlTable("email_subscribers", {
 
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
 export type InsertEmailSubscriber = typeof emailSubscribers.$inferInsert;
+
+// ─── CPM Schedule Builder ────────────────────────────────────────────────────
+
+/**
+ * Schedules table — each member can have multiple project schedules.
+ * A schedule is the top-level container for activities, codes, and baselines.
+ */
+export const schedules = mysqlTable("schedules", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner (member ID from members table) */
+  memberId: int("memberId").notNull(),
+  /** Schedule name e.g. "123 Main St Renovation" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Optional description */
+  description: text("description"),
+  /** Project start date */
+  projectStartDate: timestamp("projectStartDate").notNull(),
+  /** Data date — the "as-of" date for CPM calculations (independent of today) */
+  dataDate: timestamp("dataDate"),
+  /** Run date — timestamp of last CPM recalculation (audit trail, not shown on Gantt) */
+  lastCalculatedAt: timestamp("lastCalculatedAt"),
+  /** Default calendar for this schedule (references project_calendars.id) */
+  defaultCalendarId: int("defaultCalendarId"),
+  /** Status */
+  status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
+  /** Which template this was created from (null if blank) */
+  templateId: varchar("templateId", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertSchedule = typeof schedules.$inferInsert;
+
+/**
+ * Activities table — individual tasks/activities within a schedule.
+ * Each activity has a duration and can be assigned activity codes.
+ */
+export const activities = mysqlTable("activities", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Activity ID shown to user (e.g. "A1010", "A1020") */
+  activityId: varchar("activityId", { length: 32 }).notNull(),
+  /** Activity name */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Duration in work days */
+  duration: int("duration").notNull().default(1),
+  /** WBS path for grouping (e.g. "1.0", "1.1", "2.0") */
+  wbs: varchar("wbs", { length: 64 }),
+  /** Percent complete (0-100) */
+  percentComplete: decimal("percentComplete", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  /** Actual start date (null if not started) */
+  actualStart: timestamp("actualStart"),
+  /** Actual finish date (null if not finished) */
+  actualFinish: timestamp("actualFinish"),
+  /** Computed: earliest start (set by CPM engine on server) */
+  earlyStart: timestamp("earlyStart"),
+  /** Computed: earliest finish */
+  earlyFinish: timestamp("earlyFinish"),
+  /** Computed: latest start */
+  lateStart: timestamp("lateStart"),
+  /** Computed: latest finish */
+  lateFinish: timestamp("lateFinish"),
+  /** Computed: total float in work days */
+  totalFloat: int("totalFloat"),
+  /** Computed: free float in work days */
+  freeFloat: int("freeFloat"),
+  /** Whether this activity is on the critical path */
+  isCritical: boolean("isCritical").default(false).notNull(),
+  /** Sort order within the schedule */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  /** Calendar override for this activity (null = use schedule default) */
+  calendarId: int("calendarId"),
+  /** Optional notes */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = typeof activities.$inferInsert;
+
+/**
+ * Activity relationships (logic ties) — defines predecessor/successor links.
+ * Supports FS, SS, FF, SF with optional lag (positive) or lead (negative).
+ */
+export const activityRelationships = mysqlTable("activity_relationships", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The schedule this relationship belongs to */
+  scheduleId: int("scheduleId").notNull(),
+  /** Predecessor activity ID (DB id) */
+  predecessorId: int("predecessorId").notNull(),
+  /** Successor activity ID (DB id) */
+  successorId: int("successorId").notNull(),
+  /** Relationship type */
+  relationshipType: mysqlEnum("relationshipType", ["FS", "SS", "FF", "SF"]).default("FS").notNull(),
+  /** Lag in work days (negative = lead) */
+  lagDays: int("lagDays").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityRelationship = typeof activityRelationships.$inferSelect;
+export type InsertActivityRelationship = typeof activityRelationships.$inferInsert;
+
+/**
+ * Activity code categories — user-defined classification dimensions.
+ * e.g. "Responsibility", "Area", "Trade", "Phase", "Priority"
+ */
+export const activityCodeCategories = mysqlTable("activity_code_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Category name e.g. "Responsibility" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** Sort order */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityCodeCategory = typeof activityCodeCategories.$inferSelect;
+export type InsertActivityCodeCategory = typeof activityCodeCategories.$inferInsert;
+
+/**
+ * Activity code values — the individual values within a category.
+ * e.g. Under "Trade": "Concrete", "Framing", "Electrical", "Plumbing"
+ */
+export const activityCodeValues = mysqlTable("activity_code_values", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent category */
+  categoryId: int("categoryId").notNull(),
+  /** Code value e.g. "Electrical" */
+  value: varchar("value", { length: 128 }).notNull(),
+  /** Optional color for Gantt display */
+  color: varchar("color", { length: 16 }),
+  /** Sort order */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityCodeValue = typeof activityCodeValues.$inferSelect;
+export type InsertActivityCodeValue = typeof activityCodeValues.$inferInsert;
+
+/**
+ * Activity code assignments — links activities to code values (many-to-many).
+ * An activity can have one value per category.
+ */
+export const activityCodeAssignments = mysqlTable("activity_code_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The activity */
+  activityId: int("activityId").notNull(),
+  /** The code value assigned */
+  codeValueId: int("codeValueId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityCodeAssignment = typeof activityCodeAssignments.$inferSelect;
+export type InsertActivityCodeAssignment = typeof activityCodeAssignments.$inferInsert;
+
+/**
+ * Schedule baselines / updates — snapshots of the schedule at a point in time.
+ * Type "baseline" = original approved schedule.
+ * Type "update" = numbered schedule update (Update 1, Update 2, etc.).
+ * Stores the full activity data, relationships, and calendars as JSON for overlay/comparison.
+ */
+export const scheduleBaselines = mysqlTable("schedule_baselines", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Snapshot name e.g. "Original Baseline", "Update 1", "Update 2" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Type: baseline (original approved) or update (numbered schedule update) */
+  snapshotType: mysqlEnum("snapshotType", ["baseline", "update"]).default("baseline").notNull(),
+  /** Update number (null for baselines, 1/2/3... for updates) */
+  updateNumber: int("updateNumber"),
+  /** Data date at the time this snapshot was taken */
+  dataDate: timestamp("snapshotDataDate"),
+  /** Snapshot of all activities at this point in time (JSON array) */
+  activitiesSnapshot: json("activitiesSnapshot").notNull(),
+  /** Snapshot of all relationships at this point in time (JSON array) */
+  relationshipsSnapshot: json("relationshipsSnapshot").notNull(),
+  /** Snapshot of project start date */
+  projectStartDate: timestamp("snapshotProjectStartDate"),
+  /** Notes about this update (e.g. "Added 2 weeks for weather delay") */
+  notes: text("snapshotNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ScheduleBaseline = typeof scheduleBaselines.$inferSelect;
+export type InsertScheduleBaseline = typeof scheduleBaselines.$inferInsert;
+
+/**
+ * Project calendars — named calendars with base work week and custom non-work days.
+ * Each schedule can have multiple calendars. Activities can be assigned to specific calendars.
+ * e.g. "Standard 5-Day", "7-Day Push Schedule", "Union Calendar"
+ */
+export const projectCalendars = mysqlTable("project_calendars", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Calendar name e.g. "Standard 5-Day" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** Base work week type */
+  workWeek: mysqlEnum("workWeek", ["5day", "7day"]).default("5day").notNull(),
+  /** Work days bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64. Default 5-day = 31 (Mon-Fri) */
+  workDaysMask: int("workDaysMask").default(31).notNull(),
+  /** Whether this is the default calendar for the schedule */
+  isDefault: boolean("isDefault").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ProjectCalendar = typeof projectCalendars.$inferSelect;
+export type InsertProjectCalendar = typeof projectCalendars.$inferInsert;
+
+/**
+ * Calendar exceptions — specific dates marked as non-work days (holidays, shutdowns, weather days).
+ * Can also mark normally non-work days as work days (e.g., Saturday overtime).
+ */
+export const calendarExceptions = mysqlTable("calendar_exceptions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent calendar */
+  calendarId: int("calendarId").notNull(),
+  /** The exception date */
+  exceptionDate: timestamp("exceptionDate").notNull(),
+  /** Type: holiday (non-work) or workday (override to work) */
+  exceptionType: mysqlEnum("exceptionType", ["holiday", "workday"]).default("holiday").notNull(),
+  /** Description e.g. "Thanksgiving", "Weather Day", "Saturday OT" */
+  description: varchar("description", { length: 256 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CalendarException = typeof calendarExceptions.$inferSelect;
+export type InsertCalendarException = typeof calendarExceptions.$inferInsert;

@@ -440,3 +440,42 @@
 - [x] Keep PDFs as direct downloads (2 PDFs use /view link)
 - [x] Add CPM Scheduling PDF as template 19
 - [x] Test all links work correctly (113 tests passing, 19 templates)
+
+## CPM Schedule Builder (Standalone Full-Screen App)
+- [x] Database schema: schedules, activities, relationships, activity codes, baselines
+- [x] CPM engine: forward/backward pass, ES/EF/LS/LF, total float, free float, critical path
+- [x] All four relationship types: FS, SS, FF, SF with lag/lead
+- [x] 5-day and 7-day calendar support
+- [x] tRPC procedures for schedule CRUD, activity CRUD, codes CRUD, baselines
+- [x] Standalone full-screen layout (opens in own tab from portal)
+- [x] Split-pane UI: activity table on left, Gantt chart on right (P6-style)
+- [x] Interactive Gantt chart with dependency arrows, critical path in red, zoom (day/week/month)
+- [ ] Drag to adjust activity durations on Gantt
+- [x] Activity management UI: add/edit/delete, assign codes, set predecessors/successors
+- [x] Activity codes system: custom categories, code values, filter/group/sort Gantt
+- [x] Baseline support: save named baselines, baseline bars on Gantt, variance tracking
+- [x] Multiple schedules per account: save, name, duplicate, archive
+- [x] Pre-loaded construction templates (residential, commercial TI, renovation)
+- [x] PDF export with custom header/footer (company name, logo, project name, footer text)
+- [x] Page layout options for PDF (landscape, letter/legal/tabloid)
+- [x] Portal link integration (opens in new tab)
+- [x] Tests for CPM engine and schedule procedures (29 CPM tests passing, 146 total)
+- [x] Custom calendars: create named calendars, set base work week, mark holidays/non-work days
+- [x] Pre-loaded US construction holidays (New Year's, Memorial Day, July 4th, Labor Day, Thanksgiving, Christmas)
+- [x] Assign calendars to individual activities (e.g., concrete crew on 7-day, electrician on 5-day union)
+- [x] Toggle dependency arrows on/off in Gantt toolbar
+- [x] Toggle data date line on/off in Gantt toolbar
+- [x] Toggle today line on/off in Gantt toolbar (default OFF)
+- [x] Data Date field on schedule — user sets manually, CPM calculates from data date
+- [x] Data date picker in toolbar to update the schedule's data date
+- [x] Run Date (lastCalculatedAt timestamp) — recorded on every CPM recalculation, shown in schedule info only, never on Gantt
+- [x] Schedule versioning: "Save Update" creates numbered snapshot (Update 1, Update 2, etc.) with full activity/date/logic freeze
+- [x] Targeting system: select up to 2 targets (baseline or any update) to compare against current schedule
+- [x] Comparison overlay on Gantt: current bars (top), Target 1 bars (gray), Target 2 bars (different color)
+- [x] Variance/slippage columns in activity table (days early/late vs each target)
+- [x] Slippage summary: total project slippage, critical path changes, activities driving delay
+- [x] Update workflow: save update → snapshot → continue working → target previous updates to see slippage
+- [x] Configurable activity table columns: column picker to toggle on/off any column
+- [x] Variance columns (Start Variance, Finish Variance) appear when targeting is active — show work day delta (+ = late in red, - = early in green)
+- [x] Support two sets of variance columns (Target 1 and Target 2)
+- [x] Column order drag-to-reorder, configuration persists per schedule

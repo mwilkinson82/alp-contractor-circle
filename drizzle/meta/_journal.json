@@ -36,6 +36,41 @@
       "when": 1774217893803,
       "tag": "0004_slippery_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1774768522945,
+      "tag": "0005_typical_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1774768760970,
+      "tag": "0006_noisy_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1774769706691,
+      "tag": "0007_pale_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1774769782874,
+      "tag": "0008_robust_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1774769953264,
+      "tag": "0009_damp_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

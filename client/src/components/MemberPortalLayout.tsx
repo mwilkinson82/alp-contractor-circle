@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Users,
   BarChart3,
+  CalendarRange,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -26,6 +27,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/portal", adminOnly: false },
   { icon: PlayCircle, label: "Replay Library", path: "/portal/replays", adminOnly: false },
   { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
+  { icon: CalendarRange, label: "CPM Scheduler", path: "/portal/scheduler", adminOnly: false },
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
