@@ -134,36 +134,3 @@ export async function insertTemplateRequest(params: {
   console.log(`[Supabase] Template request submitted by: ${params.memberEmail}`);
   return { success: true };
 }
-
-
-/**
- * Delete test records from Supabase (used during test cleanup).
- * Removes any records with name "Vitest Test Member" or email matching test pattern.
- */
-export async function deleteSupabaseTestRecords(): Promise<{ success: boolean; deleted: number; error?: string }> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    return { success: false, deleted: 0, error: "Supabase client not configured" };
-  }
-
-  try {
-    // Delete all records with name "Vitest Test Member"
-    const { count, error } = await supabase
-      .from("members")
-      .delete()
-      .eq("name", "Vitest Test Member");
-
-    if (error) {
-      console.warn("[Supabase] Failed to delete test records:", error.message);
-      return { success: false, deleted: 0, error: error.message };
-    }
-
-    const deleted = count || 0;
-    if (deleted > 0) {
-      console.log(`[Supabase] Deleted ${deleted} test records`);
-    }
-    return { success: true, deleted };
-  } catch (err: any) {
-    return { success: false, deleted: 0, error: err.message };
-  }
-}

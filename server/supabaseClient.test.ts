@@ -50,7 +50,7 @@ describe("Supabase Client", () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  it.skip("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
+  it("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
     const { upsertSupabaseMember, getSupabaseClient } = await import("./supabaseClient");
     const client = getSupabaseClient();
     expect(client).not.toBeNull();
@@ -91,16 +91,5 @@ describe("Supabase Client", () => {
         .delete()
         .eq("email", testEmail);
     }
-  });
-
-  it("deleteSupabaseTestRecords should successfully execute without errors", async () => {
-    const { deleteSupabaseTestRecords } = await import("./supabaseClient");
-    
-    // Just verify the function executes successfully
-    // The actual cleanup of test records is handled by the finally blocks in other tests
-    const result = await deleteSupabaseTestRecords();
-    expect(result.success).toBe(true);
-    expect(typeof result.deleted).toBe("number");
-    expect(result.deleted).toBeGreaterThanOrEqual(0);
   });
 });
