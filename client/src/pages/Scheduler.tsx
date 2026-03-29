@@ -1056,7 +1056,7 @@ export default function Scheduler() {
                         key={act.id}
                         className={`text-xs items-center px-2 gap-1 h-8 cursor-pointer transition-colors ${
                           act.id === selectedActivityId
-                            ? "bg-blue-50 border-l-2 border-l-blue-600"
+                            ? "bg-blue-100 border-l-2 border-l-blue-600 ring-1 ring-blue-300"
                             : act.isCritical
                             ? "hover:bg-red-50/50 border-l-2 border-l-red-400"
                             : hasOpenEnd
@@ -1064,8 +1064,8 @@ export default function Scheduler() {
                             : "hover:bg-gray-50 border-l-2 border-l-transparent"
                         }`}
                         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
-                        onClick={() => setSelectedActivityId(act.id === selectedActivityId ? null : act.id)}
-                        onDoubleClick={() => openActivityDetail(act)}
+                        onClick={() => openActivityDetail(act)}
+                        title="Click to edit activity details"
                       >
                         {/* Row actions */}
                         <div className="flex items-center gap-0.5">
@@ -1073,17 +1073,17 @@ export default function Scheduler() {
                           {!hasOpenEnd && <GripVertical className="w-3 h-3 text-gray-300" />}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400" onClick={(e) => e.stopPropagation()}>
+                              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400" onClick={(e) => e.stopPropagation()} title="More options">
                                 <MoreHorizontal className="w-3 h-3" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-white border-gray-200">
-                              <DropdownMenuItem onClick={() => openActivityDetail(act)}>
+                            <DropdownMenuContent align="start" className="bg-white border-gray-200 text-foreground">
+                              <DropdownMenuItem onClick={() => openActivityDetail(act)} className="text-foreground">
                                 <Settings className="w-3.5 h-3.5 mr-2" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 if (scheduleId) addActivityMut.mutate({ scheduleId, name: "New Activity", duration: 5, afterActivityId: act.id });
-                              }}>
+                              }} className="text-foreground">
                                 <Plus className="w-3.5 h-3.5 mr-2" /> Insert Below
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -1263,10 +1263,10 @@ export default function Scheduler() {
                   {wbsNodes.length > 0 ? (
                     <Select value={detailWbs} onValueChange={setDetailWbs}>
                       <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 max-h-60">
-                        <SelectItem value=" ">None</SelectItem>
+                      <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
+                        <SelectItem value=" " className="text-foreground">None</SelectItem>
                         {wbsNodes.map((w: any) => (
-                          <SelectItem key={w.id} value={w.code}>{w.code} — {w.name}</SelectItem>
+                          <SelectItem key={w.id} value={w.code} className="text-foreground">{w.code} — {w.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1284,10 +1284,10 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Calendar</Label>
                   <Select value={detailCalendarId} onValueChange={setDetailCalendarId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Default" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
-                      <SelectItem value=" ">Default Calendar</SelectItem>
+                    <SelectContent className="bg-white border-gray-200 text-foreground">
+                      <SelectItem value=" " className="text-foreground">Default Calendar</SelectItem>
                       {calendars.map((cal: any) => (
-                        <SelectItem key={cal.id} value={String(cal.id)}>{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
+                        <SelectItem key={cal.id} value={String(cal.id)} className="text-foreground">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1448,9 +1448,9 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Predecessor</Label>
               <Select value={newRelPred} onValueChange={setNewRelPred}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select predecessor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60">
+                <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="text-foreground">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1459,9 +1459,9 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Successor</Label>
               <Select value={newRelSucc} onValueChange={setNewRelSucc}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select successor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60">
+                <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="text-foreground">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1471,11 +1471,11 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600">Type</Label>
                 <Select value={newRelType} onValueChange={setNewRelType}>
                   <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="FS">Finish-to-Start (FS)</SelectItem>
-                    <SelectItem value="SS">Start-to-Start (SS)</SelectItem>
-                    <SelectItem value="FF">Finish-to-Finish (FF)</SelectItem>
-                    <SelectItem value="SF">Start-to-Finish (SF)</SelectItem>
+                  <SelectContent className="bg-white border-gray-200 text-foreground">
+                    <SelectItem value="FS" className="text-foreground">Finish-to-Start (FS)</SelectItem>
+                    <SelectItem value="SS" className="text-foreground">Start-to-Start (SS)</SelectItem>
+                    <SelectItem value="FF" className="text-foreground">Finish-to-Finish (FF)</SelectItem>
+                    <SelectItem value="SF" className="text-foreground">Start-to-Finish (SF)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1817,10 +1817,10 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Parent (optional)</Label>
                   <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="None (top level)" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
-                      <SelectItem value=" ">None (top level)</SelectItem>
+                    <SelectContent className="bg-white border-gray-200 text-foreground">
+                      <SelectItem value=" " className="text-foreground">None (top level)</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={String(w.id)}>{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={String(w.id)} className="text-foreground">{w.code} — {w.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1874,11 +1874,11 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
                 <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200">
-                  <SelectItem value="none">No lookahead filter</SelectItem>
-                  <SelectItem value="1week">1-Week Lookahead</SelectItem>
-                  <SelectItem value="2week">2-Week Lookahead</SelectItem>
-                  <SelectItem value="4week">4-Week Lookahead</SelectItem>
+                <SelectContent className="bg-white border-gray-200 text-foreground">
+                  <SelectItem value="none" className="text-foreground">No lookahead filter</SelectItem>
+                  <SelectItem value="1week" className="text-foreground">1-Week Lookahead</SelectItem>
+                  <SelectItem value="2week" className="text-foreground">2-Week Lookahead</SelectItem>
+                  <SelectItem value="4week" className="text-foreground">4-Week Lookahead</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1967,10 +1967,10 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600">Page Size</Label>
                 <Select value={pdfPageSize} onValueChange={(v) => setPdfPageSize(v as any)}>
                   <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="letter">Letter (8.5x11)</SelectItem>
-                    <SelectItem value="legal">Legal (8.5x14)</SelectItem>
-                    <SelectItem value="tabloid">Tabloid (11x17)</SelectItem>
+                  <SelectContent className="bg-white border-gray-200 text-foreground">
+                    <SelectItem value="letter" className="text-foreground">Letter (8.5x11)</SelectItem>
+                    <SelectItem value="legal" className="text-foreground">Legal (8.5x14)</SelectItem>
+                    <SelectItem value="tabloid" className="text-foreground">Tabloid (11x17)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1978,9 +1978,9 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600">Orientation</Label>
                 <Select value={pdfOrientation} onValueChange={(v) => setPdfOrientation(v as any)}>
                   <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="landscape">Landscape</SelectItem>
-                    <SelectItem value="portrait">Portrait</SelectItem>
+                  <SelectContent className="bg-white border-gray-200 text-foreground">
+                    <SelectItem value="landscape" className="text-foreground">Landscape</SelectItem>
+                    <SelectItem value="portrait" className="text-foreground">Portrait</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

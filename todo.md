@@ -543,3 +543,21 @@
 - [x] updateActivity procedure accepts activityId, barColor, wbsId fields
 - [x] PDF export updated to light theme (navy header, gold accents, white table, green/red bars)
 - [x] All 146 tests passing, 0 TypeScript errors
+
+
+## Critical Scheduler UX Issues (March 29 - User Feedback)
+- [x] Fix modal trigger: clicking activity row should open detail modal (currently requires double-click near TF column)
+- [x] Make it obvious where to click on row to open modal (add visual indicator or make entire row clickable)
+- [ ] Add drag-to-pan Gantt chart: grab timeline or chart area and drag to scroll left/right
+- [x] Fix dropdown menu text colors: white text on tan background is unreadable (change dropdown text to dark color)
+- [ ] Add relationship connector handles: hover near Gantt bar edges to show upside-down right-angle handles with arrows
+- [ ] Drag connector line from one bar to another to create FS/SS/SF/FF relationships (currently not visible)
+- [ ] PDF export: add live preview modal showing what PDF will look like on chosen page size
+- [ ] PDF export: activity names should appear above bars in PDF (currently missing)
+- [ ] PDF export: add columnized header/footer configuration (choose 3-5 columns, assign data to each column)
+- [ ] PDF export: show preview of header/footer content so user knows what will print
+- [ ] WBS tree: make WBS editable (currently read-only numbers)
+- [ ] WBS tree: show parent/child hierarchy visually (indentation, tree structure)
+- [ ] WBS tree: add description field for each WBS node (e.g., "1.0 Smith Residence", "1.1 General Conditions", "1.2 Submittals")
+- [ ] WBS tree: support multi-level hierarchy (1.0, 1.1, 1.1.1, 1.2, etc.)
+- [ ] Fix font colors in table: ensure all text is readable (some rows have light text on light background)
