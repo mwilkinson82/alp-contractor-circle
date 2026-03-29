@@ -629,3 +629,13 @@
 - [x] Add expand/collapse toggles for parent nodes
 - [x] Display WBS code and name with visual hierarchy
 - [x] Make it easier to understand structure without relying on number prefixes
+
+
+## User-Reported Issues (March 29 - Session 2)
+- [x] Fix dropdown text color in modals - SelectItem text is white, should be black/dark for visibility
+- [x] Fix milestone color update - Color picker now shows correct default color for milestones (#ff9800)
+- [x] Verify CPM Scheduler "Coming soon" badge - Confirmed members see beta/coming soon message on desktop and mobile
+- [x] Integrate PDF export preview modal - Wired up PdfExportPreview component to export button
+- [x] Add header configuration to PDF export - PdfExportPreview includes 3-5 column configuration
+- [x] Add 3-column footer configuration to PDF - Footer columns configurable in preview modal
+- [x] Fix WBS modal scrolling - Added max-h-64 overflow-y-auto to WBS tree container

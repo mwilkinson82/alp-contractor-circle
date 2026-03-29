@@ -1342,12 +1342,11 @@ export default function Scheduler() {
                   {wbsNodes.length > 0 ? (
                     <Select value={detailWbs} onValueChange={setDetailWbs}>
                       <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 max-h-60 text-foreground">
-                        <SelectItem value=" " className="text-foreground">None</SelectItem>
-                        {wbsNodes.map((w: any) => (
-                          <SelectItem key={w.id} value={w.code} className="text-foreground">{w.code} — {w.name}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value=" " className="text-gray-900">None (top level)</SelectItem>
+                      {wbsNodes.map((w: any) => (
+                        <SelectItem key={w.id} value={String(w.id)} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                      ))}                      </SelectContent>
                     </Select>
                   ) : (
                     <Input value={detailWbs} onChange={(e) => setDetailWbs(e.target.value)} placeholder="e.g., 2.1" className="mt-1 border-gray-300" />
@@ -1363,10 +1362,10 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Calendar</Label>
                   <Select value={detailCalendarId} onValueChange={setDetailCalendarId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Default" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-foreground">
-                      <SelectItem value=" " className="text-foreground">Default Calendar</SelectItem>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value=" " className="text-gray-900">Default Calendar</SelectItem>
                       {calendars.map((cal: any) => (
-                        <SelectItem key={cal.id} value={String(cal.id)} className="text-foreground">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
+                        <SelectItem key={cal.id} value={String(cal.id)} className="text-gray-900">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1376,18 +1375,19 @@ export default function Scheduler() {
                   <div className="flex items-center gap-2 mt-1">
                     <input
                       type="color"
-                      value={detailBarColor || "#22c55e"}
+                      value={detailBarColor || (detailActivityType === "milestone" ? "#ff9800" : "#22c55e")}
                       onChange={(e) => setDetailBarColor(e.target.value)}
                       className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
                     />
                     <Input
                       value={detailBarColor}
                       onChange={(e) => setDetailBarColor(e.target.value)}
-                      placeholder="Auto"
+                      placeholder={detailActivityType === "milestone" ? "#ff9800" : "#22c55e"}
                       className="flex-1 border-gray-300"
                     />
                     {detailBarColor && (
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-gray-400" onClick={() => setDetailBarColor("")}>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs text-gray-400" onClick={() => setDetailBarColor("")}
+                        >
                         Reset
                       </Button>
                     )}
@@ -1720,11 +1720,11 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600">Type</Label>
                 <Select value={newRelType} onValueChange={setNewRelType}>
                   <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 text-foreground">
-                    <SelectItem value="FS" className="text-foreground">Finish-to-Start (FS)</SelectItem>
-                    <SelectItem value="SS" className="text-foreground">Start-to-Start (SS)</SelectItem>
-                    <SelectItem value="FF" className="text-foreground">Finish-to-Finish (FF)</SelectItem>
-                    <SelectItem value="SF" className="text-foreground">Start-to-Finish (SF)</SelectItem>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="FS" className="text-gray-900">Finish-to-Start (FS)</SelectItem>
+                      <SelectItem value="SS" className="text-gray-900">Start-to-Start (SS)</SelectItem>
+                      <SelectItem value="FF" className="text-gray-900">Finish-to-Finish (FF)</SelectItem>
+                      <SelectItem value="SF" className="text-gray-900">Start-to-Finish (SF)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2034,12 +2034,14 @@ export default function Scheduler() {
           </DialogHeader>
           <div className="space-y-4">
             {/* Visual WBS Tree */}
-            <WBSTree
-              nodes={wbsNodes}
-              onDelete={(id) => {
-                deleteWbsMut.mutate({ id, scheduleId: scheduleId! });
-              }}
-            />
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <WBSTree
+                nodes={wbsNodes}
+                onDelete={(id) => {
+                  deleteWbsMut.mutate({ id, scheduleId: scheduleId! });
+                }}
+              />
+            </div>
 
             {/* Add new WBS node */}
             <div className="border-t border-gray-200 pt-3 space-y-2">
@@ -2058,10 +2060,10 @@ export default function Scheduler() {
                   <Label className="text-xs text-gray-600">Parent (optional)</Label>
                   <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
                     <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="None (top level)" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-foreground">
-                      <SelectItem value=" " className="text-foreground">None (top level)</SelectItem>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value=" " className="text-gray-900">None</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={String(w.id)} className="text-foreground">{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -2183,101 +2185,44 @@ export default function Scheduler() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Export PDF Dialog ────────────────────────────────────────────────── */}
-      <Dialog open={showPdfExport} onOpenChange={setShowPdfExport}>
-        <DialogContent className="bg-white border-gray-200 max-w-md text-gray-900">
-          <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Export to PDF</DialogTitle>
-            <DialogDescription>Configure the PDF output with your company branding.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-xs text-gray-600">Company Name</Label>
-              <Input value={pdfCompanyName} onChange={(e) => setPdfCompanyName(e.target.value)} placeholder="Your Company Name" className="mt-1 border-gray-300" />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-600">Project Name</Label>
-              <Input value={pdfProjectName} onChange={(e) => setPdfProjectName(e.target.value)} placeholder="Project Name" className="mt-1 border-gray-300" />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-600">Footer Text</Label>
-              <Input value={pdfFooterText} onChange={(e) => setPdfFooterText(e.target.value)} placeholder="e.g., Confidential — Do Not Distribute" className="mt-1 border-gray-300" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-gray-600">Page Size</Label>
-                <Select value={pdfPageSize} onValueChange={(v) => setPdfPageSize(v as any)}>
-                  <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 text-foreground">
-                    <SelectItem value="letter" className="text-foreground">Letter (8.5x11)</SelectItem>
-                    <SelectItem value="legal" className="text-foreground">Legal (8.5x14)</SelectItem>
-                    <SelectItem value="tabloid" className="text-foreground">Tabloid (11x17)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs text-gray-600">Orientation</Label>
-                <Select value={pdfOrientation} onValueChange={(v) => setPdfOrientation(v as any)}>
-                  <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 text-foreground">
-                    <SelectItem value="landscape" className="text-foreground">Landscape</SelectItem>
-                    <SelectItem value="portrait" className="text-foreground">Portrait</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={pdfShowGantt} onCheckedChange={(c) => setPdfShowGantt(!!c)} />
-                <span className="text-sm text-gray-900">Include Gantt Chart</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={pdfCriticalOnly} onCheckedChange={(c) => setPdfCriticalOnly(!!c)} />
-                <span className="text-sm text-gray-900">Critical Path Only</span>
-              </label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPdfExport(false)} className="border-gray-300">Cancel</Button>
-            <Button
-              onClick={async () => {
-                if (!schedule) return;
-                setPdfExporting(true);
-                try {
-                  await generateSchedulePdf({
-                    scheduleName: schedule.schedule.name,
-                    projectStartDate: new Date(schedule.schedule.projectStartDate),
-                    dataDate: schedule.schedule.dataDate ? new Date(schedule.schedule.dataDate) : null,
-                    lastCalculatedAt: schedule.schedule.lastCalculatedAt ? new Date(schedule.schedule.lastCalculatedAt) : null,
-                    activities: filteredActivities,
-                    relationships,
-                    columns: visibleColumns,
-                    companyName: pdfCompanyName,
-                    projectName: pdfProjectName,
-                    footerText: pdfFooterText,
-                    pageSize: pdfPageSize,
-                    orientation: pdfOrientation,
-                    showGantt: pdfShowGantt,
-                    showCriticalPathOnly: pdfCriticalOnly,
-                  });
-                  toast.success("PDF exported successfully");
-                  setShowPdfExport(false);
-                } catch (err) {
-                  toast.error("Failed to generate PDF");
-                  console.error(err);
-                } finally {
-                  setPdfExporting(false);
-                }
-              }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-              disabled={pdfExporting}
-            >
-              {pdfExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-              Export PDF
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── PDF Export Preview Modal ────────────────────────────────────────── */}
+      <PdfExportPreview
+        open={showPdfExport}
+        onOpenChange={setShowPdfExport}
+        isExporting={pdfExporting}
+        projectName={pdfProjectName}
+        companyName={pdfCompanyName}
+        onExport={async (config) => {
+          if (!schedule) return;
+          setPdfExporting(true);
+          try {
+            await generateSchedulePdf({
+              scheduleName: schedule.schedule.name,
+              projectStartDate: new Date(schedule.schedule.projectStartDate),
+              dataDate: schedule.schedule.dataDate ? new Date(schedule.schedule.dataDate) : null,
+              lastCalculatedAt: schedule.schedule.lastCalculatedAt ? new Date(schedule.schedule.lastCalculatedAt) : null,
+              activities: filteredActivities,
+              relationships,
+              columns: visibleColumns,
+              companyName: pdfCompanyName,
+              projectName: pdfProjectName,
+              footerText: "",
+              pageSize: "letter",
+              orientation: "landscape",
+              showGantt: true,
+              showCriticalPathOnly: false,
+            });
+            toast.success("PDF exported successfully");
+            setShowPdfExport(false);
+          } catch (err) {
+            toast.error("Failed to generate PDF");
+            console.error(err);
+          } finally {
+            setPdfExporting(false);
+          }
+        }}
+      />
+
     </div>
   );
 }
