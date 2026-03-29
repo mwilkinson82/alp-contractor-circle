@@ -586,3 +586,9 @@
 - [x] Bulk Add Activities in three-dot menu
 - [x] Activity ID Settings in three-dot menu
 - [x] All modal/dropdown text colors fixed to dark (text-gray-900)
+
+## Table Text Color Fix (March 29)
+- [x] Change all activity name/ID text in table to dark/black (not red for critical path)
+- [x] Only TF column should show red for critical activities (0d float)
+- [x] Gantt bars remain red for critical, green for non-critical
+- [x] Non-critical activities with float should also have dark readable text

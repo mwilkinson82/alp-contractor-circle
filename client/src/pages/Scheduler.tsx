@@ -72,56 +72,56 @@ const ALL_COLUMNS: ColumnDef[] = [
     editable: true, alwaysVisible: false, sortable: true,
     getSortValue: (a) => a.activityId || "",
     render: (a) => a.activityId || `A${a.id}`,
-    renderClass: (a) => a.isCritical ? "text-red-600 font-semibold" : "text-foreground",
+    renderClass: () => "text-gray-900 font-semibold",
   },
   {
     key: "name", label: "Activity Name", shortLabel: "Name", align: "left", width: "1fr",
     editable: true, alwaysVisible: true, sortable: true,
     getSortValue: (a) => a.name,
     render: (a) => a.name,
-    renderClass: (a) => a.isCritical ? "text-red-600 font-medium" : "text-foreground",
+    renderClass: () => "text-gray-900 font-medium",
   },
   {
     key: "duration", label: "Duration", shortLabel: "Dur", align: "center", width: "50px",
     editable: true, sortable: true,
     getSortValue: (a) => a.duration,
     render: (a) => `${a.duration}d`,
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "percentComplete", label: "% Complete", shortLabel: "%", align: "center", width: "45px",
     editable: true, sortable: true,
     getSortValue: (a) => parseFloat(a.percentComplete) || 0,
     render: (a) => `${Math.round(parseFloat(a.percentComplete) || 0)}%`,
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "earlyStart", label: "Early Start", shortLabel: "ES", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyStart ? new Date(a.earlyStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyStart)),
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "earlyFinish", label: "Early Finish", shortLabel: "EF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyFinish ? new Date(a.earlyFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyFinish)),
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "lateStart", label: "Late Start", shortLabel: "LS", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateStart ? new Date(a.lateStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateStart)),
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "lateFinish", label: "Late Finish", shortLabel: "LF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateFinish ? new Date(a.lateFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateFinish)),
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "totalFloat", label: "Total Float", shortLabel: "TF", align: "center", width: "45px",
@@ -130,7 +130,7 @@ const ALL_COLUMNS: ColumnDef[] = [
     render: (a) => a.totalFloat != null ? `${a.totalFloat}d` : "—",
     renderClass: (a) => {
       const tf = a.totalFloat;
-      if (tf == null) return "text-muted-foreground";
+      if (tf == null) return "text-gray-700";
       if (tf <= 0) return "text-red-600 font-semibold";
       if (tf <= 5) return "text-amber-600 font-medium";
       return "text-emerald-600";
@@ -141,14 +141,14 @@ const ALL_COLUMNS: ColumnDef[] = [
     sortable: true,
     getSortValue: (a) => a.freeFloat ?? 999,
     render: (a) => a.freeFloat != null ? `${a.freeFloat}d` : "—",
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "wbs", label: "WBS", shortLabel: "WBS", align: "left", width: "70px",
     editable: true, sortable: true,
     getSortValue: (a) => a.wbs || "",
     render: (a) => a.wbs || "—",
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "calendar", label: "Calendar", shortLabel: "Cal", align: "left", width: "70px",
@@ -158,7 +158,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const cal = ctx.calendars?.find((c: any) => c.id === a.calendarId);
       return cal ? cal.name : "—";
     },
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   // Target 1 variance columns
   {
@@ -168,7 +168,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "bl1Finish", label: "BL Finish", shortLabel: "BL1 EF", align: "center", width: "80px",
@@ -177,7 +177,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "startVar1", label: "Start Variance 1", shortLabel: "SV1", align: "center", width: "50px",
@@ -195,11 +195,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target1Map?.get(a.id);
-      if (!t || !a.earlyStart || !t.earlyStart) return "text-muted-foreground";
+      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-700";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
       if (diff > 0) return "text-red-600 font-semibold";
       if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-muted-foreground";
+      return "text-gray-700";
     },
   },
   {
@@ -218,11 +218,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target1Map?.get(a.id);
-      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-muted-foreground";
+      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-700";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
       if (diff > 0) return "text-red-600 font-semibold";
       if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-muted-foreground";
+      return "text-gray-700";
     },
   },
   // Target 2 variance columns
@@ -233,7 +233,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "bl2Finish", label: "BL2 Finish", shortLabel: "BL2 EF", align: "center", width: "80px",
@@ -242,7 +242,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-muted-foreground",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "startVar2", label: "Start Variance 2", shortLabel: "SV2", align: "center", width: "50px",
@@ -260,11 +260,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target2Map?.get(a.id);
-      if (!t || !a.earlyStart || !t.earlyStart) return "text-muted-foreground";
+      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-700";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
       if (diff > 0) return "text-red-600 font-semibold";
       if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-muted-foreground";
+      return "text-gray-700";
     },
   },
   {
@@ -283,11 +283,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target2Map?.get(a.id);
-      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-muted-foreground";
+      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-700";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
       if (diff > 0) return "text-red-600 font-semibold";
       if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-muted-foreground";
+      return "text-gray-700";
     },
   },
 ];
