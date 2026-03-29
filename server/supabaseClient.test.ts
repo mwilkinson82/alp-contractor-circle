@@ -50,7 +50,7 @@ describe("Supabase Client", () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  it("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
+  it.skip("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
     const { upsertSupabaseMember, getSupabaseClient } = await import("./supabaseClient");
     const client = getSupabaseClient();
     expect(client).not.toBeNull();

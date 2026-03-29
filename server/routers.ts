@@ -107,7 +107,7 @@ export const appRouter = router({
     memberCount: publicProcedure.query(async () => {
       const supabase = getSupabaseClient();
       if (!supabase) {
-        return { count: 10, total: 50 }; // Fallback if Supabase not configured
+        return { count: 12, total: 50 }; // Fallback if Supabase not configured
       }
 
       try {
@@ -118,13 +118,13 @@ export const appRouter = router({
 
         if (error) {
           console.warn("[Circle] Failed to get member count from Supabase:", error.message);
-          return { count: 10, total: 50 };
+          return { count: 12, total: 50 };
         }
 
-        return { count: count ?? 10, total: 50 };
+        return { count: count ?? 12, total: 50 };
       } catch (err) {
         console.warn("[Circle] Error querying Supabase member count:", err);
-        return { count: 10, total: 50 };
+        return { count: 12, total: 50 };
       }
     }),
   }),
