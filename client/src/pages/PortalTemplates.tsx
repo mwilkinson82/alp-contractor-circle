@@ -422,6 +422,25 @@ const TEMPLATES: Template[] = [
       "Safety Incident Reporting, QC Inspection, and Project Closeout",
     ],
   },
+  {
+    id: "12",
+    title: "EOS for Contractors \u2014 Inaugural Call Deck",
+    description: "Complete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.",
+    longDescription: "The full EOS (Entrepreneurial Operating System) framework adapted specifically for construction contractors. This comprehensive deck walks through every component of EOS including the Vision/Traction Organizer (VITO), setting and tracking Rocks, building your Scorecard with leading and lagging indicators, running effective L10 Meetings, the IDS (Identify, Discuss, Solve) problem-solving process, documenting Core Processes, and implementing the People Analyzer. Built from the ALP Contractor Circle inaugural call.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf",
+    featured: true,
+    badge: "New",
+    pages: "Full Deck",
+    highlights: [
+      "Vision/Traction Organizer (VITO) for contractor businesses",
+      "Rocks: 90-day priority setting and tracking",
+      "Scorecard with leading and lagging indicators",
+      "L10 Meeting structure for weekly team alignment",
+      "IDS Process: Identify, Discuss, Solve",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
