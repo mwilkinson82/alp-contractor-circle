@@ -50,7 +50,9 @@ describe("Supabase Client", () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  it("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
+  // SKIPPED: This test writes to production Supabase and the anon key cannot delete records (RLS).
+  // The cleanup in finally{} silently fails, leaving test records that inflate the member count badge.
+  it.skip("upsertSupabaseMember should successfully insert a test member and clean up", async () => {
     const { upsertSupabaseMember, getSupabaseClient } = await import("./supabaseClient");
     const client = getSupabaseClient();
     expect(client).not.toBeNull();
