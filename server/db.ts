@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, isNotNull, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, emailSubscribers } from "../drizzle/schema";
+import { InsertUser, users, emailSubscribers, members } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -140,4 +140,30 @@ export function generateNextActivityId(
   const activityId = `${prefix}${currentNext}`;
   const nextNumber = currentNext + interval;
   return { activityId, nextNumber };
+}
+
+/**
+ * Get all active members with email addresses for bulk email sending.
+ */
+export async function getAllActiveMembers(): Promise<{ id: number; name: string; email: string }[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      id: members.id,
+      name: members.discordDisplayName,
+      email: members.email,
+    })
+    .from(members)
+    .where(
+      and(
+        isNotNull(members.email),
+        eq(members.subscriptionStatus, "active")
+      )
+    );
+
+  return rows
+    .filter((r): r is { id: number; name: string; email: string } => !!r.email && !!r.name)
+    .map(r => ({ id: r.id, name: r.name, email: r.email }));
 }

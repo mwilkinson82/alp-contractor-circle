@@ -751,3 +751,10 @@
 - [x] Gantt chart reflects nested WBS group structure with depth-based indentation and accent bars
 - [x] PDF export includes WBS group headers with indentation in Gantt section
 - [x] Vitest tests for WBS hierarchical grouping logic (8 tests passing)
+
+## Google Drive Template URL Fix (March 29 - Session 15)
+- [x] Audit all Google Drive URLs in PortalTemplates.tsx to ensure they use /copy format
+- [x] Fix any URLs that don't force a copy (2 PDF /view → /copy)
+- [x] Update all 19 Google Drive files to "Anyone with the link can view" via gws CLI
+- [ ] Deploy fix to production
+- [ ] Finish sending EOS announcement email to all members
