@@ -701,3 +701,6 @@
 - [x] Add Gantt continuous zoom — Ctrl+scroll wheel zoom, zoom slider, custom ppd support
 - [x] Gantt pinch-zoom: schedule stays anchored, time density changes on Ctrl+scroll
 - [x] Zoom slider for fine-grained timescale adjustment — slider in toolbar with Day/Week/Month presets
+
+## Gantt Bar Label Fix (March 29 - Session 8)
+- [x] Fix Gantt bar activity description text getting cut off — removed truncation, full name now renders

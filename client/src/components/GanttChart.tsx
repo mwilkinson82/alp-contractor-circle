@@ -826,16 +826,12 @@ export default function GanttChart({
         ctx.stroke();
         ctx.lineWidth = 1;
 
-        // Activity label ABOVE the bar
+        // Activity label ABOVE the bar — full name, no truncation
         ctx.fillStyle = ganttFontColor || COLORS.labelText;
         ctx.font = `${ganttFontSize}px '${ganttFontFamily}', sans-serif`;
         ctx.textAlign = "left";
         ctx.textBaseline = "bottom";
-        const labelMaxWidth = Math.max(barW, 120); // Allow label to extend beyond short bars
-        const charWidth = ganttFontSize * 0.6;
-        const maxChars = Math.floor(labelMaxWidth / charWidth);
-        const label = act.name.length > maxChars ? act.name.slice(0, maxChars) + "\u2026" : act.name;
-        ctx.fillText(label, barX, barY - 2);
+        ctx.fillText(act.name, barX, barY - 2);
         ctx.textBaseline = "alphabetic";
 
         // ── Connector handles (show on hover) ────────────────────────────
