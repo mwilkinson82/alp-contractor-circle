@@ -685,3 +685,19 @@
 - [x] Fix canvas preview rendering - delayed init with canvasReady state, proper dpr scaling
 - [x] Use flex-wrap layout for column dropdowns that adapt to 3 or 5 columns
 - [x] Wire header config from preview modal to PDF generator with token resolution
+
+
+## Multi-Select & WBS Fixes (March 29 - Session 6)
+- [x] Fix multi-select WBS assignment not working / not obvious how to use — added checkbox column to each activity row
+- [x] Fix activity modal not showing current WBS assignment — fixed with __none__ default value handling
+- [x] Add WBS group color picker in WBS manager dialog — already wired with preset + custom color pickers
+- [x] Build CSV import dialog for bulk activity creation — file upload, smart column mapping, preview table, predecessor parsing
+- [x] Verify baseline save/compare is fully wired — confirmed: save/update dialogs, target selectors, Gantt overlay bars, variance columns
+
+## PDF Export Preview & Gantt Zoom (March 29 - Session 7)
+- [x] Rebuild PDF Export Preview as large WYSIWYG modal (75% screen size)
+- [x] Live preview updates when paper size or orientation changes (true proportions)
+- [x] Preview shows actual page layout with correct aspect ratio for Letter/Legal/Tabloid
+- [x] Add Gantt continuous zoom — Ctrl+scroll wheel zoom, zoom slider, custom ppd support
+- [x] Gantt pinch-zoom: schedule stays anchored, time density changes on Ctrl+scroll
+- [x] Zoom slider for fine-grained timescale adjustment — slider in toolbar with Day/Week/Month presets

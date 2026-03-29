@@ -1368,4 +1368,98 @@ export const scheduleRouter = router({
       activityCount: t.activities.length,
     }));
   }),
+
+  // ── CSV Import ──────────────────────────────────────────────────────────
+
+  importActivitiesCsv: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        rows: z.array(
+          z.object({
+            activityId: z.string().optional(),
+            name: z.string().min(1).max(256),
+            duration: z.number().min(0).default(1),
+            wbs: z.string().optional(),
+            activityType: z.enum(["task", "milestone"]).default("task"),
+            predecessors: z.string().optional(), // comma-separated predecessor activity IDs with type, e.g. "A1010FS,A1020SS"
+          }),
+        ).min(1).max(1000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { schedule } = await requireScheduleOwner(ctx.req, input.scheduleId);
+      const existingActs = await sdb.getActivitiesBySchedule(input.scheduleId);
+      let currentNext = schedule.activityIdNext;
+      const createdActivities: { id: number; activityId: string; csvActivityId?: string }[] = [];
+
+      for (let i = 0; i < input.rows.length; i++) {
+        const row = input.rows[i];
+        // Generate activity ID if not provided
+        const autoId = generateNextActivityId(
+          schedule.activityIdPrefix,
+          currentNext,
+          schedule.activityIdInterval
+        );
+        currentNext += schedule.activityIdInterval;
+        const finalActivityId = row.activityId?.trim() || autoId;
+        const sortOrder = existingActs.length + i;
+
+        const { id } = await sdb.createActivity({
+          scheduleId: input.scheduleId,
+          activityId: finalActivityId,
+          name: row.name,
+          duration: row.activityType === "milestone" ? 0 : row.duration,
+          wbs: row.wbs || undefined,
+          sortOrder,
+          activityType: row.activityType,
+        });
+        createdActivities.push({ id, activityId: finalActivityId, csvActivityId: row.activityId });
+      }
+
+      // Now create relationships from predecessors column
+      // Build a map of activityId -> database id (including existing activities)
+      const actIdMap = new Map<string, number>();
+      for (const ea of existingActs) actIdMap.set(ea.activityId, ea.id);
+      for (const ca of createdActivities) actIdMap.set(ca.activityId, ca.id);
+
+      let relsCreated = 0;
+      for (let i = 0; i < input.rows.length; i++) {
+        const row = input.rows[i];
+        if (!row.predecessors) continue;
+        const successorDbId = createdActivities[i].id;
+        const predParts = row.predecessors.split(",").map(s => s.trim()).filter(Boolean);
+        for (const part of predParts) {
+          // Parse "A1010FS", "A1010", "A1010SS+2", etc.
+          const match = part.match(/^([A-Za-z0-9]+?)\s*(FS|FF|SS|SF)?\s*([+-]\d+)?$/);
+          if (!match) continue;
+          const predActId = match[1];
+          const relType = (match[2] || "FS") as "FS" | "SS" | "FF" | "SF";
+          const lag = parseInt(match[3] || "0");
+          const predDbId = actIdMap.get(predActId);
+          if (predDbId) {
+            try {
+              await sdb.createRelationship({
+                scheduleId: input.scheduleId,
+                predecessorId: predDbId,
+                successorId: successorDbId,
+                relationshipType: relType,
+                lagDays: lag,
+              });
+              relsCreated++;
+            } catch (e) {
+              // Skip duplicate or invalid relationships
+            }
+          }
+        }
+      }
+
+      await sdb.updateSchedule(input.scheduleId, { activityIdNext: currentNext });
+      await recalculateAndPersist(input.scheduleId);
+
+      return {
+        activitiesCreated: createdActivities.length,
+        relationshipsCreated: relsCreated,
+      };
+    }),
 });

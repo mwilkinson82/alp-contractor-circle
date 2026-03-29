@@ -14,7 +14,7 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 
-type ZoomLevel = "day" | "week" | "month" | "fit";
+type ZoomLevel = "day" | "week" | "month" | "fit" | "custom";
 
 interface Activity {
   id: number;
@@ -73,6 +73,8 @@ interface GanttChartProps {
   ganttFontSize?: number;   // px, default 9
   ganttFontColor?: string;  // hex, default labelText
   ganttFontFamily?: string; // e.g. "DM Sans", "Arial"
+  customPixelsPerDay?: number; // for continuous zoom
+  onZoomChange?: (ppd: number) => void; // callback when user scrollwheel-zooms
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -210,6 +212,8 @@ export default function GanttChart({
   ganttFontSize = 9,
   ganttFontColor,
   ganttFontFamily = "DM Sans",
+  customPixelsPerDay,
+  onZoomChange,
 }: GanttChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -283,17 +287,19 @@ export default function GanttChart({
     return { rangeStart: start, rangeEnd: end, totalDays: daysBetween(start, end) };
   }, [activities, target1Activities, target2Activities, projectStartDate, dataDate]);
 
-  // Compute pixels per day based on zoom level (including "fit")
+  // Compute pixels per day based on zoom level (including "fit" and "custom")
   const pixelsPerDay = useMemo(() => {
+    if (zoom === "custom" && customPixelsPerDay) {
+      return Math.max(0.5, Math.min(80, customPixelsPerDay));
+    }
     if (zoom === "fit") {
-      // Fit entire schedule into the visible container width
-      const availableWidth = containerWidth - 20; // small padding
+      const availableWidth = containerWidth - 20;
       if (totalDays <= 0) return 4;
       const ppd = Math.max(1, availableWidth / totalDays);
-      return Math.min(ppd, 40); // cap at day-level zoom
+      return Math.min(ppd, 40);
     }
     return zoom === "day" ? 40 : zoom === "week" ? 14 : 4;
-  }, [zoom, containerWidth, totalDays]);
+  }, [zoom, containerWidth, totalDays, customPixelsPerDay]);
 
   const totalWidth = totalDays * pixelsPerDay;
   const totalHeight = HEADER_HEIGHT + flatRows.length * ROW_HEIGHT;
@@ -1105,12 +1111,27 @@ export default function GanttChart({
     }
   };
 
+  // ─── Wheel zoom (Ctrl/Cmd + scroll to zoom timescale) ─────────────────────
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!onZoomChange) return;
+      const delta = -e.deltaY * 0.01;
+      const currentPpd = pixelsPerDay;
+      const factor = Math.pow(1.15, delta);
+      const newPpd = Math.max(0.5, Math.min(80, currentPpd * factor));
+      onZoomChange(newPpd);
+    }
+  }, [pixelsPerDay, onZoomChange]);
+
   return (
     <div
       ref={containerRef}
       className="h-full overflow-auto relative"
       style={{ backgroundColor: COLORS.rowBg }}
       onScroll={handleScroll}
+      onWheel={handleWheel}
     >
       {/* Interaction hints */}
       {hoveredActivity && hoveredEdge && !dragState && (

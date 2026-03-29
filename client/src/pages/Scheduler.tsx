@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import {
   Play, Save, MoreHorizontal, Plus, Trash2, GripVertical, Columns3,
-  Filter, Layers, Target, Calendar, Settings, Download, FileDown,
+  Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
   Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
 } from "lucide-react";
@@ -321,7 +321,8 @@ export default function Scheduler() {
   const wbsNodes: any[] = schedule?.wbsNodes || [];
 
   /* ── View State ───────────────────────────────────────────────────────── */
-  const [zoom, setZoom] = useState<"day" | "week" | "month">("week");
+  const [zoom, setZoom] = useState<"day" | "week" | "month" | "custom">("week");
+  const [customPpd, setCustomPpd] = useState<number>(14); // pixels per day for custom zoom
   const [showArrows, setShowArrows] = useState(true);
   const [showDataDateLine, setShowDataDateLine] = useState(true);
   const [showTodayLine, setShowTodayLine] = useState(false);
@@ -360,6 +361,9 @@ export default function Scheduler() {
   const [showWbsManager, setShowWbsManager] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
+  const [showCsvImportDialog, setShowCsvImportDialog] = useState(false);
+  const [csvParsedRows, setCsvParsedRows] = useState<Array<{activityId?: string; name: string; duration: number; wbs?: string; activityType: "task" | "milestone"; predecessors?: string}>>([]);
+  const [csvFileName, setCsvFileName] = useState("");
   const [showIdSettingsDialog, setShowIdSettingsDialog] = useState(false);
   const [bulkAddCount, setBulkAddCount] = useState("10");
   const [bulkAddPrefix, setBulkAddPrefix] = useState("");
@@ -666,8 +670,22 @@ export default function Scheduler() {
     onSuccess: () => { utils.schedule.get.invalidate(); toast.success("WBS node deleted"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const updateWbsMut = trpc.schedule.updateWbsNode.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const bulkAddMut = trpc.schedule.bulkAddActivities.useMutation({
     onSuccess: (data) => { utils.schedule.get.invalidate(); setShowBulkAddDialog(false); toast.success(`${data.count} activities added`); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const csvImportMut = trpc.schedule.importActivitiesCsv.useMutation({
+    onSuccess: (data) => {
+      utils.schedule.get.invalidate();
+      setShowCsvImportDialog(false);
+      setCsvParsedRows([]);
+      setCsvFileName("");
+      toast.success(`Imported ${data.activitiesCreated} activities and ${data.relationshipsCreated} relationships`);
+    },
     onError: (e: any) => toast.error(e.message),
   });
   const updateIdSettingsMut = trpc.schedule.updateScheduleIdSettings.useMutation({
@@ -732,7 +750,7 @@ export default function Scheduler() {
     setDetailName(act.name);
     setDetailDuration(String(act.duration));
     setDetailActivityId(act.activityId || "");
-    setDetailWbs(act.wbs || "");
+    setDetailWbs(act.wbs || "__none__");
     setDetailCalendarId(act.calendarId ? String(act.calendarId) : "");
     setDetailBarColor(act.barColor || "");
     setDetailPercentComplete(String(parseFloat(act.percentComplete) || 0));
@@ -840,16 +858,36 @@ export default function Scheduler() {
         </Button>
 
         {/* Zoom */}
-        <div className="flex items-center border border-gray-300 rounded-md h-7 overflow-hidden">
-          {(["day", "week", "month"] as const).map((z) => (
-            <button
-              key={z}
-              onClick={() => setZoom(z)}
-              className={`px-2 text-xs h-full transition-colors ${zoom === z ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
-            >
-              {z.charAt(0).toUpperCase() + z.slice(1)}
-            </button>
-          ))}
+        <div className="flex items-center gap-1">
+          <div className="flex items-center border border-gray-300 rounded-md h-7 overflow-hidden">
+            {(["day", "week", "month"] as const).map((z) => (
+              <button
+                key={z}
+                onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
+                className={`px-2 text-xs h-full transition-colors ${zoom === z ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+              >
+                {z.charAt(0).toUpperCase() + z.slice(1)}
+              </button>
+            ))}
+          </div>
+          {/* Continuous zoom slider */}
+          <div className="flex items-center gap-1 ml-1" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
+            <span className="text-[9px] text-gray-400">−</span>
+            <input
+              type="range"
+              min="0.5"
+              max="60"
+              step="0.5"
+              value={customPpd}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setCustomPpd(v);
+                setZoom("custom");
+              }}
+              className="w-20 h-1.5 accent-blue-600 cursor-pointer"
+            />
+            <span className="text-[9px] text-gray-400">+</span>
+          </div>
         </div>
 
         <div className="flex-1" />
@@ -924,6 +962,15 @@ export default function Scheduler() {
           onClick={() => setShowBulkAddDialog(true)}
         >
           <Plus className="w-3.5 h-3.5" /> Bulk
+        </Button>
+
+        {/* CSV Import */}
+        <Button
+          size="sm" variant="ghost"
+          className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50"
+          onClick={() => setShowCsvImportDialog(true)}
+        >
+          <Upload className="w-3.5 h-3.5" /> CSV
         </Button>
 
         <div className="w-px h-5 bg-gray-200 mx-0.5" />
@@ -1229,6 +1276,21 @@ export default function Scheduler() {
                       >
                         {/* Row actions */}
                         <div className="flex items-center gap-0.5">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              const newSet = new Set(selectedActivityIds);
+                              if (isSelected) newSet.delete(act.id);
+                              else newSet.add(act.id);
+                              setSelectedActivityIds(newSet);
+                              setLastClickedId(act.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-3 h-3 accent-blue-600 cursor-pointer shrink-0"
+                            title="Select for bulk actions"
+                          />
                           {hasOpenEnd && <AlertTriangle className="w-3 h-3 text-amber-500" />}
                           {!hasOpenEnd && <GripVertical className="w-3 h-3 text-gray-300" />}
                           <DropdownMenu>
@@ -1339,6 +1401,11 @@ export default function Scheduler() {
             ganttFontSize={ganttFontSize}
             ganttFontColor={ganttFontColor}
             ganttFontFamily={ganttFontFamily}
+            customPixelsPerDay={customPpd}
+            onZoomChange={(ppd) => {
+              setCustomPpd(ppd);
+              setZoom("custom");
+            }}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -1440,16 +1507,23 @@ export default function Scheduler() {
                 <div>
                   <Label className="text-xs text-gray-600">WBS Code</Label>
                   {wbsNodes.length > 0 ? (
-                    <Select value={detailWbs} onValueChange={setDetailWbs}>
-                      <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
+                    <Select value={detailWbs || "__none__"} onValueChange={setDetailWbs}>
+                      <SelectTrigger className="mt-1 border-gray-300">
+                        <SelectValue placeholder="Select WBS">
+                          {detailWbs && detailWbs !== "__none__"
+                            ? `${detailWbs} — ${wbsNodes.find((w: any) => w.code === detailWbs)?.name || ""}`
+                            : "None (top level)"}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent className="bg-white border-gray-200">
-                      <SelectItem value="__none__" className="text-gray-900">None (top level)</SelectItem>
-                      {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
-                      ))}                      </SelectContent>
+                        <SelectItem value="__none__" className="text-gray-900">None (top level)</SelectItem>
+                        {wbsNodes.map((w: any) => (
+                          <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={detailWbs} onChange={(e) => setDetailWbs(e.target.value)} placeholder="e.g., 2.1" className="mt-1 border-gray-300" />
+                    <Input value={detailWbs === "__none__" ? "" : detailWbs} onChange={(e) => setDetailWbs(e.target.value || "__none__")} placeholder="e.g., 2.1" className="mt-1 border-gray-300" />
                   )}
                 </div>
                 <div>
@@ -1783,6 +1857,155 @@ export default function Scheduler() {
             >
               {bulkAddMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Add {bulkAddCount || 10} Activities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── CSV Import Dialog ──────────────────────────────────────────────── */}
+      <Dialog open={showCsvImportDialog} onOpenChange={(open) => { setShowCsvImportDialog(open); if (!open) { setCsvParsedRows([]); setCsvFileName(""); } }}>
+        <DialogContent className="bg-white border-gray-200 max-w-3xl text-gray-900" style={{ maxHeight: "85vh" }}>
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-gray-900 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-emerald-600" /> Import Activities from CSV
+            </DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to bulk-import activities. Supported columns: Activity ID, Name, Duration, WBS, Type, Predecessors.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* File upload */}
+            <div>
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors">
+                <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-sm text-gray-500">{csvFileName || "Click to select CSV file"}</span>
+                <span className="text-[10px] text-gray-400 mt-0.5">Accepts .csv files up to 1000 rows</span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setCsvFileName(file.name);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const text = ev.target?.result as string;
+                      if (!text) return;
+                      const lines = text.split(/\r?\n/).filter(l => l.trim());
+                      if (lines.length < 2) { toast.error("CSV must have a header row and at least one data row"); return; }
+                      const header = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ""));
+                      const nameIdx = header.findIndex(h => h === "name" || h === "activityname" || h === "description");
+                      const idIdx = header.findIndex(h => h === "activityid" || h === "id" || h === "code");
+                      const durIdx = header.findIndex(h => h === "duration" || h === "dur" || h === "days");
+                      const wbsIdx = header.findIndex(h => h === "wbs" || h === "wbscode");
+                      const typeIdx = header.findIndex(h => h === "type" || h === "activitytype");
+                      const predIdx = header.findIndex(h => h === "predecessors" || h === "predecessor" || h === "pred" || h === "preds");
+                      if (nameIdx === -1) { toast.error("CSV must have a 'Name' column"); return; }
+                      const rows: typeof csvParsedRows = [];
+                      for (let i = 1; i < lines.length; i++) {
+                        // Simple CSV parsing (handles basic quoted fields)
+                        const vals: string[] = [];
+                        let current = "";
+                        let inQuotes = false;
+                        for (const ch of lines[i]) {
+                          if (ch === '"') { inQuotes = !inQuotes; continue; }
+                          if (ch === "," && !inQuotes) { vals.push(current.trim()); current = ""; continue; }
+                          current += ch;
+                        }
+                        vals.push(current.trim());
+                        const name = vals[nameIdx];
+                        if (!name) continue;
+                        const dur = durIdx >= 0 ? parseInt(vals[durIdx]) || 1 : 1;
+                        const typeRaw = typeIdx >= 0 ? vals[typeIdx]?.toLowerCase() : "task";
+                        rows.push({
+                          activityId: idIdx >= 0 ? vals[idIdx] || undefined : undefined,
+                          name,
+                          duration: dur,
+                          wbs: wbsIdx >= 0 ? vals[wbsIdx] || undefined : undefined,
+                          activityType: typeRaw === "milestone" ? "milestone" : "task",
+                          predecessors: predIdx >= 0 ? vals[predIdx] || undefined : undefined,
+                        });
+                      }
+                      setCsvParsedRows(rows);
+                      toast.success(`Parsed ${rows.length} activities from CSV`);
+                    };
+                    reader.readAsText(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Template hint */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-1">Expected CSV Format</p>
+              <code className="text-[10px] text-gray-500 block font-mono">
+                Activity ID,Name,Duration,WBS,Type,Predecessors<br/>
+                A1010,Site Survey,3,1.0,task,<br/>
+                A1020,Demolition,5,1.0,task,A1010FS<br/>
+                A1030,Excavation,7,2.0,task,A1020FS<br/>
+                M1000,Project Complete,0,,milestone,A1030FS
+              </code>
+              <p className="text-[10px] text-gray-400 mt-1">Only "Name" is required. Predecessors format: A1010FS, A1020SS+2, A1030FF-1</p>
+            </div>
+
+            {/* Preview table */}
+            {csvParsedRows.length > 0 && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-600">{csvParsedRows.length} activities to import</span>
+                  <button onClick={() => { setCsvParsedRows([]); setCsvFileName(""); }} className="text-[10px] text-red-500 hover:underline">Clear</button>
+                </div>
+                <div className="max-h-48 overflow-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">#</th>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">ID</th>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">Name</th>
+                        <th className="px-2 py-1 text-center text-gray-500 font-medium">Dur</th>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">WBS</th>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">Type</th>
+                        <th className="px-2 py-1 text-left text-gray-500 font-medium">Preds</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {csvParsedRows.slice(0, 50).map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-2 py-1 text-gray-400">{i + 1}</td>
+                          <td className="px-2 py-1 font-mono text-gray-700">{row.activityId || "(auto)"}</td>
+                          <td className="px-2 py-1 text-gray-900">{row.name}</td>
+                          <td className="px-2 py-1 text-center text-gray-700">{row.duration}d</td>
+                          <td className="px-2 py-1 text-gray-600">{row.wbs || "—"}</td>
+                          <td className="px-2 py-1 text-gray-600">{row.activityType}</td>
+                          <td className="px-2 py-1 text-gray-600 font-mono text-[10px]">{row.predecessors || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {csvParsedRows.length > 50 && (
+                    <div className="px-3 py-1.5 text-[10px] text-gray-400 bg-gray-50 border-t border-gray-100">
+                      Showing first 50 of {csvParsedRows.length} rows
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowCsvImportDialog(false); setCsvParsedRows([]); setCsvFileName(""); }} className="border-gray-300">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (scheduleId && csvParsedRows.length > 0) {
+                  csvImportMut.mutate({ scheduleId, rows: csvParsedRows });
+                }
+              }}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={csvParsedRows.length === 0 || csvImportMut.isPending}
+            >
+              {csvImportMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Upload className="w-4 h-4 mr-1" />}
+              Import {csvParsedRows.length} Activities
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2420,14 +2643,18 @@ export default function Scheduler() {
           </DialogHeader>
           <div className="space-y-4">
             {/* Visual WBS Tree */}
-            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
-              <WBSTree
-                nodes={wbsNodes}
-                onDelete={(id) => {
-                  deleteWbsMut.mutate({ id, scheduleId: scheduleId! });
-                }}
-              />
-            </div>
+            <WBSTree
+              nodes={wbsNodes}
+              onDelete={(id) => {
+                deleteWbsMut.mutate({ id, scheduleId: scheduleId! });
+              }}
+              onUpdateColor={(id, groupColor, groupTextColor) => {
+                if (scheduleId) updateWbsMut.mutate({ id, scheduleId, groupColor, groupTextColor });
+              }}
+              onUpdateNode={(id, code, name) => {
+                if (scheduleId) updateWbsMut.mutate({ id, scheduleId, code, name });
+              }}
+            />
 
             {/* Add new WBS node */}
             <div className="border-t border-gray-200 pt-3 space-y-2">
