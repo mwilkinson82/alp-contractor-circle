@@ -1279,17 +1279,32 @@ export default function Scheduler() {
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={(e) => {
+                            onChange={() => {}}
+                            onClick={(e) => {
                               e.stopPropagation();
-                              const newSet = new Set(selectedActivityIds);
-                              if (isSelected) newSet.delete(act.id);
-                              else newSet.add(act.id);
-                              setSelectedActivityIds(newSet);
+                              if (e.shiftKey && lastClickedId !== null) {
+                                // Shift+click checkbox: select range
+                                const allActs = groupedActivities.flatMap(g => g.activities);
+                                const idx1 = allActs.findIndex(a => a.id === lastClickedId);
+                                const idx2 = allActs.findIndex(a => a.id === act.id);
+                                if (idx1 >= 0 && idx2 >= 0) {
+                                  const start = Math.min(idx1, idx2);
+                                  const end = Math.max(idx1, idx2);
+                                  const newSet = new Set(selectedActivityIds);
+                                  for (let i = start; i <= end; i++) newSet.add(allActs[i].id);
+                                  setSelectedActivityIds(newSet);
+                                }
+                              } else {
+                                // Normal click: toggle single
+                                const newSet = new Set(selectedActivityIds);
+                                if (isSelected) newSet.delete(act.id);
+                                else newSet.add(act.id);
+                                setSelectedActivityIds(newSet);
+                              }
                               setLastClickedId(act.id);
                             }}
-                            onClick={(e) => e.stopPropagation()}
                             className="w-3 h-3 accent-blue-600 cursor-pointer shrink-0"
-                            title="Select for bulk actions"
+                            title="Click to select, Shift+click to select range"
                           />
                           {hasOpenEnd && <AlertTriangle className="w-3 h-3 text-amber-500" />}
                           {!hasOpenEnd && <GripVertical className="w-3 h-3 text-gray-300" />}

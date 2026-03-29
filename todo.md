@@ -711,3 +711,6 @@
 - [x] Gantt pinch-zoom (Ctrl+scroll) — verified wired in GanttChart onWheel handler
 - [x] Add "Custom" option in header/footer dropdowns — with inline text input field
 - [x] Add image upload option (logo/JPEG) in header/footer slots — with file picker, preview, and PDF embedding
+
+## Checkbox Shift-Click Range Selection Fix (March 29 - Session 10)
+- [x] Fix checkbox shift-click to select range of activities between first and last click for mass WBS assignment
