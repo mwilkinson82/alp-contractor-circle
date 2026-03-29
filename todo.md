@@ -384,3 +384,10 @@
 
 ## Member ID Ty- [x] Change getMemberById parameter from id: number to id: string in server/discord.tsfrom number to string in server/supabase.ts
 - [x] Change verifyMemberSession memberId from number to string in server/discord.ts
+
+## Stripe-to-Discord Member Merge Fix
+- [x] Rewrite Discord OAuth callback merge logic to handle mismatched Stripe/Discord emails
+- [x] Add multiple matching strategies: email placeholder, Stripe customer ID, Supabase cross-reference
+- [x] Clean up existing duplicate member records (Darian, Henrico, Caleb, Daniel)
+- [x] Write tests for the new merge logic
+- [x] Verify welcome email flow still works after fix

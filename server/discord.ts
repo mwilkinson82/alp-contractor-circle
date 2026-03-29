@@ -278,23 +278,27 @@ export function registerDiscordOAuthRoutes(app: Express) {
       // Fetch Discord user info
       const discordUser = await fetchDiscordUser(tokenData.access_token);
 
-      // ─── Merge email-based member record (created by Stripe webhook) ────
-      // If a member record was created by Stripe (keyed by email, with a
-      // placeholder discordId like "email:..."), merge it with the real Discord
-      // identity so the member gets their subscription status on first login.
-      if (discordUser.email) {
-        const db = getDb();
-        if (db) {
-          const { eq } = await import("drizzle-orm");
+      // ─── Merge Stripe member record with Discord identity ────────────────
+      // When someone buys via Stripe, the webhook creates a MySQL record with
+      // a placeholder discordId like "email:<stripe-email>". When they log in
+      // via Discord, their Discord email is often DIFFERENT from their Stripe
+      // email. We use multiple strategies to find and merge the correct record.
+      const db = getDb();
+      let merged = false;
+
+      if (db) {
+        const { eq, like, and } = await import("drizzle-orm");
+
+        // ── Strategy 1: Exact email placeholder match (Discord email === Stripe email) ──
+        if (!merged && discordUser.email) {
           const emailPlaceholder = `email:${discordUser.email}`;
-          const pendingRecord = await db
+          const exactMatch = await db
             .select()
             .from(members)
             .where(eq(members.discordId, emailPlaceholder))
             .limit(1);
 
-          if (pendingRecord.length > 0) {
-            // Update the placeholder record with the real Discord identity
+          if (exactMatch.length > 0) {
             await db
               .update(members)
               .set({
@@ -302,23 +306,174 @@ export function registerDiscordOAuthRoutes(app: Express) {
                 discordUsername: discordUser.username,
                 discordDisplayName: discordUser.global_name || discordUser.username,
                 discordAvatar: discordUser.avatar,
+                email: discordUser.email,
                 lastSignedIn: new Date(),
               })
               .where(eq(members.discordId, emailPlaceholder));
-            console.log(`[Discord OAuth] Merged Stripe member record for ${discordUser.email} with Discord ID ${discordUser.id}`);
-          } else {
-            // No pending record — standard upsert
-            await upsertMember({
-              discordId: discordUser.id,
-              discordUsername: discordUser.username,
-              discordDisplayName: discordUser.global_name || discordUser.username,
-              discordAvatar: discordUser.avatar,
-              email: discordUser.email,
-            });
+            console.log(`[Discord OAuth] Strategy 1: Merged by exact email placeholder for ${discordUser.email}`);
+            merged = true;
           }
         }
-      } else {
-        // No email from Discord — standard upsert
+
+        // ── Strategy 2: Cross-reference via Supabase ──────────────────────────
+        // The Discord email may differ from the Stripe email. Supabase has the
+        // Stripe email + stripe_customer_id. We look up the Discord user's email
+        // in Supabase first; if not found, we check if there's a Supabase member
+        // whose name matches the Discord display name (fuzzy). Then we use the
+        // Supabase stripe_customer_id to find the MySQL placeholder record.
+        if (!merged) {
+          try {
+            const { getSupabaseClient } = await import("./supabaseClient");
+            const supabase = getSupabaseClient();
+            if (supabase) {
+              // Try to find a Supabase member by Discord email first
+              let supaMatch = null;
+              if (discordUser.email) {
+                const { data: byEmail } = await supabase
+                  .from("members")
+                  .select("email, stripe_customer_id, stripe_session_id, name")
+                  .eq("email", discordUser.email)
+                  .eq("subscription_status", "active")
+                  .limit(1);
+                if (byEmail && byEmail.length > 0) {
+                  supaMatch = byEmail[0];
+                  console.log(`[Discord OAuth] Strategy 2: Found Supabase member by Discord email: ${discordUser.email}`);
+                }
+              }
+
+              // If no match by Discord email, search for unlinked active members
+              // and try to match by display name
+              if (!supaMatch) {
+                const { data: activeMembers } = await supabase
+                  .from("members")
+                  .select("email, stripe_customer_id, stripe_session_id, name, discord_id")
+                  .eq("subscription_status", "active")
+                  .is("discord_id", null);
+
+                if (activeMembers && activeMembers.length > 0) {
+                  // Try name match
+                  const discordName = (discordUser.global_name || discordUser.username || "").toLowerCase();
+                  const nameMatch = activeMembers.find(m => {
+                    const supaName = (m.name || "").toLowerCase();
+                    return supaName === discordName ||
+                           supaName.includes(discordName) ||
+                           discordName.includes(supaName);
+                  });
+                  if (nameMatch) {
+                    supaMatch = nameMatch;
+                    console.log(`[Discord OAuth] Strategy 2: Found Supabase member by name match: ${nameMatch.name}`);
+                  } else if (activeMembers.length === 1) {
+                    // Only one unlinked active member — likely the right one
+                    supaMatch = activeMembers[0];
+                    console.log(`[Discord OAuth] Strategy 2: Only one unlinked active Supabase member: ${activeMembers[0].email}`);
+                  }
+                }
+              }
+
+              // If we found a Supabase match, find the corresponding MySQL placeholder
+              if (supaMatch) {
+                const stripeEmail = supaMatch.email;
+                const stripeCustomerId = supaMatch.stripe_customer_id;
+
+                // Try to find MySQL record by email placeholder from Stripe email
+                let mysqlPlaceholder = null;
+                if (stripeEmail) {
+                  const byStripePlaceholder = await db
+                    .select()
+                    .from(members)
+                    .where(eq(members.discordId, `email:${stripeEmail}`))
+                    .limit(1);
+                  if (byStripePlaceholder.length > 0) {
+                    mysqlPlaceholder = byStripePlaceholder[0];
+                  }
+                }
+
+                // Fallback: find by Stripe customer ID
+                if (!mysqlPlaceholder && stripeCustomerId) {
+                  const byCustomerId = await db
+                    .select()
+                    .from(members)
+                    .where(eq(members.stripeCustomerId, stripeCustomerId))
+                    .limit(1);
+                  if (byCustomerId.length > 0 && byCustomerId[0].discordId.startsWith("email:")) {
+                    mysqlPlaceholder = byCustomerId[0];
+                  }
+                }
+
+                if (mysqlPlaceholder) {
+                  await db
+                    .update(members)
+                    .set({
+                      discordId: discordUser.id,
+                      discordUsername: discordUser.username,
+                      discordDisplayName: discordUser.global_name || discordUser.username,
+                      discordAvatar: discordUser.avatar,
+                      email: discordUser.email || mysqlPlaceholder.email,
+                      lastSignedIn: new Date(),
+                    })
+                    .where(eq(members.id, mysqlPlaceholder.id));
+                  console.log(`[Discord OAuth] Strategy 2: Merged MySQL placeholder (id=${mysqlPlaceholder.id}) via Supabase cross-ref. Stripe email: ${stripeEmail}, Discord ID: ${discordUser.id}`);
+                  merged = true;
+
+                  // Also update Supabase with the Discord ID for future reference
+                  try {
+                    await supabase
+                      .from("members")
+                      .update({ discord_id: discordUser.id, discord_username: discordUser.username })
+                      .eq("email", stripeEmail);
+                  } catch (e) {
+                    console.warn("[Discord OAuth] Failed to update Supabase with Discord ID:", e);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("[Discord OAuth] Strategy 2 (Supabase cross-ref) failed:", e);
+          }
+        }
+
+        // ── Strategy 3: Find any unmerged placeholder with active subscription ──
+        // Last resort: if there's exactly one MySQL record with discordId starting
+        // with "email:" and subscriptionStatus "active", it's almost certainly
+        // the member who just purchased.
+        if (!merged) {
+          try {
+            const placeholders = await db
+              .select()
+              .from(members)
+              .where(
+                and(
+                  like(members.discordId, "email:%"),
+                  eq(members.subscriptionStatus, "active")
+                )
+              );
+
+            if (placeholders.length === 1) {
+              const placeholder = placeholders[0];
+              await db
+                .update(members)
+                .set({
+                  discordId: discordUser.id,
+                  discordUsername: discordUser.username,
+                  discordDisplayName: discordUser.global_name || discordUser.username,
+                  discordAvatar: discordUser.avatar,
+                  email: discordUser.email || placeholder.email,
+                  lastSignedIn: new Date(),
+                })
+                .where(eq(members.id, placeholder.id));
+              console.log(`[Discord OAuth] Strategy 3: Merged sole unlinked active placeholder (id=${placeholder.id}, email=${placeholder.email}) with Discord ID ${discordUser.id}`);
+              merged = true;
+            } else if (placeholders.length > 1) {
+              console.warn(`[Discord OAuth] Strategy 3: Found ${placeholders.length} unlinked active placeholders — cannot auto-merge. Manual intervention needed.`);
+            }
+          } catch (e) {
+            console.warn("[Discord OAuth] Strategy 3 failed:", e);
+          }
+        }
+      }
+
+      // ── Fallback: standard upsert (no placeholder found to merge) ──────────
+      if (!merged) {
         await upsertMember({
           discordId: discordUser.id,
           discordUsername: discordUser.username,
@@ -326,6 +481,7 @@ export function registerDiscordOAuthRoutes(app: Express) {
           discordAvatar: discordUser.avatar,
           email: discordUser.email,
         });
+        console.log(`[Discord OAuth] No Stripe placeholder found — created/updated standard member record for Discord ID ${discordUser.id}`);
       }
 
       // Fetch the member record to get the ID

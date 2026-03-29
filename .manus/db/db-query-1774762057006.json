@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE members SET subscriptionStatus = 'active', stripeCustomerId = 'cus_UD7oY6OX9YlLoW', stripeSubscriptionId = 'sub_1TEhYUJdDAUSVXbNbKq58gfM', memberRole = 'founding_member', email = 'caleb@morrow-builds.com' WHERE id = 390001; DELETE FROM members WHERE id = 210001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute UPDATE members SET subscriptionStatus = 'active', stripeCustomerId = 'cus_UD7oY6OX9YlLoW', stripeSubscriptionId = 'sub_1TEhYUJdDAUSVXbNbKq58gfM', memberRole = 'founding_member', email = 'caleb@morrow-builds.com' WHERE id = 390001; DELETE FROM members WHERE id = 210001;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 79
+}

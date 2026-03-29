@@ -1,0 +1,46 @@
+{
+  "query": "SELECT id, discordId, discordDisplayName, email, subscriptionStatus, stripeCustomerId, memberRole FROM members WHERE id >= 390001 ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordDisplayName, email, subscriptionStatus, stripeCustomerId, memberRole FROM members WHERE id >= 390001 ORDER BY id;",
+  "rows": [
+    {
+      "id": "390001",
+      "discordId": "1243955897475010652",
+      "discordDisplayName": "Caleb Morrow",
+      "email": "NULL",
+      "subscriptionStatus": "none",
+      "stripeCustomerId": "NULL",
+      "memberRole": "member"
+    },
+    {
+      "id": "450001",
+      "discordId": "email:darian@vertexctg.com",
+      "discordDisplayName": "Darian Betancourt",
+      "email": "darian@vertexctg.com",
+      "subscriptionStatus": "active",
+      "stripeCustomerId": "cus_UEcn1F8PBPC0wY",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "450002",
+      "discordId": "352280601702825984",
+      "discordDisplayName": "DB3T",
+      "email": "darianb280@hotmail.com",
+      "subscriptionStatus": "none",
+      "stripeCustomerId": "NULL",
+      "memberRole": "member"
+    },
+    {
+      "id": "480010",
+      "discordId": "728162177982267433",
+      "discordDisplayName": "Henrico",
+      "email": "henklop@gmail.com",
+      "subscriptionStatus": "none",
+      "stripeCustomerId": "NULL",
+      "memberRole": "member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordDisplayName\temail\tsubscriptionStatus\tstripeCustomerId\tmemberRole\n390001\t1243955897475010652\tCaleb Morrow\tNULL\tnone\tNULL\tmember\n450001\temail:darian@vertexctg.com\tDarian Betancourt\tdarian@vertexctg.com\tactive\tcus_UEcn1F8PBPC0wY\tfounding_member\n450002\t352280601702825984\tDB3T\tdarianb280@hotmail.com\tnone\tNULL\tmember\n480010\t728162177982267433\tHenrico\thenklop@gmail.com\tnone\tNULL\tmember\n",
+  "stderr": "",
+  "execution_time_ms": 87
+}
