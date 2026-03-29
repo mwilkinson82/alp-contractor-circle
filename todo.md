@@ -597,3 +597,8 @@
 - [ ] Fix: alpcontractorcircle.com redirects all visitors to Manus login screen
 - [ ] Landing page, public pages must be accessible WITHOUT authentication
 - [ ] Only member dashboard, scheduler, and protected features should require login
+
+## SEO Title Fix (March 29)
+- [ ] Change site title from "ALP Contractor Circle Member Portal" to "ALP Contractor Circle"
+- [ ] Update meta description to match (remove "member portal" language)
+- [ ] Update OG tags to match
