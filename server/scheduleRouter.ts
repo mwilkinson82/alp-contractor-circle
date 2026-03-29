@@ -1284,6 +1284,8 @@ export const scheduleRouter = router({
         code: z.string().min(1).max(32).optional(),
         name: z.string().min(1).max(256).optional(),
         sortOrder: z.number().optional(),
+        groupColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+        groupTextColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

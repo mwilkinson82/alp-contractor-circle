@@ -91,13 +91,13 @@ export function PdfExportPreview({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+      <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-semibold text-gray-900">PDF Export Preview</DialogTitle>
           <DialogDescription>Configure your footer layout and preview how it will appear on the PDF.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Column Count Selection */}
           <div>
             <Label className="text-sm font-medium text-gray-700 mb-2 block">Footer Columns</Label>

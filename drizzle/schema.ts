@@ -264,6 +264,10 @@ export const scheduleWbs = mysqlTable("schedule_wbs", {
   name: varchar("name", { length: 256 }).notNull(),
   /** Sort order within parent */
   sortOrder: int("sortOrder").default(0).notNull(),
+  /** Custom background color for group header (hex format, e.g. "#FF6B6B") */
+  groupColor: varchar("groupColor", { length: 7 }).default("#3B82F6"),
+  /** Custom text color for group header (hex format, e.g. "#FFFFFF") */
+  groupTextColor: varchar("groupTextColor", { length: 7 }).default("#FFFFFF"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
