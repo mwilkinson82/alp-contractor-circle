@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
   { icon: Users, label: "Members", path: "/portal/members", adminOnly: true },
+  { icon: BarChart3, label: "Analytics", path: "/portal/analytics", adminOnly: true },
 ];
 
 function MemberPortalSkeleton() {

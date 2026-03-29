@@ -409,3 +409,27 @@
 ## Failed Payment Notification
 - [ ] Add notification to invoice.payment_failed webhook handler
 - [ ] Include member name, amount, and failure reason in notification
+
+## Manage Billing Button
+- [ ] Add Stripe Customer Portal session creation procedure to memberRouter
+- [ ] Add "Manage Billing" button to PortalAccount subscription section
+- [ ] Button opens Stripe Customer Portal in new tab for payment method updates
+
+## Admin Analytics Dashboard
+- [ ] Create admin analytics page at /portal/analytics
+- [ ] Show paying vs comped member breakdown (6 paying, 6 comped)
+- [ ] Show revenue metrics (MRR, total collected)
+- [ ] Show member growth timeline
+- [ ] Add route and nav item for analytics
+
+## Manage Billing Button
+- [ ] Add Stripe Customer Portal session creation procedure to memberRouter
+- [ ] Add "Manage Billing" button to PortalAccount subscription section
+- [ ] Button opens Stripe Customer Portal in new tab for payment method updates
+
+## Admin Analytics Dashboard
+- [ ] Create admin analytics page at /portal/analytics
+- [ ] Show paying vs comped member breakdown (paying = has stripeCustomerId, comped = no stripeCustomerId)
+- [ ] Show revenue metrics (MRR from paying members, total collected)
+- [ ] Show member growth timeline
+- [ ] Add route and nav item for analytics

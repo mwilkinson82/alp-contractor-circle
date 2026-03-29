@@ -62,6 +62,11 @@ export default function PortalAccount() {
       utils.member.subscription.invalidate();
     },
   });
+  const billingPortalMutation = trpc.member.createBillingPortal.useMutation({
+    onSuccess: (data) => {
+      if (data.url) window.open(data.url, "_blank");
+    },
+  });
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
   const memberRole = member?.memberRole || "member";
@@ -194,12 +199,22 @@ export default function PortalAccount() {
             )}
 
             {subscription?.status === "active" && !subscription?.cancelAtPeriodEnd && (
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="mt-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 text-cream-muted hover:text-red-400 text-xs font-medium transition-all"
-              >
-                Cancel Subscription
-              </button>
+              <div className="flex flex-wrap gap-3 mt-3">
+                <button
+                  onClick={() => billingPortalMutation.mutate()}
+                  disabled={billingPortalMutation.isPending}
+                  className="px-4 py-2 rounded-lg bg-ember/10 border border-ember/20 text-ember hover:bg-ember/20 text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  {billingPortalMutation.isPending ? "Opening..." : "Manage Billing"}
+                </button>
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 text-cream-muted hover:text-red-400 text-xs font-medium transition-all"
+                >
+                  Cancel Subscription
+                </button>
+              </div>
             )}
           </div>
         )}

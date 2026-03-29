@@ -477,6 +477,100 @@ export const memberRouter = router({
   }),
 
   /**
+   * Create a Stripe Customer Portal session for the current member to manage billing.
+   */
+  createBillingPortal: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (!member.stripeCustomerId || !stripe) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No Stripe customer found. If you were granted access manually, billing management is not available." });
+    }
+
+    try {
+      const origin = ctx.req.headers.origin || "https://alpcontractorcircle.com";
+      const session = await stripe.billingPortal.sessions.create({
+        customer: member.stripeCustomerId,
+        return_url: `${origin}/portal/account`,
+      });
+      return { url: session.url };
+    } catch (err: any) {
+      console.error("[Member] Failed to create billing portal session:", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to open billing portal. Please try again.",
+      });
+    }
+  }),
+
+  /**
+   * Admin: Get analytics data — paying vs comped breakdown, MRR, growth.
+   */
+  adminAnalytics: publicProcedure.query(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (member.memberRole !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    }
+
+    const db = getDb();
+    if (!db) return { paying: 0, comped: 0, total: 0, mrr: 0, members: [] };
+
+    const allMembers = await db
+      .select({
+        id: members.id,
+        displayName: members.discordDisplayName,
+        username: members.discordUsername,
+        email: members.email,
+        subscriptionStatus: members.subscriptionStatus,
+        stripeCustomerId: members.stripeCustomerId,
+        stripeSubscriptionId: members.stripeSubscriptionId,
+        memberRole: members.memberRole,
+        createdAt: members.createdAt,
+      })
+      .from(members)
+      .where(eq(members.subscriptionStatus, "active"))
+      .orderBy(desc(members.createdAt));
+
+    const paying = allMembers.filter(m => m.stripeCustomerId && m.stripeSubscriptionId);
+    const comped = allMembers.filter(m => !m.stripeCustomerId || !m.stripeSubscriptionId);
+
+    // MRR = paying members * $497/mo
+    const mrr = paying.length * 497;
+
+    // Try to get Stripe balance/revenue if available
+    let totalCollected = 0;
+    if (stripe) {
+      try {
+        const balance = await stripe.balance.retrieve();
+        const usdAvailable = balance.available.find(b => b.currency === "usd");
+        const usdPending = balance.pending.find(b => b.currency === "usd");
+        totalCollected = ((usdAvailable?.amount || 0) + (usdPending?.amount || 0));
+      } catch (err) {
+        console.warn("[Analytics] Failed to fetch Stripe balance:", err);
+      }
+    }
+
+    return {
+      paying: paying.length,
+      comped: comped.length,
+      total: allMembers.length,
+      mrr,
+      totalCollected,
+      members: allMembers.map(m => ({
+        id: m.id,
+        name: m.displayName || m.username || m.email || "Unknown",
+        email: m.email,
+        type: (m.stripeCustomerId && m.stripeSubscriptionId) ? "paying" as const : "comped" as const,
+        joinedAt: m.createdAt,
+      })),
+    };
+  }),
+
+  /**
    * Get payment history from Stripe for the current member.
    */
   payments: publicProcedure.query(async ({ ctx }) => {

@@ -14,6 +14,7 @@ import PortalAccount from "./pages/PortalAccount";
 import PortalAdmin from "./pages/PortalAdmin";
 import PortalSubscribers from "./pages/PortalSubscribers";
 import AdminMembers from "./pages/AdminMembers";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 function Router() {
   return (
@@ -57,6 +58,11 @@ function Router() {
       <Route path="/portal/members">
         <MemberPortalLayout>
           <AdminMembers />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/analytics">
+        <MemberPortalLayout>
+          <AdminAnalytics />
         </MemberPortalLayout>
       </Route>
 
