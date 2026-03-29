@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO templates (name, description, category, url, createdAt, updatedAt) VALUES ('EOS for Contractors — Inaugural Call Deck', 'Complete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.', 'Project Management', 'https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf', NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute INSERT INTO templates (name, description, category, url, createdAt, updatedAt) VALUES ('EOS for Contractors — Inaugural Call Deck', 'Complete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.', 'Project Management', 'https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf', NOW(), NOW());",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'jyldjeafqzebzwtiaswnpq.templates' doesn't exist"
+  ]
+}

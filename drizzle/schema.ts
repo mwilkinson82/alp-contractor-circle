@@ -429,3 +429,30 @@ export const calendarExceptions = mysqlTable("calendar_exceptions", {
 
 export type CalendarException = typeof calendarExceptions.$inferSelect;
 export type InsertCalendarException = typeof calendarExceptions.$inferInsert;
+
+/**
+ * Templates table — reusable project management templates for the portal.
+ * Members can browse and download templates organized by category.
+ */
+export const templates = mysqlTable("templates", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Template name */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Description shown in the template library */
+  description: text("description"),
+  /** Category for filtering (e.g., "Project Management", "Construction SOPs", "Checklists") */
+  category: varchar("category", { length: 128 }).notNull(),
+  /** CDN URL to the template file (PDF, DOCX, etc.) */
+  url: text("url").notNull(),
+  /** File type (e.g., "pdf", "docx", "xlsx") */
+  fileType: varchar("fileType", { length: 16 }).default("pdf").notNull(),
+  /** Whether this template is featured/highlighted */
+  featured: boolean("featured").default(false).notNull(),
+  /** Whether this template is published (visible to members) */
+  published: boolean("published").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Template = typeof templates.$inferSelect;
+export type InsertTemplate = typeof templates.$inferInsert;

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `templates` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`name` varchar(256) NOT NULL,\n\t`description` text,\n\t`category` varchar(128) NOT NULL,\n\t`url` text NOT NULL,\n\t`fileType` varchar(16) NOT NULL DEFAULT 'pdf',\n\t`featured` boolean NOT NULL DEFAULT false,\n\t`published` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `templates_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute CREATE TABLE `templates` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`name` varchar(256) NOT NULL,\n\t`description` text,\n\t`category` varchar(128) NOT NULL,\n\t`url` text NOT NULL,\n\t`fileType` varchar(16) NOT NULL DEFAULT 'pdf',\n\t`featured` boolean NOT NULL DEFAULT false,\n\t`published` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `templates_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 260
+}
