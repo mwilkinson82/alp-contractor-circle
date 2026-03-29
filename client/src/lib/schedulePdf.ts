@@ -78,6 +78,30 @@ export interface PdfExportOptions {
   showGantt: boolean;
   showTable: boolean;
   showCriticalPathOnly: boolean;
+
+  // WBS grouping for Gantt
+  groupedActivities?: Array<{
+    group: string | null;
+    activities: Array<{
+      activityId: string;
+      name: string;
+      duration: number;
+      earlyStart: Date | null;
+      earlyFinish: Date | null;
+      lateStart: Date | null;
+      lateFinish: Date | null;
+      totalFloat: number | null;
+      freeFloat: number | null;
+      isCritical: boolean;
+      percentComplete: string;
+      wbs: string | null;
+      activityType?: "task" | "milestone";
+      barColor?: string;
+    }>;
+    depth: number;
+    wbsColor?: string;
+    wbsTextColor?: string;
+  }>;
 }
 
 function formatDate(d: Date | null): string {
@@ -453,6 +477,35 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       return;
     }
 
+    // Build flat row list with WBS group headers interleaved
+    type PdfRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string } | { type: "activity"; act: typeof filteredActivities[0] };
+    const pdfRows: PdfRow[] = [];
+    if (options.groupedActivities && options.groupedActivities.length > 0) {
+      for (const g of options.groupedActivities) {
+        if (g.group) {
+          // Filter group activities by critical path if needed
+          const gActs = showCriticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
+          // Check if this group or its descendants have activities
+          const hasActs = gActs.length > 0 || (!showCriticalPathOnly);
+          if (hasActs || gActs.length > 0) {
+            pdfRows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
+          }
+          for (const act of gActs) {
+            pdfRows.push({ type: "activity", act });
+          }
+        } else {
+          const gActs = showCriticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
+          for (const act of gActs) {
+            pdfRows.push({ type: "activity", act });
+          }
+        }
+      }
+    } else {
+      for (const act of filteredActivities) {
+        pdfRows.push({ type: "activity", act });
+      }
+    }
+
     // Start Gantt on a new page (or continue on first page if no table)
     if (showTable) {
       doc.addPage();
@@ -467,7 +520,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     // Calculate row height - aim for readable size, paginate if needed
     const idealRowH = 7;
     const maxRowsPerPage = Math.floor(ganttHeight / idealRowH);
-    const rowH = Math.min(idealRowH, ganttHeight / Math.min(filteredActivities.length, maxRowsPerPage));
+    const rowH = Math.min(idealRowH, ganttHeight / Math.min(pdfRows.length, maxRowsPerPage));
     const barH = rowH * 0.5;
 
     // Calculate label width based on longest activity name
@@ -490,17 +543,17 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     };
 
     // ─── Paginate Gantt ──────────────────────────────────────────────────────
-    let activityIndex = 0;
+    let rowIndex = 0;
     let isFirstGanttPage = true;
 
-    while (activityIndex < filteredActivities.length) {
+    while (rowIndex < pdfRows.length) {
       if (!isFirstGanttPage) {
         doc.addPage();
         drawHeader();
       }
       isFirstGanttPage = false;
 
-      const pageActivities = filteredActivities.slice(activityIndex, activityIndex + maxRowsPerPage);
+      const pageRows = pdfRows.slice(rowIndex, rowIndex + maxRowsPerPage);
 
       // ─── Draw Time Scale ──────────────────────────────────────────────────
       doc.setFontSize(6);
@@ -513,7 +566,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (x >= chartLeft && x <= ganttRight) {
           doc.setDrawColor(230, 230, 230);
           doc.setLineWidth(0.1);
-          doc.line(x, ganttTop, x, ganttTop + pageActivities.length * rowH);
+          doc.line(x, ganttTop, x, ganttTop + pageRows.length * rowH);
           doc.setTextColor(...colors.muted);
           doc.text(
             current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
@@ -529,16 +582,60 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (ddX >= chartLeft && ddX <= ganttRight) {
           doc.setDrawColor(...colors.steelBlue);
           doc.setLineWidth(0.5);
-          doc.line(ddX, ganttTop - 3, ddX, ganttTop + pageActivities.length * rowH);
+          doc.line(ddX, ganttTop - 3, ddX, ganttTop + pageRows.length * rowH);
           doc.setFontSize(5.5);
           doc.setTextColor(...colors.steelBlue);
           doc.text("DD", ddX + 0.5, ganttTop - 3.5);
         }
       }
 
-      // ─── Draw Activity Bars ───────────────────────────────────────────────
-      pageActivities.forEach((act, i) => {
+      // ─── Draw Rows (Group Headers + Activity Bars) ────────────────────────
+      pageRows.forEach((row, i) => {
         const y = ganttTop + i * rowH;
+
+        if (row.type === "group") {
+          // WBS Group Header row
+          const depth = row.depth;
+          const indent = depth * 4; // mm indent per level
+          // Background
+          if (row.bgColor) {
+            const hex = row.bgColor.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            doc.setFillColor(r, g, b);
+          } else {
+            doc.setFillColor(depth === 0 ? 226 : depth === 1 ? 241 : 248, depth === 0 ? 232 : depth === 1 ? 245 : 250, depth === 0 ? 240 : depth === 1 ? 249 : 252);
+          }
+          doc.rect(ganttLeft, y, ganttRight - ganttLeft, rowH, "F");
+
+          // Left accent bar for child groups
+          if (depth > 0) {
+            const accentColor = row.bgColor || "#94a3b8";
+            const hex = accentColor.replace('#', '');
+            doc.setFillColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
+            doc.rect(ganttLeft + indent - 1, y + 1, 0.8, rowH - 2, "F");
+          }
+
+          // Group label text
+          if (row.textColor) {
+            const hex = row.textColor.replace('#', '');
+            doc.setTextColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
+          } else {
+            doc.setTextColor(depth === 0 ? 30 : 51, depth === 0 ? 41 : 65, depth === 0 ? 59 : 81);
+          }
+          doc.setFont("helvetica", depth === 0 ? "bold" : "normal");
+          doc.setFontSize(depth === 0 ? 6 : 5.5);
+          doc.text(row.label, ganttLeft + 2 + indent, y + rowH / 2 + 1.5, { maxWidth: labelWidth - indent - 4 });
+
+          // Separator
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.1);
+          doc.line(ganttLeft, y + rowH, ganttRight, y + rowH);
+          return;
+        }
+
+        const act = row.act;
 
         // Alternating row background (full width including label area)
         if (i % 2 === 0) {
@@ -660,11 +757,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         }
       });
 
-      activityIndex += maxRowsPerPage;
+      rowIndex += maxRowsPerPage;
     }
 
-    // ─── Legend (on last Gantt page, below activities) ───────────────────────
-    const lastPageActCount = filteredActivities.length % maxRowsPerPage || maxRowsPerPage;
+    // ─── Legend (on last Gantt page, below activities) ───────────────────
+    const lastPageActCount = pdfRows.length % maxRowsPerPage || maxRowsPerPage;
     const legendY = ganttTop + lastPageActCount * rowH + 4;
 
     doc.setFontSize(6);

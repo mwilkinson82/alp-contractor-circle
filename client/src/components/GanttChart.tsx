@@ -51,6 +51,9 @@ interface TargetActivity {
 interface GroupedActivities {
   group: string | null;
   activities: Activity[];
+  depth?: number; // 0 = top-level, 1 = child, 2 = grandchild, etc.
+  wbsColor?: string; // custom group bar color
+  wbsTextColor?: string; // custom group text color
 }
 
 interface GanttChartProps {
@@ -233,11 +236,11 @@ export default function GanttChart({
 
   // Flatten grouped activities for row index mapping
   const flatRows = useMemo(() => {
-    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number }> = [];
+    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string }> = [];
     let idx = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        rows.push({ type: "group", group: g.group, rowIndex: idx });
+        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor });
         idx++;
       }
       for (const act of g.activities) {
@@ -684,12 +687,22 @@ export default function GanttChart({
       if (y < HEADER_HEIGHT - ROW_HEIGHT || y > visibleHeight + ROW_HEIGHT) continue;
 
       if (row.type === "group") {
-        ctx.fillStyle = COLORS.groupBg;
+        const depth = row.depth ?? 0;
+        const indent = depth * 16;
+        // Use custom WBS color or default
+        const bgColor = row.wbsColor || (depth === 0 ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.03)");
+        const textColor = row.wbsTextColor || COLORS.headerTextBold;
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-        ctx.fillStyle = COLORS.headerTextBold;
-        ctx.font = "bold 10px 'DM Sans', sans-serif";
+        // Draw left accent bar for depth
+        if (depth > 0) {
+          ctx.fillStyle = row.wbsColor || "#94a3b8";
+          ctx.fillRect(indent - 8, y + 2, 3, ROW_HEIGHT - 4);
+        }
+        ctx.fillStyle = textColor;
+        ctx.font = depth === 0 ? "bold 10px 'DM Sans', sans-serif" : "600 10px 'DM Sans', sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(row.group || "", 8, y + ROW_HEIGHT / 2 + 3);
+        ctx.fillText(row.group || "", 8 + indent, y + ROW_HEIGHT / 2 + 3);
         continue;
       }
 

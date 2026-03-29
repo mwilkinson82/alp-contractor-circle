@@ -742,3 +742,12 @@
 
 ## WBS Grouping Sort Order Fix (March 29 - Session 13)
 - [x] Fix WBS grouping sort order — uses hierarchical depth-first tree traversal so parents always appear before children
+
+## Nested WBS Grouping (March 29 - Session 14)
+- [x] Refactor WBS grouping from flat to nested hierarchical display
+- [x] Child WBS groups visually indented under parent WBS groups (like Primavera P6)
+- [x] Each tier gets distinct colored bar (parent vs child differentiation) with depth-based defaults
+- [x] Activities under parent WBS appear directly under parent bar, child WBS activities under child bar
+- [x] Gantt chart reflects nested WBS group structure with depth-based indentation and accent bars
+- [x] PDF export includes WBS group headers with indentation in Gantt section
+- [x] Vitest tests for WBS hierarchical grouping logic (8 tests passing)

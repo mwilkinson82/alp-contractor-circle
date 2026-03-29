@@ -1,0 +1,82 @@
+{
+  "query": "DESCRIBE schedule_wbs",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute DESCRIBE schedule_wbs",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "scheduleId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "parentId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "code",
+      "Type": "varchar(32)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "name",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sortOrder",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "groupColor",
+      "Type": "varchar(7)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "#3B82F6",
+      "Extra": ""
+    },
+    {
+      "Field": "groupTextColor",
+      "Type": "varchar(7)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "#FFFFFF",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nscheduleId\tint\tNO\t\tNULL\t\nparentId\tint\tYES\t\tNULL\t\ncode\tvarchar(32)\tNO\t\tNULL\t\nname\tvarchar(256)\tNO\t\tNULL\t\nsortOrder\tint\tNO\t\t0\t\ngroupColor\tvarchar(7)\tYES\t\t#3B82F6\t\ngroupTextColor\tvarchar(7)\tYES\t\t#FFFFFF\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

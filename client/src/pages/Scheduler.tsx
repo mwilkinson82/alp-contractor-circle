@@ -584,18 +584,81 @@ export default function Scheduler() {
 
   /* ── Grouping ─────────────────────────────────────────────────────────── */
   const groupedActivities = useMemo(() => {
-    if (!groupBy) return [{ group: null, activities: sortedActivities }];
+    if (!groupBy) return [{ group: null as string | null, activities: sortedActivities, depth: 0 as number, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined }];
+
+    if (groupBy === "wbs" && wbsNodes.length > 0) {
+      // Build a map of WBS code -> activities
+      const actsByWbs = new Map<string, any[]>();
+      for (const act of sortedActivities) {
+        const code = act.wbs || "";
+        if (!actsByWbs.has(code)) actsByWbs.set(code, []);
+        actsByWbs.get(code)!.push(act);
+      }
+
+      // Build hierarchical groups by walking the WBS tree depth-first
+      type GroupEntry = { group: string; activities: any[]; depth: number; wbsColor?: string; wbsTextColor?: string };
+      const result: GroupEntry[] = [];
+
+      const walkTree = (parentId: number | null, depth: number) => {
+        const children = wbsNodes
+          .filter((n: any) => (n.parentId || null) === parentId)
+          .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code, undefined, { numeric: true }));
+
+        for (const node of children) {
+          const label = `${node.code} \u2014 ${node.name}`;
+          // Collect activities directly assigned to this WBS code (not to children)
+          const childCodes = new Set<string>();
+          const collectChildCodes = (pid: number) => {
+            for (const c of wbsNodes) {
+              if ((c.parentId || null) === pid) {
+                childCodes.add(c.code);
+                collectChildCodes(c.id);
+              }
+            }
+          };
+          collectChildCodes(node.id);
+
+          // Activities for this node: assigned to this code but NOT to any descendant code
+          const directActs = (actsByWbs.get(node.code) || []).filter(
+            (a: any) => !childCodes.has(a.wbs)
+          );
+
+          // Always show the group header even if it has no direct activities
+          // (it may have child groups with activities)
+          const hasDescendantActs = Array.from(childCodes).some(code => (actsByWbs.get(code) || []).length > 0);
+          if (directActs.length > 0 || hasDescendantActs) {
+            result.push({
+              group: label,
+              activities: directActs,
+              depth,
+              wbsColor: node.groupColor || undefined,
+              wbsTextColor: node.groupTextColor || undefined,
+            });
+          }
+
+          // Recurse into children
+          walkTree(node.id, depth + 1);
+        }
+      };
+
+      walkTree(null, 0);
+
+      // Add "No WBS" group for activities without a WBS assignment
+      const noWbsActs = actsByWbs.get("") || [];
+      if (noWbsActs.length > 0) {
+        result.push({ group: "No WBS", activities: noWbsActs, depth: 0 });
+      }
+
+      return result;
+    }
+
+    // Non-WBS grouping (critical path, activity codes, etc.)
     const groups = new Map<string, any[]>();
     for (const act of sortedActivities) {
       let key = "Ungrouped";
-      if (groupBy === "wbs") {
-        const wbsCode = act.wbs || "";
-        const wbsNode = wbsNodes.find((w: any) => w.code === wbsCode);
-        key = wbsNode ? `${wbsCode} — ${wbsNode.name}` : (wbsCode || "No WBS");
-      } else if (groupBy === "critical") {
+      if (groupBy === "critical") {
         key = act.isCritical ? "Critical Path" : "Non-Critical";
       } else {
-        // Group by activity code category
         const catId = parseInt(groupBy);
         if (!isNaN(catId)) {
           const assignment = codeAssignments.find((ca: any) => ca.activityId === act.id && ca.categoryId === catId);
@@ -611,32 +674,7 @@ export default function Scheduler() {
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(act);
     }
-    // Sort groups: for WBS grouping, use hierarchical tree order (parents before children)
-    const entries = Array.from(groups.entries());
-    if (groupBy === "wbs" && wbsNodes.length > 0) {
-      // Build a flat ordered list from the WBS tree (depth-first)
-      const buildWbsOrder = (nodes: any[], parentId: number | null = null): string[] => {
-        const children = nodes.filter((n: any) => (n.parentId || null) === parentId);
-        children.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code, undefined, { numeric: true }));
-        const result: string[] = [];
-        for (const child of children) {
-          result.push(`${child.code} \u2014 ${child.name}`);
-          result.push(...buildWbsOrder(nodes, child.id));
-        }
-        return result;
-      };
-      const wbsOrder = buildWbsOrder(wbsNodes);
-      entries.sort((a, b) => {
-        const ai = wbsOrder.indexOf(a[0]);
-        const bi = wbsOrder.indexOf(b[0]);
-        // Put known WBS groups first in tree order, unknown groups at the end
-        if (ai === -1 && bi === -1) return a[0].localeCompare(b[0], undefined, { numeric: true });
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      });
-    }
-    return entries.map(([group, acts]) => ({ group, activities: acts }));
+    return Array.from(groups.entries()).map(([group, acts]) => ({ group: group as string | null, activities: acts, depth: 0, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined }));
   }, [sortedActivities, groupBy, codeAssignments, codeCategories, wbsNodes]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
@@ -1227,25 +1265,41 @@ export default function Scheduler() {
 
             {/* Table Body */}
             <div className="divide-y divide-gray-100">
-              {groupedActivities.map(({ group, activities: groupActs }) => (
+              {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
                     // Find WBS node for custom colors if grouping by WBS
                     let groupBg = "#f3f4f6";
                     let groupText = "#4b5563";
+                    const d = depth ?? 0;
                     if (groupBy === "wbs") {
-                      const wbsCode = group.split(" \u2014 ")[0];
-                      const wbsNode = wbsNodes.find((w: any) => w.code === wbsCode);
-                      if (wbsNode?.groupColor) groupBg = wbsNode.groupColor;
-                      if (wbsNode?.groupTextColor) groupText = wbsNode.groupTextColor;
+                      if (wbsColor) groupBg = wbsColor;
+                      else groupBg = d === 0 ? "#e2e8f0" : d === 1 ? "#f1f5f9" : "#f8fafc";
+                      if (wbsTextColor) groupText = wbsTextColor;
+                      else groupText = d === 0 ? "#1e293b" : d === 1 ? "#334155" : "#475569";
                     }
                     return (
                       <div
-                        className="px-3 py-2 text-sm font-bold tracking-wide border-b-2"
-                        style={{ backgroundColor: groupBg, color: groupText, borderBottomColor: groupBg === "#f3f4f6" ? "#d1d5db" : groupBg }}
+                        className="py-2 text-sm tracking-wide border-b-2 flex items-center"
+                        style={{
+                          backgroundColor: groupBg,
+                          color: groupText,
+                          borderBottomColor: groupBg === "#f3f4f6" || groupBg === "#e2e8f0" ? "#d1d5db" : groupBg,
+                          paddingLeft: `${12 + d * 20}px`,
+                          fontWeight: d === 0 ? 700 : 600,
+                          fontSize: d === 0 ? "0.875rem" : "0.8125rem",
+                        }}
                       >
+                        {d > 0 && (
+                          <span
+                            className="inline-block w-1 rounded-full mr-2 flex-shrink-0"
+                            style={{ backgroundColor: wbsColor || "#94a3b8", height: d === 1 ? "14px" : "10px" }}
+                          />
+                        )}
                         {group}
-                        <span className="ml-2 text-xs font-normal opacity-70">({groupActs.length} activities)</span>
+                        {groupActs.length > 0 && (
+                          <span className="ml-2 text-xs font-normal opacity-70">({groupActs.length} activities)</span>
+                        )}
                       </div>
                     );
                   })()}
@@ -2909,6 +2963,28 @@ export default function Scheduler() {
               showGantt: config.showGantt,
               showTable: config.showTable ?? false,
               showCriticalPathOnly: config.criticalPathOnly,
+              groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
+                group: g.group,
+                activities: g.activities.map((a: any) => ({
+                  activityId: a.activityId,
+                  name: a.name,
+                  duration: a.duration,
+                  earlyStart: a.earlyStart,
+                  earlyFinish: a.earlyFinish,
+                  lateStart: a.lateStart,
+                  lateFinish: a.lateFinish,
+                  totalFloat: a.totalFloat,
+                  freeFloat: a.freeFloat,
+                  isCritical: a.isCritical,
+                  percentComplete: a.percentComplete,
+                  wbs: a.wbs,
+                  activityType: a.activityType,
+                  barColor: a.barColor,
+                })),
+                depth: g.depth ?? 0,
+                wbsColor: g.wbsColor,
+                wbsTextColor: g.wbsTextColor,
+              })) : undefined,
             });
             toast.success("PDF exported successfully");
             setShowPdfExport(false);
