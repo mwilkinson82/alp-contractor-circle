@@ -381,3 +381,6 @@
 ## Mobile Responsiveness — Portal Pages
 - [ ] Fix PortalTemplates category filter badges — horizontal scroll on mobile
 - [ ] Full portal mobile responsiveness audit and fix (all portal pages)
+
+## Member ID Ty- [x] Change getMemberById parameter from id: number to id: string in server/discord.tsfrom number to string in server/supabase.ts
+- [x] Change verifyMemberSession memberId from number to string in server/discord.ts

@@ -1,0 +1,98 @@
+{
+  "query": "\nSELECT id, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole\nFROM members\nWHERE subscriptionStatus IN ('active', 'trialing')\n  AND email IS NOT NULL\n  AND email != ''\nORDER BY id ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute \nSELECT id, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole\nFROM members\nWHERE subscriptionStatus IN ('active', 'trialing')\n  AND email IS NOT NULL\n  AND email != ''\nORDER BY id ASC;\n",
+  "rows": [
+    {
+      "id": "4",
+      "discordUsername": "dan_delmonte",
+      "discordDisplayName": "Dan Del Monte",
+      "email": "dan@delmontebuilders.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "30001",
+      "discordUsername": "marshallwilkinson",
+      "discordDisplayName": "Marshall Wilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "subscriptionStatus": "active",
+      "memberRole": "admin"
+    },
+    {
+      "id": "60001",
+      "discordUsername": "olivetreebuilds",
+      "discordDisplayName": "Nathan Oliveira",
+      "email": "nathan@olivetreebuilds.ca",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "60002",
+      "discordUsername": "aj_hoover",
+      "discordDisplayName": "AJ Hoover",
+      "email": "ajhoover@mac.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "90001",
+      "discordUsername": "ronniesilva0858",
+      "discordDisplayName": "Ronnie Silva",
+      "email": "office@sageconstructiondevelopment.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "150001",
+      "discordUsername": "3argledup_86404",
+      "discordDisplayName": "Michael E",
+      "email": "michael@mecontractingpros.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "150002",
+      "discordUsername": "joaquinlescano_43897",
+      "discordDisplayName": "Joaquin Lescano",
+      "email": "lescano0456@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "180001",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Marshall Wilkinson",
+      "email": "wilkinson.marshall@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "210001",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Caleb Morrow",
+      "email": "caleb@morrow-builds.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "270001",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Daniel Billingsley",
+      "email": "dan@growmybluecollar.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "300001",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Giuseppe Di Lorenzo",
+      "email": "joey@mcmdlusso.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordUsername\tdiscordDisplayName\temail\tsubscriptionStatus\tmemberRole\n4\tdan_delmonte\tDan Del Monte\tdan@delmontebuilders.com\tactive\tfounding_member\n30001\tmarshallwilkinson\tMarshall Wilkinson\tmwilkinson@saxumcapital.com\tactive\tadmin\n60001\tolivetreebuilds\tNathan Oliveira\tnathan@olivetreebuilds.ca\tactive\tfounding_member\n60002\taj_hoover\tAJ Hoover\tajhoover@mac.com\tactive\tfounding_member\n90001\tronniesilva0858\tRonnie Silva\toffice@sageconstructiondevelopment.com\tactive\tfounding_member\n150001\t3argledup_86404\tMichael E\tmichael@mecontractingpros.com\tactive\tfounding_member\n150002\tjoaquinlescano_43897\tJoaquin Lescano\tlescano0456@gmail.com\tactive\tfounding_member\n180001\tNULL\tMarshall Wilkinson\twilkinson.marshall@gmail.com\tactive\tfounding_member\n210001\tNULL\tCaleb Morrow\tcaleb@morrow-builds.com\tactive\tfounding_member\n270001\tNULL\tDaniel Billingsley\tdan@growmybluecollar.com\tactive\tfounding_member\n300001\tNULL\tGiuseppe Di Lorenzo\tjoey@mcmdlusso.com\tactive\tfounding_member\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

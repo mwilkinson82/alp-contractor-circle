@@ -46,7 +46,7 @@ describe("Member session management", () => {
 
     const session = await verifyMemberSession(token);
     expect(session).not.toBeNull();
-    expect(session!.memberId).toBe(42);
+    expect(session!.memberId).toBe("42");
     expect(session!.discordId).toBe("123456789");
   });
 

@@ -112,10 +112,12 @@ export async function getMemberByDiscordId(discordId: string): Promise<Member | 
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getMemberById(id: number): Promise<Member | undefined> {
+export async function getMemberById(id: string): Promise<Member | undefined> {
   const db = getDb();
   if (!db) return undefined;
-  const result = await db.select().from(members).where(eq(members.id, id)).limit(1);
+  const numericId = parseInt(id, 10);
+  if (isNaN(numericId)) return undefined;
+  const result = await db.select().from(members).where(eq(members.id, numericId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -137,7 +139,7 @@ export async function createMemberSession(member: Member): Promise<string> {
 
 export async function verifyMemberSession(
   cookieValue: string | undefined | null
-): Promise<{ memberId: number; discordId: string } | null> {
+): Promise<{ memberId: string; discordId: string } | null> {
   if (!cookieValue) return null;
 
   try {
@@ -145,11 +147,11 @@ export async function verifyMemberSession(
     const { payload } = await jwtVerify(cookieValue, secret, { algorithms: ["HS256"] });
     const { memberId, discordId, type } = payload as Record<string, unknown>;
 
-    if (type !== "member" || typeof memberId !== "number" || typeof discordId !== "string") {
+    if (type !== "member" || typeof discordId !== "string") {
       return null;
     }
 
-    return { memberId, discordId };
+    return { memberId: String(memberId), discordId };
   } catch {
     return null;
   }
