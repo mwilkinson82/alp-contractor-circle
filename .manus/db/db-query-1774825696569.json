@@ -1,0 +1,22 @@
+{
+  "query": "SELECT * FROM templates WHERE name LIKE '%EOS%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT * FROM templates WHERE name LIKE '%EOS%';",
+  "rows": [
+    {
+      "id": "1",
+      "name": "EOS for Contractors — Inaugural Call Deck",
+      "description": "Complete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.",
+      "category": "Operations",
+      "url": "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf",
+      "fileType": "pdf",
+      "featured": "1",
+      "published": "1",
+      "createdAt": "2026-03-29 22:59:00",
+      "updatedAt": "2026-03-29 23:02:10"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tdescription\tcategory\turl\tfileType\tfeatured\tpublished\tcreatedAt\tupdatedAt\n1\tEOS for Contractors — Inaugural Call Deck\tComplete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.\tOperations\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf\tpdf\t1\t1\t2026-03-29 22:59:00\t2026-03-29 23:02:10\n",
+  "stderr": "",
+  "execution_time_ms": 95
+}

@@ -738,17 +738,39 @@ export default function PortalTemplates() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const { isSubscribed } = useMember();
+  const { data: dbTemplates = [] } = trpc.templates.list.useQuery({});
+
+  // Merge hardcoded templates with database templates
+  const allTemplates = useMemo(() => {
+    const merged = [...TEMPLATES];
+    for (const dbT of dbTemplates) {
+      if (!merged.find(t => t.title === dbT.title)) {
+        merged.push({
+          id: dbT.id,
+          title: dbT.title,
+          description: dbT.description,
+          longDescription: dbT.description,
+          category: dbT.category as any,
+          fileType: dbT.fileType,
+          downloadUrl: dbT.downloadUrl,
+          featured: dbT.featured,
+          highlights: [],
+        });
+      }
+    }
+    return merged;
+  }, [dbTemplates]);
 
   const filteredTemplates = useMemo(() => {
-    return TEMPLATES.filter(t => {
+    return allTemplates.filter(t => {
       if (activeCategory !== "all" && t.category !== activeCategory) return false;
       if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !t.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, allTemplates]);
 
-  const featuredTemplates = TEMPLATES.filter(t => t.featured);
+  const featuredTemplates = allTemplates.filter(t => t.featured);
 
   return (
     <SubscriptionGate isSubscribed={isSubscribed}>

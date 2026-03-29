@@ -75,6 +75,45 @@ export const appRouter = router({
   member: memberRouter,
   schedule: scheduleRouter,
 
+  templates: router({
+    /**
+     * List all published templates, optionally filtered by category.
+     */
+    list: publicProcedure
+      .input(z.object({ category: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        try {
+          const db = getSupabaseClient();
+          if (!db) return [];
+          let query = db.from("templates").select("*").eq("published", true);
+          
+          if (input?.category) {
+            query = query.eq("category", input.category);
+          }
+          
+          const { data, error } = await query.order("featured", { ascending: false }).order("createdAt", { ascending: false });
+          
+          if (error) {
+            console.error("[Templates] Failed to fetch templates:", error);
+            return [];
+          }
+          
+          return (data || []).map((t: any) => ({
+            id: t.id.toString(),
+            title: t.name,
+            description: t.description || "",
+            category: (t.category || "operations").toLowerCase(),
+            fileType: (t.fileType || "pdf") as "pdf" | "docx" | "xlsx",
+            downloadUrl: t.url,
+            featured: t.featured || false,
+          }));
+        } catch (err) {
+          console.error("[Templates] Error:", err);
+          return [];
+        }
+      }),
+  }),
+
   circle: router({
     /**
      * Submit a template or SOP request from a member.
