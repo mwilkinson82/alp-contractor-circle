@@ -28,6 +28,7 @@ const TEMPLATES = [
   { id: "16", name: "Construction Punch List", url: "https://docs.google.com/spreadsheets/d/1_jwNpKsmTqHuNAN8HMwKhPBIAW3mOmK5IkZYh2rUXYw/copy", type: "google-sheet", category: "operations", featured: false },
   { id: "17", name: "Construction Invoice", url: "https://docs.google.com/spreadsheets/d/1yWC3qJq0ew1Sw5P3zTigm0l-fcPqldAI_sIouHNEF0o/copy", type: "google-sheet", category: "finance", featured: false },
   { id: "18", name: "Roles & Responsibilities Framework", url: "https://docs.google.com/document/d/1H5_dKbrSgwTpKD7lxK4i3dsjMJvnhCs2sg3l3f4AZHk/copy", type: "google-doc", category: "operations", featured: true },
+  { id: "19", name: "CPM Scheduling — The Financial Weapon", url: "https://drive.google.com/file/d/1tcDTbADD3V7oIV72OJSvHBqKsFz9-DB8/view", type: "pdf", category: "operations", featured: false },
 ];
 
 describe("Template Google Drive URLs", () => {
@@ -55,8 +56,8 @@ describe("Template Google Drive URLs", () => {
     }
   });
 
-  it("all 18 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(18);
+  it("all 19 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(19);
   });
 
   it("template IDs are unique", () => {

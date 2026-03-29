@@ -437,5 +437,6 @@
 ## Template Google Docs Links
 - [x] Map all Google Drive files to portal templates
 - [x] Update all template download URLs to Google Docs /copy links
-- [x] Keep PDFs as direct downloads (1 PDF uses /view link)
-- [x] Test all links work correctly (113 tests passing)
+- [x] Keep PDFs as direct downloads (2 PDFs use /view link)
+- [x] Add CPM Scheduling PDF as template 19
+- [x] Test all links work correctly (113 tests passing, 19 templates)
