@@ -2817,14 +2817,16 @@ export default function Scheduler() {
           setPdfExporting(true);
           try {
             // Build footer config from the preview modal's column settings
-            const contentToToken = (c: string) => {
-              switch (c) {
+            const contentToToken = (col: { content: string; customText?: string; imageDataUrl?: string }) => {
+              switch (col.content) {
                 case "company": return "{companyName}";
                 case "project": return "{projectName}";
                 case "schedule": return "{scheduleName}";
                 case "date": return "{date}";
                 case "datadate": return "Data Date: {dataDate}";
                 case "page": return "Page {page} of {total}";
+                case "custom": return col.customText || "";
+                case "image": return col.imageDataUrl ? `{image:${col.imageDataUrl}}` : "";
                 case "empty": return "";
                 default: return "";
               }
@@ -2832,21 +2834,21 @@ export default function Scheduler() {
             const fCols = config.footerColumns || [];
             const footerConfig = {
               columns: config.footerColumnCount || 3,
-              left: fCols[0] ? contentToToken(fCols[0].content) : "",
-              centerLeft: fCols.length >= 4 ? contentToToken(fCols[1]?.content || "empty") : undefined,
-              center: fCols.length === 3 ? contentToToken(fCols[1]?.content || "empty") : fCols.length === 5 ? contentToToken(fCols[2]?.content || "empty") : contentToToken(fCols[1]?.content || "empty"),
-              centerRight: fCols.length >= 4 ? contentToToken(fCols[fCols.length - 2]?.content || "empty") : undefined,
-              right: fCols[fCols.length - 1] ? contentToToken(fCols[fCols.length - 1].content) : "",
+              left: fCols[0] ? contentToToken(fCols[0]) : "",
+              centerLeft: fCols.length >= 4 ? contentToToken(fCols[1] || { content: "empty" }) : undefined,
+              center: fCols.length === 3 ? contentToToken(fCols[1] || { content: "empty" }) : fCols.length === 5 ? contentToToken(fCols[2] || { content: "empty" }) : contentToToken(fCols[1] || { content: "empty" }),
+              centerRight: fCols.length >= 4 ? contentToToken(fCols[fCols.length - 2] || { content: "empty" }) : undefined,
+              right: fCols[fCols.length - 1] ? contentToToken(fCols[fCols.length - 1]) : "",
             };
             // Build header config from the preview modal's column settings
             const hCols = config.headerColumns || [];
             const headerConfig = {
               columns: config.headerColumnCount || 3,
-              left: hCols[0] ? contentToToken(hCols[0].content) : "",
-              centerLeft: hCols.length >= 4 ? contentToToken(hCols[1]?.content || "empty") : undefined,
-              center: hCols.length === 3 ? contentToToken(hCols[1]?.content || "empty") : hCols.length === 5 ? contentToToken(hCols[2]?.content || "empty") : contentToToken(hCols[1]?.content || "empty"),
-              centerRight: hCols.length >= 4 ? contentToToken(hCols[hCols.length - 2]?.content || "empty") : undefined,
-              right: hCols[hCols.length - 1] ? contentToToken(hCols[hCols.length - 1].content) : "",
+              left: hCols[0] ? contentToToken(hCols[0]) : "",
+              centerLeft: hCols.length >= 4 ? contentToToken(hCols[1] || { content: "empty" }) : undefined,
+              center: hCols.length === 3 ? contentToToken(hCols[1] || { content: "empty" }) : hCols.length === 5 ? contentToToken(hCols[2] || { content: "empty" }) : contentToToken(hCols[1] || { content: "empty" }),
+              centerRight: hCols.length >= 4 ? contentToToken(hCols[hCols.length - 2] || { content: "empty" }) : undefined,
+              right: hCols[hCols.length - 1] ? contentToToken(hCols[hCols.length - 1]) : "",
             };
             await generateSchedulePdf({
               scheduleName: schedule.schedule.name,

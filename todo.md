@@ -704,3 +704,10 @@
 
 ## Gantt Bar Label Fix (March 29 - Session 8)
 - [x] Fix Gantt bar activity description text getting cut off — removed truncation, full name now renders
+
+## PDF Modal & Gantt Zoom Fixes (March 29 - Session 9)
+- [x] PDF Export Preview modal still showing old small size — fixed with !max-w-[92vw] override
+- [x] Gantt zoom slider visible in toolbar — verified present with Day/Week/Month presets
+- [x] Gantt pinch-zoom (Ctrl+scroll) — verified wired in GanttChart onWheel handler
+- [x] Add "Custom" option in header/footer dropdowns — with inline text input field
+- [x] Add image upload option (logo/JPEG) in header/footer slots — with file picker, preview, and PDF embedding

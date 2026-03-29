@@ -89,7 +89,16 @@ function formatDateFull(d: Date | null): string {
   return new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
+function isImageToken(token: string): boolean {
+  return token.startsWith("{image:");
+}
+
+function getImageDataUrl(token: string): string {
+  return token.slice(7, -1); // strip {image: and }
+}
+
 function resolveToken(token: string, ctx: { pageNum: number; totalPages: number; scheduleName: string; dataDate: Date | null; projectStartDate: Date; companyName: string; projectName: string }): string {
+  if (isImageToken(token)) return ""; // images handled separately
   return token
     .replace(/\{page\}/g, String(ctx.pageNum))
     .replace(/\{total\}/g, String(ctx.totalPages))
@@ -99,6 +108,24 @@ function resolveToken(token: string, ctx: { pageNum: number; totalPages: number;
     .replace(/\{projectStart\}/g, formatDateFull(ctx.projectStartDate))
     .replace(/\{companyName\}/g, ctx.companyName)
     .replace(/\{projectName\}/g, ctx.projectName);
+}
+
+function addImageToDoc(doc: any, token: string, x: number, y: number, maxH: number, align: "left" | "center" | "right" = "left") {
+  if (!isImageToken(token)) return;
+  try {
+    const dataUrl = getImageDataUrl(token);
+    // jsPDF addImage with auto-detect format from data URL
+    const imgH = maxH - 2;
+    // Estimate width from aspect ratio (assume roughly 3:1 for logos)
+    const imgW = imgH * 3;
+    let ix = x;
+    if (align === "right") ix = x - imgW;
+    else if (align === "center") ix = x - imgW / 2;
+    doc.addImage(dataUrl, ix, y, imgW, imgH);
+  } catch (e) {
+    // Silently fail if image can't be added
+    console.warn("Failed to add image to PDF:", e);
+  }
 }
 
 export async function generateSchedulePdf(options: PdfExportOptions): Promise<void> {
@@ -166,26 +193,38 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const usableWidth = pageWidth - 2 * margin;
       const midY = headerHeight / 2 + 1;
 
-      // Left column - always bold gold
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...colors.gold);
-      doc.text(resolveToken(headerConfig.left, ctx), margin, midY - 3);
+      // Left column - always bold gold (or image)
+      if (isImageToken(headerConfig.left)) {
+        addImageToDoc(doc, headerConfig.left, margin, 1, headerHeight - 2, "left");
+      } else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...colors.gold);
+        doc.text(resolveToken(headerConfig.left, ctx), margin, midY - 3);
+      }
 
       // Other columns in white
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(...colors.white);
 
+      const renderHeaderSlot = (token: string, x: number, y: number, align: "left" | "center" | "right") => {
+        if (isImageToken(token)) {
+          addImageToDoc(doc, token, x, 1, headerHeight - 2, align);
+        } else {
+          doc.text(resolveToken(token, ctx), x, y, { align });
+        }
+      };
+
       if (cols === 3) {
-        doc.text(resolveToken(headerConfig.center, ctx), pageWidth / 2, midY, { align: "center" });
-        doc.text(resolveToken(headerConfig.right, ctx), pageWidth - margin, midY, { align: "right" });
+        renderHeaderSlot(headerConfig.center, pageWidth / 2, midY, "center");
+        renderHeaderSlot(headerConfig.right, pageWidth - margin, midY, "right");
       } else if (cols === 5) {
         const seg = usableWidth / 5;
-        doc.text(resolveToken(headerConfig.centerLeft || "", ctx), margin + seg, midY);
-        doc.text(resolveToken(headerConfig.center, ctx), pageWidth / 2, midY, { align: "center" });
-        doc.text(resolveToken(headerConfig.centerRight || "", ctx), margin + seg * 3, midY);
-        doc.text(resolveToken(headerConfig.right, ctx), pageWidth - margin, midY, { align: "right" });
+        renderHeaderSlot(headerConfig.centerLeft || "", margin + seg, midY, "left");
+        renderHeaderSlot(headerConfig.center, pageWidth / 2, midY, "center");
+        renderHeaderSlot(headerConfig.centerRight || "", margin + seg * 3, midY, "left");
+        renderHeaderSlot(headerConfig.right, pageWidth - margin, midY, "right");
       }
     } else {
       // Default header layout
@@ -230,23 +269,31 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const usableWidth = pageWidth - 2 * margin;
       const cols = footerConfig.columns;
 
+      const renderFooterSlot = (token: string, x: number, fy: number, align: "left" | "center" | "right") => {
+        if (isImageToken(token)) {
+          addImageToDoc(doc, token, x, fy - 3, footerHeight - 2, align);
+        } else {
+          doc.text(resolveToken(token, ctx), x, fy, { align });
+        }
+      };
+
       // Left
-      doc.text(resolveToken(footerConfig.left, ctx), margin, y + 5);
+      renderFooterSlot(footerConfig.left, margin, y + 5, "left");
 
       if (cols === 3) {
-        doc.text(resolveToken(footerConfig.center, ctx), pageWidth / 2, y + 5, { align: "center" });
-        doc.text(resolveToken(footerConfig.right, ctx), pageWidth - margin, y + 5, { align: "right" });
+        renderFooterSlot(footerConfig.center, pageWidth / 2, y + 5, "center");
+        renderFooterSlot(footerConfig.right, pageWidth - margin, y + 5, "right");
       } else if (cols === 4) {
         const seg = usableWidth / 4;
-        doc.text(resolveToken(footerConfig.centerLeft || "", ctx), margin + seg, y + 5);
-        doc.text(resolveToken(footerConfig.centerRight || "", ctx), margin + seg * 2, y + 5);
-        doc.text(resolveToken(footerConfig.right, ctx), pageWidth - margin, y + 5, { align: "right" });
+        renderFooterSlot(footerConfig.centerLeft || "", margin + seg, y + 5, "left");
+        renderFooterSlot(footerConfig.centerRight || "", margin + seg * 2, y + 5, "left");
+        renderFooterSlot(footerConfig.right, pageWidth - margin, y + 5, "right");
       } else if (cols === 5) {
         const seg = usableWidth / 5;
-        doc.text(resolveToken(footerConfig.centerLeft || "", ctx), margin + seg, y + 5);
-        doc.text(resolveToken(footerConfig.center, ctx), pageWidth / 2, y + 5, { align: "center" });
-        doc.text(resolveToken(footerConfig.centerRight || "", ctx), margin + seg * 3, y + 5);
-        doc.text(resolveToken(footerConfig.right, ctx), pageWidth - margin, y + 5, { align: "right" });
+        renderFooterSlot(footerConfig.centerLeft || "", margin + seg, y + 5, "left");
+        renderFooterSlot(footerConfig.center, pageWidth / 2, y + 5, "center");
+        renderFooterSlot(footerConfig.centerRight || "", margin + seg * 3, y + 5, "left");
+        renderFooterSlot(footerConfig.right, pageWidth - margin, y + 5, "right");
       }
     } else {
       doc.text(footerText || "Generated by ALP CPM Schedule Builder", margin, y + 5);

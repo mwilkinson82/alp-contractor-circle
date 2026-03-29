@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Download, Loader2, Eye, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Loader2, Eye, FileText, ImageIcon, Type } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface PdfHeaderFooterConfig {
-  headerColumns: Array<{ position: number; content: string }>;
-  footerColumns: Array<{ position: number; content: string }>;
+  headerColumns: Array<{ position: number; content: string; customText?: string; imageDataUrl?: string }>;
+  footerColumns: Array<{ position: number; content: string; customText?: string; imageDataUrl?: string }>;
   headerColumnCount: 3 | 5;
   footerColumnCount: 3 | 5;
   pageSize: "letter" | "legal" | "tabloid";
@@ -48,6 +49,8 @@ const CONTENT_OPTIONS = [
   { value: "date", label: "Export Date" },
   { value: "datadate", label: "Data Date" },
   { value: "page", label: "Page Numbers" },
+  { value: "custom", label: "Custom Text" },
+  { value: "image", label: "Image / Logo" },
   { value: "empty", label: "(Empty)" },
 ];
 
@@ -57,6 +60,13 @@ const PAPER_SIZES: Record<string, { w: number; h: number; label: string }> = {
   legal:   { w: 8.5,  h: 14,   label: "Legal (8.5×14)" },
   tabloid: { w: 11,   h: 17,   label: "Tabloid (11×17)" },
 };
+
+interface ColumnData {
+  position: number;
+  content: string;
+  customText?: string;
+  imageDataUrl?: string;
+}
 
 export function PdfExportPreview({
   open,
@@ -71,12 +81,12 @@ export function PdfExportPreview({
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
-  const [headerColumns, setHeaderColumns] = useState([
+  const [headerColumns, setHeaderColumns] = useState<ColumnData[]>([
     { position: 0, content: "company" },
     { position: 1, content: "schedule" },
     { position: 2, content: "datadate" },
   ]);
-  const [footerColumns, setFooterColumns] = useState([
+  const [footerColumns, setFooterColumns] = useState<ColumnData[]>([
     { position: 0, content: "project" },
     { position: 1, content: "date" },
     { position: 2, content: "page" },
@@ -90,6 +100,9 @@ export function PdfExportPreview({
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [canvasReady, setCanvasReady] = useState(false);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  // Image cache for loaded images
+  const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
 
   // Force canvas re-render when dialog opens
   useEffect(() => {
@@ -118,7 +131,7 @@ export function PdfExportPreview({
     const current = type === "header" ? headerColumns : footerColumns;
     const countSetter = type === "header" ? setHeaderColumnCount : setFooterColumnCount;
     countSetter(count);
-    const newCols = [];
+    const newCols: ColumnData[] = [];
     for (let i = 0; i < count; i++) {
       if (i < current.length) newCols.push(current[i]);
       else newCols.push({ position: i, content: "empty" });
@@ -133,14 +146,44 @@ export function PdfExportPreview({
     setter(current);
   };
 
-  const getContentPreview = useCallback((content: string): string => {
-    switch (content) {
+  const handleCustomTextChange = (type: "header" | "footer", pos: number, text: string) => {
+    const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+    const current = type === "header" ? [...headerColumns] : [...footerColumns];
+    current[pos] = { ...current[pos], customText: text };
+    setter(current);
+  };
+
+  const handleImageUpload = (type: "header" | "footer", pos: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+      const current = type === "header" ? [...headerColumns] : [...footerColumns];
+      current[pos] = { ...current[pos], imageDataUrl: dataUrl };
+      setter(current);
+      // Pre-load the image for canvas rendering
+      const img = new Image();
+      img.onload = () => {
+        loadedImagesRef.current[`${type}-${pos}`] = img;
+        // Trigger re-render
+        setCanvasReady(false);
+        setTimeout(() => setCanvasReady(true), 50);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getContentPreview = useCallback((col: ColumnData): string => {
+    switch (col.content) {
       case "company": return companyName || "Company Name";
       case "project": return projectName || "Project Name";
       case "schedule": return scheduleName || "Schedule Name";
       case "date": return new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       case "datadate": return dataDate ? `DD: ${dataDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "DD: Not set";
       case "page": return "Page 1 of 5";
+      case "custom": return col.customText || "Custom Text";
+      case "image": return "[Image]";
       case "empty": return "";
       default: return "";
     }
@@ -163,7 +206,7 @@ export function PdfExportPreview({
   const canvasDims = useMemo(() => {
     if (containerSize.width === 0 || containerSize.height === 0) return { width: 800, height: 500 };
     const aspect = paperDims.w / paperDims.h;
-    const containerW = containerSize.width - 32; // padding
+    const containerW = containerSize.width - 32;
     const containerH = containerSize.height - 32;
     let w: number, h: number;
     if (containerW / containerH > aspect) {
@@ -198,7 +241,7 @@ export function PdfExportPreview({
 
     // Scale factor: how many pixels per inch of paper
     const ppi = w / paperDims.w;
-    const marginIn = 0.4; // 0.4 inch margin
+    const marginIn = 0.4;
     const margin = marginIn * ppi;
     const headerH = 0.35 * ppi;
     const footerH = 0.25 * ppi;
@@ -224,7 +267,17 @@ export function PdfExportPreview({
     const headerFontSize = Math.max(7, Math.min(12, ppi * 0.12));
     ctx.textBaseline = "middle";
     headerColumns.forEach((col, i) => {
-      const text = getContentPreview(col.content);
+      if (col.content === "image" && col.imageDataUrl) {
+        const img = loadedImagesRef.current[`header-${i}`];
+        if (img) {
+          const imgH = headerH - 6;
+          const imgW = (img.width / img.height) * imgH;
+          const ix = i === 0 ? margin + 4 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - imgW - 4 : margin + i * hColW + (hColW - imgW) / 2;
+          ctx.drawImage(img, ix, margin + 3, imgW, imgH);
+        }
+        return;
+      }
+      const text = getContentPreview(col);
       ctx.fillStyle = i === 0 ? "#c9a84c" : "#e2e8f0";
       ctx.font = i === 0 ? `bold ${headerFontSize}px 'DM Sans', sans-serif` : `${headerFontSize * 0.9}px 'DM Sans', sans-serif`;
       ctx.textAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
@@ -237,7 +290,6 @@ export function PdfExportPreview({
     const ganttX = margin + tableW + 4;
     const ganttW = w - margin * 2 - tableW - 4;
 
-    // Calculate how many rows fit
     const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
     const rowH = Math.max(baseFontSize + 6, Math.min(16, contentH / 40));
     const maxRows = Math.floor((contentH - rowH) / rowH);
@@ -314,7 +366,6 @@ export function PdfExportPreview({
       ctx.lineWidth = 0.5;
       ctx.strokeRect(ganttX, contentY, ganttW, contentH);
 
-      // Find date range from ALL activities (not just visible)
       let minDate = Infinity;
       let maxDate = -Infinity;
       previewActivities.forEach(a => {
@@ -323,13 +374,11 @@ export function PdfExportPreview({
       });
       const dateRange = maxDate - minDate || 1;
 
-      // Time scale header
       const tsFont = Math.max(5, baseFontSize * 0.85);
       ctx.fillStyle = "#94a3b8";
       ctx.font = `${tsFont}px 'DM Sans', sans-serif`;
       ctx.textAlign = "center";
 
-      // Calculate month labels from actual date range
       if (minDate !== Infinity) {
         const startD = new Date(minDate);
         const endD = new Date(maxDate);
@@ -346,7 +395,6 @@ export function PdfExportPreview({
           const yr = cur.getFullYear().toString().slice(-2);
           months.push({ label: `${shortMonth} '${yr}`, x: mx });
 
-          // Vertical gridline at month boundary
           const boundaryPct = (nextMonth.getTime() - minDate) / dateRange;
           const bx = ganttX + 4 + boundaryPct * (ganttW - 8);
           if (bx > ganttX && bx < ganttX + ganttW) {
@@ -437,7 +485,17 @@ export function PdfExportPreview({
     ctx.font = `${footerFontSize}px 'DM Sans', sans-serif`;
     ctx.textBaseline = "middle";
     footerColumns.forEach((col, i) => {
-      const text = getContentPreview(col.content);
+      if (col.content === "image" && col.imageDataUrl) {
+        const img = loadedImagesRef.current[`footer-${i}`];
+        if (img) {
+          const imgH = footerH - 4;
+          const imgW = (img.width / img.height) * imgH;
+          const ix = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? margin + i * fColW + fColW - imgW - 4 : margin + i * fColW + (fColW - imgW) / 2;
+          ctx.drawImage(img, ix, footerY + 2, imgW, imgH);
+        }
+        return;
+      }
+      const text = getContentPreview(col);
       ctx.fillStyle = "#64748b";
       ctx.textAlign = i === 0 ? "left" : i === footerColumnCount - 1 ? "right" : "center";
       const tx = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? w - margin - 4 : margin + i * fColW + fColW / 2;
@@ -477,9 +535,82 @@ export function PdfExportPreview({
     return "Right";
   };
 
+  const renderColumnEditor = (type: "header" | "footer", columns: ColumnData[], columnCount: number) => (
+    <div className="space-y-1.5">
+      {columns.map((col, idx) => (
+        <div key={idx}>
+          <Label className="text-[9px] text-gray-400 mb-0.5 block">{getColLabel(idx, columnCount)}</Label>
+          <Select value={col.content} onValueChange={(v) => handleColumnContentChange(type, idx, v)}>
+            <SelectTrigger className="border-gray-300 text-[11px] h-7 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-gray-200">
+              {CONTENT_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-gray-900 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    {opt.value === "custom" && <Type className="w-3 h-3" />}
+                    {opt.value === "image" && <ImageIcon className="w-3 h-3" />}
+                    {opt.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Custom text input */}
+          {col.content === "custom" && (
+            <Input
+              value={col.customText || ""}
+              onChange={(e) => handleCustomTextChange(type, idx, e.target.value)}
+              placeholder="Enter custom text..."
+              className="mt-1 h-7 text-[11px] border-gray-300"
+            />
+          )}
+          {/* Image upload */}
+          {col.content === "image" && (
+            <div className="mt-1">
+              {col.imageDataUrl ? (
+                <div className="flex items-center gap-2">
+                  <img src={col.imageDataUrl} alt="Logo" className="h-6 rounded border border-gray-200" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[10px] px-2 border-gray-300 text-gray-600"
+                    onClick={() => {
+                      const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+                      const current = type === "header" ? [...headerColumns] : [...footerColumns];
+                      current[idx] = { ...current[idx], imageDataUrl: undefined };
+                      setter(current);
+                      delete loadedImagesRef.current[`${type}-${idx}`];
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-blue-600 hover:text-blue-700">
+                  <ImageIcon className="w-3 h-3" />
+                  Upload Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(type, idx, file);
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900 p-0 flex flex-col" style={{ width: "92vw", maxWidth: "92vw", height: "88vh", maxHeight: "88vh" }}>
+      <DialogContent className="bg-white border-gray-200 text-gray-900 p-0 flex flex-col !max-w-[92vw] !w-[92vw] !h-[88vh] !max-h-[88vh]">
         <DialogHeader className="px-6 pt-5 pb-0 shrink-0">
           <DialogTitle className="font-semibold text-gray-900 flex items-center gap-2">
             <Eye className="w-5 h-5 text-blue-600" /> PDF Export Preview
@@ -588,23 +719,7 @@ export function PdfExportPreview({
                         </Button>
                       ))}
                     </div>
-                    <div className="space-y-1.5">
-                      {headerColumns.map((col, idx) => (
-                        <div key={idx}>
-                          <Label className="text-[9px] text-gray-400 mb-0.5 block">{getColLabel(idx, headerColumnCount)}</Label>
-                          <Select value={col.content} onValueChange={(v) => handleColumnContentChange("header", idx, v)}>
-                            <SelectTrigger className="border-gray-300 text-[11px] h-7 w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              {CONTENT_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value} className="text-gray-900 text-xs">{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
-                    </div>
+                    {renderColumnEditor("header", headerColumns, headerColumnCount)}
                   </TabsContent>
 
                   <TabsContent value="footer" className="mt-3 space-y-2">
@@ -618,23 +733,7 @@ export function PdfExportPreview({
                         </Button>
                       ))}
                     </div>
-                    <div className="space-y-1.5">
-                      {footerColumns.map((col, idx) => (
-                        <div key={idx}>
-                          <Label className="text-[9px] text-gray-400 mb-0.5 block">{getColLabel(idx, footerColumnCount)}</Label>
-                          <Select value={col.content} onValueChange={(v) => handleColumnContentChange("footer", idx, v)}>
-                            <SelectTrigger className="border-gray-300 text-[11px] h-7 w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              {CONTENT_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value} className="text-gray-900 text-xs">{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
-                    </div>
+                    {renderColumnEditor("footer", footerColumns, footerColumnCount)}
                   </TabsContent>
                 </Tabs>
               </div>
