@@ -1,0 +1,114 @@
+{
+  "query": "SELECT id, discordDisplayName, email, stripeCustomerId, stripeSubscriptionId, CASE WHEN stripeCustomerId IS NOT NULL AND stripeSubscriptionId IS NOT NULL THEN 'PAYING' ELSE 'COMPED' END as classification FROM members WHERE subscriptionStatus = 'active' ORDER BY classification, id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordDisplayName, email, stripeCustomerId, stripeSubscriptionId, CASE WHEN stripeCustomerId IS NOT NULL AND stripeSubscriptionId IS NOT NULL THEN 'PAYING' ELSE 'COMPED' END as classification FROM members WHERE subscriptionStatus = 'active' ORDER BY classification, id;",
+  "rows": [
+    {
+      "id": "4",
+      "discordDisplayName": "Dan Del Monte",
+      "email": "dan@delmontebuilders.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "30001",
+      "discordDisplayName": "Marshall Wilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "60001",
+      "discordDisplayName": "Nathan Oliveira",
+      "email": "nathan@olivetreebuilds.ca",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "60002",
+      "discordDisplayName": "AJ Hoover",
+      "email": "ajhoover@mac.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "90001",
+      "discordDisplayName": "Ronnie Silva",
+      "email": "office@sageconstructiondevelopment.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "150002",
+      "discordDisplayName": "Joaquin Lescano",
+      "email": "lescano0456@gmail.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "180001",
+      "discordDisplayName": "Marshall Wilkinson",
+      "email": "wilkinson.marshall@gmail.com",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "classification": "COMPED"
+    },
+    {
+      "id": "150001",
+      "discordDisplayName": "Michael E",
+      "email": "michael@mecontractingpros.com",
+      "stripeCustomerId": "cus_UCiJZjpx8Il5nW",
+      "stripeSubscriptionId": "sub_1TElstJdDAUSVXbNbAklbk5M",
+      "classification": "PAYING"
+    },
+    {
+      "id": "300001",
+      "discordDisplayName": "Joey D",
+      "email": "joey@mcmdlusso.com",
+      "stripeCustomerId": "cus_UDr8yTdkqRstfp",
+      "stripeSubscriptionId": "sub_1TFPPnJdDAUSVXbNJ71QZK2q",
+      "classification": "PAYING"
+    },
+    {
+      "id": "330001",
+      "discordDisplayName": "danbillingsley",
+      "email": "dan@heatwaveflorida.com",
+      "stripeCustomerId": "cus_UDKuHSvTMX0htW",
+      "stripeSubscriptionId": "sub_1TEuEqJdDAUSVXbNszJzRY4q",
+      "classification": "PAYING"
+    },
+    {
+      "id": "390001",
+      "discordDisplayName": "Caleb Morrow",
+      "email": "caleb@morrow-builds.com",
+      "stripeCustomerId": "cus_UD7oY6OX9YlLoW",
+      "stripeSubscriptionId": "sub_1TEhYUJdDAUSVXbNbKq58gfM",
+      "classification": "PAYING"
+    },
+    {
+      "id": "450002",
+      "discordDisplayName": "DB3T",
+      "email": "darianb280@hotmail.com",
+      "stripeCustomerId": "cus_UEcn1F8PBPC0wY",
+      "stripeSubscriptionId": "sub_1TG9XzJdDAUSVXbNHw9vEsMO",
+      "classification": "PAYING"
+    },
+    {
+      "id": "480010",
+      "discordDisplayName": "Henrico",
+      "email": "henklop@gmail.com",
+      "stripeCustomerId": "cus_UEdifH7t4YJ06V",
+      "stripeSubscriptionId": "sub_1TGARTJdDAUSVXbNLH5lhDxi",
+      "classification": "PAYING"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordDisplayName\temail\tstripeCustomerId\tstripeSubscriptionId\tclassification\n4\tDan Del Monte\tdan@delmontebuilders.com\tNULL\tNULL\tCOMPED\n30001\tMarshall Wilkinson\tmwilkinson@saxumcapital.com\tNULL\tNULL\tCOMPED\n60001\tNathan Oliveira\tnathan@olivetreebuilds.ca\tNULL\tNULL\tCOMPED\n60002\tAJ Hoover\tajhoover@mac.com\tNULL\tNULL\tCOMPED\n90001\tRonnie Silva\toffice@sageconstructiondevelopment.com\tNULL\tNULL\tCOMPED\n150002\tJoaquin Lescano\tlescano0456@gmail.com\tNULL\tNULL\tCOMPED\n180001\tMarshall Wilkinson\twilkinson.marshall@gmail.com\tNULL\tNULL\tCOMPED\n150001\tMichael E\tmichael@mecontractingpros.com\tcus_UCiJZjpx8Il5nW\tsub_1TElstJdDAUSVXbNbAklbk5M\tPAYING\n300001\tJoey D\tjoey@mcmdlusso.com\tcus_UDr8yTdkqRstfp\tsub_1TFPPnJdDAUSVXbNJ71QZK2q\tPAYING\n330001\tdanbillingsley\tdan@heatwaveflorida.com\tcus_UDKuHSvTMX0htW\tsub_1TEuEqJdDAUSVXbNszJzRY4q\tPAYING\n390001\tCaleb Morrow\tcaleb@morrow-builds.com\tcus_UD7oY6OX9YlLoW\tsub_1TEhYUJdDAUSVXbNbKq58gfM\tPAYING\n450002\tDB3T\tdarianb280@hotmail.com\tcus_UEcn1F8PBPC0wY\tsub_1TG9XzJdDAUSVXbNHw9vEsMO\tPAYING\n480010\tHenrico\thenklop@gmail.com\tcus_UEdifH7t4YJ06V\tsub_1TGARTJdDAUSVXbNLH5lhDxi\tPAYING\n",
+  "stderr": "",
+  "execution_time_ms": 70
+}

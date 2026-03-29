@@ -433,3 +433,9 @@
 - [ ] Show revenue metrics (MRR from paying members, total collected)
 - [ ] Show member growth timeline
 - [ ] Add route and nav item for analytics
+
+## Template Google Docs Links
+- [x] Map all Google Drive files to portal templates
+- [x] Update all template download URLs to Google Docs /copy links
+- [x] Keep PDFs as direct downloads (1 PDF uses /view link)
+- [x] Test all links work correctly (113 tests passing)
