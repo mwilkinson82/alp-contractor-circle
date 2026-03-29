@@ -479,3 +479,12 @@
 - [x] Variance columns (Start Variance, Finish Variance) appear when targeting is active — show work day delta (+ = late in red, - = early in green)
 - [x] Support two sets of variance columns (Target 1 and Target 2)
 - [x] Column order drag-to-reorder, configuration persists per schedule
+
+## Gantt Drag Interactions
+- [x] Drag-to-resize: grab left/right edge of Gantt bar to change activity duration
+- [x] Resize snaps to work days based on activity calendar
+- [x] Drag-to-connect: L-shaped connector handles appear on hover (left edge = start, right edge = finish)
+- [x] Drag line from one handle to another bar's handle to create relationship
+- [x] Relationship type auto-determined by edge combination (R→L=FS, R→R=FF, L→L=SS, L→R=SF)
+- [x] Toast confirmation on relationship creation
+- [x] Visual feedback: line follows cursor during drag, highlights valid drop targets

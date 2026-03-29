@@ -378,6 +378,18 @@ export default function Scheduler() {
     onError: (e) => toast.error(e.message),
   });
 
+  // ── Gantt drag interaction handlers ──────────────────────────────────────
+
+  const handleGanttDurationChange = useCallback((activityId: number, newDuration: number) => {
+    if (!scheduleId) return;
+    updateActivityMut.mutate({ id: activityId, scheduleId, duration: newDuration });
+  }, [scheduleId, updateActivityMut]);
+
+  const handleGanttRelationshipCreate = useCallback((predecessorId: number, successorId: number, relType: string) => {
+    if (!scheduleId) return;
+    addRelMut.mutate({ scheduleId, predecessorId, successorId, relationshipType: relType as any, lagDays: 0 });
+  }, [scheduleId, addRelMut]);
+
   const deleteRelMut = trpc.schedule.deleteRelationship.useMutation({
     onSuccess: () => { invalidate(); toast.success("Relationship deleted"); },
     onError: (e) => toast.error(e.message),
@@ -1038,6 +1050,8 @@ export default function Scheduler() {
             showArrows={showArrows}
             showDataDateLine={showDataDateLine}
             showTodayLine={showTodayLine}
+            onDurationChange={handleGanttDurationChange}
+            onRelationshipCreate={handleGanttRelationshipCreate}
           />
         </ResizablePanel>
       </ResizablePanelGroup>

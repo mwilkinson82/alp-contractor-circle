@@ -1,13 +1,16 @@
 /**
  * GanttChart — Interactive canvas-based Gantt chart with:
  * - Activity bars (colored by critical path status)
+ * - Drag-to-resize: grab left/right edge of bar to change duration
+ * - Drag-to-connect: L-shaped handles on bar edges, drag line to create relationships
  * - Toggleable dependency arrows
  * - Toggleable data date line (solid) and today line (dashed)
  * - Dual-target comparison overlay (Target 1 + Target 2 bars)
  * - Time scale headers (day/week/month)
  * - Click to select activity
  */
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 
 type ZoomLevel = "day" | "week" | "month";
 
@@ -61,6 +64,8 @@ interface GanttChartProps {
   showArrows: boolean;
   showDataDateLine: boolean;
   showTodayLine: boolean;
+  onDurationChange?: (activityId: number, newDuration: number) => void;
+  onRelationshipCreate?: (predecessorId: number, successorId: number, type: string) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -70,8 +75,9 @@ const HEADER_HEIGHT = 48;
 const BAR_HEIGHT = 14;
 const BAR_Y_OFFSET = 4;
 const TARGET_BAR_HEIGHT = 5;
-const GROUP_HEADER_HEIGHT = 24;
 const ARROW_HEAD_SIZE = 4;
+const HANDLE_RADIUS = 5;
+const EDGE_HIT_ZONE = 8; // pixels from bar edge to detect resize drag
 
 // Colors
 const COLORS = {
@@ -95,6 +101,10 @@ const COLORS = {
   headerTextBold: "rgba(255,255,255,0.7)",
   selectedBg: "rgba(212,145,92,0.08)",
   groupBg: "rgba(255,255,255,0.03)",
+  handleFill: "#d4915c",
+  handleStroke: "#fff",
+  connectLine: "#60a5fa",
+  connectLineValid: "#22c55e",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -141,6 +151,31 @@ function toDate(d: string | Date | null): Date | null {
   return d instanceof Date ? d : new Date(d);
 }
 
+// ─── Drag state types ─────────────────────────────────────────────────────────
+
+type DragMode = "none" | "resize-left" | "resize-right" | "connect";
+
+interface DragState {
+  mode: DragMode;
+  activityId: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  originalDuration: number;
+  // For connect mode: which edge we started from
+  fromEdge: "start" | "finish";
+}
+
+interface BarRect {
+  activityId: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  isMilestone: boolean;
+}
+
 export default function GanttChart({
   activities,
   relationships,
@@ -155,12 +190,23 @@ export default function GanttChart({
   showArrows,
   showDataDateLine,
   showTodayLine,
+  onDurationChange,
+  onRelationshipCreate,
 }: GanttChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+
+  // Drag interaction state
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [hoveredActivity, setHoveredActivity] = useState<number | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<"start" | "finish" | "body" | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ activityId: number; edge: "start" | "finish" } | null>(null);
+
+  // Store bar rects for hit testing (updated each render)
+  const barRectsRef = useRef<BarRect[]>([]);
 
   // ─── Compute layout ──────────────────────────────────────────────────────
 
@@ -194,7 +240,7 @@ export default function GanttChart({
     return map;
   }, [flatRows]);
 
-  // Date range — include all activities, targets, and data date
+  // Date range
   const { rangeStart, rangeEnd, totalDays } = useMemo(() => {
     let minDate = new Date(projectStartDate);
     let maxDate = addDays(minDate, 30);
@@ -238,6 +284,195 @@ export default function GanttChart({
     return () => obs.disconnect();
   }, []);
 
+  // ─── Hit testing helpers ──────────────────────────────────────────────────
+
+  const getCanvasCoords = useCallback((e: React.MouseEvent | MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { cx: 0, cy: 0 };
+    return { cx: e.clientX - rect.left, cy: e.clientY - rect.top };
+  }, []);
+
+  const hitTestBar = useCallback((cx: number, cy: number): { bar: BarRect; edge: "start" | "finish" | "body" } | null => {
+    const bars = barRectsRef.current;
+    for (let i = bars.length - 1; i >= 0; i--) {
+      const bar = bars[i];
+      if (bar.isMilestone) continue; // Can't resize milestones
+      if (cy >= bar.y && cy <= bar.y + bar.h) {
+        if (cx >= bar.x - EDGE_HIT_ZONE && cx <= bar.x + EDGE_HIT_ZONE) {
+          return { bar, edge: "start" };
+        }
+        if (cx >= bar.x + bar.w - EDGE_HIT_ZONE && cx <= bar.x + bar.w + EDGE_HIT_ZONE) {
+          return { bar, edge: "finish" };
+        }
+        if (cx >= bar.x && cx <= bar.x + bar.w) {
+          return { bar, edge: "body" };
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  const hitTestBarAny = useCallback((cx: number, cy: number): { bar: BarRect; edge: "start" | "finish" } | null => {
+    const bars = barRectsRef.current;
+    for (let i = bars.length - 1; i >= 0; i--) {
+      const bar = bars[i];
+      if (bar.isMilestone) continue;
+      if (cy >= bar.y - 4 && cy <= bar.y + bar.h + 4) {
+        const midX = bar.x + bar.w / 2;
+        if (cx >= bar.x - 12 && cx <= bar.x + bar.w + 12) {
+          return { bar, edge: cx < midX ? "start" : "finish" };
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  // ─── Mouse handlers ───────────────────────────────────────────────────────
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { cx, cy } = getCanvasCoords(e);
+    const hit = hitTestBar(cx, cy);
+    if (!hit) return;
+
+    if (hit.edge === "start" || hit.edge === "finish") {
+      // Check if Alt/Option key is held for connect mode
+      if (e.altKey || e.metaKey) {
+        e.preventDefault();
+        setDragState({
+          mode: "connect",
+          activityId: hit.bar.activityId,
+          startX: hit.edge === "start" ? hit.bar.x : hit.bar.x + hit.bar.w,
+          startY: hit.bar.y + hit.bar.h / 2,
+          currentX: cx,
+          currentY: cy,
+          originalDuration: 0,
+          fromEdge: hit.edge,
+        });
+      } else {
+        // Resize mode
+        e.preventDefault();
+        const act = activities.find((a) => a.id === hit.bar.activityId);
+        if (!act) return;
+        setDragState({
+          mode: hit.edge === "start" ? "resize-left" : "resize-right",
+          activityId: hit.bar.activityId,
+          startX: cx,
+          startY: cy,
+          currentX: cx,
+          currentY: cy,
+          originalDuration: act.duration,
+          fromEdge: hit.edge,
+        });
+      }
+    } else if (hit.edge === "body") {
+      // If hovering over handle area (near edges), start connect
+      // Otherwise just select
+    }
+  }, [getCanvasCoords, hitTestBar, activities]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { cx, cy } = getCanvasCoords(e);
+
+    if (dragState) {
+      setDragState((prev) => prev ? { ...prev, currentX: cx, currentY: cy } : null);
+
+      if (dragState.mode === "connect") {
+        // Check for drop target
+        const hit = hitTestBarAny(cx, cy);
+        if (hit && hit.bar.activityId !== dragState.activityId) {
+          setDropTarget({ activityId: hit.bar.activityId, edge: hit.edge });
+        } else {
+          setDropTarget(null);
+        }
+      }
+      return;
+    }
+
+    // Hover detection
+    const hit = hitTestBar(cx, cy);
+    if (hit) {
+      setHoveredActivity(hit.bar.activityId);
+      setHoveredEdge(hit.edge);
+
+      // Update cursor
+      const canvas = canvasRef.current;
+      if (canvas) {
+        if (hit.edge === "start" || hit.edge === "finish") {
+          canvas.style.cursor = "col-resize";
+        } else {
+          canvas.style.cursor = "pointer";
+        }
+      }
+    } else {
+      setHoveredActivity(null);
+      setHoveredEdge(null);
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "pointer";
+    }
+  }, [getCanvasCoords, hitTestBar, hitTestBarAny, dragState]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragState) {
+      // Regular click — select activity
+      const { cx, cy } = getCanvasCoords(e);
+      const adjustedY = cy + scrollTop - HEADER_HEIGHT;
+      const rowIndex = Math.floor(adjustedY / ROW_HEIGHT);
+      const row = flatRows.find((r) => r.rowIndex === rowIndex);
+      if (row?.type === "activity" && row.activity) {
+        onSelectActivity(row.activity.id === selectedActivityId ? null : row.activity.id);
+      }
+      return;
+    }
+
+    if (dragState.mode === "resize-left" || dragState.mode === "resize-right") {
+      const deltaX = dragState.currentX - dragState.startX;
+      const deltaDays = Math.round(deltaX / pixelsPerDay);
+      let newDuration: number;
+
+      if (dragState.mode === "resize-right") {
+        newDuration = Math.max(1, dragState.originalDuration + deltaDays);
+      } else {
+        newDuration = Math.max(1, dragState.originalDuration - deltaDays);
+      }
+
+      if (newDuration !== dragState.originalDuration && onDurationChange) {
+        onDurationChange(dragState.activityId, newDuration);
+        toast.success(`Duration changed to ${newDuration} days`);
+      }
+    }
+
+    if (dragState.mode === "connect" && dropTarget && onRelationshipCreate) {
+      // Determine relationship type from edges
+      const fromEdge = dragState.fromEdge;
+      const toEdge = dropTarget.edge;
+      let relType: string;
+
+      if (fromEdge === "finish" && toEdge === "start") relType = "FS";
+      else if (fromEdge === "finish" && toEdge === "finish") relType = "FF";
+      else if (fromEdge === "start" && toEdge === "start") relType = "SS";
+      else relType = "SF"; // start → finish
+
+      onRelationshipCreate(dragState.activityId, dropTarget.activityId, relType);
+
+      const predAct = activities.find((a) => a.id === dragState.activityId);
+      const succAct = activities.find((a) => a.id === dropTarget.activityId);
+      toast.success(`${relType}: ${predAct?.name || "?"} → ${succAct?.name || "?"}`);
+    }
+
+    setDragState(null);
+    setDropTarget(null);
+  }, [dragState, dropTarget, pixelsPerDay, onDurationChange, onRelationshipCreate, activities, getCanvasCoords, scrollTop, flatRows, selectedActivityId, onSelectActivity]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (dragState) {
+      // Cancel drag on mouse leave
+      setDragState(null);
+      setDropTarget(null);
+    }
+    setHoveredActivity(null);
+    setHoveredEdge(null);
+  }, [dragState]);
+
   // ─── Canvas rendering ─────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -261,6 +496,9 @@ export default function GanttChart({
 
     const offsetX = -scrollLeft;
     const offsetY = -scrollTop;
+
+    // Collect bar rects for hit testing
+    const barRects: BarRect[] = [];
 
     // ── Draw time scale header ──────────────────────────────────────────
 
@@ -353,7 +591,6 @@ export default function GanttChart({
 
     // ── Draw rows ───────────────────────────────────────────────────────
 
-    // Build target lookup maps for fast access
     const t1Map = new Map<number, TargetActivity>();
     for (const ta of target1Activities) t1Map.set(ta.id, ta);
     const t2Map = new Map<number, TargetActivity>();
@@ -386,11 +623,22 @@ export default function GanttChart({
 
       if (!act.earlyStart || !act.earlyFinish) continue;
 
-      const barX = daysBetween(rangeStart, act.earlyStart) * pixelsPerDay + offsetX;
-      const barW = Math.max(daysBetween(act.earlyStart, act.earlyFinish) * pixelsPerDay, 3);
+      let barX = daysBetween(rangeStart, act.earlyStart) * pixelsPerDay + offsetX;
+      let barW = Math.max(daysBetween(act.earlyStart, act.earlyFinish) * pixelsPerDay, 3);
       const barY = y + BAR_Y_OFFSET;
 
-      // ── Target 1 bar (gray, below current bar) ─────────────────────
+      // If this activity is being resized, adjust bar visually
+      if (dragState && (dragState.mode === "resize-left" || dragState.mode === "resize-right") && dragState.activityId === act.id) {
+        const deltaX = dragState.currentX - dragState.startX;
+        if (dragState.mode === "resize-right") {
+          barW = Math.max(barW + deltaX, pixelsPerDay);
+        } else {
+          barX = barX + deltaX;
+          barW = Math.max(barW - deltaX, pixelsPerDay);
+        }
+      }
+
+      // ── Target 1 bar ──────────────────────────────────────────────────
       const t1Act = t1Map.get(act.id);
       if (t1Act) {
         const t1Start = toDate(t1Act.earlyStart);
@@ -405,7 +653,7 @@ export default function GanttChart({
         }
       }
 
-      // ── Target 2 bar (purple, below target 1) ──────────────────────
+      // ── Target 2 bar ──────────────────────────────────────────────────
       const t2Act = t2Map.get(act.id);
       if (t2Act) {
         const t2Start = toDate(t2Act.earlyStart);
@@ -435,6 +683,7 @@ export default function GanttChart({
         ctx.lineTo(cx - size, cy);
         ctx.closePath();
         ctx.fill();
+        barRects.push({ activityId: act.id, x: cx - size, y: cy - size, w: size * 2, h: size * 2, isMilestone: true });
       } else {
         // Bar background
         const radius = 3;
@@ -456,11 +705,16 @@ export default function GanttChart({
         }
 
         // Bar border
-        ctx.strokeStyle = act.isCritical ? COLORS.critical : COLORS.normal;
-        ctx.lineWidth = 1;
+        const isHovered = hoveredActivity === act.id;
+        const isDropCandidate = dropTarget?.activityId === act.id;
+        ctx.strokeStyle = isDropCandidate ? COLORS.connectLineValid
+          : isHovered ? "#fff"
+          : act.isCritical ? COLORS.critical : COLORS.normal;
+        ctx.lineWidth = isHovered || isDropCandidate ? 2 : 1;
         ctx.beginPath();
         ctx.roundRect(barX, barY, barW, BAR_HEIGHT, radius);
         ctx.stroke();
+        ctx.lineWidth = 1;
 
         // Activity label on bar
         if (barW > 60) {
@@ -473,8 +727,56 @@ export default function GanttChart({
           ctx.fillText(label, barX + 4, barY + BAR_HEIGHT / 2);
           ctx.textBaseline = "alphabetic";
         }
+
+        // ── Connector handles (show on hover) ────────────────────────────
+        if (isHovered && !dragState) {
+          // Left handle (Start)
+          const lhX = barX;
+          const lhY = barY + BAR_HEIGHT / 2;
+          ctx.fillStyle = COLORS.handleFill;
+          ctx.strokeStyle = COLORS.handleStroke;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          // L-shaped arrow pointing left
+          ctx.arc(lhX, lhY, HANDLE_RADIUS, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Inner arrow ◄
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.moveTo(lhX + 2, lhY);
+          ctx.lineTo(lhX - 2, lhY - 3);
+          ctx.lineTo(lhX - 2, lhY + 3);
+          ctx.closePath();
+          ctx.fill();
+
+          // Right handle (Finish)
+          const rhX = barX + barW;
+          const rhY = barY + BAR_HEIGHT / 2;
+          ctx.fillStyle = COLORS.handleFill;
+          ctx.strokeStyle = COLORS.handleStroke;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(rhX, rhY, HANDLE_RADIUS, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Inner arrow ►
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.moveTo(rhX - 2, rhY);
+          ctx.lineTo(rhX + 2, rhY - 3);
+          ctx.lineTo(rhX + 2, rhY + 3);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Store bar rect for hit testing
+        barRects.push({ activityId: act.id, x: barX, y: barY, w: barW, h: BAR_HEIGHT, isMilestone: false });
       }
     }
+
+    // Update ref for hit testing
+    barRectsRef.current = barRects;
 
     // ── Draw dependency arrows (toggleable) ─────────────────────────────
 
@@ -543,7 +845,96 @@ export default function GanttChart({
       }
     }
 
-    // ── Data Date line (solid amber, toggleable) ────────────────────────
+    // ── Draw drag-to-connect line ──────────────────────────────────────
+
+    if (dragState && dragState.mode === "connect") {
+      ctx.strokeStyle = dropTarget ? COLORS.connectLineValid : COLORS.connectLine;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath();
+      ctx.moveTo(dragState.startX, dragState.startY);
+
+      // Draw an L-shaped line like dependency arrows
+      const midX = dragState.startX + (dragState.fromEdge === "finish" ? 10 : -10);
+      ctx.lineTo(midX, dragState.startY);
+      ctx.lineTo(midX, dragState.currentY);
+      ctx.lineTo(dragState.currentX, dragState.currentY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrow head at cursor
+      const dx = dragState.currentX - midX;
+      const angle = Math.atan2(0, dx);
+      ctx.fillStyle = dropTarget ? COLORS.connectLineValid : COLORS.connectLine;
+      ctx.beginPath();
+      ctx.moveTo(dragState.currentX, dragState.currentY);
+      ctx.lineTo(
+        dragState.currentX - ARROW_HEAD_SIZE * 2 * Math.cos(angle - Math.PI / 6),
+        dragState.currentY - ARROW_HEAD_SIZE * 2 * Math.sin(angle - Math.PI / 6),
+      );
+      ctx.lineTo(
+        dragState.currentX - ARROW_HEAD_SIZE * 2 * Math.cos(angle + Math.PI / 6),
+        dragState.currentY - ARROW_HEAD_SIZE * 2 * Math.sin(angle + Math.PI / 6),
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      // Drop target highlight
+      if (dropTarget) {
+        const targetBar = barRects.find((b) => b.activityId === dropTarget.activityId);
+        if (targetBar) {
+          const handleX = dropTarget.edge === "start" ? targetBar.x : targetBar.x + targetBar.w;
+          const handleY = targetBar.y + targetBar.h / 2;
+          ctx.fillStyle = COLORS.connectLineValid;
+          ctx.globalAlpha = 0.3;
+          ctx.beginPath();
+          ctx.arc(handleX, handleY, HANDLE_RADIUS + 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Show relationship type label
+          const fromEdge = dragState.fromEdge;
+          const toEdge = dropTarget.edge;
+          let relLabel: string;
+          if (fromEdge === "finish" && toEdge === "start") relLabel = "FS";
+          else if (fromEdge === "finish" && toEdge === "finish") relLabel = "FF";
+          else if (fromEdge === "start" && toEdge === "start") relLabel = "SS";
+          else relLabel = "SF";
+
+          ctx.fillStyle = COLORS.connectLineValid;
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(relLabel, handleX, handleY - 14);
+        }
+      }
+    }
+
+    // ── Resize preview indicator ────────────────────────────────────────
+
+    if (dragState && (dragState.mode === "resize-left" || dragState.mode === "resize-right")) {
+      const deltaX = dragState.currentX - dragState.startX;
+      const deltaDays = Math.round(deltaX / pixelsPerDay);
+      let newDuration: number;
+      if (dragState.mode === "resize-right") {
+        newDuration = Math.max(1, dragState.originalDuration + deltaDays);
+      } else {
+        newDuration = Math.max(1, dragState.originalDuration - deltaDays);
+      }
+
+      // Duration label near cursor
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      const labelW = 60;
+      const labelH = 20;
+      ctx.fillRect(dragState.currentX - labelW / 2, dragState.currentY - 30, labelW, labelH);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 11px 'DM Sans', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${newDuration}d`, dragState.currentX, dragState.currentY - 20);
+      ctx.textBaseline = "alphabetic";
+    }
+
+    // ── Data Date line ──────────────────────────────────────────────────
 
     if (showDataDateLine && dataDate) {
       const ddX = daysBetween(rangeStart, dataDate) * pixelsPerDay + offsetX;
@@ -556,7 +947,6 @@ export default function GanttChart({
         ctx.lineTo(ddX, visibleHeight);
         ctx.stroke();
 
-        // Label
         ctx.fillStyle = COLORS.dataDateLine;
         ctx.font = "bold 9px 'DM Sans', sans-serif";
         ctx.textAlign = "center";
@@ -564,7 +954,7 @@ export default function GanttChart({
       }
     }
 
-    // ── Today line (dashed blue, toggleable, default OFF) ───────────────
+    // ── Today line ──────────────────────────────────────────────────────
 
     if (showTodayLine) {
       const today = new Date();
@@ -590,20 +980,8 @@ export default function GanttChart({
     flatRows, activityRowMap, rangeStart, rangeEnd, totalDays,
     pixelsPerDay, zoom, scrollLeft, scrollTop, containerWidth,
     selectedActivityId, showArrows, showDataDateLine, showTodayLine, dataDate,
+    hoveredActivity, hoveredEdge, dragState, dropTarget,
   ]);
-
-  // ─── Click handler ────────────────────────────────────────────────────────
-
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const y = e.clientY - rect.top + scrollTop - HEADER_HEIGHT;
-    const rowIndex = Math.floor(y / ROW_HEIGHT);
-    const row = flatRows.find((r) => r.rowIndex === rowIndex);
-    if (row?.type === "activity" && row.activity) {
-      onSelectActivity(row.activity.id === selectedActivityId ? null : row.activity.id);
-    }
-  };
 
   // ─── Scroll handler ───────────────────────────────────────────────────────
 
@@ -621,11 +999,32 @@ export default function GanttChart({
       className="h-full overflow-auto relative"
       onScroll={handleScroll}
     >
+      {/* Interaction hint */}
+      {hoveredActivity && hoveredEdge && !dragState && (
+        <div className="absolute top-1 right-1 z-10 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
+          {hoveredEdge === "start" || hoveredEdge === "finish"
+            ? "Drag to resize · Alt+Drag to connect"
+            : "Click to select"}
+        </div>
+      )}
+      {dragState?.mode === "connect" && (
+        <div className="absolute top-1 right-1 z-10 bg-blue-600/90 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
+          Drop on another bar edge to create relationship
+        </div>
+      )}
+      {dragState?.mode?.startsWith("resize") && (
+        <div className="absolute top-1 right-1 z-10 bg-amber-600/90 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
+          Release to set new duration
+        </div>
+      )}
       <div style={{ width: Math.max(totalWidth, containerWidth), height: totalHeight, position: "relative" }}>
         <canvas
           ref={canvasRef}
-          onClick={handleCanvasClick}
-          className="absolute top-0 left-0 cursor-pointer"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          className="absolute top-0 left-0"
           style={{ position: "sticky", top: 0, left: 0 }}
         />
       </div>
