@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /circle
+Allow: /circle/welcome
+Disallow: /portal
+Disallow: /scheduler
+Disallow: /api
+Disallow: /*.json$
+
+# Sitemap
+Sitemap: https://alpcontractorcircle.com/sitemap.xml

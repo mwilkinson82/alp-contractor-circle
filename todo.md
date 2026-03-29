@@ -592,3 +592,8 @@
 - [x] Only TF column should show red for critical activities (0d float)
 - [x] Gantt bars remain red for critical, green for non-critical
 - [x] Non-critical activities with float should also have dark readable text
+
+## CRITICAL: Public Access Broken (March 29)
+- [ ] Fix: alpcontractorcircle.com redirects all visitors to Manus login screen
+- [ ] Landing page, public pages must be accessible WITHOUT authentication
+- [ ] Only member dashboard, scheduler, and protected features should require login
