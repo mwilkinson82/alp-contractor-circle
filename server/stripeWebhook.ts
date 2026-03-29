@@ -312,6 +312,16 @@ export function registerStripeWebhook(app: Express) {
                   subscriptionStatus: "canceled",
                 });
                 console.log(`[Stripe Webhook] Marked member as canceled for customer ${customerId}`);
+
+                // Notify Marshall about the cancellation
+                const periodEnd = (subscription as any).current_period_end;
+                const accessUntil = periodEnd
+                  ? new Date(periodEnd * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                  : "immediately";
+                await notifyOwner({
+                  title: "Member Subscription Canceled",
+                  content: `A member (Stripe customer: ${customerId}) has canceled their Contractor Circle subscription. Access ends ${accessUntil}.`,
+                });
               } catch (err) {
                 console.warn("[Stripe Webhook] Failed to mark member as canceled:", err);
               }

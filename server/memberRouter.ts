@@ -373,6 +373,38 @@ export const memberRouter = router({
   }),
 
   /**
+   * Cancel the current member's subscription at period end.
+   */
+  cancelSubscription: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+    if (!member.stripeSubscriptionId || !stripe) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No active subscription found" });
+    }
+
+    try {
+      const sub = await stripe.subscriptions.update(member.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      }) as any;
+      return {
+        success: true,
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: sub.current_period_end
+          ? new Date(sub.current_period_end * 1000)
+          : null,
+      };
+    } catch (err: any) {
+      console.error("[Member] Failed to cancel subscription:", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to cancel subscription. Please try again or contact support.",
+      });
+    }
+  }),
+
+  /**
    * Get payment history from Stripe for the current member.
    */
   payments: publicProcedure.query(async ({ ctx }) => {

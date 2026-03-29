@@ -1,6 +1,7 @@
 /**
  * Account Management — View profile, subscription details, and payment history.
  */
+import { useState } from "react";
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 import {
@@ -47,6 +48,14 @@ export default function PortalAccount() {
   });
   const { data: paymentsData, isLoading: paymentsLoading } = trpc.member.payments.useQuery(undefined, {
     retry: false,
+  });
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const utils = trpc.useUtils();
+  const cancelMutation = trpc.member.cancelSubscription.useMutation({
+    onSuccess: () => {
+      utils.member.subscription.invalidate();
+    },
   });
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
@@ -172,9 +181,14 @@ export default function PortalAccount() {
               </div>
             )}
 
-            <p className="text-cream-muted text-xs">
-              To manage your subscription or update payment method, contact support in the Discord.
-            </p>
+            {subscription?.status === "active" && !subscription?.cancelAtPeriodEnd && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="mt-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 text-cream-muted hover:text-red-400 text-xs font-medium transition-all"
+              >
+                Cancel Subscription
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -239,6 +253,45 @@ export default function PortalAccount() {
           </div>
         )}
       </div>
+
+      {/* Cancellation Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a2e] rounded-2xl p-6 max-w-sm w-full border border-white/10 shadow-2xl">
+            <h3 className="text-lg font-bold text-cream mb-2">Cancel Subscription?</h3>
+            <p className="text-cream-muted text-sm mb-1">
+              Your subscription will remain active until the end of your current billing period{subscription?.currentPeriodEnd
+                ? ` (${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })})`
+                : ""}.
+            </p>
+            <p className="text-cream-muted text-sm mb-5">
+              You can rejoin anytime.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-cream hover:bg-white/10 transition-colors text-sm font-medium"
+              >
+                Keep Subscription
+              </button>
+              <button
+                onClick={async () => {
+                  await cancelMutation.mutateAsync();
+                  setShowCancelConfirm(false);
+                }}
+                disabled={cancelMutation.isPending}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelMutation.isPending ? "Canceling..." : "Yes, Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sign Out */}
       <div className="glass-card rounded-2xl p-6 text-center">
