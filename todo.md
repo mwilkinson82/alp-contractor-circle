@@ -804,3 +804,11 @@
 - [x] Fix "Limited Enrollment" font too large compared to number stats on desktop
 - [x] Fix "Limited Enrollment" off-center on mobile
 - [ ] Deploy to production
+
+## Social Preview & Favicon (March 30 - Session 16)
+- [x] Convert gold CC logo to favicon (ICO + PNG formats)
+- [x] Generate premium OG social preview image (1200x630)
+- [x] Add Open Graph meta tags (og:image, og:title, og:description)
+- [x] Add Twitter Card meta tags
+- [x] Upload assets to CDN and wire into index.html
+- [ ] Deploy to production
