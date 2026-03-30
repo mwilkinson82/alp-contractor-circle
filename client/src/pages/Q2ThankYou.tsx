@@ -8,7 +8,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 
-const PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle(1)_d31e2b1f.pdf";
+const PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle_cead240b.pdf";
 
 // ─── Confetti ─────────────────────────────────────────────────────────────
 interface Particle {

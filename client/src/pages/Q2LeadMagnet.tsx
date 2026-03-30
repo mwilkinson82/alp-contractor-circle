@@ -1,8 +1,9 @@
 /**
  * Q1→Q2 Framework Lead Magnet Landing Page
  * 
- * High-converting single-purpose page. Email capture → database → thank you page.
- * Dark/ember Contractor Circle aesthetic. Mobile-first.
+ * Mobile-first, high-converting single-purpose page.
+ * 99%+ traffic from social media = mobile devices.
+ * Form above the fold on mobile. Single column stacking.
  * 
  * Route: /q2
  */
@@ -13,76 +14,135 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
-const PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle(1)_d31e2b1f.pdf";
+const PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle_cead240b.pdf";
 
-// ─── Animated Background ──────────────────────────────────────────────────
+// ─── Animated Background (lighter on mobile for performance) ─────────────
 function LandingBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-      {/* Top-right ember glow */}
-      <motion.div
-        className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full"
+      <div
+        className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full"
         style={{
           background: "radial-gradient(circle, oklch(0.72 0.12 55 / 0.08), transparent 70%)",
         }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* Bottom-left subtle glow */}
-      <motion.div
-        className="absolute -bottom-48 -left-48 w-[600px] h-[600px] rounded-full"
+      <div
+        className="absolute -bottom-48 -left-48 w-[400px] h-[400px] rounded-full"
         style={{
-          background: "radial-gradient(circle, oklch(0.65 0.15 250 / 0.05), transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.65 0.15 250 / 0.04), transparent 70%)",
         }}
-        animate={{ scale: [1, 1.2, 1] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );
 }
 
-// ─── Stat Pill ────────────────────────────────────────────────────────────
-function StatPill({ value, label }: { value: string; label: string }) {
+// ─── Email Capture Form ──────────────────────────────────────────────────
+function CaptureForm({
+  firstName,
+  setFirstName,
+  email,
+  setEmail,
+  isSubmitting,
+  onSubmit,
+}: {
+  firstName: string;
+  setFirstName: (v: string) => void;
+  email: string;
+  setEmail: (v: string) => void;
+  isSubmitting: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+}) {
   return (
-    <div className="flex flex-col items-center gap-1 px-4 py-2">
-      <span className="font-heading font-bold text-ember text-lg sm:text-xl">{value}</span>
-      <span className="text-cream-muted text-xs tracking-wide uppercase">{label}</span>
-    </div>
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div>
+        <label className="block text-[11px] font-heading uppercase tracking-widest text-cream-muted/70 mb-1.5 pl-1">
+          First Name
+        </label>
+        <input
+          type="text"
+          placeholder="Your first name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+          className="w-full h-12 px-4 rounded-xl text-base text-cream placeholder:text-cream-muted/40 outline-none transition-all duration-200 focus:ring-2 focus:ring-ember/40"
+          style={{
+            background: "oklch(0.12 0.02 260)",
+            border: "1px solid oklch(0.72 0.12 55 / 0.2)",
+          }}
+        />
+      </div>
+      <div>
+        <label className="block text-[11px] font-heading uppercase tracking-widest text-cream-muted/70 mb-1.5 pl-1">
+          Email Address
+        </label>
+        <input
+          type="email"
+          placeholder="you@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full h-12 px-4 rounded-xl text-base text-cream placeholder:text-cream-muted/40 outline-none transition-all duration-200 focus:ring-2 focus:ring-ember/40"
+          style={{
+            background: "oklch(0.12 0.02 260)",
+            border: "1px solid oklch(0.72 0.12 55 / 0.2)",
+          }}
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full h-14 rounded-xl font-heading font-bold text-base tracking-wide transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+        style={{
+          background: isSubmitting
+            ? "oklch(0.55 0.08 55)"
+            : "linear-gradient(135deg, oklch(0.65 0.15 55), oklch(0.72 0.12 55))",
+          color: "#08090D",
+          boxShadow: isSubmitting ? "none" : "0 4px 20px oklch(0.72 0.12 55 / 0.3)",
+        }}
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Sending...
+          </span>
+        ) : (
+          "Get the Free Framework →"
+        )}
+      </button>
+      <p className="text-center text-[11px] text-cream-muted/40 pt-1">
+        No spam. Instant download. Unsubscribe anytime.
+      </p>
+    </form>
   );
 }
 
-// ─── Framework Point ──────────────────────────────────────────────────────
+// ─── Framework Point ─────────────────────────────────────────────────────
 function FrameworkPoint({
   number,
   title,
   description,
-  delay,
 }: {
   number: string;
   title: string;
   description: string;
-  delay: number;
 }) {
   return (
-    <motion.div
-      className="flex gap-4 items-start"
-      initial={{ opacity: 0, x: -20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay, duration: 0.5 }}
-    >
-      <div className="shrink-0 w-10 h-10 rounded-xl bg-ember/15 border border-ember/30 flex items-center justify-center">
-        <span className="font-heading font-bold text-ember text-sm">{number}</span>
+    <div className="flex gap-3 items-start">
+      <div className="shrink-0 w-9 h-9 rounded-lg bg-ember/15 border border-ember/30 flex items-center justify-center">
+        <span className="font-heading font-bold text-ember text-xs">{number}</span>
       </div>
-      <div>
-        <h3 className="font-heading font-semibold text-cream text-base mb-1">{title}</h3>
-        <p className="text-cream-muted text-sm leading-relaxed">{description}</p>
+      <div className="min-w-0">
+        <h3 className="font-heading font-semibold text-cream text-[15px] mb-0.5">{title}</h3>
+        <p className="text-cream-muted/70 text-sm leading-relaxed">{description}</p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ─── Main Landing Page ────────────────────────────────────────────────────
+// ─── Main Landing Page ───────────────────────────────────────────────────
 export default function Q2LeadMagnet() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -91,8 +151,7 @@ export default function Q2LeadMagnet() {
   const [, navigate] = useLocation();
 
   const captureLead = trpc.leads.capture.useMutation({
-    onSuccess: (data) => {
-      // Navigate to thank you page with name for personalization
+    onSuccess: () => {
       navigate(`/q2/thank-you?name=${encodeURIComponent(firstName)}`);
     },
     onError: (error) => {
@@ -117,7 +176,7 @@ export default function Q2LeadMagnet() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-deep relative overflow-hidden">
+    <div className="min-h-screen bg-navy-deep relative overflow-x-hidden">
       <LandingBackground />
 
       {/* Gradient bar at top */}
@@ -129,12 +188,12 @@ export default function Q2LeadMagnet() {
       />
 
       <div className="relative z-10">
-        {/* ─── Nav ─────────────────────────────────────────────────── */}
-        <nav className="max-w-5xl mx-auto px-5 py-6 flex items-center justify-between">
+        {/* ─── Nav ─────────────────────────────────────────────── */}
+        <nav className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-heading font-bold text-cream text-sm tracking-wider">ALP</span>
-            <span className="text-ember/40">|</span>
-            <span className="font-heading text-cream-muted text-xs tracking-widest uppercase">
+            <span className="text-ember/40 text-xs">|</span>
+            <span className="font-heading text-cream-muted text-[11px] tracking-widest uppercase">
               Contractor Circle
             </span>
           </div>
@@ -146,9 +205,153 @@ export default function Q2LeadMagnet() {
           </a>
         </nav>
 
-        {/* ─── Hero Section ────────────────────────────────────────── */}
-        <section className="max-w-5xl mx-auto px-5 pt-8 pb-16 sm:pt-16 sm:pb-24">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        {/* ═══════════════════════════════════════════════════════
+            MOBILE LAYOUT: Badge → Headline → Form → Content
+            DESKTOP LAYOUT: Two-column grid (copy left, form right)
+            ═══════════════════════════════════════════════════════ */}
+        <section className="max-w-5xl mx-auto px-4 pt-4 pb-8 sm:pt-8 sm:pb-16 lg:pt-16 lg:pb-24">
+
+          {/* ─── Mobile: Badge + Headline (shown above form on mobile) ─── */}
+          <div className="lg:hidden text-center mb-6">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/10 border border-ember/25 mb-4"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-ember animate-pulse" />
+              <span className="text-[10px] font-heading uppercase tracking-widest text-ember font-medium">
+                Free Q2 Framework
+              </span>
+            </motion.div>
+
+            {/* Mobile Headline — compact, 2-3 lines max */}
+            <motion.h1
+              className="font-heading font-bold text-cream leading-[1.1] mb-3"
+              style={{ fontSize: "clamp(1.6rem, 7vw, 2rem)" }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05, duration: 0.4 }}
+            >
+              Q1 Is Your Data.{" "}
+              <span className="text-ember">Q2 Is Your Decision.</span>
+            </motion.h1>
+
+            {/* Mobile Subheadline — one sentence */}
+            <motion.p
+              className="text-cream-muted/80 text-sm leading-relaxed mb-2 max-w-xs mx-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+            >
+              The 6-page framework built from $2.5B in construction experience.
+            </motion.p>
+          </div>
+
+          {/* ─── Mobile: Form Card (ABOVE THE FOLD) ─── */}
+          <motion.div
+            className="lg:hidden mb-8"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+          >
+            <div
+              className="rounded-2xl p-5 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.16 0.02 260), oklch(0.13 0.02 260))",
+                border: "1px solid oklch(0.72 0.12 55 / 0.15)",
+                boxShadow: "0 0 60px oklch(0.72 0.12 55 / 0.06), 0 20px 40px -12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div className="text-center mb-5">
+                <h2 className="font-heading font-bold text-cream text-lg mb-1">
+                  Download the Framework
+                </h2>
+                <p className="text-cream-muted/60 text-xs">
+                  Enter your info below and get instant access.
+                </p>
+              </div>
+              <CaptureForm
+                firstName={firstName}
+                setFirstName={setFirstName}
+                email={email}
+                setEmail={setEmail}
+                isSubmitting={isSubmitting}
+                onSubmit={handleSubmit}
+              />
+            </div>
+          </motion.div>
+
+          {/* ─── Mobile: Authority Stats (compact row) ─── */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <div className="text-center">
+              <span className="block font-heading font-bold text-ember text-base">$2.5B+</span>
+              <span className="text-cream-muted/50 text-[10px] uppercase tracking-wider">Construction</span>
+            </div>
+            <div className="w-px h-6 bg-ember/20" />
+            <div className="text-center">
+              <span className="block font-heading font-bold text-ember text-base">6 Pages</span>
+              <span className="text-cream-muted/50 text-[10px] uppercase tracking-wider">Framework</span>
+            </div>
+            <div className="w-px h-6 bg-ember/20" />
+            <div className="text-center">
+              <span className="block font-heading font-bold text-ember text-base">Free</span>
+              <span className="text-cream-muted/50 text-[10px] uppercase tracking-wider">Download</span>
+            </div>
+          </div>
+
+          {/* ─── Mobile: What's Inside ─── */}
+          <div className="lg:hidden space-y-4 mb-8">
+            <p className="text-[10px] font-heading uppercase tracking-widest text-ember/70 mb-1">
+              Inside the Framework
+            </p>
+            <FrameworkPoint
+              number="01"
+              title="The Q1 Audit"
+              description="Read your own scorecard. Diagnose why Rocks missed — not just that they missed."
+            />
+            <FrameworkPoint
+              number="02"
+              title="Kill, Double, Fix"
+              description="Three tactical moves to make this week. Subtract before you add."
+            />
+            <FrameworkPoint
+              number="03"
+              title="The Q2 Commitment"
+              description="Your personal action plan. One thing to kill, one to double, one system to fix."
+            />
+          </div>
+
+          {/* ─── Mobile: Quote ─── */}
+          <div className="lg:hidden mb-8">
+            <div
+              className="rounded-2xl p-5 relative"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.14 0.02 260), oklch(0.11 0.02 260))",
+                border: "1px solid oklch(0.72 0.12 55 / 0.08)",
+              }}
+            >
+              <div className="text-ember/30 text-3xl font-serif leading-none mb-2">"</div>
+              <p className="text-cream/90 text-sm italic leading-relaxed mb-3">
+                The gap between the talkers and the doers opens up in Q2. While everyone else is still recovering from their New Year's resolutions, the operators are already executing.
+              </p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-ember/20 flex items-center justify-center">
+                  <span className="text-ember text-xs font-bold">MW</span>
+                </div>
+                <div>
+                  <p className="text-cream text-xs font-semibold">Marshall Wilkinson</p>
+                  <p className="text-cream-muted/50 text-[10px]">Founder, ALP | $2.5B+ in Construction</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══════════════════════════════════════════════════════
+              DESKTOP LAYOUT (lg and up): Two-column grid
+              ═══════════════════════════════════════════════════════ */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-start">
             {/* Left: Copy */}
             <div>
               {/* Badge */}
@@ -167,7 +370,7 @@ export default function Q2LeadMagnet() {
               {/* Headline */}
               <motion.h1
                 className="font-heading font-bold text-cream mb-4 leading-[1.1]"
-                style={{ fontSize: "clamp(2rem, 5vw, 3.25rem)" }}
+                style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.6 }}
@@ -178,12 +381,12 @@ export default function Q2LeadMagnet() {
 
               {/* Subheadline */}
               <motion.p
-                className="text-cream-muted text-base sm:text-lg leading-relaxed mb-6 max-w-lg"
+                className="text-cream-muted text-base leading-relaxed mb-6 max-w-lg"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
-                The framework for turning first-quarter lessons into second-quarter momentum. 
+                The framework for turning first-quarter lessons into second-quarter momentum.
                 Built from $2.5 billion in construction experience.
               </motion.p>
 
@@ -194,16 +397,24 @@ export default function Q2LeadMagnet() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.35, duration: 0.6 }}
               >
-                <StatPill value="$2.5B+" label="In Construction" />
+                <div className="flex flex-col items-center gap-1 px-4 py-2">
+                  <span className="font-heading font-bold text-ember text-xl">$2.5B+</span>
+                  <span className="text-cream-muted text-xs tracking-wide uppercase">In Construction</span>
+                </div>
                 <div className="w-px h-8 bg-ember/20" />
-                <StatPill value="6" label="Page Framework" />
+                <div className="flex flex-col items-center gap-1 px-4 py-2">
+                  <span className="font-heading font-bold text-ember text-xl">6</span>
+                  <span className="text-cream-muted text-xs tracking-wide uppercase">Page Framework</span>
+                </div>
                 <div className="w-px h-8 bg-ember/20" />
-                <StatPill value="Free" label="Download" />
+                <div className="flex flex-col items-center gap-1 px-4 py-2">
+                  <span className="font-heading font-bold text-ember text-xl">Free</span>
+                  <span className="text-cream-muted text-xs tracking-wide uppercase">Download</span>
+                </div>
               </motion.div>
 
-              {/* What's inside preview (desktop) */}
+              {/* What's inside */}
               <motion.div
-                className="hidden lg:block"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.45, duration: 0.6 }}
@@ -216,221 +427,113 @@ export default function Q2LeadMagnet() {
                     number="01"
                     title="The Q1 Audit"
                     description="Read your own scorecard. Diagnose why Rocks missed — not just that they missed."
-                    delay={0.5}
                   />
                   <FrameworkPoint
                     number="02"
                     title="Kill, Double, Fix"
                     description="Three tactical moves to make this week. Subtract before you add."
-                    delay={0.6}
                   />
                   <FrameworkPoint
                     number="03"
                     title="The Q2 Commitment"
                     description="Your personal action plan. One thing to kill, one to double, one system to fix."
-                    delay={0.7}
                   />
                 </div>
               </motion.div>
             </div>
 
-            {/* Right: Form Card */}
+            {/* Right: Form Card (Desktop) */}
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="sticky top-24"
             >
               <div
-                className="rounded-2xl p-8 sm:p-10 relative overflow-hidden"
+                className="rounded-2xl p-8 relative overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, oklch(0.16 0.02 260), oklch(0.13 0.02 260))",
                   border: "1px solid oklch(0.72 0.12 55 / 0.15)",
                   boxShadow: "0 0 80px oklch(0.72 0.12 55 / 0.06), 0 25px 50px -12px rgba(0,0,0,0.5)",
                 }}
               >
-                {/* Subtle corner accent */}
                 <div
                   className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
                   style={{
                     background: "radial-gradient(circle at top right, oklch(0.72 0.12 55 / 0.08), transparent 70%)",
                   }}
                 />
-
                 <div className="relative z-10">
-                  {/* Form header */}
-                  <div className="text-center mb-8">
+                  <div className="text-center mb-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/10 border border-ember/20 mb-4">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.72 0.12 55)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
                         <line x1="16" y1="13" x2="8" y2="13" />
                         <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10 9 9 9 8 9" />
                       </svg>
-                      <span className="text-xs font-heading text-ember tracking-wider uppercase">
+                      <span className="text-[10px] font-heading uppercase tracking-widest text-ember/80">
                         End of Q1 Resource
                       </span>
                     </div>
-                    <h2 className="font-heading font-bold text-cream text-xl sm:text-2xl mb-2">
+                    <h2 className="font-heading font-bold text-cream text-2xl mb-2">
                       Download the Framework
                     </h2>
-                    <p className="text-cream-muted text-sm">
+                    <p className="text-cream-muted/60 text-sm">
                       Enter your info below and get instant access.
                     </p>
                   </div>
-
-                  {/* Form */}
-                  <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-heading text-cream-muted uppercase tracking-wider mb-2">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Marshall"
-                        required
-                        className="w-full px-4 py-3 rounded-xl text-cream placeholder:text-cream-muted/40 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-ember/50 transition-all"
-                        style={{
-                          background: "oklch(0.10 0.01 270)",
-                          border: "1px solid oklch(0.72 0.12 55 / 0.15)",
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-heading text-cream-muted uppercase tracking-wider mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="marshall@company.com"
-                        required
-                        className="w-full px-4 py-3 rounded-xl text-cream placeholder:text-cream-muted/40 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-ember/50 transition-all"
-                        style={{
-                          background: "oklch(0.10 0.01 270)",
-                          border: "1px solid oklch(0.72 0.12 55 / 0.15)",
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full py-3.5 rounded-xl font-heading font-semibold text-sm tracking-wide transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                      style={{
-                        background: isSubmitting
-                          ? "oklch(0.55 0.12 55)"
-                          : "linear-gradient(135deg, oklch(0.72 0.12 55), oklch(0.62 0.12 55))",
-                        color: "oklch(0.10 0.01 270)",
-                        boxShadow: isSubmitting ? "none" : "0 4px 20px oklch(0.72 0.12 55 / 0.3)",
-                      }}
-                    >
-                      {isSubmitting ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          Sending...
-                        </span>
-                      ) : (
-                        "Get the Q2 Framework →"
-                      )}
-                    </button>
-                  </form>
-
-                  {/* Trust line */}
-                  <p className="text-center text-cream-muted/50 text-xs mt-4">
-                    No spam. Instant download. Unsubscribe anytime.
-                  </p>
+                  <CaptureForm
+                    firstName={firstName}
+                    setFirstName={setFirstName}
+                    email={email}
+                    setEmail={setEmail}
+                    isSubmitting={isSubmitting}
+                    onSubmit={handleSubmit}
+                  />
                 </div>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* ─── What's Inside (Mobile) ──────────────────────────────── */}
-        <section className="lg:hidden max-w-5xl mx-auto px-5 pb-16">
-          <p className="text-xs font-heading uppercase tracking-widest text-ember/70 mb-6">
-            Inside the Framework
-          </p>
-          <div className="space-y-4">
-            <FrameworkPoint
-              number="01"
-              title="The Q1 Audit"
-              description="Read your own scorecard. Diagnose why Rocks missed — not just that they missed."
-              delay={0.1}
-            />
-            <FrameworkPoint
-              number="02"
-              title="Kill, Double, Fix"
-              description="Three tactical moves to make this week. Subtract before you add."
-              delay={0.2}
-            />
-            <FrameworkPoint
-              number="03"
-              title="The Q2 Commitment"
-              description="Your personal action plan. One thing to kill, one to double, one system to fix."
-              delay={0.3}
-            />
-          </div>
-        </section>
-
-        {/* ─── Quote / Social Proof ────────────────────────────────── */}
-        <section className="max-w-3xl mx-auto px-5 pb-16 sm:pb-24">
+        {/* ─── Quote Section (Desktop only — mobile has inline quote above) ─── */}
+        <section className="hidden lg:block max-w-3xl mx-auto px-5 pb-20">
           <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="rounded-2xl p-10 text-center relative"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.14 0.02 260), oklch(0.11 0.02 260))",
+              border: "1px solid oklch(0.72 0.12 55 / 0.08)",
+            }}
           >
-            <div
-              className="rounded-2xl p-8 sm:p-12 relative overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.14 0.02 260), oklch(0.11 0.01 270))",
-                border: "1px solid oklch(0.72 0.12 55 / 0.08)",
-              }}
-            >
-              <svg
-                className="mx-auto mb-4 text-ember/30"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-              </svg>
-              <blockquote className="font-heading text-cream text-lg sm:text-xl leading-relaxed mb-6 italic">
-                "The gap between the talkers and the doers opens up in Q2. While everyone else is still recovering from their New Year's resolutions, the operators are already executing."
-              </blockquote>
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-ember/20 flex items-center justify-center">
-                  <span className="font-heading font-bold text-ember text-sm">MW</span>
-                </div>
-                <div className="text-left">
-                  <p className="font-heading font-semibold text-cream text-sm">Marshall Wilkinson</p>
-                  <p className="text-cream-muted text-xs">Founder, ALP | $2.5B+ in Construction</p>
-                </div>
+            <div className="text-ember/30 text-5xl font-serif leading-none mb-4">"</div>
+            <p className="text-cream/90 text-lg italic leading-relaxed mb-6 max-w-xl mx-auto">
+              The gap between the talkers and the doers opens up in Q2. While everyone else is still recovering from their New Year's resolutions, the operators are already executing.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-ember/20 flex items-center justify-center">
+                <span className="text-ember text-sm font-bold">MW</span>
+              </div>
+              <div className="text-left">
+                <p className="text-cream text-sm font-semibold">Marshall Wilkinson</p>
+                <p className="text-cream-muted/50 text-xs">Founder, ALP | $2.5B+ in Construction</p>
               </div>
             </div>
           </motion.div>
         </section>
 
-        {/* ─── Footer ──────────────────────────────────────────────── */}
-        <footer className="max-w-5xl mx-auto px-5 py-8 border-t border-white/5">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-bold text-cream/60 text-xs tracking-wider">ALP</span>
-              <span className="text-ember/30">|</span>
-              <span className="text-cream-muted/40 text-xs">Contractor Circle</span>
+        {/* ─── Footer ─────────────────────────────────────────── */}
+        <footer className="max-w-5xl mx-auto px-4 py-6 border-t border-white/5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-cream-muted/40">
+            <span>© {new Date().getFullYear()} ALP Contractor Circle. All rights reserved.</span>
+            <div className="flex items-center gap-4">
+              <a href="/" className="hover:text-ember transition-colors">Home</a>
+              <a href="/circle" className="hover:text-ember transition-colors">Join the Circle</a>
             </div>
-            <p className="text-cream-muted/40 text-xs">
-              &copy; {new Date().getFullYear()} ALP. All rights reserved.
-            </p>
           </div>
         </footer>
       </div>

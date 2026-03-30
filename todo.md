@@ -773,3 +773,15 @@
 - [x] Wire routes in App.tsx (public, no auth required)
 - [x] Write vitest tests for lead capture procedure (5 tests passing)
 - [ ] Deploy to production
+
+## Q2 Landing Page Mobile Optimization (March 30 - Session 16)
+- [x] Audit current landing page on mobile viewport (375px)
+- [x] Form above the fold on mobile — most critical conversion element
+- [x] Reduce headline size for mobile readability (clamp 1.6rem-2rem)
+- [x] Stack layout vertically on mobile (separate lg:hidden / hidden lg:grid sections)
+- [x] Optimize touch targets (h-14 button = 56px, h-12 inputs = 48px)
+- [x] Minimize scroll distance to CTA (form immediately after headline)
+- [x] Remove or collapse non-essential content on mobile (compact stats, inline quote)
+- [x] Optimize thank you page for mobile (already single-column centered)
+- [x] Test on mobile viewport and verify
+- [ ] Deploy to production
