@@ -63,7 +63,9 @@ function AnimatedNumber({
 
       <p
         className={`font-bold text-ember mb-1.5 relative leading-none ${
-          large
+          textValue
+            ? "text-xl sm:text-2xl md:text-3xl"
+            : large
             ? "text-4xl sm:text-5xl md:text-6xl"
             : "text-3xl sm:text-4xl md:text-5xl"
         }`}
@@ -124,7 +126,7 @@ export function ValueProps() {
 
           {/* On mobile only: third stat centered below */}
           <div className="sm:hidden flex justify-center mt-2">
-            <div className="w-full max-w-[200px]">
+            <div className="w-full text-center">
               <AnimatedNumber
                 target={0}
                 prefix=""

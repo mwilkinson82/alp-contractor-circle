@@ -801,4 +801,6 @@
 - [x] Find and fix "Founding Members 12 of 50" still showing in InsideTheCircle ResultsCard
 - [x] Verify no other count references remain on public pages (AdminAnalytics keeps internal count — OK)
 - [x] Removed unused useMemberCount import from InsideTheCircle.tsx
+- [x] Fix "Limited Enrollment" font too large compared to number stats on desktop
+- [x] Fix "Limited Enrollment" off-center on mobile
 - [ ] Deploy to production
