@@ -200,7 +200,7 @@ export function PricingSection() {
               className="text-center text-xs text-cream/30 mt-5"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Limited founding member spots available. Once filled, price increases.
+              Founding member enrollment is open. Once closed, price increases.
             </motion.p>
           </div>
         </motion.div>

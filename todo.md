@@ -785,3 +785,12 @@
 - [x] Optimize thank you page for mobile (already single-column centered)
 - [x] Test on mobile viewport and verify
 - [ ] Deploy to production
+
+## Founding Member Badge Update (March 30 - Session 16)
+- [x] Audit all founding member count references on home page (4 public-facing found)
+- [x] Replace HeroSection badge: "X of 50 Spots Filled" → "Founding Member Slots Still Available — Limited Enrollment"
+- [x] Replace ValueProps stat: "X of 50 Founding Spots Remaining" → "Slots Available" / "Founding Member Enrollment"
+- [x] Replace FinalCTA: "spots are limited" → "enrollment is open — but not forever"
+- [x] Replace PricingSection: "Limited spots available" → "enrollment is open. Once closed, price increases."
+- [x] Removed unused useMemberCount imports from HeroSection and ValueProps
+- [ ] Deploy to production

@@ -61,7 +61,7 @@ export function FinalCTA() {
           className="text-base sm:text-lg text-cream/50 max-w-xl mx-auto mb-12 leading-relaxed"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
-          Every week you're not in The Circle is a week of deals left on the table, problems solved the hard way, and growth that could have been faster. Founding member spots are limited.
+          Every week you're not in The Circle is a week of deals left on the table, problems solved the hard way, and growth that could have been faster. Founding member enrollment is open — but not forever.
         </motion.p>
 
         <motion.div

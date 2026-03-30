@@ -1,8 +1,6 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { useMemberCount } from "@/hooks/useMemberCount";
 
-const FOUNDING_SPOTS = 50;
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 function AnimatedNumber({
@@ -87,8 +85,7 @@ export function ValueProps() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
 
-  // Dynamic: pull active member count from Supabase
-  const { remaining: spotsLeft } = useMemberCount();
+  // Founding member availability — no longer showing specific counts
 
   return (
     <section ref={sectionRef} className="relative z-10 py-14 sm:py-20 px-6">
@@ -117,8 +114,8 @@ export function ValueProps() {
                 target={0}
                 prefix=""
                 suffix=""
-                label="Founding Spots Remaining"
-                textValue={spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full"}
+                label="Founding Member Enrollment"
+                textValue="Slots Available"
                 delay={0.24}
                 large={true}
               />
@@ -132,8 +129,8 @@ export function ValueProps() {
                 target={0}
                 prefix=""
                 suffix=""
-                label="Founding Spots Remaining"
-                textValue={spotsLeft > 0 ? `${spotsLeft} of ${FOUNDING_SPOTS}` : "Full"}
+                label="Founding Member Enrollment"
+                textValue="Slots Available"
                 delay={0.24}
                 large={true}
               />
