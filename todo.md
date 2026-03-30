@@ -794,3 +794,11 @@
 - [x] Replace PricingSection: "Limited spots available" → "enrollment is open. Once closed, price increases."
 - [x] Removed unused useMemberCount imports from HeroSection and ValueProps
 - [ ] Deploy to production
+
+## Founding Member Badge Refinements (March 30 - Session 16 continued)
+- [x] Shorten hero badge to "Founding Members — Limited Enrollment" (too long on mobile)
+- [x] Change ValueProps "Slots Available" stat to "Limited Enrollment"
+- [x] Find and fix "Founding Members 12 of 50" still showing in InsideTheCircle ResultsCard
+- [x] Verify no other count references remain on public pages (AdminAnalytics keeps internal count — OK)
+- [x] Removed unused useMemberCount import from InsideTheCircle.tsx
+- [ ] Deploy to production

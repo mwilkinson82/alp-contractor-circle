@@ -114,8 +114,8 @@ export function ValueProps() {
                 target={0}
                 prefix=""
                 suffix=""
-                label="Founding Member Enrollment"
-                textValue="Slots Available"
+                label="Founding Members"
+                textValue="Limited Enrollment"
                 delay={0.24}
                 large={true}
               />
@@ -129,8 +129,8 @@ export function ValueProps() {
                 target={0}
                 prefix=""
                 suffix=""
-                label="Founding Member Enrollment"
-                textValue="Slots Available"
+                label="Founding Members"
+                textValue="Limited Enrollment"
                 delay={0.24}
                 large={true}
               />
