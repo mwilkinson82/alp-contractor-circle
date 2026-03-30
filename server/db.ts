@@ -1,6 +1,6 @@
 import { eq, isNotNull, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, emailSubscribers, members } from "../drizzle/schema";
+import { InsertUser, users, emailSubscribers, members, leads } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -166,4 +166,43 @@ export async function getAllActiveMembers(): Promise<{ id: number; name: string;
   return rows
     .filter((r): r is { id: number; name: string; email: string } => !!r.email && !!r.name)
     .map(r => ({ id: r.id, name: r.name, email: r.email }));
+}
+
+// ─── Lead Magnet Captures ──────────────────────────────────────────────────
+
+export async function createLead(data: { firstName: string; email: string; source: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if this email already exists for this source
+  const existing = await db
+    .select()
+    .from(leads)
+    .where(and(eq(leads.email, data.email), eq(leads.source, data.source)));
+
+  if (existing.length > 0) {
+    return { id: existing[0].id, alreadyExists: true };
+  }
+
+  const [result] = await db.insert(leads).values({
+    firstName: data.firstName,
+    email: data.email,
+    source: data.source,
+  });
+
+  // Also add to email_subscribers if not already there
+  const existingSub = await db
+    .select()
+    .from(emailSubscribers)
+    .where(eq(emailSubscribers.email, data.email));
+
+  if (existingSub.length === 0) {
+    await db.insert(emailSubscribers).values({
+      email: data.email,
+      source: `lead_magnet_${data.source}`,
+      verified: true,
+    });
+  }
+
+  return { id: result.insertId, alreadyExists: false };
 }

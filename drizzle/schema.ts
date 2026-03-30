@@ -456,3 +456,25 @@ export const templates = mysqlTable("templates", {
 
 export type Template = typeof templates.$inferSelect;
 export type InsertTemplate = typeof templates.$inferInsert;
+
+
+// ─── Lead Magnet Captures ──────────────────────────────────────────────────
+
+/**
+ * Leads table — captures contact info from lead magnet landing pages.
+ * Each lead is tied to a specific lead magnet (source) for tracking.
+ */
+export const leads = mysqlTable("leads", {
+  id: int("id").autoincrement().primaryKey(),
+  /** First name */
+  firstName: varchar("firstName", { length: 128 }).notNull(),
+  /** Email address */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** Which lead magnet they opted into (e.g., 'q1-q2-framework') */
+  source: varchar("source", { length: 128 }).notNull(),
+  /** Timestamp when captured */
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;

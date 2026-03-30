@@ -1110,3 +1110,249 @@ export async function sendEosDeckAnnouncementEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── Q2 Framework Lead Magnet Delivery Email ─────────────────────────────────
+const Q2_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle(1)_d31e2b1f.pdf";
+
+function buildQ2FrameworkEmailHtml(params: { firstName: string }): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Q2 Framework</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Gradient Bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Badge -->
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Your Q2 Framework</span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Headline -->
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:28px;font-weight:700;line-height:1.2;">
+              ${params.firstName}, here's your framework.
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+
+          <!-- Subtitle -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.7);font-size:16px;line-height:1.6;padding:0 20px;">
+              Q1 is your data. Q2 is your decision. This 6-page framework will help you turn first-quarter lessons into second-quarter momentum.
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Download CTA -->
+          <tr>
+            <td align="center">
+              <a href="${Q2_PDF_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                Download the Framework →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- What's Inside Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+              <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px 0;font-weight:600;">Inside the Framework</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#EDE6DB;font-size:14px;line-height:2;padding:0;">
+                    ✓ The Q1 Audit — read your own scorecard<br/>
+                    ✓ Kill, Double, Fix — three tactical moves<br/>
+                    ✓ Revenue & pipeline analysis<br/>
+                    ✓ Operational bottleneck diagnosis<br/>
+                    ✓ The Q2 Commitment — your action plan<br/>
+                    ✓ Built from $2.5B+ in construction experience
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Next Steps Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+              <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px 0;font-weight:600;">Your Next 3 Moves</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td width="28" valign="top" style="color:#D4915C;font-size:14px;font-weight:700;">1.</td>
+                      <td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                        <strong style="color:#EDE6DB;">Read the framework.</strong> It's 6 pages. Takes 10 minutes.
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td width="28" valign="top" style="color:#D4915C;font-size:14px;font-weight:700;">2.</td>
+                      <td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                        <strong style="color:#EDE6DB;">Fill out the Q2 Commitment page.</strong> Name what you're killing, doubling, and fixing.
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td width="28" valign="top" style="color:#D4915C;font-size:14px;font-weight:700;">3.</td>
+                      <td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                        <strong style="color:#EDE6DB;">Execute this week.</strong> Q2 starts Wednesday. Don't wait.
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Contractor Circle CTA -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;padding:0 20px;">
+              Want more frameworks, live coaching, and a community of operators building 7- and 8-figure contracting businesses?
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          <tr>
+            <td align="center">
+              <a href="https://alpcontractorcircle.com" style="display:inline-block;background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);color:#D4915C;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;">
+                Explore The Contractor Circle →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Signature -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.5);font-size:13px;line-height:1.6;">
+              — Marshall Wilkinson<br/>
+              <span style="color:rgba(237,230,219,0.3);font-size:12px;">Founder, ALP | $2.5B+ in Construction</span>
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="border-top:1px solid rgba(255,255,255,0.05);padding-top:24px;">
+              <p style="color:rgba(237,230,219,0.25);font-size:11px;margin:0;">
+                Altitude Logic Pressure &middot; <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.4);text-decoration:none;">alpcontractorschool.com</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+}
+
+function buildQ2FrameworkEmailText(params: { firstName: string }): string {
+  return `
+${params.firstName}, here's your Q2 Framework.
+
+Q1 is your data. Q2 is your decision.
+
+Download the framework here:
+${Q2_PDF_URL}
+
+─────────────────────────────────────
+
+Inside the Framework:
+
+✓ The Q1 Audit — read your own scorecard
+✓ Kill, Double, Fix — three tactical moves
+✓ Revenue & pipeline analysis
+✓ Operational bottleneck diagnosis
+✓ The Q2 Commitment — your action plan
+✓ Built from $2.5B+ in construction experience
+
+─────────────────────────────────────
+
+Your Next 3 Moves:
+
+1. Read the framework. It's 6 pages. Takes 10 minutes.
+2. Fill out the Q2 Commitment page. Name what you're killing, doubling, and fixing.
+3. Execute this week. Q2 starts Wednesday. Don't wait.
+
+─────────────────────────────────────
+
+Want more frameworks, live coaching, and a community of operators?
+→ https://alpcontractorcircle.com
+
+— Marshall Wilkinson
+Founder, ALP | $2.5B+ in Construction
+
+─────────────────────────────────────
+Altitude Logic Pressure
+Website: https://alpcontractorschool.com
+  `.trim();
+}
+
+export async function sendQ2FrameworkEmail(params: {
+  to: string;
+  firstName: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping Q2 framework delivery");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Your Q2 Framework — Download Inside",
+      html: buildQ2FrameworkEmailHtml({ firstName: params.firstName }),
+      text: buildQ2FrameworkEmailText({ firstName: params.firstName }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send Q2 framework:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Q2 framework sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending Q2 framework:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

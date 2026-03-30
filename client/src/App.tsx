@@ -17,14 +17,18 @@ import AdminMembers from "./pages/AdminMembers";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import ScheduleList from "./pages/ScheduleList";
 import Scheduler from "./pages/Scheduler";
+import Q2LeadMagnet from "./pages/Q2LeadMagnet";
+import Q2ThankYou from "./pages/Q2ThankYou";
 
 function Router() {
   return (
     <Switch>
       {/* Public pages — Circle landing is the homepage */}
       <Route path={"/"} component={ContractorCircle} />
-      <Route path={"/circle"} component={ContractorCircle} />
+       <Route path={"circle"} component={ContractorCircle} />
       <Route path={"/circle/welcome"} component={CircleWelcome} />
+      <Route path={"/q2"} component={Q2LeadMagnet} />
+      <Route path={"/q2/thank-you"} component={Q2ThankYou} />
 
       {/* Member portal (Discord auth) */}
       <Route path="/portal">

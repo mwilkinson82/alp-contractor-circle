@@ -756,5 +756,20 @@
 - [x] Audit all Google Drive URLs in PortalTemplates.tsx to ensure they use /copy format
 - [x] Fix any URLs that don't force a copy (2 PDF /view → /copy)
 - [x] Update all 19 Google Drive files to "Anyone with the link can view" via gws CLI
-- [ ] Deploy fix to production
-- [ ] Finish sending EOS announcement email to all members
+- [x] Deploy fix to production
+- [x] Finish sending EOS announcement email to all 11 members (100% success)
+
+## Q1-Q2 Lead Magnet Landing Page (March 30 - Session 16)
+- [x] Create leads table in database for email capture
+- [x] Create tRPC procedure for lead submission (public, no auth required)
+- [x] Build landing page at /q2 with high-converting design (dark/ember aesthetic)
+- [x] Email capture form (name + email) above the fold
+- [x] Compelling headline, subheadline, bullet points from the framework
+- [x] Social proof / authority elements (Marshall's $2.5B experience)
+- [x] Mobile-responsive design
+- [x] Build thank you page at /q2/thank-you with confetti animation and download link
+- [x] Automated email with PDF download link on submission
+- [x] Upload PDF to CDN for download
+- [x] Wire routes in App.tsx (public, no auth required)
+- [x] Write vitest tests for lead capture procedure (5 tests passing)
+- [ ] Deploy to production

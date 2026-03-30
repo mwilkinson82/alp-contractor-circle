@@ -5,8 +5,8 @@ import { publicProcedure, router } from "./_core/trpc";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
-import { subscribeEmail, getAllActiveMembers } from "./db";
-import { sendSubscriberNotification, sendEosDeckAnnouncementEmail } from "./email";
+import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
+import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
 
@@ -168,6 +168,45 @@ export const appRouter = router({
         return { count: 10, total: 50 };
       }
     }),
+  }),
+
+  leads: router({
+    /**
+     * Capture a lead from a lead magnet landing page.
+     * Public — no auth required.
+     */
+    capture: publicProcedure
+      .input(z.object({
+        firstName: z.string().min(1, "First name is required"),
+        email: z.string().email("Valid email is required"),
+        source: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createLead({
+          firstName: input.firstName,
+          email: input.email,
+          source: input.source,
+        });
+
+        // Also insert into Supabase leads (fire-and-forget)
+        insertSupabaseLead({
+          email: input.email,
+          source: `lead_magnet_${input.source}`,
+        }).catch((err) => console.error("[Leads] Failed to insert Supabase lead:", err));
+
+        // Send the Q2 framework PDF delivery email
+        if (input.source === "q1-q2-framework") {
+          sendQ2FrameworkEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send Q2 framework email:", err));
+        }
+
+        return {
+          success: true,
+          alreadyExists: result.alreadyExists,
+        };
+      }),
   }),
 
   email: router({
