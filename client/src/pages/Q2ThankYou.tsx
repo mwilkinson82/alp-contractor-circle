@@ -268,7 +268,7 @@ export default function Q2ThankYou() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
               >
-                Your Q2 Framework{" "}
+                Your Q2 Framework<br />
                 <span className="text-ember">Is Ready.</span>
               </motion.h1>
 
@@ -356,12 +356,12 @@ export default function Q2ThankYou() {
                 <p className="text-xs font-heading uppercase tracking-widest text-ember/70 mb-4">
                   What's Next
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-3 text-left">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-ember/15 flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-ember text-xs font-bold">1</span>
                     </div>
-                    <p className="text-cream-muted text-sm leading-relaxed">
+                    <p className="text-cream-muted text-sm leading-relaxed text-left">
                       <span className="text-cream font-medium">Read the framework.</span> It's 6 pages. Takes 10 minutes.
                     </p>
                   </div>
@@ -369,7 +369,7 @@ export default function Q2ThankYou() {
                     <div className="w-6 h-6 rounded-full bg-ember/15 flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-ember text-xs font-bold">2</span>
                     </div>
-                    <p className="text-cream-muted text-sm leading-relaxed">
+                    <p className="text-cream-muted text-sm leading-relaxed text-left">
                       <span className="text-cream font-medium">Fill out the Q2 Commitment page.</span> Name what you're killing, doubling, and fixing.
                     </p>
                   </div>
@@ -377,7 +377,7 @@ export default function Q2ThankYou() {
                     <div className="w-6 h-6 rounded-full bg-ember/15 flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-ember text-xs font-bold">3</span>
                     </div>
-                    <p className="text-cream-muted text-sm leading-relaxed">
+                    <p className="text-cream-muted text-sm leading-relaxed text-left">
                       <span className="text-cream font-medium">Execute this week.</span> Q2 starts Wednesday. Don't wait.
                     </p>
                   </div>

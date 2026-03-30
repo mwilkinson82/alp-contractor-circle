@@ -234,7 +234,7 @@ export default function Q2LeadMagnet() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05, duration: 0.4 }}
             >
-              Q1 Is Your Data.{" "}
+              Q1 Is Your Data.<br />
               <span className="text-ember">Q2 Is Your Decision.</span>
             </motion.h1>
 
