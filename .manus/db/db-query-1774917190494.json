@@ -1,0 +1,150 @@
+{
+  "query": "SELECT id, email, source, verified, createdAt FROM email_subscribers ORDER BY createdAt DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, email, source, verified, createdAt FROM email_subscribers ORDER BY createdAt DESC LIMIT 20;",
+  "rows": [
+    {
+      "id": "480001",
+      "email": "stephan@plumproexteriors.com",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-31 00:29:24"
+    },
+    {
+      "id": "450001",
+      "email": "ldemarbre@hotmail.ca",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-31 00:17:56"
+    },
+    {
+      "id": "420002",
+      "email": "windingcreek.contracting@gmail.com",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-30 23:58:06"
+    },
+    {
+      "id": "420001",
+      "email": "hezzndara@gmail.com",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-30 23:49:59"
+    },
+    {
+      "id": "390001",
+      "email": "rmacdonald@bestlandscapinggroups.com",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-30 23:14:48"
+    },
+    {
+      "id": "360001",
+      "email": "gabo0469@gmail.com",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-30 22:09:09"
+    },
+    {
+      "id": "330001",
+      "email": "nathan@olivetreebuilds.ca",
+      "source": "lead_magnet_q1-q2-framework",
+      "verified": "1",
+      "createdAt": "2026-03-30 17:44:02"
+    },
+    {
+      "id": "300001",
+      "email": "sergent2k@gmail.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-29 18:17:29"
+    },
+    {
+      "id": "270003",
+      "email": "bonitocarpentry@gmail.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-29 00:05:50"
+    },
+    {
+      "id": "270002",
+      "email": "sarah@jaacgc.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-28 23:55:11"
+    },
+    {
+      "id": "270001",
+      "email": "tflores@onenation.energy",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-28 23:48:25"
+    },
+    {
+      "id": "240001",
+      "email": "diego@lumaraelectric.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-28 01:51:25"
+    },
+    {
+      "id": "210001",
+      "email": "darian@vertexctg.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-27 23:43:45"
+    },
+    {
+      "id": "180001",
+      "email": "theprestonteam@gmail.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-26 20:50:33"
+    },
+    {
+      "id": "150001",
+      "email": "rob@reviverestorationusa.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-26 00:46:40"
+    },
+    {
+      "id": "120001",
+      "email": "bbell@mlbell.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-25 23:56:29"
+    },
+    {
+      "id": "90001",
+      "email": "test@example.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-25 13:27:18"
+    },
+    {
+      "id": "60001",
+      "email": "marshall@marshallwilkinson.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-24 04:42:01"
+    },
+    {
+      "id": "30001",
+      "email": "ericka@casanovaaz.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-23 18:27:20"
+    },
+    {
+      "id": "1",
+      "email": "wilkinson.marshall@gmail.com",
+      "source": "homepage_capture",
+      "verified": "0",
+      "createdAt": "2026-03-22 22:27:15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tsource\tverified\tcreatedAt\n480001\tstephan@plumproexteriors.com\tlead_magnet_q1-q2-framework\t1\t2026-03-31 00:29:24\n450001\tldemarbre@hotmail.ca\tlead_magnet_q1-q2-framework\t1\t2026-03-31 00:17:56\n420002\twindingcreek.contracting@gmail.com\tlead_magnet_q1-q2-framework\t1\t2026-03-30 23:58:06\n420001\thezzndara@gmail.com\tlead_magnet_q1-q2-framework\t1\t2026-03-30 23:49:59\n390001\trmacdonald@bestlandscapinggroups.com\tlead_magnet_q1-q2-framework\t1\t2026-03-30 23:14:48\n360001\tgabo0469@gmail.com\tlead_magnet_q1-q2-framework\t1\t2026-03-30 22:09:09\n330001\tnathan@olivetreebuilds.ca\tlead_magnet_q1-q2-framework\t1\t2026-03-30 17:44:02\n300001\tsergent2k@gmail.com\thomepage_capture\t0\t2026-03-29 18:17:29\n270003\tbonitocarpentry@gmail.com\thomepage_capture\t0\t2026-03-29 00:05:50\n270002\tsarah@jaacgc.com\thomepage_capture\t0\t2026-03-28 23:55:11\n270001\ttflores@onenation.energy\thomepage_capture\t0\t2026-03-28 23:48:25\n240001\tdiego@lumaraelectric.com\thomepage_capture\t0\t2026-03-28 01:51:25\n210001\tdarian@vertexctg.com\thomepage_capture\t0\t2026-03-27 23:43:45\n180001\ttheprestonteam@gmail.com\thomepage_capture\t0\t2026-03-26 20:50:33\n150001\trob@reviverestorationusa.com\thomepage_capture\t0\t2026-03-26 00:46:40\n120001\tbbell@mlbell.com\thomepage_capture\t0\t2026-03-25 23:56:29\n90001\ttest@example.com\thomepage_capture\t0\t2026-03-25 13:27:18\n60001\tmarshall@marshallwilkinson.com\thomepage_capture\t0\t2026-03-24 04:42:01\n30001\tericka@casanovaaz.com\thomepage_capture\t0\t2026-03-23 18:27:20\n1\twilkinson.marshall@gmail.com\thomepage_capture\t0\t2026-03-22 22:27:15\n",
+  "stderr": "",
+  "execution_time_ms": 66
+}

@@ -812,3 +812,7 @@
 - [x] Add Twitter Card meta tags
 - [x] Upload assets to CDN and wire into index.html
 - [ ] Deploy to production
+
+## Lead Magnet Download Notification (March 30 - Session 16)
+- [x] Send email notification to marshall@marshallwilkinson.com on every lead magnet download
+- [ ] Deploy to production

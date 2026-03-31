@@ -1,0 +1,25 @@
+{
+  "query": "SELECT COUNT(*) as total FROM email_subscribers; SELECT COUNT(*) as today_count FROM email_subscribers WHERE createdAt >= '2026-03-30 00:00:00'; SELECT COUNT(*) as lead_magnet_count FROM email_subscribers WHERE source LIKE '%lead_magnet%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT COUNT(*) as total FROM email_subscribers; SELECT COUNT(*) as today_count FROM email_subscribers WHERE createdAt >= '2026-03-30 00:00:00'; SELECT COUNT(*) as lead_magnet_count FROM email_subscribers WHERE source LIKE '%lead_magnet%';",
+  "rows": [
+    {
+      "total": "20"
+    },
+    {
+      "total": "today_count"
+    },
+    {
+      "total": "7"
+    },
+    {
+      "total": "lead_magnet_count"
+    },
+    {
+      "total": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n20\ntoday_count\n7\nlead_magnet_count\n7\n",
+  "stderr": "",
+  "execution_time_ms": 77
+}

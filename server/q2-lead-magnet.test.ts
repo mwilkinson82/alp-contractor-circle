@@ -12,6 +12,7 @@ vi.mock("./email", () => ({
   sendSubscriberNotification: vi.fn(),
   sendEosDeckAnnouncementEmail: vi.fn(),
   sendQ2FrameworkEmail: vi.fn().mockResolvedValue({ success: true, id: "test-id" }),
+  sendLeadMagnetNotification: vi.fn().mockResolvedValue({ success: true, id: "notif-id" }),
 }));
 
 // Mock Supabase client
@@ -22,7 +23,7 @@ vi.mock("./supabaseClient", () => ({
 }));
 
 import { createLead } from "./db";
-import { sendQ2FrameworkEmail } from "./email";
+import { sendQ2FrameworkEmail, sendLeadMagnetNotification } from "./email";
 import { insertSupabaseLead } from "./supabaseClient";
 
 describe("Q2 Lead Magnet Capture Flow", () => {
@@ -157,6 +158,54 @@ describe("Q2 Lead Magnet Capture Flow", () => {
       }
 
       expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it("should send lead magnet notification to Marshall on every download", async () => {
+      const mockNotification = sendLeadMagnetNotification as ReturnType<typeof vi.fn>;
+      mockNotification.mockResolvedValue({ success: true, id: "notif-123" });
+
+      const input = {
+        firstName: "Nathan",
+        email: "nathan@olivetreebuilds.ca",
+        source: "q1-q2-framework",
+      };
+
+      // Notification should fire for every lead magnet download
+      await sendLeadMagnetNotification({
+        email: input.email,
+        firstName: input.firstName,
+        source: input.source,
+      });
+
+      expect(mockNotification).toHaveBeenCalledWith({
+        email: "nathan@olivetreebuilds.ca",
+        firstName: "Nathan",
+        source: "q1-q2-framework",
+      });
+    });
+
+    it("should send lead magnet notification even for non-q2 sources", async () => {
+      const mockNotification = sendLeadMagnetNotification as ReturnType<typeof vi.fn>;
+      mockNotification.mockResolvedValue({ success: true, id: "notif-456" });
+
+      const input = {
+        firstName: "Test",
+        email: "test@test.com",
+        source: "some-other-magnet",
+      };
+
+      // Notification should fire for ALL lead magnet sources
+      await sendLeadMagnetNotification({
+        email: input.email,
+        firstName: input.firstName,
+        source: input.source,
+      });
+
+      expect(mockNotification).toHaveBeenCalledWith({
+        email: "test@test.com",
+        firstName: "Test",
+        source: "some-other-magnet",
+      });
     });
   });
 });

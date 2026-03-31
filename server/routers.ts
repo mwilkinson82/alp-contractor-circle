@@ -6,7 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
-import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail } from "./email";
+import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
 
@@ -201,6 +201,13 @@ export const appRouter = router({
             firstName: input.firstName,
           }).catch((err) => console.error("[Leads] Failed to send Q2 framework email:", err));
         }
+
+        // Notify Marshall of every lead magnet download
+        sendLeadMagnetNotification({
+          email: input.email,
+          firstName: input.firstName,
+          source: input.source,
+        }).catch((err) => console.error("[Leads] Failed to send lead magnet notification:", err));
 
         return {
           success: true,

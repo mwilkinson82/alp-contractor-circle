@@ -900,6 +900,101 @@ export async function sendSubscriberNotification(params: {
   }
 }
 
+// ─── Lead Magnet Download Notification ──────────────────────────────────────
+
+export async function sendLeadMagnetNotification(params: {
+  email: string;
+  firstName: string;
+  source: string;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping lead magnet notification");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const sourceLabel = params.source === "q1-q2-framework" 
+      ? "Q1–Q2 Scaling Framework" 
+      : params.source.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+    const subject = `New Lead Magnet Download — ${sourceLabel}`;
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: "marshall@marshallwilkinson.com",
+      subject,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#08090D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+          
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:24px;font-weight:700;">
+              ⬇ New Lead Magnet Download
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          
+          <tr>
+            <td style="color:rgba(237,230,219,0.75);font-size:15px;line-height:1.8;padding:0 8px;">
+              <p style="margin:0;">
+                <strong style="color:#D4915C;">Name:</strong> ${params.firstName}
+              </p>
+              <p style="margin:8px 0 0 0;">
+                <strong style="color:#D4915C;">Email:</strong> ${params.email}
+              </p>
+              <p style="margin:8px 0 0 0;">
+                <strong style="color:#D4915C;">Lead Magnet:</strong> ${sourceLabel}
+              </p>
+              <p style="margin:16px 0 0 0;color:rgba(237,230,219,0.6);font-size:13px;">
+                This person just downloaded the ${sourceLabel} from your site.
+              </p>
+            </td>
+          </tr>
+          
+          <tr><td style="height:32px;"></td></tr>
+          <tr><td style="height:1px;background:rgba(237,230,219,0.1);"></td></tr>
+          <tr><td style="height:16px;"></td></tr>
+          
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.5);font-size:12px;">
+              The Contractor Circle | ALP
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `,
+      text: `${subject}\n\nName: ${params.firstName}\nEmail: ${params.email}\nLead Magnet: ${sourceLabel}\n\nThis person just downloaded the ${sourceLabel} from your site.`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send lead magnet notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Lead magnet notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending lead magnet notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
 // ─── EOS Inaugural Call Deck Announcement Email ─────────────────────────────
 
 function buildEosDeckAnnouncementHtml(params: { name: string }): string {
