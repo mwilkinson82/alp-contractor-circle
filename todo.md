@@ -826,6 +826,16 @@
 - [ ] Deploy to production
 
 ## Estimating Checklist Announcement Email (March 31 - Session 17)
-- [ ] Draft announcement email for Estimating Checklist template
-- [ ] Send preview to marshall@marshallwilkinson.com for approval
-- [ ] After approval, send to all active members
+- [x] Draft announcement email for Estimating Checklist template
+- [x] Send preview to marshall@marshallwilkinson.com for approval
+- [x] After approval, sent to all 12 active members
+
+## Estimating Checklist Lead Magnet (March 31)
+- [x] Create /estimating landing page with email capture form
+- [x] Create /estimating/thank-you page with download link
+- [x] Automated email delivery with PDF download link
+- [x] Leads stored in database tagged as "estimating-checklist"
+- [x] Lead magnet download notification to marshall@marshallwilkinson.com
+- [x] Same dark/gold ALP branding as Q2 Framework page
+- [x] Register routes in App.tsx
+- [ ] Deploy to production

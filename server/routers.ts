@@ -6,7 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
-import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification } from "./email";
+import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
 
@@ -200,6 +200,14 @@ export const appRouter = router({
             to: input.email,
             firstName: input.firstName,
           }).catch((err) => console.error("[Leads] Failed to send Q2 framework email:", err));
+        }
+
+        // Send the Estimating Checklist PDF delivery email
+        if (input.source === "estimating-checklist") {
+          sendEstimatingChecklistEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send estimating checklist email:", err));
         }
 
         // Notify Marshall of every lead magnet download

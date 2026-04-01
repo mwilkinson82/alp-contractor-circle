@@ -19,6 +19,8 @@ import ScheduleList from "./pages/ScheduleList";
 import Scheduler from "./pages/Scheduler";
 import Q2LeadMagnet from "./pages/Q2LeadMagnet";
 import Q2ThankYou from "./pages/Q2ThankYou";
+import EstimatingChecklist from "./pages/EstimatingChecklist";
+import EstimatingThankYou from "./pages/EstimatingThankYou";
 
 function Router() {
   return (
@@ -29,6 +31,8 @@ function Router() {
       <Route path={"/circle/welcome"} component={CircleWelcome} />
       <Route path={"/q2"} component={Q2LeadMagnet} />
       <Route path={"/q2/thank-you"} component={Q2ThankYou} />
+      <Route path={"/estimating"} component={EstimatingChecklist} />
+      <Route path={"/estimating/thank-you"} component={EstimatingThankYou} />
 
       {/* Member portal (Discord auth) */}
       <Route path="/portal">
