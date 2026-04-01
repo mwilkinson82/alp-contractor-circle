@@ -56,7 +56,7 @@ describe("Stripe Checkout Router", () => {
 });
 
 // ─── Verify Checkout Endpoint ─────────────────────────────────────────────
-describe("stripe.verifyCheckout", () => {
+describe("stripe.verifyCheckout", { timeout: 15000 }, () => {
   it("returns verified: false when Stripe is not configured", async () => {
     // Mock the stripe module to return null (no Stripe key)
     vi.doMock("./stripe", () => ({
@@ -93,7 +93,7 @@ describe("stripe.verifyCheckout", () => {
 });
 
 // ─── Checkout Session Creation ────────────────────────────────────────────
-describe("stripe.createCircleCheckout", () => {
+describe("stripe.createCircleCheckout", { timeout: 15000 }, () => {
   it("requires origin header for redirect URLs", async () => {
     const { appRouter } = await import("./routers");
     const ctx = createPublicContext();

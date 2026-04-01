@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO templates (name, description, category, url, fileType, featured, published) VALUES ('The Estimator''s Checklist', 'A systematic process for accurate, reviewable estimates. 7-page checklist covering contract document review, site visits, exclusions, quantity takeoff, labor calculations, subcontractor management, general conditions, and escalation factors. Stop estimating from memory — start estimating from a system.', 'Estimating', 'https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_ee83b54a.pdf', 'pdf', true, true);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute INSERT INTO templates (name, description, category, url, fileType, featured, published) VALUES ('The Estimator''s Checklist', 'A systematic process for accurate, reviewable estimates. 7-page checklist covering contract document review, site visits, exclusions, quantity takeoff, labor calculations, subcontractor management, general conditions, and escalation factors. Stop estimating from memory — start estimating from a system.', 'Estimating', 'https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_ee83b54a.pdf', 'pdf', true, true);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 94
+}

@@ -1,0 +1,26 @@
+{
+  "query": "SELECT id, name, category, fileType, featured, published FROM templates ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, name, category, fileType, featured, published FROM templates ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "30001",
+      "name": "The Estimator's Checklist",
+      "category": "Estimating",
+      "fileType": "pdf",
+      "featured": "1",
+      "published": "1"
+    },
+    {
+      "id": "1",
+      "name": "EOS for Contractors — Inaugural Call Deck",
+      "category": "Operations",
+      "fileType": "pdf",
+      "featured": "1",
+      "published": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcategory\tfileType\tfeatured\tpublished\n30001\tThe Estimator's Checklist\tEstimating\tpdf\t1\t1\n1\tEOS for Contractors — Inaugural Call Deck\tOperations\tpdf\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 101
+}

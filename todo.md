@@ -816,3 +816,9 @@
 ## Lead Magnet Download Notification (March 30 - Session 16)
 - [x] Send email notification to marshall@marshallwilkinson.com on every lead magnet download
 - [ ] Deploy to production
+
+## Estimating Category & Template (March 31 - Session 17)
+- [x] Upload Construction Estimating Checklist PDF to CDN/S3
+- [x] Add "Estimating" category to templates system
+- [x] Insert Construction Estimating Checklist template record in database
+- [ ] Deploy to production
