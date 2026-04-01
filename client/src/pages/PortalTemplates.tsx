@@ -19,6 +19,7 @@ import {
   X,
   Loader2,
   FileDown,
+  Calculator,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -26,7 +27,7 @@ import { useMember } from "@/hooks/useMember";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { Send, Lightbulb, CheckCircle } from "lucide-react";
 
-type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance";
+type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance" | "estimating";
 
 interface Template {
   id: string;
@@ -450,6 +451,7 @@ const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementT
   { value: "sales", label: "Sales", icon: Target },
   { value: "operations", label: "Operations", icon: BarChart3 },
   { value: "finance", label: "Finance", icon: FileSpreadsheet },
+  { value: "estimating", label: "Estimating", icon: Calculator },
 ];
 
 const FILE_CONFIG: Record<string, { color: string; bg: string; border: string; label: string; icon: React.ElementType; accent: string }> = {
@@ -884,7 +886,7 @@ export default function PortalTemplates() {
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
             {CATEGORIES.map(cat => {
               const Icon = cat.icon;
-              const count = cat.value === "all" ? TEMPLATES.length : TEMPLATES.filter(t => t.category === cat.value).length;
+              const count = cat.value === "all" ? allTemplates.length : allTemplates.filter(t => t.category === cat.value).length;
               return (
                 <button
                   key={cat.value}

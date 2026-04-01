@@ -820,5 +820,12 @@
 ## Estimating Category & Template (March 31 - Session 17)
 - [x] Upload Construction Estimating Checklist PDF to CDN/S3
 - [x] Add "Estimating" category to templates system
+- [x] Add "Estimating" tab to portal frontend TemplateCategory type and CATEGORIES array
+- [x] Fix tab counts to use merged allTemplates instead of hardcoded TEMPLATES
 - [x] Insert Construction Estimating Checklist template record in database
 - [ ] Deploy to production
+
+## Estimating Checklist Announcement Email (March 31 - Session 17)
+- [ ] Draft announcement email for Estimating Checklist template
+- [ ] Send preview to marshall@marshallwilkinson.com for approval
+- [ ] After approval, send to all active members
