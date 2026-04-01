@@ -442,6 +442,28 @@ const TEMPLATES: Template[] = [
       "IDS Process: Identify, Discuss, Solve",
     ],
   },
+  {
+    id: "13",
+    title: "The Estimator's Checklist",
+    description: "7-page construction estimating checklist covering contract review, site visits, quantity takeoff, labor calculations, subcontractor management, and final review.",
+    longDescription: "A systematic, step-by-step estimating process that ensures nothing gets missed. This 7-page checklist walks through every phase of a construction estimate: Contract Document Review, Site Visit & Field Conditions, Exclusions & Clarifications, Quantity Takeoff for major materials, Labor & Man-Hour Calculations, Subcontractor Bid Collection & Management, Equipment & Tool Requirements, General Conditions & Indirect Costs, Escalation & Market Conditions, Markup Strategy, and Final Review & Quality Check. Stop estimating from memory — start estimating from a system.",
+    category: "estimating",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_be88d436.pdf",
+    featured: true,
+    badge: "New",
+    pages: "7 pages",
+    highlights: [
+      "Contract Document Review — scope, specs, drawings, addenda",
+      "Site Visit & Field Conditions assessment",
+      "Quantity Takeoff — major materials by CSI division",
+      "Labor & Man-Hour Calculations with crew productivity",
+      "Subcontractor Bid Collection & Management",
+      "General Conditions & Indirect Costs",
+      "Escalation & Market Conditions pricing",
+      "Final Review & Quality Check before submission",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
