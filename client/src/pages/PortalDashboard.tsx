@@ -38,8 +38,8 @@ const ZOOM_CALL_LINK = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqS
  * because March 29 → April 13 → April 27 (skipping April 20).
  */
 function getNextCallSunday(): string {
-  // Anchor date: first call is Sunday March 29, 2025
-  const ANCHOR = new Date(Date.UTC(2025, 2, 29)); // March 29, 2025 UTC
+  // Anchor date: first call is Sunday March 30, 2025
+  const ANCHOR = new Date(Date.UTC(2025, 2, 30)); // March 30, 2025 UTC (Sunday)
   const now = new Date();
   // Work in UTC days
   const msSinceAnchor = now.getTime() - ANCHOR.getTime();
@@ -77,7 +77,7 @@ function StatusBadge({ status }: { status: string }) {
  * Helper: returns the ISO date string for the next bi-weekly call cycle.
  */
 function getNextCallCycle(): string {
-  const ANCHOR = new Date(Date.UTC(2025, 2, 29));
+  const ANCHOR = new Date(Date.UTC(2025, 2, 30)); // March 30, 2025 UTC (Sunday)
   const now = new Date();
   const msSinceAnchor = now.getTime() - ANCHOR.getTime();
   const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));

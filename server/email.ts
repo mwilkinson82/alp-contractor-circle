@@ -15,25 +15,50 @@ const DISCORD_INVITE = "https://discord.gg/jnwDPTY6D3";
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
 // ─── Add-to-Calendar links for recurring Sunday 5 PM ET bi-weekly meeting ────────
-// First occurrence: Sunday March 29, 2026 at 5 PM ET = 21:00 UTC
+// Anchor: Sunday March 30, 2025 at 5 PM ET = 21:00 UTC
 // Recurring every 2 weeks on Sundays (FREQ=WEEKLY;INTERVAL=2;BYDAY=SU)
-const GOOGLE_CALENDAR_URL =
-  "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-  "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-  "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
-  "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
-  "&dates=20260329T210000Z/20260329T223000Z"; // Sunday 5 PM ET = 21:00 UTC
+// Calendar links use dynamic next-call date
+function getNextCallDateForEmail(): Date {
+  const FIRST_CALL_UTC = Date.UTC(2025, 2, 30, 21, 0, 0);
+  const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const msSinceAnchor = now - FIRST_CALL_UTC;
+  if (msSinceAnchor < 0) return new Date(FIRST_CALL_UTC);
+  const cyclesPassed = Math.floor(msSinceAnchor / CYCLE_MS);
+  return new Date(FIRST_CALL_UTC + (cyclesPassed + 1) * CYCLE_MS);
+}
+
+function fmtCal(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+function buildGoogleCalUrl(): string {
+  const nc = getNextCallDateForEmail();
+  const end = new Date(nc.getTime() + 90 * 60 * 1000);
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
+    "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
+    "&location=" + encodeURIComponent(ZOOM_URL) +
+    "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
+    "&dates=" + fmtCal(nc) + "/" + fmtCal(end);
+}
 
 const APPLE_CALENDAR_URL =
   "https://alpcontractorcircle.com/api/calendar/circle-biweekly.ics";
 
-const OUTLOOK_CALENDAR_URL =
-  "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
-  "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-  "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
-  "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&startdt=2026-03-29T21:00:00Z&enddt=2026-03-29T22:30:00Z";
+function buildOutlookCalUrl(): string {
+  const nc = getNextCallDateForEmail();
+  const end = new Date(nc.getTime() + 90 * 60 * 1000);
+  return "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
+    "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
+    "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
+    "&location=" + encodeURIComponent(ZOOM_URL) +
+    "&startdt=" + nc.toISOString().split(".")[0] + "Z&enddt=" + end.toISOString().split(".")[0] + "Z";
+}
+
+// Backward-compatible constants for existing code that references them
+const GOOGLE_CALENDAR_URL = buildGoogleCalUrl();
+const OUTLOOK_CALENDAR_URL = buildOutlookCalUrl();
 
 // ─── Shared email styles ──────────────────────────────────────────────────────
 const BASE_STYLES = `

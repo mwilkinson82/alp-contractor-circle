@@ -3,12 +3,12 @@
  * departures board. Shows the next bi-weekly Contractor Circle call date and
  * a live countdown. No sales language. Dismissible per session.
  *
- * Anchor: Sunday March 29, 2026 at 5 PM ET (21:00 UTC, EDT = UTC-4)
+ * Anchor: Sunday March 30, 2025 at 5 PM ET (21:00 UTC, EDT = UTC-4)
  */
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-const FIRST_CALL_UTC = Date.UTC(2026, 2, 29, 21, 0, 0); // March 29, 2026 21:00 UTC
+const FIRST_CALL_UTC = Date.UTC(2025, 2, 30, 21, 0, 0); // March 30, 2025 21:00 UTC (Sunday)
 const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
 
 function getNextCallDate(): Date {

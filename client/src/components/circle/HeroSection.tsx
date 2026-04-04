@@ -5,8 +5,8 @@ import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 
-// Anchor: first call Sunday March 29, 2026 at 5 PM ET (21:00 UTC)
-const FIRST_CALL_UTC = Date.UTC(2026, 2, 29, 21, 0, 0);
+// Anchor: first call Sunday March 30, 2025 at 5 PM ET (21:00 UTC)
+const FIRST_CALL_UTC = Date.UTC(2025, 2, 30, 21, 0, 0);
 const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
 
 function getNextCallDate(): Date {

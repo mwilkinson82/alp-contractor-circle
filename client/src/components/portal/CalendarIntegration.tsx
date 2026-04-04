@@ -9,27 +9,52 @@ import { toast } from "sonner";
 
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
-// Next bi-weekly call: Sunday March 29, 2026 at 5 PM ET
-const NEXT_CALL_DATE = "2026-03-29";
-const NEXT_CALL_TIME = "21:00"; // 5 PM ET = 21:00 UTC
+// Anchor: first call Sunday March 30, 2025 at 5 PM ET (21:00 UTC)
+const FIRST_CALL_UTC = Date.UTC(2025, 2, 30, 21, 0, 0);
+const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
 
-// Calendar URLs
-const GOOGLE_CALENDAR_URL =
-  "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-  "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-  "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
-  "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
-  "&dates=20260329T210000Z/20260329T223000Z";
+function getNextCallDate(): Date {
+  const now = Date.now();
+  const msSinceAnchor = now - FIRST_CALL_UTC;
+  if (msSinceAnchor < 0) return new Date(FIRST_CALL_UTC);
+  const cyclesPassed = Math.floor(msSinceAnchor / CYCLE_MS);
+  return new Date(FIRST_CALL_UTC + (cyclesPassed + 1) * CYCLE_MS);
+}
+
+function formatDateForCalendar(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+function buildGoogleCalendarUrl(): string {
+  const nextCall = getNextCallDate();
+  const end = new Date(nextCall.getTime() + 90 * 60 * 1000);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: "The Contractor Circle \u2014 Bi-Weekly Call with Marshall",
+    details: "Bi-weekly group call with Marshall Wilkinson. Join here: " + ZOOM_URL,
+    location: ZOOM_URL,
+    recur: "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SU",
+    dates: `${formatDateForCalendar(nextCall)}/${formatDateForCalendar(end)}`,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
 
 const APPLE_CALENDAR_URL = "https://alpcontractorcircle.com/api/calendar/circle-biweekly.ics";
 
-const OUTLOOK_CALENDAR_URL =
-  "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
-  "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-  "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
-  "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&startdt=2026-03-29T21:00:00Z&enddt=2026-03-29T22:30:00Z";
+function buildOutlookCalendarUrl(): string {
+  const nextCall = getNextCallDate();
+  const end = new Date(nextCall.getTime() + 90 * 60 * 1000);
+  const params = new URLSearchParams({
+    path: "/calendar/action/compose",
+    rru: "addevent",
+    subject: "The Contractor Circle \u2014 Bi-Weekly Call with Marshall",
+    body: "Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL,
+    location: ZOOM_URL,
+    startdt: nextCall.toISOString().split(".")[0] + "Z",
+    enddt: end.toISOString().split(".")[0] + "Z",
+  });
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+}
 
 export function CalendarIntegration() {
   const [addedCalendars, setAddedCalendars] = useState<Set<string>>(new Set());
@@ -40,7 +65,7 @@ export function CalendarIntegration() {
 
     switch (service) {
       case "google":
-        url = GOOGLE_CALENDAR_URL;
+        url = buildGoogleCalendarUrl();
         label = "Google Calendar";
         break;
       case "apple":
@@ -48,7 +73,7 @@ export function CalendarIntegration() {
         label = "Apple Calendar";
         break;
       case "outlook":
-        url = OUTLOOK_CALENDAR_URL;
+        url = buildOutlookCalendarUrl();
         label = "Outlook";
         break;
     }
@@ -85,7 +110,7 @@ export function CalendarIntegration() {
             Add to Your Calendar
           </h3>
           <p className="text-cream-muted text-sm mt-1">
-            Next call: Sunday, March 29 at 5 PM ET
+            Next call: {getNextCallDate().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" })} at 5 PM ET
           </p>
         </div>
       </div>

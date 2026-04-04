@@ -772,7 +772,7 @@
 - [x] Upload PDF to CDN for download
 - [x] Wire routes in App.tsx (public, no auth required)
 - [x] Write vitest tests for lead capture procedure (5 tests passing)
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Q2 Landing Page Mobile Optimization (March 30 - Session 16)
 - [x] Audit current landing page on mobile viewport (375px)
@@ -784,7 +784,7 @@
 - [x] Remove or collapse non-essential content on mobile (compact stats, inline quote)
 - [x] Optimize thank you page for mobile (already single-column centered)
 - [x] Test on mobile viewport and verify
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Founding Member Badge Update (March 30 - Session 16)
 - [x] Audit all founding member count references on home page (4 public-facing found)
@@ -793,7 +793,7 @@
 - [x] Replace FinalCTA: "spots are limited" → "enrollment is open — but not forever"
 - [x] Replace PricingSection: "Limited spots available" → "enrollment is open. Once closed, price increases."
 - [x] Removed unused useMemberCount imports from HeroSection and ValueProps
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Founding Member Badge Refinements (March 30 - Session 16 continued)
 - [x] Shorten hero badge to "Founding Members — Limited Enrollment" (too long on mobile)
@@ -803,7 +803,7 @@
 - [x] Removed unused useMemberCount import from InsideTheCircle.tsx
 - [x] Fix "Limited Enrollment" font too large compared to number stats on desktop
 - [x] Fix "Limited Enrollment" off-center on mobile
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Social Preview & Favicon (March 30 - Session 16)
 - [x] Convert gold CC logo to favicon (ICO + PNG formats)
@@ -811,21 +811,20 @@
 - [x] Add Open Graph meta tags (og:image, og:title, og:description)
 - [x] Add Twitter Card meta tags
 - [x] Upload assets to CDN and wire into index.html
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Lead Magnet Download Notification (March 30 - Session 16)
 - [x] Send email notification to marshall@marshallwilkinson.com on every lead magnet download
-- [ ] Deploy to production
+- [x] Deploy to production
 
 ## Estimating Category & Template (March 31 - Session 17)
 - [x] Upload Construction Estimating Checklist PDF to CDN/S3
 - [x] Add "Estimating" category to templates system
 - [x] Add "Estimating" tab to portal frontend TemplateCategory type and CATEGORIES array
 - [x] Fix tab counts to use merged allTemplates instead of hardcoded TEMPLATES
-- [x] Insert Construction Estimating Checklist template record in database
-- [ ] Deploy to production
+- [x] Insert Construction Estimating Checklist template record in database- [x] Deploy to production
 
-## Estimating Checklist Announcement Email (March 31 - Session 17)
+## Estimating Checklist Lead Magnetnt Email (March 31 - Session 17)
 - [x] Draft announcement email for Estimating Checklist template
 - [x] Send preview to marshall@marshallwilkinson.com for approval
 - [x] After approval, sent to all 12 active members
@@ -838,4 +837,13 @@
 - [x] Lead magnet download notification to marshall@marshallwilkinson.com
 - [x] Same dark/gold ALP branding as Q2 Framework page
 - [x] Register routes in App.tsx
+- [x] Deploy to production
+
+## Fix Call Anchor Date (April 4)
+- [x] Fix bi-weekly anchor from March 29 to March 30 (Sunday) in PortalDashboard
+- [x] Fix bi-weekly anchor in HeroSection
+- [x] Fix bi-weekly anchor in CallCountdownBar
+- [x] Fix calendar integration link in CalendarIntegration.tsx (made dynamic)
+- [x] Fix hardcoded "March 29" in FAQSection, email.ts, send-founding-emails.mjs
+- [x] Verify next call shows Sunday, Apr 12
 - [ ] Deploy to production

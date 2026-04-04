@@ -22,7 +22,7 @@ const GOOGLE_CALENDAR_URL =
   "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
   "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
-  "&dates=20260329T210000Z/20260329T223000Z";
+  "&dates=20250330T210000Z/20250330T223000Z";
 
 const APPLE_CALENDAR_URL = "https://alpcontractorcircle.com/api/calendar/circle-biweekly.ics";
 
@@ -31,7 +31,7 @@ const OUTLOOK_CALENDAR_URL =
   "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
   "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
   "&location=" + encodeURIComponent(ZOOM_URL) +
-  "&startdt=2026-03-29T21:00:00Z&enddt=2026-03-29T22:30:00Z";
+  "&startdt=2025-03-30T21:00:00Z&enddt=2025-03-30T22:30:00Z";
 
 const BASE_STYLES = `background-color:#08090D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;`;
 
