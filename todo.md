@@ -847,3 +847,10 @@
 - [x] Fix hardcoded "March 29" in FAQSection, email.ts, send-founding-emails.mjs
 - [x] Verify next call shows Sunday, Apr 12
 - [ ] Deploy to production
+
+## ALP EOS Playbook Template (April 4)
+- [x] Upload ALP EOS Playbook PDF to CDN
+- [x] Add to TEMPLATES array in PortalTemplates.tsx under Operations category
+- [x] Draft announcement email and send preview to Marshall for approval
+- [ ] Send announcement to all active members after approval
+- [ ] Deploy to production

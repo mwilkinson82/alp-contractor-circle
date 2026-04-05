@@ -464,6 +464,28 @@ const TEMPLATES: Template[] = [
       "Final Review & Quality Check before submission",
     ],
   },
+  {
+    id: "20",
+    title: "ALP/EOS Operating System — Complete Playbook",
+    description: "The definitive 31-page field guide to the ALP/EOS Operating System. Every component explained in full — Vision, People, Data, Issues, Process, and Traction — built for contractor businesses.",
+    longDescription: "The ALP/EOS Operating System is the foundational business framework adopted by ALP Contractor Circle. Adapted from the Entrepreneurial Operating System (EOS) by Gino Wickman, this implementation layers Marshall Wilkinson's two decades of construction consulting experience — representing over $2.5 billion in completed construction — directly onto the EOS framework. This 31-page comprehensive guide covers all six components in full: Vision/Traction Organizer (V/TO), People (Accountability Chart & People Analyzer), Data (Weekly Scorecard), Issues (IDS — Identify, Discuss, Solve), Process (Core Process Documentation & FBA), and Traction (Rocks & L10 Meeting Pulse). Includes implementation roadmap, construction-specific applications, and a complete terminology glossary.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Playbook_65c0ba61.pdf",
+    featured: true,
+    badge: "New",
+    pages: "31 pages",
+    highlights: [
+      "Vision/Traction Organizer (V/TO) — define where you're going and how you'll get there",
+      "People Component — Accountability Chart & People Analyzer for right people, right seats",
+      "Data Component — Weekly Scorecard with leading and lagging indicators",
+      "Issues Component — IDS process to solve problems permanently",
+      "Process Component — Core Process Documentation & FBA methodology",
+      "Traction Component — Rocks, L10 Meetings, and the Meeting Pulse",
+      "Implementation roadmap — 12-month rollout plan for contractor businesses",
+      "Construction-specific applications and terminology glossary",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
