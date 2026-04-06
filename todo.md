@@ -854,3 +854,21 @@
 - [x] Draft announcement email and send preview to Marshall for approval
 - [ ] Send announcement to all active members after approval
 - [ ] Deploy to production
+
+## Discord Bot & New Member — Jose Munoz (April 6)
+- [x] Discord bot: Set up role management to assign Contractor Circle privileges
+- [x] Discord bot: Assign Contractor Circle role to Jose Munoz
+- [x] Add Jose Munoz to member database (merged placeholder record id=660001 with Discord ID 1490703577251840112)
+- [ ] Send welcome/onboarding emails to Jose Munoz
+- [ ] Send EOS Playbook announcement email to all members (including Jose)
+- [ ] Fix EOS Playbook email header styling for mobile
+
+## Database Fixes (April 6)
+- [x] Fix null email for Caleb Morrow (id=390001) → caleb@morrow-builds.com
+- [x] Fix null email for Dell Builder 1 (id=180001, Dan Del Monte) → dan@delmontebuilders.com
+
+## ALP EOS Scorecard Guidelines (April 6)
+- [x] Upload EOS Scorecard PDF to CDN
+- [x] Add to TEMPLATES array in PortalTemplates.tsx under Operations category
+- [x] Draft announcement email and send preview to Marshall
+- [ ] Send announcement to all active members after approval

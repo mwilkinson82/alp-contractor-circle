@@ -1970,7 +1970,15 @@ function buildEosPlaybookAnnouncementHtml(params: { name: string }): string {
 
           <!-- Gradient Bar -->
           <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
-          <tr><td style="height:32px;"></td></tr>
+          <tr><td style="height:20px;"></td></tr>
+
+          <!-- CC Logo -->
+          <tr>
+            <td align="center">
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
 
           <!-- Badge -->
           <tr>
@@ -1982,23 +1990,23 @@ function buildEosPlaybookAnnouncementHtml(params: { name: string }): string {
               </tr></table>
             </td>
           </tr>
-          <tr><td style="height:24px;"></td></tr>
+          <tr><td style="height:18px;"></td></tr>
 
           <!-- Headline -->
           <tr>
-            <td align="center" style="color:#EDE6DB;font-size:28px;font-weight:700;line-height:1.2;">
-              ${firstName}, the full ALP/EOS Playbook<br/>is ready for download.
+            <td align="center" style="color:#EDE6DB;font-size:26px;font-weight:700;line-height:1.3;padding:0 10px;">
+              ${firstName}, the full ALP/EOS Playbook is ready for download.
             </td>
           </tr>
-          <tr><td style="height:16px;"></td></tr>
+          <tr><td style="height:14px;"></td></tr>
 
           <!-- Subtitle -->
           <tr>
-            <td align="center" style="color:rgba(237,230,219,0.7);font-size:16px;line-height:1.6;padding:0 20px;">
+            <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.6;padding:0 16px;">
               The complete 31-page ALP/EOS Operating System — <strong style="color:#EDE6DB;">every component, in full</strong> — is now in the template library under <strong style="color:#D4915C;">Operations</strong>.
             </td>
           </tr>
-          <tr><td style="height:32px;"></td></tr>
+          <tr><td style="height:28px;"></td></tr>
 
           <!-- Content Card -->
           <tr>
@@ -2159,6 +2167,226 @@ export async function sendEosPlaybookAnnouncementEmail(params: {
     return { success: true, id: data?.id };
   } catch (err: any) {
     console.error("[Email] Unexpected error sending EOS playbook announcement:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
+
+// ─── EOS Scorecard Guidelines Announcement ──────────────────────────────────
+
+function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Template Available — ALP/EOS Scorecard Guidelines</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Gradient Bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:20px;"></td></tr>
+
+          <!-- CC Logo -->
+          <tr>
+            <td align="center">
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+
+          <!-- Badge -->
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">New Template Available</span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td style="height:18px;"></td></tr>
+
+          <!-- Headline -->
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:26px;font-weight:700;line-height:1.3;padding:0 10px;">
+              ${firstName}, the EOS Scorecard Guidelines are live.
+            </td>
+          </tr>
+          <tr><td style="height:14px;"></td></tr>
+
+          <!-- Subtitle -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.6;padding:0 16px;">
+              Your one-page reference for the <strong style="color:#EDE6DB;">EOS Data Component</strong> — know your numbers, run your business. Now in the template library under <strong style="color:#D4915C;">Operations</strong>.
+            </td>
+          </tr>
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- Content Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td width="48" valign="top">
+                  <div style="width:40px;height:40px;background-color:rgba(212,145,92,0.15);border-radius:10px;text-align:center;line-height:40px;font-size:20px;">📊</div>
+                </td>
+                <td style="padding-left:16px;">
+                  <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Quick Reference — 1 Page</p>
+                  <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 12px 0;">ALP/EOS Scorecard Guidelines</p>
+                  <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0;">
+                    Everything you need to build and maintain an effective weekly Scorecard:
+                  </p>
+                </td>
+              </tr></table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+                <tr><td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:2;padding:0 8px 0 64px;">
+                  ✓ The Scorecard — 5-15 numbers max, one owner per number<br/>
+                  ✓ Leading vs. Lagging — track activities, not just results<br/>
+                  ✓ Find Your One Number — for contractors: backlog in months<br/>
+                  ✓ Everyone Gets a Measurable — cascade to every seat<br/>
+                  ✓ Red Flags — signs your Scorecard is broken<br/>
+                  ✓ Sample Scorecard Structure with weekly tracking
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center">
+              <a href="${TEMPLATE_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                Download the Scorecard Guide →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:8px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.4);font-size:12px;">
+              Log in to the portal → Templates → Operations
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Closing note -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;padding:0 20px;">
+              Data doesn't replace your gut. It confirms it or challenges it. Either way, you make better decisions. Download the guide, build your Scorecard, and start running your business by the numbers.
+            </td>
+          </tr>
+          <tr><td style="height:8px;"></td></tr>
+          <tr>
+            <td align="center" style="color:#D4915C;font-size:14px;font-weight:600;">
+              — Marshall
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Footer -->
+          <tr><td style="height:1px;background-color:rgba(255,255,255,0.06);"></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.3);font-size:12px;line-height:1.6;">
+              <p style="margin:0;">Altitude Logic Pressure</p>
+              <p style="margin:4px 0 0 0;">
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.5);text-decoration:none;">Member Portal</a>
+              </p>
+            </td>
+          </tr>
+          <tr><td style="height:40px;"></td></tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+function buildEosScorecardAnnouncementText(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  return `
+NEW TEMPLATE AVAILABLE
+
+${firstName}, the EOS Scorecard Guidelines are live.
+
+Your one-page reference for the EOS Data Component is now in the template library under Operations.
+
+─────────────────────────────────────
+
+ALP/EOS Scorecard Guidelines (1 Page)
+
+Everything you need to build and maintain an effective weekly Scorecard:
+
+✓ The Scorecard — 5-15 numbers max, one owner per number
+✓ Leading vs. Lagging — track activities, not just results
+✓ Find Your One Number — for contractors: backlog in months
+✓ Everyone Gets a Measurable — cascade to every seat
+✓ Red Flags — signs your Scorecard is broken
+✓ Sample Scorecard Structure with weekly tracking
+
+→ Download: https://alpcontractorcircle.com/portal/templates
+  Log in to the portal → Templates → Operations
+
+─────────────────────────────────────
+
+Data doesn't replace your gut. It confirms it or challenges it. Either way, you make better decisions.
+
+— Marshall
+
+─────────────────────────────────────
+Altitude Logic Pressure
+Instagram: https://instagram.com/realmarshallwilkinson
+Website: https://alpcontractorschool.com
+Portal: https://alpcontractorcircle.com/portal
+  `.trim();
+}
+
+export async function sendEosScorecardAnnouncementEmail(params: {
+  to: string;
+  name: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping EOS scorecard announcement");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "New in the Portal — ALP/EOS Scorecard Guidelines (Download Now)",
+      html: buildEosScorecardAnnouncementHtml({ name: params.name }),
+      text: buildEosScorecardAnnouncementText({ name: params.name }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send EOS scorecard announcement:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] EOS scorecard announcement sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending EOS scorecard announcement:", err);
     return { success: false, error: err.message || "Unknown error" };
   }
 }

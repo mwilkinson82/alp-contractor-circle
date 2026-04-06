@@ -486,6 +486,26 @@ const TEMPLATES: Template[] = [
       "Construction-specific applications and terminology glossary",
     ],
   },
+  {
+    id: "21",
+    title: "ALP/EOS Scorecard",
+    description: "One-page field guide to the EOS Data Component. Covers Scorecard setup, leading vs. lagging indicators, finding your One Number, cascading measurables, and red flags that mean your Scorecard is broken.",
+    longDescription: "The EOS Data Component is your weekly pulse check — know your numbers, run your business. This one-page reference covers everything you need to build and maintain an effective Scorecard: the 5-15 numbers max rule, one owner per number, weekly goals that reset, 13 weeks of trailing data, and weekly L10 review. Breaks down Leading vs. Lagging indicators (your P&L tells you what happened — your Scorecard tells you what's happening), how to find your One Number (for contractors: backlog in months), cascading measurables to every seat (PM, Estimator, AR), and the red flags that mean your Scorecard is broken. Includes a sample Scorecard structure.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/eos_data_handout_Scorecard_df3edffe.pdf",
+    featured: true,
+    badge: "New",
+    pages: "1 page",
+    highlights: [
+      "The Scorecard — 5-15 numbers max, one owner per number, weekly goals",
+      "Leading vs. Lagging — track activities (proposals sent), not just results (revenue)",
+      "Find Your One Number — for contractors, backlog in months (above 4 = healthy)",
+      "Everyone Gets a Measurable — cascade numbers to every seat in the org",
+      "Red Flags — vanity metrics, 30+ numbers, goals too easy, not reviewing weekly",
+      "Sample Scorecard Structure with owner, measurable, goal, and 6-week trailing data",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
