@@ -2209,7 +2209,7 @@ function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
             <td align="center">
               <table role="presentation" cellpadding="0" cellspacing="0"><tr>
                 <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
-                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">New Template Available</span>
+                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Contractor Circle — New Template</span>
                 </td>
               </tr></table>
             </td>
@@ -2219,7 +2219,7 @@ function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
           <!-- Headline -->
           <tr>
             <td align="center" style="color:#EDE6DB;font-size:26px;font-weight:700;line-height:1.3;padding:0 10px;">
-              ${firstName}, the EOS Scorecard Guidelines are live.
+              ${firstName}, the ALP/EOS Scorecard is live.
             </td>
           </tr>
           <tr><td style="height:14px;"></td></tr>
@@ -2227,7 +2227,7 @@ function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
           <!-- Subtitle -->
           <tr>
             <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.6;padding:0 16px;">
-              Your one-page reference for the <strong style="color:#EDE6DB;">EOS Data Component</strong> — know your numbers, run your business. Now in the template library under <strong style="color:#D4915C;">Operations</strong>.
+              A new template has been added to your <strong style="color:#EDE6DB;">Contractor Circle</strong> member library. Your one-page reference for the <strong style="color:#EDE6DB;">ALP/EOS Data Component</strong> — know your numbers, run your business — is now under <strong style="color:#D4915C;">Operations</strong>.
             </td>
           </tr>
           <tr><td style="height:28px;"></td></tr>
@@ -2284,7 +2284,7 @@ function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
           <!-- Closing note -->
           <tr>
             <td align="center" style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;padding:0 20px;">
-              Data doesn't replace your gut. It confirms it or challenges it. Either way, you make better decisions. Download the guide, build your Scorecard, and start running your business by the numbers.
+              This template is exclusive to Contractor Circle members. Data doesn't replace your gut. It confirms it or challenges it. Either way, you make better decisions. Download the guide, build your Scorecard, and start running your business by the numbers.
             </td>
           </tr>
           <tr><td style="height:8px;"></td></tr>
@@ -2324,11 +2324,11 @@ function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
 function buildEosScorecardAnnouncementText(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
   return `
-NEW TEMPLATE AVAILABLE
+CONTRACTOR CIRCLE — NEW TEMPLATE
 
-${firstName}, the EOS Scorecard Guidelines are live.
+${firstName}, the ALP/EOS Scorecard is live.
 
-Your one-page reference for the EOS Data Component is now in the template library under Operations.
+A new template has been added to your Contractor Circle member library. Your one-page reference for the ALP/EOS Data Component is now under Operations.
 
 ─────────────────────────────────────
 

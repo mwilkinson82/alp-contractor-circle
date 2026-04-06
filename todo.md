@@ -852,7 +852,7 @@
 - [x] Upload ALP EOS Playbook PDF to CDN
 - [x] Add to TEMPLATES array in PortalTemplates.tsx under Operations category
 - [x] Draft announcement email and send preview to Marshall for approval
-- [ ] Send announcement to all active members after approval
+- [x] Send announcement to all active members after approval (14/14 sent, 0 failed)
 - [ ] Deploy to production
 
 ## Discord Bot & New Member — Jose Munoz (April 6)
@@ -871,4 +871,4 @@
 - [x] Upload EOS Scorecard PDF to CDN
 - [x] Add to TEMPLATES array in PortalTemplates.tsx under Operations category
 - [x] Draft announcement email and send preview to Marshall
-- [ ] Send announcement to all active members after approval
+- [x] Send announcement to all active members after approval (14/14 sent, 0 failed)
