@@ -872,3 +872,12 @@
 - [x] Add to TEMPLATES array in PortalTemplates.tsx under Operations category
 - [x] Draft announcement email and send preview to Marshall
 - [x] Send announcement to all active members after approval (14/14 sent, 0 failed)
+
+## Database Cleanup — Dan Del Monte Duplicate (April 6)
+- [x] Merge ID 4 (founding placeholder) into ID 180001 (real Discord record)
+- [x] Delete ID 4 orphan record
+
+## Discord Welcome on Join (April 6)
+- [x] Add guildMemberAdd event listener — post welcome message when member joins Discord server
+- [x] Suppress duplicate welcome on portal login if member already welcomed via Discord join
+- [ ] Deploy and verify

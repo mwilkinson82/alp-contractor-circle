@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDiscordOAuthRoutes } from "../discord";
+import { startDiscordBot } from "../discordBot";
 import { registerStripeWebhook } from "../stripeWebhook";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -92,6 +93,9 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Start Discord gateway bot (listens for guildMemberAdd, etc.)
+  startDiscordBot();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

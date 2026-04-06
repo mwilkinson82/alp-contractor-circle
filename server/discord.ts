@@ -496,11 +496,15 @@ export function registerDiscordOAuthRoutes(app: Express) {
       if (member.subscriptionStatus === "active" && GUILD_ID && BOT_TOKEN) {
         try {
           // Add member to guild (required if they haven't joined via invite yet)
-          await axios.put(
+          const addToGuildResponse = await axios.put(
             `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUser.id}`,
             { access_token: tokenData.access_token },
             { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
-          ).catch(() => { /* already a member — ignore 204/400 */ });
+          ).catch(() => null);
+
+          // 201 = newly added to guild (wasn't a member before)
+          // 204 = already a member of the guild
+          const justJoinedViaPortal = addToGuildResponse?.status === 201;
 
           // Assign the Contractor Circle role
           await axios.put(
@@ -510,15 +514,23 @@ export function registerDiscordOAuthRoutes(app: Express) {
           );
           console.log(`[Discord] Assigned Contractor Circle role to ${discordUser.username}`);
 
-          // Post personalized welcome message in #general-chat (fire-and-forget)
-          const displayName = discordUser.global_name || discordUser.username;
-          axios.post(
-            `${DISCORD_API_BASE}/channels/${GENERAL_CHAT_CHANNEL_ID}/messages`,
-            {
-              content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Read through this channel for everything you need to get started. We're glad you're here — let's build.`,
-            },
-            { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
-          ).catch((e: any) => console.warn("[Discord] Welcome message failed:", e?.message));
+          // Only post welcome message if they were NOT already in the Discord server.
+          // If they joined Discord first, the guildMemberAdd gateway event already
+          // welcomed them. We only welcome here if the portal OAuth added them to
+          // the guild for the first time (status 201).
+          if (justJoinedViaPortal) {
+            const displayName = discordUser.global_name || discordUser.username;
+            axios.post(
+              `${DISCORD_API_BASE}/channels/${GENERAL_CHAT_CHANNEL_ID}/messages`,
+              {
+                content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Log in to the member portal at **alpcontractorcircle.com/portal** to access all your resources. We're glad you're here — let's build.`,
+              },
+              { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+            ).catch((e: any) => console.warn("[Discord] Welcome message failed:", e?.message));
+            console.log(`[Discord] Welcome message sent for ${displayName} (joined via portal OAuth)`);
+          } else {
+            console.log(`[Discord] ${discordUser.username} was already in the guild — welcome already sent on join, skipping duplicate.`);
+          }
         } catch (roleErr: any) {
           // Non-fatal — log and continue
           console.warn("[Discord] Role assignment failed:", roleErr?.message);
