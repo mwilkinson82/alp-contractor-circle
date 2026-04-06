@@ -7,7 +7,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { stripe } from "./stripe";
 import { drizzle } from "drizzle-orm/mysql2";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { replays, members, callQuestions, bootcampTopics } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
@@ -736,5 +736,34 @@ export const memberRouter = router({
         .where(eq(bootcampTopics.id, input.topicId));
 
       return { success: true };
+    }),
+
+  /**
+   * Get selected bootcamp topics for a given date (visible to all members).
+   */
+  selectedBootcampTopics: publicProcedure
+    .input(z.object({ bootcampDate: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        return { topics: [] };
+      }
+
+      const db = getDb()!;
+      const rows = await db
+        .select({
+          id: bootcampTopics.id,
+          topic: bootcampTopics.topic,
+          memberName: members.discordDisplayName,
+          memberUsername: members.discordUsername,
+        })
+        .from(bootcampTopics)
+        .leftJoin(members, eq(bootcampTopics.memberId, members.id))
+        .where(and(
+          eq(bootcampTopics.bootcampDate, input.bootcampDate),
+          eq(bootcampTopics.status, "selected")
+        ));
+
+      return { topics: rows };
     }),
 });

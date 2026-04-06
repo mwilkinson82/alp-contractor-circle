@@ -226,6 +226,7 @@ function BootcampTopicWidget() {
   const [showForm, setShowForm] = useState(false);
 
   const { data: myTopicsData } = trpc.member.myBootcampTopics.useQuery(undefined, { retry: false });
+  const { data: selectedData } = trpc.member.selectedBootcampTopics.useQuery({ bootcampDate: NEXT_BOOTCAMP_DATE }, { retry: false });
   const utils = trpc.useUtils();
 
   const submitTopic = trpc.member.submitBootcampTopic.useMutation({
@@ -376,6 +377,27 @@ function BootcampTopicWidget() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Topics — Bootcamp Agenda */}
+        {(selectedData?.topics?.length ?? 0) > 0 && (
+          <div className="mt-5 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
+              <p className="text-xs font-semibold text-green-400 uppercase tracking-wider">Confirmed Bootcamp Topics</p>
+            </div>
+            <div className="space-y-2">
+              {selectedData!.topics.map((t: any) => (
+                <div key={t.id} className="flex items-start gap-3 p-3 rounded-lg bg-green-500/[0.06] border border-green-500/15">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-cream text-sm font-medium leading-relaxed">{t.topic}</p>
+                    <p className="text-cream-muted/60 text-xs mt-0.5">Submitted by {t.memberName || t.memberUsername || "a member"}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

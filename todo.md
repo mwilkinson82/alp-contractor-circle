@@ -900,9 +900,14 @@
 - [x] Email notification to Marshall when a member submits a bootcamp topic
 - [x] Build announcement email for April 26 bootcamp
 - [x] Send preview to Marshall for approval
-- [ ] Send to all active members after approval
+- [x] Send to all active members after approval (14/14 sent via send-bootcamp-all.mjs)
 - [ ] Build duplicate email prevention into send scripts
 
 ## Bootcamp Calendar + Zoom (April 6)
 - [x] Add Zoom link and Add to Calendar button to bootcamp widget on dashboard
-- [ ] Deploy and send bootcamp email to all active members
+- [x] Deploy and send bootcamp email to all active members (14/14 sent, 0 duplicates, 0 failed)
+
+## Selected Bootcamp Topics Visible to Members (April 6)
+- [x] Add tRPC procedure to fetch selected topics for all members
+- [x] Display selected topics on the bootcamp widget in the dashboard
+- [ ] Deploy live
