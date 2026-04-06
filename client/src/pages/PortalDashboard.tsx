@@ -420,6 +420,16 @@ export default function PortalDashboard() {
           <StatusBadge status={subscription?.status || member?.subscriptionStatus || "none"} />
         </div>
 
+        {/* Member Since */}
+        {member?.createdAt && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-cream-muted/50" />
+            <span className="text-xs text-cream-muted">
+              Member since {new Date(member.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            </span>
+          </div>
+        )}
+
         {subscription?.cancelAtPeriodEnd && (
           <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
             <p className="text-yellow-400 text-sm flex items-center gap-2">

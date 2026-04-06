@@ -181,11 +181,12 @@ export default function AdminMembers() {
           <div className="divide-y divide-white/5">
             {/* Table Header - hidden on mobile */}
             <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-semibold text-cream-muted uppercase tracking-wider bg-white/[0.02]">
-              <div className="col-span-4">Member</div>
+              <div className="col-span-3">Member</div>
               <div className="col-span-2">Status</div>
               <div className="col-span-2">Role</div>
               <div className="col-span-2">Discord</div>
               <div className="col-span-2">Joined</div>
+              <div className="col-span-1">Last Sign-In</div>
             </div>
 
             {filteredMembers.map(m => (
@@ -235,7 +236,7 @@ export default function AdminMembers() {
 
                 {/* Desktop layout */}
                 <div className="hidden md:grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                  <div className="col-span-3 flex items-center gap-3 min-w-0">
                     {m.avatarUrl ? (
                       <img src={m.avatarUrl} alt="" className="w-8 h-8 rounded-full border border-white/10 shrink-0" />
                     ) : (
@@ -283,6 +284,13 @@ export default function AdminMembers() {
                         <ExternalLink className="w-3 h-3 text-cream-muted hover:text-ember" />
                       </a>
                     )}
+                  </div>
+                  <div className="col-span-1">
+                    <span className="text-xs text-cream-muted">
+                      {m.lastSignedIn
+                        ? new Date(m.lastSignedIn).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        : <span className="text-cream-muted/40">Never</span>}
+                    </span>
                   </div>
                 </div>
               </div>

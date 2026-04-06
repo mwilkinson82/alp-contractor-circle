@@ -880,4 +880,9 @@
 ## Discord Welcome on Join (April 6)
 - [x] Add guildMemberAdd event listener — post welcome message when member joins Discord server
 - [x] Suppress duplicate welcome on portal login if member already welcomed via Discord join
-- [ ] Deploy and verify
+- [x] Deploy and verify
+
+## Portal UX Improvements (April 6)
+- [x] Send ALP/EOS Scorecard announcement email to Jacob Huffman (jhuffman@huffmancc.com)
+- [x] Add last sign-in date column to admin member section
+- [x] Add member since date to portal dashboard for members

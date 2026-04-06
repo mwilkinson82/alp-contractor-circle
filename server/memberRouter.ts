@@ -472,6 +472,7 @@ export const memberRouter = router({
           ? `https://cdn.discordapp.com/avatars/${m.discordId}/${m.discordAvatar}.png?size=64`
           : null,
         createdAt: m.createdAt,
+        lastSignedIn: m.lastSignedIn,
       })),
     };
   }),
