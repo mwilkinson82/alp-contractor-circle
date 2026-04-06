@@ -902,3 +902,7 @@
 - [x] Send preview to Marshall for approval
 - [ ] Send to all active members after approval
 - [ ] Build duplicate email prevention into send scripts
+
+## Bootcamp Calendar + Zoom (April 6)
+- [x] Add Zoom link and Add to Calendar button to bootcamp widget on dashboard
+- [ ] Deploy and send bootcamp email to all active members

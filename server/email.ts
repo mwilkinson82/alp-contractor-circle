@@ -2562,156 +2562,187 @@ function buildBootcampAnnouncementHtml(params: { name: string }): string {
 <body style="margin:0;padding:0;${BASE_STYLES}">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
     <tr>
-      <td align="center" style="padding:40px 20px;">
+      <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-          <!-- Gradient Bar -->
-          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
-          <tr><td style="height:20px;"></td></tr>
-
-          <!-- CC Logo -->
+          <!-- CC Logo small -->
           <tr>
-            <td align="center">
-              <img src="${LOGO_URL}" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+            <td align="center" style="padding-bottom:24px;">
+              <img src="${LOGO_URL}" alt="ALP Contractor Circle" width="36" height="36" style="display:block;width:36px;height:36px;border-radius:8px;" />
             </td>
           </tr>
-          <tr><td style="height:16px;"></td></tr>
 
-          <!-- Badge -->
+          <!-- ═══ EVENT TICKET CARD ═══ -->
           <tr>
-            <td align="center">
-              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-                <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
-                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Contractor Circle — Monthly Bootcamp</span>
-                </td>
-              </tr></table>
-            </td>
-          </tr>
-          <tr><td style="height:18px;"></td></tr>
-
-          <!-- Headline -->
-          <tr>
-            <td align="center" style="color:#EDE6DB;font-size:26px;font-weight:700;line-height:1.3;padding:0 10px;">
-              ${firstName}, we want your input.
-            </td>
-          </tr>
-          <tr><td style="height:14px;"></td></tr>
-
-          <!-- Subtitle -->
-          <tr>
-            <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.6;padding:0 16px;">
-              The next <strong style="color:#EDE6DB;">Contractor Circle Monthly Bootcamp</strong> is coming up. We want to hear from you — log into the portal and submit the topic you want us to go deep on.
-            </td>
-          </tr>
-          <tr><td style="height:28px;"></td></tr>
-
-          <!-- Event Details Card -->
-          <tr>
-            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-                <td width="48" valign="top">
-                  <div style="width:40px;height:40px;background-color:rgba(212,145,92,0.15);border-radius:10px;text-align:center;line-height:40px;font-size:20px;">🔥</div>
-                </td>
-                <td style="padding-left:16px;">
-                  <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Monthly Bootcamp</p>
-                  <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 12px 0;">Saturday, April 26 at 5 PM Eastern</p>
-                  <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0;">
-                    Marshall will choose one or multiple topics submitted by members for a deep dive together as a community.
-                  </p>
-                </td>
-              </tr></table>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
-                <tr><td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:2.2;padding:0 8px 0 64px;">
-                  ✓ 90+ minutes — this will be a deep dive, not a surface skim<br/>
-                  ✓ Audience participation expected — come ready to engage<br/>
-                  ✓ Be prepared: water, coffee, pen and paper<br/>
-                  ✓ Your topic could be the one we go deep on
-                </td></tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="height:28px;"></td></tr>
-
-          <!-- How It Works -->
-          <tr>
-            <td style="background-color:rgba(212,145,92,0.06);border:1px solid rgba(212,145,92,0.15);border-radius:16px;padding:24px 28px;">
-              <p style="color:#D4915C;font-size:13px;font-weight:700;margin:0 0 12px 0;text-transform:uppercase;letter-spacing:1px;">How It Works</p>
+            <td style="border-radius:20px;overflow:hidden;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+
+                <!-- Top accent bar -->
+                <tr><td style="height:6px;background:linear-gradient(90deg,#B8451C,#D4915C,#C9A96E,#D4915C,#B8451C);"></td></tr>
+
+                <!-- Event hero section -->
                 <tr>
-                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
-                    <strong style="color:#EDE6DB;">1.</strong> &nbsp;Log into the portal and submit your topic on the dashboard
+                  <td style="background-color:#111318;padding:40px 32px 28px 32px;text-align:center;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td align="center">
+                        <span style="display:inline-block;background-color:#B8451C;color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;padding:8px 20px;border-radius:4px;">LIVE EVENT</span>
+                      </td></tr>
+                      <tr><td style="height:20px;"></td></tr>
+                      <tr><td align="center" style="color:#EDE6DB;font-size:32px;font-weight:800;line-height:1.15;letter-spacing:-0.5px;">
+                        Monthly<br/>Bootcamp
+                      </td></tr>
+                      <tr><td style="height:12px;"></td></tr>
+                      <tr><td align="center" style="color:rgba(237,230,219,0.5);font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">
+                        Contractor Circle Members Only
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Dashed ticket tear line -->
+                <tr><td style="height:0;border-bottom:2px dashed rgba(255,255,255,0.1);background-color:#111318;"></td></tr>
+
+                <!-- Date/Time strip -->
+                <tr>
+                  <td style="background-color:#111318;padding:24px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="50%" style="text-align:center;border-right:1px solid rgba(255,255,255,0.08);">
+                          <p style="color:#D4915C;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px 0;font-weight:700;">Date</p>
+                          <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0;">APR 26</p>
+                          <p style="color:rgba(237,230,219,0.5);font-size:12px;margin:4px 0 0 0;">Saturday</p>
+                        </td>
+                        <td width="50%" style="text-align:center;">
+                          <p style="color:#D4915C;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px 0;font-weight:700;">Time</p>
+                          <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0;">5:00 PM</p>
+                          <p style="color:rgba(237,230,219,0.5);font-size:12px;margin:4px 0 0 0;">Eastern Time</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Second tear line -->
+                <tr><td style="height:0;border-bottom:2px dashed rgba(255,255,255,0.1);background-color:#111318;"></td></tr>
+
+                <!-- Personal message -->
+                <tr>
+                  <td style="background-color:#111318;padding:28px 32px 20px 32px;">
+                    <p style="color:#EDE6DB;font-size:18px;font-weight:700;margin:0 0 12px 0;">
+                      ${firstName}, we want your input.
+                    </p>
+                    <p style="color:rgba(237,230,219,0.65);font-size:14px;line-height:1.7;margin:0;">
+                      The next Contractor Circle Monthly Bootcamp is coming up. Marshall will choose one or multiple topics submitted by members for a deep dive together as a community. Log into the portal and submit the topic you want us to go deep on.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- What to expect -->
+                <tr>
+                  <td style="background-color:#111318;padding:0 32px 28px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(184,69,28,0.08);border:1px solid rgba(184,69,28,0.2);border-radius:12px;padding:20px;">
+                      <tr><td style="padding:20px;">
+                        <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px 0;font-weight:700;">What to Expect</p>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr><td style="padding:6px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                            <span style="color:#B8451C;font-weight:700;margin-right:8px;">&#9632;</span> 90+ minutes — a deep dive, not a surface skim
+                          </td></tr>
+                          <tr><td style="padding:6px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                            <span style="color:#B8451C;font-weight:700;margin-right:8px;">&#9632;</span> Audience participation expected — come ready to engage
+                          </td></tr>
+                          <tr><td style="padding:6px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                            <span style="color:#B8451C;font-weight:700;margin-right:8px;">&#9632;</span> Be prepared: water, coffee, pen and paper
+                          </td></tr>
+                          <tr><td style="padding:6px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                            <span style="color:#B8451C;font-weight:700;margin-right:8px;">&#9632;</span> Your topic could be the one we go deep on
+                          </td></tr>
+                        </table>
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                  <td style="background-color:#111318;padding:0 32px 16px 32px;text-align:center;">
+                    <a href="${PORTAL_URL}" style="display:inline-block;background:#B8451C;color:#FFFFFF;text-decoration:none;padding:18px 48px;border-radius:8px;font-size:16px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">
+                      Submit Your Topic
+                    </a>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
-                    <strong style="color:#EDE6DB;">2.</strong> &nbsp;Tell us why this topic matters to your business right now
+                  <td style="background-color:#111318;padding:0 32px 8px 32px;text-align:center;">
+                    <p style="color:rgba(237,230,219,0.35);font-size:11px;margin:0;">Log in → Dashboard → Monthly Bootcamp</p>
                   </td>
                 </tr>
+
+                <!-- How it works -->
                 <tr>
-                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
-                    <strong style="color:#EDE6DB;">3.</strong> &nbsp;Marshall reviews all submissions and selects the bootcamp agenda
+                  <td style="background-color:#111318;padding:20px 32px 28px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
+                        <p style="color:rgba(237,230,219,0.4);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px 0;font-weight:600;">How It Works</p>
+                      </td></tr>
+                      <tr><td>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="25%" style="text-align:center;padding:8px 4px;">
+                              <div style="width:32px;height:32px;border-radius:50%;background-color:rgba(184,69,28,0.15);color:#D4915C;font-size:14px;font-weight:800;line-height:32px;margin:0 auto 8px auto;">1</div>
+                              <p style="color:rgba(237,230,219,0.6);font-size:11px;line-height:1.4;margin:0;">Submit your topic</p>
+                            </td>
+                            <td width="25%" style="text-align:center;padding:8px 4px;">
+                              <div style="width:32px;height:32px;border-radius:50%;background-color:rgba(184,69,28,0.15);color:#D4915C;font-size:14px;font-weight:800;line-height:32px;margin:0 auto 8px auto;">2</div>
+                              <p style="color:rgba(237,230,219,0.6);font-size:11px;line-height:1.4;margin:0;">Tell us why it matters</p>
+                            </td>
+                            <td width="25%" style="text-align:center;padding:8px 4px;">
+                              <div style="width:32px;height:32px;border-radius:50%;background-color:rgba(184,69,28,0.15);color:#D4915C;font-size:14px;font-weight:800;line-height:32px;margin:0 auto 8px auto;">3</div>
+                              <p style="color:rgba(237,230,219,0.6);font-size:11px;line-height:1.4;margin:0;">Marshall picks the agenda</p>
+                            </td>
+                            <td width="25%" style="text-align:center;padding:8px 4px;">
+                              <div style="width:32px;height:32px;border-radius:50%;background-color:rgba(184,69,28,0.15);color:#D4915C;font-size:14px;font-weight:800;line-height:32px;margin:0 auto 8px auto;">4</div>
+                              <p style="color:rgba(237,230,219,0.6);font-size:11px;line-height:1.4;margin:0;">Show up ready to work</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td></tr>
+                    </table>
                   </td>
                 </tr>
+
+                <!-- Closing -->
                 <tr>
-                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
-                    <strong style="color:#EDE6DB;">4.</strong> &nbsp;Show up April 26 ready to work — this is where we get involved as a community
+                  <td style="background-color:#111318;padding:0 32px 32px 32px;text-align:center;">
+                    <p style="color:rgba(237,230,219,0.5);font-size:13px;line-height:1.6;margin:0 0 8px 0;font-style:italic;">
+                      "This is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines."
+                    </p>
+                    <p style="color:#D4915C;font-size:13px;font-weight:700;margin:0;">— Marshall</p>
                   </td>
                 </tr>
+
+                <!-- Bottom accent bar -->
+                <tr><td style="height:4px;background:linear-gradient(90deg,#B8451C,#D4915C,#C9A96E,#D4915C,#B8451C);"></td></tr>
+
               </table>
             </td>
           </tr>
+          <!-- ═══ END TICKET CARD ═══ -->
+
           <tr><td style="height:28px;"></td></tr>
-
-          <!-- CTA Button -->
-          <tr>
-            <td align="center">
-              <a href="${PORTAL_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
-                Submit Your Topic Now →
-              </a>
-            </td>
-          </tr>
-          <tr><td style="height:8px;"></td></tr>
-          <tr>
-            <td align="center" style="color:rgba(237,230,219,0.4);font-size:12px;">
-              Log in to the portal → Dashboard → Monthly Bootcamp
-            </td>
-          </tr>
-          <tr><td style="height:32px;"></td></tr>
-
-          <!-- Divider -->
-          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
-          <tr><td style="height:24px;"></td></tr>
-
-          <!-- Closing note -->
-          <tr>
-            <td align="center" style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;padding:0 20px;">
-              This is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines — submit your topic and let's get to work.
-            </td>
-          </tr>
-          <tr><td style="height:8px;"></td></tr>
-          <tr>
-            <td align="center" style="color:#D4915C;font-size:14px;font-weight:600;">
-              — Marshall
-            </td>
-          </tr>
-          <tr><td style="height:32px;"></td></tr>
 
           <!-- Footer -->
-          <tr><td style="height:1px;background-color:rgba(255,255,255,0.06);"></td></tr>
-          <tr><td style="height:24px;"></td></tr>
           <tr>
-            <td align="center" style="color:rgba(237,230,219,0.3);font-size:12px;line-height:1.6;">
+            <td align="center" style="color:rgba(237,230,219,0.25);font-size:11px;line-height:1.6;">
               <p style="margin:0;">Altitude Logic Pressure</p>
               <p style="margin:4px 0 0 0;">
-                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.4);text-decoration:none;">Instagram</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.4);text-decoration:none;">Website</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.5);text-decoration:none;">Member Portal</a>
+                <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.4);text-decoration:none;">Member Portal</a>
               </p>
             </td>
           </tr>
-          <tr><td style="height:40px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
 
         </table>
       </td>

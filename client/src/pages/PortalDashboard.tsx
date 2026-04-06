@@ -22,6 +22,8 @@ import {
   X,
   Flame,
   Mic2,
+  Video,
+  CalendarPlus,
 } from "lucide-react";
 import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
@@ -198,6 +200,24 @@ function QuestionModal({ onClose }: { onClose: () => void }) {
 // ─── Monthly Bootcamp Topic Submission ────────────────────────────────────────
 const NEXT_BOOTCAMP_DATE = "2025-04-26";
 const NEXT_BOOTCAMP_DISPLAY = "Saturday, April 26 at 5 PM ET";
+const BOOTCAMP_ZOOM_LINK = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
+
+// Generate Google Calendar add link for the bootcamp
+function getBootcampCalendarUrl() {
+  // April 26, 2026 5:00 PM ET = 21:00 UTC
+  const start = "20260426T210000Z";
+  // Assume ~2 hours
+  const end = "20260426T230000Z";
+  const title = encodeURIComponent("Contractor Circle Monthly Bootcamp");
+  const details = encodeURIComponent(
+    "Monthly Bootcamp — Deep dive session with Marshall and the Contractor Circle community.\n\n" +
+    "Join Zoom Meeting:\n" + BOOTCAMP_ZOOM_LINK + "\n\n" +
+    "Meeting ID: 870 2820 6220\nPasscode: 260916\n\n" +
+    "Come prepared: water, coffee, pen & paper. 90+ minutes. Audience participation expected."
+  );
+  const location = encodeURIComponent(BOOTCAMP_ZOOM_LINK);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
+}
 
 function BootcampTopicWidget() {
   const [topic, setTopic] = useState("");
@@ -256,6 +276,28 @@ function BootcampTopicWidget() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Zoom + Calendar action bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <a
+            href={BOOTCAMP_ZOOM_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2D8CFF]/15 border border-[#2D8CFF]/30 text-[#2D8CFF] text-sm font-semibold hover:bg-[#2D8CFF]/25 transition-colors"
+          >
+            <Video className="w-4 h-4" />
+            Join on Zoom
+          </a>
+          <a
+            href={getBootcampCalendarUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-cream text-sm font-semibold hover:bg-white/10 transition-colors"
+          >
+            <CalendarPlus className="w-4 h-4 text-ember" />
+            Add to Calendar
+          </a>
         </div>
 
         {/* Info bar */}
