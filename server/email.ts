@@ -2913,3 +2913,137 @@ export async function sendBootcampTopicNotification(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── Topic Selected Notification Email ──────────────────────────────────────
+
+export async function sendTopicSelectedEmail(params: {
+  to: string;
+  name: string;
+  topic: string;
+  bootcampDate: string;
+}) {
+  try {
+    const { data, error } = await resend!.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: `Your Topic Was Selected — Contractor Circle Bootcamp`,
+      html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="${BASE_STYLES}margin:0;padding:0;background-color:#08090D;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <!-- Gradient Bar -->
+        <tr><td style="height:4px;background:linear-gradient(90deg,#22c55e,#16a34a,#15803d);border-radius:4px 4px 0 0;"></td></tr>
+
+        <!-- CC Logo -->
+        <tr><td align="center" style="padding:28px 0 8px 0;">
+          <img src="https://manus-storage.oss-cn-beijing.aliyuncs.com/webdev/alp-contractor-portal/cc-logo-email.png" alt="Contractor Circle" width="48" height="48" style="width:48px;height:48px;border-radius:12px;" />
+        </td></tr>
+
+        <!-- Badge -->
+        <tr><td align="center" style="padding:8px 0 20px 0;">
+          <span style="display:inline-block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#22c55e;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 16px;border-radius:20px;">
+            ✓ YOUR TOPIC WAS SELECTED
+          </span>
+        </td></tr>
+
+        <!-- Headline -->
+        <tr><td align="center" style="padding:0 24px 8px 24px;">
+          <h1 style="margin:0;font-size:26px;font-weight:800;color:#F5F0E8;line-height:1.3;">
+            ${params.name}, you're on the agenda.
+          </h1>
+        </td></tr>
+
+        <!-- Subtitle -->
+        <tr><td align="center" style="padding:0 32px 28px 32px;">
+          <p style="margin:0;font-size:15px;color:#B8A99A;line-height:1.6;">
+            Marshall has selected your topic for the next Contractor Circle Monthly Bootcamp. The community is going deep on this one.
+          </p>
+        </td></tr>
+
+        <!-- Topic Card -->
+        <tr><td style="padding:0 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:16px;">
+            <tr><td style="padding:24px;">
+              <p style="margin:0 0 6px 0;font-size:10px;font-weight:700;color:#22c55e;letter-spacing:1.5px;text-transform:uppercase;">YOUR SELECTED TOPIC</p>
+              <p style="margin:0;font-size:18px;font-weight:700;color:#F5F0E8;line-height:1.4;">${params.topic}</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Event Details -->
+        <tr><td style="padding:20px 24px 0 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;">
+            <tr><td style="padding:20px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:12px;font-weight:700;color:#B8A99A;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;" colspan="2">BOOTCAMP DETAILS</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#B8A99A;padding:4px 0;" width="100">Date</td>
+                  <td style="font-size:13px;color:#F5F0E8;font-weight:600;padding:4px 0;">Saturday, April 26, 2026</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#B8A99A;padding:4px 0;" width="100">Time</td>
+                  <td style="font-size:13px;color:#F5F0E8;font-weight:600;padding:4px 0;">5:00 PM Eastern</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#B8A99A;padding:4px 0;" width="100">Duration</td>
+                  <td style="font-size:13px;color:#F5F0E8;font-weight:600;padding:4px 0;">90+ minutes</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#B8A99A;padding:4px 0;" width="100">Format</td>
+                  <td style="font-size:13px;color:#F5F0E8;font-weight:600;padding:4px 0;">Live Zoom — audience participation</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Prepare Message -->
+        <tr><td align="center" style="padding:24px 32px;">
+          <p style="margin:0;font-size:14px;color:#B8A99A;line-height:1.7;">
+            Come prepared with your questions, challenges, and real-world scenarios related to this topic. This is a working session — bring water, coffee, pen & paper.
+          </p>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td align="center" style="padding:0 24px 28px 24px;">
+          <a href="https://alpcontractorcircle.com/portal" style="display:inline-block;background:#22c55e;color:#08090D;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:14px;font-weight:700;">
+            View in Portal →
+          </a>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="border-top:1px solid rgba(255,255,255,0.06);padding:20px 24px;">
+          <p style="margin:0;font-size:11px;color:#B8A99A;text-align:center;line-height:1.6;">
+            This is an exclusive notification for Contractor Circle members.<br>
+            <a href="https://alpcontractorcircle.com" style="color:#D4915C;text-decoration:none;">alpcontractorcircle.com</a>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+      `.trim(),
+      text: `${params.name}, your topic was selected for the Contractor Circle Monthly Bootcamp!\n\nTopic: ${params.topic}\n\nDate: Saturday, April 26, 2026\nTime: 5:00 PM Eastern\nDuration: 90+ minutes\n\nCome prepared with questions and real-world scenarios. Bring water, coffee, pen & paper.\n\nView in Portal: https://alpcontractorcircle.com/portal`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send topic selected notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Topic selected notification sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending topic selected notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

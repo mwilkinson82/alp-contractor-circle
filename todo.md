@@ -910,4 +910,9 @@
 ## Selected Bootcamp Topics Visible to Members (April 6)
 - [x] Add tRPC procedure to fetch selected topics for all members
 - [x] Display selected topics on the bootcamp widget in the dashboard
+- [x] Deploy live
+
+## Topic Selected Notification Email (April 6)
+- [x] Build "Topic Selected" email template
+- [x] Wire email into updateBootcampTopicStatus procedure (fires on status=selected)
 - [ ] Deploy live

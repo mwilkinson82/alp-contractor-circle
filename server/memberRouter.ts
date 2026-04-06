@@ -11,7 +11,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { replays, members, callQuestions, bootcampTopics } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
-import { sendQuestionNotification, sendBootcampTopicNotification } from "./email";
+import { sendQuestionNotification, sendBootcampTopicNotification, sendTopicSelectedEmail } from "./email";
 import { emailSubscribers } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -734,6 +734,40 @@ export const memberRouter = router({
         .update(bootcampTopics)
         .set({ status: input.status })
         .where(eq(bootcampTopics.id, input.topicId));
+
+      // If topic was selected, email the member who submitted it
+      if (input.status === "selected") {
+        const [topicRow] = await db
+          .select({
+            topic: bootcampTopics.topic,
+            bootcampDate: bootcampTopics.bootcampDate,
+            memberId: bootcampTopics.memberId,
+          })
+          .from(bootcampTopics)
+          .where(eq(bootcampTopics.id, input.topicId));
+
+        if (topicRow) {
+          const [submitter] = await db
+            .select({
+              email: members.email,
+              displayName: members.discordDisplayName,
+              username: members.discordUsername,
+            })
+            .from(members)
+            .where(eq(members.id, topicRow.memberId));
+
+          if (submitter?.email) {
+            const name = submitter.displayName || submitter.username || "Member";
+            const firstName = name.split(/[\s_]/)[0];
+            sendTopicSelectedEmail({
+              to: submitter.email,
+              name: firstName,
+              topic: topicRow.topic,
+              bootcampDate: topicRow.bootcampDate,
+            }).catch(err => console.error("[Email] Failed to send topic selected notification:", err));
+          }
+        }
+      }
 
       return { success: true };
     }),
