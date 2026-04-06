@@ -896,7 +896,8 @@
 - [x] Create bootcamp_topics database table
 - [x] Build tRPC procedures for submitting/viewing bootcamp topics
 - [x] Build bootcamp topic submission UI on portal dashboard (highlighted, looks great)
-- [ ] Admin view: see all submitted topics
+- [x] Admin view: see all submitted topics with select/reject actions
+- [x] Email notification to Marshall when a member submits a bootcamp topic
 - [x] Build announcement email for April 26 bootcamp
 - [x] Send preview to Marshall for approval
 - [ ] Send to all active members after approval

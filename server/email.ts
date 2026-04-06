@@ -2799,3 +2799,86 @@ export async function sendBootcampAnnouncementEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── Bootcamp Topic Submission Notification (to Marshall) ─────────────────────
+export async function sendBootcampTopicNotification(params: {
+  memberName: string;
+  topic: string;
+  reason?: string;
+  bootcampDate: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping bootcamp topic notification");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  const OWNER_EMAIL = "marshall@marshallwilkinson.com";
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: OWNER_EMAIL,
+      subject: `Bootcamp Topic Submitted: ${params.memberName} — ${params.topic.slice(0, 60)}`,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr><td align="center" style="padding:40px 20px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+        <tr><td style="height:20px;"></td></tr>
+        <tr><td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+              <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Bootcamp Topic Submitted</span>
+            </td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="height:18px;"></td></tr>
+        <tr><td align="center" style="color:#EDE6DB;font-size:22px;font-weight:700;line-height:1.3;">
+          ${params.memberName} submitted a topic
+        </td></tr>
+        <tr><td style="height:6px;"></td></tr>
+        <tr><td align="center" style="color:rgba(237,230,219,0.5);font-size:13px;">
+          For the ${params.bootcampDate} Monthly Bootcamp
+        </td></tr>
+        <tr><td style="height:24px;"></td></tr>
+        <tr><td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+          <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px 0;font-weight:600;">Topic</p>
+          <p style="color:#EDE6DB;font-size:16px;font-weight:600;margin:0 0 16px 0;line-height:1.5;">${params.topic}</p>
+          ${params.reason ? `
+          <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px 0;font-weight:600;">Why This Matters</p>
+          <p style="color:rgba(237,230,219,0.7);font-size:14px;margin:0;line-height:1.6;">${params.reason}</p>
+          ` : ""}
+        </td></tr>
+        <tr><td style="height:24px;"></td></tr>
+        <tr><td align="center">
+          <a href="https://alpcontractorcircle.com/portal/admin" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;">
+            Review in Admin Panel →
+          </a>
+        </td></tr>
+        <tr><td style="height:32px;"></td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+      `.trim(),
+      text: `New Bootcamp Topic Submitted\n\nFrom: ${params.memberName}\nBootcamp: ${params.bootcampDate}\n\nTopic: ${params.topic}\n${params.reason ? `\nWhy: ${params.reason}` : ""}\n\nReview at: https://alpcontractorcircle.com/portal/admin`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send bootcamp topic notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Bootcamp topic notification sent — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending bootcamp topic notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

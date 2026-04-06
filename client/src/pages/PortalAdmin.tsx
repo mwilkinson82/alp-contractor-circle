@@ -20,6 +20,9 @@ import {
   MessageCircle,
   Star,
   Archive,
+  Flame,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +79,116 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   answered: { label: "Answered", color: "text-ember", bg: "bg-ember/10" },
   archived: { label: "Archived", color: "text-cream-muted/50", bg: "bg-white/5" },
 };
+
+const BOOTCAMP_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  submitted: { label: "Submitted", color: "text-cream-muted", bg: "bg-white/5" },
+  selected: { label: "Selected", color: "text-green-400", bg: "bg-green-500/10" },
+  not_selected: { label: "Not Selected", color: "text-cream-muted/50", bg: "bg-white/5" },
+};
+
+function BootcampTopicsReviewPanel() {
+  const { data, isLoading, refetch } = trpc.member.adminBootcampTopics.useQuery(undefined, { retry: false });
+  const updateStatus = trpc.member.updateBootcampTopicStatus.useMutation({ onSuccess: () => refetch() });
+  const [filter, setFilter] = useState<string>("all");
+
+  const topics = data?.topics || [];
+  const filtered = filter === "all" ? topics : topics.filter((t: any) => t.status === filter);
+  const pendingCount = topics.filter((t: any) => t.status === "submitted").length;
+
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="p-6 border-b border-white/5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+              <Flame className="w-5 h-5 text-ember" />
+            </div>
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-cream">Bootcamp Topics</h2>
+              <p className="text-cream-muted text-xs mt-0.5">
+                {pendingCount > 0 ? `${pendingCount} new topic${pendingCount > 1 ? "s" : ""} submitted` : "No pending topics"}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {["all", "submitted", "selected", "not_selected"].map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  filter === s ? "bg-ember text-obsidian" : "bg-white/5 text-cream-muted hover:bg-white/10"
+                }`}
+              >
+                {s === "all" ? `All (${topics.length})` : BOOTCAMP_STATUS_CONFIG[s]?.label || s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="divide-y divide-white/5">
+        {isLoading ? (
+          <div className="p-8 text-center text-cream-muted text-sm">Loading topics...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-cream-muted text-sm">No bootcamp topics submitted yet.</div>
+        ) : (
+          filtered.map((t: any) => {
+            const cfg = BOOTCAMP_STATUS_CONFIG[t.status] || BOOTCAMP_STATUS_CONFIG.pending;
+            return (
+              <div key={t.id} className="p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-semibold text-ember">
+                        {t.memberName || t.memberUsername || `Member #${t.memberId}`}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                      <span className="text-xs text-cream-muted/50">
+                        {t.bootcampDate} &middot; {new Date(t.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-cream text-sm leading-relaxed font-medium">{t.topic}</p>
+                    {t.reason && (
+                      <p className="text-cream-muted text-xs mt-1.5 italic">Why: {t.reason}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {t.status === "submitted" && (
+                      <>
+                        <button
+                          onClick={() => updateStatus.mutate({ topicId: t.id, status: "selected" })}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors"
+                          title="Select for bootcamp"
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5" /> Select
+                        </button>
+                        <button
+                          onClick={() => updateStatus.mutate({ topicId: t.id, status: "not_selected" })}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 text-cream-muted text-xs font-medium hover:bg-white/10 transition-colors"
+                          title="Not selected"
+                        >
+                          <ThumbsDown className="w-3.5 h-3.5" /> Pass
+                        </button>
+                      </>
+                    )}
+                    {t.status !== "submitted" && (
+                      <button
+                        onClick={() => updateStatus.mutate({ topicId: t.id, status: "submitted" })}
+                        className="px-2.5 py-1.5 rounded-lg bg-white/5 text-cream-muted text-xs font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
 
 function QuestionsReviewPanel() {
   const { data, isLoading, refetch } = trpc.member.adminQuestions.useQuery(undefined, { retry: false });
@@ -302,6 +415,9 @@ export default function PortalAdmin() {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Questions Review Section */}
       <QuestionsReviewPanel />
+
+      {/* Bootcamp Topics Review Section */}
+      <BootcampTopicsReviewPanel />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

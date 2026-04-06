@@ -11,7 +11,7 @@ import { desc, eq } from "drizzle-orm";
 import { replays, members, callQuestions, bootcampTopics } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
-import { sendQuestionNotification } from "./email";
+import { sendQuestionNotification, sendBootcampTopicNotification } from "./email";
 import { emailSubscribers } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -636,6 +636,14 @@ export const memberRouter = router({
         reason: input.reason || null,
         bootcampDate: input.bootcampDate,
       });
+
+      // Notify Marshall about the new topic submission
+      sendBootcampTopicNotification({
+        memberName: (member as any).discordDisplayName || member.discordUsername || "A member",
+        topic: input.topic,
+        reason: input.reason || undefined,
+        bootcampDate: input.bootcampDate,
+      }).catch(err => console.error("[Email] Failed to send bootcamp topic notification:", err));
 
       return { success: true };
     }),
