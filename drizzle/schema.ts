@@ -132,6 +132,33 @@ export type CallQuestion = typeof callQuestions.$inferSelect;
 export type InsertCallQuestion = typeof callQuestions.$inferInsert;
 
 /**
+ * Bootcamp topics table — members submit topic suggestions for the monthly bootcamp.
+ * Marshall reviews and selects one or more topics for the deep-dive session.
+ */
+export const bootcampTopics = mysqlTable("bootcamp_topics", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Member who submitted the topic */
+  memberId: int("memberId").notNull(),
+  /** The topic title/name */
+  topic: varchar("topic", { length: 512 }).notNull(),
+  /** Why this topic matters — optional context */
+  reason: text("reason"),
+  /** Which bootcamp date this was submitted for (ISO date string) */
+  bootcampDate: varchar("bootcampDate", { length: 32 }).notNull(),
+  /** Status of the topic */
+  status: mysqlEnum("status", [
+    "submitted",
+    "selected",
+    "not_selected",
+  ]).default("submitted").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BootcampTopic = typeof bootcampTopics.$inferSelect;
+export type InsertBootcampTopic = typeof bootcampTopics.$inferInsert;
+
+/**
  * Email subscribers table — captures emails from the homepage email capture form.
  * Used for marketing campaigns and pre-launch notifications.
  */

@@ -20,6 +20,8 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Flame,
+  Mic2,
 } from "lucide-react";
 import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
@@ -188,6 +190,176 @@ function QuestionModal({ onClose }: { onClose: () => void }) {
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Monthly Bootcamp Topic Submission ────────────────────────────────────────
+const NEXT_BOOTCAMP_DATE = "2025-04-26";
+const NEXT_BOOTCAMP_DISPLAY = "Saturday, April 26 at 5 PM ET";
+
+function BootcampTopicWidget() {
+  const [topic, setTopic] = useState("");
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: myTopicsData } = trpc.member.myBootcampTopics.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
+
+  const submitTopic = trpc.member.submitBootcampTopic.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setTopic("");
+      setReason("");
+      utils.member.myBootcampTopics.invalidate();
+      setTimeout(() => { setSubmitted(false); setShowForm(false); }, 4000);
+    },
+  });
+
+  const myTopicsForDate = myTopicsData?.topics?.filter(
+    (t: any) => t.bootcampDate === NEXT_BOOTCAMP_DATE
+  ) ?? [];
+
+  // Countdown
+  const bootcampDate = new Date("2025-04-26T21:00:00Z"); // 5 PM ET = 21:00 UTC
+  const now = new Date();
+  const daysUntil = Math.max(0, Math.ceil((bootcampDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border-2 border-ember/30 bg-gradient-to-br from-ember/[0.08] via-transparent to-ember/[0.04]">
+      {/* Accent glow */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-ember via-[#FF8C42] to-ember" />
+
+      <div className="p-5 sm:p-7">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-ember/15 flex items-center justify-center shrink-0">
+              <Flame className="w-6 h-6 text-ember" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-ember/15 border border-ember/25 text-[10px] font-bold text-ember uppercase tracking-widest">
+                  Monthly Bootcamp
+                </span>
+                {daysUntil > 0 && (
+                  <span className="text-xs text-cream-muted">{daysUntil} day{daysUntil !== 1 ? 's' : ''} away</span>
+                )}
+              </div>
+              <h3 className="font-heading text-lg font-bold text-cream">
+                Submit Your Topic for the Next Bootcamp
+              </h3>
+              <p className="text-cream-muted text-sm mt-0.5">
+                {NEXT_BOOTCAMP_DISPLAY} — Marshall picks the topics, you bring the questions.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Info bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+          <div className="flex items-center gap-2">
+            <Mic2 className="w-4 h-4 text-ember/70" />
+            <span className="text-xs text-cream-muted">90+ min deep dive</span>
+          </div>
+          <div className="w-px h-3 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-ember/70" />
+            <span className="text-xs text-cream-muted">Audience participation expected</span>
+          </div>
+          <div className="w-px h-3 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-ember/70" />
+            <span className="text-xs text-cream-muted">Come prepared: water, coffee, pen & paper</span>
+          </div>
+        </div>
+
+        {/* Submit button or form */}
+        {!showForm && !submitted ? (
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-all duration-300 shadow-lg shadow-ember/20 hover:shadow-ember/40"
+          >
+            <Send className="w-4 h-4" />
+            Submit a Topic for Consideration
+          </button>
+        ) : submitted ? (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
+            <span className="text-sm font-medium text-green-400">Topic submitted! Marshall will review all submissions and select topics for the bootcamp.</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                Your Topic <span className="text-ember">*</span>
+              </label>
+              <input
+                type="text"
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                placeholder="e.g. How to price change orders profitably, Subcontractor management systems..."
+                maxLength={512}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                Why This Topic? <span className="text-cream-muted/40">(optional)</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder="What are you struggling with? What would make this valuable for you?"
+                rows={2}
+                maxLength={2000}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => submitTopic.mutate({ topic, reason: reason || undefined, bootcampDate: NEXT_BOOTCAMP_DATE })}
+                disabled={topic.trim().length < 5 || submitTopic.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                {submitTopic.isPending ? "Submitting..." : "Submit Topic"}
+              </button>
+              <button
+                onClick={() => { setShowForm(false); setTopic(""); setReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-cream-muted text-sm hover:bg-white/5 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Previously submitted topics */}
+        {myTopicsForDate.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-white/5">
+            <p className="text-xs font-medium text-cream-muted uppercase tracking-wider mb-3">Your Submitted Topics</p>
+            <div className="space-y-2">
+              {myTopicsForDate.map((t: any) => (
+                <div key={t.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.03]">
+                  <p className="text-cream text-xs leading-relaxed flex-1">{t.topic}</p>
+                  <span className={`text-xs shrink-0 ${
+                    t.status === "selected" ? "text-green-400" :
+                    t.status === "not_selected" ? "text-cream-muted/50" :
+                    "text-cream-muted"
+                  }`}>
+                    {t.status === "selected" ? "Selected \u2713" :
+                     t.status === "not_selected" ? "Not Selected" :
+                     "Submitted"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -442,6 +614,9 @@ export default function PortalDashboard() {
 
       {/* Calendar Integration — Available to all members */}
       <CalendarIntegration />
+
+      {/* Monthly Bootcamp — Topic Submission */}
+      {isSubscribed && <BootcampTopicWidget />}
 
       {/* Gated content for subscribers only */}
       {isSubscribed ? (

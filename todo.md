@@ -886,3 +886,18 @@
 - [x] Send ALP/EOS Scorecard announcement email to Jacob Huffman (jhuffman@huffmancc.com)
 - [x] Add last sign-in date column to admin member section
 - [x] Add member since date to portal dashboard for members
+
+## Jake Huffman Discord + Email Dedup (April 6)
+- [ ] Diagnose why Jake is not in Discord server after portal login
+- [ ] Fix Discord guild add for Jake
+- [ ] Build duplicate email prevention — check if member was in recent blast before individual send
+
+## Monthly Bootcamp Topic Submission (April 6)
+- [x] Create bootcamp_topics database table
+- [x] Build tRPC procedures for submitting/viewing bootcamp topics
+- [x] Build bootcamp topic submission UI on portal dashboard (highlighted, looks great)
+- [ ] Admin view: see all submitted topics
+- [x] Build announcement email for April 26 bootcamp
+- [x] Send preview to Marshall for approval
+- [ ] Send to all active members after approval
+- [ ] Build duplicate email prevention into send scripts

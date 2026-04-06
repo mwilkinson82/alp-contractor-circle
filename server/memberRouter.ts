@@ -8,7 +8,7 @@ import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord
 import { stripe } from "./stripe";
 import { drizzle } from "drizzle-orm/mysql2";
 import { desc, eq } from "drizzle-orm";
-import { replays, members, callQuestions } from "../drizzle/schema";
+import { replays, members, callQuestions, bootcampTopics } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 import { sendQuestionNotification } from "./email";
@@ -606,4 +606,127 @@ export const memberRouter = router({
       return { payments: [] };
     }
   }),
+
+  // ─── Bootcamp Topics ──────────────────────────────────────────────────────
+
+  /**
+   * Submit a bootcamp topic suggestion.
+   */
+  submitBootcampTopic: publicProcedure
+    .input(z.object({
+      topic: z.string().min(5).max(512),
+      reason: z.string().max(2000).optional(),
+      bootcampDate: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.subscriptionStatus !== "active" && member.subscriptionStatus !== "trialing") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Active subscription required" });
+      }
+
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      await db.insert(bootcampTopics).values({
+        memberId: member.id,
+        topic: input.topic,
+        reason: input.reason || null,
+        bootcampDate: input.bootcampDate,
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * Get the current member's submitted bootcamp topics.
+   */
+  myBootcampTopics: publicProcedure.query(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+    }
+
+    const db = getDb();
+    if (!db) return { topics: [] };
+
+    const rows = await db
+      .select()
+      .from(bootcampTopics)
+      .where(eq(bootcampTopics.memberId, member.id))
+      .orderBy(desc(bootcampTopics.createdAt));
+
+    return { topics: rows };
+  }),
+
+  /**
+   * Admin: Get all bootcamp topic submissions for a given date.
+   */
+  adminBootcampTopics: publicProcedure
+    .input(z.object({ bootcampDate: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      const db = getDb();
+      if (!db) return { topics: [] };
+
+      let query = db
+        .select({
+          id: bootcampTopics.id,
+          memberId: bootcampTopics.memberId,
+          topic: bootcampTopics.topic,
+          reason: bootcampTopics.reason,
+          bootcampDate: bootcampTopics.bootcampDate,
+          status: bootcampTopics.status,
+          createdAt: bootcampTopics.createdAt,
+          memberName: members.discordDisplayName,
+          memberUsername: members.discordUsername,
+        })
+        .from(bootcampTopics)
+        .leftJoin(members, eq(bootcampTopics.memberId, members.id))
+        .orderBy(desc(bootcampTopics.createdAt));
+
+      if (input?.bootcampDate) {
+        query = query.where(eq(bootcampTopics.bootcampDate, input.bootcampDate)) as typeof query;
+      }
+
+      const rows = await query;
+      return { topics: rows };
+    }),
+
+  /**
+   * Admin: Update a bootcamp topic status (select/deselect).
+   */
+  updateBootcampTopicStatus: publicProcedure
+    .input(z.object({
+      topicId: z.number(),
+      status: z.enum(["submitted", "selected", "not_selected"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      await db
+        .update(bootcampTopics)
+        .set({ status: input.status })
+        .where(eq(bootcampTopics.id, input.topicId));
+
+      return { success: true };
+    }),
 });

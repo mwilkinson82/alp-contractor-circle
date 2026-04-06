@@ -127,6 +127,13 @@
       "when": 1774883991653,
       "tag": "0017_supreme_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1775491372487,
+      "tag": "0018_tearful_redwing",
+      "breakpoints": true
     }
   ]
 }

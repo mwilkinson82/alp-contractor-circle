@@ -11,7 +11,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
 const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const DISCORD_INVITE = "https://discord.gg/jnwDPTY6D3";
+const DISCORD_INVITE = "https://discord.gg/2pagscG2Np"; // Points to #introduce-yourself channel
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
 // ─── Add-to-Calendar links for recurring Sunday 5 PM ET bi-weekly meeting ────────
@@ -2387,6 +2387,415 @@ export async function sendEosScorecardAnnouncementEmail(params: {
     return { success: true, id: data?.id };
   } catch (err: any) {
     console.error("[Email] Unexpected error sending EOS scorecard announcement:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
+
+// ─── Discord Invite Email ────────────────────────────────────────────────────
+function buildDiscordInviteHtml(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;">
+
+  <!-- Gradient Bar -->
+  <tr><td style="height:4px;background:linear-gradient(90deg,#D2691E,#FF8C42);border-radius:4px 4px 0 0;"></td></tr>
+
+  <!-- Logo -->
+  <tr><td align="center" style="padding:28px 0 12px;">
+    <img src="${LOGO_URL}" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+  </td></tr>
+
+  <!-- Badge -->
+  <tr><td align="center" style="padding:0 0 16px;">
+    <span style="display:inline-block;background:rgba(210,105,30,0.12);border:1px solid rgba(210,105,30,0.25);border-radius:20px;padding:6px 16px;color:#FF8C42;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">
+      CONTRACTOR CIRCLE — ACTION NEEDED
+    </span>
+  </td></tr>
+
+  <!-- Headline -->
+  <tr><td align="center" style="padding:0 20px 8px;">
+    <h1 style="margin:0;font-size:26px;font-weight:800;color:#F5F0E8;line-height:1.25;">
+      ${firstName}, join us in Discord
+    </h1>
+  </td></tr>
+
+  <!-- Subtitle -->
+  <tr><td align="center" style="padding:0 30px 28px;">
+    <p style="margin:0;font-size:15px;color:#A8A08E;line-height:1.6;">
+      Your Contractor Circle portal account is active — now connect with the community in our private Discord server.
+    </p>
+  </td></tr>
+
+  <!-- Content Card -->
+  <tr><td style="padding:0 10px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+    <tr><td style="padding:28px 24px;">
+
+      <p style="margin:0 0 16px;font-size:14px;color:#D4CFC0;line-height:1.7;">
+        Discord is where the real conversations happen between calls. It's where members share wins, ask questions, and get direct access to Marshall and the rest of the Contractor Circle community.
+      </p>
+
+      <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#FF8C42;text-transform:uppercase;letter-spacing:0.8px;">
+        What you get inside:
+      </p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+        <tr><td style="padding:6px 0;font-size:14px;color:#D4CFC0;line-height:1.5;">&#x2714;&#xFE0F; Private member-only channels</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#D4CFC0;line-height:1.5;">&#x2714;&#xFE0F; Direct access to Marshall between calls</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#D4CFC0;line-height:1.5;">&#x2714;&#xFE0F; Real-time Q&amp;A with fellow contractors</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#D4CFC0;line-height:1.5;">&#x2714;&#xFE0F; Call reminders and community updates</td></tr>
+      </table>
+
+      <!-- CTA Button -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding:8px 0 4px;">
+        <a href="${DISCORD_INVITE}" target="_blank" style="display:inline-block;background:#5865F2;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;">
+          Join the Discord Server &rarr;
+        </a>
+      </td></tr>
+      </table>
+
+    </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Footer note -->
+  <tr><td align="center" style="padding:24px 30px 8px;">
+    <p style="margin:0;font-size:12px;color:#6B6558;line-height:1.6;">
+      This invite is exclusive to Contractor Circle members. If you have any trouble joining, reply to this email and we'll get you sorted.
+    </p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td align="center" style="padding:20px 0 0;">
+    <p style="margin:0;font-size:11px;color:#4A4538;">
+      ALP | The Contractor Circle
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function buildDiscordInviteText(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  return `${firstName}, join us in Discord
+
+Your Contractor Circle portal account is active — now connect with the community in our private Discord server.
+
+Discord is where the real conversations happen between calls. Members share wins, ask questions, and get direct access to Marshall and the rest of the Contractor Circle community.
+
+What you get inside:
+- Private member-only channels
+- Direct access to Marshall between calls
+- Real-time Q&A with fellow contractors
+- Call reminders and community updates
+
+Join the Discord Server: ${DISCORD_INVITE}
+
+This invite is exclusive to Contractor Circle members. If you have any trouble joining, reply to this email and we'll get you sorted.
+
+ALP | The Contractor Circle`;
+}
+
+export async function sendDiscordInviteEmail(params: {
+  to: string;
+  name: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping Discord invite email");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Join the Contractor Circle Discord — Your Invite Link",
+      html: buildDiscordInviteHtml({ name: params.name }),
+      text: buildDiscordInviteText({ name: params.name }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send Discord invite email:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Discord invite email sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending Discord invite email:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
+
+// ─── Monthly Bootcamp Announcement Email ─────────────────────────────────────
+function buildBootcampAnnouncementHtml(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monthly Bootcamp — Submit Your Topic</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Gradient Bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:20px;"></td></tr>
+
+          <!-- CC Logo -->
+          <tr>
+            <td align="center">
+              <img src="${LOGO_URL}" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+
+          <!-- Badge -->
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Contractor Circle — Monthly Bootcamp</span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td style="height:18px;"></td></tr>
+
+          <!-- Headline -->
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:26px;font-weight:700;line-height:1.3;padding:0 10px;">
+              ${firstName}, we want your input.
+            </td>
+          </tr>
+          <tr><td style="height:14px;"></td></tr>
+
+          <!-- Subtitle -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.6;padding:0 16px;">
+              The next <strong style="color:#EDE6DB;">Contractor Circle Monthly Bootcamp</strong> is coming up. We want to hear from you — log into the portal and submit the topic you want us to go deep on.
+            </td>
+          </tr>
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- Event Details Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td width="48" valign="top">
+                  <div style="width:40px;height:40px;background-color:rgba(212,145,92,0.15);border-radius:10px;text-align:center;line-height:40px;font-size:20px;">🔥</div>
+                </td>
+                <td style="padding-left:16px;">
+                  <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Monthly Bootcamp</p>
+                  <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 12px 0;">Saturday, April 26 at 5 PM Eastern</p>
+                  <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0;">
+                    Marshall will choose one or multiple topics submitted by members for a deep dive together as a community.
+                  </p>
+                </td>
+              </tr></table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                <tr><td style="color:rgba(237,230,219,0.7);font-size:14px;line-height:2.2;padding:0 8px 0 64px;">
+                  ✓ 90+ minutes — this will be a deep dive, not a surface skim<br/>
+                  ✓ Audience participation expected — come ready to engage<br/>
+                  ✓ Be prepared: water, coffee, pen and paper<br/>
+                  ✓ Your topic could be the one we go deep on
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- How It Works -->
+          <tr>
+            <td style="background-color:rgba(212,145,92,0.06);border:1px solid rgba(212,145,92,0.15);border-radius:16px;padding:24px 28px;">
+              <p style="color:#D4915C;font-size:13px;font-weight:700;margin:0 0 12px 0;text-transform:uppercase;letter-spacing:1px;">How It Works</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                    <strong style="color:#EDE6DB;">1.</strong> &nbsp;Log into the portal and submit your topic on the dashboard
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                    <strong style="color:#EDE6DB;">2.</strong> &nbsp;Tell us why this topic matters to your business right now
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                    <strong style="color:#EDE6DB;">3.</strong> &nbsp;Marshall reviews all submissions and selects the bootcamp agenda
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:rgba(237,230,219,0.7);font-size:14px;line-height:1.5;">
+                    <strong style="color:#EDE6DB;">4.</strong> &nbsp;Show up April 26 ready to work — this is where we get involved as a community
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center">
+              <a href="${PORTAL_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                Submit Your Topic Now →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:8px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.4);font-size:12px;">
+              Log in to the portal → Dashboard → Monthly Bootcamp
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Closing note -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;padding:0 20px;">
+              This is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines — submit your topic and let's get to work.
+            </td>
+          </tr>
+          <tr><td style="height:8px;"></td></tr>
+          <tr>
+            <td align="center" style="color:#D4915C;font-size:14px;font-weight:600;">
+              — Marshall
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Footer -->
+          <tr><td style="height:1px;background-color:rgba(255,255,255,0.06);"></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.3);font-size:12px;line-height:1.6;">
+              <p style="margin:0;">Altitude Logic Pressure</p>
+              <p style="margin:4px 0 0 0;">
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.5);text-decoration:none;">Instagram</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.5);text-decoration:none;">Website</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.5);text-decoration:none;">Member Portal</a>
+              </p>
+            </td>
+          </tr>
+          <tr><td style="height:40px;"></td></tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+function buildBootcampAnnouncementText(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  return `
+CONTRACTOR CIRCLE — MONTHLY BOOTCAMP
+
+${firstName}, we want your input.
+
+The next Contractor Circle Monthly Bootcamp is coming up. We want to hear from you — log into the portal and submit the topic you want us to go deep on.
+
+─────────────────────────────────────
+
+MONTHLY BOOTCAMP
+Saturday, April 26 at 5 PM Eastern
+
+Marshall will choose one or multiple topics submitted by members for a deep dive together as a community.
+
+✓ 90+ minutes — this will be a deep dive, not a surface skim
+✓ Audience participation expected — come ready to engage
+✓ Be prepared: water, coffee, pen and paper
+✓ Your topic could be the one we go deep on
+
+─────────────────────────────────────
+
+HOW IT WORKS
+
+1. Log into the portal and submit your topic on the dashboard
+2. Tell us why this topic matters to your business right now
+3. Marshall reviews all submissions and selects the bootcamp agenda
+4. Show up April 26 ready to work — this is where we get involved as a community
+
+→ Submit Your Topic: https://alpcontractorcircle.com/portal
+  Log in to the portal → Dashboard → Monthly Bootcamp
+
+─────────────────────────────────────
+
+This is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines — submit your topic and let's get to work.
+
+— Marshall
+
+─────────────────────────────────────
+Altitude Logic Pressure
+Instagram: https://instagram.com/realmarshallwilkinson
+Website: https://alpcontractorschool.com
+Portal: https://alpcontractorcircle.com/portal
+  `.trim();
+}
+
+export async function sendBootcampAnnouncementEmail(params: {
+  to: string;
+  name: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping bootcamp announcement");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Contractor Circle Monthly Bootcamp — Submit Your Topic (April 26)",
+      html: buildBootcampAnnouncementHtml({ name: params.name }),
+      text: buildBootcampAnnouncementText({ name: params.name }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send bootcamp announcement:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Bootcamp announcement sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending bootcamp announcement:", err);
     return { success: false, error: err.message || "Unknown error" };
   }
 }
