@@ -939,3 +939,6 @@
 - [x] FIX: Discord bot sending 3 welcome messages instead of 1 when someone joins (added 5-min dedup cache)
 - [x] Send Jake Nichter email explaining the manual fix (email typo on purchase, Discord login created duplicate)
 - [x] Fix member merge logic: added Strategy 0 — direct email match merges records automatically, cleans up duplicates
+- [x] Change drip email send time from 10 AM ET to 8 AM ET (code + DB updated)
+- [x] Update all existing nextSendAt timestamps in DB to 8 AM ET (12:00:00 UTC)
+- [x] Full audit: zero duplicates, zero mismatches, zero CC members in drip, all 160 correct

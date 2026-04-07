@@ -409,18 +409,24 @@ export function getNextSendDate(
   sequenceId: string,
   nextStep: number,
   fromDate: Date = new Date()
-): Date | null {
+): string | null {
   const sched = SCHEDULE[sequenceId];
   if (!sched || nextStep > getMaxStep(sequenceId)) return null; // sequence complete
 
   const daysGap = sched[nextStep] ?? 2;
   const next = new Date(fromDate);
-  next.setDate(next.getDate() + daysGap);
+  next.setUTCDate(next.getUTCDate() + daysGap);
 
-  // Set to 10 AM ET (14:00 UTC)
-  next.setUTCHours(14, 0, 0, 0);
-
-  return next;
+  // Return a raw MySQL DATETIME string in UTC.
+  // 12:00:00 UTC = 8:00 AM ET (Eastern Time).
+  // By returning a string (not a Date), we bypass mysql2's timezone conversion
+  // and ensure the exact value '12:00:00' is stored in MySQL.
+  // The engine query `nextSendAt <= NOW()` compares in MySQL where NOW() is UTC.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = next.getUTCFullYear();
+  const m = pad(next.getUTCMonth() + 1);
+  const d = pad(next.getUTCDate());
+  return `${y}-${m}-${d} 12:00:00`;
 }
 
 // ─── Send function ───────────────────────────────────────────────────────────

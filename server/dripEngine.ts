@@ -160,7 +160,7 @@ export async function processDripSends(options?: { dryRun?: boolean }): Promise<
           `UPDATE drip_enrollments SET currentStep = ?, nextSendAt = ? WHERE id = ?`,
           [nextStep, nextDate, enrollment.id]
         );
-        details.push(`SENT: ${enrollment.email} ${enrollment.sequenceId}#${nextStep} — next at ${nextDate?.toISOString()}`);
+        details.push(`SENT: ${enrollment.email} ${enrollment.sequenceId}#${nextStep} — next at ${nextDate}`);
       }
       sent++;
     } else {

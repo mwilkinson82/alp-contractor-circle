@@ -9,7 +9,7 @@
  * - Double-dippers (grabbed both lead magnets) get moved to double_dipper sequence
  * - Each person can only be in ONE active sequence at a time
  * - Day 0 (PDF delivery) is already sent by the lead capture code, so we enroll at step 0
- *   with nextSendAt set for the next day at 10 AM ET
+ *   with nextSendAt set for the next day at 8 AM ET
  */
 
 import { getNextSendDate } from "./dripEmails";
@@ -178,7 +178,7 @@ export async function autoEnrollLeadMagnet(params: {
       }
     }
 
-    console.log(`[DripAutoEnroll] ${email} enrolled in ${sequenceId}, next email at ${nextSendAt?.toISOString()}`);
+    console.log(`[DripAutoEnroll] ${email} enrolled in ${sequenceId}, next email at ${nextSendAt}`);
     return { enrolled: true, sequenceId };
 
   } catch (err: any) {
@@ -228,7 +228,7 @@ export async function autoEnrollHomepageSubscriber(params: {
       [email, "there", nextSendAt] // "there" as fallback firstName since homepage form only collects email
     );
 
-    console.log(`[DripAutoEnroll] ${email} enrolled in homepage_only, next email at ${nextSendAt?.toISOString()}`);
+    console.log(`[DripAutoEnroll] ${email} enrolled in homepage_only, next email at ${nextSendAt}`);
     return { enrolled: true };
 
   } catch (err: any) {
