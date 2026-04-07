@@ -193,7 +193,7 @@ Portal: https://alpcontractorcircle.com/portal`.trim();
 
 // Get all active CC members
 const [members] = await pool.query(
-  "SELECT DISTINCT name, email FROM members WHERE subscriptionStatus = 'active' AND email IS NOT NULL AND email != ''"
+  "SELECT DISTINCT discordDisplayName AS name, email FROM members WHERE subscriptionStatus = 'active' AND email IS NOT NULL AND email != ''"
 );
 
 console.log(`Found ${members.length} active CC members to notify`);

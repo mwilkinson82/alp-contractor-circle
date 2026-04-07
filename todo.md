@@ -949,4 +949,4 @@
 - [x] Change drip FROM address to marshall@notifications.marshallwilkinson.com
 - [x] Build unsubscribe system: HMAC token link, /api/drip/unsubscribe route, branded confirmation page, injected into all drip email footers
 - [x] Add Subcontractor Bid Submittal Form to template library (Estimating, GDrive force-copy, hardcoded in PortalTemplates.tsx)
-- [ ] Send announcement email to all active CC members about Subcontractor Bid Submittal Form
+- [x] Send announcement email to all active CC members about Subcontractor Bid Submittal Form (15 sent, 0 failed)
