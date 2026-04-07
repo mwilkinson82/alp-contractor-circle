@@ -506,6 +506,27 @@ const TEMPLATES: Template[] = [
       "Sample Scorecard Structure with owner, measurable, goal, and 6-week trailing data",
     ],
   },
+  {
+    id: "24",
+    title: "Subcontractor Bid Submittal Form",
+    description: "Standardized form for collecting subcontractor bids. Covers company info, bid pricing with material + labor breakdown, schedule of work, scope, exclusions, and authorization.",
+    longDescription: "Stop chasing subs for missing info. This standardized bid submittal form forces subcontractors to give you clean, comparable bids every time. Covers company information (license, insurance, bonding), bid pricing with material vs. labor breakdown, schedule of work with phase durations and start/end dates, detailed scope description with tasks and deliverables, exclusions and clarifications (what's NOT included), terms and conditions, warranty provisions, and authorization signatures. Make a copy, brand it with your company name, and send it out with your next bid package.",
+    category: "estimating",
+    fileType: "docx",
+    downloadUrl: "https://docs.google.com/document/d/1IWR5H9w7EvJ7kNpMC8i85IH8loUfvJ8xKgHq4tio2lI/copy",
+    googleDriveUrl: "https://docs.google.com/document/d/1IWR5H9w7EvJ7kNpMC8i85IH8loUfvJ8xKgHq4tio2lI/copy",
+    featured: true,
+    badge: "New",
+    pages: "2 pages",
+    highlights: [
+      "Subcontractor info — license number, insurance, bonding capacity",
+      "Bid pricing — material vs. labor breakdown for apples-to-apples comparison",
+      "Schedule of work — phase durations with start and end dates",
+      "Scope description — detailed tasks, deliverables, and specifications",
+      "Exclusions & clarifications — what's NOT included in the bid",
+      "Terms, warranty, and dual authorization signatures",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
