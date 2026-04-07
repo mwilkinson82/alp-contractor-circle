@@ -2,19 +2,20 @@
  * Drip Campaign Email Templates
  * 
  * 4 sequences × up to 5 emails each = 16 total emails
- * Plain personal email style — white background, Helvetica ~14pt, no marketing graphics.
- * Should look like a real email from Marshall's inbox.
+ * Elevated personal style — Georgia serif, 15px, subtle brand touches.
+ * Looks like a personal email from a high-end executive, not a marketing blast.
  */
 
 import { Resend } from "resend";
+import { generateUnsubscribeUrl } from "./unsubscribe";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
+const FROM_ADDRESS = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
 const CIRCLE_URL = "https://alpcontractorcircle.com";
 
-// ─── Plain email wrapper — looks like a normal Gmail/Outlook email ───────────
+// ─── Elevated personal email wrapper ────────────────────────────────────────
 
 function wrapEmail(bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -22,15 +23,36 @@ function wrapEmail(bodyHtml: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;">
+<body style="margin:0;padding:0;background-color:#f7f5f2;font-family:'Inter',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f5f2;">
     <tr>
-      <td style="padding:24px 20px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <td style="padding:32px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;margin:0 auto;">
+          <!-- Subtle brand accent line -->
           <tr>
-            <td style="color:#1a1a1a;font-size:14px;line-height:1.75;font-family:Helvetica,Arial,sans-serif;">
+            <td style="padding-bottom:24px;">
+              <div style="width:40px;height:3px;background:linear-gradient(90deg,#D4915C,#C9A96E);border-radius:2px;"></div>
+            </td>
+          </tr>
+          <!-- Email body -->
+          <tr>
+            <td style="background-color:#ffffff;border-radius:8px;padding:36px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#2d2d2d;font-size:18px;line-height:1.8;font-family:Georgia,'Times New Roman',serif;">
 ${bodyHtml}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top:20px;text-align:center;">
+              <span style="font-family:'Inter',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1.5px;color:#999;text-transform:uppercase;">ALP</span>
+              {{UNSUB_PLACEHOLDER}}
             </td>
           </tr>
         </table>
@@ -41,21 +63,26 @@ ${bodyHtml}
 </html>`;
 }
 
-/** Convert paragraphs into simple HTML with spacing — like hitting Enter twice in Gmail */
+/** Convert paragraphs into styled HTML with generous spacing */
 function p(text: string): string {
-  return `<p style="margin:0 0 16px 0;">${text}</p>`;
+  return `<p style="margin:0 0 18px 0;color:#2d2d2d;">${text}</p>`;
 }
 
 function sig(): string {
-  return `<p style="margin:16px 0 0 0;">Marshall</p>`;
+  return `<div style="margin:28px 0 0 0;padding-top:20px;border-top:1px solid #e8e4df;">
+    <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#2d2d2d;">Marshall</p>
+  </div>`;
 }
 
 function sigFull(): string {
-  return `<p style="margin:16px 0 0 0;">Marshall Wilkinson<br/>Founder &amp; CEO, ALP</p>`;
+  return `<div style="margin:28px 0 0 0;padding-top:20px;border-top:1px solid #e8e4df;">
+    <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#2d2d2d;">Marshall Wilkinson</p>
+    <p style="margin:4px 0 0 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#999;letter-spacing:0.5px;">Founder &amp; CEO, ALP</p>
+  </div>`;
 }
 
 function link(text: string, url: string): string {
-  return `<a href="${url}" style="color:#1a73e8;text-decoration:underline;">${text}</a>`;
+  return `<a href="${url}" style="color:#D4915C;text-decoration:none;border-bottom:1px solid rgba(212,145,92,0.3);">${text}</a>`;
 }
 
 // ─── Email Content Definitions ───────────────────────────────────────────────
@@ -451,8 +478,14 @@ export async function sendDripEmail(params: {
   }
 
   const subject = emailDef.subject(params.firstName);
-  const html = emailDef.buildHtml(params.firstName);
+  let html = emailDef.buildHtml(params.firstName);
   const text = emailDef.buildText(params.firstName);
+
+  // Inject unsubscribe link into the email footer
+  const unsubUrl = generateUnsubscribeUrl(params.to);
+  const fullUnsubUrl = `https://alpcontractorcircle.com${unsubUrl}`;
+  const unsubHtml = `<br><a href="${fullUnsubUrl}" style="font-family:'Inter',Helvetica,Arial,sans-serif;font-size:11px;color:#bbb;text-decoration:none;">Unsubscribe</a>`;
+  html = html.replace('{{UNSUB_PLACEHOLDER}}', unsubHtml);
 
   try {
     const { data, error } = await resend.emails.send({

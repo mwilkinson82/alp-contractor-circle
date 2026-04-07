@@ -15,6 +15,7 @@ import PortalAdmin from "./pages/PortalAdmin";
 import PortalSubscribers from "./pages/PortalSubscribers";
 import AdminMembers from "./pages/AdminMembers";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import DripDashboard from "./pages/DripDashboard";
 import ScheduleList from "./pages/ScheduleList";
 import Scheduler from "./pages/Scheduler";
 import Q2LeadMagnet from "./pages/Q2LeadMagnet";
@@ -73,6 +74,11 @@ function Router() {
       <Route path="/portal/analytics">
         <MemberPortalLayout>
           <AdminAnalytics />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/portal/drip">
+        <MemberPortalLayout>
+          <DripDashboard />
         </MemberPortalLayout>
       </Route>
 

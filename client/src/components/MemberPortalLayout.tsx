@@ -19,6 +19,7 @@ import {
   Users,
   BarChart3,
   CalendarRange,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -33,6 +34,7 @@ const menuItems = [
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
   { icon: Users, label: "Members", path: "/portal/members", adminOnly: true },
   { icon: BarChart3, label: "Analytics", path: "/portal/analytics", adminOnly: true },
+  { icon: Mail, label: "Drip Campaigns", path: "/portal/drip", adminOnly: true },
 ];
 
 function MemberPortalSkeleton() {

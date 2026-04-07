@@ -928,13 +928,13 @@
 - [x] Build all 16 email templates across 4 sequences (plain personal style, Helvetica 14pt)
 - [x] Build drip engine: 15-min cron, duplicate guard, step advancement, scheduling
 - [x] Sync database with Claude Code CSV send history (204 sent records matched)
-- [ ] Auto-enroll new lead magnet leads into correct drip sequence on signup
-- [ ] Auto-enroll homepage subscribers into homepage_only drip sequence
-- [ ] Auto-detect double-dippers and move them to double_dipper sequence
-- [ ] Check if lead is already a CC member before enrolling in drip
-- [ ] Add unique constraint to prevent duplicate drip enrollments
-- [ ] Build admin UI to monitor drip campaigns
-- [ ] Test end-to-end with preview to Marshall
+- [x] Auto-enroll new lead magnet leads into correct drip sequence on signup
+- [x] Auto-enroll homepage subscribers into homepage_only drip sequence
+- [x] Auto-detect double-dippers and move them to double_dipper sequence
+- [x] Check if lead is already a CC member before enrolling in drip
+- [x] Add unique constraint to prevent duplicate drip enrollments
+- [x] Build drip campaign admin dashboard in portal (stats, sequence breakdown, step distribution, recent sends, enrollments table, pause/resume, manual trigger)
+- [x] Test end-to-end with preview to Marshall — approved 18px Georgia
 - [ ] Deploy live
 - [x] FIX: Discord bot sending 3 welcome messages instead of 1 when someone joins (added 5-min dedup cache)
 - [x] Send Jake Nichter email explaining the manual fix (email typo on purchase, Discord login created duplicate)
@@ -942,3 +942,9 @@
 - [x] Change drip email send time from 10 AM ET to 8 AM ET (code + DB updated)
 - [x] Update all existing nextSendAt timestamps in DB to 8 AM ET (12:00:00 UTC)
 - [x] Full audit: zero duplicates, zero mismatches, zero CC members in drip, all 160 correct
+- [x] Jazz up drip email aesthetic: Georgia serif, warm off-white bg, ember accent line, elevated signature
+- [x] Send Marshall preview emails from each sequence for approval — approved
+- [x] Build drip campaign admin dashboard in portal (route /portal/drip, sidebar nav added)
+- [x] Bump drip email font size to 18px (approved by Marshall)
+- [x] Change drip FROM address to marshall@notifications.marshallwilkinson.com
+- [x] Build unsubscribe system: HMAC token link, /api/drip/unsubscribe route, branded confirmation page, injected into all drip email footers

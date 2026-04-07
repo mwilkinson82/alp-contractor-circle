@@ -8,6 +8,7 @@ import { registerDiscordOAuthRoutes } from "../discord";
 import { startDiscordBot } from "../discordBot";
 import { registerStripeWebhook } from "../stripeWebhook";
 import { startDripEngine } from "../dripEngine";
+import { registerUnsubscribeRoutes } from "../unsubscribe";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -73,6 +74,8 @@ async function startServer() {
   // OAuth routes
   registerOAuthRoutes(app);
   registerDiscordOAuthRoutes(app);
+  // Drip campaign unsubscribe
+  registerUnsubscribeRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

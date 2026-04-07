@@ -270,36 +270,144 @@ export const appRouter = router({
 
   // ─── Drip Campaign Admin ─────────────────────────────────────────────────
   drip: router({
-    /** Get current enrollment stats */
+    /** Get dashboard overview stats */
     status: publicProcedure.query(async () => {
       const mysql = await import("mysql2/promise");
       const conn = await mysql.createConnection(process.env.DATABASE_URL!);
       try {
-        const [enrollments] = await conn.execute(
-          `SELECT sequenceId, status, currentStep, COUNT(*) as cnt
+        // Summary by sequence
+        const [bySequence] = await conn.execute(
+          `SELECT sequenceId, status, COUNT(*) as cnt
            FROM drip_enrollments
-           GROUP BY sequenceId, status, currentStep
-           ORDER BY sequenceId, status, currentStep`
+           GROUP BY sequenceId, status
+           ORDER BY sequenceId, status`
         ) as [any[], any];
 
+        // Step distribution for active enrollments
+        const [stepDistribution] = await conn.execute(
+          `SELECT sequenceId, currentStep, COUNT(*) as cnt
+           FROM drip_enrollments
+           WHERE status = 'active'
+           GROUP BY sequenceId, currentStep
+           ORDER BY sequenceId, currentStep`
+        ) as [any[], any];
+
+        // Pending right now
         const [pending] = await conn.execute(
           `SELECT COUNT(*) as cnt FROM drip_enrollments
            WHERE status = 'active' AND nextSendAt IS NOT NULL AND nextSendAt <= NOW()`
         ) as [any[], any];
 
+        // Total emails sent
         const [totalSent] = await conn.execute(
           `SELECT COUNT(*) as cnt FROM drip_sent_emails WHERE status = 'sent'`
         ) as [any[], any];
 
+        // Recent sends (last 20)
+        const [recentSends] = await conn.execute(
+          `SELECT ds.id, de.email, de.firstName, de.sequenceId, ds.stepNumber, ds.resendId, ds.sentAt
+           FROM drip_sent_emails ds
+           JOIN drip_enrollments de ON ds.enrollmentId = de.id
+           WHERE ds.status = 'sent'
+           ORDER BY ds.sentAt DESC
+           LIMIT 20`
+        ) as [any[], any];
+
+        // Unsubscribed count
+        const [unsubscribed] = await conn.execute(
+          `SELECT COUNT(*) as cnt FROM drip_enrollments WHERE status = 'unsubscribed'`
+        ) as [any[], any];
+
+        // Completed count
+        const [completed] = await conn.execute(
+          `SELECT COUNT(*) as cnt FROM drip_enrollments WHERE status = 'completed'`
+        ) as [any[], any];
+
+        // Converted (became CC members)
+        const [converted] = await conn.execute(
+          `SELECT COUNT(*) as cnt FROM drip_enrollments WHERE status = 'converted'`
+        ) as [any[], any];
+
         return {
-          enrollments,
+          bySequence,
+          stepDistribution,
           pendingNow: pending[0]?.cnt ?? 0,
           totalEmailsSent: totalSent[0]?.cnt ?? 0,
+          unsubscribedCount: unsubscribed[0]?.cnt ?? 0,
+          completedCount: completed[0]?.cnt ?? 0,
+          convertedCount: converted[0]?.cnt ?? 0,
+          recentSends,
         };
       } finally {
         await conn.end();
       }
     }),
+
+    /** Get all enrollments with details for the table view */
+    enrollments: publicProcedure
+      .input(z.object({
+        sequenceId: z.string().optional(),
+        status: z.string().optional(),
+        limit: z.number().default(50),
+        offset: z.number().default(0),
+      }))
+      .query(async ({ input }) => {
+        const mysql = await import("mysql2/promise");
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          let where = "1=1";
+          const params: any[] = [];
+          if (input.sequenceId) { where += " AND sequenceId = ?"; params.push(input.sequenceId); }
+          if (input.status) { where += " AND status = ?"; params.push(input.status); }
+
+          const [rows] = await conn.execute(
+            `SELECT id, email, firstName, sequenceId, currentStep, status, nextSendAt, enrolledAt, convertedAt
+             FROM drip_enrollments
+             WHERE ${where}
+             ORDER BY enrolledAt DESC
+             LIMIT ? OFFSET ?`,
+            [...params, input.limit, input.offset]
+          ) as [any[], any];
+
+          const [countResult] = await conn.execute(
+            `SELECT COUNT(*) as total FROM drip_enrollments WHERE ${where}`,
+            params
+          ) as [any[], any];
+
+          return { rows, total: countResult[0]?.total ?? 0 };
+        } finally {
+          await conn.end();
+        }
+      }),
+
+    /** Pause or resume a specific enrollment */
+    togglePause: publicProcedure
+      .input(z.object({ enrollmentId: z.number(), action: z.enum(["pause", "resume"]) }))
+      .mutation(async ({ input }) => {
+        const mysql = await import("mysql2/promise");
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          if (input.action === "pause") {
+            await conn.execute(
+              `UPDATE drip_enrollments SET status = 'paused', nextSendAt = NULL WHERE id = ? AND status = 'active'`,
+              [input.enrollmentId]
+            );
+          } else {
+            // Resume: set back to active with next send tomorrow 8 AM ET
+            const tomorrow = new Date();
+            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const dateStr = `${tomorrow.getUTCFullYear()}-${pad(tomorrow.getUTCMonth() + 1)}-${pad(tomorrow.getUTCDate())} 12:00:00`;
+            await conn.execute(
+              `UPDATE drip_enrollments SET status = 'active', nextSendAt = ? WHERE id = ? AND status = 'paused'`,
+              [dateStr, input.enrollmentId]
+            );
+          }
+          return { success: true };
+        } finally {
+          await conn.end();
+        }
+      }),
 
     /** Manually trigger drip processing (dry run or real) */
     trigger: publicProcedure
