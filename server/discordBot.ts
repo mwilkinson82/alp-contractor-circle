@@ -7,6 +7,11 @@
  *
  * The bot runs inside the same Node.js process as the Express server.
  * It is started once at server startup via `startDiscordBot()`.
+ *
+ * DEDUPLICATION: Uses an in-memory cache to prevent duplicate welcome
+ * messages when the event fires multiple times (hot-reload, Discord
+ * gateway reconnects, etc.). Each member gets at most 1 welcome per
+ * 5-minute window.
  */
 import { Client, GatewayIntentBits, Events, type GuildMember } from "discord.js";
 
@@ -16,6 +21,31 @@ const GENERAL_CHAT_CHANNEL_ID = "1484648401483206739"; // #general-chat
 const CONTRACTOR_CIRCLE_ROLE_ID = "1484648318662344985"; // Contractor Circle role
 
 let botStarted = false;
+let botClient: Client | null = null;
+
+/**
+ * Deduplication cache: maps memberId → timestamp of last welcome.
+ * Prevents duplicate welcome messages within a 5-minute window.
+ */
+const welcomeSentCache = new Map<string, number>();
+const DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+function wasRecentlyWelcomed(memberId: string): boolean {
+  const lastSent = welcomeSentCache.get(memberId);
+  if (!lastSent) return false;
+  return Date.now() - lastSent < DEDUP_WINDOW_MS;
+}
+
+function markWelcomed(memberId: string): void {
+  welcomeSentCache.set(memberId, Date.now());
+  // Clean up old entries to prevent memory leak
+  if (welcomeSentCache.size > 500) {
+    const cutoff = Date.now() - DEDUP_WINDOW_MS;
+    welcomeSentCache.forEach((ts, id) => {
+      if (ts < cutoff) welcomeSentCache.delete(id);
+    });
+  }
+}
 
 export function startDiscordBot() {
   if (botStarted) return;
@@ -26,12 +56,22 @@ export function startDiscordBot() {
 
   botStarted = true;
 
+  // Destroy any previous client instance (safety for hot-reload)
+  if (botClient) {
+    try {
+      botClient.destroy();
+      console.log("[DiscordBot] Previous client destroyed.");
+    } catch (_) {}
+    botClient = null;
+  }
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
     ],
   });
+  botClient = client;
 
   client.once(Events.ClientReady, (readyClient) => {
     console.log(`[DiscordBot] Logged in as ${readyClient.user.tag} — listening for new members.`);
@@ -49,6 +89,13 @@ export function startDiscordBot() {
     const displayName = member.displayName || member.user.username;
     console.log(`[DiscordBot] New member joined: ${displayName} (${member.id})`);
 
+    // ─── DEDUP CHECK: Only send 1 welcome per member per 5 minutes ──────
+    if (wasRecentlyWelcomed(member.id)) {
+      console.log(`[DiscordBot] Skipping duplicate welcome for ${displayName} (${member.id}) — already welcomed recently`);
+      return;
+    }
+    markWelcomed(member.id);
+
     try {
       const channel = await member.guild.channels.fetch(GENERAL_CHAT_CHANNEL_ID);
       if (channel && channel.isTextBased()) {
@@ -62,8 +109,6 @@ export function startDiscordBot() {
     }
 
     // Attempt to assign the Contractor Circle role immediately.
-    // This works if the member's Discord ID is already linked to an active
-    // subscription in the database (e.g., they logged into the portal first).
     try {
       const role = member.guild.roles.cache.get(CONTRACTOR_CIRCLE_ROLE_ID)
         || await member.guild.roles.fetch(CONTRACTOR_CIRCLE_ROLE_ID);
@@ -80,5 +125,6 @@ export function startDiscordBot() {
   client.login(BOT_TOKEN).catch((err) => {
     console.error("[DiscordBot] Login failed:", err?.message);
     botStarted = false;
+    botClient = null;
   });
 }

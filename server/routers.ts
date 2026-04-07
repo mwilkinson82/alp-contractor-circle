@@ -6,6 +6,8 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
+import { processDripSends } from "./dripEngine";
+import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
 import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
@@ -217,6 +219,13 @@ export const appRouter = router({
           source: input.source,
         }).catch((err) => console.error("[Leads] Failed to send lead magnet notification:", err));
 
+        // Auto-enroll into drip sequence (fire-and-forget)
+        autoEnrollLeadMagnet({
+          email: input.email,
+          firstName: input.firstName,
+          source: input.source,
+        }).catch((err) => console.error("[Leads] Failed to auto-enroll in drip:", err));
+
         return {
           success: true,
           alreadyExists: result.alreadyExists,
@@ -245,11 +254,59 @@ export const appRouter = router({
           });
         }
         
+        // Auto-enroll new homepage subscribers into drip (fire-and-forget)
+        if (result.isNew) {
+          autoEnrollHomepageSubscriber({ email: input.email })
+            .catch((err) => console.error("[Email] Failed to auto-enroll homepage subscriber in drip:", err));
+        }
+
         return {
           success: result.success,
           isNew: result.isNew,
           error: result.error,
         };
+      }),
+  }),
+
+  // ─── Drip Campaign Admin ─────────────────────────────────────────────────
+  drip: router({
+    /** Get current enrollment stats */
+    status: publicProcedure.query(async () => {
+      const mysql = await import("mysql2/promise");
+      const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+      try {
+        const [enrollments] = await conn.execute(
+          `SELECT sequenceId, status, currentStep, COUNT(*) as cnt
+           FROM drip_enrollments
+           GROUP BY sequenceId, status, currentStep
+           ORDER BY sequenceId, status, currentStep`
+        ) as [any[], any];
+
+        const [pending] = await conn.execute(
+          `SELECT COUNT(*) as cnt FROM drip_enrollments
+           WHERE status = 'active' AND nextSendAt IS NOT NULL AND nextSendAt <= NOW()`
+        ) as [any[], any];
+
+        const [totalSent] = await conn.execute(
+          `SELECT COUNT(*) as cnt FROM drip_sent_emails WHERE status = 'sent'`
+        ) as [any[], any];
+
+        return {
+          enrollments,
+          pendingNow: pending[0]?.cnt ?? 0,
+          totalEmailsSent: totalSent[0]?.cnt ?? 0,
+        };
+      } finally {
+        await conn.end();
+      }
+    }),
+
+    /** Manually trigger drip processing (dry run or real) */
+    trigger: publicProcedure
+      .input(z.object({ dryRun: z.boolean().default(true) }))
+      .mutation(async ({ input }) => {
+        const result = await processDripSends({ dryRun: input.dryRun });
+        return result;
       }),
   }),
 });

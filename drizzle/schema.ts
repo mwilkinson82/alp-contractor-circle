@@ -505,3 +505,73 @@ export const leads = mysqlTable("leads", {
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
+
+
+// ─── Drip Campaign System ──────────────────────────────────────────────────
+
+/**
+ * Drip enrollments — tracks which leads are enrolled in which drip sequence.
+ * A lead can only be in ONE active sequence at a time.
+ * Double-dippers get moved from single-dipper sequences to sequence 3.
+ */
+export const dripEnrollments = mysqlTable("drip_enrollments", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Email of the lead (denormalized for easy querying) */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** First name of the lead */
+  firstName: varchar("firstName", { length: 128 }).notNull(),
+  /** Which sequence they're enrolled in */
+  sequenceId: mysqlEnum("sequenceId", [
+    "estimating_single",
+    "q1q2_single",
+    "double_dipper",
+    "homepage_only",
+  ]).notNull(),
+  /** Current step in the sequence (1-based: 1 = first email, 2 = second, etc.) */
+  currentStep: int("currentStep").default(0).notNull(),
+  /** Status of the enrollment */
+  status: mysqlEnum("status", [
+    "active",
+    "completed",
+    "paused",
+    "unsubscribed",
+    "converted",
+  ]).default("active").notNull(),
+  /** When the enrollment started (used to calculate send dates) */
+  enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
+  /** When the next email should be sent */
+  nextSendAt: timestamp("nextSendAt"),
+  /** If they converted (became a CC member), when */
+  convertedAt: timestamp("convertedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DripEnrollment = typeof dripEnrollments.$inferSelect;
+export type InsertDripEnrollment = typeof dripEnrollments.$inferInsert;
+
+/**
+ * Drip sent emails — tracks every email sent to prevent duplicates.
+ * Also serves as an audit log for the drip campaign.
+ */
+export const dripSentEmails = mysqlTable("drip_sent_emails", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The enrollment this email belongs to */
+  enrollmentId: int("enrollmentId").notNull(),
+  /** Email address it was sent to */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** Which sequence */
+  sequenceId: varchar("sequenceId", { length: 64 }).notNull(),
+  /** Which step in the sequence (1-based) */
+  stepNumber: int("stepNumber").notNull(),
+  /** Resend email ID for tracking */
+  resendId: varchar("resendId", { length: 128 }),
+  /** Send status */
+  status: mysqlEnum("status", ["sent", "failed", "bounced"]).default("sent").notNull(),
+  /** Error message if failed */
+  errorMessage: text("errorMessage"),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+});
+
+export type DripSentEmail = typeof dripSentEmails.$inferSelect;
+export type InsertDripSentEmail = typeof dripSentEmails.$inferInsert;

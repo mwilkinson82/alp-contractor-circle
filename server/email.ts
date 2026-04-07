@@ -2941,7 +2941,7 @@ export async function sendTopicSelectedEmail(params: {
 
         <!-- CC Logo -->
         <tr><td align="center" style="padding:28px 0 8px 0;">
-          <img src="https://manus-storage.oss-cn-beijing.aliyuncs.com/webdev/alp-contractor-portal/cc-logo-email.png" alt="Contractor Circle" width="48" height="48" style="width:48px;height:48px;border-radius:12px;" />
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png" alt="ALP Contractor Circle" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
         </td></tr>
 
         <!-- Badge -->

@@ -5,6 +5,7 @@ import { notifyOwner } from "./_core/notification";
 import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 import { upsertSupabaseMember } from "./supabaseClient";
+import { markDripConverted } from "./dripAutoEnroll";
 
 /**
  * Register the Stripe webhook endpoint.
@@ -114,6 +115,14 @@ export function registerStripeWebhook(app: Express) {
               } catch (err) {
                 console.warn("[Stripe Webhook] Failed to upsert Supabase member record:", err);
               }
+            }
+
+            // ─── MARK DRIP ENROLLMENT AS CONVERTED ────────────────────────────────
+            // If this person was in a drip sequence, stop sending them drip emails
+            if (memberEmail) {
+              markDripConverted(memberEmail).catch((err) =>
+                console.warn("[Stripe Webhook] Failed to mark drip as converted:", err)
+              );
             }
 
             // ─── SEND WELCOME EMAILS (both fire sequentially) ────────────────────────────────

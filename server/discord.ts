@@ -289,6 +289,50 @@ export function registerDiscordOAuthRoutes(app: Express) {
       if (db) {
         const { eq, like, and } = await import("drizzle-orm");
 
+        // ── Strategy 0: Direct email match ──────────────────────────────────
+        // If the Discord user's email matches an existing member record's email,
+        // merge immediately. This handles manually-added members, placeholder
+        // records, or any case where the email is the same.
+        if (!merged && discordUser.email) {
+          const emailMatch = await db
+            .select()
+            .from(members)
+            .where(eq(members.email, discordUser.email));
+
+          // Find records that DON'T already have this Discord ID
+          const otherRecords = emailMatch.filter(m => m.discordId !== discordUser.id);
+
+          if (otherRecords.length > 0) {
+            // Take the one with the best subscription status (active > none)
+            const bestRecord = otherRecords.find(m => m.subscriptionStatus === 'active') || otherRecords[0];
+
+            // Update the existing record with the real Discord identity
+            await db
+              .update(members)
+              .set({
+                discordId: discordUser.id,
+                discordUsername: discordUser.username,
+                discordDisplayName: discordUser.global_name || discordUser.username,
+                discordAvatar: discordUser.avatar,
+                email: discordUser.email,
+                lastSignedIn: new Date(),
+              })
+              .where(eq(members.id, bestRecord.id));
+
+            // Clean up any other duplicate records with the same email
+            const duplicateIds = otherRecords.filter(m => m.id !== bestRecord.id).map(m => m.id);
+            if (duplicateIds.length > 0) {
+              for (const dupId of duplicateIds) {
+                await db.delete(members).where(eq(members.id, dupId));
+              }
+              console.log(`[Discord OAuth] Strategy 0: Cleaned up ${duplicateIds.length} duplicate records for ${discordUser.email}`);
+            }
+
+            console.log(`[Discord OAuth] Strategy 0: Merged by email match for ${discordUser.email} (record id=${bestRecord.id}, was discordId=${bestRecord.discordId}, subscription=${bestRecord.subscriptionStatus})`);
+            merged = true;
+          }
+        }
+
         // ── Strategy 1: Exact email placeholder match (Discord email === Stripe email) ──
         if (!merged && discordUser.email) {
           const emailPlaceholder = `email:${discordUser.email}`;

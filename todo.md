@@ -915,4 +915,27 @@
 ## Topic Selected Notification Email (April 6)
 - [x] Build "Topic Selected" email template
 - [x] Wire email into updateBootcampTopicStatus procedure (fires on status=selected)
+- [x] Deploy live
+
+## Drip Campaign System (April 6)
+- [x] Assess current lead/opt-in database structure (183 leads, 15 homepage subs, 27 double-dippers)
+- [x] Create drip campaign database tables (drip_enrollments, drip_sent_emails)
+- [x] Enroll 160 leads: 105 estimating single, 23 Q1/Q2 single, 25 double-dippers, 7 homepage-only
+- [x] Mark Day 0 as sent for all enrollments (all got Day 0 yesterday)
+- [x] 3 today double-dippers (Ventura Mendoza, Mike/Grind, Nathan/Brighter) enrolled at Step 1, skip Day 0
+- [x] Exclude all 14 active CC members and test emails from drip sequences
+- [x] Next email scheduled for April 7 at 10 AM ET
+- [x] Build all 16 email templates across 4 sequences (plain personal style, Helvetica 14pt)
+- [x] Build drip engine: 15-min cron, duplicate guard, step advancement, scheduling
+- [x] Sync database with Claude Code CSV send history (204 sent records matched)
+- [ ] Auto-enroll new lead magnet leads into correct drip sequence on signup
+- [ ] Auto-enroll homepage subscribers into homepage_only drip sequence
+- [ ] Auto-detect double-dippers and move them to double_dipper sequence
+- [ ] Check if lead is already a CC member before enrolling in drip
+- [ ] Add unique constraint to prevent duplicate drip enrollments
+- [ ] Build admin UI to monitor drip campaigns
+- [ ] Test end-to-end with preview to Marshall
 - [ ] Deploy live
+- [x] FIX: Discord bot sending 3 welcome messages instead of 1 when someone joins (added 5-min dedup cache)
+- [x] Send Jake Nichter email explaining the manual fix (email typo on purchase, Discord login created duplicate)
+- [x] Fix member merge logic: added Strategy 0 — direct email match merges records automatically, cleans up duplicates

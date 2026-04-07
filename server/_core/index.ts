@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerDiscordOAuthRoutes } from "../discord";
 import { startDiscordBot } from "../discordBot";
 import { registerStripeWebhook } from "../stripeWebhook";
+import { startDripEngine } from "../dripEngine";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -96,6 +97,9 @@ async function startServer() {
 
   // Start Discord gateway bot (listens for guildMemberAdd, etc.)
   startDiscordBot();
+
+  // Start drip campaign engine (checks every 15 minutes for pending sends)
+  startDripEngine();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
