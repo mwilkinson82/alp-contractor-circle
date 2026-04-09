@@ -1,0 +1,78 @@
+import { Resend } from "resend";
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background-color:#f7f5f2;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f5f2;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+<tr><td style="height:3px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+<tr><td style="height:32px;"></td></tr>
+
+<tr><td style="background-color:#ffffff;border-radius:12px;padding:40px 36px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.8;color:#1a1a1a;margin:0 0 20px 0;">
+Hey Chris,
+</p>
+
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.8;color:#1a1a1a;margin:0 0 20px 0;">
+Saw your question come through in the portal. I can answer that for you right now — but I want to do it in the Discord so the other guys can benefit from it too.
+</p>
+
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.8;color:#1a1a1a;margin:0 0 20px 0;">
+Hop in, drop a quick intro in <strong>#introduce-yourself</strong> — just your name, what kind of work you do, where you're based — and then post your question in the chat. I'll get you an answer right away.
+</p>
+
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.8;color:#1a1a1a;margin:0 0 20px 0;">
+Here's the invite link if you haven't joined yet:<br/>
+<a href="https://discord.gg/2pagscG2Np" style="color:#D4915C;text-decoration:underline;">Join the Contractor Circle Discord</a>
+</p>
+
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.8;color:#1a1a1a;margin:0 0 4px 0;">
+Talk soon,
+</p>
+
+<div style="border-top:1px solid #e8e4df;margin-top:24px;padding-top:20px;">
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#1a1a1a;margin:0;font-weight:600;">Marshall</p>
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;color:#8a8580;margin:4px 0 0 0;">Founder & CEO, ALP</p>
+</div>
+
+</td></tr>
+
+<tr><td style="height:24px;"></td></tr>
+<tr><td align="center" style="font-family:Georgia,serif;font-size:11px;color:#b0aaa4;letter-spacing:2px;text-transform:uppercase;">ALP</td></tr>
+<tr><td style="height:32px;"></td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+const text = `Hey Chris,
+
+Saw your question come through in the portal. I can answer that for you right now — but I want to do it in the Discord so the other guys can benefit from it too.
+
+Hop in, drop a quick intro in #introduce-yourself — just your name, what kind of work you do, where you're based — and then post your question in the chat. I'll get you an answer right away.
+
+Here's the invite link if you haven't joined yet:
+https://discord.gg/2pagscG2Np
+
+Talk soon,
+Marshall
+Founder & CEO, ALP`;
+
+const { data, error } = await resend.emails.send({
+  from: "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>",
+  to: "intricatehvac@gmail.com",
+  subject: "Chris — hop into the Discord, I've got your answer",
+  html,
+  text,
+});
+
+if (error) {
+  console.log("FAILED:", error.message);
+} else {
+  console.log("SENT to intricatehvac@gmail.com — id:", data?.id);
+}

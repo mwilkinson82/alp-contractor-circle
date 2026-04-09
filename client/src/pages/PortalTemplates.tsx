@@ -527,6 +527,27 @@ const TEMPLATES: Template[] = [
       "Terms, warranty, and dual authorization signatures",
     ],
   },
+  {
+    id: "25",
+    title: "ALP/EOS Vision/Traction Organizer (V/TO)",
+    description: "The two-page strategic tool that aligns your entire leadership team on where you're going and how you're going to get there. Covers all 8 V/TO questions with a completed contractor example.",
+    longDescription: "The Vision/Traction Organizer (V/TO) is the two-page document that captures your company's entire strategic plan. Page one is Vision — where you're going. Page two is Traction — how you're going to get there. Every person on your leadership team should be able to recite the answers. If they can't, you don't have alignment — you have assumptions. This toolkit walks through all 8 questions: Core Values, Core Focus, 10-Year Target, Marketing Strategy, 3-Year Picture, 1-Year Plan, Quarterly Rocks, and Issues List. Includes a fully completed example V/TO for a mid-size general contractor (ABC Construction Co.) so you can see exactly what a finished V/TO looks like before you build your own.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Toolkit_VITO_63e29d87.pdf",
+    featured: true,
+    badge: "New",
+    pages: "2 pages",
+    highlights: [
+      "Core Values — the 3-5 non-negotiables you hire, fire, and reward on",
+      "Core Focus — your Purpose and Niche that keep you from chasing shiny objects",
+      "10-Year Target — one big measurable goal the whole team rallies behind",
+      "Marketing Strategy — target market, three uniques, proven process, guarantee",
+      "3-Year Picture & 1-Year Plan — revenue, profit, employees, key capabilities",
+      "Quarterly Rocks & Issues List — 90-day priorities and the IDS process",
+      "Complete example V/TO for a mid-size general contractor",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [

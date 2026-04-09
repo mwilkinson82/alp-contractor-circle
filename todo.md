@@ -950,3 +950,9 @@
 - [x] Build unsubscribe system: HMAC token link, /api/drip/unsubscribe route, branded confirmation page, injected into all drip email footers
 - [x] Add Subcontractor Bid Submittal Form to template library (Estimating, GDrive force-copy, hardcoded in PortalTemplates.tsx)
 - [x] Send announcement email to all active CC members about Subcontractor Bid Submittal Form (15 sent, 0 failed)
+
+## ALP/EOS V/TO Toolkit Template
+- [x] Upload ALP_EOS_Toolkit_VITO.pdf to CDN
+- [x] Add V/TO template (#25) to PortalTemplates.tsx under Operations category
+- [ ] Save checkpoint and deploy
+- [ ] Send announcement email to members (if requested)
