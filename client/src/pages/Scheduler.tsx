@@ -34,10 +34,12 @@ import {
   Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
   Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
-  BookOpen, LayoutGrid, Star, Undo2, Redo2,
+  BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign,
 } from "lucide-react";
+import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
+import ResourcePanel from "@/components/ResourcePanel";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 interface ColumnDef {
@@ -372,6 +374,7 @@ export default function Scheduler() {
   const [showWbsManager, setShowWbsManager] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
+  const [showResourcePanel, setShowResourcePanel] = useState(false);
   const [showCsvImportDialog, setShowCsvImportDialog] = useState(false);
   const [csvParsedRows, setCsvParsedRows] = useState<Array<{activityId?: string; name: string; duration: number; wbs?: string; activityType: "task" | "milestone"; predecessors?: string}>>([]);
   const [csvFileName, setCsvFileName] = useState("");
@@ -1285,6 +1288,18 @@ export default function Scheduler() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Resources & Cost */}
+        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowResourcePanel(true)}>
+          <DollarSign className="w-4 h-4" /> Resources
+        </Button>
+
+        {/* Reports */}
+        <Link href={`/scheduler/${scheduleId}/reports`}>
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
+            <BarChart3 className="w-4 h-4" /> Reports
+          </Button>
+        </Link>
 
         {/* Actions Menu */}
         <DropdownMenu>
@@ -3470,6 +3485,15 @@ export default function Scheduler() {
         </DialogContent>
       </Dialog>
 
+      {/* Resource & Cost Loading Panel */}
+      {scheduleId && (
+        <ResourcePanel
+          scheduleId={scheduleId}
+          activities={activities.map((a: any) => ({ id: a.id, activityId: a.activityId, name: a.name }))}
+          open={showResourcePanel}
+          onOpenChange={setShowResourcePanel}
+        />
+      )}
     </div>
   );
 }

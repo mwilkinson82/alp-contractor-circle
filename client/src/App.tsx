@@ -18,6 +18,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import DripDashboard from "./pages/DripDashboard";
 import ScheduleList from "./pages/ScheduleList";
 import Scheduler from "./pages/Scheduler";
+import ScheduleReports from "./pages/ScheduleReports";
 import Q2LeadMagnet from "./pages/Q2LeadMagnet";
 import Q2ThankYou from "./pages/Q2ThankYou";
 import EstimatingChecklist from "./pages/EstimatingChecklist";
@@ -89,6 +90,7 @@ function Router() {
         </MemberPortalLayout>
       </Route>
       <Route path="/scheduler/:id" component={Scheduler} />
+      <Route path="/scheduler/:id/reports" component={ScheduleReports} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

@@ -16,6 +16,9 @@ import {
   calendarExceptions,
   scheduleWbs,
   scheduleLayouts,
+  scheduleResources,
+  activityResources,
+  costAccounts,
   type InsertSchedule,
   type InsertActivity,
   type InsertActivityRelationship,
@@ -27,6 +30,9 @@ import {
   type InsertCalendarException,
   type InsertScheduleWbs,
   type InsertScheduleLayout,
+  type InsertScheduleResource,
+  type InsertActivityResource,
+  type InsertCostAccount,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -440,4 +446,97 @@ export async function clearDefaultLayouts(scheduleId: number) {
 export async function deleteLayoutsBySchedule(scheduleId: number) {
   const db = requireDb();
   await db.delete(scheduleLayouts).where(eq(scheduleLayouts.scheduleId, scheduleId));
+}
+
+
+// ─── Resources ──────────────────────────────────────────────────────────────
+
+export async function createResource(data: InsertScheduleResource) {
+  const db = requireDb();
+  const result = await db.insert(scheduleResources).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getResourcesBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db.select().from(scheduleResources).where(eq(scheduleResources.scheduleId, scheduleId)).orderBy(asc(scheduleResources.name));
+}
+
+export async function updateResource(id: number, data: Partial<InsertScheduleResource>) {
+  const db = requireDb();
+  await db.update(scheduleResources).set(data).where(eq(scheduleResources.id, id));
+}
+
+export async function deleteResource(id: number) {
+  const db = requireDb();
+  // Delete all activity assignments for this resource first
+  await db.delete(activityResources).where(eq(activityResources.resourceId, id));
+  await db.delete(scheduleResources).where(eq(scheduleResources.id, id));
+}
+
+// ─── Activity Resource Assignments ──────────────────────────────────────────
+
+export async function assignResourceToActivity(data: InsertActivityResource) {
+  const db = requireDb();
+  const result = await db.insert(activityResources).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getResourceAssignmentsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db.select().from(activityResources).where(eq(activityResources.scheduleId, scheduleId));
+}
+
+export async function getResourceAssignmentsByActivity(activityId: number) {
+  const db = requireDb();
+  return db.select().from(activityResources).where(eq(activityResources.activityId, activityId));
+}
+
+export async function updateResourceAssignment(id: number, data: Partial<InsertActivityResource>) {
+  const db = requireDb();
+  await db.update(activityResources).set(data).where(eq(activityResources.id, id));
+}
+
+export async function deleteResourceAssignment(id: number) {
+  const db = requireDb();
+  await db.delete(activityResources).where(eq(activityResources.id, id));
+}
+
+export async function deleteResourceAssignmentsByActivity(activityId: number) {
+  const db = requireDb();
+  await db.delete(activityResources).where(eq(activityResources.activityId, activityId));
+}
+
+// ─── Cost Accounts ──────────────────────────────────────────────────────────
+
+export async function createCostAccount(data: InsertCostAccount) {
+  const db = requireDb();
+  const result = await db.insert(costAccounts).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getCostAccountsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db.select().from(costAccounts).where(eq(costAccounts.scheduleId, scheduleId)).orderBy(asc(costAccounts.code));
+}
+
+export async function updateCostAccount(id: number, data: Partial<InsertCostAccount>) {
+  const db = requireDb();
+  await db.update(costAccounts).set(data).where(eq(costAccounts.id, id));
+}
+
+export async function deleteCostAccount(id: number) {
+  const db = requireDb();
+  await db.delete(costAccounts).where(eq(costAccounts.id, id));
+}
+
+export async function deleteResourcesBySchedule(scheduleId: number) {
+  const db = requireDb();
+  await db.delete(activityResources).where(eq(activityResources.scheduleId, scheduleId));
+  await db.delete(scheduleResources).where(eq(scheduleResources.scheduleId, scheduleId));
+}
+
+export async function deleteCostAccountsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  await db.delete(costAccounts).where(eq(costAccounts.scheduleId, scheduleId));
 }

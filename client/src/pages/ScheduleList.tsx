@@ -36,6 +36,8 @@ import {
   LayoutGrid,
   Loader2,
   ArrowLeft,
+  Upload,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +53,10 @@ export default function ScheduleList() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showDuplicate, setShowDuplicate] = useState<number | null>(null);
   const [duplicateName, setDuplicateName] = useState("");
+  const [showXerImport, setShowXerImport] = useState(false);
+  const [xerFile, setXerFile] = useState<File | null>(null);
+  const [xerScheduleName, setXerScheduleName] = useState("");
+  const [xerImporting, setXerImporting] = useState(false);
 
   const schedulesQuery = trpc.schedule.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -99,6 +105,37 @@ export default function ScheduleList() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const xerImportMutation = trpc.schedule.importXer.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Imported "${data.scheduleName}" — ${data.activitiesImported} activities, ${data.relationshipsImported} relationships`);
+      setShowXerImport(false);
+      setXerFile(null);
+      setXerScheduleName("");
+      setXerImporting(false);
+      window.open(`/scheduler/${data.scheduleId}`, "_blank");
+      schedulesQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(`XER import failed: ${err.message}`);
+      setXerImporting(false);
+    },
+  });
+
+  const handleXerImport = async () => {
+    if (!xerFile) return;
+    setXerImporting(true);
+    try {
+      const text = await xerFile.text();
+      xerImportMutation.mutate({
+        xerText: text,
+        scheduleName: xerScheduleName || undefined,
+      });
+    } catch (e: any) {
+      toast.error(`Failed to read file: ${e.message}`);
+      setXerImporting(false);
+    }
+  };
 
   const schedules = schedulesQuery.data || [];
   const templates = templatesQuery.data || [];
@@ -166,13 +203,23 @@ export default function ScheduleList() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => setShowCreate(true)}
-            className="bg-ember text-primary-foreground hover:bg-ember-dark"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Schedule
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setShowXerImport(true)}
+              variant="outline"
+              className="border-ember/40 text-ember hover:bg-ember/10"
+            >
+              <FileUp className="w-4 h-4 mr-2" />
+              Import P6 XER
+            </Button>
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-ember text-primary-foreground hover:bg-ember-dark"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Schedule
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -427,6 +474,105 @@ export default function ScheduleList() {
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
               Duplicate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import P6 XER Dialog */}
+      <Dialog open={showXerImport} onOpenChange={(open) => { setShowXerImport(open); if (!open) { setXerFile(null); setXerScheduleName(""); } }}>
+        <DialogContent className="bg-card border-border max-w-2xl text-base">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-lg">Import Primavera P6 XER File</DialogTitle>
+            <DialogDescription>
+              Upload an .xer file exported from Oracle Primavera P6. Activities, relationships, WBS, calendars, and constraints will be imported.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* File drop zone */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                xerFile ? "border-ember/60 bg-ember/5" : "border-border hover:border-ember/40"
+              }`}
+              onClick={() => document.getElementById("xer-file-input")?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const file = e.dataTransfer.files[0];
+                if (file && (file.name.endsWith(".xer") || file.name.endsWith(".XER"))) {
+                  setXerFile(file);
+                  if (!xerScheduleName) setXerScheduleName(file.name.replace(/\.xer$/i, ""));
+                } else {
+                  toast.error("Please upload a .xer file");
+                }
+              }}
+            >
+              <input
+                id="xer-file-input"
+                type="file"
+                accept=".xer,.XER"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setXerFile(file);
+                    if (!xerScheduleName) setXerScheduleName(file.name.replace(/\.xer$/i, ""));
+                  }
+                }}
+              />
+              {xerFile ? (
+                <div className="space-y-2">
+                  <FileUp className="w-10 h-10 text-ember mx-auto" />
+                  <p className="text-foreground font-medium">{xerFile.name}</p>
+                  <p className="text-sm text-muted-foreground">{(xerFile.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-xs text-muted-foreground">Click or drop to replace</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+                  <p className="text-foreground font-medium">Drop your .xer file here</p>
+                  <p className="text-sm text-muted-foreground">or click to browse</p>
+                </div>
+              )}
+            </div>
+
+            {/* Schedule name override */}
+            <div>
+              <Label>Schedule Name (optional — defaults to P6 project name)</Label>
+              <Input
+                value={xerScheduleName}
+                onChange={(e) => setXerScheduleName(e.target.value)}
+                placeholder="Leave blank to use P6 project name"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Info box */}
+            <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">What gets imported:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>All activities with durations, dates, and percent complete</li>
+                <li>Predecessor/successor relationships (FS, SS, FF, SF) with lag</li>
+                <li>WBS hierarchy with color coding</li>
+                <li>Calendars with work weeks and holidays</li>
+                <li>Constraint types (SNET, SNLT, FNET, FNLT, MSO, MFO)</li>
+                <li>Milestones and activity types</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowXerImport(false)}>Cancel</Button>
+            <Button
+              onClick={handleXerImport}
+              disabled={!xerFile || xerImporting}
+              className="bg-ember text-primary-foreground hover:bg-ember-dark"
+            >
+              {xerImporting ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Importing...</>
+              ) : (
+                <><FileUp className="w-4 h-4 mr-2" />Import Schedule</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

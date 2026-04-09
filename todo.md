@@ -999,3 +999,34 @@
 - [x] Clear history on schedule switch
 - [x] Write vitest tests for undo/redo logic (7 tests passing)
 - [x] Save checkpoint
+
+## P6 XER Import
+- [x] Research and parse P6 XER file format (tab-delimited, table-based)
+- [x] Build XER parser using xer-parser npm package
+- [x] Map XER data to our schedule schema (activities, relationships, WBS, calendars, constraints)
+- [x] Backend tRPC procedure for XER file upload and import (importXer)
+- [x] Frontend UI — drag-and-drop file upload dialog with import info
+- [x] Handle XER edge cases (multiple projects, calendar work weeks, constraint mapping)
+- [ ] Write tests for XER parser
+
+## Reporting Suite — Tabular Reports
+- [x] Schedule Comparison Report — baseline vs. current (date variances, float changes, duration deltas)
+- [x] Total Float Report — tabular, sortable by float value, color-coded critical/near-critical
+- [x] Early Start Report — tabular, activities sorted by early start date
+- [x] Critical Path Report — tabular, critical activities with driving relationships
+- [x] Duration Report — tabular, activities with original vs. remaining duration
+- [x] Report UI — professional tabular layout with print-ready headers/footers
+- [x] CSV export for all report types
+- [x] Report filters — float threshold, critical-only toggle
+- [x] Reports button in Scheduler toolbar + route /scheduler/:id/reports
+- [x] Summary statistics cards (total activities, critical count, avg float, etc.)
+- [ ] Write tests for report generation logic
+
+## Resource & Cost Loading
+- [x] DB schema — resources table (name, type, unit, rate), activity_resources junction table, cost_accounts table
+- [x] Backend procedures — CRUD resources, assign to activities, cost accounts
+- [x] Cost loading — budget per activity, cost accounts, budgeted vs actual tracking
+- [x] Frontend — ResourcePanel with 3 tabs (Resources, Assignments, Cost Accounts), toolbar button in Scheduler
+- [ ] Cost-loaded Gantt — show cost bars or cost overlay on Gantt chart
+- [ ] Cash flow projection — cumulative cost curve (S-curve) visualization
+- [x] Write tests for resource/cost calculations (18 tests passing)

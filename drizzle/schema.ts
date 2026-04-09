@@ -596,3 +596,82 @@ export const scheduleLayouts = mysqlTable("schedule_layouts", {
 });
 export type ScheduleLayout = typeof scheduleLayouts.$inferSelect;
 export type InsertScheduleLayout = typeof scheduleLayouts.$inferInsert;
+
+
+// ─── Resource & Cost Loading ──────────────────────────────────────────────
+
+/**
+ * Schedule resources — labor, equipment, material, and subcontractor resources.
+ * Each resource has a name, type, unit of measure, and cost rate.
+ */
+export const scheduleResources = mysqlTable("schedule_resources", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Resource name e.g. "Electrician", "Crane", "Concrete" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Resource type */
+  resourceType: mysqlEnum("resourceType", ["labor", "equipment", "material", "subcontractor"]).default("labor").notNull(),
+  /** Unit of measure e.g. "hr", "day", "cy", "ea", "ls" */
+  unit: varchar("unit", { length: 32 }).default("hr").notNull(),
+  /** Cost rate per unit (stored in cents to avoid floating point) */
+  costRate: int("costRate").default(0).notNull(),
+  /** Max units available per day (e.g., 8 hrs for labor, 1 for equipment) */
+  maxUnitsPerDay: decimal("maxUnitsPerDay", { precision: 10, scale: 2 }).default("8.00").notNull(),
+  /** Notes/description */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ScheduleResource = typeof scheduleResources.$inferSelect;
+export type InsertScheduleResource = typeof scheduleResources.$inferInsert;
+
+/**
+ * Activity resource assignments — junction table linking activities to resources.
+ * Each assignment specifies units per day and can override the resource cost rate.
+ */
+export const activityResources = mysqlTable("activity_resources", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule (denormalized for easy querying) */
+  scheduleId: int("scheduleId").notNull(),
+  /** Activity this resource is assigned to */
+  activityId: int("activityId").notNull(),
+  /** Resource being assigned */
+  resourceId: int("resourceId").notNull(),
+  /** Units per day (e.g., 8 hrs/day, 2 crews/day) */
+  unitsPerDay: decimal("unitsPerDay", { precision: 10, scale: 2 }).default("8.00").notNull(),
+  /** Override cost rate for this assignment (null = use resource default) */
+  costRateOverride: int("costRateOverride"),
+  /** Total budgeted cost for this assignment (calculated: rate * units * duration) */
+  budgetedCost: int("budgetedCost").default(0).notNull(),
+  /** Actual cost to date */
+  actualCost: int("actualCost").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ActivityResource = typeof activityResources.$inferSelect;
+export type InsertActivityResource = typeof activityResources.$inferInsert;
+
+/**
+ * Cost accounts — optional cost categorization for activities.
+ * Allows grouping costs by trade, phase, or any custom category.
+ */
+export const costAccounts = mysqlTable("cost_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Cost account code e.g. "03-CONCRETE", "05-METALS" */
+  code: varchar("code", { length: 64 }).notNull(),
+  /** Cost account name */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Parent cost account (for hierarchy) */
+  parentId: int("parentId"),
+  /** Budget amount for this cost account (cents) */
+  budget: int("budget").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CostAccount = typeof costAccounts.$inferSelect;
+export type InsertCostAccount = typeof costAccounts.$inferInsert;

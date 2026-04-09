@@ -148,6 +148,13 @@
       "when": 1775737120639,
       "tag": "0020_pale_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1775747370581,
+      "tag": "0021_tidy_sentry",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@
  * Uses Discord member auth (same as memberRouter).
  */
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { z } from "zod";
 import type { Member } from "../drizzle/schema";
@@ -1554,5 +1554,228 @@ export const scheduleRouter = router({
       await requireScheduleOwner(ctx.req, input.scheduleId);
       await sdb.deleteLayout(input.id);
       return { success: true };
+    }),
+
+  // ── Reports ─────────────────────────────────────────────────────────────
+  getReport: publicProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      reportType: z.enum(["totalFloat", "earlyStart", "criticalPath", "duration", "comparison"]),
+      baselineId: z.number().optional(),
+      filters: z.object({
+        wbsId: z.number().nullish(),
+        floatThreshold: z.number().nullish(),
+        dateRangeStart: z.string().nullish(),
+        dateRangeEnd: z.string().nullish(),
+        showOnlyCritical: z.boolean().optional(),
+      }).optional(),
+      sortBy: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const reports = await import("../shared/scheduleReports");
+
+      const rawActivities = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const wbsNodes = await sdb.getWbsBySchedule(input.scheduleId);
+      const wbsMap = new Map(wbsNodes.map(w => [w.id, { name: w.name, code: w.code }]));
+
+      const activities = rawActivities.map(a => ({
+        id: a.id,
+        activityId: a.activityId,
+        name: a.name,
+        duration: a.duration,
+        percentComplete: parseFloat(String(a.percentComplete)),
+        earlyStart: a.earlyStart,
+        earlyFinish: a.earlyFinish,
+        lateStart: a.lateStart,
+        lateFinish: a.lateFinish,
+        totalFloat: a.totalFloat,
+        freeFloat: a.freeFloat,
+        isCritical: a.isCritical,
+        isOnLongestPath: a.isOnLongestPath,
+        actualStart: a.actualStart,
+        actualFinish: a.actualFinish,
+        wbsId: a.wbsId,
+        wbsName: a.wbsId ? wbsMap.get(a.wbsId)?.name : undefined,
+        wbsCode: a.wbsId ? wbsMap.get(a.wbsId)?.code : undefined,
+        constraintType: a.constraintType,
+        constraintDate: a.constraintDate,
+        calendarId: a.calendarId,
+      })) as any[];
+
+      const filters = input.filters ? {
+        wbsId: input.filters.wbsId ?? undefined,
+        floatThreshold: input.filters.floatThreshold ?? undefined,
+        dateRangeStart: input.filters.dateRangeStart ? new Date(input.filters.dateRangeStart) : undefined,
+        dateRangeEnd: input.filters.dateRangeEnd ? new Date(input.filters.dateRangeEnd) : undefined,
+        showOnlyCritical: input.filters.showOnlyCritical,
+      } : undefined;
+
+      const summary = reports.generateReportSummary(activities);
+
+      switch (input.reportType) {
+        case "totalFloat":
+          return { type: "totalFloat" as const, rows: reports.generateTotalFloatReport(activities, filters, (input.sortBy as any) || "float_asc"), summary };
+        case "earlyStart":
+          return { type: "earlyStart" as const, rows: reports.generateEarlyStartReport(activities, filters), summary };
+        case "criticalPath": {
+          const rels = await sdb.getRelationshipsBySchedule(input.scheduleId);
+          return { type: "criticalPath" as const, rows: reports.generateCriticalPathReport(activities, rels, filters), summary };
+        }
+        case "duration":
+          return { type: "duration" as const, rows: reports.generateDurationReport(activities, filters), summary };
+        case "comparison": {
+          if (!input.baselineId) throw new Error("Baseline ID required for comparison report");
+          const baseline = await sdb.getBaselineById(input.baselineId);
+          if (!baseline) throw new Error("Baseline not found");
+          const snap = baseline.activitiesSnapshot as any[];
+          const baselineActs = snap.map((s: any) => ({
+            activityId: s.activityId,
+            name: s.name,
+            duration: s.duration,
+            earlyStart: s.earlyStart ? new Date(s.earlyStart) : null,
+            earlyFinish: s.earlyFinish ? new Date(s.earlyFinish) : null,
+            lateStart: s.lateStart ? new Date(s.lateStart) : null,
+            lateFinish: s.lateFinish ? new Date(s.lateFinish) : null,
+            totalFloat: s.totalFloat ?? null,
+          }));
+          return { type: "comparison" as const, rows: reports.generateComparisonReport(activities, baselineActs, filters), summary };
+        }
+      }
+    }),
+
+  // ── XER Import ──────────────────────────────────────────────────────────
+  importXer: protectedProcedure
+    .input(z.object({
+      xerText: z.string().min(10),
+      scheduleName: z.string().min(1).max(256).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { importXerFile } = await import("./xerImport");
+      const result = await importXerFile(
+        input.xerText,
+        ctx.user.id,
+        input.scheduleName,
+      );
+      return result;
+    }),
+
+  // ── Resources ──────────────────────────────────────────────────────────
+  listResources: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      return sdb.getResourcesBySchedule(input.scheduleId);
+    }),
+
+  createResource: protectedProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      name: z.string().min(1).max(256),
+      resourceType: z.enum(["labor", "equipment", "material", "subcontractor"]).default("labor"),
+      unit: z.string().max(32).default("hr"),
+      costRate: z.number().int().min(0).default(0),
+      maxUnitsPerDay: z.string().default("8.00"),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return sdb.createResource(input);
+    }),
+
+  updateResource: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(256).optional(),
+      resourceType: z.enum(["labor", "equipment", "material", "subcontractor"]).optional(),
+      unit: z.string().max(32).optional(),
+      costRate: z.number().int().min(0).optional(),
+      maxUnitsPerDay: z.string().optional(),
+      notes: z.string().nullable().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await sdb.updateResource(id, data);
+    }),
+
+  deleteResource: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await sdb.deleteResource(input.id);
+    }),
+
+  // ── Activity Resource Assignments ─────────────────────────────────────
+  listResourceAssignments: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      return sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+    }),
+
+  assignResource: protectedProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      activityId: z.number(),
+      resourceId: z.number(),
+      unitsPerDay: z.string().default("8.00"),
+      costRateOverride: z.number().int().nullable().optional(),
+      budgetedCost: z.number().int().default(0),
+    }))
+    .mutation(async ({ input }) => {
+      return sdb.assignResourceToActivity(input);
+    }),
+
+  updateResourceAssignment: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      unitsPerDay: z.string().optional(),
+      costRateOverride: z.number().int().nullable().optional(),
+      budgetedCost: z.number().int().optional(),
+      actualCost: z.number().int().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await sdb.updateResourceAssignment(id, data);
+    }),
+
+  removeResourceAssignment: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await sdb.deleteResourceAssignment(input.id);
+    }),
+
+  // ── Cost Accounts ─────────────────────────────────────────────────────
+  listCostAccounts: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      return sdb.getCostAccountsBySchedule(input.scheduleId);
+    }),
+
+  createCostAccount: protectedProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      code: z.string().min(1).max(64),
+      name: z.string().min(1).max(256),
+      parentId: z.number().nullable().optional(),
+      budget: z.number().int().default(0),
+    }))
+    .mutation(async ({ input }) => {
+      return sdb.createCostAccount(input);
+    }),
+
+  updateCostAccount: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      code: z.string().min(1).max(64).optional(),
+      name: z.string().min(1).max(256).optional(),
+      parentId: z.number().nullable().optional(),
+      budget: z.number().int().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await sdb.updateCostAccount(id, data);
+    }),
+
+  deleteCostAccount: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await sdb.deleteCostAccount(input.id);
     }),
 });
