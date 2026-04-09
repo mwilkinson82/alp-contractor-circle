@@ -38,7 +38,7 @@ import {
   Calendar,
 } from "lucide-react";
 
-type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram" | "resourceLeveling" | "evm";
+type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram" | "resourceLeveling" | "evm" | "delayAnalysis" | "costForecast" | "healthScore";
 
 const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description: string }> = {
   totalFloat: {
@@ -86,6 +86,21 @@ const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description:
     icon: Users,
     description: "Weekly resource loading by type — identifies over-allocation and leveling needs",
   },
+  delayAnalysis: {
+    label: "Delay Analysis",
+    icon: GitCompare,
+    description: "Compare current schedule against baseline — identify impacted activities and auto-generate annotations",
+  },
+  costForecast: {
+    label: "Cost Forecast (S-Curve)",
+    icon: TrendingUp,
+    description: "Project future costs based on CPI/SPI trends — for bank draw requests",
+  },
+  healthScore: {
+    label: "Schedule Health Score",
+    icon: Activity,
+    description: "Composite grade combining float, critical path, logic density, and resource balance",
+  },
 };
 
 function fmtDate(d: any): string {
@@ -111,7 +126,7 @@ function varianceColor(v: number | null | undefined): string {
   if (v === null || v === undefined) return "";
   if (v > 0) return "text-red-600 font-bold";
   if (v < 0) return "text-green-600 font-semibold";
-  return "text-muted-foreground";
+  return "text-gray-600 font-medium";
 }
 
 function fmtCurrency(cents: number): string {
@@ -376,10 +391,141 @@ function HistogramChart({ data, resourceKeys }: { data: any[]; resourceKeys: str
       className="w-full border rounded-lg"
       style={{ height: 420 }}
     />
-  );
-}// ── EVM Dashboard Component ─────────────────────────────────────────────────────
-function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any }) {
+  );}
+
+// ── Cost Forecast Chart ───────────────────────────────────────────────────────────
+function CostForecastChart({ data, bac, eac }: { data: any[]; bac: number; eac: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data.length) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    const pad = { top: 40, right: 30, bottom: 60, left: 80 };
+    const chartW = w - pad.left - pad.right;
+    const chartH = h - pad.top - pad.bottom;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+
+    const maxVal = Math.max(...data.map(d => Math.max(d.planned || 0, d.actual || 0, d.forecastEAC || 0, d.earned || 0)), bac, eac) * 1.1;
+
+    // Grid
+    const gridLines = 5;
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i <= gridLines; i++) {
+      const y = pad.top + (chartH / gridLines) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(w - pad.right, y);
+      ctx.stroke();
+      const val = maxVal - (maxVal / gridLines) * i;
+      ctx.fillStyle = "#374151";
+      ctx.font = "bold 11px 'DM Sans', sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("$" + (val / 100).toLocaleString("en-US", { maximumFractionDigits: 0 }), pad.left - 8, y + 4);
+    }
+    ctx.setLineDash([]);
+
+    // X-axis
+    const step = Math.max(1, Math.floor(data.length / 8));
+    ctx.fillStyle = "#374151";
+    ctx.font = "bold 10px 'DM Sans', sans-serif";
+    ctx.textAlign = "center";
+    data.forEach((d, i) => {
+      if (i % step === 0 || i === data.length - 1) {
+        const x = pad.left + (i / (data.length - 1)) * chartW;
+        ctx.save();
+        ctx.translate(x, pad.top + chartH + 12);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillText(fmtWeek(d.week), 0, 0);
+        ctx.restore();
+      }
+    });
+
+    const drawLine = (key: string, color: string, lineWidth: number, dash?: number[]) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      if (dash) ctx.setLineDash(dash);
+      else ctx.setLineDash([]);
+      ctx.beginPath();
+      data.forEach((d, i) => {
+        const x = pad.left + (i / (data.length - 1)) * chartW;
+        const y = pad.top + chartH - ((d[key] || 0) / maxVal) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    drawLine("planned", "#3b82f6", 2.5);
+    drawLine("earned", "#22c55e", 2.5);
+    drawLine("actual", "#ef4444", 2.5);
+    drawLine("forecastEAC", "#a855f7", 2, [6, 4]);
+
+    // BAC line
+    const bacY = pad.top + chartH - (bac / maxVal) * chartH;
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, bacY);
+    ctx.lineTo(w - pad.right, bacY);
+    ctx.stroke();
+    ctx.fillStyle = "#3b82f6";
+    ctx.font = "bold 10px 'DM Sans', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("BAC", w - pad.right + 4, bacY + 4);
+
+    // EAC line
+    if (eac !== bac) {
+      const eacY = pad.top + chartH - (eac / maxVal) * chartH;
+      ctx.strokeStyle = "#a855f7";
+      ctx.beginPath();
+      ctx.moveTo(pad.left, eacY);
+      ctx.lineTo(w - pad.right, eacY);
+      ctx.stroke();
+      ctx.fillStyle = "#a855f7";
+      ctx.fillText("EAC", w - pad.right + 4, eacY + 4);
+    }
+    ctx.setLineDash([]);
+
+    // Legend
+    const legend = [
+      { label: "Planned Value", color: "#3b82f6" },
+      { label: "Earned Value", color: "#22c55e" },
+      { label: "Actual Cost", color: "#ef4444" },
+      { label: "Forecast (EAC)", color: "#a855f7" },
+    ];
+    ctx.font = "bold 11px 'DM Sans', sans-serif";
+    let lx = pad.left;
+    legend.forEach(l => {
+      ctx.fillStyle = l.color;
+      ctx.fillRect(lx, 8, 16, 3);
+      ctx.fillStyle = "#374151";
+      ctx.textAlign = "left";
+      ctx.fillText(l.label, lx + 20, 14);
+      lx += ctx.measureText(l.label).width + 40;
+    });
+  }, [data, bac, eac]);
+
+  return <canvas ref={canvasRef} className="w-full" style={{ height: 400 }} />;
+}
+
+// ── EVM Dashboard Component ─────────────────────────────────────────────────────────
+function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any }) {const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -490,19 +636,19 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
       {/* Key metrics cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">BAC (Budget)</div>
+          <div className="text-xs text-gray-600 font-medium">BAC (Budget)</div>
           <div className="text-xl font-bold">{fmtMoney(data.BAC)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">EV (BCWP)</div>
+          <div className="text-xs text-gray-600 font-medium">EV (BCWP)</div>
           <div className="text-xl font-bold text-green-600">{fmtMoney(data.BCWP)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">PV (BCWS)</div>
+          <div className="text-xs text-gray-600 font-medium">PV (BCWS)</div>
           <div className="text-xl font-bold text-blue-600">{fmtMoney(data.BCWS)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">AC (ACWP)</div>
+          <div className="text-xs text-gray-600 font-medium">AC (ACWP)</div>
           <div className="text-xl font-bold text-red-600">{fmtMoney(data.ACWP)}</div>
         </CardContent></Card>
       </div>
@@ -510,39 +656,39 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
       {/* Performance indices */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="border-l-4 border-l-blue-500"><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">CPI (Cost Performance)</div>
+          <div className="text-xs text-gray-600 font-medium">CPI (Cost Performance)</div>
           <div className={`text-2xl font-bold ${indexColor(data.CPI, "above")}`}>{data.CPI.toFixed(2)}</div>
-          <div className="text-xs text-muted-foreground">{data.CPI >= 1 ? "Under budget" : "Over budget"}</div>
+          <div className="text-xs text-gray-600 font-medium">{data.CPI >= 1 ? "Under budget" : "Over budget"}</div>
         </CardContent></Card>
         <Card className="border-l-4 border-l-green-500"><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">SPI (Schedule Performance)</div>
+          <div className="text-xs text-gray-600 font-medium">SPI (Schedule Performance)</div>
           <div className={`text-2xl font-bold ${indexColor(data.SPI, "above")}`}>{data.SPI.toFixed(2)}</div>
-          <div className="text-xs text-muted-foreground">{data.SPI >= 1 ? "Ahead of schedule" : "Behind schedule"}</div>
+          <div className="text-xs text-gray-600 font-medium">{data.SPI >= 1 ? "Ahead of schedule" : "Behind schedule"}</div>
         </CardContent></Card>
         <Card className="border-l-4 border-l-amber-500"><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">TCPI (To-Complete)</div>
+          <div className="text-xs text-gray-600 font-medium">TCPI (To-Complete)</div>
           <div className={`text-2xl font-bold ${indexColor(data.TCPI, "below")}`}>{data.TCPI.toFixed(2)}</div>
-          <div className="text-xs text-muted-foreground">{data.TCPI <= 1 ? "Achievable" : "Difficult to achieve"}</div>
+          <div className="text-xs text-gray-600 font-medium">{data.TCPI <= 1 ? "Achievable" : "Difficult to achieve"}</div>
         </CardContent></Card>
         <Card className="border-l-4 border-l-purple-500"><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">EAC (Estimate at Completion)</div>
+          <div className="text-xs text-gray-600 font-medium">EAC (Estimate at Completion)</div>
           <div className="text-xl font-bold">{fmtMoney(data.EAC)}</div>
-          <div className="text-xs text-muted-foreground">ETC: {fmtMoney(data.ETC)}</div>
+          <div className="text-xs text-gray-600 font-medium">ETC: {fmtMoney(data.ETC)}</div>
         </CardContent></Card>
       </div>
 
       {/* Variances */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">Cost Variance (CV)</div>
+          <div className="text-xs text-gray-600 font-medium">Cost Variance (CV)</div>
           <div className={`text-lg font-bold ${varColor(data.CV)}`}>{data.CV >= 0 ? "+" : ""}{fmtMoney(data.CV)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">Schedule Variance (SV)</div>
+          <div className="text-xs text-gray-600 font-medium">Schedule Variance (SV)</div>
           <div className={`text-lg font-bold ${varColor(data.SV)}`}>{data.SV >= 0 ? "+" : ""}{fmtMoney(data.SV)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
-          <div className="text-xs text-muted-foreground">Variance at Completion (VAC)</div>
+          <div className="text-xs text-gray-600 font-medium">Variance at Completion (VAC)</div>
           <div className={`text-lg font-bold ${varColor(data.VAC)}`}>{data.VAC >= 0 ? "+" : ""}{fmtMoney(data.VAC)}</div>
         </CardContent></Card>
       </div>
@@ -562,7 +708,7 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
             <GitCompare className="w-4 h-4 text-purple-600" />
             <h3 className="text-sm font-semibold">Baseline Comparison: {baselineData.baselineName}</h3>
             {baselineData.baselineDataDate && (
-              <span className="text-xs text-muted-foreground">(Data Date: {new Date(baselineData.baselineDataDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})</span>
+              <span className="text-xs text-gray-600 font-medium">(Data Date: {new Date(baselineData.baselineDataDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})</span>
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -582,14 +728,14 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
               return (
                 <Card key={m.label} className="border-l-4" style={{ borderLeftColor: improved ? "#22c55e" : delta === 0 ? "#9ca3af" : "#ef4444" }}>
                   <CardContent className="pt-2 pb-2">
-                    <div className="text-xs text-muted-foreground">{m.label}</div>
+                    <div className="text-xs text-gray-600 font-medium">{m.label}</div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-lg font-bold">{m.fmt(m.current)}</span>
-                      <span className={`text-xs font-semibold ${improved ? "text-green-600" : delta === 0 ? "text-gray-500" : "text-red-600"}`}>
+                      <span className={`text-xs font-semibold ${improved ? "text-green-600" : delta === 0 ? "text-gray-700" : "text-red-600"}`}>
                         {deltaStr} {improved ? "\u2191" : delta === 0 ? "\u2192" : "\u2193"}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">Baseline: {m.fmt(m.baseline)}</div>
+                    <div className="text-xs text-gray-600 font-medium">Baseline: {m.fmt(m.baseline)}</div>
                   </CardContent>
                 </Card>
               );
@@ -642,9 +788,9 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
 
       {data.BAC === 0 && (
         <div className="text-center py-12">
-          <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+          <DollarSign className="w-12 h-12 mx-auto text-gray-600 font-medium/50 mb-4" />
           <h3 className="text-lg font-semibold">No Cost Data Available</h3>
-          <p className="text-muted-foreground mt-1">Assign resources with budgeted costs to activities first.</p>
+          <p className="text-gray-600 font-medium mt-1">Assign resources with budgeted costs to activities first.</p>
         </div>
       )}
     </>
@@ -665,7 +811,7 @@ export default function ScheduleReports() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const isChartReport = reportType === "cashFlowSCurve" || reportType === "resourceHistogram";
-  const isSpecialReport = reportType === "resourceLeveling" || reportType === "evm";
+  const isSpecialReport = reportType === "resourceLeveling" || reportType === "evm" || reportType === "delayAnalysis" || reportType === "costForecast" || reportType === "healthScore";
   const isStandardReport = !isSpecialReport;
 
   const { data: scheduleData } = trpc.schedule.get.useQuery(
@@ -709,7 +855,26 @@ export default function ScheduleReports() {
     { enabled: scheduleId > 0 && reportType === "evm" && !!evmBaselineId }
   );
 
-  const isLoading = isStdLoading || isLevelingLoading || isEvmLoading;
+  // Delay Analysis queries
+  const [delayBaselineId, setDelayBaselineId] = useState<number | undefined>();
+  const { data: delayData, isLoading: isDelayLoading } = trpc.schedule.delayAnalysis.useQuery(
+    { scheduleId, baselineId: delayBaselineId! },
+    { enabled: scheduleId > 0 && reportType === "delayAnalysis" && !!delayBaselineId }
+  );
+
+  // Cost Forecast query
+  const { data: forecastData, isLoading: isForecastLoading } = trpc.schedule.costForecast.useQuery(
+    { scheduleId },
+    { enabled: scheduleId > 0 && reportType === "costForecast" }
+  );
+
+  // Health Score query
+  const { data: healthData, isLoading: isHealthLoading } = trpc.schedule.healthScore.useQuery(
+    { scheduleId },
+    { enabled: scheduleId > 0 && reportType === "healthScore" }
+  );
+
+  const isLoading = isStdLoading || isLevelingLoading || isEvmLoading || isDelayLoading || isForecastLoading || isHealthLoading;
 
   const handlePrint = () => { window.print(); };
 
@@ -804,7 +969,7 @@ export default function ScheduleReports() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold">{schedule?.name || "Schedule"} — Reports</h1>
-                <p className="text-sm text-muted-foreground">Tabular & visual schedule reports for review and submission</p>
+                <p className="text-sm text-gray-600 font-medium">Tabular & visual schedule reports for review and submission</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -852,6 +1017,9 @@ export default function ScheduleReports() {
                 <SelectItem value="resourceHistogram">Resource Histogram</SelectItem>
                 <SelectItem value="resourceLeveling">Resource Leveling</SelectItem>
                 <SelectItem value="evm">Earned Value Management</SelectItem>
+                <SelectItem value="delayAnalysis">Delay Analysis</SelectItem>
+                <SelectItem value="costForecast">Cost Forecast (S-Curve)</SelectItem>
+                <SelectItem value="healthScore">Schedule Health Score</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -884,6 +1052,24 @@ export default function ScheduleReports() {
                 </SelectTrigger>
                 <SelectContent>
                   {baselines?.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id.toString()}>
+                      {b.name} {b.updateNumber ? `(Update ${b.updateNumber})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {reportType === "delayAnalysis" && baselines && baselines.length > 0 && (
+            <div className="min-w-[240px]">
+              <Label className="text-sm font-medium mb-1.5 block">Compare Against Baseline</Label>
+              <Select value={delayBaselineId?.toString() || ""} onValueChange={(v) => setDelayBaselineId(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select baseline..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {baselines.map((b: any) => (
                     <SelectItem key={b.id} value={b.id.toString()}>
                       {b.name} {b.updateNumber ? `(Update ${b.updateNumber})` : ""}
                     </SelectItem>
@@ -969,37 +1155,37 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6 print:grid-cols-6 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Total Activities</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Activities</p>
                 <p className="text-2xl font-bold">{reportData.summary.totalActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Critical</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Critical</p>
                 <p className="text-2xl font-bold text-red-600">{reportData.summary.criticalActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Negative Float</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Negative Float</p>
                 <p className="text-2xl font-bold text-amber-600">{reportData.summary.negativeFloatCount}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Avg Float</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Avg Float</p>
                 <p className="text-2xl font-bold">{reportData.summary.averageFloat?.toFixed(1) ?? "—"}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Complete</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Complete</p>
                 <p className="text-2xl font-bold text-green-600">{reportData.summary.completedActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">In Progress</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">In Progress</p>
                 <p className="text-2xl font-bold">{reportData.summary.inProgressActivities}</p>
               </CardContent>
             </Card>
@@ -1011,19 +1197,19 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Total Budgeted</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Budgeted</p>
                 <p className="text-2xl font-bold text-blue-600">{fmtCurrency((reportData.summary as any).totalBudgetedCost || 0)}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Total Actual</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Actual</p>
                 <p className="text-2xl font-bold text-green-600">{fmtCurrency((reportData.summary as any).totalActualCost || 0)}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Variance</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Variance</p>
                 <p className={`text-2xl font-bold ${((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {fmtCurrency(((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0))}
                 </p>
@@ -1031,7 +1217,7 @@ export default function ScheduleReports() {
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Weeks</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Weeks</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
               </CardContent>
             </Card>
@@ -1043,25 +1229,25 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Resources</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Resources</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalResources || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Assignments</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Assignments</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalAssignments || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Weeks</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Weeks</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-muted-foreground print:text-gray-500">Resource Types</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Resource Types</p>
                 <p className="text-2xl font-bold">{((reportData.summary as any).resourceKeys || []).length}</p>
               </CardContent>
             </Card>
@@ -1072,7 +1258,7 @@ export default function ScheduleReports() {
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-            <span className="ml-3 text-muted-foreground">Generating report...</span>
+            <span className="ml-3 text-gray-600 font-medium">Generating report...</span>
           </div>
         )}
 
@@ -1082,7 +1268,7 @@ export default function ScheduleReports() {
             <div className="flex items-center gap-2 mb-3 print:hidden">
               <TrendingUp className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold">Cash Flow S-Curve</h2>
-              <span className="text-sm text-muted-foreground">({reportData.rows.length} weeks)</span>
+              <span className="text-sm text-gray-600 font-medium">({reportData.rows.length} weeks)</span>
             </div>
 
             <SCurveChart data={reportData.rows} />
@@ -1126,7 +1312,7 @@ export default function ScheduleReports() {
             <div className="flex items-center gap-2 mb-3 print:hidden">
               <Users className="w-5 h-5 text-purple-600" />
               <h2 className="text-lg font-semibold">Resource Histogram</h2>
-              <span className="text-sm text-muted-foreground">({reportData.rows.length} weeks)</span>
+              <span className="text-sm text-gray-600 font-medium">({reportData.rows.length} weeks)</span>
             </div>
 
             <HistogramChart
@@ -1175,7 +1361,7 @@ export default function ScheduleReports() {
             <div className="flex items-center gap-2 mb-3 print:hidden">
               <Icon className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-semibold">{ReportInfo.label}</h2>
-              <span className="text-sm text-muted-foreground">({reportData.rows.length} activities)</span>
+              <span className="text-sm text-gray-600 font-medium">({reportData.rows.length} activities)</span>
             </div>
 
             <div className="overflow-x-auto border rounded-lg print:border-black">
@@ -1276,7 +1462,7 @@ export default function ScheduleReports() {
                         <>
                           <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{row.activityId}</td>
                           <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
+                          <td className="px-3 py-2 text-gray-600 font-medium whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
                           <td className="px-3 py-2 text-right font-mono">{row.duration}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyStart)}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyFinish)}</td>
@@ -1292,7 +1478,7 @@ export default function ScheduleReports() {
                         <>
                           <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{row.activityId}</td>
                           <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
+                          <td className="px-3 py-2 text-gray-600 font-medium whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
                           <td className="px-3 py-2 text-right font-mono">{row.duration}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyStart)}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyFinish)}</td>
@@ -1301,14 +1487,14 @@ export default function ScheduleReports() {
                           <td className={`px-3 py-2 text-right font-mono ${floatColor(row.totalFloat)}`}>{fmtFloat(row.totalFloat)}</td>
                           <td className="px-3 py-2 text-center">{row.isCritical ? "Yes" : ""}</td>
                           <td className="px-3 py-2 text-right font-mono">{row.percentComplete}%</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{row.constraintType !== "ASAP" ? row.constraintType : ""}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-gray-600 font-medium">{row.constraintType !== "ASAP" ? row.constraintType : ""}</td>
                         </>
                       )}
                       {reportType === "criticalPath" && (
                         <>
                           <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{row.activityId}</td>
                           <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
+                          <td className="px-3 py-2 text-gray-600 font-medium whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
                           <td className="px-3 py-2 text-right font-mono">{row.duration}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyStart)}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyFinish)}</td>
@@ -1323,7 +1509,7 @@ export default function ScheduleReports() {
                         <>
                           <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{row.activityId}</td>
                           <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
+                          <td className="px-3 py-2 text-gray-600 font-medium whitespace-nowrap">{row.wbsName || row.wbsCode || "—"}</td>
                           <td className="px-3 py-2 text-right font-mono font-bold">{row.duration}</td>
                           <td className="px-3 py-2 text-right font-mono">{row.remainingDuration ?? "—"}</td>
                           <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.earlyStart)}</td>
@@ -1368,7 +1554,7 @@ export default function ScheduleReports() {
             </div>
 
             {/* Print footer */}
-            <div className="hidden print:block mt-4 pt-2 border-t border-gray-300 text-xs text-gray-500">
+            <div className="hidden print:block mt-4 pt-2 border-t border-gray-300 text-xs text-gray-700">
               <div className="flex justify-between">
                 <span>ALP Contractor Circle — CPM Schedule Builder</span>
                 <span>Page 1 of 1</span>
@@ -1391,7 +1577,7 @@ export default function ScheduleReports() {
                 <Calendar className="w-5 h-5 text-blue-600" />
                 <div>
                   <span className="text-sm font-medium">Calendar-Adjusted Capacity</span>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="text-xs text-gray-600 font-medium ml-2">
                     Using {levelingData.calendarInfo.calendarsUsed} calendar{levelingData.calendarInfo.calendarsUsed > 1 ? "s" : ""}
                     {levelingData.calendarInfo.defaultCalendar && ` (default: ${levelingData.calendarInfo.defaultCalendar})`}
                     {levelingData.calendarInfo.exceptionsApplied > 0 && ` · ${levelingData.calendarInfo.exceptionsApplied} exception${levelingData.calendarInfo.exceptionsApplied > 1 ? "s" : ""} applied`}
@@ -1403,17 +1589,17 @@ export default function ScheduleReports() {
             {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card><CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground">Over-Allocations</div>
+                <div className="text-sm text-gray-600 font-medium">Over-Allocations</div>
                 <div className={`text-2xl font-bold ${levelingData.overAllocations.length > 0 ? "text-red-600" : "text-green-600"}`}>
                   {levelingData.overAllocations.length}
                 </div>
               </CardContent></Card>
               <Card><CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground">Suggestions</div>
+                <div className="text-sm text-gray-600 font-medium">Suggestions</div>
                 <div className="text-2xl font-bold text-amber-600">{levelingData.suggestions.length}</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground">Status</div>
+                <div className="text-sm text-gray-600 font-medium">Status</div>
                 <div className={`text-lg font-bold ${levelingData.overAllocations.length === 0 ? "text-green-600" : "text-amber-600"}`}>
                   {levelingData.overAllocations.length === 0 ? "All Resources Balanced" : "Needs Attention"}
                 </div>
@@ -1437,7 +1623,7 @@ export default function ScheduleReports() {
                           s.severity === "medium" ? "bg-amber-200 text-amber-800" :
                           "bg-blue-200 text-blue-800"
                         }`}>{s.severity}</span>
-                        <span className="text-xs text-muted-foreground">{s.type === "split" ? "Stagger Activities" : "Reduce Load"}</span>
+                        <span className="text-xs text-gray-600 font-medium">{s.type === "split" ? "Stagger Activities" : "Reduce Load"}</span>
                       </div>
                       <p className="text-sm">{s.message}</p>
                     </div>
@@ -1482,7 +1668,7 @@ export default function ScheduleReports() {
               <div className="text-center py-12">
                 <Activity className="w-12 h-12 mx-auto text-green-500 mb-4" />
                 <h3 className="text-lg font-semibold text-green-700">No Over-Allocations Detected</h3>
-                <p className="text-muted-foreground mt-1">All resources are within capacity across the project timeline.</p>
+                <p className="text-gray-600 font-medium mt-1">All resources are within capacity across the project timeline.</p>
               </div>
             )}
           </>
@@ -1493,21 +1679,277 @@ export default function ScheduleReports() {
           <EvmDashboard data={evmData} baselineData={evmBaselineData} />
         )}
 
+        {/* ── Delay Analysis ────────────────────────────────────────── */}
+        {reportType === "delayAnalysis" && !isLoading && delayData && (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-3xl font-bold text-red-600">{delayData.summary.totalImpacted}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Impacted Activities</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-3xl font-bold text-orange-600">{delayData.summary.criticalDelays}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Critical Delays</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-3xl font-bold text-amber-600">{delayData.summary.avgDelay}d</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Average Delay</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-3xl font-bold text-red-700">{delayData.summary.maxDelay}d</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Maximum Delay</div>
+              </CardContent></Card>
+            </div>
+
+            {/* Baseline info */}
+            <Card><CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-700 font-medium">Comparing against: <span className="font-bold text-gray-900">{delayData.baselineName}</span></div>
+                  {delayData.baselineDate && <div className="text-xs text-gray-600 mt-0.5">Baseline date: {fmtDate(delayData.baselineDate)}</div>}
+                </div>
+                {delayData.suggestedAnnotations.length > 0 && (
+                  <Button size="sm" variant="default" onClick={() => {
+                    // Navigate back to scheduler with annotations
+                    const params = new URLSearchParams({ annotations: JSON.stringify(delayData.suggestedAnnotations) });
+                    window.history.pushState({}, "", `/scheduler/${scheduleId}?${params}`);
+                    window.location.href = `/scheduler/${scheduleId}?${params}`;
+                  }}>
+                    Apply Annotations to Gantt
+                  </Button>
+                )}
+              </div>
+            </CardContent></Card>
+
+            {/* Impacted Activities Table */}
+            {delayData.impactedActivities.length > 0 && (
+              <Card><CardContent className="pt-4 pb-4">
+                <h3 className="text-lg font-bold mb-3">Impacted Activities</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">Activity ID</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">Name</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">WBS</th>
+                        <th className="text-center py-2 px-3 font-bold text-gray-900">Critical</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">TF</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">BL Start</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">Cur Start</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Start Delay</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">BL Finish</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">Cur Finish</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Finish Delay</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Max Delay</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {delayData.impactedActivities.map((imp: any, i: number) => (
+                        <tr key={i} className={`border-b ${imp.isCritical ? "bg-red-50" : ""} hover:bg-gray-50`}>
+                          <td className="py-2 px-3 font-mono text-xs font-semibold">{imp.activityId}</td>
+                          <td className="py-2 px-3 font-medium max-w-[200px] truncate">{imp.name}</td>
+                          <td className="py-2 px-3 text-xs text-gray-700">{imp.wbs}</td>
+                          <td className="py-2 px-3 text-center">{imp.isCritical ? <span className="text-red-600 font-bold">YES</span> : <span className="text-gray-500">No</span>}</td>
+                          <td className={`py-2 px-3 text-right ${floatColor(imp.totalFloat)}`}>{fmtFloat(imp.totalFloat)}</td>
+                          <td className="py-2 px-3 text-xs">{fmtDate(imp.baselineStart)}</td>
+                          <td className="py-2 px-3 text-xs">{fmtDate(imp.currentStart)}</td>
+                          <td className={`py-2 px-3 text-right font-semibold ${imp.startDelay > 0 ? "text-red-600" : "text-green-600"}`}>+{imp.startDelay}d</td>
+                          <td className="py-2 px-3 text-xs">{fmtDate(imp.baselineFinish)}</td>
+                          <td className="py-2 px-3 text-xs">{fmtDate(imp.currentFinish)}</td>
+                          <td className={`py-2 px-3 text-right font-semibold ${imp.finishDelay > 0 ? "text-red-600" : "text-green-600"}`}>+{imp.finishDelay}d</td>
+                          <td className="py-2 px-3 text-right font-bold text-red-700">+{imp.maxDelay}d</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent></Card>
+            )}
+          </div>
+        )}
+
+        {reportType === "delayAnalysis" && !delayBaselineId && (
+          <div className="text-center py-20">
+            <GitCompare className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold">Select a baseline to analyze delays</h3>
+            <p className="text-gray-600 font-medium mt-1">Choose a baseline from the dropdown above to compare against the current schedule.</p>
+          </div>
+        )}
+
+        {/* ── Cost Forecast ────────────────────────────────────────────── */}
+        {reportType === "costForecast" && !isLoading && forecastData && (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">{fmtCurrency(forecastData.BAC)}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Budget at Completion (BAC)</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-2xl font-bold text-green-600">{fmtCurrency(forecastData.BCWP)}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Earned Value (BCWP)</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className="text-2xl font-bold text-red-600">{fmtCurrency(forecastData.ACWP)}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Actual Cost (ACWP)</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4 text-center">
+                <div className={`text-2xl font-bold ${forecastData.EAC > forecastData.BAC ? "text-red-600" : "text-green-600"}`}>{fmtCurrency(forecastData.EAC)}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Estimate at Completion (EAC)</div>
+              </CardContent></Card>
+            </div>
+
+            {/* Performance indices */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card><CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-700 font-medium">Cost Performance Index (CPI)</div>
+                    <div className={`text-3xl font-bold ${forecastData.CPI >= 1 ? "text-green-600" : "text-red-600"}`}>{forecastData.CPI.toFixed(2)}</div>
+                  </div>
+                  <div className={`text-sm font-medium px-3 py-1 rounded-full ${forecastData.CPI >= 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                    {forecastData.CPI >= 1 ? "Under Budget" : "Over Budget"}
+                  </div>
+                </div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-700 font-medium">Schedule Performance Index (SPI)</div>
+                    <div className={`text-3xl font-bold ${forecastData.SPI >= 1 ? "text-green-600" : "text-red-600"}`}>{forecastData.SPI.toFixed(2)}</div>
+                  </div>
+                  <div className={`text-sm font-medium px-3 py-1 rounded-full ${forecastData.SPI >= 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                    {forecastData.SPI >= 1 ? "Ahead of Schedule" : "Behind Schedule"}
+                  </div>
+                </div>
+              </CardContent></Card>
+            </div>
+
+            {/* Forecast S-Curve Chart */}
+            {forecastData.forecast.length > 0 && (
+              <Card><CardContent className="pt-4 pb-4">
+                <h3 className="text-lg font-bold mb-3">Cost Forecast S-Curve</h3>
+                <CostForecastChart data={forecastData.forecast} bac={forecastData.BAC} eac={forecastData.EAC} />
+              </CardContent></Card>
+            )}
+
+            {/* Forecast Table */}
+            {forecastData.forecast.length > 0 && (
+              <Card><CardContent className="pt-4 pb-4">
+                <h3 className="text-lg font-bold mb-3">Weekly Forecast Data</h3>
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-2 px-3 font-bold text-gray-900">Week</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Planned Value</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Earned Value</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Actual Cost</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-900">Forecast (EAC)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forecastData.forecast.map((row: any, i: number) => (
+                        <tr key={i} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3 font-medium">{fmtWeek(row.week)}</td>
+                          <td className="py-2 px-3 text-right text-blue-600 font-medium">{fmtCurrency(row.planned)}</td>
+                          <td className="py-2 px-3 text-right text-green-600 font-medium">{fmtCurrency(row.earned)}</td>
+                          <td className="py-2 px-3 text-right text-red-600 font-medium">{fmtCurrency(row.actual)}</td>
+                          <td className="py-2 px-3 text-right text-purple-600 font-medium">{fmtCurrency(row.forecastEAC)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent></Card>
+            )}
+          </div>
+        )}
+
+        {/* ── Health Score Dashboard ────────────────────────────────────── */}
+        {reportType === "healthScore" && !isLoading && healthData && (
+          <div className="space-y-6">
+            {/* Overall Score */}
+            <div className="flex justify-center">
+              <Card className="w-full max-w-md"><CardContent className="pt-6 pb-6 text-center">
+                <div className="relative inline-flex items-center justify-center">
+                  <svg className="w-40 h-40" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                    <circle cx="60" cy="60" r="50" fill="none"
+                      stroke={healthData.overallScore >= 80 ? "#22c55e" : healthData.overallScore >= 60 ? "#f59e0b" : "#ef4444"}
+                      strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={`${healthData.overallScore * 3.14} 314`}
+                      transform="rotate(-90 60 60)" />
+                    <text x="60" y="55" textAnchor="middle" className="text-3xl font-bold" fill="currentColor" fontSize="28">{healthData.overallScore}</text>
+                    <text x="60" y="75" textAnchor="middle" fill="#6b7280" fontSize="14">/ 100</text>
+                  </svg>
+                </div>
+                <div className={`text-4xl font-bold mt-2 ${
+                  healthData.grade === "A" ? "text-green-600" :
+                  healthData.grade === "B" ? "text-blue-600" :
+                  healthData.grade === "C" ? "text-amber-600" :
+                  healthData.grade === "D" ? "text-orange-600" : "text-red-600"
+                }`}>Grade: {healthData.grade}</div>
+                <div className="text-sm text-gray-700 font-medium mt-1">Schedule Health Score</div>
+              </CardContent></Card>
+            </div>
+
+            {/* Component Scores */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {healthData.components.map((comp: any, i: number) => (
+                <Card key={i}><CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-gray-900">{comp.name}</div>
+                    <div className={`text-lg font-bold ${
+                      comp.score >= 80 ? "text-green-600" :
+                      comp.score >= 60 ? "text-amber-600" : "text-red-600"
+                    }`}>{comp.score}/100</div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                    <div className={`h-2.5 rounded-full ${
+                      comp.score >= 80 ? "bg-green-500" :
+                      comp.score >= 60 ? "bg-amber-500" : "bg-red-500"
+                    }`} style={{ width: `${comp.score}%` }} />
+                  </div>
+                  <div className="text-xs text-gray-600 font-medium">{comp.details}</div>
+                  <div className="text-xs text-gray-500 mt-1">Weight: {comp.weight}%</div>
+                </CardContent></Card>
+              ))}
+            </div>
+
+            {/* Recommendations */}
+            <Card><CardContent className="pt-4 pb-4">
+              <h3 className="text-lg font-bold mb-3">Recommendations</h3>
+              <ul className="space-y-2">
+                {healthData.recommendations.map((rec: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                      rec.includes("good health") ? "text-green-500" : "text-amber-500"
+                    }`} />
+                    <span className="text-sm text-gray-800 font-medium">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent></Card>
+          </div>
+        )}
+
         {/* Empty state */}
         {!isLoading && !isSpecialReport && (!reportData?.rows || reportData.rows.length === 0) && reportType !== "comparison" && !isChartReport && (
           <div className="text-center py-20">
-            <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <FileText className="w-12 h-12 mx-auto text-gray-600 font-medium/50 mb-4" />
             <h3 className="text-lg font-semibold">No data available</h3>
-            <p className="text-muted-foreground mt-1">Run the CPM calculation first to generate report data.</p>
+            <p className="text-gray-600 font-medium mt-1">Run the CPM calculation first to generate report data.</p>
           </div>
         )}
 
         {/* Empty state for chart reports */}
         {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && isChartReport && (
           <div className="text-center py-20">
-            <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <DollarSign className="w-12 h-12 mx-auto text-gray-600 font-medium/50 mb-4" />
             <h3 className="text-lg font-semibold">No resource data available</h3>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-gray-600 font-medium mt-1">
               Assign resources to activities with budgeted costs first. Use the Resources panel in the scheduler to add resources and assign them to activities.
             </p>
           </div>
@@ -1515,9 +1957,9 @@ export default function ScheduleReports() {
 
         {reportType === "comparison" && !baselineId && (
           <div className="text-center py-20">
-            <GitCompare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <GitCompare className="w-12 h-12 mx-auto text-gray-600 font-medium/50 mb-4" />
             <h3 className="text-lg font-semibold">Select a baseline to compare</h3>
-            <p className="text-muted-foreground mt-1">Choose a baseline or update snapshot from the dropdown above.</p>
+            <p className="text-gray-600 font-medium mt-1">Choose a baseline or update snapshot from the dropdown above.</p>
           </div>
         )}
       </div>

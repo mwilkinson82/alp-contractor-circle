@@ -2225,4 +2225,312 @@ export const scheduleRouter = router({
         trendData,
       };
     }),
+
+  // ─── Delay Analysis Wizard ──────────────────────────────────────────────
+  delayAnalysis: publicProcedure
+    .input(z.object({ scheduleId: z.number(), baselineId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      await requireMember(ctx.req);
+      const activities = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const baseline = await sdb.getBaselineById(input.baselineId);
+      if (!baseline) throw new TRPCError({ code: "NOT_FOUND", message: "Baseline not found" });
+      const blSnap: any[] = typeof baseline.activitiesSnapshot === "string" ? JSON.parse(baseline.activitiesSnapshot) : (baseline.activitiesSnapshot as any[]) || [];
+      const blMap = new Map<string, any>();
+      for (const s of blSnap) blMap.set(s.activityId || `A${s.id}`, s);
+
+      const impacted: any[] = [];
+      let totalDelayDays = 0;
+      let criticalDelays = 0;
+      let earliestImpactDate: Date | null = null;
+      let latestImpactDate: Date | null = null;
+
+      for (const act of activities) {
+        const actId = act.activityId || `A${act.id}`;
+        const bl = blMap.get(actId);
+        if (!bl) continue;
+        const curES = act.earlyStart ? new Date(act.earlyStart) : null;
+        const blES = bl.earlyStart ? new Date(bl.earlyStart) : null;
+        const curEF = act.earlyFinish ? new Date(act.earlyFinish) : null;
+        const blEF = bl.earlyFinish ? new Date(bl.earlyFinish) : null;
+        if (!curES || !blES) continue;
+        const startDelay = Math.round((curES.getTime() - blES.getTime()) / 86400000);
+        const finishDelay = curEF && blEF ? Math.round((curEF.getTime() - blEF.getTime()) / 86400000) : 0;
+        const maxDelay = Math.max(startDelay, finishDelay);
+        if (maxDelay <= 0) continue;
+        const isCritical = (act.totalFloat ?? 999) <= 0;
+        if (isCritical) criticalDelays++;
+        totalDelayDays += maxDelay;
+        if (!earliestImpactDate || blES < earliestImpactDate) earliestImpactDate = blES;
+        if (!latestImpactDate || (curEF && curEF > latestImpactDate)) latestImpactDate = curEF;
+        impacted.push({
+          activityId: actId,
+          name: act.name,
+          wbs: act.wbs || "",
+          isCritical,
+          totalFloat: act.totalFloat ?? null,
+          baselineStart: blES.toISOString(),
+          baselineFinish: blEF?.toISOString() || null,
+          currentStart: curES.toISOString(),
+          currentFinish: curEF?.toISOString() || null,
+          startDelay,
+          finishDelay,
+          maxDelay,
+        });
+      }
+      impacted.sort((a, b) => b.maxDelay - a.maxDelay);
+
+      // Auto-generate annotation suggestions
+      const annotations: any[] = [];
+      // Group by delay periods for shading
+      if (impacted.length > 0) {
+        const topImpacted = impacted.slice(0, 10);
+        for (const imp of topImpacted) {
+          if (imp.startDelay > 5) {
+            annotations.push({
+              type: "shading",
+              label: `Delay: ${imp.name} (+${imp.maxDelay}d)`,
+              startDate: imp.baselineStart,
+              endDate: imp.currentStart,
+              color: imp.isCritical ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
+              pattern: imp.isCritical ? "crosshatch" : "hatch",
+            });
+          }
+        }
+        // Add a text annotation for the summary
+        annotations.push({
+          type: "text",
+          label: `Delay Impact: ${impacted.length} activities, ${criticalDelays} critical, avg ${Math.round(totalDelayDays / impacted.length)}d delay`,
+          x: 50, y: 30,
+        });
+      }
+
+      return {
+        summary: {
+          totalImpacted: impacted.length,
+          criticalDelays,
+          avgDelay: impacted.length > 0 ? Math.round(totalDelayDays / impacted.length) : 0,
+          maxDelay: impacted.length > 0 ? impacted[0].maxDelay : 0,
+          earliestImpact: earliestImpactDate?.toISOString() || null,
+          latestImpact: latestImpactDate?.toISOString() || null,
+        },
+        impactedActivities: impacted,
+        suggestedAnnotations: annotations,
+        baselineName: baseline.name,
+        baselineDate: baseline.dataDate?.toISOString() || baseline.createdAt?.toISOString() || null,
+      };
+    }),
+
+  // ─── Cost Forecasting ──────────────────────────────────────────────────
+  costForecast: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      await requireMember(ctx.req);
+      const activities = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+
+      // Build cost per activity
+      const actCostMap = new Map<number, { budgeted: number; actual: number }>();
+      for (const a of assignments) {
+        const prev = actCostMap.get(a.activityId) || { budgeted: 0, actual: 0 };
+        prev.budgeted += Number(a.budgetedCost) || 0;
+        prev.actual += Number(a.actualCost) || 0;
+        actCostMap.set(a.activityId, prev);
+      }
+
+      const BAC = Array.from(actCostMap.values()).reduce((s, v) => s + v.budgeted, 0);
+      const ACWP = Array.from(actCostMap.values()).reduce((s, v) => s + v.actual, 0);
+
+      // Compute earned value
+      let BCWP = 0;
+      for (const act of activities) {
+        const pct = parseFloat(act.percentComplete as any) || 0;
+        const cost = actCostMap.get(act.id);
+        if (cost) BCWP += cost.budgeted * (pct / 100);
+      }
+
+      const CPI = ACWP > 0 ? BCWP / ACWP : 1;
+      const SPI = BAC > 0 ? BCWP / (BAC * 0.5) : 1; // simplified
+
+      // Build weekly cumulative forecast
+      const allDates = activities.flatMap(a => [
+        a.earlyStart ? new Date(a.earlyStart).getTime() : null,
+        a.earlyFinish ? new Date(a.earlyFinish).getTime() : null,
+      ]).filter(Boolean) as number[];
+      if (allDates.length === 0) return { forecast: [], BAC, ACWP, BCWP, CPI, SPI, EAC: BAC, ETC: BAC - ACWP };
+
+      const minDate = new Date(Math.min(...allDates));
+      const maxDate = new Date(Math.max(...allDates));
+      // Extend forecast 25% beyond current end
+      const projectDuration = maxDate.getTime() - minDate.getTime();
+      const forecastEnd = new Date(maxDate.getTime() + projectDuration * 0.25);
+
+      const EAC = CPI > 0 ? BAC / CPI : BAC * 2;
+      const ETC = EAC - ACWP;
+
+      // Generate weekly data points
+      const forecast: { week: string; planned: number; earned: number; actual: number; forecastEAC: number }[] = [];
+      const weekMs = 7 * 86400000;
+      let cumPlanned = 0;
+      let cumEarned = 0;
+      let cumActual = 0;
+
+      const totalWeeks = Math.ceil((forecastEnd.getTime() - minDate.getTime()) / weekMs);
+      const dataWeeks = Math.ceil((maxDate.getTime() - minDate.getTime()) / weekMs) || 1;
+
+      for (let w = 0; w <= totalWeeks; w++) {
+        const weekDate = new Date(minDate.getTime() + w * weekMs);
+        const weekStr = weekDate.toISOString().split("T")[0];
+        const progress = Math.min(w / dataWeeks, 1);
+
+        // S-curve (sigmoid) for planned value
+        const x = progress * 6 - 3; // map to [-3, 3]
+        const sigmoid = 1 / (1 + Math.exp(-x));
+        cumPlanned = BAC * sigmoid;
+
+        // Earned follows actual progress (CPI-adjusted)
+        if (w <= dataWeeks) {
+          cumEarned = BCWP * progress;
+          cumActual = ACWP * progress;
+        }
+
+        // Forecast line: from current actual, project to EAC using CPI
+        const forecastVal = w <= dataWeeks
+          ? cumActual
+          : ACWP + (ETC * ((w - dataWeeks) / (totalWeeks - dataWeeks)));
+
+        forecast.push({
+          week: weekStr,
+          planned: Math.round(cumPlanned),
+          earned: Math.round(cumEarned),
+          actual: Math.round(cumActual),
+          forecastEAC: Math.round(forecastVal),
+        });
+      }
+
+      return { forecast, BAC: Math.round(BAC), ACWP: Math.round(ACWP), BCWP: Math.round(BCWP), CPI: Math.round(CPI * 100) / 100, SPI: Math.round(SPI * 100) / 100, EAC: Math.round(EAC), ETC: Math.round(ETC) };
+    }),
+
+  // ─── Schedule Health Score ─────────────────────────────────────────────
+  healthScore: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      await requireMember(ctx.req);
+      const activities = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+      const rels = await sdb.getRelationshipsBySchedule(input.scheduleId);
+
+      if (activities.length === 0) {
+        return {
+          overallScore: 0, grade: "N/A", components: [],
+          recommendations: ["Import or add activities to generate a health score."],
+        };
+      }
+
+      const components: { name: string; score: number; weight: number; details: string }[] = [];
+
+      // 1. Float Distribution (25%) — healthy schedules have varied float, not all zero or all huge
+      const floats = activities.map(a => a.totalFloat ?? 0);
+      const avgFloat = floats.reduce((s, f) => s + f, 0) / floats.length;
+      const criticalCount = floats.filter(f => f <= 0).length;
+      const criticalRatio = criticalCount / activities.length;
+      // Ideal: 10-20% critical, avg float 10-30d
+      let floatScore = 100;
+      if (criticalRatio > 0.5) floatScore -= (criticalRatio - 0.5) * 100;
+      if (criticalRatio < 0.05 && activities.length > 10) floatScore -= 20; // suspiciously few critical
+      if (avgFloat > 60) floatScore -= 15; // too much float = loose schedule
+      if (avgFloat < 3) floatScore -= 20; // too tight
+      floatScore = Math.max(0, Math.min(100, floatScore));
+      components.push({
+        name: "Float Distribution",
+        score: Math.round(floatScore),
+        weight: 25,
+        details: `${criticalCount}/${activities.length} critical (${Math.round(criticalRatio * 100)}%), avg float ${Math.round(avgFloat)}d`,
+      });
+
+      // 2. Critical Path Integrity (25%) — critical path should be continuous and logical
+      const criticalActs = activities.filter(a => (a.totalFloat ?? 999) <= 0);
+      const criticalIds = new Set(criticalActs.map(a => a.id));
+      // Check if critical activities have relationships
+      const critWithRels = criticalActs.filter(a => rels.some(r => r.predecessorId === a.id || r.successorId === a.id));
+      const cpConnectivity = criticalActs.length > 0 ? critWithRels.length / criticalActs.length : 0;
+      let cpScore = cpConnectivity * 100;
+      // Penalize if no critical path exists
+      if (criticalActs.length === 0 && activities.length > 5) cpScore = 40;
+      cpScore = Math.max(0, Math.min(100, cpScore));
+      components.push({
+        name: "Critical Path Integrity",
+        score: Math.round(cpScore),
+        weight: 25,
+        details: `${criticalActs.length} critical activities, ${Math.round(cpConnectivity * 100)}% connected`,
+      });
+
+      // 3. Logic Density (20%) — activities should have predecessors and successors
+      const actWithPred = new Set(rels.map(r => r.successorId));
+      const actWithSucc = new Set(rels.map(r => r.predecessorId));
+      const openEnds = activities.filter(a => !actWithPred.has(a.id) && !actWithSucc.has(a.id)).length;
+      const dangling = activities.filter(a => !actWithPred.has(a.id) || !actWithSucc.has(a.id)).length;
+      const logicRatio = activities.length > 0 ? 1 - (openEnds / activities.length) : 0;
+      const danglingRatio = activities.length > 0 ? dangling / activities.length : 0;
+      let logicScore = logicRatio * 80 + 20;
+      if (danglingRatio > 0.3) logicScore -= (danglingRatio - 0.3) * 50;
+      logicScore = Math.max(0, Math.min(100, logicScore));
+      components.push({
+        name: "Logic Density",
+        score: Math.round(logicScore),
+        weight: 20,
+        details: `${openEnds} open-ended, ${dangling} missing pred/succ, ${rels.length} relationships`,
+      });
+
+      // 4. Resource Balance (15%) — activities should have resource assignments
+      const actsWithResources = new Set(assignments.map(a => a.activityId));
+      const resourceCoverage = activities.length > 0 ? actsWithResources.size / activities.length : 0;
+      let resourceScore = resourceCoverage * 100;
+      if (assignments.length === 0) resourceScore = 30; // no resources loaded
+      resourceScore = Math.max(0, Math.min(100, resourceScore));
+      components.push({
+        name: "Resource Balance",
+        score: Math.round(resourceScore),
+        weight: 15,
+        details: `${actsWithResources.size}/${activities.length} activities resourced (${Math.round(resourceCoverage * 100)}%)`,
+      });
+
+      // 5. Schedule Progress (15%) — actual progress vs planned
+      const totalPct = activities.reduce((s, a) => s + (parseFloat(a.percentComplete as any) || 0), 0);
+      const avgPct = totalPct / activities.length;
+      let progressScore = 100;
+      // Check for stale schedule (all 0% or all 100%)
+      if (avgPct === 0 && activities.length > 5) progressScore = 50;
+      else if (avgPct === 100) progressScore = 100;
+      else progressScore = 60 + avgPct * 0.4; // scale 60-100
+      progressScore = Math.max(0, Math.min(100, progressScore));
+      components.push({
+        name: "Schedule Progress",
+        score: Math.round(progressScore),
+        weight: 15,
+        details: `Average completion: ${Math.round(avgPct)}%`,
+      });
+
+      // Weighted overall score
+      const overallScore = Math.round(
+        components.reduce((s, c) => s + c.score * (c.weight / 100), 0)
+      );
+
+      // Grade
+      let grade = "F";
+      if (overallScore >= 90) grade = "A";
+      else if (overallScore >= 80) grade = "B";
+      else if (overallScore >= 70) grade = "C";
+      else if (overallScore >= 60) grade = "D";
+
+      // Recommendations
+      const recommendations: string[] = [];
+      if (floatScore < 70) recommendations.push(criticalRatio > 0.5 ? "Too many critical activities — review logic ties and add buffer." : "Float distribution is unusual — verify schedule logic.");
+      if (cpScore < 70) recommendations.push("Critical path connectivity is weak — ensure all critical activities have logical ties.");
+      if (logicScore < 70) recommendations.push(`${openEnds} activities have no relationships — add predecessors and successors.`);
+      if (resourceScore < 70) recommendations.push("Resource loading is incomplete — assign resources to improve cost tracking.");
+      if (progressScore < 60) recommendations.push("Schedule appears stale — update percent complete values.");
+      if (recommendations.length === 0) recommendations.push("Schedule is in good health. Continue regular updates.");
+
+      return { overallScore, grade, components, recommendations };
+    }),
 });

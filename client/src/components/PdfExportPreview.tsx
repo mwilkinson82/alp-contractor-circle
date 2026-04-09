@@ -557,7 +557,7 @@ export function PdfExportPreview({
     <div className="space-y-1.5">
       {columns.map((col, idx) => (
         <div key={idx}>
-          <Label className="text-[9px] text-gray-400 mb-0.5 block">{getColLabel(idx, columnCount)}</Label>
+          <Label className="text-[9px] text-gray-600 mb-0.5 block">{getColLabel(idx, columnCount)}</Label>
           <Select value={col.content} onValueChange={(v) => handleColumnContentChange(type, idx, v)}>
             <SelectTrigger className="border-gray-300 text-[11px] h-7 w-full">
               <SelectValue />
@@ -633,7 +633,7 @@ export function PdfExportPreview({
           <DialogTitle className="font-semibold text-gray-900 flex items-center gap-2">
             <Eye className="w-5 h-5 text-blue-600" /> PDF Export Preview
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-500">
+          <DialogDescription className="text-sm text-gray-700">
             True-to-scale preview. Change paper size and orientation to see exactly how your schedule will print.
           </DialogDescription>
         </DialogHeader>
@@ -644,10 +644,10 @@ export function PdfExportPreview({
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Live Preview</span>
+                  <FileText className="w-4 h-4 text-gray-600" />
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Live Preview</span>
                 </div>
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[10px] text-gray-600">
                   {PAPER_SIZES[pageSize].label} — {orientation === "landscape" ? "Landscape" : "Portrait"} — {paperDims.w}" × {paperDims.h}"
                 </span>
               </div>
@@ -668,7 +668,7 @@ export function PdfExportPreview({
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 text-center mt-1.5">
+              <p className="text-[10px] text-gray-600 text-center mt-1.5">
                 {previewActivities.length} activities {criticalPathOnly ? "(critical path only)" : ""} — Full PDF will paginate automatically
               </p>
             </div>
@@ -677,9 +677,9 @@ export function PdfExportPreview({
             <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto">
               {/* Page Settings */}
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-3">
-                <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Page Settings</Label>
+                <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider block">Page Settings</Label>
                 <div>
-                  <Label className="text-[10px] text-gray-500 mb-0.5 block">Paper Size</Label>
+                  <Label className="text-[10px] text-gray-700 mb-0.5 block">Paper Size</Label>
                   <Select value={pageSize} onValueChange={(v) => setPageSize(v as any)}>
                     <SelectTrigger className="border-gray-300 text-xs h-8">
                       <SelectValue />
@@ -692,7 +692,7 @@ export function PdfExportPreview({
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-[10px] text-gray-500 mb-0.5 block">Orientation</Label>
+                  <Label className="text-[10px] text-gray-700 mb-0.5 block">Orientation</Label>
                   <Select value={orientation} onValueChange={(v) => setOrientation(v as any)}>
                     <SelectTrigger className="border-gray-300 text-xs h-8">
                       <SelectValue />
@@ -707,7 +707,7 @@ export function PdfExportPreview({
 
               {/* Display Options */}
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-2">
-                <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Display</Label>
+                <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider block">Display</Label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={showGantt} onCheckedChange={(c) => setShowGantt(!!c)} />
                   <span className="text-xs text-gray-700">Include Gantt Chart</span>
@@ -732,7 +732,7 @@ export function PdfExportPreview({
 
                   <TabsContent value="header" className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label className="text-[10px] text-gray-500 shrink-0">Columns:</Label>
+                      <Label className="text-[10px] text-gray-700 shrink-0">Columns:</Label>
                       {([3, 5] as const).map(c => (
                         <Button key={c} size="sm" variant={headerColumnCount === c ? "default" : "outline"}
                           className={`h-6 text-[10px] px-2.5 ${headerColumnCount === c ? "bg-blue-600 text-white" : "border-gray-300 text-gray-600"}`}
@@ -744,7 +744,7 @@ export function PdfExportPreview({
 
                     {/* Header Color Picker */}
                     <div className="mt-2 pt-2 border-t border-gray-200">
-                      <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Header Style</Label>
+                      <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider block mb-1.5">Header Style</Label>
                       <div className="grid grid-cols-3 gap-1.5 mb-2">
                         {[
                           { bg: "#0d1b2a", accent: "#c9a84c", text: "#e2e8f0", label: "Navy/Gold" },
@@ -769,17 +769,17 @@ export function PdfExportPreview({
                         ))}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label className="text-[9px] text-gray-400">Custom:</Label>
+                        <Label className="text-[9px] text-gray-600">Custom:</Label>
                         <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-400">BG</label>
+                          <label className="text-[8px] text-gray-600">BG</label>
                           <input type="color" value={headerBgColor === "transparent" ? "#ffffff" : headerBgColor} onChange={e => setHeaderBgColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-400">Accent</label>
+                          <label className="text-[8px] text-gray-600">Accent</label>
                           <input type="color" value={headerAccentColor} onChange={e => setHeaderAccentColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-400">Text</label>
+                          <label className="text-[8px] text-gray-600">Text</label>
                           <input type="color" value={headerTextColor} onChange={e => setHeaderTextColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
                         </div>
                       </div>
@@ -790,7 +790,7 @@ export function PdfExportPreview({
 
                   <TabsContent value="footer" className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label className="text-[10px] text-gray-500 shrink-0">Columns:</Label>
+                      <Label className="text-[10px] text-gray-700 shrink-0">Columns:</Label>
                       {([3, 5] as const).map(c => (
                         <Button key={c} size="sm" variant={footerColumnCount === c ? "default" : "outline"}
                           className={`h-6 text-[10px] px-2.5 ${footerColumnCount === c ? "bg-blue-600 text-white" : "border-gray-300 text-gray-600"}`}

@@ -223,7 +223,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto bg-white text-gray-900 font-medium">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <DollarSign className="h-5 w-5" /> Resources & Cost Loading
@@ -234,25 +234,25 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
         <div className="grid grid-cols-4 gap-3 mb-4">
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Resources</p>
+              <p className="text-sm text-gray-700 font-semibold">Resources</p>
               <p className="text-2xl font-bold">{resources.length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Assignments</p>
+              <p className="text-sm text-gray-700 font-semibold">Assignments</p>
               <p className="text-2xl font-bold">{assignments.length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Budgeted Cost</p>
+              <p className="text-sm text-gray-700 font-semibold">Budgeted Cost</p>
               <p className="text-lg font-bold text-blue-600">{formatCurrency(totalBudgetedCost)}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Actual Cost</p>
+              <p className="text-sm text-gray-700 font-semibold">Actual Cost</p>
               <p className="text-lg font-bold text-green-600">{formatCurrency(totalActualCost)}</p>
             </CardContent>
           </Card>
@@ -268,7 +268,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
           {/* ── Resources Tab ── */}
           <TabsContent value="resources" className="space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">Define labor, equipment, materials, and subcontractors for this schedule.</p>
+              <p className="text-sm text-gray-600 font-medium">Define labor, equipment, materials, and subcontractors for this schedule.</p>
               <Button size="sm" onClick={() => { resetResourceForm(); setShowAddResource(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Add Resource
               </Button>
@@ -279,11 +279,11 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-sm">Name</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Name</Label>
                       <Input value={resName} onChange={(e) => setResName(e.target.value)} placeholder="e.g. Electrician Crew" />
                     </div>
                     <div>
-                      <Label className="text-sm">Type</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Type</Label>
                       <Select value={resType} onValueChange={(v) => setResType(v as any)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -295,19 +295,19 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-sm">Unit</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Unit</Label>
                       <Input value={resUnit} onChange={(e) => setResUnit(e.target.value)} placeholder="hr" />
                     </div>
                     <div>
-                      <Label className="text-sm">Cost Rate ($/unit)</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Cost Rate ($/unit)</Label>
                       <Input type="number" step="0.01" value={resCostRate} onChange={(e) => setResCostRate(e.target.value)} placeholder="0.00" />
                     </div>
                     <div>
-                      <Label className="text-sm">Max Units/Day</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Max Units/Day</Label>
                       <Input value={resMaxUnits} onChange={(e) => setResMaxUnits(e.target.value)} placeholder="8.00" />
                     </div>
                     <div>
-                      <Label className="text-sm">Notes</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Notes</Label>
                       <Input value={resNotes} onChange={(e) => setResNotes(e.target.value)} placeholder="Optional notes" />
                     </div>
                   </div>
@@ -344,7 +344,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
               <TableBody>
                 {resources.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-gray-600 font-medium py-8">
                       No resources defined. Click "Add Resource" to get started.
                     </TableCell>
                   </TableRow>
@@ -363,7 +363,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                       <TableCell>{r.unit}</TableCell>
                       <TableCell className="text-right">{formatCurrency(r.costRate)}</TableCell>
                       <TableCell className="text-right">{String(r.maxUnitsPerDay)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{r.notes || "—"}</TableCell>
+                      <TableCell className="text-gray-600 font-medium text-sm">{r.notes || "—"}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEditResource(r)}>
@@ -384,7 +384,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
           {/* ── Assignments Tab ── */}
           <TabsContent value="assignments" className="space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">Assign resources to activities and track budgeted vs. actual costs.</p>
+              <p className="text-sm text-gray-600 font-medium">Assign resources to activities and track budgeted vs. actual costs.</p>
               <Button size="sm" onClick={() => setShowAssignDialog(true)} disabled={resources.length === 0 || activities.length === 0}>
                 <Plus className="h-4 w-4 mr-1" /> Assign Resource
               </Button>
@@ -395,7 +395,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-sm">Activity</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Activity</Label>
                       <Select value={assignActivityId?.toString() || ""} onValueChange={(v) => setAssignActivityId(Number(v))}>
                         <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
                         <SelectContent>
@@ -408,7 +408,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-sm">Resource</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Resource</Label>
                       <Select value={assignResourceId?.toString() || ""} onValueChange={(v) => setAssignResourceId(Number(v))}>
                         <SelectTrigger><SelectValue placeholder="Select resource" /></SelectTrigger>
                         <SelectContent>
@@ -421,11 +421,11 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-sm">Units/Day</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Units/Day</Label>
                       <Input value={assignUnitsPerDay} onChange={(e) => setAssignUnitsPerDay(e.target.value)} placeholder="8.00" />
                     </div>
                     <div>
-                      <Label className="text-sm">Budgeted Cost ($)</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Budgeted Cost ($)</Label>
                       <Input type="number" step="0.01" value={assignBudgetedCost} onChange={(e) => setAssignBudgetedCost(e.target.value)} placeholder="0.00" />
                     </div>
                   </div>
@@ -451,7 +451,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
               <TableBody>
                 {assignments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-gray-600 font-medium py-8">
                       No resource assignments. Define resources first, then assign them to activities.
                     </TableCell>
                   </TableRow>
@@ -491,7 +491,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
           {/* ── Cost Accounts Tab ── */}
           <TabsContent value="costs" className="space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">Define cost accounts to categorize and track project expenditures.</p>
+              <p className="text-sm text-gray-600 font-medium">Define cost accounts to categorize and track project expenditures.</p>
               <Button size="sm" onClick={() => setShowAddCostAccount(true)}>
                 <Plus className="h-4 w-4 mr-1" /> Add Cost Account
               </Button>
@@ -502,15 +502,15 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label className="text-sm">Code</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Code</Label>
                       <Input value={caCode} onChange={(e) => setCaCode(e.target.value)} placeholder="e.g. 03-CONCRETE" />
                     </div>
                     <div>
-                      <Label className="text-sm">Name</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Name</Label>
                       <Input value={caName} onChange={(e) => setCaName(e.target.value)} placeholder="e.g. Concrete Work" />
                     </div>
                     <div>
-                      <Label className="text-sm">Budget ($)</Label>
+                      <Label className="text-sm font-semibold text-gray-800">Budget ($)</Label>
                       <Input type="number" step="0.01" value={caBudget} onChange={(e) => setCaBudget(e.target.value)} placeholder="0.00" />
                     </div>
                   </div>
@@ -534,7 +534,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
               <TableBody>
                 {costAccounts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-gray-600 font-medium py-8">
                       No cost accounts defined. Click "Add Cost Account" to get started.
                     </TableCell>
                   </TableRow>

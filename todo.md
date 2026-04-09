@@ -1103,3 +1103,36 @@
 - [x] Adjust leveling capacity calculation based on calendar (holidays, weekends, custom)
 - [x] UI — show calendar-adjusted capacity in histogram and leveling reports (calendar info banner)
 - [x] Handle multiple calendars per resource via activity calendarId mapping
+
+## CRITICAL UI FIX — Modal Width & Contrast QA/QC
+- [x] Widen ALL modals/popups to max-w-4xl+ (like PDF print preview width)
+- [x] Fix font contrast — replaced text-muted-foreground with gray-600/700 across all components
+- [x] Increase font weight — added font-medium/font-semibold to labels, descriptions, table text
+- [x] QA resource panel modals — bg-white, text-gray-900, font-medium applied
+- [x] QA report modals and export dialogs — contrast boosted
+- [x] QA annotation modals — gray-300→gray-600 fixed
+- [x] QA settings/configuration modals — all widened and contrast fixed
+- [x] QA import modals — widened to max-w-4xl
+- [x] QA confirmation dialogs — alert-dialog description contrast fixed
+- [x] QA activity detail modal — widened and contrast fixed
+- [x] Consistent width and contrast across all dialogs — CSS variable muted-foreground boosted
+
+## Delay Analysis Wizard
+- [x] Backend — delayAnalysis procedure compares current vs baseline, identifies impacted activities
+- [x] UI — baseline selector, summary cards (impacted/critical/avg/max delay), impacted activities table
+- [x] Auto-generate annotation suggestions (crosshatch for critical, hatch for non-critical delays)
+- [x] Show start delay, finish delay, max delay per activity with color-coded severity
+- [x] Accessible from Reports page as 'Delay Analysis' report type
+
+## Cost Forecasting with S-Curve Projections
+- [x] Extend S-curve chart with projected future costs based on CPI/SPI trends
+- [x] CostForecastChart with PV/EV/AC/Forecast lines, BAC/EAC reference lines
+- [x] Backend costForecast procedure computes weekly forecast data with sigmoid S-curve
+- [x] Summary cards (BAC/BCWP/ACWP/EAC), CPI/SPI performance cards, weekly forecast table
+
+## Schedule Health Score
+- [x] Composite metric: float distribution (25%), critical path (25%), logic density (20%), duration (15%), resource (15%)
+- [x] Single letter grade (A-F) with circular score gauge visualization
+- [x] Backend scheduleHealthScore procedure computes all 5 component scores
+- [x] UI — health score dashboard with gauge, component cards with progress bars, recommendations
+- [x] Breakdown showing individual component scores with details and weights

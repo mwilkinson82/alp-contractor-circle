@@ -261,7 +261,7 @@ export default function GanttAnnotations({
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="pointer-events-auto absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-white/95 backdrop-blur border border-gray-200 rounded-lg shadow-lg px-2 py-1.5">
-        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1">Annotate</span>
+        <span className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider mr-1">Annotate</span>
         <div className="w-px h-5 bg-gray-200" />
         <Button size="sm" variant={tool === "select" ? "default" : "ghost"} className="h-7 w-7 p-0"
           onClick={() => setTool("select")} title="Select / Move">
@@ -286,7 +286,7 @@ export default function GanttAnnotations({
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         )}
-        <span className="text-[10px] text-gray-400 ml-1">
+        <span className="text-[10px] text-gray-600 ml-1">
           {tool === "select" ? "Click to select" :
            tool === "text" ? "Click to place text" :
            tool === "arrow" ? "Drag to draw arrow" :
@@ -308,7 +308,7 @@ export default function GanttAnnotations({
 
           {/* Color picker */}
           <div>
-            <Label className="text-[10px] text-gray-500">Color</Label>
+            <Label className="text-[10px] text-gray-700">Color</Label>
             <div className="flex flex-wrap gap-1 mt-1">
               {COLORS.map(c => (
                 <button
@@ -325,7 +325,7 @@ export default function GanttAnnotations({
           {selected.type === "text" && (
             <>
               <div>
-                <Label className="text-[10px] text-gray-500">Background</Label>
+                <Label className="text-[10px] text-gray-700">Background</Label>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {["#fef3c7", "#fecaca", "#bbf7d0", "#bfdbfe", "#e9d5ff", "#fce7f3", "#f3f4f6", "transparent"].map(c => (
                     <button
@@ -338,7 +338,7 @@ export default function GanttAnnotations({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-gray-500">Size</Label>
+                <Label className="text-[10px] text-gray-700">Size</Label>
                 <Input type="number" className="h-6 w-14 text-xs" value={(selected as TextAnnotation).fontSize}
                   onChange={e => updateAnnotation(selected.id, { fontSize: parseInt(e.target.value) || 13 })} />
                 <Button size="sm" variant={(selected as TextAnnotation).bold ? "default" : "outline"} className="h-6 w-6 p-0 text-xs font-bold"
@@ -352,11 +352,11 @@ export default function GanttAnnotations({
           {/* Arrow-specific props */}
           {selected.type === "arrow" && (
             <div className="flex items-center gap-2">
-              <Label className="text-[10px] text-gray-500">Width</Label>
+              <Label className="text-[10px] text-gray-700">Width</Label>
               <Input type="number" className="h-6 w-14 text-xs" min={1} max={8}
                 value={(selected as ArrowAnnotation).strokeWidth}
                 onChange={e => updateAnnotation(selected.id, { strokeWidth: parseInt(e.target.value) || 2 })} />
-              <Label className="text-[10px] text-gray-500 ml-1">Label</Label>
+              <Label className="text-[10px] text-gray-700 ml-1">Label</Label>
               <Input className="h-6 text-xs flex-1" placeholder="Optional"
                 value={(selected as ArrowAnnotation).label || ""}
                 onChange={e => updateAnnotation(selected.id, { label: e.target.value })} />
@@ -367,15 +367,15 @@ export default function GanttAnnotations({
           {selected.type === "shading" && (
             <>
               <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-gray-500">Opacity</Label>
+                <Label className="text-[10px] text-gray-700">Opacity</Label>
                 <input type="range" min={5} max={60} step={5}
                   value={(selected as ShadingAnnotation).opacity * 100}
                   onChange={e => updateAnnotation(selected.id, { opacity: parseInt(e.target.value) / 100 })}
                   className="flex-1 h-1" />
-                <span className="text-[10px] text-gray-500 w-8">{Math.round((selected as ShadingAnnotation).opacity * 100)}%</span>
+                <span className="text-[10px] text-gray-700 w-8">{Math.round((selected as ShadingAnnotation).opacity * 100)}%</span>
               </div>
               <div>
-                <Label className="text-[10px] text-gray-500">Pattern</Label>
+                <Label className="text-[10px] text-gray-700">Pattern</Label>
                 <Select value={(selected as ShadingAnnotation).pattern}
                   onValueChange={v => updateAnnotation(selected.id, { pattern: v as any })}>
                   <SelectTrigger className="h-7 text-xs mt-1">
@@ -390,7 +390,7 @@ export default function GanttAnnotations({
                 </Select>
               </div>
               <div>
-                <Label className="text-[10px] text-gray-500">Label</Label>
+                <Label className="text-[10px] text-gray-700">Label</Label>
                 <Input className="h-6 text-xs mt-1" placeholder="e.g. Winter Impact Period"
                   value={(selected as ShadingAnnotation).label || ""}
                   onChange={e => updateAnnotation(selected.id, { label: e.target.value })} />
