@@ -141,6 +141,13 @@
       "when": 1775516519122,
       "tag": "0019_confused_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1775737120639,
+      "tag": "0020_pale_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

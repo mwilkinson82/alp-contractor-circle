@@ -34,7 +34,9 @@ import {
   Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
   Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
+  BookOpen, LayoutGrid, Star,
 } from "lucide-react";
+import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 interface ColumnDef {
@@ -444,6 +446,14 @@ export default function Scheduler() {
   const [newWbsCode, setNewWbsCode] = useState("");
   const [newWbsName, setNewWbsName] = useState("");
   const [newWbsParentId, setNewWbsParentId] = useState<string>("");
+  const [showCsiPicker, setShowCsiPicker] = useState(false);
+  const [selectedCsiCodes, setSelectedCsiCodes] = useState<Set<string>>(new Set());
+  const [csiSearch, setCsiSearch] = useState("");
+
+  /* ── Layout State ─────────────────────────────────────────────────────── */
+  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
+  const [layoutName, setLayoutName] = useState("");
+  const [layoutIsDefault, setLayoutIsDefault] = useState(false);
 
   /* ── Activity Code Filter State ───────────────────────────────────────── */
   const [activeFilters, setActiveFilters] = useState<Map<number, Set<number>>>(new Map());
@@ -776,7 +786,82 @@ export default function Scheduler() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  /* ── Handlers ─────────────────────────────────────────────────────────── */
+  /* ── CSI Import Mutation ───────────────────────────────────────────────── */
+  const importCsiMut = trpc.schedule.importCsiDivisions.useMutation({
+    onSuccess: (data) => { utils.schedule.get.invalidate(); toast.success(`Imported ${data.created} CSI divisions`); setSelectedCsiCodes(new Set()); setShowCsiPicker(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /* ── Layout Mutations ─────────────────────────────────────────────────── */
+  const layoutsQuery = trpc.schedule.listLayouts.useQuery(
+    { scheduleId: scheduleId! },
+    { enabled: !!scheduleId }
+  );
+  const layouts = layoutsQuery.data || [];
+
+  const saveLayoutMut = trpc.schedule.saveLayout.useMutation({
+    onSuccess: () => { layoutsQuery.refetch(); toast.success("Layout saved"); setShowLayoutDialog(false); setLayoutName(""); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const deleteLayoutMut = trpc.schedule.deleteLayout.useMutation({
+    onSuccess: () => { layoutsQuery.refetch(); toast.success("Layout deleted"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateLayoutMut = trpc.schedule.updateLayout.useMutation({
+    onSuccess: () => { layoutsQuery.refetch(); toast.success("Layout updated"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const captureLayoutConfig = useCallback(() => {
+    return JSON.stringify({
+      visibleColumns,
+      groupBy,
+      sortState,
+      zoom,
+      customPpd,
+      showArrows,
+      showDataDateLine,
+      showTodayLine,
+      ganttFontSize,
+      ganttFontColor,
+      ganttFontFamily,
+      filterCriticalOnly,
+      filterLongestPath,
+      filterLookahead,
+      filterFloatMin,
+      filterFloatMax,
+      filterDateStart,
+      filterDateEnd,
+      filterOpenEnds,
+    });
+  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds]);
+
+  const applyLayoutConfig = useCallback((configJson: string) => {
+    try {
+      const cfg = JSON.parse(configJson);
+      if (cfg.visibleColumns) setVisibleColumns(cfg.visibleColumns);
+      if (cfg.groupBy !== undefined) setGroupBy(cfg.groupBy);
+      if (cfg.sortState) setSortState(cfg.sortState);
+      if (cfg.zoom) { setZoom(cfg.zoom); if (cfg.customPpd) setCustomPpd(cfg.customPpd); }
+      if (cfg.showArrows !== undefined) setShowArrows(cfg.showArrows);
+      if (cfg.showDataDateLine !== undefined) setShowDataDateLine(cfg.showDataDateLine);
+      if (cfg.showTodayLine !== undefined) setShowTodayLine(cfg.showTodayLine);
+      if (cfg.ganttFontSize) setGanttFontSize(cfg.ganttFontSize);
+      if (cfg.ganttFontColor) setGanttFontColor(cfg.ganttFontColor);
+      if (cfg.ganttFontFamily) setGanttFontFamily(cfg.ganttFontFamily);
+      if (cfg.filterCriticalOnly !== undefined) setFilterCriticalOnly(cfg.filterCriticalOnly);
+      if (cfg.filterLongestPath !== undefined) setFilterLongestPath(cfg.filterLongestPath);
+      if (cfg.filterLookahead) setFilterLookahead(cfg.filterLookahead);
+      if (cfg.filterFloatMin !== undefined) setFilterFloatMin(cfg.filterFloatMin);
+      if (cfg.filterFloatMax !== undefined) setFilterFloatMax(cfg.filterFloatMax);
+      if (cfg.filterDateStart !== undefined) setFilterDateStart(cfg.filterDateStart);
+      if (cfg.filterDateEnd !== undefined) setFilterDateEnd(cfg.filterDateEnd);
+      if (cfg.filterOpenEnds !== undefined) setFilterOpenEnds(cfg.filterOpenEnds);
+      toast.success("Layout applied");
+    } catch { toast.error("Invalid layout config"); }
+  }, []);
+
+  /* ── Handlers ───────────────────────────────────────────────────────────── */
   const handleColumnSort = useCallback((key: string) => {
     setSortState((prev) => {
       if (prev.key !== key) return { key, dir: "asc" };
@@ -1163,6 +1248,30 @@ export default function Scheduler() {
             <DropdownMenuItem onClick={() => setShowGanttSettings(true)}>
               <Settings className="w-4 h-4 mr-2" /> Gantt Display Settings
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <LayoutGrid className="w-4 h-4 mr-2" /> Layouts
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="bg-white border-gray-200 text-gray-900 w-56">
+                <DropdownMenuItem onClick={() => { setLayoutName(""); setLayoutIsDefault(false); setShowLayoutDialog(true); }}>
+                  <Save className="w-4 h-4 mr-2" /> Save Current Layout
+                </DropdownMenuItem>
+                {layouts.length > 0 && <DropdownMenuSeparator />}
+                {layouts.map((layout: any) => (
+                  <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config)}>
+                    {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />}
+                    <span className="flex-1 truncate">{layout.name}</span>
+                    <button
+                      className="ml-2 text-gray-400 hover:text-red-500"
+                      onClick={(e) => { e.stopPropagation(); if (scheduleId) deleteLayoutMut.mutate({ id: layout.id, scheduleId }); }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
               <Download className="w-4 h-4 mr-2" /> Export PDF
@@ -2795,9 +2904,156 @@ export default function Scheduler() {
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add WBS Node
               </Button>
             </div>
+            {/* CSI MasterFormat Library */}
+            <div className="border-t border-gray-200 pt-3">
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={() => setShowCsiPicker(!showCsiPicker)}
+              >
+                <BookOpen className="w-3.5 h-3.5 mr-1" /> {showCsiPicker ? "Hide" : "Import from"} CSI MasterFormat Library
+              </Button>
+              {showCsiPicker && (
+                <div className="mt-3 space-y-2">
+                  <Input
+                    placeholder="Search divisions... (e.g., electrical, concrete)"
+                    value={csiSearch}
+                    onChange={(e) => setCsiSearch(e.target.value)}
+                    className="border-gray-300 text-sm"
+                  />
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+                    {CSI_ACTIVE_DIVISIONS
+                      .filter(d => {
+                        if (!csiSearch) return true;
+                        const q = csiSearch.toLowerCase();
+                        return d.name.toLowerCase().includes(q) || d.code.includes(q) || d.fullName.toLowerCase().includes(q);
+                      })
+                      .map((div) => {
+                        const colors = WBS_GROUP_COLORS[div.group];
+                        const alreadyExists = wbsNodes.some((w: any) => w.code === div.code);
+                        return (
+                          <label
+                            key={div.code}
+                            className={`flex items-center px-3 py-1.5 text-xs hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${alreadyExists ? "opacity-50" : ""}`}
+                          >
+                            <Checkbox
+                              checked={selectedCsiCodes.has(div.code) || alreadyExists}
+                              disabled={alreadyExists}
+                              onCheckedChange={(checked) => {
+                                setSelectedCsiCodes(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(div.code); else next.delete(div.code);
+                                  return next;
+                                });
+                              }}
+                              className="mr-2"
+                            />
+                            <span
+                              className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
+                              style={{ backgroundColor: colors.border }}
+                            />
+                            <span className="font-mono text-gray-500 mr-2 w-6">{div.code}</span>
+                            <span className="text-gray-900">{div.name}</span>
+                            {alreadyExists && <span className="ml-auto text-gray-400 text-[10px]">Added</span>}
+                          </label>
+                        );
+                      })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-gray-300"
+                      onClick={() => {
+                        const allCodes = CSI_ACTIVE_DIVISIONS
+                          .filter(d => !wbsNodes.some((w: any) => w.code === d.code))
+                          .map(d => d.code);
+                        setSelectedCsiCodes(new Set(allCodes));
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-gray-300"
+                      onClick={() => setSelectedCsiCodes(new Set())}
+                    >
+                      Clear
+                    </Button>
+                    <div className="flex-1" />
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs"
+                      disabled={selectedCsiCodes.size === 0 || importCsiMut.isPending}
+                      onClick={() => {
+                        if (scheduleId) {
+                          importCsiMut.mutate({
+                            scheduleId,
+                            divisionCodes: Array.from(selectedCsiCodes),
+                          });
+                        }
+                      }}
+                    >
+                      {importCsiMut.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                      Import {selectedCsiCodes.size} Division{selectedCsiCodes.size !== 1 ? "s" : ""}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowWbsManager(false)} className="border-gray-300">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Save Layout Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
+        <DialogContent className="bg-white border-gray-200 max-w-md text-gray-900">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-gray-900">Save Layout</DialogTitle>
+            <DialogDescription>Save your current view settings (columns, grouping, sort, zoom, filters) as a reusable layout.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-gray-600">Layout Name</Label>
+              <Input
+                value={layoutName}
+                onChange={(e) => setLayoutName(e.target.value)}
+                placeholder="e.g., Critical Path View, By Trade, My Default"
+                className="mt-1 border-gray-300"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <Checkbox
+                checked={layoutIsDefault}
+                onCheckedChange={(c) => setLayoutIsDefault(!!c)}
+              />
+              Set as default layout (auto-loads when opening this schedule)
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLayoutDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={!layoutName.trim() || saveLayoutMut.isPending}
+              onClick={() => {
+                if (scheduleId && layoutName.trim()) {
+                  saveLayoutMut.mutate({
+                    scheduleId,
+                    name: layoutName.trim(),
+                    config: captureLayoutConfig(),
+                    isDefault: layoutIsDefault,
+                  });
+                }
+              }}
+            >
+              {saveLayoutMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+              Save Layout
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

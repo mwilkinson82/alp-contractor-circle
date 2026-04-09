@@ -15,6 +15,7 @@ import {
   projectCalendars,
   calendarExceptions,
   scheduleWbs,
+  scheduleLayouts,
   type InsertSchedule,
   type InsertActivity,
   type InsertActivityRelationship,
@@ -25,6 +26,7 @@ import {
   type InsertProjectCalendar,
   type InsertCalendarException,
   type InsertScheduleWbs,
+  type InsertScheduleLayout,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -395,4 +397,47 @@ export async function deleteWbsNode(id: number) {
 export async function deleteWbsBySchedule(scheduleId: number) {
   const db = requireDb();
   await db.delete(scheduleWbs).where(eq(scheduleWbs.scheduleId, scheduleId));
+}
+
+// ─── Layouts ────────────────────────────────────────────────────────────────
+
+export async function createLayout(data: InsertScheduleLayout) {
+  const db = requireDb();
+  const result = await db.insert(scheduleLayouts).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getLayoutsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db
+    .select()
+    .from(scheduleLayouts)
+    .where(eq(scheduleLayouts.scheduleId, scheduleId))
+    .orderBy(asc(scheduleLayouts.name));
+}
+
+export async function getLayoutById(id: number) {
+  const db = requireDb();
+  const rows = await db.select().from(scheduleLayouts).where(eq(scheduleLayouts.id, id)).limit(1);
+  return rows[0] || null;
+}
+
+export async function updateLayout(id: number, data: Partial<InsertScheduleLayout>) {
+  const db = requireDb();
+  await db.update(scheduleLayouts).set({ ...data, updatedAt: new Date() }).where(eq(scheduleLayouts.id, id));
+}
+
+export async function deleteLayout(id: number) {
+  const db = requireDb();
+  await db.delete(scheduleLayouts).where(eq(scheduleLayouts.id, id));
+}
+
+export async function clearDefaultLayouts(scheduleId: number) {
+  const db = requireDb();
+  await db.update(scheduleLayouts).set({ isDefault: false }).where(eq(scheduleLayouts.scheduleId, scheduleId));
+}
+
+export async function deleteLayoutsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  await db.delete(scheduleLayouts).where(eq(scheduleLayouts.scheduleId, scheduleId));
 }

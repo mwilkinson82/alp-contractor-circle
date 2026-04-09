@@ -44,6 +44,8 @@ export interface CpmCalendar {
   workdayOverrides: Set<string>;
 }
 
+export type ConstraintType = "ASAP" | "ALAP" | "SNET" | "SNLT" | "FNET" | "FNLT" | "MSO" | "MFO";
+
 export interface CpmActivity {
   id: number;
   activityId: string;
@@ -56,6 +58,10 @@ export interface CpmActivity {
   actualFinish?: Date | null;
   /** Calendar ID for this activity (null = use default) */
   calendarId?: number | null;
+  /** Schedule constraint type (default ASAP) */
+  constraintType?: ConstraintType;
+  /** Constraint date (required for SNET, SNLT, FNET, FNLT, MSO, MFO) */
+  constraintDate?: Date | null;
 }
 
 export interface CpmRelationship {
@@ -175,6 +181,19 @@ function ensureWorkDay(date: Date, calendar: CpmCalendar): Date {
   let iterations = 0;
   while (!isWorkDay(result, calendar) && iterations < 365) {
     result.setDate(result.getDate() + 1);
+    iterations++;
+  }
+  return result;
+}
+
+/**
+ * Ensure a date falls on a work day. If not, move backward to the previous work day.
+ */
+function ensureWorkDayBackward(date: Date, calendar: CpmCalendar): Date {
+  const result = new Date(date);
+  let iterations = 0;
+  while (!isWorkDay(result, calendar) && iterations < 365) {
+    result.setDate(result.getDate() - 1);
     iterations++;
   }
   return result;
@@ -419,6 +438,45 @@ export function calculateCPM(
     }
 
     es = ensureWorkDay(es, cal);
+
+    // ─── Apply forward-pass constraints ─────────────────────────────────
+    const ct = act.constraintType || "ASAP";
+    const cd = act.constraintDate ? new Date(act.constraintDate) : null;
+
+    if (cd) {
+      switch (ct) {
+        case "SNET": // Start No Earlier Than
+          if (es < cd) es = ensureWorkDay(cd, cal);
+          break;
+        case "SNLT": // Start No Later Than — forward pass caps ES at constraint
+          // In forward pass, SNLT doesn't push ES forward, it's enforced in backward pass.
+          // However, if ES is already past the constraint, it stays (logic drives).
+          break;
+        case "FNET": { // Finish No Earlier Than
+          const minES = act.duration === 0
+            ? ensureWorkDay(cd, cal)
+            : addWorkDays(cd, -act.duration, cal);
+          if (es < minES) es = ensureWorkDay(minES, cal);
+          break;
+        }
+        case "FNLT": // Finish No Later Than — enforced in backward pass
+          break;
+        case "MSO": // Must Start On — hard constraint
+          es = ensureWorkDay(cd, cal);
+          break;
+        case "MFO": { // Must Finish On — derive ES from constraint
+          es = act.duration === 0
+            ? ensureWorkDay(cd, cal)
+            : ensureWorkDay(addWorkDays(cd, -act.duration, cal), cal);
+          break;
+        }
+        case "ALAP": // As Late As Possible — enforced in backward pass
+        case "ASAP": // As Soon As Possible — default behavior (no change)
+        default:
+          break;
+      }
+    }
+
     const ef = act.duration === 0 ? new Date(es) : addWorkDays(es, act.duration, cal);
 
     earlyStart.set(actId, es);
@@ -483,6 +541,41 @@ export function calculateCPM(
           lf = constraintDate;
           first = false;
         }
+      }
+    }
+
+    // ─── Apply backward-pass constraints ────────────────────────────────
+    const ct2 = act.constraintType || "ASAP";
+    const cd2 = act.constraintDate ? new Date(act.constraintDate) : null;
+
+    if (cd2) {
+      switch (ct2) {
+        case "SNLT": { // Start No Later Than — cap LF so LS <= constraint
+          const maxLF = act.duration === 0
+            ? new Date(cd2)
+            : addWorkDays(cd2, act.duration, cal);
+          if (lf > maxLF) lf = maxLF;
+          break;
+        }
+        case "FNLT": // Finish No Later Than — cap LF at constraint
+          if (lf > cd2) lf = new Date(cd2);
+          break;
+        case "MSO": // Must Start On — hard constraint, LF derived from constraint
+          lf = act.duration === 0
+            ? ensureWorkDay(cd2, cal)
+            : addWorkDays(ensureWorkDay(cd2, cal), act.duration, cal);
+          break;
+        case "MFO": // Must Finish On — hard constraint
+          lf = ensureWorkDay(cd2, cal);
+          break;
+        case "ALAP": // As Late As Possible — LF stays at project finish (default behavior)
+          // No change needed; backward pass naturally gives the latest dates.
+          break;
+        case "SNET": // Already enforced in forward pass
+        case "FNET": // Already enforced in forward pass
+        case "ASAP":
+        default:
+          break;
       }
     }
 

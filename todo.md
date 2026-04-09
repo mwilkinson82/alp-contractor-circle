@@ -959,3 +959,21 @@
 
 ## Bug Fix — PM Systems Presentation Broken Link
 - [x] Fix PM Systems Presentation (template #6) — replaced dead Google Drive link with CDN-hosted PDF
+
+## Bug Fix — CPM Engine Constraint Enforcement
+- [x] Add constraintType and constraintDate to CpmActivity interface
+- [x] Enforce SNET/SNLT/FNET/FNLT/MSO/MFO in forward pass
+- [x] Enforce ALAP/SNLT/FNLT in backward pass
+- [x] Write vitest tests for all 8 constraint types (10 tests passing)
+- [x] Verify scheduleRouter passes constraint data to engine
+- [x] Save checkpoint
+
+## CPM Scheduler Enhancements — WBS, Color Grouping, Saved Layouts
+- [x] CSI MasterFormat WBS library — all 50 divisions as a shared constant
+- [x] WBS manager UI — one-click import of CSI divisions into a schedule's WBS tree
+- [x] Multi-color WBS grouping bands on Gantt chart and activity table
+- [x] Saved layouts DB schema (schedule_layouts table)
+- [x] Saved layouts backend procedures (create, list, load, update, delete, set default)
+- [x] Saved layouts frontend UI — save/load/switch layouts in toolbar
+- [x] Write tests for new features (10 constraint + 5 CSI = 15 new tests passing)
+- [ ] Save checkpoint

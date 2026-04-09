@@ -16,6 +16,7 @@ import {
   type CpmRelationship,
 } from "../shared/cpmEngine";
 import * as sdb from "./scheduleDb";
+import { CSI_DIVISIONS, WBS_GROUP_COLORS } from "../shared/csiDivisions";
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
@@ -97,6 +98,8 @@ async function recalculateAndPersist(scheduleId: number) {
     actualStart: a.actualStart,
     actualFinish: a.actualFinish,
     calendarId: a.calendarId,
+    constraintType: (a.constraintType as CpmActivity["constraintType"]) || "ASAP",
+    constraintDate: a.constraintDate || null,
   }));
 
   const cpmRels: CpmRelationship[] = rels.map((r) => ({
@@ -1461,5 +1464,95 @@ export const scheduleRouter = router({
         activitiesCreated: createdActivities.length,
         relationshipsCreated: relsCreated,
       };
+    }),
+
+  // ── CSI MasterFormat WBS Library ─────────────────────────────────────────
+
+  csiDivisions: publicProcedure.query(() => {
+    return CSI_DIVISIONS;
+  }),
+
+  importCsiDivisions: publicProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      divisionCodes: z.array(z.string()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const existing = await sdb.getWbsBySchedule(input.scheduleId);
+      const existingCodes = new Set(existing.map(w => w.code));
+      let created = 0;
+      for (let i = 0; i < input.divisionCodes.length; i++) {
+        const code = input.divisionCodes[i];
+        const div = CSI_DIVISIONS.find(d => d.code === code);
+        if (!div || existingCodes.has(code)) continue;
+        const colors = WBS_GROUP_COLORS[div.group];
+        await sdb.createWbsNode({
+          scheduleId: input.scheduleId,
+          code: div.code,
+          name: div.name,
+          sortOrder: parseInt(div.code) * 10,
+          groupColor: colors.border,
+          groupTextColor: colors.text,
+        });
+        created++;
+      }
+      return { created };
+    }),
+
+  // ── Saved Layouts ──────────────────────────────────────────────────────
+
+  listLayouts: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      return sdb.getLayoutsBySchedule(input.scheduleId);
+    }),
+
+  saveLayout: publicProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      name: z.string().min(1).max(128),
+      config: z.string(), // JSON string
+      isDefault: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      if (input.isDefault) {
+        await sdb.clearDefaultLayouts(input.scheduleId);
+      }
+      const { id } = await sdb.createLayout({
+        scheduleId: input.scheduleId,
+        name: input.name,
+        config: input.config,
+        isDefault: input.isDefault,
+      });
+      return { id };
+    }),
+
+  updateLayout: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      scheduleId: z.number(),
+      name: z.string().min(1).max(128).optional(),
+      config: z.string().optional(),
+      isDefault: z.boolean().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      if (input.isDefault) {
+        await sdb.clearDefaultLayouts(input.scheduleId);
+      }
+      const { id, scheduleId, ...data } = input;
+      await sdb.updateLayout(id, data);
+      return { success: true };
+    }),
+
+  deleteLayout: publicProcedure
+    .input(z.object({ id: z.number(), scheduleId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      await sdb.deleteLayout(input.id);
+      return { success: true };
     }),
 });

@@ -474,3 +474,193 @@ describe("Constants", () => {
     expect(PRESET_MASKS["6day"]).toBe(63);
   });
 });
+
+// ─── Constraint Enforcement Tests ─────────────────────────────────────────────
+describe("Constraint Enforcement", () => {
+  const cal = createDefaultCalendar();
+  const calendars = new Map<number, CpmCalendar>([[0, cal]]);
+
+  it("SNET pushes early start forward when ES < constraint date", () => {
+    // Activity A (5d) -> Activity B (3d, SNET 2026-04-13)
+    // Without constraint, B would start right after A
+    const startDate = localDate(2026, 4, 6); // Monday
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 5, calendarId: 0 },
+      { id: 2, name: "B", duration: 3, calendarId: 0, constraintType: "SNET", constraintDate: localDate(2026, 4, 20) },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const bResult = result.results.get(2)!;
+    // B should start on Apr 20 (the SNET date) since that's later than the FS-driven date
+    expect(bResult.earlyStart.getFullYear()).toBe(2026);
+    expect(bResult.earlyStart.getMonth()).toBe(3); // April (0-indexed)
+    expect(bResult.earlyStart.getDate()).toBe(20);
+  });
+
+  it("SNET does not push ES back when ES > constraint date", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 10, calendarId: 0 },
+      { id: 2, name: "B", duration: 3, calendarId: 0, constraintType: "SNET", constraintDate: localDate(2026, 4, 7) },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const bResult = result.results.get(2)!;
+    // A finishes after Apr 7, so B should start after A, not on Apr 7
+    expect(bResult.earlyStart > localDate(2026, 4, 7)).toBe(true);
+  });
+
+  it("SNLT caps late finish in backward pass", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 3, calendarId: 0, constraintType: "SNLT", constraintDate: localDate(2026, 4, 8) },
+      { id: 2, name: "B", duration: 5, calendarId: 0 },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // SNLT should cap the late start at or before Apr 8
+    expect(aResult.lateStart <= localDate(2026, 4, 8)).toBe(true);
+  });
+
+  it("FNET pushes early start to satisfy finish constraint", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 3, calendarId: 0, constraintType: "FNET", constraintDate: localDate(2026, 4, 20) },
+    ];
+    const result = calculateCPM(activities, [], startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // EF should be >= Apr 20 since FNET says finish no earlier than Apr 20
+    expect(aResult.earlyFinish >= localDate(2026, 4, 20)).toBe(true);
+  });
+
+  it("FNLT caps late finish in backward pass", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 3, calendarId: 0, constraintType: "FNLT", constraintDate: localDate(2026, 4, 10) },
+      { id: 2, name: "B", duration: 5, calendarId: 0 },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // FNLT should cap late finish at Apr 10
+    expect(aResult.lateFinish <= localDate(2026, 4, 10)).toBe(true);
+  });
+
+  it("MSO forces exact start date (hard constraint)", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 5, calendarId: 0 },
+      { id: 2, name: "B", duration: 3, calendarId: 0, constraintType: "MSO", constraintDate: localDate(2026, 4, 20) },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const bResult = result.results.get(2)!;
+    // MSO forces ES to Apr 20 regardless of predecessor
+    expect(bResult.earlyStart.getDate()).toBe(20);
+    expect(bResult.earlyStart.getMonth()).toBe(3); // April
+    // LS should also be Apr 20 (hard constraint)
+    expect(bResult.lateStart.getDate()).toBe(20);
+  });
+
+  it("MFO forces exact finish date (hard constraint)", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 3, calendarId: 0, constraintType: "MFO", constraintDate: localDate(2026, 4, 10) },
+    ];
+    const result = calculateCPM(activities, [], startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // MFO forces EF to Apr 10
+    expect(aResult.earlyFinish.getDate()).toBe(10);
+    expect(aResult.earlyFinish.getMonth()).toBe(3); // April
+    // LF should also be Apr 10
+    expect(aResult.lateFinish.getDate()).toBe(10);
+  });
+
+  it("ASAP (default) does not alter scheduling", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 5, calendarId: 0, constraintType: "ASAP" },
+    ];
+    const result = calculateCPM(activities, [], startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // Should start on the project start date
+    expect(aResult.earlyStart.getDate()).toBe(6);
+  });
+
+  it("ALAP does not alter forward pass", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 3, calendarId: 0, constraintType: "ALAP" },
+      { id: 2, name: "B", duration: 5, calendarId: 0 },
+    ];
+    const rels: CpmRelationship[] = [
+      { predecessorId: 1, successorId: 2, relationshipType: "FS", lagDays: 0 },
+    ];
+    const result = calculateCPM(activities, rels, startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // Forward pass: ES should still be project start
+    expect(aResult.earlyStart.getDate()).toBe(6);
+  });
+
+  it("constraint with no constraintDate is treated as ASAP", () => {
+    const startDate = localDate(2026, 4, 6);
+    const activities: CpmActivity[] = [
+      { id: 1, name: "A", duration: 5, calendarId: 0, constraintType: "SNET" },
+    ];
+    const result = calculateCPM(activities, [], startDate, calendars, 0);
+    const aResult = result.results.get(1)!;
+    // Without a date, SNET should not change anything
+    expect(aResult.earlyStart.getDate()).toBe(6);
+  });
+});
+
+// ─── CSI Divisions Tests ──────────────────────────────────────────────────────
+import { CSI_DIVISIONS, CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS } from "../shared/csiDivisions";
+
+describe("CSI MasterFormat Library", () => {
+  it("has all 50 divisions (00-49)", () => {
+    expect(CSI_DIVISIONS.length).toBe(50);
+  });
+
+  it("each division has required fields", () => {
+    for (const div of CSI_DIVISIONS) {
+      expect(div.code).toBeTruthy();
+      expect(div.name).toBeTruthy();
+      expect(div.fullName).toBeTruthy();
+      expect(div.group).toBeTruthy();
+    }
+  });
+
+  it("active divisions exclude reserved ones", () => {
+    const reservedCodes = CSI_DIVISIONS.filter(d => d.reserved).map(d => d.code);
+    for (const code of reservedCodes) {
+      expect(CSI_ACTIVE_DIVISIONS.find(d => d.code === code)).toBeUndefined();
+    }
+  });
+
+  it("WBS_GROUP_COLORS has entries for all groups", () => {
+    const groups = new Set(CSI_DIVISIONS.map(d => d.group));
+    for (const group of groups) {
+      expect(WBS_GROUP_COLORS[group]).toBeDefined();
+      expect(WBS_GROUP_COLORS[group].bg).toBeTruthy();
+      expect(WBS_GROUP_COLORS[group].text).toBeTruthy();
+      expect(WBS_GROUP_COLORS[group].border).toBeTruthy();
+    }
+  });
+
+  it("division codes are unique", () => {
+    const codes = CSI_DIVISIONS.map(d => d.code);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+});

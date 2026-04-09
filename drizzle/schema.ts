@@ -575,3 +575,24 @@ export const dripSentEmails = mysqlTable("drip_sent_emails", {
 
 export type DripSentEmail = typeof dripSentEmails.$inferSelect;
 export type InsertDripSentEmail = typeof dripSentEmails.$inferInsert;
+
+/**
+ * Schedule layouts — saved view configurations per schedule.
+ * Stores columns, sort, grouping, filters, zoom, and display settings.
+ * Similar to P6 layouts but more user-friendly.
+ */
+export const scheduleLayouts = mysqlTable("schedule_layouts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Layout name e.g. "Critical Path View", "By Trade", "My Default" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** Whether this is the default layout for this schedule */
+  isDefault: boolean("isDefault").default(false).notNull(),
+  /** JSON blob storing the full layout configuration */
+  config: text("config").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type ScheduleLayout = typeof scheduleLayouts.$inferSelect;
+export type InsertScheduleLayout = typeof scheduleLayouts.$inferInsert;
