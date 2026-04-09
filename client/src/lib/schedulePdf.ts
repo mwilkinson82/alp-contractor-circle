@@ -79,6 +79,11 @@ export interface PdfExportOptions {
   showTable: boolean;
   showCriticalPathOnly: boolean;
 
+  // Header color customization
+  headerBgColor?: string;
+  headerAccentColor?: string;
+  headerTextColor?: string;
+
   // WBS grouping for Gantt
   groupedActivities?: Array<{
     group: string | null;
@@ -173,6 +178,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     headerConfig,
   } = options;
 
+  // Parse hex color to RGB tuple
+  const hexToRgb = (hex: string): [number, number, number] => {
+    const h = hex.replace('#', '');
+    return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
+  };
+  const hdrBg = options.headerBgColor && options.headerBgColor !== 'transparent' ? hexToRgb(options.headerBgColor) : null;
+
   const filteredActivities = showCriticalPathOnly
     ? activities.filter((a) => a.isCritical)
     : activities;
@@ -203,12 +215,20 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     critical: [220, 38, 38] as [number, number, number],
     green: [22, 163, 74] as [number, number, number],
   };
+  const hdrAccent = options.headerAccentColor ? hexToRgb(options.headerAccentColor) : colors.gold;
+  const hdrText = options.headerTextColor ? hexToRgb(options.headerTextColor) : colors.white;
 
   // ─── Draw Header ────────────────────────────────────────────────────────────
   function drawHeader() {
-    doc.setFillColor(...colors.navy);
-    doc.rect(0, 0, pageWidth, headerHeight, "F");
-    doc.setFillColor(...colors.gold);
+    if (hdrBg) {
+      doc.setFillColor(...hdrBg);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+    } else {
+      doc.setDrawColor(210, 210, 210);
+      doc.setLineWidth(0.3);
+      doc.rect(0, 0, pageWidth, headerHeight, "S");
+    }
+    doc.setFillColor(...hdrAccent);
     doc.rect(0, headerHeight - 0.6, pageWidth, 0.6, "F");
 
     const ctx = { pageNum: 0, totalPages: 0, scheduleName, dataDate, projectStartDate, companyName, projectName };
@@ -225,14 +245,14 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       } else {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.setTextColor(...colors.gold);
+        doc.setTextColor(...hdrAccent);
         doc.text(resolveToken(headerConfig.left, ctx), margin, midY - 3);
       }
 
-      // Other columns in white
+      // Other columns
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
-      doc.setTextColor(...colors.white);
+      doc.setTextColor(...hdrText);
 
       const renderHeaderSlot = (token: string, x: number, y: number, align: "left" | "center" | "right") => {
         if (isImageToken(token)) {
@@ -256,12 +276,12 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       // Default header layout
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.setTextColor(...colors.gold);
+      doc.setTextColor(...hdrAccent);
       doc.text(companyName || "ALP Contractor Circle", margin, 8);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
-      doc.setTextColor(...colors.white);
+      doc.setTextColor(...hdrText);
       doc.text(projectName || scheduleName, margin, 14);
 
       doc.setFont("helvetica", "normal");

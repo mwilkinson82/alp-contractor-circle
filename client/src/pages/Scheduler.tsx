@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useMember } from "@/hooks/useMember";
 import GanttChart from "@/components/GanttChart";
+import GanttAnnotations, { type Annotation } from "@/components/GanttAnnotations";
 import { WBSTree } from "@/components/WBSTree";
 import { PdfExportPreview } from "@/components/PdfExportPreview";
 import { generateSchedulePdf } from "@/lib/schedulePdf";
@@ -34,7 +35,7 @@ import {
   Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
   Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
-  BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign,
+  BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -360,7 +361,22 @@ export default function Scheduler() {
     { enabled: !!target2Id && !!scheduleId }
   );
 
-  /* ── Dialog State ─────────────────────────────────────────────────────── */
+    /* ── Resource Assignments (for cost overlay) ────────────────────────── */
+  const resourceAssignmentsQuery = trpc.schedule.listResourceAssignments.useQuery(
+    { scheduleId: scheduleId! },
+    { enabled: !!scheduleId }
+  );
+  const costDataMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!resourceAssignmentsQuery.data) return map;
+    for (const a of resourceAssignmentsQuery.data) {
+      const existing = map.get(a.activityId) || 0;
+      map.set(a.activityId, existing + (a.budgetedCost || 0));
+    }
+    return map;
+  }, [resourceAssignmentsQuery.data]);
+
+  /* ── Dialog State ───────────────────────────────────────────────────── */
   const [showActivityDialog, setShowActivityDialog] = useState(false);
   const [showActivityDetailModal, setShowActivityDetailModal] = useState(false);
   const [showRelationshipDialog, setShowRelationshipDialog] = useState(false);
@@ -375,6 +391,11 @@ export default function Scheduler() {
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
   const [showResourcePanel, setShowResourcePanel] = useState(false);
+  const [showCostOverlay, setShowCostOverlay] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(false);
+  const [ganttAnnotations, setGanttAnnotations] = useState<Annotation[]>([]);
+  const ganttContainerRef = useRef<HTMLDivElement>(null);
+  const [ganttContainerSize, setGanttContainerSize] = useState({ width: 0, height: 0 });
   const [showCsvImportDialog, setShowCsvImportDialog] = useState(false);
   const [csvParsedRows, setCsvParsedRows] = useState<Array<{activityId?: string; name: string; duration: number; wbs?: string; activityType: "task" | "milestone"; predecessors?: string}>>([]);
   const [csvFileName, setCsvFileName] = useState("");
@@ -1066,258 +1087,205 @@ export default function Scheduler() {
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
     <div className="h-screen flex flex-col bg-gray-50 text-gray-900">
-      {/* ── Top Toolbar ──────────────────────────────────────────────────── */}
-      <div className="h-11 border-b border-gray-200 bg-white flex items-center px-3 gap-1.5 shrink-0">
-        {/* Left: Back + Title */}
-        <button onClick={() => window.close()} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <h1 className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{schedule.schedule.name}</h1>
-        <div className="w-px h-5 bg-gray-200 mx-1" />
-
-        {/* Calculate */}
-        <Button
-          size="sm" variant="outline"
-          className="h-7 text-xs gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-100"
-          onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
-          disabled={recalcMut.isPending}
-        >
-          {recalcMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-          Calculate
-        </Button>
-
-        {/* Undo / Redo */}
-        <div className="flex items-center gap-0.5 border-l border-gray-200 pl-2 ml-1">
+      {/* ── Top Toolbar ── Organized Ribbon ──────────────────────────────── */}
+      <div className="border-b border-gray-200 bg-[#f8f8f7] shrink-0">
+        {/* Row 1: Title bar */}
+        <div className="h-9 flex items-center px-3 gap-2 border-b border-gray-100">
+          <button onClick={() => window.close()} className="p-1 rounded-md hover:bg-gray-200/60 text-gray-500">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-sm font-semibold text-gray-900 truncate max-w-[280px]">{schedule.schedule.name}</h1>
+          <div className="flex-1" />
+          {/* Search */}
+          {showSearch && (
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search ID or name..."
+                className="h-7 text-xs pl-7 w-48 border-gray-300 bg-white"
+                autoFocus
+                onBlur={() => { if (!searchQuery) setShowSearch(false); }}
+              />
+            </div>
+          )}
           <Button
             size="sm" variant="ghost"
-            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
-            onClick={undo}
-            disabled={!canUndo || isUndoRedoProcessing}
-            title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
+            className={`h-7 w-7 p-0 ${searchQuery ? "text-blue-600" : "text-gray-500"}`}
+            onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearchQuery(""); }}
           >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm" variant="ghost"
-            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
-            onClick={redo}
-            disabled={!canRedo || isUndoRedoProcessing}
-            title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
-          >
-            <Redo2 className="w-4 h-4" />
+            <Search className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Data Date - Click to set/change */}
-        <Button
-          size="sm" variant="outline"
-          className={`h-7 text-xs gap-1.5 hover:bg-blue-50 ${
-            dataDate
-              ? "border-blue-400 text-blue-700 bg-blue-50/50"
-              : "border-amber-400 text-amber-700 bg-amber-50/50 animate-pulse"
-          }`}
-          onClick={() => {
-            const today = new Date().toISOString().split("T")[0];
-            setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : today);
-            setShowDataDatePicker(true);
-          }}
-          title="Click to set or change the Data Date"
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          DD: {dataDate ? formatDate(dataDate) : "Click to Set"}
-        </Button>
+        {/* Row 2: Ribbon with grouped sections */}
+        <div className="h-10 flex items-center px-3 gap-0.5 overflow-x-auto">
 
-        {/* Zoom */}
-        <div className="flex items-center gap-1">
-          <div className="flex items-center border border-gray-300 rounded-md h-7 overflow-hidden">
-            {(["day", "week", "month"] as const).map((z) => (
-              <button
-                key={z}
-                onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
-                className={`px-2 text-xs h-full transition-colors ${zoom === z ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
-              >
-                {z.charAt(0).toUpperCase() + z.slice(1)}
-              </button>
-            ))}
-          </div>
-          {/* Continuous zoom slider */}
-          <div className="flex items-center gap-1 ml-1" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
-            <span className="text-[9px] text-gray-400">−</span>
-            <input
-              type="range"
-              min="0.5"
-              max="60"
-              step="0.5"
-              value={customPpd}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                setCustomPpd(v);
-                setZoom("custom");
+          {/* ── GROUP: Schedule ── */}
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+            <Button
+              size="sm" variant="outline"
+              className="h-7 text-xs gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white"
+              onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
+              disabled={recalcMut.isPending}
+            >
+              {recalcMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              Calculate
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+              onClick={undo}
+              disabled={!canUndo || isUndoRedoProcessing}
+              title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
+            >
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+              onClick={redo}
+              disabled={!canRedo || isUndoRedoProcessing}
+              title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
+            >
+              <Redo2 className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              className={`h-7 text-xs gap-1 hover:bg-blue-50 bg-white ${
+                dataDate
+                  ? "border-blue-400 text-blue-700"
+                  : "border-amber-400 text-amber-700 animate-pulse"
+              }`}
+              onClick={() => {
+                const today = new Date().toISOString().split("T")[0];
+                setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : today);
+                setShowDataDatePicker(true);
               }}
-              className="w-20 h-1.5 accent-blue-600 cursor-pointer"
-            />
-            <span className="text-[9px] text-gray-400">+</span>
-          </div>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Search */}
-        {showSearch && (
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ID or name..."
-              className="h-7 text-xs pl-7 w-48 border-gray-300"
-              autoFocus
-              onBlur={() => { if (!searchQuery) setShowSearch(false); }}
-            />
-          </div>
-        )}
-        <Button
-          size="sm" variant="ghost"
-          className={`h-7 w-7 p-0 ${searchQuery ? "text-blue-600" : "text-gray-500"}`}
-          onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearchQuery(""); }}
-        >
-          <Search className="w-4 h-4" />
-        </Button>
-
-        {/* Toggle Buttons */}
-        <div className="flex items-center gap-0.5">
-          <Button
-            size="sm" variant="ghost"
-            className={`h-7 w-7 p-0 ${showArrows ? "text-blue-600" : "text-gray-400"}`}
-            onClick={() => setShowArrows(!showArrows)}
-            title="Toggle dependency arrows"
-          >
-            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M2 8h10M9 5l3 3-3 3" />
-            </svg>
-          </Button>
-          <Button
-            size="sm" variant="ghost"
-            className={`h-7 w-7 p-0 ${showDataDateLine ? "text-blue-600" : "text-gray-400"}`}
-            onClick={() => setShowDataDateLine(!showDataDateLine)}
-            title="Toggle data date line"
-          >
-            <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
-          </Button>
-          <Button
-            size="sm" variant="ghost"
-            className={`h-7 w-7 p-0 ${showTodayLine ? "text-blue-600" : "text-gray-400"}`}
-            onClick={() => setShowTodayLine(!showTodayLine)}
-            title="Toggle today line"
-          >
-            <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
-          </Button>
-        </div>
-
-        <div className="w-px h-5 bg-gray-200 mx-0.5" />
-
-        {/* Add Activity */}
-        <Button
-          size="sm" variant="ghost"
-          className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50"
-          onClick={() => setShowActivityDialog(true)}
-        >
-          <Plus className="w-3.5 h-3.5" /> Add
-        </Button>
-
-        {/* Bulk Add */}
-        <Button
-          size="sm" variant="ghost"
-          className="h-7 text-xs gap-1 text-blue-600 hover:bg-blue-50"
-          onClick={() => setShowBulkAddDialog(true)}
-        >
-          <Plus className="w-3.5 h-3.5" /> Bulk
-        </Button>
-
-        {/* CSV Import */}
-        <Button
-          size="sm" variant="ghost"
-          className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50"
-          onClick={() => setShowCsvImportDialog(true)}
-        >
-          <Upload className="w-3.5 h-3.5" /> CSV
-        </Button>
-
-        <div className="w-px h-5 bg-gray-200 mx-0.5" />
-
-        {/* Columns */}
-        <Button
-          size="sm" variant="ghost"
-          className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100"
-          onClick={() => setShowColumnPicker(true)}
-        >
-          <Columns3 className="w-3.5 h-3.5" /> Columns
-        </Button>
-
-        {/* Filter */}
-        <Button
-          size="sm" variant="ghost"
-          className={`h-7 text-xs gap-1 ${hasActiveFilters ? "text-blue-600" : "text-gray-600"} hover:bg-gray-100`}
-          onClick={() => setShowAdvancedFilter(true)}
-        >
-          <Filter className="w-3.5 h-3.5" /> Filter
-          {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-        </Button>
-
-        {/* Group By */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
-              <Layers className="w-3.5 h-3.5" /> Group
+              title="Click to set or change the Data Date"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              DD: {dataDate ? formatDate(dataDate) : "Set"}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
-            <DropdownMenuItem onClick={() => setGroupBy(null)}>
-              <span className={!groupBy ? "font-semibold text-blue-600" : ""}>None</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
-              <span className={groupBy === "wbs" ? "font-semibold text-blue-600" : ""}>WBS</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setGroupBy("critical")}>
-              <span className={groupBy === "critical" ? "font-semibold text-blue-600" : ""}>Critical Path</span>
-            </DropdownMenuItem>
-            {codeCategories.map((cat: any) => (
-              <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                <span className={groupBy === String(cat.id) ? "font-semibold text-blue-600" : ""}>{cat.name}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
 
-        {/* Resources & Cost */}
-        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowResourcePanel(true)}>
-          <DollarSign className="w-4 h-4" /> Resources
-        </Button>
-
-        {/* Reports */}
-        <Link href={`/scheduler/${scheduleId}/reports`}>
-          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
-            <BarChart3 className="w-4 h-4" /> Reports
-          </Button>
-        </Link>
-
-        {/* Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
-              <MoreHorizontal className="w-4 h-4" />
+          {/* ── GROUP: Activities ── */}
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50" onClick={() => setShowActivityDialog(true)}>
+              <Plus className="w-3.5 h-3.5" /> Add
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white border-gray-200 w-56 text-gray-900">
-            <DropdownMenuItem onClick={() => setShowActivityDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Add Activity
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowBulkAddDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Bulk Add Activities
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
-              <svg viewBox="0 0 16 16" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
-              Add Relationship
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-blue-600 hover:bg-blue-50" onClick={() => setShowBulkAddDialog(true)}>
+              <Plus className="w-3.5 h-3.5" /> Bulk
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50" onClick={() => setShowCsvImportDialog(true)}>
+              <Upload className="w-3.5 h-3.5" /> CSV
+            </Button>
+          </div>
+
+          {/* ── GROUP: View ── */}
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+            {/* Zoom */}
+            <div className="flex items-center border border-gray-300 rounded-md h-7 overflow-hidden">
+              {(["day", "week", "month"] as const).map((z) => (
+                <button
+                  key={z}
+                  onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
+                  className={`px-2 text-xs h-full transition-colors ${zoom === z ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                >
+                  {z.charAt(0).toUpperCase() + z.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-0.5 ml-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
+              <span className="text-[9px] text-gray-400">−</span>
+              <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
+                onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); setZoom("custom"); }}
+                className="w-16 h-1.5 accent-blue-600 cursor-pointer"
+              />
+              <span className="text-[9px] text-gray-400">+</span>
+            </div>
+            <div className="w-px h-5 bg-gray-200 mx-0.5" />
+            {/* Toggles */}
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showArrows ? "text-blue-600" : "text-gray-400"}`}
+              onClick={() => setShowArrows(!showArrows)} title="Toggle dependency arrows">
+              <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
+            </Button>
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showDataDateLine ? "text-blue-600" : "text-gray-400"}`}
+              onClick={() => setShowDataDateLine(!showDataDateLine)} title="Toggle data date line">
+              <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
+            </Button>
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showTodayLine ? "text-blue-600" : "text-gray-400"}`}
+              onClick={() => setShowTodayLine(!showTodayLine)} title="Toggle today line">
+              <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
+            </Button>
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showCostOverlay ? "text-blue-600" : "text-gray-400"}`}
+              onClick={() => setShowCostOverlay(!showCostOverlay)} title="Toggle cost overlay">
+              <DollarSign className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-7 text-xs gap-1 ${showAnnotations ? "bg-amber-500 text-white hover:bg-amber-600" : "text-gray-600 hover:bg-gray-100"}`}
+              onClick={() => setShowAnnotations(!showAnnotations)} title="Toggle annotation overlay for delay analysis">
+              <Pencil className="w-3.5 h-3.5" /> Annotate
+            </Button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5" />
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowColumnPicker(true)}>
+              <Columns3 className="w-3.5 h-3.5" /> Columns
+            </Button>
+            <Button size="sm" variant="ghost" className={`h-7 text-xs gap-1 ${hasActiveFilters ? "text-blue-600" : "text-gray-600"} hover:bg-gray-100`}
+              onClick={() => setShowAdvancedFilter(true)}>
+              <Filter className="w-3.5 h-3.5" /> Filter
+              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
+                  <Layers className="w-3.5 h-3.5" /> Group
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+                <DropdownMenuItem onClick={() => setGroupBy(null)}>
+                  <span className={!groupBy ? "font-semibold text-blue-600" : ""}>None</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
+                  <span className={groupBy === "wbs" ? "font-semibold text-blue-600" : ""}>WBS</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGroupBy("critical")}>
+                  <span className={groupBy === "critical" ? "font-semibold text-blue-600" : ""}>Critical Path</span>
+                </DropdownMenuItem>
+                {codeCategories.map((cat: any) => (
+                  <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
+                    <span className={groupBy === String(cat.id) ? "font-semibold text-blue-600" : ""}>{cat.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* ── GROUP: Tools ── */}
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowResourcePanel(true)}>
+              <DollarSign className="w-3.5 h-3.5" /> Resources
+            </Button>
+            <Link href={`/scheduler/${scheduleId}/reports`}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
+                <BarChart3 className="w-3.5 h-3.5" /> Reports
+              </Button>
+            </Link>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* ── Settings Menu (labeled, highlighted) ── */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                <Settings className="w-3.5 h-3.5" /> Settings
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border-gray-200 w-56 text-gray-900">
+              <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
+                <svg viewBox="0 0 16 16" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
+                Add Relationship
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowIdSettingsDialog(true)}>
@@ -1412,7 +1380,8 @@ export default function Scheduler() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+        </div>{/* end ribbon row */}
+      </div>{/* end toolbar */}
 
       {/* ── Target indicators bar ──────────────────────────────────────────── */}
       {(target1Id || target2Id) && (
@@ -1725,6 +1694,7 @@ export default function Scheduler() {
 
         {/* Right: Gantt Chart */}
         <ResizablePanel defaultSize={55} minSize={30}>
+          <div ref={ganttContainerRef} className="relative w-full h-full">
           <GanttChart
             activities={filteredActivities}
             relationships={relationships}
@@ -1750,7 +1720,17 @@ export default function Scheduler() {
               setCustomPpd(ppd);
               setZoom("custom");
             }}
+            showCostOverlay={showCostOverlay}
+            costData={costDataMap}
           />
+          <GanttAnnotations
+            width={ganttContainerRef.current?.scrollWidth || 2000}
+            height={ganttContainerRef.current?.scrollHeight || 1000}
+            annotations={ganttAnnotations}
+            onAnnotationsChange={setGanttAnnotations}
+            visible={showAnnotations}
+          />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 
@@ -3371,6 +3351,9 @@ export default function Scheduler() {
               showGantt: config.showGantt,
               showTable: config.showTable ?? false,
               showCriticalPathOnly: config.criticalPathOnly,
+              headerBgColor: config.headerBgColor,
+              headerAccentColor: config.headerAccentColor,
+              headerTextColor: config.headerTextColor,
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({

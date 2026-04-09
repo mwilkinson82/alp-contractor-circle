@@ -1560,7 +1560,7 @@ export const scheduleRouter = router({
   getReport: publicProcedure
     .input(z.object({
       scheduleId: z.number(),
-      reportType: z.enum(["totalFloat", "earlyStart", "criticalPath", "duration", "comparison"]),
+      reportType: z.enum(["totalFloat", "earlyStart", "criticalPath", "duration", "comparison", "cashFlowSCurve", "resourceHistogram"]),
       baselineId: z.number().optional(),
       filters: z.object({
         wbsId: z.number().nullish(),
@@ -1640,6 +1640,96 @@ export const scheduleRouter = router({
             totalFloat: s.totalFloat ?? null,
           }));
           return { type: "comparison" as const, rows: reports.generateComparisonReport(activities, baselineActs, filters), summary };
+        }
+        case "cashFlowSCurve": {
+          // Build weekly cost distribution from resource assignments
+          const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+          const resources = await sdb.getResourcesBySchedule(input.scheduleId);
+          const resourceMap = new Map(resources.map(r => [r.id, r]));
+          // Map each assignment to its activity's date range and cost
+          const costByWeek: Record<string, { budgeted: number; actual: number }> = {};
+          for (const asn of assignments) {
+            const act = rawActivities.find(a => a.id === asn.activityId);
+            if (!act || !act.earlyStart || !act.earlyFinish) continue;
+            const start = new Date(act.earlyStart);
+            const finish = new Date(act.earlyFinish);
+            const dur = Math.max(1, Math.ceil((finish.getTime() - start.getTime()) / 86400000));
+            const weeklyBudget = (asn.budgetedCost || 0) / Math.ceil(dur / 7);
+            const weeklyActual = (asn.actualCost || 0) / Math.ceil(dur / 7);
+            for (let d = new Date(start); d <= finish; d.setDate(d.getDate() + 7)) {
+              const weekKey = d.toISOString().split("T")[0];
+              if (!costByWeek[weekKey]) costByWeek[weekKey] = { budgeted: 0, actual: 0 };
+              costByWeek[weekKey].budgeted += weeklyBudget;
+              costByWeek[weekKey].actual += weeklyActual;
+            }
+          }
+          // Build cumulative S-curve data
+          const weeks = Object.keys(costByWeek).sort();
+          let cumBudget = 0, cumActual = 0;
+          const scurveData = weeks.map(w => {
+            cumBudget += costByWeek[w].budgeted;
+            cumActual += costByWeek[w].actual;
+            return {
+              week: w,
+              weeklyBudgeted: Math.round(costByWeek[w].budgeted),
+              weeklyActual: Math.round(costByWeek[w].actual),
+              cumulativeBudgeted: Math.round(cumBudget),
+              cumulativeActual: Math.round(cumActual),
+            };
+          });
+          return {
+            type: "cashFlowSCurve" as const,
+            rows: scurveData,
+            summary: {
+              ...summary,
+              totalBudgetedCost: Math.round(cumBudget),
+              totalActualCost: Math.round(cumActual),
+              totalWeeks: weeks.length,
+            },
+          };
+        }
+        case "resourceHistogram": {
+          const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+          const resources = await sdb.getResourcesBySchedule(input.scheduleId);
+          const resourceMap = new Map(resources.map(r => [r.id, r]));
+          // Build weekly resource loading
+          const loadingByWeek: Record<string, Record<string, number>> = {};
+          for (const asn of assignments) {
+            const act = rawActivities.find(a => a.id === asn.activityId);
+            if (!act || !act.earlyStart || !act.earlyFinish) continue;
+            const res = resourceMap.get(asn.resourceId);
+            const resName = res?.name || `Resource ${asn.resourceId}`;
+            const resType = res?.resourceType || "labor";
+            const start = new Date(act.earlyStart);
+            const finish = new Date(act.earlyFinish);
+            const unitsPerDay = parseFloat(asn.unitsPerDay || "8");
+            for (let d = new Date(start); d <= finish; d.setDate(d.getDate() + 7)) {
+              const weekKey = d.toISOString().split("T")[0];
+              if (!loadingByWeek[weekKey]) loadingByWeek[weekKey] = {};
+              const key = `${resType}:${resName}`;
+              loadingByWeek[weekKey][key] = (loadingByWeek[weekKey][key] || 0) + unitsPerDay * 5; // 5 workdays
+            }
+          }
+          const weeks = Object.keys(loadingByWeek).sort();
+          // Collect all resource keys
+          const allResourceKeys = new Set<string>();
+          Object.values(loadingByWeek).forEach(wk => Object.keys(wk).forEach(k => allResourceKeys.add(k)));
+          const histogramData = weeks.map(w => {
+            const row: any = { week: w };
+            allResourceKeys.forEach(k => { row[k] = Math.round(loadingByWeek[w][k] || 0); });
+            return row;
+          });
+          return {
+            type: "resourceHistogram" as const,
+            rows: histogramData,
+            summary: {
+              ...summary,
+              totalResources: resources.length,
+              totalAssignments: assignments.length,
+              totalWeeks: weeks.length,
+              resourceKeys: Array.from(allResourceKeys),
+            },
+          };
         }
       }
     }),

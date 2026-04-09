@@ -1,13 +1,14 @@
 /**
- * Schedule Reports — Tabular reports for CPM schedules.
- * Supports: Total Float, Early Start, Critical Path, Duration, Schedule Comparison.
+ * Schedule Reports — Tabular + Visual reports for CPM schedules.
+ * Supports: Total Float, Early Start, Critical Path, Duration, Schedule Comparison,
+ *           Cash Flow S-Curve, Resource Histogram.
  * Designed for print-ready output (City of New York monthly update style).
  */
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -31,9 +32,12 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
+  TrendingUp,
+  Users,
+  DollarSign,
 } from "lucide-react";
 
-type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison";
+type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram";
 
 const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description: string }> = {
   totalFloat: {
@@ -61,6 +65,16 @@ const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description:
     icon: GitCompare,
     description: "Baseline vs. current schedule — date variances, float changes, duration deltas",
   },
+  cashFlowSCurve: {
+    label: "Cash Flow S-Curve",
+    icon: TrendingUp,
+    description: "Cumulative budgeted vs. actual cost projection — for draw requests and bank reporting",
+  },
+  resourceHistogram: {
+    label: "Resource Histogram",
+    icon: Users,
+    description: "Weekly resource loading by type — identifies over-allocation and leveling needs",
+  },
 };
 
 function fmtDate(d: any): string {
@@ -84,11 +98,277 @@ function floatColor(f: number | null | undefined): string {
 
 function varianceColor(v: number | null | undefined): string {
   if (v === null || v === undefined) return "";
-  if (v > 0) return "text-red-600 font-bold"; // delayed
-  if (v < 0) return "text-green-600 font-semibold"; // ahead
+  if (v > 0) return "text-red-600 font-bold";
+  if (v < 0) return "text-green-600 font-semibold";
   return "text-muted-foreground";
 }
 
+function fmtCurrency(cents: number): string {
+  return "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtWeek(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ── Color palette for histogram stacked bars ──────────────────────────────
+const HISTOGRAM_COLORS = [
+  "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6",
+  "#ec4899", "#06b6d4", "#f97316", "#6366f1", "#14b8a6",
+  "#e11d48", "#84cc16", "#a855f7", "#0ea5e9", "#d946ef",
+];
+
+// ── S-Curve Canvas Chart ──────────────────────────────────────────────────
+function SCurveChart({ data }: { data: any[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data.length) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    const pad = { top: 40, right: 30, bottom: 60, left: 80 };
+    const chartW = w - pad.left - pad.right;
+    const chartH = h - pad.top - pad.bottom;
+
+    // Clear
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+
+    // Find max value
+    const maxVal = Math.max(
+      ...data.map(d => Math.max(d.cumulativeBudgeted || 0, d.cumulativeActual || 0)),
+      1
+    );
+
+    // Grid lines
+    const gridLines = 5;
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i <= gridLines; i++) {
+      const y = pad.top + (chartH / gridLines) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(w - pad.right, y);
+      ctx.stroke();
+      // Y-axis labels
+      const val = maxVal - (maxVal / gridLines) * i;
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "11px 'DM Sans', sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(fmtCurrency(val), pad.left - 8, y + 4);
+    }
+    ctx.setLineDash([]);
+
+    // X-axis labels
+    const step = Math.max(1, Math.floor(data.length / 8));
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "10px 'DM Sans', sans-serif";
+    ctx.textAlign = "center";
+    data.forEach((d, i) => {
+      if (i % step === 0 || i === data.length - 1) {
+        const x = pad.left + (i / (data.length - 1)) * chartW;
+        ctx.save();
+        ctx.translate(x, pad.top + chartH + 12);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillText(fmtWeek(d.week), 0, 0);
+        ctx.restore();
+      }
+    });
+
+    // Draw budgeted line (blue)
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = pad.left + (i / (data.length - 1)) * chartW;
+      const y = pad.top + chartH - (d.cumulativeBudgeted / maxVal) * chartH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Fill under budgeted
+    ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = pad.left + (i / (data.length - 1)) * chartW;
+      const y = pad.top + chartH - (d.cumulativeBudgeted / maxVal) * chartH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad.left + chartW, pad.top + chartH);
+    ctx.lineTo(pad.left, pad.top + chartH);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw actual line (green)
+    const hasActual = data.some(d => (d.cumulativeActual || 0) > 0);
+    if (hasActual) {
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      data.forEach((d, i) => {
+        const x = pad.left + (i / (data.length - 1)) * chartW;
+        const y = pad.top + chartH - ((d.cumulativeActual || 0) / maxVal) * chartH;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    // Title
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 14px 'DM Sans', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Cash Flow S-Curve", pad.left, 20);
+
+    // Legend
+    const legendX = w - pad.right - 180;
+    ctx.fillStyle = "#3b82f6";
+    ctx.fillRect(legendX, 10, 12, 12);
+    ctx.fillStyle = "#374151";
+    ctx.font = "11px 'DM Sans', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Budgeted", legendX + 16, 20);
+
+    if (hasActual) {
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(legendX + 90, 10, 12, 12);
+      ctx.fillStyle = "#374151";
+      ctx.fillText("Actual", legendX + 106, 20);
+    }
+  }, [data]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full border rounded-lg"
+      style={{ height: 400 }}
+    />
+  );
+}
+
+// ── Resource Histogram Canvas Chart ───────────────────────────────────────
+function HistogramChart({ data, resourceKeys }: { data: any[]; resourceKeys: string[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data.length || !resourceKeys.length) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    const pad = { top: 40, right: 30, bottom: 70, left: 70 };
+    const chartW = w - pad.left - pad.right;
+    const chartH = h - pad.top - pad.bottom;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+
+    // Calculate max stacked value
+    let maxVal = 0;
+    data.forEach(d => {
+      let total = 0;
+      resourceKeys.forEach(k => { total += d[k] || 0; });
+      if (total > maxVal) maxVal = total;
+    });
+    maxVal = maxVal || 1;
+
+    // Grid
+    const gridLines = 5;
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i <= gridLines; i++) {
+      const y = pad.top + (chartH / gridLines) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(w - pad.right, y);
+      ctx.stroke();
+      const val = maxVal - (maxVal / gridLines) * i;
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "11px 'DM Sans', sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(Math.round(val).toLocaleString() + "h", pad.left - 8, y + 4);
+    }
+    ctx.setLineDash([]);
+
+    // Bars
+    const barW = Math.max(4, (chartW / data.length) - 2);
+    const gap = (chartW - barW * data.length) / (data.length + 1);
+
+    data.forEach((d, i) => {
+      const x = pad.left + gap + i * (barW + gap);
+      let cumY = 0;
+      resourceKeys.forEach((k, ki) => {
+        const val = d[k] || 0;
+        const barH = (val / maxVal) * chartH;
+        const y = pad.top + chartH - cumY - barH;
+        ctx.fillStyle = HISTOGRAM_COLORS[ki % HISTOGRAM_COLORS.length];
+        ctx.fillRect(x, y, barW, barH);
+        cumY += barH;
+      });
+
+      // X label
+      const step = Math.max(1, Math.floor(data.length / 10));
+      if (i % step === 0 || i === data.length - 1) {
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "9px 'DM Sans', sans-serif";
+        ctx.textAlign = "center";
+        ctx.save();
+        ctx.translate(x + barW / 2, pad.top + chartH + 12);
+        ctx.rotate(-Math.PI / 5);
+        ctx.fillText(fmtWeek(d.week), 0, 0);
+        ctx.restore();
+      }
+    });
+
+    // Title
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 14px 'DM Sans', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Resource Histogram (Hours/Week)", pad.left, 20);
+
+    // Legend
+    let lx = pad.left + 260;
+    resourceKeys.forEach((k, ki) => {
+      const label = k.split(":")[1] || k;
+      ctx.fillStyle = HISTOGRAM_COLORS[ki % HISTOGRAM_COLORS.length];
+      ctx.fillRect(lx, 8, 10, 10);
+      ctx.fillStyle = "#374151";
+      ctx.font = "10px 'DM Sans', sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(label, lx + 14, 17);
+      lx += ctx.measureText(label).width + 28;
+      if (lx > w - 40) { lx = pad.left + 260; }
+    });
+  }, [data, resourceKeys]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full border rounded-lg"
+      style={{ height: 420 }}
+    />
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────
 export default function ScheduleReports() {
   const [, params] = useRoute("/scheduler/:id/reports");
   const scheduleId = params?.id ? parseInt(params.id) : 0;
@@ -101,7 +381,8 @@ export default function ScheduleReports() {
   const [showOnlyCritical, setShowOnlyCritical] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Fetch schedule info (includes baselines)
+  const isChartReport = reportType === "cashFlowSCurve" || reportType === "resourceHistogram";
+
   const { data: scheduleData } = trpc.schedule.get.useQuery(
     { id: scheduleId },
     { enabled: scheduleId > 0 }
@@ -109,7 +390,6 @@ export default function ScheduleReports() {
   const schedule = scheduleData?.schedule;
   const baselines = scheduleData?.baselines;
 
-  // Fetch report data
   const reportInput = useMemo(() => ({
     scheduleId,
     reportType,
@@ -126,9 +406,7 @@ export default function ScheduleReports() {
     { enabled: scheduleId > 0 && (reportType !== "comparison" || !!baselineId) }
   );
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => { window.print(); };
 
   const handleExportCSV = () => {
     if (!reportData?.rows?.length) return;
@@ -175,7 +453,7 @@ export default function ScheduleReports() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold">{schedule?.name || "Schedule"} — Reports</h1>
-                <p className="text-sm text-muted-foreground">Tabular schedule reports for review and submission</p>
+                <p className="text-sm text-muted-foreground">Tabular & visual schedule reports for review and submission</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -195,16 +473,20 @@ export default function ScheduleReports() {
       {/* Report selection and filters */}
       <div className="print:hidden max-w-[1600px] mx-auto px-6 py-4">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="min-w-[240px]">
+          <div className="min-w-[260px]">
             <Label className="text-sm font-medium mb-1.5 block">Report Type</Label>
             <Select value={reportType} onValueChange={(v) => setReportType(v as ReportType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(REPORT_LABELS).map(([key, val]) => (
-                  <SelectItem key={key} value={key}>{val.label}</SelectItem>
-                ))}
+                <SelectItem value="totalFloat">Total Float Report</SelectItem>
+                <SelectItem value="earlyStart">Early Start Report</SelectItem>
+                <SelectItem value="criticalPath">Critical Path Report</SelectItem>
+                <SelectItem value="duration">Duration Report</SelectItem>
+                <SelectItem value="comparison">Schedule Comparison</SelectItem>
+                <SelectItem value="cashFlowSCurve">Cash Flow S-Curve</SelectItem>
+                <SelectItem value="resourceHistogram">Resource Histogram</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -244,19 +526,21 @@ export default function ScheduleReports() {
             </div>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-            {showFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-          </Button>
+          {!isChartReport && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+              {showFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+            </Button>
+          )}
         </div>
 
-        {showFilters && (
+        {showFilters && !isChartReport && (
           <Card className="mt-3">
             <CardContent className="pt-4 pb-4">
               <div className="flex flex-wrap items-end gap-6">
@@ -296,8 +580,8 @@ export default function ScheduleReports() {
           </p>
         </div>
 
-        {/* Summary cards */}
-        {reportData?.summary && (
+        {/* Summary cards — for tabular reports */}
+        {reportData?.summary && !isChartReport && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6 print:grid-cols-6 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
@@ -319,8 +603,9 @@ export default function ScheduleReports() {
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-              <p className="text-xs text-muted-foreground print:text-gray-500">Avg Float</p>
-                <p className="text-2xl font-bold">{reportData.summary.averageFloat?.toFixed(1) ?? "\u2014"}</p>            </CardContent>
+                <p className="text-xs text-muted-foreground print:text-gray-500">Avg Float</p>
+                <p className="text-2xl font-bold">{reportData.summary.averageFloat?.toFixed(1) ?? "—"}</p>
+              </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
@@ -337,6 +622,68 @@ export default function ScheduleReports() {
           </div>
         )}
 
+        {/* Summary cards — for S-Curve */}
+        {reportData?.summary && reportType === "cashFlowSCurve" && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Total Budgeted</p>
+                <p className="text-2xl font-bold text-blue-600">{fmtCurrency((reportData.summary as any).totalBudgetedCost || 0)}</p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Total Actual</p>
+                <p className="text-2xl font-bold text-green-600">{fmtCurrency((reportData.summary as any).totalActualCost || 0)}</p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Variance</p>
+                <p className={`text-2xl font-bold ${((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {fmtCurrency(((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0))}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Weeks</p>
+                <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Summary cards — for Histogram */}
+        {reportData?.summary && reportType === "resourceHistogram" && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Resources</p>
+                <p className="text-2xl font-bold">{(reportData.summary as any).totalResources || 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Assignments</p>
+                <p className="text-2xl font-bold">{(reportData.summary as any).totalAssignments || 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Weeks</p>
+                <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="print:border print:shadow-none">
+              <CardContent className="pt-3 pb-3 px-4">
+                <p className="text-xs text-muted-foreground print:text-gray-500">Resource Types</p>
+                <p className="text-2xl font-bold">{((reportData.summary as any).resourceKeys || []).length}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
@@ -345,8 +692,101 @@ export default function ScheduleReports() {
           </div>
         )}
 
-        {/* Report table */}
-        {reportData?.rows && !isLoading && (
+        {/* ── S-Curve Chart + Table ──────────────────────────────────────── */}
+        {reportType === "cashFlowSCurve" && reportData?.rows && !isLoading && (
+          <>
+            <div className="flex items-center gap-2 mb-3 print:hidden">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold">Cash Flow S-Curve</h2>
+              <span className="text-sm text-muted-foreground">({reportData.rows.length} weeks)</span>
+            </div>
+
+            <SCurveChart data={reportData.rows} />
+
+            {/* Tabular data below chart */}
+            <h3 className="text-sm font-semibold mt-6 mb-2">Weekly Cash Flow Detail</h3>
+            <div className="overflow-x-auto border rounded-lg print:border-black">
+              <table className="w-full text-sm print:text-[10px]">
+                <thead>
+                  <tr className="bg-muted/50 print:bg-gray-100 border-b print:border-black">
+                    <th className="text-left px-3 py-2.5 font-semibold whitespace-nowrap">Week Of</th>
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Weekly Budgeted</th>
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Weekly Actual</th>
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Cumulative Budgeted</th>
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Cumulative Actual</th>
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.rows.map((row: any, idx: number) => (
+                    <tr key={idx} className={`border-b print:border-gray-300 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
+                      <td className="px-3 py-2 whitespace-nowrap">{fmtWeek(row.week)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtCurrency(row.weeklyBudgeted)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtCurrency(row.weeklyActual)}</td>
+                      <td className="px-3 py-2 text-right font-mono font-semibold text-blue-600">{fmtCurrency(row.cumulativeBudgeted)}</td>
+                      <td className="px-3 py-2 text-right font-mono font-semibold text-green-600">{fmtCurrency(row.cumulativeActual)}</td>
+                      <td className={`px-3 py-2 text-right font-mono ${(row.cumulativeBudgeted - row.cumulativeActual) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {fmtCurrency(row.cumulativeBudgeted - row.cumulativeActual)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ── Resource Histogram Chart + Table ───────────────────────────── */}
+        {reportType === "resourceHistogram" && reportData?.rows && !isLoading && (
+          <>
+            <div className="flex items-center gap-2 mb-3 print:hidden">
+              <Users className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold">Resource Histogram</h2>
+              <span className="text-sm text-muted-foreground">({reportData.rows.length} weeks)</span>
+            </div>
+
+            <HistogramChart
+              data={reportData.rows}
+              resourceKeys={(reportData.summary as any)?.resourceKeys || []}
+            />
+
+            {/* Tabular data below chart */}
+            <h3 className="text-sm font-semibold mt-6 mb-2">Weekly Resource Loading Detail (Hours)</h3>
+            <div className="overflow-x-auto border rounded-lg print:border-black">
+              <table className="w-full text-sm print:text-[10px]">
+                <thead>
+                  <tr className="bg-muted/50 print:bg-gray-100 border-b print:border-black">
+                    <th className="text-left px-3 py-2.5 font-semibold whitespace-nowrap">Week Of</th>
+                    {((reportData.summary as any)?.resourceKeys || []).map((k: string) => (
+                      <th key={k} className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">
+                        {k.split(":")[1] || k}
+                      </th>
+                    ))}
+                    <th className="text-right px-3 py-2.5 font-semibold whitespace-nowrap">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.rows.map((row: any, idx: number) => {
+                    const keys = (reportData.summary as any)?.resourceKeys || [];
+                    const total = keys.reduce((s: number, k: string) => s + (row[k] || 0), 0);
+                    return (
+                      <tr key={idx} className={`border-b print:border-gray-300 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
+                        <td className="px-3 py-2 whitespace-nowrap">{fmtWeek(row.week)}</td>
+                        {keys.map((k: string) => (
+                          <td key={k} className="px-3 py-2 text-right font-mono">{(row[k] || 0).toLocaleString()}</td>
+                        ))}
+                        <td className="px-3 py-2 text-right font-mono font-bold">{total.toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ── Tabular reports (existing) ─────────────────────────────────── */}
+        {!isChartReport && reportData?.rows && !isLoading && (
           <>
             <div className="flex items-center gap-2 mb-3 print:hidden">
               <Icon className="w-5 h-5 text-primary" />
@@ -554,11 +994,22 @@ export default function ScheduleReports() {
         )}
 
         {/* Empty state */}
-        {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && reportType !== "comparison" && (
+        {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && reportType !== "comparison" && !isChartReport && (
           <div className="text-center py-20">
             <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold">No data available</h3>
             <p className="text-muted-foreground mt-1">Run the CPM calculation first to generate report data.</p>
+          </div>
+        )}
+
+        {/* Empty state for chart reports */}
+        {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && isChartReport && (
+          <div className="text-center py-20">
+            <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold">No resource data available</h3>
+            <p className="text-muted-foreground mt-1">
+              Assign resources to activities with budgeted costs first. Use the Resources panel in the scheduler to add resources and assign them to activities.
+            </p>
           </div>
         )}
 
@@ -578,9 +1029,11 @@ export default function ScheduleReports() {
           .print\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }
           .print\\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+          .print\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
           table { page-break-inside: auto; }
           tr { page-break-inside: avoid; }
           thead { display: table-header-group; }
+          canvas { max-width: 100%; height: auto !important; }
         }
       `}</style>
     </div>

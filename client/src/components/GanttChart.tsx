@@ -78,6 +78,8 @@ interface GanttChartProps {
   ganttFontFamily?: string; // e.g. "DM Sans", "Arial"
   customPixelsPerDay?: number; // for continuous zoom
   onZoomChange?: (ppd: number) => void; // callback when user scrollwheel-zooms
+  showCostOverlay?: boolean;
+  costData?: Map<number, number>; // activityId -> budgetedCost in cents
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -217,6 +219,8 @@ export default function GanttChart({
   ganttFontFamily = "DM Sans",
   customPixelsPerDay,
   onZoomChange,
+  showCostOverlay,
+  costData,
 }: GanttChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -887,6 +891,30 @@ export default function GanttChart({
         }
 
         barRects.push({ activityId: act.id, x: barX, y: barY, w: barW, h: BAR_HEIGHT, isMilestone: false });
+
+        // ── Cost overlay bar (below activity bar) ─────────────────────────
+        if (showCostOverlay && costData) {
+          const cost = costData.get(act.id) || 0;
+          if (cost > 0) {
+            // Find max cost for scaling
+            let maxCost = 0;
+            costData.forEach((c) => { if (c > maxCost) maxCost = c; });
+            const costBarMaxH = 8;
+            const costBarH = maxCost > 0 ? Math.max(2, (cost / maxCost) * costBarMaxH) : 0;
+            const costBarY = barY + BAR_HEIGHT + 1;
+            ctx.fillStyle = "#3b82f6"; // blue
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(barX, costBarY, barW, costBarH);
+            ctx.globalAlpha = 1;
+            // Cost label
+            if (barW > 30) {
+              ctx.fillStyle = "#1e40af";
+              ctx.font = `8px '${ganttFontFamily}', sans-serif`;
+              ctx.textAlign = "left";
+              ctx.fillText(`$${(cost / 100).toLocaleString()}`, barX + 2, costBarY + costBarH + 8);
+            }
+          }
+        }
       }
     }
 

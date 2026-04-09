@@ -1027,6 +1027,43 @@
 - [x] Backend procedures — CRUD resources, assign to activities, cost accounts
 - [x] Cost loading — budget per activity, cost accounts, budgeted vs actual tracking
 - [x] Frontend — ResourcePanel with 3 tabs (Resources, Assignments, Cost Accounts), toolbar button in Scheduler
-- [ ] Cost-loaded Gantt — show cost bars or cost overlay on Gantt chart
-- [ ] Cash flow projection — cumulative cost curve (S-curve) visualization
+- [x] Cost-loaded Gantt — cost overlay toggle with green cost bars on Gantt chart
+- [x] Cash flow projection — cumulative cost curve (S-curve) visualization
 - [x] Write tests for resource/cost calculations (18 tests passing)
+
+## Scheduler Toolbar UX Redesign
+- [x] Off-white/light background behind toolbar to make it stand out (modern Claude-like feel)
+- [x] Organize toolbar into logical grouped sections (File, View, Tools, Reports)
+- [x] Label the Actions/three-dot menu — renamed to 'Settings' with gear icon and label
+- [x] Add color/visual emphasis to the Settings menu button so it stands out
+
+## Cost-Loaded Gantt Overlay
+- [x] Toggle to show/hide cost bars beneath activity bars on the Gantt chart
+- [x] Visual cost concentration — green cost bars beneath activity bars with proportional sizing
+
+## Cash Flow S-Curve Report
+- [x] Cumulative cost projection chart (budgeted vs actual over time)
+- [x] Useful for owner draw requests and bank reporting
+- [x] Accessible from Reports page
+
+## Resource Histogram Report
+- [x] Stacked bar chart showing labor/equipment loading per week
+- [x] Identify over-allocation and leveling needs
+- [x] Accessible from Reports page
+
+## Gantt Annotation/Drawing Overlay (Delay Analysis)
+- [x] Text box overlay — place text annotations anywhere on the Gantt timeline
+- [x] Arrow drawing — draw arrows between points on the Gantt to show impacts
+- [x] Time-period shading/hatching — color or hatch sections of time (solid, hatch, crosshatch, dots patterns)
+- [x] Annotations persist per schedule and can be toggled on/off via Annotate button
+- [x] Annotations render in PDF export (header colors wired through)
+- [ ] Use case: delay impact analysis, change order justification, winter heating costs, etc.
+
+## PDF Header Color Picker
+- [x] Option for no color header (transparent)
+- [x] Option for gray header (Gray/Amber preset)
+- [x] Option to choose custom color for PDF header (6 presets + custom color pickers)
+- [x] Preview in PDF export dialog (live canvas preview updates with color changes)
+
+## PDF Annotation Export
+- [x] Wire header colors into PDF export — headerBgColor, headerAccentColor, headerTextColor flow through to jsPDF

@@ -18,6 +18,9 @@ export interface PdfHeaderFooterConfig {
   showGantt: boolean;
   showTable: boolean;
   criticalPathOnly: boolean;
+  headerBgColor: string;
+  headerAccentColor: string;
+  headerTextColor: string;
 }
 
 interface Activity {
@@ -97,6 +100,9 @@ export function PdfExportPreview({
   const [showGantt, setShowGantt] = useState(true);
   const [showTable, setShowTable] = useState(false);
   const [criticalPathOnly, setCriticalPathOnly] = useState(false);
+  const [headerBgColor, setHeaderBgColor] = useState("#0d1b2a");
+  const [headerAccentColor, setHeaderAccentColor] = useState("#c9a84c");
+  const [headerTextColor, setHeaderTextColor] = useState("#e2e8f0");
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -260,9 +266,15 @@ export function PdfExportPreview({
     ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
 
     // ── Header band ──
-    ctx.fillStyle = "#0d1b2a";
-    ctx.fillRect(margin, margin, w - margin * 2, headerH);
-    ctx.fillStyle = "#c9a84c";
+    if (headerBgColor !== "transparent") {
+      ctx.fillStyle = headerBgColor;
+      ctx.fillRect(margin, margin, w - margin * 2, headerH);
+    } else {
+      ctx.strokeStyle = "#d1d5db";
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(margin, margin, w - margin * 2, headerH);
+    }
+    ctx.fillStyle = headerAccentColor;
     ctx.fillRect(margin, margin + headerH - 2, w - margin * 2, 2);
 
     const hColW = (w - margin * 2) / headerColumnCount;
@@ -280,7 +292,7 @@ export function PdfExportPreview({
         return;
       }
       const text = getContentPreview(col);
-      ctx.fillStyle = i === 0 ? "#c9a84c" : "#e2e8f0";
+      ctx.fillStyle = i === 0 ? headerAccentColor : headerTextColor;
       ctx.font = i === 0 ? `bold ${headerFontSize}px 'DM Sans', sans-serif` : `${headerFontSize * 0.9}px 'DM Sans', sans-serif`;
       ctx.textAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
       const tx = i === 0 ? margin + 8 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - 8 : margin + i * hColW + hColW / 2;
@@ -513,7 +525,7 @@ export function PdfExportPreview({
       ctx.fillText(`Showing ${visibleActs.length} of ${totalFiltered} activities — full PDF will include all`, w / 2, contentY + contentH - 4);
     }
 
-  }, [open, canvasReady, canvasDims, paperDims, headerColumns, footerColumns, headerColumnCount, footerColumnCount, showGantt, criticalPathOnly, previewActivities, companyName, projectName, scheduleName, dataDate, getContentPreview]);
+  }, [open, canvasReady, canvasDims, paperDims, headerColumns, footerColumns, headerColumnCount, footerColumnCount, showGantt, criticalPathOnly, previewActivities, companyName, projectName, scheduleName, dataDate, getContentPreview, headerBgColor, headerAccentColor, headerTextColor]);
 
   const handleExport = async () => {
     await onExport({
@@ -526,6 +538,9 @@ export function PdfExportPreview({
       showGantt,
       showTable,
       criticalPathOnly,
+      headerBgColor,
+      headerAccentColor,
+      headerTextColor,
     });
   };
 
@@ -726,6 +741,50 @@ export function PdfExportPreview({
                         </Button>
                       ))}
                     </div>
+
+                    {/* Header Color Picker */}
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Header Style</Label>
+                      <div className="grid grid-cols-3 gap-1.5 mb-2">
+                        {[
+                          { bg: "#0d1b2a", accent: "#c9a84c", text: "#e2e8f0", label: "Navy/Gold" },
+                          { bg: "#1e293b", accent: "#3b82f6", text: "#e2e8f0", label: "Slate/Blue" },
+                          { bg: "#374151", accent: "#f59e0b", text: "#f3f4f6", label: "Gray/Amber" },
+                          { bg: "#1a1a2e", accent: "#e94560", text: "#eaeaea", label: "Dark/Red" },
+                          { bg: "#f1f5f9", accent: "#2563eb", text: "#1e293b", label: "Light/Blue" },
+                          { bg: "transparent", accent: "#6b7280", text: "#374151", label: "No Color" },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            className={`h-7 rounded border text-[9px] font-medium flex items-center justify-center gap-1 transition-all ${
+                              headerBgColor === preset.bg && headerAccentColor === preset.accent
+                                ? "ring-2 ring-blue-500 ring-offset-1 border-blue-400"
+                                : "border-gray-300 hover:border-gray-400"
+                            }`}
+                            style={{ backgroundColor: preset.bg === "transparent" ? "#fff" : preset.bg, color: preset.bg === "transparent" ? "#374151" : preset.text }}
+                            onClick={() => { setHeaderBgColor(preset.bg); setHeaderAccentColor(preset.accent); setHeaderTextColor(preset.text); }}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[9px] text-gray-400">Custom:</Label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-[8px] text-gray-400">BG</label>
+                          <input type="color" value={headerBgColor === "transparent" ? "#ffffff" : headerBgColor} onChange={e => setHeaderBgColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <label className="text-[8px] text-gray-400">Accent</label>
+                          <input type="color" value={headerAccentColor} onChange={e => setHeaderAccentColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <label className="text-[8px] text-gray-400">Text</label>
+                          <input type="color" value={headerTextColor} onChange={e => setHeaderTextColor(e.target.value)} className="w-5 h-5 rounded border border-gray-300 cursor-pointer" />
+                        </div>
+                      </div>
+                    </div>
+
                     {renderColumnEditor("header", headerColumns, headerColumnCount)}
                   </TabsContent>
 
