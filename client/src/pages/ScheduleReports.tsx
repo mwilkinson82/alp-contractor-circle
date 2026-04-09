@@ -37,7 +37,7 @@ import {
   DollarSign,
 } from "lucide-react";
 
-type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram";
+type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram" | "resourceLeveling" | "evm";
 
 const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description: string }> = {
   totalFloat: {
@@ -69,6 +69,16 @@ const REPORT_LABELS: Record<ReportType, { label: string; icon: any; description:
     label: "Cash Flow S-Curve",
     icon: TrendingUp,
     description: "Cumulative budgeted vs. actual cost projection — for draw requests and bank reporting",
+  },
+  resourceLeveling: {
+    label: "Resource Leveling",
+    icon: AlertTriangle,
+    description: "Detects over-allocated resources and suggests schedule adjustments",
+  },
+  evm: {
+    label: "Earned Value Management",
+    icon: DollarSign,
+    description: "CPI, SPI, EAC, ETC and other EVM metrics with trend analysis",
   },
   resourceHistogram: {
     label: "Resource Histogram",
@@ -366,9 +376,223 @@ function HistogramChart({ data, resourceKeys }: { data: any[]; resourceKeys: str
       style={{ height: 420 }}
     />
   );
+}// ── EVM Dashboard Component ─────────────────────────────────────────────────────
+function EvmDashboard({ data }: { data: any }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data.trendData?.length) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    const pad = { top: 30, right: 30, bottom: 50, left: 80 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#fafafa";
+    ctx.fillRect(0, 0, W, H);
+
+    const rows = data.trendData;
+    const maxVal = Math.max(...rows.map((r: any) => Math.max(r.bcws, r.bcwp, r.acwp)), 1);
+
+    // Grid
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 5; i++) {
+      const y = pad.top + chartH - (i / 5) * chartH;
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
+      ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+      ctx.fillText("$" + ((maxVal * i / 5) / 100).toLocaleString("en-US", { maximumFractionDigits: 0 }), pad.left - 8, y + 4);
+    }
+
+    // X labels
+    const step = Math.max(1, Math.floor(rows.length / 10));
+    ctx.fillStyle = "#6b7280"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+    rows.forEach((r: any, i: number) => {
+      if (i % step === 0) {
+        const x = pad.left + (i / (rows.length - 1)) * chartW;
+        ctx.fillText(r.weekLabel, x, H - pad.bottom + 18);
+      }
+    });
+
+    // Draw lines
+    const drawLine = (key: string, color: string, dash: number[] = []) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash);
+      ctx.beginPath();
+      rows.forEach((r: any, i: number) => {
+        const x = pad.left + (i / (rows.length - 1)) * chartW;
+        const y = pad.top + chartH - (r[key] / maxVal) * chartH;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+
+    drawLine("bcws", "#3b82f6", [6, 3]); // PV - blue dashed
+    drawLine("bcwp", "#22c55e");          // EV - green solid
+    drawLine("acwp", "#ef4444");          // AC - red solid
+
+    // Legend
+    const legends = [
+      { label: "PV (BCWS)", color: "#3b82f6", dash: true },
+      { label: "EV (BCWP)", color: "#22c55e", dash: false },
+      { label: "AC (ACWP)", color: "#ef4444", dash: false },
+    ];
+    let lx = pad.left + 10;
+    legends.forEach(l => {
+      ctx.strokeStyle = l.color; ctx.lineWidth = 2.5;
+      ctx.setLineDash(l.dash ? [6, 3] : []);
+      ctx.beginPath(); ctx.moveTo(lx, pad.top - 12); ctx.lineTo(lx + 24, pad.top - 12); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#374151"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText(l.label, lx + 28, pad.top - 8);
+      lx += ctx.measureText(l.label).width + 50;
+    });
+  }, [data]);
+
+  const fmtMoney = (cents: number) => "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const indexColor = (val: number, good: "above" | "below") => {
+    if (good === "above") return val >= 1 ? "text-green-600" : val >= 0.9 ? "text-amber-600" : "text-red-600";
+    return val <= 1 ? "text-green-600" : val <= 1.1 ? "text-amber-600" : "text-red-600";
+  };
+  const varColor = (val: number) => val >= 0 ? "text-green-600" : "text-red-600";
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-4">
+        <DollarSign className="w-5 h-5 text-emerald-600" />
+        <h2 className="text-lg font-semibold">Earned Value Management Dashboard</h2>
+      </div>
+
+      {/* Key metrics cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">BAC (Budget)</div>
+          <div className="text-xl font-bold">{fmtMoney(data.BAC)}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">EV (BCWP)</div>
+          <div className="text-xl font-bold text-green-600">{fmtMoney(data.BCWP)}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">PV (BCWS)</div>
+          <div className="text-xl font-bold text-blue-600">{fmtMoney(data.BCWS)}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">AC (ACWP)</div>
+          <div className="text-xl font-bold text-red-600">{fmtMoney(data.ACWP)}</div>
+        </CardContent></Card>
+      </div>
+
+      {/* Performance indices */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Card className="border-l-4 border-l-blue-500"><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">CPI (Cost Performance)</div>
+          <div className={`text-2xl font-bold ${indexColor(data.CPI, "above")}`}>{data.CPI.toFixed(2)}</div>
+          <div className="text-xs text-muted-foreground">{data.CPI >= 1 ? "Under budget" : "Over budget"}</div>
+        </CardContent></Card>
+        <Card className="border-l-4 border-l-green-500"><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">SPI (Schedule Performance)</div>
+          <div className={`text-2xl font-bold ${indexColor(data.SPI, "above")}`}>{data.SPI.toFixed(2)}</div>
+          <div className="text-xs text-muted-foreground">{data.SPI >= 1 ? "Ahead of schedule" : "Behind schedule"}</div>
+        </CardContent></Card>
+        <Card className="border-l-4 border-l-amber-500"><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">TCPI (To-Complete)</div>
+          <div className={`text-2xl font-bold ${indexColor(data.TCPI, "below")}`}>{data.TCPI.toFixed(2)}</div>
+          <div className="text-xs text-muted-foreground">{data.TCPI <= 1 ? "Achievable" : "Difficult to achieve"}</div>
+        </CardContent></Card>
+        <Card className="border-l-4 border-l-purple-500"><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">EAC (Estimate at Completion)</div>
+          <div className="text-xl font-bold">{fmtMoney(data.EAC)}</div>
+          <div className="text-xs text-muted-foreground">ETC: {fmtMoney(data.ETC)}</div>
+        </CardContent></Card>
+      </div>
+
+      {/* Variances */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">Cost Variance (CV)</div>
+          <div className={`text-lg font-bold ${varColor(data.CV)}`}>{data.CV >= 0 ? "+" : ""}{fmtMoney(data.CV)}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">Schedule Variance (SV)</div>
+          <div className={`text-lg font-bold ${varColor(data.SV)}`}>{data.SV >= 0 ? "+" : ""}{fmtMoney(data.SV)}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-3 pb-2">
+          <div className="text-xs text-muted-foreground">Variance at Completion (VAC)</div>
+          <div className={`text-lg font-bold ${varColor(data.VAC)}`}>{data.VAC >= 0 ? "+" : ""}{fmtMoney(data.VAC)}</div>
+        </CardContent></Card>
+      </div>
+
+      {/* Trend chart */}
+      {data.trendData?.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold mb-2">EVM Trend (PV / EV / AC)</h3>
+          <canvas ref={canvasRef} className="w-full border rounded-lg bg-white" style={{ height: 360 }} />
+        </div>
+      )}
+
+      {/* Activity EVM breakdown table */}
+      {data.activityEvm?.length > 0 && (
+        <>
+          <h3 className="text-sm font-semibold mb-2">Activity-Level EVM Breakdown</h3>
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 border-b">
+                  <th className="text-left px-3 py-2.5 font-semibold">Activity ID</th>
+                  <th className="text-left px-3 py-2.5 font-semibold">Name</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">Budget</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">Earned Value</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">Actual Cost</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">CPI</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">% Complete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.activityEvm.map((a: any, idx: number) => (
+                  <tr key={idx} className={`border-b hover:bg-muted/30 ${idx % 2 ? "bg-muted/10" : ""}`}>
+                    <td className="px-3 py-2 font-mono text-xs">{a.activityId}</td>
+                    <td className="px-3 py-2">{a.name}</td>
+                    <td className="px-3 py-2 text-right font-mono">{fmtMoney(a.budget)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-green-600">{fmtMoney(a.earnedValue)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-red-600">{fmtMoney(a.actualCost)}</td>
+                    <td className={`px-3 py-2 text-right font-mono font-bold ${indexColor(a.cpi, "above")}`}>{a.cpi.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, a.percentComplete)}%` }} />
+                        </div>
+                        <span className="text-xs font-mono">{a.percentComplete}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {data.BAC === 0 && (
+        <div className="text-center py-12">
+          <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-semibold">No Cost Data Available</h3>
+          <p className="text-muted-foreground mt-1">Assign resources with budgeted costs to activities first.</p>
+        </div>
+      )}
+    </>
+  );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────────
 export default function ScheduleReports() {
   const [, params] = useRoute("/scheduler/:id/reports");
   const scheduleId = params?.id ? parseInt(params.id) : 0;
@@ -382,6 +606,8 @@ export default function ScheduleReports() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const isChartReport = reportType === "cashFlowSCurve" || reportType === "resourceHistogram";
+  const isSpecialReport = reportType === "resourceLeveling" || reportType === "evm";
+  const isStandardReport = !isSpecialReport;
 
   const { data: scheduleData } = trpc.schedule.get.useQuery(
     { id: scheduleId },
@@ -390,21 +616,36 @@ export default function ScheduleReports() {
   const schedule = scheduleData?.schedule;
   const baselines = scheduleData?.baselines;
 
+  const standardReportType = isStandardReport ? reportType as "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram" : "totalFloat";
   const reportInput = useMemo(() => ({
     scheduleId,
-    reportType,
+    reportType: standardReportType,
     baselineId: reportType === "comparison" ? baselineId : undefined,
     filters: {
       floatThreshold: floatThreshold ? parseInt(floatThreshold) : undefined,
       showOnlyCritical,
     },
     sortBy: reportType === "totalFloat" ? sortBy : undefined,
-  }), [scheduleId, reportType, baselineId, floatThreshold, showOnlyCritical, sortBy]);
+  }), [scheduleId, standardReportType, reportType, baselineId, floatThreshold, showOnlyCritical, sortBy]);
 
-  const { data: reportData, isLoading } = trpc.schedule.getReport.useQuery(
+  const { data: reportData, isLoading: isStdLoading } = trpc.schedule.getReport.useQuery(
     reportInput,
-    { enabled: scheduleId > 0 && (reportType !== "comparison" || !!baselineId) }
+    { enabled: scheduleId > 0 && isStandardReport && (reportType !== "comparison" || !!baselineId) }
   );
+
+  // Resource Leveling query
+  const { data: levelingData, isLoading: isLevelingLoading } = trpc.schedule.resourceLeveling.useQuery(
+    { scheduleId },
+    { enabled: scheduleId > 0 && reportType === "resourceLeveling" }
+  );
+
+  // EVM query
+  const { data: evmData, isLoading: isEvmLoading } = trpc.schedule.evmMetrics.useQuery(
+    { scheduleId },
+    { enabled: scheduleId > 0 && reportType === "evm" }
+  );
+
+  const isLoading = isStdLoading || isLevelingLoading || isEvmLoading;
 
   const handlePrint = () => { window.print(); };
 
@@ -487,6 +728,8 @@ export default function ScheduleReports() {
                 <SelectItem value="comparison">Schedule Comparison</SelectItem>
                 <SelectItem value="cashFlowSCurve">Cash Flow S-Curve</SelectItem>
                 <SelectItem value="resourceHistogram">Resource Histogram</SelectItem>
+                <SelectItem value="resourceLeveling">Resource Leveling</SelectItem>
+                <SelectItem value="evm">Earned Value Management</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -993,8 +1236,109 @@ export default function ScheduleReports() {
           </>
         )}
 
+        {/* ── Resource Leveling Report ─────────────────────────────── */}
+        {reportType === "resourceLeveling" && !isLoading && levelingData && (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <h2 className="text-lg font-semibold">Resource Leveling Analysis</h2>
+            </div>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card><CardContent className="pt-4">
+                <div className="text-sm text-muted-foreground">Over-Allocations</div>
+                <div className={`text-2xl font-bold ${levelingData.overAllocations.length > 0 ? "text-red-600" : "text-green-600"}`}>
+                  {levelingData.overAllocations.length}
+                </div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <div className="text-sm text-muted-foreground">Suggestions</div>
+                <div className="text-2xl font-bold text-amber-600">{levelingData.suggestions.length}</div>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <div className="text-sm text-muted-foreground">Status</div>
+                <div className={`text-lg font-bold ${levelingData.overAllocations.length === 0 ? "text-green-600" : "text-amber-600"}`}>
+                  {levelingData.overAllocations.length === 0 ? "All Resources Balanced" : "Needs Attention"}
+                </div>
+              </CardContent></Card>
+            </div>
+
+            {/* Suggestions */}
+            {levelingData.suggestions.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold mb-3">Leveling Suggestions</h3>
+                <div className="space-y-2">
+                  {levelingData.suggestions.map((s: any, i: number) => (
+                    <div key={i} className={`p-3 rounded-lg border-l-4 ${
+                      s.severity === "high" ? "bg-red-50 border-red-500 dark:bg-red-950" :
+                      s.severity === "medium" ? "bg-amber-50 border-amber-500 dark:bg-amber-950" :
+                      "bg-blue-50 border-blue-400 dark:bg-blue-950"
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
+                          s.severity === "high" ? "bg-red-200 text-red-800" :
+                          s.severity === "medium" ? "bg-amber-200 text-amber-800" :
+                          "bg-blue-200 text-blue-800"
+                        }`}>{s.severity}</span>
+                        <span className="text-xs text-muted-foreground">{s.type === "split" ? "Stagger Activities" : "Reduce Load"}</span>
+                      </div>
+                      <p className="text-sm">{s.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Over-allocation table */}
+            {levelingData.overAllocations.length > 0 && (
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="text-left px-3 py-2.5 font-semibold">Week</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Resource</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Type</th>
+                      <th className="text-right px-3 py-2.5 font-semibold">Allocated</th>
+                      <th className="text-right px-3 py-2.5 font-semibold">Capacity</th>
+                      <th className="text-right px-3 py-2.5 font-semibold">Over By</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Activities</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {levelingData.overAllocations.map((oa: any, idx: number) => (
+                      <tr key={idx} className={`border-b hover:bg-muted/30 ${idx % 2 ? "bg-muted/10" : ""}`}>
+                        <td className="px-3 py-2 whitespace-nowrap">{oa.weekLabel}</td>
+                        <td className="px-3 py-2 font-medium">{oa.resourceName}</td>
+                        <td className="px-3 py-2 capitalize">{oa.resourceType}</td>
+                        <td className="px-3 py-2 text-right font-mono text-red-600">{oa.allocated}</td>
+                        <td className="px-3 py-2 text-right font-mono">{oa.capacity}</td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-red-600">+{oa.overBy}</td>
+                        <td className="px-3 py-2 text-xs">{oa.activities.join(", ")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {levelingData.overAllocations.length === 0 && (
+              <div className="text-center py-12">
+                <Activity className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                <h3 className="text-lg font-semibold text-green-700">No Over-Allocations Detected</h3>
+                <p className="text-muted-foreground mt-1">All resources are within capacity across the project timeline.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── EVM Dashboard ────────────────────────────────────────────── */}
+        {reportType === "evm" && !isLoading && evmData && (
+          <EvmDashboard data={evmData} />
+        )}
+
         {/* Empty state */}
-        {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && reportType !== "comparison" && !isChartReport && (
+        {!isLoading && !isSpecialReport && (!reportData?.rows || reportData.rows.length === 0) && reportType !== "comparison" && !isChartReport && (
           <div className="text-center py-20">
             <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold">No data available</h3>

@@ -675,3 +675,27 @@ export const costAccounts = mysqlTable("cost_accounts", {
 
 export type CostAccount = typeof costAccounts.$inferSelect;
 export type InsertCostAccount = typeof costAccounts.$inferInsert;
+
+// ─── Gantt Annotations (Delay Analysis Overlays) ────────────────────────────
+
+/**
+ * Schedule annotations — persistent text boxes, arrows, and shading overlays
+ * on the Gantt chart for delay analysis, change order justification, etc.
+ * Each annotation stores its type and full properties as JSON.
+ */
+export const scheduleAnnotations = mysqlTable("schedule_annotations", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent schedule */
+  scheduleId: int("scheduleId").notNull(),
+  /** Annotation type: text, arrow, or shading */
+  annotationType: mysqlEnum("annotationType", ["text", "arrow", "shading"]).notNull(),
+  /** Full annotation properties stored as JSON (position, color, size, pattern, label, etc.) */
+  data: json("data").notNull(),
+  /** Display order / z-index */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ScheduleAnnotation = typeof scheduleAnnotations.$inferSelect;
+export type InsertScheduleAnnotation = typeof scheduleAnnotations.$inferInsert;

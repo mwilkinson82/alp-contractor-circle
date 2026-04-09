@@ -366,6 +366,13 @@ export default function Scheduler() {
     { scheduleId: scheduleId! },
     { enabled: !!scheduleId }
   );
+
+  // ── Annotations persistence (queries only, effects below state) ──
+  const annotationsQuery = trpc.schedule.getAnnotations.useQuery(
+    { scheduleId: scheduleId! },
+    { enabled: !!scheduleId }
+  );
+  const saveAnnotationsMut = trpc.schedule.saveAnnotations.useMutation();
   const costDataMap = useMemo(() => {
     const map = new Map<number, number>();
     if (!resourceAssignmentsQuery.data) return map;
@@ -394,6 +401,43 @@ export default function Scheduler() {
   const [showCostOverlay, setShowCostOverlay] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(false);
   const [ganttAnnotations, setGanttAnnotations] = useState<Annotation[]>([]);
+  const [annotationsLoaded, setAnnotationsLoaded] = useState(false);
+
+  // Load annotations from DB on first fetch
+  useEffect(() => {
+    if (annotationsQuery.data && !annotationsLoaded) {
+      const loaded = annotationsQuery.data.map((row: any) => ({
+        ...row.data,
+        type: row.annotationType,
+        id: row.data?.id || `db-${row.id}`,
+      })) as Annotation[];
+      setGanttAnnotations(loaded);
+      setAnnotationsLoaded(true);
+    }
+  }, [annotationsQuery.data, annotationsLoaded]);
+
+  // Reset loaded flag when schedule changes
+  useEffect(() => { setAnnotationsLoaded(false); }, [scheduleId]);
+
+  // Auto-save annotations when they change (debounced)
+  const saveAnnotationsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleAnnotationsChange = useCallback((newAnnotations: Annotation[]) => {
+    setGanttAnnotations(newAnnotations);
+    if (!scheduleId) return;
+    if (saveAnnotationsTimeoutRef.current) clearTimeout(saveAnnotationsTimeoutRef.current);
+    saveAnnotationsTimeoutRef.current = setTimeout(() => {
+      saveAnnotationsMut.mutate({
+        scheduleId,
+        annotations: newAnnotations.map((a, i) => ({
+          scheduleId,
+          annotationType: a.type,
+          data: a as any,
+          sortOrder: i,
+        })),
+      });
+    }, 1500);
+  }, [scheduleId, saveAnnotationsMut]);
+
   const ganttContainerRef = useRef<HTMLDivElement>(null);
   const [ganttContainerSize, setGanttContainerSize] = useState({ width: 0, height: 0 });
   const [showCsvImportDialog, setShowCsvImportDialog] = useState(false);
@@ -1727,7 +1771,7 @@ export default function Scheduler() {
             width={ganttContainerRef.current?.scrollWidth || 2000}
             height={ganttContainerRef.current?.scrollHeight || 1000}
             annotations={ganttAnnotations}
-            onAnnotationsChange={setGanttAnnotations}
+            onAnnotationsChange={handleAnnotationsChange}
             visible={showAnnotations}
           />
           </div>

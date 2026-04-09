@@ -19,6 +19,7 @@ import {
   scheduleResources,
   activityResources,
   costAccounts,
+  scheduleAnnotations,
   type InsertSchedule,
   type InsertActivity,
   type InsertActivityRelationship,
@@ -33,6 +34,7 @@ import {
   type InsertScheduleResource,
   type InsertActivityResource,
   type InsertCostAccount,
+  type InsertScheduleAnnotation,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -539,4 +541,21 @@ export async function deleteResourcesBySchedule(scheduleId: number) {
 export async function deleteCostAccountsBySchedule(scheduleId: number) {
   const db = requireDb();
   await db.delete(costAccounts).where(eq(costAccounts.scheduleId, scheduleId));
+}
+
+// ─── Annotations ───────────────────────────────────────────────────────────────────────
+export async function getAnnotationsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db.select().from(scheduleAnnotations).where(eq(scheduleAnnotations.scheduleId, scheduleId)).orderBy(asc(scheduleAnnotations.sortOrder));
+}
+export async function saveAnnotations(scheduleId: number, annotations: InsertScheduleAnnotation[]) {
+  const db = requireDb();
+  await db.delete(scheduleAnnotations).where(eq(scheduleAnnotations.scheduleId, scheduleId));
+  if (annotations.length > 0) {
+    await db.insert(scheduleAnnotations).values(annotations);
+  }
+}
+export async function deleteAnnotationsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  await db.delete(scheduleAnnotations).where(eq(scheduleAnnotations.scheduleId, scheduleId));
 }

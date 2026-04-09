@@ -1067,3 +1067,21 @@
 
 ## PDF Annotation Export
 - [x] Wire header colors into PDF export — headerBgColor, headerAccentColor, headerTextColor flow through to jsPDF
+
+## Persist Gantt Annotations to Database
+- [x] DB schema — schedule_annotations table (scheduleId, type, data JSON, createdAt)
+- [x] Backend procedures — save/load/delete annotations per schedule
+- [x] Wire Scheduler to load annotations on mount and auto-save on change (1.5s debounce)
+- [x] Annotations survive page reloads and are per-schedule
+
+## Resource Leveling Algorithm
+- [x] Over-allocation detection — identify weeks where resource usage exceeds capacity
+- [x] Leveling suggestions — propose schedule adjustments (split/reduce with severity levels)
+- [x] Backend procedure for leveling analysis
+- [x] UI in reports page — Resource Leveling report type with summary cards, suggestions, and over-allocation table
+
+## Earned Value Management (EVM) Dashboard
+- [x] EVM calculations — CPI, SPI, EAC, ETC, CV, SV, BAC, BCWP, BCWS, ACWP, TCPI, VAC
+- [x] Backend procedure to compute EVM metrics from cost/schedule data
+- [x] Dedicated EVM dashboard with metric cards, performance indices, variances, PV/EV/AC trend chart, and activity-level breakdown table
+- [x] Navigation from reports dropdown — EVM is a report type alongside all others

@@ -1868,4 +1868,193 @@ export const scheduleRouter = router({
     .mutation(async ({ input }) => {
       await sdb.deleteCostAccount(input.id);
     }),
+
+  // ── Annotations ────────────────────────────────────────────────────────────
+  getAnnotations: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      return sdb.getAnnotationsBySchedule(input.scheduleId);
+    }),
+  saveAnnotations: protectedProcedure
+    .input(z.object({
+      scheduleId: z.number(),
+      annotations: z.array(z.object({
+        scheduleId: z.number(),
+        annotationType: z.enum(["text", "arrow", "shading"]),
+        data: z.any(),
+        sortOrder: z.number().default(0),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      await sdb.saveAnnotations(input.scheduleId, input.annotations);
+    }),
+
+  // ── Resource Leveling ──────────────────────────────────────────────────────
+  resourceLeveling: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      const acts = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const resources = await sdb.getResourcesBySchedule(input.scheduleId);
+      const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+
+      const capacityMap: Record<number, { name: string; maxUnitsPerDay: number; resourceType: string }> = {};
+      for (const r of resources) {
+        capacityMap[r.id] = { name: r.name, maxUnitsPerDay: parseFloat(String(r.maxUnitsPerDay)), resourceType: r.resourceType };
+      }
+
+      let minDate = Infinity, maxDate = -Infinity;
+      for (const a of acts) {
+        if (a.earlyStart) minDate = Math.min(minDate, new Date(a.earlyStart).getTime());
+        if (a.earlyFinish) maxDate = Math.max(maxDate, new Date(a.earlyFinish).getTime());
+      }
+      if (minDate === Infinity) return { overAllocations: [], suggestions: [] };
+
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const actMap = new Map(acts.map(a => [a.id, a]));
+
+      type WeekBucket = { weekStart: Date; weekLabel: string; resourceLoading: Record<number, { allocated: number; capacity: number; activities: string[] }> };
+      const weeks: WeekBucket[] = [];
+      let current = new Date(minDate);
+
+      while (current.getTime() <= maxDate) {
+        const weekEnd = new Date(current.getTime() + msPerWeek);
+        const bucket: WeekBucket = { weekStart: new Date(current), weekLabel: current.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }), resourceLoading: {} };
+
+        for (const asgn of assignments) {
+          const act = actMap.get(asgn.activityId);
+          if (!act || !act.earlyStart || !act.earlyFinish) continue;
+          const aStart = new Date(act.earlyStart).getTime();
+          const aEnd = new Date(act.earlyFinish).getTime();
+          if (aStart < weekEnd.getTime() && aEnd >= current.getTime()) {
+            if (!bucket.resourceLoading[asgn.resourceId]) {
+              const cap = capacityMap[asgn.resourceId];
+              bucket.resourceLoading[asgn.resourceId] = { allocated: 0, capacity: cap ? cap.maxUnitsPerDay : 8, activities: [] };
+            }
+            bucket.resourceLoading[asgn.resourceId].allocated += parseFloat(String(asgn.unitsPerDay));
+            bucket.resourceLoading[asgn.resourceId].activities.push(act.activityId);
+          }
+        }
+        weeks.push(bucket);
+        current = weekEnd;
+      }
+
+      const overAllocations: Array<{ weekLabel: string; resourceId: number; resourceName: string; resourceType: string; allocated: number; capacity: number; overBy: number; activities: string[] }> = [];
+      for (const week of weeks) {
+        for (const [ridStr, loading] of Object.entries(week.resourceLoading)) {
+          const rid = Number(ridStr);
+          const cap = capacityMap[rid];
+          if (!cap) continue;
+          if (loading.allocated > loading.capacity) {
+            overAllocations.push({ weekLabel: week.weekLabel, resourceId: rid, resourceName: cap.name, resourceType: cap.resourceType, allocated: loading.allocated, capacity: loading.capacity, overBy: Math.round((loading.allocated - loading.capacity) * 100) / 100, activities: loading.activities });
+          }
+        }
+      }
+
+      const suggestions: Array<{ type: string; message: string; resourceName: string; weekLabel: string; severity: "high" | "medium" | "low" }> = [];
+      for (const oa of overAllocations) {
+        const pct = Math.round((oa.overBy / oa.capacity) * 100);
+        const severity = pct > 50 ? "high" : pct > 25 ? "medium" : "low";
+        if (oa.activities.length > 1) {
+          suggestions.push({ type: "split", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel}. Consider staggering activities ${oa.activities.join(", ")} to reduce concurrent demand.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity });
+        } else {
+          suggestions.push({ type: "reduce", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel} on activity ${oa.activities[0]}. Consider reducing units or extending duration.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity });
+        }
+      }
+
+      return { overAllocations, suggestions };
+    }),
+
+  // ── Earned Value Management ────────────────────────────────────────────────
+  evmMetrics: protectedProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ input }) => {
+      const acts = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+      const schedule = await sdb.getScheduleById(input.scheduleId);
+      if (!schedule) throw new TRPCError({ code: "NOT_FOUND", message: "Schedule not found" });
+
+      const BAC = assignments.reduce((sum, a) => sum + a.budgetedCost, 0);
+      const ACWP = assignments.reduce((sum, a) => sum + a.actualCost, 0);
+
+      const actBudgetMap: Record<number, number> = {};
+      for (const a of assignments) { actBudgetMap[a.activityId] = (actBudgetMap[a.activityId] || 0) + a.budgetedCost; }
+
+      let BCWP = 0;
+      for (const act of acts) {
+        const budget = actBudgetMap[act.id] || 0;
+        BCWP += budget * (parseFloat(String(act.percentComplete)) / 100);
+      }
+
+      const dataDate = schedule.dataDate ? new Date(schedule.dataDate) : new Date();
+      let BCWS = 0;
+      for (const act of acts) {
+        const budget = actBudgetMap[act.id] || 0;
+        if (!act.earlyStart || !act.earlyFinish) continue;
+        const es = new Date(act.earlyStart).getTime();
+        const ef = new Date(act.earlyFinish).getTime();
+        const dd = dataDate.getTime();
+        if (dd >= ef) { BCWS += budget; }
+        else if (dd > es) { const totalDur = ef - es; BCWS += budget * (totalDur > 0 ? (dd - es) / totalDur : 0); }
+      }
+
+      const CPI = ACWP > 0 ? BCWP / ACWP : 0;
+      const SPI = BCWS > 0 ? BCWP / BCWS : 0;
+      const CV = BCWP - ACWP;
+      const SV = BCWP - BCWS;
+      const EAC = CPI > 0 ? BAC / CPI : BAC;
+      const ETC = EAC - ACWP;
+      const VAC = BAC - EAC;
+      const TCPI = (BAC - ACWP) > 0 ? (BAC - BCWP) / (BAC - ACWP) : 0;
+
+      const activityEvm = acts.map(act => {
+        const budget = actBudgetMap[act.id] || 0;
+        const pctComplete = parseFloat(String(act.percentComplete)) / 100;
+        const actBCWP = budget * pctComplete;
+        const actACWP = assignments.filter(a => a.activityId === act.id).reduce((s, a) => s + a.actualCost, 0);
+        const actCPI = actACWP > 0 ? actBCWP / actACWP : 0;
+        return { activityId: act.activityId, name: act.name, budget, earnedValue: Math.round(actBCWP), actualCost: actACWP, cpi: Math.round(actCPI * 100) / 100, percentComplete: parseFloat(String(act.percentComplete)) };
+      }).filter(a => a.budget > 0);
+
+      // Trend data
+      let minDate = Infinity, maxDate = -Infinity;
+      for (const a of acts) {
+        if (a.earlyStart) minDate = Math.min(minDate, new Date(a.earlyStart).getTime());
+        if (a.earlyFinish) maxDate = Math.max(maxDate, new Date(a.earlyFinish).getTime());
+      }
+      const trendData: Array<{ weekLabel: string; bcws: number; bcwp: number; acwp: number }> = [];
+      if (minDate !== Infinity) {
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        let cur = new Date(minDate);
+        let cumBCWS = 0;
+        while (cur.getTime() <= maxDate + msPerWeek) {
+          const weekEnd = new Date(cur.getTime() + msPerWeek);
+          let weekBCWS = 0;
+          for (const act of acts) {
+            const budget = actBudgetMap[act.id] || 0;
+            if (!act.earlyStart || !act.earlyFinish) continue;
+            const es = new Date(act.earlyStart).getTime();
+            const ef = new Date(act.earlyFinish).getTime();
+            const overlapStart = Math.max(cur.getTime(), es);
+            const overlapEnd = Math.min(weekEnd.getTime(), ef);
+            if (overlapEnd > overlapStart) {
+              const totalDur = ef - es;
+              weekBCWS += budget * (totalDur > 0 ? (overlapEnd - overlapStart) / totalDur : 0);
+            }
+          }
+          cumBCWS += weekBCWS;
+          const ddRatio = dataDate.getTime() > minDate ? Math.min(1, (weekEnd.getTime() - minDate) / (dataDate.getTime() - minDate)) : 0;
+          trendData.push({ weekLabel: cur.toLocaleDateString("en-US", { month: "short", day: "numeric" }), bcws: Math.round(cumBCWS), bcwp: Math.round(BCWP * Math.min(1, ddRatio)), acwp: Math.round(ACWP * Math.min(1, ddRatio)) });
+          cur = weekEnd;
+        }
+      }
+
+      return {
+        BAC: Math.round(BAC), BCWP: Math.round(BCWP), BCWS: Math.round(BCWS), ACWP: Math.round(ACWP),
+        CPI: Math.round(CPI * 100) / 100, SPI: Math.round(SPI * 100) / 100,
+        CV: Math.round(CV), SV: Math.round(SV),
+        EAC: Math.round(EAC), ETC: Math.round(ETC), VAC: Math.round(VAC),
+        TCPI: Math.round(TCPI * 100) / 100,
+        activityEvm, trendData,
+      };
+    }),
 });
