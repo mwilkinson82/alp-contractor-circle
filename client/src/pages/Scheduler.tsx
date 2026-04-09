@@ -446,7 +446,7 @@ export default function Scheduler() {
   const [newWbsCode, setNewWbsCode] = useState("");
   const [newWbsName, setNewWbsName] = useState("");
   const [newWbsParentId, setNewWbsParentId] = useState<string>("");
-  const [showCsiPicker, setShowCsiPicker] = useState(false);
+  const [showCsiPicker, setShowCsiPicker] = useState(true);
   const [selectedCsiCodes, setSelectedCsiCodes] = useState<Set<string>>(new Set());
   const [csiSearch, setCsiSearch] = useState("");
 
@@ -1670,9 +1670,9 @@ export default function Scheduler() {
 
       {/* ── Activity Detail Modal ───────────────────────────────────────────── */}
       <Dialog open={showActivityDetailModal} onOpenChange={setShowActivityDetailModal}>
-        <DialogContent className="bg-white border-gray-200 max-w-3xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Activity Details</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Activity Details</DialogTitle>
             <DialogDescription>Edit all properties of this activity.</DialogDescription>
           </DialogHeader>
           {detailAct && (
@@ -1947,9 +1947,9 @@ export default function Scheduler() {
 
       {/* ── Add Activity Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Add Activity</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Add Activity</DialogTitle>
             <DialogDescription>Create a new task or milestone in this schedule.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2028,9 +2028,9 @@ export default function Scheduler() {
 
       {/* ── Bulk Add Activities Dialog ──────────────────────────────────────── */}
       <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Bulk Add Activities</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Bulk Add Activities</DialogTitle>
             <DialogDescription>Create multiple activities at once with auto-generated IDs.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2068,7 +2068,7 @@ export default function Scheduler() {
 
       {/* ── CSV Import Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showCsvImportDialog} onOpenChange={(open) => { setShowCsvImportDialog(open); if (!open) { setCsvParsedRows([]); setCsvFileName(""); } }}>
-        <DialogContent className="bg-white border-gray-200 max-w-3xl text-gray-900" style={{ maxHeight: "85vh" }}>
+        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base" style={{ maxHeight: "85vh" }}>
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-900 flex items-center gap-2">
               <Upload className="w-5 h-5 text-emerald-600" /> Import Activities from CSV
@@ -2217,9 +2217,9 @@ export default function Scheduler() {
 
       {/* ── Activity ID Settings Dialog ─────────────────────────────────────── */}
       <Dialog open={showIdSettingsDialog} onOpenChange={setShowIdSettingsDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Activity ID Settings</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Activity ID Settings</DialogTitle>
             <DialogDescription>Configure how new Activity IDs are generated.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2264,9 +2264,9 @@ export default function Scheduler() {
 
       {/* ── Add Relationship Dialog ─────────────────────────────────────────── */}
       <Dialog open={showRelationshipDialog} onOpenChange={setShowRelationshipDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Add Relationship</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Add Relationship</DialogTitle>
             <DialogDescription>Define a logic tie between two activities.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2330,9 +2330,9 @@ export default function Scheduler() {
 
       {/* ── Save Baseline Dialog ────────────────────────────────────────────── */}
       <Dialog open={showBaselineDialog} onOpenChange={setShowBaselineDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Save Baseline</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Baseline</DialogTitle>
             <DialogDescription>Save the current schedule as the original baseline for comparison.</DialogDescription>
           </DialogHeader>
           <div>
@@ -2359,9 +2359,9 @@ export default function Scheduler() {
 
       {/* ── Save Update Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Save Schedule Update</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Schedule Update</DialogTitle>
             <DialogDescription>
               Snapshot the current schedule as Update {baselines.filter((b: any) => b.snapshotType === "update").length + 1}.
               Data Date: {dataDate ? formatDate(dataDate) : "Not set"}
@@ -2397,9 +2397,9 @@ export default function Scheduler() {
 
       {/* ── Set Data Date Dialog ────────────────────────────────────────────── */}
       <Dialog open={showDataDatePicker} onOpenChange={setShowDataDatePicker}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Set Data Date</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Set Data Date</DialogTitle>
             <DialogDescription>The data date is the "as-of" date for CPM calculations. It is independent of today's calendar date.</DialogDescription>
           </DialogHeader>
           <div>
@@ -2441,9 +2441,9 @@ export default function Scheduler() {
 
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Project Calendars</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Project Calendars</DialogTitle>
             <DialogDescription>Create and manage work calendars, set work days, and mark holidays.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
@@ -2638,9 +2638,9 @@ export default function Scheduler() {
 
       {/* ── Schedule Health Dialog ───────────────────────────────────────────── */}
       <Dialog open={showScheduleHealth} onOpenChange={setShowScheduleHealth}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Schedule Health Check</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Schedule Health Check</DialogTitle>
             <DialogDescription>Review schedule integrity and identify issues.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2746,9 +2746,9 @@ export default function Scheduler() {
 
       {/* ── Schedule Info Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showScheduleInfo} onOpenChange={setShowScheduleInfo}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Schedule Information</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Schedule Information</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-gray-500">Project Start</span><span className="text-gray-900 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
@@ -2770,9 +2770,9 @@ export default function Scheduler() {
 
        {/* ── Gantt Display Settings Dialog ──────────────────────────────────── */}
       <Dialog open={showGanttSettings} onOpenChange={setShowGanttSettings}>
-        <DialogContent className="bg-white border-gray-200 max-w-lg text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Gantt Display Settings</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Gantt Display Settings</DialogTitle>
             <DialogDescription>Customize how activity labels appear on the Gantt chart.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2840,9 +2840,9 @@ export default function Scheduler() {
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base" style={{ maxHeight: "85vh" }}>
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">WBS Manager — Work Breakdown Structure</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
             <DialogDescription>Build your project hierarchy. Parent items contain child items (indented). Click to expand/collapse.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2906,14 +2906,19 @@ export default function Scheduler() {
             </div>
             {/* CSI MasterFormat Library */}
             <div className="border-t border-gray-200 pt-3">
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
-                onClick={() => setShowCsiPicker(!showCsiPicker)}
-              >
-                <BookOpen className="w-3.5 h-3.5 mr-1" /> {showCsiPicker ? "Hide" : "Import from"} CSI MasterFormat Library
-              </Button>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" /> CSI MasterFormat Library
+                </h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowCsiPicker(!showCsiPicker)}
+                >
+                  {showCsiPicker ? "Collapse" : "Expand"}
+                </Button>
+              </div>
               {showCsiPicker && (
                 <div className="mt-3 space-y-2">
                   <Input
@@ -3012,9 +3017,9 @@ export default function Scheduler() {
 
       {/* ── Save Layout Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-md text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Save Layout</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Layout</DialogTitle>
             <DialogDescription>Save your current view settings (columns, grouping, sort, zoom, filters) as a reusable layout.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -3060,9 +3065,9 @@ export default function Scheduler() {
 
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl text-gray-900">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900">Advanced Filters</DialogTitle>
+            <DialogTitle className="font-semibold text-gray-900 text-lg">Advanced Filters</DialogTitle>
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -3294,9 +3299,9 @@ export default function Scheduler() {
 
       {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
       <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>
-        <DialogContent className="max-w-lg bg-white text-gray-900">
+        <DialogContent className="max-w-2xl bg-white text-gray-900 text-base">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogTitle className="text-gray-900 text-lg">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
               Select a WBS code to assign to all selected activities at once.
             </DialogDescription>

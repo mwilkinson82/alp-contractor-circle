@@ -286,7 +286,7 @@ export default function ScheduleList() {
 
       {/* Create Schedule Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-2xl text-base">
           <DialogHeader>
             <DialogTitle className="font-heading">
               Create New Schedule
@@ -391,7 +391,7 @@ export default function ScheduleList() {
         open={showDuplicate !== null}
         onOpenChange={() => setShowDuplicate(null)}
       >
-        <DialogContent className="bg-card border-border max-w-sm">
+        <DialogContent className="bg-card border-border max-w-xl text-base">
           <DialogHeader>
             <DialogTitle className="font-heading">
               Duplicate Schedule

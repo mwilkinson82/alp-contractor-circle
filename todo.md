@@ -976,4 +976,12 @@
 - [x] Saved layouts backend procedures (create, list, load, update, delete, set default)
 - [x] Saved layouts frontend UI — save/load/switch layouts in toolbar
 - [x] Write tests for new features (10 constraint + 5 CSI = 15 new tests passing)
+- [x] Save checkpoint (version efe889bd)
+
+## UI Improvement — Wider Modals, Bigger Fonts, CSI Library Default Open
+- [x] WBS Manager modal — widened to max-w-5xl
+- [x] CSI MasterFormat library section open by default (collapsible but starts expanded)
+- [x] Increase font sizes in all scheduler modals (text-base on content, text-lg on titles)
+- [x] Widen all 17 scheduler modals (Activity Detail 5xl, Calendar/Health/Filters 4xl, others 2xl)
+- [x] Widen ScheduleList dialogs (Create 2xl, Duplicate xl)
 - [ ] Save checkpoint
