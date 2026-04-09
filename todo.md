@@ -1085,3 +1085,21 @@
 - [x] Backend procedure to compute EVM metrics from cost/schedule data
 - [x] Dedicated EVM dashboard with metric cards, performance indices, variances, PV/EV/AC trend chart, and activity-level breakdown table
 - [x] Navigation from reports dropdown — EVM is a report type alongside all others
+
+## Baseline Comparison in EVM
+- [x] Backend — evmBaseline procedure computes EVM metrics for any baseline snapshot
+- [x] Compare CPI/SPI/EAC/ETC/TCPI/CV/SV between current and baseline with delta cards
+- [x] UI — 6 color-coded delta cards with improvement/decline arrows and baseline values
+- [x] Trend chart overlay — baseline PV/EV/AC as faded dashed lines alongside current
+
+## PDF Export for EVM and Leveling Reports
+- [x] EVM report PDF — metric cards, performance indices, trend chart, activity table
+- [x] Resource leveling PDF — summary cards, suggestions, over-allocation table
+- [x] Export buttons on the reports page for both report types
+- [x] Consistent styling with existing schedule PDF exports
+
+## Resource Calendar Integration for Leveling
+- [x] Backend — fetch schedule calendars and apply non-work days to resource availability
+- [x] Adjust leveling capacity calculation based on calendar (holidays, weekends, custom)
+- [x] UI — show calendar-adjusted capacity in histogram and leveling reports (calendar info banner)
+- [x] Handle multiple calendars per resource via activity calendarId mapping

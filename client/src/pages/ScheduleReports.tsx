@@ -35,6 +35,7 @@ import {
   TrendingUp,
   Users,
   DollarSign,
+  Calendar,
 } from "lucide-react";
 
 type ReportType = "totalFloat" | "earlyStart" | "criticalPath" | "duration" | "comparison" | "cashFlowSCurve" | "resourceHistogram" | "resourceLeveling" | "evm";
@@ -377,7 +378,7 @@ function HistogramChart({ data, resourceKeys }: { data: any[]; resourceKeys: str
     />
   );
 }// ── EVM Dashboard Component ─────────────────────────────────────────────────────
-function EvmDashboard({ data }: { data: any }) {
+function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -401,7 +402,9 @@ function EvmDashboard({ data }: { data: any }) {
     ctx.fillRect(0, 0, W, H);
 
     const rows = data.trendData;
-    const maxVal = Math.max(...rows.map((r: any) => Math.max(r.bcws, r.bcwp, r.acwp)), 1);
+    const blRows = baselineData?.trendData || [];
+    const allVals = [...rows.map((r: any) => Math.max(r.bcws, r.bcwp, r.acwp)), ...blRows.map((r: any) => Math.max(r.bcws, r.bcwp, r.acwp))];
+    const maxVal = Math.max(...allVals, 1);
 
     // Grid
     ctx.strokeStyle = "#e5e7eb";
@@ -423,31 +426,44 @@ function EvmDashboard({ data }: { data: any }) {
       }
     });
 
-    // Draw lines
-    const drawLine = (key: string, color: string, dash: number[] = []) => {
-      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash);
+    // Draw lines helper
+    const drawLine = (srcRows: any[], key: string, color: string, dash: number[] = [], lineWidth = 2.5) => {
+      if (!srcRows.length) return;
+      ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.setLineDash(dash);
       ctx.beginPath();
-      rows.forEach((r: any, i: number) => {
-        const x = pad.left + (i / (rows.length - 1)) * chartW;
+      srcRows.forEach((r: any, i: number) => {
+        const x = pad.left + (i / Math.max(1, srcRows.length - 1)) * chartW;
         const y = pad.top + chartH - (r[key] / maxVal) * chartH;
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       });
       ctx.stroke(); ctx.setLineDash([]);
     };
 
-    drawLine("bcws", "#3b82f6", [6, 3]); // PV - blue dashed
-    drawLine("bcwp", "#22c55e");          // EV - green solid
-    drawLine("acwp", "#ef4444");          // AC - red solid
+    // Baseline trend lines (faded, thin)
+    if (blRows.length > 0) {
+      drawLine(blRows, "bcws", "#93c5fd", [4, 4], 1.5); // Baseline PV - light blue dashed
+      drawLine(blRows, "bcwp", "#86efac", [4, 4], 1.5); // Baseline EV - light green dashed
+      drawLine(blRows, "acwp", "#fca5a5", [4, 4], 1.5); // Baseline AC - light red dashed
+    }
+
+    // Current trend lines
+    drawLine(rows, "bcws", "#3b82f6", [6, 3]); // PV - blue dashed
+    drawLine(rows, "bcwp", "#22c55e");          // EV - green solid
+    drawLine(rows, "acwp", "#ef4444");          // AC - red solid
 
     // Legend
-    const legends = [
+    const legends: Array<{ label: string; color: string; dash: boolean; thin?: boolean }> = [
       { label: "PV (BCWS)", color: "#3b82f6", dash: true },
       { label: "EV (BCWP)", color: "#22c55e", dash: false },
       { label: "AC (ACWP)", color: "#ef4444", dash: false },
     ];
+    if (blRows.length > 0) {
+      legends.push({ label: "Baseline PV", color: "#93c5fd", dash: true, thin: true });
+      legends.push({ label: "Baseline EV", color: "#86efac", dash: true, thin: true });
+    }
     let lx = pad.left + 10;
     legends.forEach(l => {
-      ctx.strokeStyle = l.color; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = l.color; ctx.lineWidth = l.thin ? 1.5 : 2.5;
       ctx.setLineDash(l.dash ? [6, 3] : []);
       ctx.beginPath(); ctx.moveTo(lx, pad.top - 12); ctx.lineTo(lx + 24, pad.top - 12); ctx.stroke();
       ctx.setLineDash([]);
@@ -455,7 +471,7 @@ function EvmDashboard({ data }: { data: any }) {
       ctx.fillText(l.label, lx + 28, pad.top - 8);
       lx += ctx.measureText(l.label).width + 50;
     });
-  }, [data]);
+  }, [data, baselineData]);
 
   const fmtMoney = (cents: number) => "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const indexColor = (val: number, good: "above" | "below") => {
@@ -536,6 +552,49 @@ function EvmDashboard({ data }: { data: any }) {
         <div className="mb-6">
           <h3 className="text-sm font-semibold mb-2">EVM Trend (PV / EV / AC)</h3>
           <canvas ref={canvasRef} className="w-full border rounded-lg bg-white" style={{ height: 360 }} />
+        </div>
+      )}
+
+      {/* Baseline Comparison */}
+      {baselineData && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <GitCompare className="w-4 h-4 text-purple-600" />
+            <h3 className="text-sm font-semibold">Baseline Comparison: {baselineData.baselineName}</h3>
+            {baselineData.baselineDataDate && (
+              <span className="text-xs text-muted-foreground">(Data Date: {new Date(baselineData.baselineDataDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})</span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {[
+              { label: "CPI", current: data.CPI, baseline: baselineData.CPI, fmt: (v: number) => v.toFixed(2), good: "above" as const },
+              { label: "SPI", current: data.SPI, baseline: baselineData.SPI, fmt: (v: number) => v.toFixed(2), good: "above" as const },
+              { label: "CV", current: data.CV, baseline: baselineData.CV, fmt: fmtMoney, good: "above" as const },
+              { label: "SV", current: data.SV, baseline: baselineData.SV, fmt: fmtMoney, good: "above" as const },
+              { label: "EAC", current: data.EAC, baseline: baselineData.EAC, fmt: fmtMoney, good: "below" as const },
+              { label: "TCPI", current: data.TCPI, baseline: baselineData.TCPI, fmt: (v: number) => v.toFixed(2), good: "below" as const },
+            ].map((m) => {
+              const delta = m.current - m.baseline;
+              const improved = m.good === "above" ? delta > 0 : delta < 0;
+              const deltaStr = m.label === "CV" || m.label === "SV" || m.label === "EAC"
+                ? (delta >= 0 ? "+" : "") + fmtMoney(delta)
+                : (delta >= 0 ? "+" : "") + delta.toFixed(2);
+              return (
+                <Card key={m.label} className="border-l-4" style={{ borderLeftColor: improved ? "#22c55e" : delta === 0 ? "#9ca3af" : "#ef4444" }}>
+                  <CardContent className="pt-2 pb-2">
+                    <div className="text-xs text-muted-foreground">{m.label}</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg font-bold">{m.fmt(m.current)}</span>
+                      <span className={`text-xs font-semibold ${improved ? "text-green-600" : delta === 0 ? "text-gray-500" : "text-red-600"}`}>
+                        {deltaStr} {improved ? "\u2191" : delta === 0 ? "\u2192" : "\u2193"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Baseline: {m.fmt(m.baseline)}</div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -639,15 +698,66 @@ export default function ScheduleReports() {
     { enabled: scheduleId > 0 && reportType === "resourceLeveling" }
   );
 
-  // EVM query
+  // EVM queries
+  const [evmBaselineId, setEvmBaselineId] = useState<number | undefined>();
   const { data: evmData, isLoading: isEvmLoading } = trpc.schedule.evmMetrics.useQuery(
     { scheduleId },
     { enabled: scheduleId > 0 && reportType === "evm" }
+  );
+  const { data: evmBaselineData } = trpc.schedule.evmBaseline.useQuery(
+    { scheduleId, baselineId: evmBaselineId! },
+    { enabled: scheduleId > 0 && reportType === "evm" && !!evmBaselineId }
   );
 
   const isLoading = isStdLoading || isLevelingLoading || isEvmLoading;
 
   const handlePrint = () => { window.print(); };
+
+  const handleExportEvmPdf = async () => {
+    if (!evmData) return;
+    const { generateEvmPdf } = await import("@/lib/reportPdf");
+    generateEvmPdf({
+      scheduleName: schedule?.name || "Schedule",
+      dataDate: schedule?.dataDate ? String(schedule.dataDate) : null,
+      metrics: evmData,
+      activityEvm: evmData.activityEvm,
+      baselineData: evmBaselineData ? { baselineName: evmBaselineData.baselineName, CPI: evmBaselineData.CPI, SPI: evmBaselineData.SPI, CV: evmBaselineData.CV, SV: evmBaselineData.SV, EAC: evmBaselineData.EAC, TCPI: evmBaselineData.TCPI } : null,
+    });
+  };
+
+  const handleExportLevelingPdf = async () => {
+    if (!levelingData) return;
+    const { generateLevelingPdf } = await import("@/lib/reportPdf");
+    const uniqueResources = new Set(levelingData.overAllocations.map((oa: any) => oa.resourceId));
+    const maxOver = levelingData.overAllocations.length > 0
+      ? Math.max(...levelingData.overAllocations.map((oa: any) => oa.overBy))
+      : 0;
+    generateLevelingPdf({
+      scheduleName: schedule?.name || "Schedule",
+      dataDate: schedule?.dataDate ? String(schedule.dataDate) : null,
+      summary: {
+        totalResources: uniqueResources.size,
+        overAllocatedCount: uniqueResources.size,
+        maxOverAllocation: maxOver,
+        totalSuggestions: levelingData.suggestions.length,
+      },
+      overAllocations: levelingData.overAllocations.map((oa: any) => ({
+        resourceName: oa.resourceName,
+        resourceType: oa.resourceType,
+        week: oa.weekLabel,
+        allocated: oa.allocated,
+        capacity: oa.capacity,
+        overBy: oa.overBy,
+        severity: oa.overBy / oa.capacity > 0.5 ? "critical" : oa.overBy / oa.capacity > 0.25 ? "high" : "medium",
+      })),
+      suggestions: levelingData.suggestions.map((s: any) => ({
+        resourceName: s.resourceName,
+        activityName: s.weekLabel,
+        suggestion: s.message,
+        severity: s.severity,
+      })),
+    });
+  };
 
   const handleExportCSV = () => {
     if (!reportData?.rows?.length) return;
@@ -698,6 +808,18 @@ export default function ScheduleReports() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {reportType === "evm" && (
+                <Button variant="outline" size="sm" onClick={handleExportEvmPdf} disabled={!evmData}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
+                </Button>
+              )}
+              {reportType === "resourceLeveling" && (
+                <Button variant="outline" size="sm" onClick={handleExportLevelingPdf} disabled={!levelingData}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!reportData?.rows?.length}>
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
@@ -733,6 +855,25 @@ export default function ScheduleReports() {
               </SelectContent>
             </Select>
           </div>
+
+          {reportType === "evm" && baselines && baselines.length > 0 && (
+            <div className="min-w-[240px]">
+              <Label className="text-sm font-medium mb-1.5 block">Compare Against Baseline</Label>
+              <Select value={evmBaselineId?.toString() || "none"} onValueChange={(v) => setEvmBaselineId(v === "none" ? undefined : parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No comparison" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No comparison</SelectItem>
+                  {baselines.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id.toString()}>
+                      {b.name} {b.updateNumber ? `(Update ${b.updateNumber})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {reportType === "comparison" && (
             <div className="min-w-[240px]">
@@ -1244,6 +1385,21 @@ export default function ScheduleReports() {
               <h2 className="text-lg font-semibold">Resource Leveling Analysis</h2>
             </div>
 
+            {/* Calendar info banner */}
+            {levelingData.calendarInfo && levelingData.calendarInfo.calendarsUsed > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                <div>
+                  <span className="text-sm font-medium">Calendar-Adjusted Capacity</span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    Using {levelingData.calendarInfo.calendarsUsed} calendar{levelingData.calendarInfo.calendarsUsed > 1 ? "s" : ""}
+                    {levelingData.calendarInfo.defaultCalendar && ` (default: ${levelingData.calendarInfo.defaultCalendar})`}
+                    {levelingData.calendarInfo.exceptionsApplied > 0 && ` · ${levelingData.calendarInfo.exceptionsApplied} exception${levelingData.calendarInfo.exceptionsApplied > 1 ? "s" : ""} applied`}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card><CardContent className="pt-4">
@@ -1334,7 +1490,7 @@ export default function ScheduleReports() {
 
         {/* ── EVM Dashboard ────────────────────────────────────────────── */}
         {reportType === "evm" && !isLoading && evmData && (
-          <EvmDashboard data={evmData} />
+          <EvmDashboard data={evmData} baselineData={evmBaselineData} />
         )}
 
         {/* Empty state */}

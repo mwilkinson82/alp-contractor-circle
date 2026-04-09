@@ -1897,9 +1897,58 @@ export const scheduleRouter = router({
       const resources = await sdb.getResourcesBySchedule(input.scheduleId);
       const assignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
 
+      // ── Calendar integration: fetch calendars + exceptions ──
+      const calendars = await sdb.getCalendarsBySchedule(input.scheduleId);
+      const defaultCal = calendars.find(c => c.isDefault) || calendars[0];
+
+      // Build calendar lookup: calendarId → { workDaysMask, exceptions }
+      const calendarData: Record<number, { workDaysMask: number; exceptions: Map<string, string> }> = {};
+      for (const cal of calendars) {
+        const exceptions = await sdb.getCalendarExceptions(cal.id);
+        const exMap = new Map<string, string>();
+        for (const ex of exceptions) {
+          const dateKey = new Date(ex.exceptionDate).toISOString().slice(0, 10);
+          exMap.set(dateKey, ex.exceptionType);
+        }
+        calendarData[cal.id] = { workDaysMask: cal.workDaysMask, exceptions: exMap };
+      }
+
+      // Helper: count work days in a date range for a given calendar
+      // workDaysMask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64
+      const dayBits = [64, 1, 2, 4, 8, 16, 32]; // JS getDay: 0=Sun,1=Mon,...,6=Sat
+      function countWorkDaysInWeek(weekStart: Date, weekEnd: Date, calId: number | null): number {
+        const cal = calId && calendarData[calId] ? calendarData[calId] : (defaultCal ? calendarData[defaultCal.id] : null);
+        if (!cal) return 5; // fallback: 5-day week
+        const mask = cal.workDaysMask;
+        let count = 0;
+        const d = new Date(weekStart);
+        while (d < weekEnd) {
+          const dateKey = d.toISOString().slice(0, 10);
+          const exception = cal.exceptions.get(dateKey);
+          if (exception === "holiday") {
+            // Explicitly non-work, even if normally a work day
+          } else if (exception === "workday") {
+            // Explicitly work, even if normally a non-work day
+            count++;
+          } else {
+            // Check the bitmask for this day of week
+            const dayOfWeek = d.getDay(); // 0=Sun
+            if (mask & dayBits[dayOfWeek]) count++;
+          }
+          d.setDate(d.getDate() + 1);
+        }
+        return count;
+      }
+
       const capacityMap: Record<number, { name: string; maxUnitsPerDay: number; resourceType: string }> = {};
       for (const r of resources) {
         capacityMap[r.id] = { name: r.name, maxUnitsPerDay: parseFloat(String(r.maxUnitsPerDay)), resourceType: r.resourceType };
+      }
+
+      // Build activity → calendarId map
+      const actCalMap = new Map<number, number | null>();
+      for (const a of acts) {
+        actCalMap.set(a.id, a.calendarId || null);
       }
 
       let minDate = Infinity, maxDate = -Infinity;
@@ -1907,18 +1956,18 @@ export const scheduleRouter = router({
         if (a.earlyStart) minDate = Math.min(minDate, new Date(a.earlyStart).getTime());
         if (a.earlyFinish) maxDate = Math.max(maxDate, new Date(a.earlyFinish).getTime());
       }
-      if (minDate === Infinity) return { overAllocations: [], suggestions: [] };
+      if (minDate === Infinity) return { overAllocations: [], suggestions: [], calendarInfo: { calendarsUsed: 0, exceptionsApplied: 0 } };
 
       const msPerWeek = 7 * 24 * 60 * 60 * 1000;
       const actMap = new Map(acts.map(a => [a.id, a]));
 
-      type WeekBucket = { weekStart: Date; weekLabel: string; resourceLoading: Record<number, { allocated: number; capacity: number; activities: string[] }> };
+      type WeekBucket = { weekStart: Date; weekEnd: Date; weekLabel: string; resourceLoading: Record<number, { allocated: number; capacity: number; workDays: number; activities: string[] }> };
       const weeks: WeekBucket[] = [];
       let current = new Date(minDate);
 
       while (current.getTime() <= maxDate) {
         const weekEnd = new Date(current.getTime() + msPerWeek);
-        const bucket: WeekBucket = { weekStart: new Date(current), weekLabel: current.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }), resourceLoading: {} };
+        const bucket: WeekBucket = { weekStart: new Date(current), weekEnd, weekLabel: current.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }), resourceLoading: {} };
 
         for (const asgn of assignments) {
           const act = actMap.get(asgn.activityId);
@@ -1928,7 +1977,11 @@ export const scheduleRouter = router({
           if (aStart < weekEnd.getTime() && aEnd >= current.getTime()) {
             if (!bucket.resourceLoading[asgn.resourceId]) {
               const cap = capacityMap[asgn.resourceId];
-              bucket.resourceLoading[asgn.resourceId] = { allocated: 0, capacity: cap ? cap.maxUnitsPerDay : 8, activities: [] };
+              // Calendar-adjusted capacity: work days in this week × max units/day
+              const calId = actCalMap.get(asgn.activityId) || null;
+              const workDays = countWorkDaysInWeek(bucket.weekStart, weekEnd, calId);
+              const dailyCap = cap ? cap.maxUnitsPerDay : 8;
+              bucket.resourceLoading[asgn.resourceId] = { allocated: 0, capacity: dailyCap, workDays, activities: [] };
             }
             bucket.resourceLoading[asgn.resourceId].allocated += parseFloat(String(asgn.unitsPerDay));
             bucket.resourceLoading[asgn.resourceId].activities.push(act.activityId);
@@ -1938,30 +1991,53 @@ export const scheduleRouter = router({
         current = weekEnd;
       }
 
-      const overAllocations: Array<{ weekLabel: string; resourceId: number; resourceName: string; resourceType: string; allocated: number; capacity: number; overBy: number; activities: string[] }> = [];
+      // Count total exceptions applied for reporting
+      let totalExceptionsApplied = 0;
+      for (const cal of Object.values(calendarData)) {
+        totalExceptionsApplied += cal.exceptions.size;
+      }
+
+      const overAllocations: Array<{ weekLabel: string; resourceId: number; resourceName: string; resourceType: string; allocated: number; capacity: number; overBy: number; activities: string[]; workDays: number; calendarAdjusted: boolean }> = [];
       for (const week of weeks) {
         for (const [ridStr, loading] of Object.entries(week.resourceLoading)) {
           const rid = Number(ridStr);
           const cap = capacityMap[rid];
           if (!cap) continue;
-          if (loading.allocated > loading.capacity) {
-            overAllocations.push({ weekLabel: week.weekLabel, resourceId: rid, resourceName: cap.name, resourceType: cap.resourceType, allocated: loading.allocated, capacity: loading.capacity, overBy: Math.round((loading.allocated - loading.capacity) * 100) / 100, activities: loading.activities });
+          // Calendar-adjusted: if work days < 5 (standard), capacity is effectively reduced
+          const effectiveCapacity = loading.workDays < 5 ? loading.capacity * (loading.workDays / 5) : loading.capacity;
+          const calendarAdjusted = loading.workDays < 5;
+          if (loading.allocated > effectiveCapacity) {
+            overAllocations.push({
+              weekLabel: week.weekLabel, resourceId: rid, resourceName: cap.name, resourceType: cap.resourceType,
+              allocated: loading.allocated, capacity: Math.round(effectiveCapacity * 100) / 100,
+              overBy: Math.round((loading.allocated - effectiveCapacity) * 100) / 100,
+              activities: loading.activities, workDays: loading.workDays, calendarAdjusted,
+            });
           }
         }
       }
 
-      const suggestions: Array<{ type: string; message: string; resourceName: string; weekLabel: string; severity: "high" | "medium" | "low" }> = [];
+      const suggestions: Array<{ type: string; message: string; resourceName: string; weekLabel: string; severity: "high" | "medium" | "low"; calendarNote?: string }> = [];
       for (const oa of overAllocations) {
-        const pct = Math.round((oa.overBy / oa.capacity) * 100);
+        const pct = Math.round((oa.overBy / (oa.capacity || 1)) * 100);
         const severity = pct > 50 ? "high" : pct > 25 ? "medium" : "low";
+        const calNote = oa.calendarAdjusted ? ` (${oa.workDays} work days this week due to calendar)` : "";
         if (oa.activities.length > 1) {
-          suggestions.push({ type: "split", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel}. Consider staggering activities ${oa.activities.join(", ")} to reduce concurrent demand.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity });
+          suggestions.push({ type: "split", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel}${calNote}. Consider staggering activities ${oa.activities.join(", ")} to reduce concurrent demand.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity, calendarNote: calNote || undefined });
         } else {
-          suggestions.push({ type: "reduce", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel} on activity ${oa.activities[0]}. Consider reducing units or extending duration.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity });
+          suggestions.push({ type: "reduce", message: `${oa.resourceName} is over-allocated by ${oa.overBy} units/day in week of ${oa.weekLabel}${calNote} on activity ${oa.activities[0]}. Consider reducing units or extending duration.`, resourceName: oa.resourceName, weekLabel: oa.weekLabel, severity, calendarNote: calNote || undefined });
         }
       }
 
-      return { overAllocations, suggestions };
+      return {
+        overAllocations,
+        suggestions,
+        calendarInfo: {
+          calendarsUsed: calendars.length,
+          exceptionsApplied: totalExceptionsApplied,
+          defaultCalendar: defaultCal?.name || null,
+        },
+      };
     }),
 
   // ── Earned Value Management ────────────────────────────────────────────────
@@ -2055,6 +2131,98 @@ export const scheduleRouter = router({
         EAC: Math.round(EAC), ETC: Math.round(ETC), VAC: Math.round(VAC),
         TCPI: Math.round(TCPI * 100) / 100,
         activityEvm, trendData,
+      };
+    }),
+
+  // ── EVM Baseline Comparison ──────────────────────────────────────────────
+  evmBaseline: protectedProcedure
+    .input(z.object({ scheduleId: z.number(), baselineId: z.number() }))
+    .query(async ({ input }) => {
+      const baseline = await sdb.getBaselineById(input.baselineId);
+      if (!baseline) throw new TRPCError({ code: "NOT_FOUND", message: "Baseline not found" });
+
+      const blActs = (typeof baseline.activitiesSnapshot === "string" ? JSON.parse(baseline.activitiesSnapshot) : baseline.activitiesSnapshot) as any[];
+
+      // Get current resource assignments to build budget map
+      const currentAssignments = await sdb.getResourceAssignmentsBySchedule(input.scheduleId);
+      // For baseline, we use the same budget mapping (resources don't change between snapshots)
+      const actBudgetMap: Record<number, number> = {};
+      for (const a of currentAssignments) { actBudgetMap[a.activityId] = (actBudgetMap[a.activityId] || 0) + a.budgetedCost; }
+
+      const BAC = Object.values(actBudgetMap).reduce((s, v) => s + v, 0);
+      const ACWP = currentAssignments.reduce((s, a) => s + a.actualCost, 0);
+
+      // Compute BCWP from baseline activities (using their percent complete at snapshot time)
+      let BCWP = 0;
+      for (const act of blActs) {
+        const budget = actBudgetMap[act.id] || 0;
+        BCWP += budget * (parseFloat(String(act.percentComplete || 0)) / 100);
+      }
+
+      // Compute BCWS from baseline schedule using baseline data date
+      const dataDate = baseline.dataDate ? new Date(baseline.dataDate) : new Date();
+      let BCWS = 0;
+      for (const act of blActs) {
+        const budget = actBudgetMap[act.id] || 0;
+        if (!act.earlyStart || !act.earlyFinish) continue;
+        const es = new Date(act.earlyStart).getTime();
+        const ef = new Date(act.earlyFinish).getTime();
+        const dd = dataDate.getTime();
+        if (dd >= ef) { BCWS += budget; }
+        else if (dd > es) { const totalDur = ef - es; BCWS += budget * (totalDur > 0 ? (dd - es) / totalDur : 0); }
+      }
+
+      const CPI = ACWP > 0 ? BCWP / ACWP : 0;
+      const SPI = BCWS > 0 ? BCWP / BCWS : 0;
+      const CV = BCWP - ACWP;
+      const SV = BCWP - BCWS;
+      const EAC = CPI > 0 ? BAC / CPI : BAC;
+      const ETC = EAC - ACWP;
+      const VAC = BAC - EAC;
+      const TCPI = (BAC - ACWP) > 0 ? (BAC - BCWP) / (BAC - ACWP) : 0;
+
+      // Trend data from baseline schedule
+      let minDate = Infinity, maxDate = -Infinity;
+      for (const a of blActs) {
+        if (a.earlyStart) minDate = Math.min(minDate, new Date(a.earlyStart).getTime());
+        if (a.earlyFinish) maxDate = Math.max(maxDate, new Date(a.earlyFinish).getTime());
+      }
+      const trendData: Array<{ weekLabel: string; bcws: number; bcwp: number; acwp: number }> = [];
+      if (minDate !== Infinity) {
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        let cur = new Date(minDate);
+        let cumBCWS = 0;
+        while (cur.getTime() <= maxDate + msPerWeek) {
+          const weekEnd = new Date(cur.getTime() + msPerWeek);
+          let weekBCWS = 0;
+          for (const act of blActs) {
+            const budget = actBudgetMap[act.id] || 0;
+            if (!act.earlyStart || !act.earlyFinish) continue;
+            const es = new Date(act.earlyStart).getTime();
+            const ef = new Date(act.earlyFinish).getTime();
+            const overlapStart = Math.max(cur.getTime(), es);
+            const overlapEnd = Math.min(weekEnd.getTime(), ef);
+            if (overlapEnd > overlapStart) {
+              const totalDur = ef - es;
+              weekBCWS += budget * (totalDur > 0 ? (overlapEnd - overlapStart) / totalDur : 0);
+            }
+          }
+          cumBCWS += weekBCWS;
+          const ddRatio = dataDate.getTime() > minDate ? Math.min(1, (weekEnd.getTime() - minDate) / (dataDate.getTime() - minDate)) : 0;
+          trendData.push({ weekLabel: cur.toLocaleDateString("en-US", { month: "short", day: "numeric" }), bcws: Math.round(cumBCWS), bcwp: Math.round(BCWP * Math.min(1, ddRatio)), acwp: Math.round(ACWP * Math.min(1, ddRatio)) });
+          cur = weekEnd;
+        }
+      }
+
+      return {
+        baselineName: baseline.name,
+        baselineDataDate: baseline.dataDate?.toISOString() || null,
+        BAC: Math.round(BAC), BCWP: Math.round(BCWP), BCWS: Math.round(BCWS), ACWP: Math.round(ACWP),
+        CPI: Math.round(CPI * 100) / 100, SPI: Math.round(SPI * 100) / 100,
+        CV: Math.round(CV), SV: Math.round(SV),
+        EAC: Math.round(EAC), ETC: Math.round(ETC), VAC: Math.round(VAC),
+        TCPI: Math.round(TCPI * 100) / 100,
+        trendData,
       };
     }),
 });
