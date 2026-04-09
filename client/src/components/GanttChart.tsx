@@ -82,10 +82,10 @@ interface GanttChartProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 36;
+const ROW_HEIGHT = 44;
 const HEADER_HEIGHT = 48;
-const BAR_HEIGHT = 14;
-const BAR_Y_OFFSET = 14; // Push bar down to leave room for label above
+const BAR_HEIGHT = 16;
+const BAR_Y_OFFSET = 17; // Push bar down to leave room for label above
 const TARGET_BAR_HEIGHT = 5;
 const ARROW_HEAD_SIZE = 4;
 const HANDLE_RADIUS = 5;

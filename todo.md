@@ -985,3 +985,17 @@
 - [x] Widen all 17 scheduler modals (Activity Detail 5xl, Calendar/Health/Filters 4xl, others 2xl)
 - [x] Widen ScheduleList dialogs (Create 2xl, Duplicate xl)
 - [ ] Save checkpoint
+
+## CPM Scheduler UX Improvements — Row Height, Column Resize, Two-Column Modals, Undo/Redo
+- [x] Increase activity table row height from h-8 (32px) to h-11 (44px)
+- [x] Increase activity table font size from text-xs to text-sm
+- [x] Sync Gantt chart ROW_HEIGHT from 36px to 44px
+- [x] Add drag-to-resize handles on ALL column headers
+- [x] Two-column layout in Activity Detail modal (properties left, relationships/CPM right)
+- [x] Build undo/redo hook with 50-action history stack
+- [x] Undo/redo keyboard shortcuts (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)
+- [x] Undo/redo toolbar buttons with action description tooltips
+- [x] Wire undo into delete activity, update activity, delete relationship mutations
+- [x] Clear history on schedule switch
+- [x] Write vitest tests for undo/redo logic (7 tests passing)
+- [x] Save checkpoint

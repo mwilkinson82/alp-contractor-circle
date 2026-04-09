@@ -34,9 +34,10 @@ import {
   Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
   Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
-  BookOpen, LayoutGrid, Star,
+  BookOpen, LayoutGrid, Star, Undo2, Redo2,
 } from "lucide-react";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 interface ColumnDef {
@@ -307,8 +308,12 @@ export default function Scheduler() {
   const [, navigate] = useLocation();
   const tableRef = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
+  const { record: recordAction, undo, redo, canUndo, canRedo, isProcessing: isUndoRedoProcessing, undoDescription, redoDescription, clear: clearHistory } = useUndoRedo();
 
-  /* ── Data Queries ─────────────────────────────────────────────────────── */
+  // Clear undo/redo history when switching schedules
+  useEffect(() => { clearHistory(); }, [scheduleId, clearHistory]);
+
+  /* ── Data Queries ───────────────────────────────────────────────────────── */
   const scheduleQuery = trpc.schedule.get.useQuery(
     { id: scheduleId! },
     { enabled: !!scheduleId }
@@ -331,6 +336,10 @@ export default function Scheduler() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
+  const [columnWidths, setColumnWidths] = useState<Record<string, string>>({});
+  const [resizingCol, setResizingCol] = useState<string | null>(null);
+  const resizeStartX = useRef(0);
+  const resizeStartWidth = useRef(0);
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [sortState, setSortState] = useState<SortState>({ key: "", dir: null });
@@ -699,8 +708,9 @@ export default function Scheduler() {
   }, [visibleColumns, target1Id, target2Id]);
 
   const gridTemplate = useMemo(() => {
-    return "32px " + activeColumns.map((c) => c.width).join(" ");
-  }, [activeColumns]);
+    // Use columnWidths overrides if available, otherwise use default col.width
+    return "40px " + activeColumns.map((c) => columnWidths[c.key] || c.width).join(" ");
+  }, [activeColumns, columnWidths]);
 
   /* ── Mutations ────────────────────────────────────────────────────────── */
   const recalcMut = trpc.schedule.recalculate.useMutation({
@@ -712,11 +722,46 @@ export default function Scheduler() {
     onError: (e) => toast.error(e.message),
   });
   const updateActivityMut = trpc.schedule.updateActivity.useMutation({
-    onSuccess: () => { utils.schedule.get.invalidate(); },
+    onSuccess: (_data, vars) => {
+      utils.schedule.get.invalidate();
+      // Record for undo — store the previous values
+      const prev = activities.find((a) => a.id === vars.id);
+      if (prev && scheduleId) {
+        const prevUpdate: any = { id: vars.id, scheduleId };
+        if (vars.name !== undefined) prevUpdate.name = prev.name;
+        if (vars.duration !== undefined) prevUpdate.duration = prev.duration;
+        if ((vars as any).percentComplete !== undefined) prevUpdate.percentComplete = (prev as any).percentComplete;
+        if ((vars as any).barColor !== undefined) prevUpdate.barColor = (prev as any).barColor;
+        recordAction({
+          description: `Update activity "${prev.name}"`,
+          execute: async () => { updateActivityMut.mutate(vars); },
+          undo: async () => { updateActivityMut.mutate(prevUpdate); },
+        });
+      }
+    },
     onError: (e) => toast.error(e.message),
   });
   const deleteActivityMut = trpc.schedule.deleteActivity.useMutation({
-    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Activity deleted"); },
+    onSuccess: (_data, vars) => {
+      utils.schedule.get.invalidate();
+      toast.success("Activity deleted");
+      // Record for undo — store the deleted activity's data so we can re-add it
+      const deleted = activities.find((a) => a.id === vars.id);
+      if (deleted && scheduleId) {
+        recordAction({
+          description: `Delete activity "${deleted.name}"`,
+          execute: async () => { deleteActivityMut.mutate({ id: vars.id, scheduleId }); },
+          undo: async () => {
+            addActivityMut.mutate({
+              scheduleId,
+              name: deleted.name,
+              duration: deleted.duration ?? 5,
+              activityType: (deleted as any).activityType || "task",
+            });
+          },
+        });
+      }
+    },
     onError: (e) => toast.error(e.message),
   });
   const addRelMut = trpc.schedule.addRelationship.useMutation({
@@ -766,7 +811,27 @@ export default function Scheduler() {
     onError: (e: any) => toast.error(e.message),
   });
   const deleteRelMut = trpc.schedule.deleteRelationship.useMutation({
-    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Relationship removed"); },
+    onSuccess: (_data, vars) => {
+      utils.schedule.get.invalidate();
+      toast.success("Relationship removed");
+      // Record for undo — store the deleted relationship data
+      const deleted = relationships.find((r: any) => r.id === vars.id);
+      if (deleted && scheduleId) {
+        recordAction({
+          description: "Delete relationship",
+          execute: async () => { deleteRelMut.mutate({ id: vars.id, scheduleId }); },
+          undo: async () => {
+            addRelMut.mutate({
+              scheduleId,
+              predecessorId: (deleted as any).predecessorId,
+              successorId: (deleted as any).successorId,
+              relationshipType: (deleted as any).relationshipType,
+              lagDays: (deleted as any).lagDays || 0,
+            });
+          },
+        });
+      }
+    },
     onError: (e: any) => toast.error(e.message),
   });
   const addCalendarMut = trpc.schedule.addCalendar.useMutation({
@@ -862,6 +927,38 @@ export default function Scheduler() {
   }, []);
 
   /* ── Handlers ───────────────────────────────────────────────────────────── */
+
+  /* Column resize handlers */
+  const handleColResizeStart = useCallback((e: React.MouseEvent, colKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingCol(colKey);
+    resizeStartX.current = e.clientX;
+    const col = ALL_COLUMNS.find((c) => c.key === colKey);
+    const currentWidth = columnWidths[colKey] || col?.width || "80px";
+    // Parse current width to px
+    const match = currentWidth.match(/(\d+)/);
+    resizeStartWidth.current = match ? parseInt(match[1]) : 80;
+  }, [columnWidths]);
+
+  useEffect(() => {
+    if (!resizingCol) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - resizeStartX.current;
+      const newWidth = Math.max(40, resizeStartWidth.current + delta);
+      setColumnWidths((prev) => ({ ...prev, [resizingCol]: `${newWidth}px` }));
+    };
+    const handleMouseUp = () => {
+      setResizingCol(null);
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingCol]);
+
   const handleColumnSort = useCallback((key: string) => {
     setSortState((prev) => {
       if (prev.key !== key) return { key, dir: "asc" };
@@ -985,6 +1082,28 @@ export default function Scheduler() {
           {recalcMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
           Calculate
         </Button>
+
+        {/* Undo / Redo */}
+        <div className="flex items-center gap-0.5 border-l border-gray-200 pl-2 ml-1">
+          <Button
+            size="sm" variant="ghost"
+            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+            onClick={undo}
+            disabled={!canUndo || isUndoRedoProcessing}
+            title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
+          >
+            <Undo2 className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm" variant="ghost"
+            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+            onClick={redo}
+            disabled={!canRedo || isUndoRedoProcessing}
+            title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
+          >
+            <Redo2 className="w-4 h-4" />
+          </Button>
+        </div>
 
         {/* Data Date - Click to set/change */}
         <Button
@@ -1345,7 +1464,7 @@ export default function Scheduler() {
             {/* Table Header with sortable columns */}
             <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
               <div
-                className="text-xs font-medium text-gray-500 h-8 items-center px-2 gap-1"
+                className="text-sm font-medium text-gray-500 h-11 items-center px-3 gap-1.5"
                 style={{ display: "grid", gridTemplateColumns: gridTemplate }}
               >
                 <div></div>
@@ -1354,7 +1473,7 @@ export default function Scheduler() {
                   return (
                     <div
                       key={col.key}
-                      className={`text-${col.align} truncate flex items-center gap-0.5 ${col.sortable ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
+                      className={`text-${col.align} truncate flex items-center gap-0.5 relative group/col ${col.sortable ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
                       title={col.label}
                       onClick={col.sortable ? () => handleColumnSort(col.key) : undefined}
                     >
@@ -1366,6 +1485,12 @@ export default function Scheduler() {
                           {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-300" />}
                         </span>
                       )}
+                      {/* Column resize handle */}
+                      <div
+                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 transition-colors ${resizingCol === col.key ? "bg-blue-500" : "bg-transparent group-hover/col:bg-gray-300"}`}
+                        onMouseDown={(e) => handleColResizeStart(e, col.key)}
+                        title="Drag to resize column"
+                      />
                     </div>
                   );
                 })}
@@ -1420,7 +1545,7 @@ export default function Scheduler() {
                     return (
                       <div
                         key={act.id}
-                        className={`text-xs items-center px-2 gap-1 h-8 cursor-pointer transition-colors ${
+                        className={`text-sm items-center px-3 gap-1.5 h-11 cursor-pointer transition-colors ${
                           isSelected
                             ? "bg-blue-100 border-l-2 border-l-blue-600 ring-1 ring-blue-300"
                             : act.id === selectedActivityId
@@ -1492,15 +1617,15 @@ export default function Scheduler() {
                               }
                               setLastClickedId(act.id);
                             }}
-                            className="w-3 h-3 accent-blue-600 cursor-pointer shrink-0"
+                            className="w-3.5 h-3.5 accent-blue-600 cursor-pointer shrink-0"
                             title="Click to select, Shift+click to select range"
                           />
-                          {hasOpenEnd && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                          {!hasOpenEnd && <GripVertical className="w-3 h-3 text-gray-300" />}
+                          {hasOpenEnd && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                          {!hasOpenEnd && <GripVertical className="w-3.5 h-3.5 text-gray-300" />}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400" onClick={(e) => e.stopPropagation()} title="More options">
-                                <MoreHorizontal className="w-3 h-3" />
+                                <MoreHorizontal className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="bg-white border-gray-200 text-gray-900">
@@ -1536,7 +1661,7 @@ export default function Scheduler() {
                                   onBlur={commitEdit}
                                   onKeyDown={handleEditKeyDown}
                                   autoFocus
-                                  className="h-6 text-xs px-1 py-0 border-blue-400"
+                                  className="h-8 text-sm px-2 py-0 border-blue-400"
                                   type={col.key === "duration" || col.key === "percentComplete" ? "number" : "text"}
                                 />
                               </div>
@@ -1573,9 +1698,9 @@ export default function Scheduler() {
             <div className="px-3 py-2 border-t border-gray-200">
               <button
                 onClick={() => setShowActivityDialog(true)}
-                className="text-xs text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
+                className="text-sm text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Activity
+                <Plus className="w-4 h-4" /> Add Activity
               </button>
             </div>
           </div>
@@ -1676,10 +1801,13 @@ export default function Scheduler() {
             <DialogDescription>Edit all properties of this activity.</DialogDescription>
           </DialogHeader>
           {detailAct && (
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto pr-1">
+              {/* ── LEFT COLUMN: Properties ── */}
+              <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Properties</h3>
               {/* Activity Type */}
               <div>
-                <Label className="text-xs text-gray-600">Type</Label>
+                <Label className="text-sm text-gray-600">Type</Label>
                 <div className="flex gap-2 mt-1">
                   <Button size="sm" variant={detailActivityType === "task" ? "default" : "outline"}
                     className={detailActivityType === "task" ? "bg-blue-600 text-white" : "border-gray-300 text-gray-700"}
@@ -1695,16 +1823,16 @@ export default function Scheduler() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-gray-600">Activity ID</Label>
+                  <Label className="text-sm text-gray-600">Activity ID</Label>
                   <Input value={detailActivityId} onChange={(e) => setDetailActivityId(e.target.value)} placeholder="e.g., FOUND-010" className="mt-1 border-gray-300" />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-600">Duration (days)</Label>
+                  <Label className="text-sm text-gray-600">Duration (days)</Label>
                   <Input type="number" value={detailDuration} onChange={(e) => setDetailDuration(e.target.value)} className="mt-1 border-gray-300" disabled={detailActivityType === "milestone"} />
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-gray-600">Activity Name</Label>
+                <Label className="text-sm text-gray-600">Activity Name</Label>
                 <Input value={detailName} onChange={(e) => setDetailName(e.target.value)} className="mt-1 border-gray-300" />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1810,7 +1938,10 @@ export default function Scheduler() {
                   <p className="text-[10px] text-gray-400 mt-1">No date required for {detailConstraintType === "ASAP" ? "As Soon As Possible" : "As Late As Possible"}</p>
                 )}
               </div>
-
+              </div>
+              {/* ── RIGHT COLUMN: Relationships & CPM Results ── */}
+              <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Relationships & Schedule</h3>
               {/* Relationships with edit/delete */}
               <div>
                 <Label className="text-xs text-gray-600 mb-1 block">Relationships</Label>
@@ -1933,6 +2064,7 @@ export default function Scheduler() {
                     {detailAct.isCritical ? "Yes" : "No"}
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           )}
