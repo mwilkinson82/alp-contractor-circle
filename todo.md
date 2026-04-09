@@ -954,5 +954,8 @@
 ## ALP/EOS V/TO Toolkit Template
 - [x] Upload ALP_EOS_Toolkit_VITO.pdf to CDN
 - [x] Add V/TO template (#25) to PortalTemplates.tsx under Operations category
-- [ ] Save checkpoint and deploy
-- [ ] Send announcement email to members (if requested)
+- [x] Save checkpoint and deploy
+- [x] Send announcement email to all 16 active CC members (15 sent + 1 retry for Henrico)
+
+## Bug Fix — PM Systems Presentation Broken Link
+- [x] Fix PM Systems Presentation (template #6) — replaced dead Google Drive link with CDN-hosted PDF
