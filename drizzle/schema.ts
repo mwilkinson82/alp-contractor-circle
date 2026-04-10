@@ -699,3 +699,130 @@ export const scheduleAnnotations = mysqlTable("schedule_annotations", {
 
 export type ScheduleAnnotation = typeof scheduleAnnotations.$inferSelect;
 export type InsertScheduleAnnotation = typeof scheduleAnnotations.$inferInsert;
+
+
+// ─── AI Quantity Takeoff ──────────────────────────────────────────────────────
+
+/**
+ * Takeoff projects — top-level container for a drawing set + quantity takeoff.
+ * Each member can have multiple takeoff projects (one per bid/project).
+ */
+export const takeoffProjects = mysqlTable("takeoff_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner (member ID from members table) */
+  memberId: int("memberId").notNull(),
+  /** Project name e.g. "Smith Residence Bid" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Optional description */
+  description: text("description"),
+  /** Overall processing status */
+  status: mysqlEnum("status", [
+    "draft",
+    "uploading",
+    "processing",
+    "completed",
+    "error",
+  ]).default("draft").notNull(),
+  /** Total number of sheets uploaded */
+  totalSheets: int("totalSheets").default(0).notNull(),
+  /** Number of sheets processed so far */
+  processedSheets: int("processedSheets").default(0).notNull(),
+  /** Grand total estimated cost (cents) */
+  totalEstimatedCost: int("totalEstimatedCost").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TakeoffProject = typeof takeoffProjects.$inferSelect;
+export type InsertTakeoffProject = typeof takeoffProjects.$inferInsert;
+
+/**
+ * Drawing sheets — individual pages/sheets from an uploaded PDF drawing set.
+ * Each sheet is processed independently by the AI vision pipeline.
+ */
+export const drawingSheets = mysqlTable("drawing_sheets", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent takeoff project */
+  projectId: int("projectId").notNull(),
+  /** Original filename */
+  originalFilename: varchar("originalFilename", { length: 512 }),
+  /** Page number within the PDF (1-based) */
+  pageNumber: int("pageNumber").default(1).notNull(),
+  /** S3 URL for the uploaded page image */
+  imageUrl: text("imageUrl"),
+  /** S3 file key for the page image */
+  imageKey: varchar("imageKey", { length: 512 }),
+  /** AI-detected sheet name e.g. "A1.1 - First Floor Plan" */
+  sheetName: varchar("sheetName", { length: 256 }),
+  /** AI-detected sheet type */
+  sheetType: mysqlEnum("sheetType", [
+    "floor_plan",
+    "elevation",
+    "section",
+    "detail",
+    "schedule",
+    "site_plan",
+    "structural",
+    "mep",
+    "electrical",
+    "plumbing",
+    "hvac",
+    "landscape",
+    "cover",
+    "other",
+  ]).default("other").notNull(),
+  /** Processing status for this sheet */
+  status: mysqlEnum("status", [
+    "pending",
+    "processing",
+    "completed",
+    "error",
+    "skipped",
+  ]).default("pending").notNull(),
+  /** Error message if processing failed */
+  errorMessage: text("errorMessage"),
+  /** Raw AI response JSON (for debugging/reprocessing) */
+  aiRawResponse: text("aiRawResponse"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DrawingSheet = typeof drawingSheets.$inferSelect;
+export type InsertDrawingSheet = typeof drawingSheets.$inferInsert;
+
+/**
+ * Takeoff items — individual quantity line items extracted by AI from drawing sheets.
+ * Organized by CSI division for standard construction estimating workflow.
+ */
+export const takeoffItems = mysqlTable("takeoff_items", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Parent takeoff project */
+  projectId: int("projectId").notNull(),
+  /** Source drawing sheet */
+  sheetId: int("sheetId").notNull(),
+  /** CSI division code e.g. "03" for Concrete, "05" for Metals */
+  csiDivision: varchar("csiDivision", { length: 8 }),
+  /** CSI subdivision code e.g. "03 30 00" for Cast-in-Place Concrete */
+  csiCode: varchar("csiCode", { length: 16 }),
+  /** Item description e.g. "8\" CMU Block Wall" */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Quantity value */
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  /** Unit of measure e.g. "SF", "LF", "CY", "EA", "LS" */
+  unit: varchar("unit", { length: 16 }).default("EA").notNull(),
+  /** Unit cost in cents */
+  unitCost: int("unitCost").default(0).notNull(),
+  /** Extended cost in cents (quantity * unitCost) */
+  extendedCost: int("extendedCost").default(0).notNull(),
+  /** AI confidence score (0-100) */
+  confidence: int("confidence").default(80).notNull(),
+  /** Notes or AI reasoning */
+  notes: text("notes"),
+  /** Whether this item has been manually reviewed/edited */
+  reviewed: boolean("reviewed").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TakeoffItem = typeof takeoffItems.$inferSelect;
+export type InsertTakeoffItem = typeof takeoffItems.$inferInsert;

@@ -20,6 +20,7 @@ import {
   BarChart3,
   CalendarRange,
   Mail,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: PlayCircle, label: "Replay Library", path: "/portal/replays", adminOnly: false },
   { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
   { icon: CalendarRange, label: "CPM Scheduler", path: "/portal/scheduler", adminOnly: true },
+  { icon: Sparkles, label: "AI Takeoff", path: "/portal/takeoff", adminOnly: true },
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },

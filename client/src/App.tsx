@@ -23,6 +23,8 @@ import Q2LeadMagnet from "./pages/Q2LeadMagnet";
 import Q2ThankYou from "./pages/Q2ThankYou";
 import EstimatingChecklist from "./pages/EstimatingChecklist";
 import EstimatingThankYou from "./pages/EstimatingThankYou";
+import TakeoffList from "./pages/TakeoffList";
+import TakeoffDetail from "./pages/TakeoffDetail";
 
 function Router() {
   return (
@@ -91,6 +93,14 @@ function Router() {
       </Route>
       <Route path="/scheduler/:id" component={Scheduler} />
       <Route path="/scheduler/:id/reports" component={ScheduleReports} />
+
+      {/* AI Quantity Takeoff */}
+      <Route path="/portal/takeoff">
+        <MemberPortalLayout>
+          <TakeoffList />
+        </MemberPortalLayout>
+      </Route>
+      <Route path="/takeoff/:id" component={TakeoffDetail} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
+import { takeoffRouter } from "./takeoffRouter";
 import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
 import { processDripSends } from "./dripEngine";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
@@ -76,6 +77,7 @@ export const appRouter = router({
 
   member: memberRouter,
   schedule: scheduleRouter,
+  takeoff: takeoffRouter,
 
   templates: router({
     /**

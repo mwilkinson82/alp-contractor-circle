@@ -162,6 +162,13 @@
       "when": 1775751700789,
       "tag": "0022_talented_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1775856042855,
+      "tag": "0023_gorgeous_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }

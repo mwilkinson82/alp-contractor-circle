@@ -1193,3 +1193,35 @@
 - [x] Seed Fabrication activities: long-lead items (steel, windows, custom millwork, doors)
 - [x] Gantt bars: ensure clean white background, solid blue normal bars, solid red critical bars
 - [x] Activity names inside/next to bars on Gantt (already done, verify)
+
+## Phase 1 — AI Quantity Takeoff (Drawing Upload + AI Extraction) ✅ COMPLETE
+
+### Database Schema
+- [x] Create takeoff_projects table (id, user_id, name, status, created_at, updated_at)
+- [x] Create drawing_sheets table (id, project_id, file_url, file_key, sheet_name, sheet_type, page_number, status, ai_raw_response)
+- [x] Create takeoff_items table (id, sheet_id, project_id, csi_division, csi_code, description, quantity, unit, unit_cost, extended_cost, confidence, notes)
+
+### Backend Pipeline
+- [x] File upload endpoint: accept multi-page PDF, split into individual sheets/pages
+- [x] AI vision processing: send each sheet image to GPT-4o for quantity extraction
+- [x] Structured JSON output: quantities organized by CSI division
+- [x] tRPC procedures: createProject, uploadDrawings, getProject, getSheets, getItems, updateItem, deleteItem, reprocessSheet
+- [x] Background processing: queue sheets for AI analysis, update status as they complete
+
+### Frontend UI
+- [x] Takeoff Projects list page (/portal/takeoff) — list all projects with status badges
+- [x] New Project page — drag-and-drop PDF upload with progress indicator
+- [x] Project Detail page — sheet thumbnails, processing status per sheet
+- [x] Quantity Review table — editable spreadsheet-style table grouped by CSI division
+- [x] Edit individual quantities inline (quantity, unit, unit cost, description)
+- [x] Export takeoff as CSV/Excel
+- [x] Delete/reprocess individual sheets
+
+### Navigation & Integration
+- [x] Add Takeoff to portal sidebar navigation
+- [x] Premium dark theme consistent with rest of portal
+- [x] Mobile responsive layout
+
+### Tests
+- [x] Vitest tests for takeoff tRPC procedures (10 tests passing)
+- [x] Vitest tests for AI processing pipeline
