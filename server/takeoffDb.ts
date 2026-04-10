@@ -11,9 +11,10 @@ import {
   type InsertTakeoffItem,
 } from "../drizzle/schema";
 
-function getDb() {
-  const { getDb: _getDb } = require("./_core/db");
-  return _getDb();
+import { getDb as _getDb } from "./db";
+
+async function getDb() {
+  return await _getDb();
 }
 
 // ─── Takeoff Projects ─────────────────────────────────────────────────────────
