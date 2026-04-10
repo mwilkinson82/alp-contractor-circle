@@ -1,3 +1,4 @@
+// v2 — premium dark SaaS theme
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
