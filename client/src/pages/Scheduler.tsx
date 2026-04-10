@@ -81,56 +81,56 @@ const ALL_COLUMNS: ColumnDef[] = [
     editable: true, alwaysVisible: false, sortable: true,
     getSortValue: (a) => a.activityId || "",
     render: (a) => a.activityId || `A${a.id}`,
-    renderClass: () => "text-gray-100 font-semibold",
+    renderClass: () => "text-gray-900 font-semibold",
   },
   {
     key: "name", label: "Activity Name", shortLabel: "Name", align: "left", width: "1fr",
     editable: true, alwaysVisible: true, sortable: true,
     getSortValue: (a) => a.name,
     render: (a) => a.name,
-    renderClass: () => "text-gray-100 font-medium",
+    renderClass: () => "text-gray-900 font-medium",
   },
   {
     key: "duration", label: "Duration", shortLabel: "Dur", align: "center", width: "50px",
     editable: true, sortable: true,
     getSortValue: (a) => a.duration,
     render: (a) => `${a.duration}d`,
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "percentComplete", label: "% Complete", shortLabel: "%", align: "center", width: "45px",
     editable: true, sortable: true,
     getSortValue: (a) => parseFloat(a.percentComplete) || 0,
     render: (a) => `${Math.round(parseFloat(a.percentComplete) || 0)}%`,
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "earlyStart", label: "Early Start", shortLabel: "ES", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyStart ? new Date(a.earlyStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyStart)),
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "earlyFinish", label: "Early Finish", shortLabel: "EF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyFinish ? new Date(a.earlyFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyFinish)),
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "lateStart", label: "Late Start", shortLabel: "LS", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateStart ? new Date(a.lateStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateStart)),
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "lateFinish", label: "Late Finish", shortLabel: "LF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateFinish ? new Date(a.lateFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateFinish)),
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "totalFloat", label: "Total Float", shortLabel: "TF", align: "center", width: "45px",
@@ -140,9 +140,9 @@ const ALL_COLUMNS: ColumnDef[] = [
     renderClass: (a) => {
       const tf = a.totalFloat;
       if (tf == null) return "text-gray-400";
-      if (tf <= 0) return "text-red-400 font-semibold";
-      if (tf <= 5) return "text-amber-400 font-medium";
-      return "text-emerald-400";
+      if (tf <= 0) return "text-red-600 font-semibold";
+      if (tf <= 5) return "text-amber-600 font-medium";
+      return "text-emerald-700";
     },
   },
   {
@@ -150,14 +150,14 @@ const ALL_COLUMNS: ColumnDef[] = [
     sortable: true,
     getSortValue: (a) => a.freeFloat ?? 999,
     render: (a) => a.freeFloat != null ? `${a.freeFloat}d` : "—",
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "wbs", label: "WBS", shortLabel: "WBS", align: "left", width: "70px",
     editable: true, sortable: true,
     getSortValue: (a) => a.wbs || "",
     render: (a) => a.wbs || "—",
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "calendar", label: "Calendar", shortLabel: "Cal", align: "left", width: "70px",
@@ -167,7 +167,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const cal = ctx.calendars?.find((c: any) => c.id === a.calendarId);
       return cal ? cal.name : "—";
     },
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   // Target 1 variance columns
   {
@@ -177,7 +177,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "bl1Finish", label: "BL Finish", shortLabel: "BL1 EF", align: "center", width: "80px",
@@ -186,7 +186,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "startVar1", label: "Start Variance 1", shortLabel: "SV1", align: "center", width: "50px",
@@ -206,9 +206,9 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
-      if (diff > 0) return "text-red-400 font-semibold";
-      if (diff < 0) return "text-emerald-400 font-semibold";
-      return "text-gray-300";
+      if (diff > 0) return "text-red-600 font-semibold";
+      if (diff < 0) return "text-emerald-700 font-semibold";
+      return "text-gray-600";
     },
   },
   {
@@ -229,9 +229,9 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
-      if (diff > 0) return "text-red-400 font-semibold";
-      if (diff < 0) return "text-emerald-400 font-semibold";
-      return "text-gray-300";
+      if (diff > 0) return "text-red-600 font-semibold";
+      if (diff < 0) return "text-emerald-700 font-semibold";
+      return "text-gray-600";
     },
   },
   // Target 2 variance columns
@@ -242,7 +242,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "bl2Finish", label: "BL2 Finish", shortLabel: "BL2 EF", align: "center", width: "80px",
@@ -251,7 +251,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-gray-300",
+    renderClass: () => "text-gray-700",
   },
   {
     key: "startVar2", label: "Start Variance 2", shortLabel: "SV2", align: "center", width: "50px",
@@ -271,9 +271,9 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
-      if (diff > 0) return "text-red-400 font-semibold";
-      if (diff < 0) return "text-emerald-400 font-semibold";
-      return "text-gray-300";
+      if (diff > 0) return "text-red-600 font-semibold";
+      if (diff < 0) return "text-emerald-700 font-semibold";
+      return "text-gray-600";
     },
   },
   {
@@ -294,9 +294,9 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
-      if (diff > 0) return "text-red-400 font-semibold";
-      if (diff < 0) return "text-emerald-400 font-semibold";
-      return "text-gray-300";
+      if (diff > 0) return "text-red-600 font-semibold";
+      if (diff < 0) return "text-emerald-700 font-semibold";
+      return "text-gray-600";
     },
   },
 ];
@@ -1516,7 +1516,7 @@ export default function Scheduler() {
                   return (
                     <div
                       key={col.key}
-                      className={`text-${col.align} truncate flex items-center gap-0.5 relative group/col ${col.sortable ? "cursor-pointer hover:text-gray-200 select-none" : ""}`}
+                      className={`text-${col.align} truncate flex items-center gap-0.5 relative group/col ${col.sortable ? "cursor-pointer hover:text-gray-900 select-none" : ""}`}
                       title={col.label}
                       onClick={col.sortable ? () => handleColumnSort(col.key) : undefined}
                     >
@@ -1525,12 +1525,12 @@ export default function Scheduler() {
                         <span className="shrink-0">
                           {isSorted && sortState.dir === "asc" && <ChevronUp className="w-3 h-3 text-amber-400" />}
                           {isSorted && sortState.dir === "desc" && <ChevronDown className="w-3 h-3 text-amber-400" />}
-                          {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-600" />}
+                          {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
                         </span>
                       )}
                       {/* Column resize handle */}
                       <div
-                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-amber-500/50 transition-colors ${resizingCol === col.key ? "bg-amber-500" : "bg-transparent group-hover/col:bg-white/15"}`}
+                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-amber-500/50 transition-colors ${resizingCol === col.key ? "bg-amber-500" : "bg-transparent group-hover/col:bg-gray-300/50"}`}
                         onMouseDown={(e) => handleColResizeStart(e, col.key)}
                         title="Drag to resize column"
                       />
@@ -1693,7 +1693,7 @@ export default function Scheduler() {
                         {/* Dynamic columns */}
                         {activeColumns.map((col) => {
                           const isEditing = editingCell?.activityId === act.id && editingCell?.field === col.key;
-                          const cellClass = col.renderClass ? col.renderClass(act, renderCtx) : "text-gray-300";
+                          const cellClass = col.renderClass ? col.renderClass(act, renderCtx) : "text-gray-700";
 
                           if (isEditing && col.editable) {
                             return (
@@ -1704,7 +1704,7 @@ export default function Scheduler() {
                                   onBlur={commitEdit}
                                   onKeyDown={handleEditKeyDown}
                                   autoFocus
-                                  className="h-8 text-sm px-2 py-0 border-amber-500/50 bg-white/5 text-gray-100"
+                                  className="h-8 text-sm px-2 py-0 border-amber-500/60 bg-white text-gray-900 border"
                                   type={col.key === "duration" || col.key === "percentComplete" ? "number" : "text"}
                                 />
                               </div>
@@ -1738,7 +1738,7 @@ export default function Scheduler() {
             </div>
 
             {/* Add Activity Row */}
-            <div className="px-3 py-2 border-t border-white/10">
+            <div className="px-3 py-2 border-t border-gray-200">
               <button
                 onClick={() => setShowActivityDialog(true)}
                 className="text-sm text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1.5"
