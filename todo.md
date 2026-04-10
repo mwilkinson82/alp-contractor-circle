@@ -1184,3 +1184,12 @@
 - [x] General Conditions children: Submittals > Prepare & Submit, Review & Approve
 - [x] Construction children: all 9 CSI phase nodes (Sitework, Foundation, Framing, Exterior, MEP Rough, Interior, MEP Trim, Site Improvements, Closeout)
 - [x] Reassign all 32 activities to correct new WBS node IDs
+
+## P6-Style CPM Schedule Redesign
+- [x] Fix WBS modal scrollability — modal content must be scrollable when WBS list is long
+- [x] Add drag-and-drop WBS tree editor (P6-style visual tree with parent-child drag reordering)
+- [x] P6-style WBS group rows: colored band headers spanning full table width, bold white text, collapsible
+- [x] Add Fabrication phase to Smith Residence WBS (between Submittals and Construction)
+- [x] Seed Fabrication activities: long-lead items (steel, windows, custom millwork, doors)
+- [x] Gantt bars: ensure clean white background, solid blue normal bars, solid red critical bars
+- [x] Activity names inside/next to bars on Gantt (already done, verify)

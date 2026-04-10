@@ -34,7 +34,7 @@ import {
 import {
   Play, Save, MoreHorizontal, Plus, Trash2, GripVertical, Columns3,
   Filter, Layers, Target, Calendar, Settings, Download, FileDown, Upload,
-  Loader2, ChevronLeft, ChevronDown, ChevronUp, ArrowUpDown,
+  Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
 } from "lucide-react";
@@ -346,6 +346,15 @@ export default function Scheduler() {
   const resizeStartWidth = useRef(0);
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [groupBy, setGroupBy] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
   const [sortState, setSortState] = useState<SortState>({ key: "", dir: null });
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -1545,38 +1554,65 @@ export default function Scheduler() {
               {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
-                    // Find WBS node for custom colors if grouping by WBS
-                    let groupBg = "#1a1f2e";
-                    let groupText = "#d1d5db";
+                    // P6-style colored band header
+                    let groupBg = "#374151";
+                    let groupText = "#f9fafb";
                     const d = depth ?? 0;
                     if (groupBy === "wbs") {
                       if (wbsColor) groupBg = wbsColor;
-                      else groupBg = d === 0 ? "#1e2538" : d === 1 ? "#1a2030" : "#161c28";
+                      else groupBg = d === 0 ? "#1e293b" : d === 1 ? "#374151" : "#4b5563";
                       if (wbsTextColor) groupText = wbsTextColor;
-                      else groupText = d === 0 ? "#e2e8f0" : d === 1 ? "#cbd5e1" : "#94a3b8";
+                      else groupText = "#f9fafb";
                     }
+                    // Determine if this group is collapsed
+                    const groupKey = group || "all";
+                    const isCollapsed = collapsedGroups?.has(groupKey);
                     return (
                       <div
-                        className="py-2 text-sm tracking-wide border-b-2 flex items-center"
+                        className="flex items-center cursor-pointer select-none border-b"
                         style={{
                           backgroundColor: groupBg,
                           color: groupText,
-                          borderBottomColor: "rgba(255,255,255,0.1)",
-                          paddingLeft: `${12 + d * 20}px`,
-                          fontWeight: d === 0 ? 700 : 600,
-                          fontSize: d === 0 ? "0.875rem" : "0.8125rem",
+                          borderBottomColor: "rgba(0,0,0,0.2)",
+                          paddingLeft: `${8 + d * 20}px`,
+                          paddingRight: "12px",
+                          paddingTop: d === 0 ? "7px" : "5px",
+                          paddingBottom: d === 0 ? "7px" : "5px",
+                          minHeight: d === 0 ? "34px" : "28px",
                         }}
+                        onClick={() => toggleGroupCollapse?.(groupKey)}
+                        title={isCollapsed ? "Click to expand" : "Click to collapse"}
                       >
-                        {d > 0 && (
-                          <span
-                            className="inline-block w-1 rounded-full mr-2 flex-shrink-0"
-                            style={{ backgroundColor: wbsColor || "#94a3b8", height: d === 1 ? "14px" : "10px" }}
-                          />
-                        )}
-                        {group}
-                        {groupActs.length > 0 && (
-                          <span className="ml-2 text-xs font-normal opacity-70">({groupActs.length} activities)</span>
-                        )}
+                        {/* Collapse toggle */}
+                        <span className="mr-2 flex-shrink-0 opacity-80">
+                          {isCollapsed
+                            ? <ChevronRight className="w-3.5 h-3.5" />
+                            : <ChevronDown className="w-3.5 h-3.5" />}
+                        </span>
+                        {/* WBS code badge for WBS grouping */}
+                        {groupBy === "wbs" && (() => {
+                          const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} — ${w.name}` === group || w.code === group);
+                          return wbsNode ? (
+                            <span
+                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0 opacity-90"
+                              style={{ backgroundColor: "rgba(0,0,0,0.25)", color: groupText }}
+                            >
+                              {wbsNode.code}
+                            </span>
+                          ) : null;
+                        })()}
+                        <span
+                          className="font-bold tracking-wide truncate"
+                          style={{ fontSize: d === 0 ? "0.8125rem" : "0.75rem" }}
+                        >
+                          {group}
+                        </span>
+                        <span
+                          className="ml-2 flex-shrink-0 opacity-70"
+                          style={{ fontSize: "0.6875rem", fontWeight: 400 }}
+                        >
+                          {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
+                        </span>
                       </div>
                     );
                   })()}
@@ -3026,12 +3062,12 @@ export default function Scheduler() {
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
-        <DialogContent className="max-w-5xl" style={{ maxHeight: "85vh" }}>
-          <DialogHeader>
+        <DialogContent className="max-w-5xl flex flex-col" style={{ maxHeight: "90vh", height: "90vh" }}>
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="font-semibold text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
-            <DialogDescription>Build your project hierarchy. Parent items contain child items (indented). Click to expand/collapse.</DialogDescription>
+            <DialogDescription>Build your project hierarchy. Drag nodes to reorder. Click color swatch to change group color. Click ▶ to expand/collapse.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
             {/* Visual WBS Tree */}
             <WBSTree
               nodes={wbsNodes}
@@ -3043,6 +3079,19 @@ export default function Scheduler() {
               }}
               onUpdateNode={(id, code, name, parentId) => {
                 if (scheduleId) updateWbsMut.mutate({ id, scheduleId, code, name, parentId });
+              }}
+              onReorder={(draggedId, targetId, position) => {
+                if (!scheduleId) return;
+                // Determine new parentId based on drop position
+                const targetNode = wbsNodes.find((w: any) => w.id === targetId);
+                if (!targetNode) return;
+                let newParentId: number | null = null;
+                if (position === "inside") {
+                  newParentId = targetId;
+                } else {
+                  newParentId = targetNode.parentId ?? null;
+                }
+                updateWbsMut.mutate({ id: draggedId, scheduleId, parentId: newParentId });
               }}
             />
 
@@ -3195,7 +3244,7 @@ export default function Scheduler() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setShowWbsManager(false)} className="border-white/15">Close</Button>
           </DialogFooter>
         </DialogContent>
