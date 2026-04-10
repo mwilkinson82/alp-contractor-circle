@@ -119,7 +119,7 @@ function floatColor(f: number | null | undefined): string {
   if (f <= 0) return "text-red-600 font-bold";
   if (f <= 5) return "text-amber-600 font-semibold";
   if (f <= 10) return "text-yellow-600";
-  return "text-green-600";
+  return "text-emerald-400";
 }
 
 function varianceColor(v: number | null | undefined): string {
@@ -621,10 +621,10 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
 
   const fmtMoney = (cents: number) => "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const indexColor = (val: number, good: "above" | "below") => {
-    if (good === "above") return val >= 1 ? "text-green-600" : val >= 0.9 ? "text-amber-600" : "text-red-600";
-    return val <= 1 ? "text-green-600" : val <= 1.1 ? "text-amber-600" : "text-red-600";
+    if (good === "above") return val >= 1 ? "text-emerald-400" : val >= 0.9 ? "text-amber-600" : "text-red-400";
+    return val <= 1 ? "text-emerald-400" : val <= 1.1 ? "text-amber-600" : "text-red-400";
   };
-  const varColor = (val: number) => val >= 0 ? "text-green-600" : "text-red-600";
+  const varColor = (val: number) => val >= 0 ? "text-emerald-400" : "text-red-400";
 
   return (
     <>
@@ -645,7 +645,7 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
           <div className="text-xs text-gray-600 font-medium">PV (BCWS)</div>
-          <div className="text-xl font-bold text-blue-600">{fmtMoney(data.BCWS)}</div>
+          <div className="text-xl font-bold text-amber-400">{fmtMoney(data.BCWS)}</div>
         </CardContent></Card>
         <Card><CardContent className="pt-3 pb-2">
           <div className="text-xs text-gray-600 font-medium">AC (ACWP)</div>
@@ -697,7 +697,7 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
       {data.trendData?.length > 0 && (
         <div className="mb-6">
           <h3 className="text-sm font-semibold mb-2">EVM Trend (PV / EV / AC)</h3>
-          <canvas ref={canvasRef} className="w-full border rounded-lg bg-white" style={{ height: 360 }} />
+          <canvas ref={canvasRef} className="w-full border rounded-lg bg-[#0f1219]" style={{ height: 360 }} />
         </div>
       )}
 
@@ -731,7 +731,7 @@ function EvmDashboard({ data, baselineData }: { data: any; baselineData?: any })
                     <div className="text-xs text-gray-600 font-medium">{m.label}</div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-lg font-bold">{m.fmt(m.current)}</span>
-                      <span className={`text-xs font-semibold ${improved ? "text-green-600" : delta === 0 ? "text-gray-700" : "text-red-600"}`}>
+                      <span className={`text-xs font-semibold ${improved ? "text-emerald-400" : delta === 0 ? "text-gray-400" : "text-red-400"}`}>
                         {deltaStr} {improved ? "\u2191" : delta === 0 ? "\u2192" : "\u2193"}
                       </span>
                     </div>
@@ -1155,37 +1155,37 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6 print:grid-cols-6 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Activities</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Total Activities</p>
                 <p className="text-2xl font-bold">{reportData.summary.totalActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Critical</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Critical</p>
                 <p className="text-2xl font-bold text-red-600">{reportData.summary.criticalActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Negative Float</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Negative Float</p>
                 <p className="text-2xl font-bold text-amber-600">{reportData.summary.negativeFloatCount}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Avg Float</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Avg Float</p>
                 <p className="text-2xl font-bold">{reportData.summary.averageFloat?.toFixed(1) ?? "—"}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Complete</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Complete</p>
                 <p className="text-2xl font-bold text-green-600">{reportData.summary.completedActivities}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">In Progress</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">In Progress</p>
                 <p className="text-2xl font-bold">{reportData.summary.inProgressActivities}</p>
               </CardContent>
             </Card>
@@ -1197,27 +1197,27 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Budgeted</p>
-                <p className="text-2xl font-bold text-blue-600">{fmtCurrency((reportData.summary as any).totalBudgetedCost || 0)}</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Total Budgeted</p>
+                <p className="text-2xl font-bold text-amber-400">{fmtCurrency((reportData.summary as any).totalBudgetedCost || 0)}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Total Actual</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Total Actual</p>
                 <p className="text-2xl font-bold text-green-600">{fmtCurrency((reportData.summary as any).totalActualCost || 0)}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Variance</p>
-                <p className={`text-2xl font-bold ${((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Variance</p>
+                <p className={`text-2xl font-bold ${((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                   {fmtCurrency(((reportData.summary as any).totalBudgetedCost || 0) - ((reportData.summary as any).totalActualCost || 0))}
                 </p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Weeks</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Weeks</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
               </CardContent>
             </Card>
@@ -1229,25 +1229,25 @@ export default function ScheduleReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:grid-cols-4 print:gap-2">
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Resources</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Resources</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalResources || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Assignments</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Assignments</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalAssignments || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Weeks</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Weeks</p>
                 <p className="text-2xl font-bold">{(reportData.summary as any).totalWeeks || 0}</p>
               </CardContent>
             </Card>
             <Card className="print:border print:shadow-none">
               <CardContent className="pt-3 pb-3 px-4">
-                <p className="text-xs text-gray-600 font-medium print:text-gray-700">Resource Types</p>
+                <p className="text-xs text-gray-600 font-medium print:text-gray-400">Resource Types</p>
                 <p className="text-2xl font-bold">{((reportData.summary as any).resourceKeys || []).length}</p>
               </CardContent>
             </Card>
@@ -1266,7 +1266,7 @@ export default function ScheduleReports() {
         {reportType === "cashFlowSCurve" && reportData?.rows && !isLoading && (
           <>
             <div className="flex items-center gap-2 mb-3 print:hidden">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <TrendingUp className="w-5 h-5 text-amber-400" />
               <h2 className="text-lg font-semibold">Cash Flow S-Curve</h2>
               <span className="text-sm text-gray-600 font-medium">({reportData.rows.length} weeks)</span>
             </div>
@@ -1289,13 +1289,13 @@ export default function ScheduleReports() {
                 </thead>
                 <tbody>
                   {reportData.rows.map((row: any, idx: number) => (
-                    <tr key={idx} className={`border-b print:border-gray-300 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
+                    <tr key={idx} className={`border-b print:border-white/15 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
                       <td className="px-3 py-2 whitespace-nowrap">{fmtWeek(row.week)}</td>
                       <td className="px-3 py-2 text-right font-mono">{fmtCurrency(row.weeklyBudgeted)}</td>
                       <td className="px-3 py-2 text-right font-mono">{fmtCurrency(row.weeklyActual)}</td>
-                      <td className="px-3 py-2 text-right font-mono font-semibold text-blue-600">{fmtCurrency(row.cumulativeBudgeted)}</td>
+                      <td className="px-3 py-2 text-right font-mono font-semibold text-amber-400">{fmtCurrency(row.cumulativeBudgeted)}</td>
                       <td className="px-3 py-2 text-right font-mono font-semibold text-green-600">{fmtCurrency(row.cumulativeActual)}</td>
-                      <td className={`px-3 py-2 text-right font-mono ${(row.cumulativeBudgeted - row.cumulativeActual) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <td className={`px-3 py-2 text-right font-mono ${(row.cumulativeBudgeted - row.cumulativeActual) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {fmtCurrency(row.cumulativeBudgeted - row.cumulativeActual)}
                       </td>
                     </tr>
@@ -1340,7 +1340,7 @@ export default function ScheduleReports() {
                     const keys = (reportData.summary as any)?.resourceKeys || [];
                     const total = keys.reduce((s: number, k: string) => s + (row[k] || 0), 0);
                     return (
-                      <tr key={idx} className={`border-b print:border-gray-300 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
+                      <tr key={idx} className={`border-b print:border-white/15 hover:bg-muted/30 ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}>
                         <td className="px-3 py-2 whitespace-nowrap">{fmtWeek(row.week)}</td>
                         {keys.map((k: string) => (
                           <td key={k} className="px-3 py-2 text-right font-mono">{(row[k] || 0).toLocaleString()}</td>
@@ -1454,8 +1454,8 @@ export default function ScheduleReports() {
                   {reportData.rows.map((row: any, idx: number) => (
                     <tr
                       key={idx}
-                      className={`border-b print:border-gray-300 hover:bg-muted/30 ${
-                        row.isCritical ? "bg-red-50/50 dark:bg-red-950/20 print:bg-red-50" : ""
+                      className={`border-b print:border-white/15 hover:bg-muted/30 ${
+                        row.isCritical ? "bg-red-500/10/50 dark:bg-red-950/20 print:bg-red-500/10" : ""
                       } ${idx % 2 === 0 ? "" : "bg-muted/10 print:bg-gray-50"}`}
                     >
                       {reportType === "totalFloat" && (
@@ -1540,7 +1540,7 @@ export default function ScheduleReports() {
                               row.status === "delayed" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" :
                               row.status === "ahead" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
                               row.status === "new" ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" :
-                              "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                              "bg-white/8 text-gray-200 dark:bg-gray-800 dark:text-gray-200"
                             }`}>
                               {row.status || "on-time"}
                             </span>
@@ -1554,7 +1554,7 @@ export default function ScheduleReports() {
             </div>
 
             {/* Print footer */}
-            <div className="hidden print:block mt-4 pt-2 border-t border-gray-300 text-xs text-gray-700">
+            <div className="hidden print:block mt-4 pt-2 border-t border-white/15 text-xs text-gray-400">
               <div className="flex justify-between">
                 <span>ALP Contractor Circle — CPM Schedule Builder</span>
                 <span>Page 1 of 1</span>
@@ -1574,7 +1574,7 @@ export default function ScheduleReports() {
             {/* Calendar info banner */}
             {levelingData.calendarInfo && levelingData.calendarInfo.calendarsUsed > 0 && (
               <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
+                <Calendar className="w-5 h-5 text-amber-400" />
                 <div>
                   <span className="text-sm font-medium">Calendar-Adjusted Capacity</span>
                   <span className="text-xs text-gray-600 font-medium ml-2">
@@ -1590,7 +1590,7 @@ export default function ScheduleReports() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card><CardContent className="pt-4">
                 <div className="text-sm text-gray-600 font-medium">Over-Allocations</div>
-                <div className={`text-2xl font-bold ${levelingData.overAllocations.length > 0 ? "text-red-600" : "text-green-600"}`}>
+                <div className={`text-2xl font-bold ${levelingData.overAllocations.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
                   {levelingData.overAllocations.length}
                 </div>
               </CardContent></Card>
@@ -1600,7 +1600,7 @@ export default function ScheduleReports() {
               </CardContent></Card>
               <Card><CardContent className="pt-4">
                 <div className="text-sm text-gray-600 font-medium">Status</div>
-                <div className={`text-lg font-bold ${levelingData.overAllocations.length === 0 ? "text-green-600" : "text-amber-600"}`}>
+                <div className={`text-lg font-bold ${levelingData.overAllocations.length === 0 ? "text-emerald-400" : "text-amber-600"}`}>
                   {levelingData.overAllocations.length === 0 ? "All Resources Balanced" : "Needs Attention"}
                 </div>
               </CardContent></Card>
@@ -1613,7 +1613,7 @@ export default function ScheduleReports() {
                 <div className="space-y-2">
                   {levelingData.suggestions.map((s: any, i: number) => (
                     <div key={i} className={`p-3 rounded-lg border-l-4 ${
-                      s.severity === "high" ? "bg-red-50 border-red-500 dark:bg-red-950" :
+                      s.severity === "high" ? "bg-red-500/10 border-red-500 dark:bg-red-950" :
                       s.severity === "medium" ? "bg-amber-50 border-amber-500 dark:bg-amber-950" :
                       "bg-blue-50 border-blue-400 dark:bg-blue-950"
                     }`}>
@@ -1686,19 +1686,19 @@ export default function ScheduleReports() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-3xl font-bold text-red-600">{delayData.summary.totalImpacted}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Impacted Activities</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Impacted Activities</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-3xl font-bold text-orange-600">{delayData.summary.criticalDelays}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Critical Delays</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Critical Delays</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-3xl font-bold text-amber-600">{delayData.summary.avgDelay}d</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Average Delay</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Average Delay</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-3xl font-bold text-red-700">{delayData.summary.maxDelay}d</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Maximum Delay</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Maximum Delay</div>
               </CardContent></Card>
             </div>
 
@@ -1706,7 +1706,7 @@ export default function ScheduleReports() {
             <Card><CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-gray-700 font-medium">Comparing against: <span className="font-bold text-gray-900">{delayData.baselineName}</span></div>
+                  <div className="text-sm text-gray-400 font-medium">Comparing against: <span className="font-bold text-gray-100">{delayData.baselineName}</span></div>
                   {delayData.baselineDate && <div className="text-xs text-gray-600 mt-0.5">Baseline date: {fmtDate(delayData.baselineDate)}</div>}
                 </div>
                 {delayData.suggestedAnnotations.length > 0 && (
@@ -1729,35 +1729,35 @@ export default function ScheduleReports() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">Activity ID</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">Name</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">WBS</th>
-                        <th className="text-center py-2 px-3 font-bold text-gray-900">Critical</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">TF</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">BL Start</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">Cur Start</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Start Delay</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">BL Finish</th>
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">Cur Finish</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Finish Delay</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Max Delay</th>
+                      <tr className="border-b-2 border-white/15">
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">Activity ID</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">Name</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">WBS</th>
+                        <th className="text-center py-2 px-3 font-bold text-gray-100">Critical</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">TF</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">BL Start</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">Cur Start</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Start Delay</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">BL Finish</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">Cur Finish</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Finish Delay</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Max Delay</th>
                       </tr>
                     </thead>
                     <tbody>
                       {delayData.impactedActivities.map((imp: any, i: number) => (
-                        <tr key={i} className={`border-b ${imp.isCritical ? "bg-red-50" : ""} hover:bg-gray-50`}>
+                        <tr key={i} className={`border-b ${imp.isCritical ? "bg-red-500/10" : ""} hover:bg-white/5`}>
                           <td className="py-2 px-3 font-mono text-xs font-semibold">{imp.activityId}</td>
                           <td className="py-2 px-3 font-medium max-w-[200px] truncate">{imp.name}</td>
-                          <td className="py-2 px-3 text-xs text-gray-700">{imp.wbs}</td>
+                          <td className="py-2 px-3 text-xs text-gray-400">{imp.wbs}</td>
                           <td className="py-2 px-3 text-center">{imp.isCritical ? <span className="text-red-600 font-bold">YES</span> : <span className="text-gray-500">No</span>}</td>
                           <td className={`py-2 px-3 text-right ${floatColor(imp.totalFloat)}`}>{fmtFloat(imp.totalFloat)}</td>
                           <td className="py-2 px-3 text-xs">{fmtDate(imp.baselineStart)}</td>
                           <td className="py-2 px-3 text-xs">{fmtDate(imp.currentStart)}</td>
-                          <td className={`py-2 px-3 text-right font-semibold ${imp.startDelay > 0 ? "text-red-600" : "text-green-600"}`}>+{imp.startDelay}d</td>
+                          <td className={`py-2 px-3 text-right font-semibold ${imp.startDelay > 0 ? "text-red-400" : "text-emerald-400"}`}>+{imp.startDelay}d</td>
                           <td className="py-2 px-3 text-xs">{fmtDate(imp.baselineFinish)}</td>
                           <td className="py-2 px-3 text-xs">{fmtDate(imp.currentFinish)}</td>
-                          <td className={`py-2 px-3 text-right font-semibold ${imp.finishDelay > 0 ? "text-red-600" : "text-green-600"}`}>+{imp.finishDelay}d</td>
+                          <td className={`py-2 px-3 text-right font-semibold ${imp.finishDelay > 0 ? "text-red-400" : "text-emerald-400"}`}>+{imp.finishDelay}d</td>
                           <td className="py-2 px-3 text-right font-bold text-red-700">+{imp.maxDelay}d</td>
                         </tr>
                       ))}
@@ -1783,20 +1783,20 @@ export default function ScheduleReports() {
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card><CardContent className="pt-4 pb-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{fmtCurrency(forecastData.BAC)}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Budget at Completion (BAC)</div>
+                <div className="text-2xl font-bold text-amber-400">{fmtCurrency(forecastData.BAC)}</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Budget at Completion (BAC)</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-2xl font-bold text-green-600">{fmtCurrency(forecastData.BCWP)}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Earned Value (BCWP)</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Earned Value (BCWP)</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
                 <div className="text-2xl font-bold text-red-600">{fmtCurrency(forecastData.ACWP)}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Actual Cost (ACWP)</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Actual Cost (ACWP)</div>
               </CardContent></Card>
               <Card><CardContent className="pt-4 pb-4 text-center">
-                <div className={`text-2xl font-bold ${forecastData.EAC > forecastData.BAC ? "text-red-600" : "text-green-600"}`}>{fmtCurrency(forecastData.EAC)}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Estimate at Completion (EAC)</div>
+                <div className={`text-2xl font-bold ${forecastData.EAC > forecastData.BAC ? "text-red-400" : "text-emerald-400"}`}>{fmtCurrency(forecastData.EAC)}</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Estimate at Completion (EAC)</div>
               </CardContent></Card>
             </div>
 
@@ -1805,8 +1805,8 @@ export default function ScheduleReports() {
               <Card><CardContent className="pt-4 pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-gray-700 font-medium">Cost Performance Index (CPI)</div>
-                    <div className={`text-3xl font-bold ${forecastData.CPI >= 1 ? "text-green-600" : "text-red-600"}`}>{forecastData.CPI.toFixed(2)}</div>
+                    <div className="text-sm text-gray-400 font-medium">Cost Performance Index (CPI)</div>
+                    <div className={`text-3xl font-bold ${forecastData.CPI >= 1 ? "text-emerald-400" : "text-red-400"}`}>{forecastData.CPI.toFixed(2)}</div>
                   </div>
                   <div className={`text-sm font-medium px-3 py-1 rounded-full ${forecastData.CPI >= 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                     {forecastData.CPI >= 1 ? "Under Budget" : "Over Budget"}
@@ -1816,8 +1816,8 @@ export default function ScheduleReports() {
               <Card><CardContent className="pt-4 pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-gray-700 font-medium">Schedule Performance Index (SPI)</div>
-                    <div className={`text-3xl font-bold ${forecastData.SPI >= 1 ? "text-green-600" : "text-red-600"}`}>{forecastData.SPI.toFixed(2)}</div>
+                    <div className="text-sm text-gray-400 font-medium">Schedule Performance Index (SPI)</div>
+                    <div className={`text-3xl font-bold ${forecastData.SPI >= 1 ? "text-emerald-400" : "text-red-400"}`}>{forecastData.SPI.toFixed(2)}</div>
                   </div>
                   <div className={`text-sm font-medium px-3 py-1 rounded-full ${forecastData.SPI >= 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                     {forecastData.SPI >= 1 ? "Ahead of Schedule" : "Behind Schedule"}
@@ -1841,19 +1841,19 @@ export default function ScheduleReports() {
                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-white">
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-2 px-3 font-bold text-gray-900">Week</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Planned Value</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Earned Value</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Actual Cost</th>
-                        <th className="text-right py-2 px-3 font-bold text-gray-900">Forecast (EAC)</th>
+                      <tr className="border-b-2 border-white/15">
+                        <th className="text-left py-2 px-3 font-bold text-gray-100">Week</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Planned Value</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Earned Value</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Actual Cost</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-100">Forecast (EAC)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {forecastData.forecast.map((row: any, i: number) => (
-                        <tr key={i} className="border-b hover:bg-gray-50">
+                        <tr key={i} className="border-b hover:bg-white/5">
                           <td className="py-2 px-3 font-medium">{fmtWeek(row.week)}</td>
-                          <td className="py-2 px-3 text-right text-blue-600 font-medium">{fmtCurrency(row.planned)}</td>
+                          <td className="py-2 px-3 text-right text-amber-400 font-medium">{fmtCurrency(row.planned)}</td>
                           <td className="py-2 px-3 text-right text-green-600 font-medium">{fmtCurrency(row.earned)}</td>
                           <td className="py-2 px-3 text-right text-red-600 font-medium">{fmtCurrency(row.actual)}</td>
                           <td className="py-2 px-3 text-right text-purple-600 font-medium">{fmtCurrency(row.forecastEAC)}</td>
@@ -1886,12 +1886,12 @@ export default function ScheduleReports() {
                   </svg>
                 </div>
                 <div className={`text-4xl font-bold mt-2 ${
-                  healthData.grade === "A" ? "text-green-600" :
-                  healthData.grade === "B" ? "text-blue-600" :
+                  healthData.grade === "A" ? "text-emerald-400" :
+                  healthData.grade === "B" ? "text-amber-400" :
                   healthData.grade === "C" ? "text-amber-600" :
-                  healthData.grade === "D" ? "text-orange-600" : "text-red-600"
+                  healthData.grade === "D" ? "text-orange-600" : "text-red-400"
                 }`}>Grade: {healthData.grade}</div>
-                <div className="text-sm text-gray-700 font-medium mt-1">Schedule Health Score</div>
+                <div className="text-sm text-gray-400 font-medium mt-1">Schedule Health Score</div>
               </CardContent></Card>
             </div>
 
@@ -1900,16 +1900,16 @@ export default function ScheduleReports() {
               {healthData.components.map((comp: any, i: number) => (
                 <Card key={i}><CardContent className="pt-4 pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-bold text-gray-900">{comp.name}</div>
+                    <div className="font-bold text-gray-100">{comp.name}</div>
                     <div className={`text-lg font-bold ${
-                      comp.score >= 80 ? "text-green-600" :
-                      comp.score >= 60 ? "text-amber-600" : "text-red-600"
+                      comp.score >= 80 ? "text-emerald-400" :
+                      comp.score >= 60 ? "text-amber-600" : "text-red-400"
                     }`}>{comp.score}/100</div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                     <div className={`h-2.5 rounded-full ${
                       comp.score >= 80 ? "bg-green-500" :
-                      comp.score >= 60 ? "bg-amber-500" : "bg-red-500"
+                      comp.score >= 60 ? "bg-amber-500" : "bg-red-500/100"
                     }`} style={{ width: `${comp.score}%` }} />
                   </div>
                   <div className="text-xs text-gray-600 font-medium">{comp.details}</div>
@@ -1927,7 +1927,7 @@ export default function ScheduleReports() {
                     <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
                       rec.includes("good health") ? "text-green-500" : "text-amber-500"
                     }`} />
-                    <span className="text-sm text-gray-800 font-medium">{rec}</span>
+                    <span className="text-sm text-gray-200 font-medium">{rec}</span>
                   </li>
                 ))}
               </ul>

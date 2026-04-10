@@ -118,7 +118,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
     return (
       <div key={node.id}>
         <div
-          className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-gray-100 rounded transition-colors group"
+          className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-white/8 rounded transition-colors group"
           style={{ marginLeft: `${indent}px` }}
         >
           {/* Expand/Collapse Toggle */}
@@ -141,7 +141,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
           {/* Color swatch */}
           <button
             onClick={() => openColorPicker(node)}
-            className="flex-shrink-0 w-5 h-5 rounded border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
+            className="flex-shrink-0 w-5 h-5 rounded border border-white/15 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
             style={{ backgroundColor: nodeBg }}
             title="Change group color"
           />
@@ -154,7 +154,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                   type="text"
                   value={editCode}
                   onChange={(e) => setEditCode(e.target.value)}
-                  className="w-16 text-xs font-mono px-1.5 py-0.5 border border-blue-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-16 text-xs font-mono px-1.5 py-0.5 border border-white/15 rounded bg-white/5 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === "Enter") saveEdit(node); if (e.key === "Escape") cancelEdit(); }}
                 />
@@ -162,7 +162,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 text-sm px-1.5 py-0.5 border border-blue-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400 min-w-0"
+                  className="flex-1 text-sm px-1.5 py-0.5 border border-white/15 rounded bg-white/5 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 min-w-0"
                   onKeyDown={(e) => { if (e.key === "Enter") saveEdit(node); if (e.key === "Escape") cancelEdit(); }}
                 />
                 <button onClick={() => saveEdit(node)} className="text-green-600 hover:text-green-700 p-0.5" title="Save">
@@ -179,7 +179,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                 <select
                   value={editParentId}
                   onChange={(e) => setEditParentId(e.target.value)}
-                  className="text-xs px-1.5 py-0.5 border border-blue-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400 flex-1 min-w-0"
+                  className="text-xs px-1.5 py-0.5 border border-white/15 rounded bg-white/5 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 flex-1 min-w-0"
                 >
                   <option value="__none__">None (top level)</option>
                   {validParentOptions.map((p) => (
@@ -202,11 +202,11 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
               </span>
 
               {/* WBS Name */}
-              <span className="text-sm text-gray-800 truncate flex-1">{node.name}</span>
+              <span className="text-sm text-gray-200 truncate flex-1">{node.name}</span>
 
               {/* Child Count Badge */}
               {hasChildren && (
-                <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+                <span className="text-[10px] text-gray-400 bg-white/8 px-2 py-1 rounded flex-shrink-0">
                   {children.length} child{children.length !== 1 ? "ren" : ""}
                 </span>
               )}
@@ -249,7 +249,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
         {showColorPicker && (
           <div
             ref={colorPickerRef}
-            className="ml-10 mr-2 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg"
+            className="ml-10 mr-2 mb-2 p-3 bg-[#1a1f2e] border border-white/15 rounded-lg shadow-lg"
             style={{ marginLeft: `${indent + 32}px` }}
           >
             <div className="text-xs font-medium text-gray-600 mb-2">Group Header Color</div>
@@ -260,7 +260,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                   key={preset.bg}
                   onClick={() => applyColor(node.id, preset.bg, preset.text)}
                   className={`w-7 h-7 rounded border-2 transition-all hover:scale-110 ${
-                    nodeBg === preset.bg ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
+                    nodeBg === preset.bg ? "border-amber-500 ring-2 ring-amber-500/30" : "border-white/10"
                   }`}
                   style={{ backgroundColor: preset.bg }}
                   title={preset.label}
@@ -275,7 +275,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                   type="color"
                   value={customBg}
                   onChange={(e) => setCustomBg(e.target.value)}
-                  className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                  className="w-6 h-6 rounded border border-white/15 cursor-pointer"
                 />
               </div>
               <div className="flex items-center gap-1.5">
@@ -284,12 +284,12 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
                   type="color"
                   value={customText}
                   onChange={(e) => setCustomText(e.target.value)}
-                  className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                  className="w-6 h-6 rounded border border-white/15 cursor-pointer"
                 />
               </div>
               <button
                 onClick={() => applyColor(node.id, customBg, customText)}
-                className="ml-auto text-xs bg-blue-600 text-white px-2.5 py-1 rounded hover:bg-blue-700 transition-colors"
+                className="ml-auto text-xs bg-amber-500 text-gray-950 font-semibold px-2.5 py-1 rounded hover:bg-amber-400 transition-colors"
               >
                 Apply
               </button>
@@ -317,7 +317,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode }: WBSTre
   const topLevelNodes = nodes.filter((w) => !w.parentId);
 
   return (
-    <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 p-3">
+    <div className="max-h-80 overflow-y-auto border border-white/10 rounded-lg bg-white/5 p-3">
       {nodes.length === 0 ? (
         <div className="text-xs text-gray-400 text-center py-8">
           No WBS nodes defined yet. Create your first node below.

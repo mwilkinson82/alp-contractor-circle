@@ -1136,3 +1136,29 @@
 - [x] Backend scheduleHealthScore procedure computes all 5 component scores
 - [x] UI — health score dashboard with gauge, component cards with progress bars, recommendations
 - [x] Breakdown showing individual component scores with details and weights
+
+## THOROUGH Modal QA/QC Pass (Round 2)
+- [x] Audit base DialogContent component — ensure generous padding (p-6+), proper width, strong contrast
+- [x] Audit EVERY modal in Scheduler.tsx individually — padding, width, contrast, font weight, spacing
+- [x] Audit EVERY modal in ResourcePanel.tsx individually
+- [x] Audit PdfExportPreview dialog
+- [x] Audit GanttAnnotations modals
+- [x] Audit ScheduleReports modals/dialogs
+- [x] Audit Sheet/sidebar panels
+- [x] Audit confirmation dialogs (AlertDialog)
+- [x] Visual browser verification of each modal
+- [x] Ensure no parent containers constrain modal width
+
+## VISUAL OVERHAUL — Premium SaaS Design
+- [x] Redesign base DialogContent — premium modal styling with dark gradient headers, accent colors, visual hierarchy
+- [x] Redesign DialogTitle/DialogDescription — sophisticated typography, not plain black-on-white
+- [x] Redesign Scheduler toolbar — SaaS-grade ribbon (Linear/Notion/Monday.com level)
+- [x] Toolbar needs actual coloring/theming, not plain buttons on white bar
+- [x] Toolbar buttons should look clickable with proper hover states and visual grouping
+- [x] Redesign ResourcePanel modal — premium look, not black-on-white
+- [x] Redesign every individual modal in Scheduler.tsx with consistent premium styling
+- [x] Redesign PdfExportPreview modal
+- [x] Redesign GanttAnnotations modals
+- [x] Redesign Sheet/sidebar panels
+- [x] All modals should have generous padding (p-8+), strong contrast, proper spacing
+- [x] Visual verification of every modal via browser

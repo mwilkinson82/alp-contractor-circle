@@ -1180,7 +1180,7 @@ export default function GanttChart({
         </div>
       )}
       {dragState?.mode === "connect" && (
-        <div className="absolute top-1 right-1 z-10 bg-blue-600/90 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
+        <div className="absolute top-1 right-1 z-10 bg-amber-500/90 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
           Drop on another bar edge to create relationship
         </div>
       )}

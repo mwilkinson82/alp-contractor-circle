@@ -80,56 +80,56 @@ const ALL_COLUMNS: ColumnDef[] = [
     editable: true, alwaysVisible: false, sortable: true,
     getSortValue: (a) => a.activityId || "",
     render: (a) => a.activityId || `A${a.id}`,
-    renderClass: () => "text-gray-900 font-semibold",
+    renderClass: () => "text-gray-100 font-semibold",
   },
   {
     key: "name", label: "Activity Name", shortLabel: "Name", align: "left", width: "1fr",
     editable: true, alwaysVisible: true, sortable: true,
     getSortValue: (a) => a.name,
     render: (a) => a.name,
-    renderClass: () => "text-gray-900 font-medium",
+    renderClass: () => "text-gray-100 font-medium",
   },
   {
     key: "duration", label: "Duration", shortLabel: "Dur", align: "center", width: "50px",
     editable: true, sortable: true,
     getSortValue: (a) => a.duration,
     render: (a) => `${a.duration}d`,
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "percentComplete", label: "% Complete", shortLabel: "%", align: "center", width: "45px",
     editable: true, sortable: true,
     getSortValue: (a) => parseFloat(a.percentComplete) || 0,
     render: (a) => `${Math.round(parseFloat(a.percentComplete) || 0)}%`,
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "earlyStart", label: "Early Start", shortLabel: "ES", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyStart ? new Date(a.earlyStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyStart)),
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "earlyFinish", label: "Early Finish", shortLabel: "EF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.earlyFinish ? new Date(a.earlyFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.earlyFinish)),
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "lateStart", label: "Late Start", shortLabel: "LS", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateStart ? new Date(a.lateStart).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateStart)),
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "lateFinish", label: "Late Finish", shortLabel: "LF", align: "center", width: "80px",
     sortable: true,
     getSortValue: (a) => a.lateFinish ? new Date(a.lateFinish).getTime() : 0,
     render: (a) => formatDate(parseDateSafe(a.lateFinish)),
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "totalFloat", label: "Total Float", shortLabel: "TF", align: "center", width: "45px",
@@ -138,10 +138,10 @@ const ALL_COLUMNS: ColumnDef[] = [
     render: (a) => a.totalFloat != null ? `${a.totalFloat}d` : "—",
     renderClass: (a) => {
       const tf = a.totalFloat;
-      if (tf == null) return "text-gray-700";
-      if (tf <= 0) return "text-red-600 font-semibold";
-      if (tf <= 5) return "text-amber-600 font-medium";
-      return "text-emerald-600";
+      if (tf == null) return "text-gray-400";
+      if (tf <= 0) return "text-red-400 font-semibold";
+      if (tf <= 5) return "text-amber-400 font-medium";
+      return "text-emerald-400";
     },
   },
   {
@@ -149,14 +149,14 @@ const ALL_COLUMNS: ColumnDef[] = [
     sortable: true,
     getSortValue: (a) => a.freeFloat ?? 999,
     render: (a) => a.freeFloat != null ? `${a.freeFloat}d` : "—",
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "wbs", label: "WBS", shortLabel: "WBS", align: "left", width: "70px",
     editable: true, sortable: true,
     getSortValue: (a) => a.wbs || "",
     render: (a) => a.wbs || "—",
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "calendar", label: "Calendar", shortLabel: "Cal", align: "left", width: "70px",
@@ -166,7 +166,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const cal = ctx.calendars?.find((c: any) => c.id === a.calendarId);
       return cal ? cal.name : "—";
     },
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   // Target 1 variance columns
   {
@@ -176,7 +176,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "bl1Finish", label: "BL Finish", shortLabel: "BL1 EF", align: "center", width: "80px",
@@ -185,7 +185,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target1Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "startVar1", label: "Start Variance 1", shortLabel: "SV1", align: "center", width: "50px",
@@ -203,11 +203,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target1Map?.get(a.id);
-      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-700";
+      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
-      if (diff > 0) return "text-red-600 font-semibold";
-      if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-gray-700";
+      if (diff > 0) return "text-red-400 font-semibold";
+      if (diff < 0) return "text-emerald-400 font-semibold";
+      return "text-gray-300";
     },
   },
   {
@@ -226,11 +226,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target1Map?.get(a.id);
-      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-700";
+      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
-      if (diff > 0) return "text-red-600 font-semibold";
-      if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-gray-700";
+      if (diff > 0) return "text-red-400 font-semibold";
+      if (diff < 0) return "text-emerald-400 font-semibold";
+      return "text-gray-300";
     },
   },
   // Target 2 variance columns
@@ -241,7 +241,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyStart)) : "—";
     },
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "bl2Finish", label: "BL2 Finish", shortLabel: "BL2 EF", align: "center", width: "80px",
@@ -250,7 +250,7 @@ const ALL_COLUMNS: ColumnDef[] = [
       const t = ctx.target2Map?.get(a.id);
       return t ? formatDate(parseDateSafe(t.earlyFinish)) : "—";
     },
-    renderClass: () => "text-gray-700",
+    renderClass: () => "text-gray-300",
   },
   {
     key: "startVar2", label: "Start Variance 2", shortLabel: "SV2", align: "center", width: "50px",
@@ -268,11 +268,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target2Map?.get(a.id);
-      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-700";
+      if (!t || !a.earlyStart || !t.earlyStart) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyStart).getTime() - new Date(t.earlyStart).getTime()) / 86400000);
-      if (diff > 0) return "text-red-600 font-semibold";
-      if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-gray-700";
+      if (diff > 0) return "text-red-400 font-semibold";
+      if (diff < 0) return "text-emerald-400 font-semibold";
+      return "text-gray-300";
     },
   },
   {
@@ -291,11 +291,11 @@ const ALL_COLUMNS: ColumnDef[] = [
     },
     renderClass: (a, ctx) => {
       const t = ctx.target2Map?.get(a.id);
-      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-700";
+      if (!t || !a.earlyFinish || !t.earlyFinish) return "text-gray-400";
       const diff = Math.round((new Date(a.earlyFinish).getTime() - new Date(t.earlyFinish).getTime()) / 86400000);
-      if (diff > 0) return "text-red-600 font-semibold";
-      if (diff < 0) return "text-emerald-600 font-semibold";
-      return "text-gray-700";
+      if (diff > 0) return "text-red-400 font-semibold";
+      if (diff < 0) return "text-emerald-400 font-semibold";
+      return "text-gray-300";
     },
   },
 ];
@@ -1113,42 +1113,43 @@ export default function Scheduler() {
   }, [activities, openActivityDetail]);
 
   /* ── Loading / Error ──────────────────────────────────────────────────── */
-  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-white text-gray-900">Invalid schedule ID</div>;
+  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-[#0f1219] text-gray-300">Invalid schedule ID</div>;
   if (scheduleQuery.isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white">
+      <div className="h-screen flex items-center justify-center bg-[#0f1219]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-gray-700 text-sm">Loading schedule...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">Loading schedule...</p>
         </div>
       </div>
     );
   }
-  if (!schedule) return <div className="h-screen flex items-center justify-center bg-white text-gray-900">Schedule not found</div>;
+  if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#0f1219] text-gray-300">Schedule not found</div>;
 
   const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0;
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen flex flex-col bg-gray-50 text-gray-900">
-      {/* ── Top Toolbar ── Organized Ribbon ──────────────────────────────── */}
-      <div className="border-b border-gray-200 bg-[#f8f8f7] shrink-0">
+    <div className="h-screen flex flex-col bg-[#0f1219] text-gray-100">
+      {/* ── Top Toolbar ── Premium Dark SaaS Ribbon ────────────────────── */}
+      <div className="border-b border-white/10 bg-[#151a28] shrink-0">
         {/* Row 1: Title bar */}
-        <div className="h-9 flex items-center px-3 gap-2 border-b border-gray-100">
-          <button onClick={() => window.close()} className="p-1 rounded-md hover:bg-gray-200/60 text-gray-700">
+        <div className="h-10 flex items-center px-4 gap-3 border-b border-white/5">
+          <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-900 truncate max-w-[280px]">{schedule.schedule.name}</h1>
+          <div className="w-px h-5 bg-white/10" />
+          <h1 className="text-sm font-bold text-white truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
           <div className="flex-1" />
           {/* Search */}
           {showSearch && (
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search ID or name..."
-                className="h-7 text-xs pl-7 w-48 border-gray-300 bg-white"
+                className="h-8 text-xs pl-8 w-52 border-white/15 bg-white/5 text-gray-100 placeholder:text-gray-500 rounded-lg"
                 autoFocus
                 onBlur={() => { if (!searchQuery) setShowSearch(false); }}
               />
@@ -1156,7 +1157,7 @@ export default function Scheduler() {
           )}
           <Button
             size="sm" variant="ghost"
-            className={`h-7 w-7 p-0 ${searchQuery ? "text-blue-600" : "text-gray-700"}`}
+            className={`h-8 w-8 p-0 rounded-lg ${searchQuery ? "text-amber-400" : "text-gray-400 hover:text-white"}`}
             onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearchQuery(""); }}
           >
             <Search className="w-4 h-4" />
@@ -1164,13 +1165,13 @@ export default function Scheduler() {
         </div>
 
         {/* Row 2: Ribbon with grouped sections */}
-        <div className="h-10 flex items-center px-3 gap-0.5 overflow-x-auto">
+        <div className="h-11 flex items-center px-3 gap-1.5 overflow-x-auto">
 
           {/* ── GROUP: Schedule ── */}
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
             <Button
               size="sm" variant="outline"
-              className="h-7 text-xs gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white"
+              className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/15 bg-amber-500/10 font-semibold"
               onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
               disabled={recalcMut.isPending}
             >
@@ -1179,7 +1180,7 @@ export default function Scheduler() {
             </Button>
             <Button
               size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-gray-700 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+              className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
               onClick={undo}
               disabled={!canUndo || isUndoRedoProcessing}
               title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
@@ -1188,19 +1189,20 @@ export default function Scheduler() {
             </Button>
             <Button
               size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-gray-700 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"
+              className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
               onClick={redo}
               disabled={!canRedo || isUndoRedoProcessing}
               title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
             >
               <Redo2 className="w-4 h-4" />
             </Button>
+            <div className="w-px h-5 bg-white/10" />
             <Button
               size="sm" variant="outline"
-              className={`h-7 text-xs gap-1 hover:bg-blue-50 bg-white ${
+              className={`h-7 text-xs gap-1 ${
                 dataDate
-                  ? "border-blue-400 text-blue-700"
-                  : "border-amber-400 text-amber-700 animate-pulse"
+                  ? "border-sky-500/30 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20"
+                  : "border-amber-500/40 text-amber-400 bg-amber-500/10 animate-pulse"
               }`}
               onClick={() => {
                 const today = new Date().toISOString().split("T")[0];
@@ -1215,90 +1217,90 @@ export default function Scheduler() {
           </div>
 
           {/* ── GROUP: Activities ── */}
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50" onClick={() => setShowActivityDialog(true)}>
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300" onClick={() => setShowActivityDialog(true)}>
               <Plus className="w-3.5 h-3.5" /> Add
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-blue-600 hover:bg-blue-50" onClick={() => setShowBulkAddDialog(true)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-sky-400 hover:bg-sky-500/15 hover:text-sky-300" onClick={() => setShowBulkAddDialog(true)}>
               <Plus className="w-3.5 h-3.5" /> Bulk
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:bg-emerald-50" onClick={() => setShowCsvImportDialog(true)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300" onClick={() => setShowCsvImportDialog(true)}>
               <Upload className="w-3.5 h-3.5" /> CSV
             </Button>
           </div>
 
           {/* ── GROUP: View ── */}
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
             {/* Zoom */}
-            <div className="flex items-center border border-gray-300 rounded-md h-7 overflow-hidden">
+            <div className="flex items-center border border-white/15 rounded-lg h-7 overflow-hidden">
               {(["day", "week", "month"] as const).map((z) => (
                 <button
                   key={z}
                   onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
-                  className={`px-2 text-xs h-full transition-colors ${zoom === z ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                  className={`px-2.5 text-xs h-full transition-all font-medium ${zoom === z ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
                 >
                   {z.charAt(0).toUpperCase() + z.slice(1)}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-0.5 ml-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
-              <span className="text-[9px] text-gray-600">−</span>
+              <span className="text-[9px] text-gray-500">−</span>
               <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
                 onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); setZoom("custom"); }}
-                className="w-16 h-1.5 accent-blue-600 cursor-pointer"
+                className="w-16 h-1.5 accent-amber-500 cursor-pointer"
               />
-              <span className="text-[9px] text-gray-600">+</span>
+              <span className="text-[9px] text-gray-500">+</span>
             </div>
-            <div className="w-px h-5 bg-gray-200 mx-0.5" />
+            <div className="w-px h-5 bg-white/10 mx-0.5" />
             {/* Toggles */}
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showArrows ? "text-blue-600" : "text-gray-600"}`}
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showArrows ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
               onClick={() => setShowArrows(!showArrows)} title="Toggle dependency arrows">
               <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
             </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showDataDateLine ? "text-blue-600" : "text-gray-600"}`}
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showDataDateLine ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
               onClick={() => setShowDataDateLine(!showDataDateLine)} title="Toggle data date line">
               <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
             </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showTodayLine ? "text-blue-600" : "text-gray-600"}`}
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showTodayLine ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
               onClick={() => setShowTodayLine(!showTodayLine)} title="Toggle today line">
               <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
             </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showCostOverlay ? "text-blue-600" : "text-gray-600"}`}
+            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showCostOverlay ? "text-emerald-400" : "text-gray-500 hover:text-gray-300"}`}
               onClick={() => setShowCostOverlay(!showCostOverlay)} title="Toggle cost overlay">
               <DollarSign className="w-3.5 h-3.5" />
             </Button>
-            <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-7 text-xs gap-1 ${showAnnotations ? "bg-amber-500 text-white hover:bg-amber-600" : "text-gray-600 hover:bg-gray-100"}`}
+            <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-7 text-xs gap-1 ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400" : "text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
               onClick={() => setShowAnnotations(!showAnnotations)} title="Toggle annotation overlay for delay analysis">
               <Pencil className="w-3.5 h-3.5" /> Annotate
             </Button>
-            <div className="w-px h-5 bg-gray-200 mx-0.5" />
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowColumnPicker(true)}>
+            <div className="w-px h-5 bg-white/10 mx-0.5" />
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200" onClick={() => setShowColumnPicker(true)}>
               <Columns3 className="w-3.5 h-3.5" /> Columns
             </Button>
-            <Button size="sm" variant="ghost" className={`h-7 text-xs gap-1 ${hasActiveFilters ? "text-blue-600" : "text-gray-600"} hover:bg-gray-100`}
+            <Button size="sm" variant="ghost" className={`h-7 text-xs gap-1 ${hasActiveFilters ? "text-amber-400" : "text-gray-400"} hover:bg-white/10 hover:text-gray-200`}
               onClick={() => setShowAdvancedFilter(true)}>
               <Filter className="w-3.5 h-3.5" /> Filter
-              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
+                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200">
                   <Layers className="w-3.5 h-3.5" /> Group
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900">
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setGroupBy(null)}>
-                  <span className={!groupBy ? "font-semibold text-blue-600" : ""}>None</span>
+                  <span className={!groupBy ? "font-semibold text-amber-400" : ""}>None</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
-                  <span className={groupBy === "wbs" ? "font-semibold text-blue-600" : ""}>WBS</span>
+                  <span className={groupBy === "wbs" ? "font-semibold text-amber-400" : ""}>WBS</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setGroupBy("critical")}>
-                  <span className={groupBy === "critical" ? "font-semibold text-blue-600" : ""}>Critical Path</span>
+                  <span className={groupBy === "critical" ? "font-semibold text-amber-400" : ""}>Critical Path</span>
                 </DropdownMenuItem>
                 {codeCategories.map((cat: any) => (
                   <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                    <span className={groupBy === String(cat.id) ? "font-semibold text-blue-600" : ""}>{cat.name}</span>
+                    <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -1306,12 +1308,12 @@ export default function Scheduler() {
           </div>
 
           {/* ── GROUP: Tools ── */}
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/60 border border-gray-200/60 mr-1">
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100" onClick={() => setShowResourcePanel(true)}>
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200" onClick={() => setShowResourcePanel(true)}>
               <DollarSign className="w-3.5 h-3.5" /> Resources
             </Button>
             <Link href={`/scheduler/${scheduleId}/reports`}>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-600 hover:bg-gray-100">
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200">
                 <BarChart3 className="w-3.5 h-3.5" /> Reports
               </Button>
             </Link>
@@ -1322,15 +1324,15 @@ export default function Scheduler() {
           {/* ── Settings Menu (labeled, highlighted) ── */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100">
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-white/15 text-gray-300 bg-white/5 hover:bg-white/10 hover:text-white">
                 <Settings className="w-3.5 h-3.5" /> Settings
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border-gray-200 w-56 text-gray-900">
-              <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
                 <svg viewBox="0 0 16 16" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
                 Add Relationship
-            </DropdownMenuItem>
+              </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowIdSettingsDialog(true)}>
               <Settings className="w-4 h-4 mr-2" /> Activity ID Settings
@@ -1346,14 +1348,14 @@ export default function Scheduler() {
               <DropdownMenuSubTrigger>
                 <Target className="w-4 h-4 mr-2" /> Target 1
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-white border-gray-200 text-gray-900">
+              <DropdownMenuSubContent>
                 <DropdownMenuItem onClick={() => setTarget1Id(null)}>
-                  <span className={!target1Id ? "font-semibold text-blue-600" : ""}>None</span>
+                  <span className={!target1Id ? "font-semibold text-amber-400" : ""}>None</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {baselines.map((b: any) => (
                   <DropdownMenuItem key={b.id} onClick={() => setTarget1Id(b.id)}>
-                    <span className={target1Id === b.id ? "font-semibold text-blue-600" : ""}>
+                    <span className={target1Id === b.id ? "font-semibold text-amber-400" : ""}>
                       {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
                     </span>
                   </DropdownMenuItem>
@@ -1364,14 +1366,14 @@ export default function Scheduler() {
               <DropdownMenuSubTrigger>
                 <Target className="w-4 h-4 mr-2" /> Target 2
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-white border-gray-200 text-gray-900">
+              <DropdownMenuSubContent>
                 <DropdownMenuItem onClick={() => setTarget2Id(null)}>
-                  <span className={!target2Id ? "font-semibold text-blue-600" : ""}>None</span>
+                  <span className={!target2Id ? "font-semibold text-amber-400" : ""}>None</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {baselines.map((b: any) => (
                   <DropdownMenuItem key={b.id} onClick={() => setTarget2Id(b.id)}>
-                    <span className={target2Id === b.id ? "font-semibold text-blue-600" : ""}>
+                    <span className={target2Id === b.id ? "font-semibold text-amber-400" : ""}>
                       {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
                     </span>
                   </DropdownMenuItem>
@@ -1399,7 +1401,7 @@ export default function Scheduler() {
               <DropdownMenuSubTrigger>
                 <LayoutGrid className="w-4 h-4 mr-2" /> Layouts
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-white border-gray-200 text-gray-900 w-56">
+              <DropdownMenuSubContent className="w-56">
                 <DropdownMenuItem onClick={() => { setLayoutName(""); setLayoutIsDefault(false); setShowLayoutDialog(true); }}>
                   <Save className="w-4 h-4 mr-2" /> Save Current Layout
                 </DropdownMenuItem>
@@ -1409,7 +1411,7 @@ export default function Scheduler() {
                     {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />}
                     <span className="flex-1 truncate">{layout.name}</span>
                     <button
-                      className="ml-2 text-gray-600 hover:text-red-500"
+                      className="ml-2 text-gray-400 hover:text-red-400"
                       onClick={(e) => { e.stopPropagation(); if (scheduleId) deleteLayoutMut.mutate({ id: layout.id, scheduleId }); }}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -1429,21 +1431,21 @@ export default function Scheduler() {
 
       {/* ── Target indicators bar ──────────────────────────────────────────── */}
       {(target1Id || target2Id) && (
-        <div className="h-7 border-b border-gray-200 bg-blue-50 flex items-center px-3 gap-4 text-xs shrink-0">
+        <div className="h-7 border-b border-white/10 bg-[#1a1f2e] flex items-center px-3 gap-4 text-xs shrink-0">
           {target1Id && (
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-2 rounded-sm bg-gray-400" />
-              <span className="text-gray-700">Target 1:</span>
-              <span className="text-gray-900 font-medium">{target1Query.data ? baselines.find((b: any) => b.id === target1Id)?.name || "Loaded" : "Loading..."}</span>
-              <button onClick={() => setTarget1Id(null)} className="text-gray-600 hover:text-red-500 ml-1">&times;</button>
+              <span className="text-gray-400">Target 1:</span>
+              <span className="text-gray-200 font-medium">{target1Query.data ? baselines.find((b: any) => b.id === target1Id)?.name || "Loaded" : "Loading..."}</span>
+              <button onClick={() => setTarget1Id(null)} className="text-gray-500 hover:text-red-400 ml-1">&times;</button>
             </div>
           )}
           {target2Id && (
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-2 rounded-sm bg-violet-400" />
-              <span className="text-gray-700">Target 2:</span>
-              <span className="text-gray-900 font-medium">{target2Query.data ? baselines.find((b: any) => b.id === target2Id)?.name || "Loaded" : "Loading..."}</span>
-              <button onClick={() => setTarget2Id(null)} className="text-gray-600 hover:text-red-500 ml-1">&times;</button>
+              <span className="text-gray-400">Target 2:</span>
+              <span className="text-gray-200 font-medium">{target2Query.data ? baselines.find((b: any) => b.id === target2Id)?.name || "Loaded" : "Loading..."}</span>
+              <button onClick={() => setTarget2Id(null)} className="text-gray-500 hover:text-red-400 ml-1">&times;</button>
             </div>
           )}
         </div>
@@ -1451,10 +1453,10 @@ export default function Scheduler() {
 
       {/* ── Activity Code Filter Bar ───────────────────────────────────────── */}
       {showFilterPanel && codeCategories.length > 0 && (
-        <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
+        <div className="border-b border-white/10 bg-[#151a28] px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
           {codeCategories.map((cat: any) => (
             <div key={cat.id} className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-gray-700 font-medium">{cat.name}:</span>
+              <span className="text-xs text-gray-400 font-medium">{cat.name}:</span>
               <div className="flex gap-1">
                 {cat.values.map((val: any) => {
                   const isActive = activeFilters.get(cat.id)?.has(val.id) || false;
@@ -1469,7 +1471,7 @@ export default function Scheduler() {
                         else set.add(val.id);
                         setActiveFilters(newFilters);
                       }}
-                      className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${isActive ? "bg-blue-100 border-blue-400 text-blue-700" : "border-gray-300 text-gray-700 hover:border-gray-400"}`}
+                      className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${isActive ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"}`}
                     >
                       {val.value}
                     </button>
@@ -1479,7 +1481,7 @@ export default function Scheduler() {
             </div>
           ))}
           {activeFilters.size > 0 && (
-            <button onClick={() => setActiveFilters(new Map())} className="text-xs text-red-500 hover:underline shrink-0">Clear All</button>
+            <button onClick={() => setActiveFilters(new Map())} className="text-xs text-red-400 hover:underline shrink-0">Clear All</button>
           )}
         </div>
       )}
@@ -1488,11 +1490,11 @@ export default function Scheduler() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left: Activity Table */}
         <ResizablePanel defaultSize={45} minSize={25} maxSize={70}>
-          <div ref={tableRef} className="h-full overflow-auto bg-white">
+          <div ref={tableRef} className="h-full overflow-auto bg-[#0f1219]">
             {/* Table Header with sortable columns */}
-            <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
+            <div className="sticky top-0 z-20 bg-[#151a28] border-b border-white/10">
               <div
-                className="text-sm font-medium text-gray-700 h-11 items-center px-3 gap-1.5"
+                className="text-sm font-medium text-gray-400 h-11 items-center px-3 gap-1.5"
                 style={{ display: "grid", gridTemplateColumns: gridTemplate }}
               >
                 <div></div>
@@ -1501,21 +1503,21 @@ export default function Scheduler() {
                   return (
                     <div
                       key={col.key}
-                      className={`text-${col.align} truncate flex items-center gap-0.5 relative group/col ${col.sortable ? "cursor-pointer hover:text-gray-700 select-none" : ""}`}
+                      className={`text-${col.align} truncate flex items-center gap-0.5 relative group/col ${col.sortable ? "cursor-pointer hover:text-gray-200 select-none" : ""}`}
                       title={col.label}
                       onClick={col.sortable ? () => handleColumnSort(col.key) : undefined}
                     >
                       <span className="truncate">{col.shortLabel}</span>
                       {col.sortable && (
                         <span className="shrink-0">
-                          {isSorted && sortState.dir === "asc" && <ChevronUp className="w-3 h-3 text-blue-600" />}
-                          {isSorted && sortState.dir === "desc" && <ChevronDown className="w-3 h-3 text-blue-600" />}
-                          {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-500" />}
+                          {isSorted && sortState.dir === "asc" && <ChevronUp className="w-3 h-3 text-amber-400" />}
+                          {isSorted && sortState.dir === "desc" && <ChevronDown className="w-3 h-3 text-amber-400" />}
+                          {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-600" />}
                         </span>
                       )}
                       {/* Column resize handle */}
                       <div
-                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 transition-colors ${resizingCol === col.key ? "bg-blue-500" : "bg-transparent group-hover/col:bg-gray-300"}`}
+                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-amber-500/50 transition-colors ${resizingCol === col.key ? "bg-amber-500" : "bg-transparent group-hover/col:bg-white/15"}`}
                         onMouseDown={(e) => handleColResizeStart(e, col.key)}
                         title="Drag to resize column"
                       />
@@ -1526,19 +1528,19 @@ export default function Scheduler() {
             </div>
 
             {/* Table Body */}
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-white/5">
               {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
                     // Find WBS node for custom colors if grouping by WBS
-                    let groupBg = "#f3f4f6";
-                    let groupText = "#4b5563";
+                    let groupBg = "#1a1f2e";
+                    let groupText = "#d1d5db";
                     const d = depth ?? 0;
                     if (groupBy === "wbs") {
                       if (wbsColor) groupBg = wbsColor;
-                      else groupBg = d === 0 ? "#e2e8f0" : d === 1 ? "#f1f5f9" : "#f8fafc";
+                      else groupBg = d === 0 ? "#1e2538" : d === 1 ? "#1a2030" : "#161c28";
                       if (wbsTextColor) groupText = wbsTextColor;
-                      else groupText = d === 0 ? "#1e293b" : d === 1 ? "#334155" : "#475569";
+                      else groupText = d === 0 ? "#e2e8f0" : d === 1 ? "#cbd5e1" : "#94a3b8";
                     }
                     return (
                       <div
@@ -1546,7 +1548,7 @@ export default function Scheduler() {
                         style={{
                           backgroundColor: groupBg,
                           color: groupText,
-                          borderBottomColor: groupBg === "#f3f4f6" || groupBg === "#e2e8f0" ? "#d1d5db" : groupBg,
+                          borderBottomColor: "rgba(255,255,255,0.1)",
                           paddingLeft: `${12 + d * 20}px`,
                           fontWeight: d === 0 ? 700 : 600,
                           fontSize: d === 0 ? "0.875rem" : "0.8125rem",
@@ -1575,14 +1577,14 @@ export default function Scheduler() {
                         key={act.id}
                         className={`text-sm items-center px-3 gap-1.5 h-11 cursor-pointer transition-colors ${
                           isSelected
-                            ? "bg-blue-100 border-l-2 border-l-blue-600 ring-1 ring-blue-300"
+                            ? "bg-amber-500/15 border-l-2 border-l-amber-500 ring-1 ring-amber-500/30"
                             : act.id === selectedActivityId
-                            ? "bg-blue-50 border-l-2 border-l-blue-400"
+                            ? "bg-white/5 border-l-2 border-l-amber-400"
                             : act.isCritical
-                            ? "hover:bg-red-50/50 border-l-2 border-l-red-400"
+                            ? "hover:bg-red-500/10 border-l-2 border-l-red-500/60"
                             : hasOpenEnd
-                            ? "hover:bg-amber-50/50 border-l-2 border-l-amber-400"
-                            : "hover:bg-gray-50 border-l-2 border-l-transparent"
+                            ? "hover:bg-amber-500/10 border-l-2 border-l-amber-500/50"
+                            : "hover:bg-white/5 border-l-2 border-l-transparent"
                         }`}
                         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
                         onClick={(e) => {
@@ -1645,29 +1647,29 @@ export default function Scheduler() {
                               }
                               setLastClickedId(act.id);
                             }}
-                            className="w-3.5 h-3.5 accent-blue-600 cursor-pointer shrink-0"
+                            className="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0"
                             title="Click to select, Shift+click to select range"
                           />
                           {hasOpenEnd && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                          {!hasOpenEnd && <GripVertical className="w-3.5 h-3.5 text-gray-500" />}
+                          {!hasOpenEnd && <GripVertical className="w-3.5 h-3.5 text-gray-600" />}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-600" onClick={(e) => e.stopPropagation()} title="More options">
+                              <button className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-gray-300" onClick={(e) => e.stopPropagation()} title="More options">
                                 <MoreHorizontal className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-white border-gray-200 text-gray-900">
-                              <DropdownMenuItem onClick={() => openActivityDetail(act)} className="text-gray-900">
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => openActivityDetail(act)}>
                                 <Settings className="w-3.5 h-3.5 mr-2" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 if (scheduleId) addActivityMut.mutate({ scheduleId, name: "New Activity", duration: 5, afterActivityId: act.id });
-                              }} className="text-gray-900">
+                              }}>
                                 <Plus className="w-3.5 h-3.5 mr-2" /> Insert Below
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => { if (scheduleId && confirm("Delete this activity?")) deleteActivityMut.mutate({ id: act.id, scheduleId }); }}
-                                className="text-red-600 focus:text-red-600"
+                                className="text-red-400 focus:text-red-400"
                               >
                                 <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
                               </DropdownMenuItem>
@@ -1678,7 +1680,7 @@ export default function Scheduler() {
                         {/* Dynamic columns */}
                         {activeColumns.map((col) => {
                           const isEditing = editingCell?.activityId === act.id && editingCell?.field === col.key;
-                          const cellClass = col.renderClass ? col.renderClass(act, renderCtx) : "text-gray-700";
+                          const cellClass = col.renderClass ? col.renderClass(act, renderCtx) : "text-gray-300";
 
                           if (isEditing && col.editable) {
                             return (
@@ -1689,7 +1691,7 @@ export default function Scheduler() {
                                   onBlur={commitEdit}
                                   onKeyDown={handleEditKeyDown}
                                   autoFocus
-                                  className="h-8 text-sm px-2 py-0 border-blue-400"
+                                  className="h-8 text-sm px-2 py-0 border-amber-500/50 bg-white/5 text-gray-100"
                                   type={col.key === "duration" || col.key === "percentComplete" ? "number" : "text"}
                                 />
                               </div>
@@ -1723,10 +1725,10 @@ export default function Scheduler() {
             </div>
 
             {/* Add Activity Row */}
-            <div className="px-3 py-2 border-t border-gray-200">
+            <div className="px-3 py-2 border-t border-white/10">
               <button
                 onClick={() => setShowActivityDialog(true)}
-                className="text-sm text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1.5"
+                className="text-sm text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" /> Add Activity
               </button>
@@ -1784,9 +1786,9 @@ export default function Scheduler() {
 
       {/* ── Column Picker Sheet ─────────────────────────────────────────────── */}
       <Sheet open={showColumnPicker} onOpenChange={setShowColumnPicker}>
-        <SheetContent side="right" className="bg-white border-gray-200 w-96 text-gray-900 font-medium">
+        <SheetContent side="right" className="w-96">
           <SheetHeader>
-            <SheetTitle className="font-semibold text-gray-900">Configure Columns</SheetTitle>
+            <SheetTitle className="font-semibold">Configure Columns</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-1">
             {ALL_COLUMNS.map((col) => {
@@ -1795,7 +1797,7 @@ export default function Scheduler() {
               return (
                 <label
                   key={col.key}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-50 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/5 cursor-pointer transition-colors ${
                     col.alwaysVisible ? "opacity-60" : ""
                   } ${isTargetCol && !targetActive ? "opacity-30" : ""}`}
                 >
@@ -1810,7 +1812,7 @@ export default function Scheduler() {
                     }}
                   />
                   <div>
-                    <div className="text-sm text-gray-900">{col.label}</div>
+                    <div className="text-sm text-gray-200">{col.label}</div>
                     {isTargetCol && (
                       <div className="text-[10px] text-gray-600">
                         Requires Target {col.requiresTarget} active
@@ -1821,9 +1823,9 @@ export default function Scheduler() {
               );
             })}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-white/10">
             <Button
-              variant="outline" size="sm" className="w-full text-xs border-gray-300"
+              variant="outline" size="sm" className="w-full text-xs border-white/15"
               onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}
             >
               Reset to Default
@@ -1834,27 +1836,27 @@ export default function Scheduler() {
 
       {/* ── Activity Detail Modal ───────────────────────────────────────────── */}
       <Dialog open={showActivityDetailModal} onOpenChange={setShowActivityDetailModal}>
-        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base">
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Activity Details</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Activity Details</DialogTitle>
             <DialogDescription>Edit all properties of this activity.</DialogDescription>
           </DialogHeader>
           {detailAct && (
             <div className="grid grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto pr-1">
               {/* ── LEFT COLUMN: Properties ── */}
               <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Properties</h3>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Properties</h3>
               {/* Activity Type */}
               <div>
                 <Label className="text-sm text-gray-600">Type</Label>
                 <div className="flex gap-2 mt-1">
                   <Button size="sm" variant={detailActivityType === "task" ? "default" : "outline"}
-                    className={detailActivityType === "task" ? "bg-blue-600 text-white" : "border-gray-300 text-gray-700"}
+                    className={detailActivityType === "task" ? "bg-amber-500 text-white" : "border-white/15 text-gray-300"}
                     onClick={() => setDetailActivityType("task")}>
                     Task
                   </Button>
                   <Button size="sm" variant={detailActivityType === "milestone" ? "default" : "outline"}
-                    className={detailActivityType === "milestone" ? "bg-amber-600 text-white" : "border-gray-300 text-gray-700"}
+                    className={detailActivityType === "milestone" ? "bg-amber-600 text-white" : "border-white/15 text-gray-300"}
                     onClick={() => { setDetailActivityType("milestone"); setDetailDuration("0"); }}>
                     ◆ Milestone
                   </Button>
@@ -1863,54 +1865,54 @@ export default function Scheduler() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-sm text-gray-600">Activity ID</Label>
-                  <Input value={detailActivityId} onChange={(e) => setDetailActivityId(e.target.value)} placeholder="e.g., FOUND-010" className="mt-1 border-gray-300" />
+                  <Input value={detailActivityId} onChange={(e) => setDetailActivityId(e.target.value)} placeholder="e.g., FOUND-010" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 </div>
                 <div>
                   <Label className="text-sm text-gray-600">Duration (days)</Label>
-                  <Input type="number" value={detailDuration} onChange={(e) => setDetailDuration(e.target.value)} className="mt-1 border-gray-300" disabled={detailActivityType === "milestone"} />
+                  <Input type="number" value={detailDuration} onChange={(e) => setDetailDuration(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" disabled={detailActivityType === "milestone"} />
                 </div>
               </div>
               <div>
                 <Label className="text-sm text-gray-600">Activity Name</Label>
-                <Input value={detailName} onChange={(e) => setDetailName(e.target.value)} className="mt-1 border-gray-300" />
+                <Input value={detailName} onChange={(e) => setDetailName(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-gray-600">WBS Code</Label>
                   {wbsNodes.length > 0 ? (
                     <Select value={detailWbs || "__none__"} onValueChange={setDetailWbs}>
-                      <SelectTrigger className="mt-1 border-gray-300">
+                      <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200">
                         <SelectValue placeholder="Select WBS">
                           {detailWbs && detailWbs !== "__none__"
                             ? `${detailWbs} — ${wbsNodes.find((w: any) => w.code === detailWbs)?.name || ""}`
                             : "None (top level)"}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        <SelectItem value="__none__" className="text-gray-900">None (top level)</SelectItem>
+                      <SelectContent className="">
+                        <SelectItem value="__none__" className="">None (top level)</SelectItem>
                         {wbsNodes.map((w: any) => (
-                          <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                          <SelectItem key={w.id} value={w.code} className="">{w.code} — {w.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={detailWbs === "__none__" ? "" : detailWbs} onChange={(e) => setDetailWbs(e.target.value || "__none__")} placeholder="e.g., 2.1" className="mt-1 border-gray-300" />
+                    <Input value={detailWbs === "__none__" ? "" : detailWbs} onChange={(e) => setDetailWbs(e.target.value || "__none__")} placeholder="e.g., 2.1" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                   )}
                 </div>
                 <div>
                   <Label className="text-xs text-gray-600">% Complete</Label>
-                  <Input type="number" value={detailPercentComplete} onChange={(e) => setDetailPercentComplete(e.target.value)} min="0" max="100" className="mt-1 border-gray-300" />
+                  <Input type="number" value={detailPercentComplete} onChange={(e) => setDetailPercentComplete(e.target.value)} min="0" max="100" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-gray-600">Calendar</Label>
                   <Select value={detailCalendarId} onValueChange={setDetailCalendarId}>
-                    <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Default" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      <SelectItem value=" " className="text-gray-900">Default Calendar</SelectItem>
+                    <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="Default" /></SelectTrigger>
+                    <SelectContent className="">
+                      <SelectItem value=" " className="">Default Calendar</SelectItem>
                       {calendars.map((cal: any) => (
-                        <SelectItem key={cal.id} value={String(cal.id)} className="text-gray-900">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
+                        <SelectItem key={cal.id} value={String(cal.id)} className="">{cal.name} ({cal.workWeek === "7day" ? "7-day" : "5-day"})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1922,13 +1924,13 @@ export default function Scheduler() {
                       type="color"
                       value={detailBarColor || (detailActivityType === "milestone" ? "#ff9800" : "#22c55e")}
                       onChange={(e) => setDetailBarColor(e.target.value)}
-                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                      className="w-8 h-8 rounded border border-white/15 cursor-pointer"
                     />
                     <Input
                       value={detailBarColor}
                       onChange={(e) => setDetailBarColor(e.target.value)}
                       placeholder={detailActivityType === "milestone" ? "#ff9800" : "#22c55e"}
-                      className="flex-1 border-gray-300"
+                      className="flex-1 border-white/15"
                     />
                     {detailBarColor && (
                       <Button size="sm" variant="ghost" className="h-8 text-xs text-gray-600" onClick={() => setDetailBarColor("")}
@@ -1941,34 +1943,34 @@ export default function Scheduler() {
               </div>
 
               {/* Constraints */}
-              <div className="border border-blue-100 bg-blue-50/30 rounded-lg p-3">
-                <Label className="text-xs text-blue-700 font-semibold mb-2 block">Date Constraints</Label>
+              <div className="border border-blue-100 bg-amber-500/10/30 rounded-lg p-3">
+                <Label className="text-xs text-amber-300 font-semibold mb-2 block">Date Constraints</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-[10px] text-gray-700">Constraint Type</Label>
+                    <Label className="text-[10px] text-gray-400">Constraint Type</Label>
                     <Select value={detailConstraintType} onValueChange={setDetailConstraintType}>
-                      <SelectTrigger className="mt-0.5 border-gray-300 text-xs h-8">
+                      <SelectTrigger className="mt-0.5 border-white/15 text-xs h-8 bg-white/5 text-gray-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        <SelectItem value="ASAP" className="text-gray-900 text-xs">As Soon As Possible</SelectItem>
-                        <SelectItem value="ALAP" className="text-gray-900 text-xs">As Late As Possible</SelectItem>
-                        <SelectItem value="SNET" className="text-gray-900 text-xs">Start No Earlier Than</SelectItem>
-                        <SelectItem value="SNLT" className="text-gray-900 text-xs">Start No Later Than</SelectItem>
-                        <SelectItem value="FNET" className="text-gray-900 text-xs">Finish No Earlier Than</SelectItem>
-                        <SelectItem value="FNLT" className="text-gray-900 text-xs">Finish No Later Than</SelectItem>
-                        <SelectItem value="MSO" className="text-gray-900 text-xs">Must Start On</SelectItem>
-                        <SelectItem value="MFO" className="text-gray-900 text-xs">Must Finish On</SelectItem>
+                      <SelectContent className="">
+                        <SelectItem value="ASAP" className="text-xs">As Soon As Possible</SelectItem>
+                        <SelectItem value="ALAP" className="text-xs">As Late As Possible</SelectItem>
+                        <SelectItem value="SNET" className="text-xs">Start No Earlier Than</SelectItem>
+                        <SelectItem value="SNLT" className="text-xs">Start No Later Than</SelectItem>
+                        <SelectItem value="FNET" className="text-xs">Finish No Earlier Than</SelectItem>
+                        <SelectItem value="FNLT" className="text-xs">Finish No Later Than</SelectItem>
+                        <SelectItem value="MSO" className="text-xs">Must Start On</SelectItem>
+                        <SelectItem value="MFO" className="text-xs">Must Finish On</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-gray-700">Constraint Date</Label>
+                    <Label className="text-[10px] text-gray-400">Constraint Date</Label>
                     <Input
                       type="date"
                       value={detailConstraintDate}
                       onChange={(e) => setDetailConstraintDate(e.target.value)}
-                      className="mt-0.5 border-gray-300 text-xs h-8"
+                      className="mt-0.5 border-white/15 text-xs h-8 bg-white/5 text-gray-200"
                       disabled={detailConstraintType === "ASAP" || detailConstraintType === "ALAP"}
                     />
                   </div>
@@ -1980,23 +1982,23 @@ export default function Scheduler() {
               </div>
               {/* ── RIGHT COLUMN: Relationships & CPM Results ── */}
               <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Relationships & Schedule</h3>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Relationships & Schedule</h3>
               {/* Relationships with edit/delete */}
               <div>
                 <Label className="text-xs text-gray-600 mb-1 block">Relationships</Label>
-                <div className="text-xs text-gray-700 space-y-1 bg-gray-50 rounded-md p-2">
+                <div className="text-xs text-gray-400 space-y-1 bg-white/5 rounded-md p-2 border border-white/10">
                   {relationships.filter((r: any) => r.successorId === detailAct.id).map((r: any) => {
                     const pred = activities.find((a) => a.id === r.predecessorId);
                     return (
                       <div key={r.id} className="flex items-center gap-1 justify-between">
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">Pred:</span>
-                          <span className="font-medium text-gray-700">{pred?.activityId || pred?.name || `#${r.predecessorId}`}</span>
-                          <span className="text-blue-600 font-mono text-[10px] bg-blue-50 px-1 rounded">{r.relationshipType}</span>
+                          <span className="font-medium text-gray-400">{pred?.activityId || pred?.name || `#${r.predecessorId}`}</span>
+                          <span className="text-amber-400 font-mono text-[10px] bg-amber-500/15 px-1 rounded">{r.relationshipType}</span>
                           {r.lagDays ? <span className="text-gray-600">+{r.lagDays}d</span> : null}
                         </div>
                         <button onClick={() => { if (scheduleId) deleteRelMut.mutate({ id: r.id, scheduleId }); }}
-                          className="text-red-400 hover:text-red-600 p-0.5" title="Remove relationship">
+                          className="text-red-400 hover:text-red-300 p-0.5" title="Remove relationship">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
@@ -2008,12 +2010,12 @@ export default function Scheduler() {
                       <div key={r.id} className="flex items-center gap-1 justify-between">
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">Succ:</span>
-                          <span className="font-medium text-gray-700">{succ?.activityId || succ?.name || `#${r.successorId}`}</span>
-                          <span className="text-blue-600 font-mono text-[10px] bg-blue-50 px-1 rounded">{r.relationshipType}</span>
+                          <span className="font-medium text-gray-400">{succ?.activityId || succ?.name || `#${r.successorId}`}</span>
+                          <span className="text-amber-400 font-mono text-[10px] bg-amber-500/15 px-1 rounded">{r.relationshipType}</span>
                           {r.lagDays ? <span className="text-gray-600">+{r.lagDays}d</span> : null}
                         </div>
                         <button onClick={() => { if (scheduleId) deleteRelMut.mutate({ id: r.id, scheduleId }); }}
-                          className="text-red-400 hover:text-red-600 p-0.5" title="Remove relationship">
+                          className="text-red-400 hover:text-red-300 p-0.5" title="Remove relationship">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
@@ -2024,29 +2026,29 @@ export default function Scheduler() {
                   )}
                 </div>
                 {/* Add Relationship Inline */}
-                <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                  <div className="text-[10px] text-gray-700 font-medium mb-1">Add Predecessor</div>
+                <div className="mt-2 p-2 bg-white/5 rounded-md border border-white/10">
+                  <div className="text-[10px] text-gray-400 font-medium mb-1">Add Predecessor</div>
                   <div className="flex gap-1 items-end">
                     <Select value={newDetailRelPred} onValueChange={setNewDetailRelPred}>
-                      <SelectTrigger className="flex-1 h-7 text-xs border-gray-300"><SelectValue placeholder="Select activity" /></SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900 max-h-48">
+                      <SelectTrigger className="flex-1 h-7 text-xs border-white/15"><SelectValue placeholder="Select activity" /></SelectTrigger>
+                      <SelectContent className="max-h-48">
                         {activities.filter((a) => a.id !== detailAct.id).map((a) => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-gray-900 text-xs">{a.activityId} — {a.name}</SelectItem>
+                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">{a.activityId} — {a.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Select value={newDetailRelType} onValueChange={setNewDetailRelType}>
-                      <SelectTrigger className="w-16 h-7 text-xs border-gray-300"><SelectValue /></SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        <SelectItem value="FS" className="text-gray-900">FS</SelectItem>
-                        <SelectItem value="SS" className="text-gray-900">SS</SelectItem>
-                        <SelectItem value="FF" className="text-gray-900">FF</SelectItem>
-                        <SelectItem value="SF" className="text-gray-900">SF</SelectItem>
+                      <SelectTrigger className="w-16 h-7 text-xs border-white/15"><SelectValue /></SelectTrigger>
+                      <SelectContent className="">
+                        <SelectItem value="FS" className="">FS</SelectItem>
+                        <SelectItem value="SS" className="">SS</SelectItem>
+                        <SelectItem value="FF" className="">FF</SelectItem>
+                        <SelectItem value="SF" className="">SF</SelectItem>
                       </SelectContent>
                     </Select>
                     <Input type="number" value={newDetailRelLag} onChange={(e) => setNewDetailRelLag(e.target.value)}
-                      className="w-14 h-7 text-xs border-gray-300" placeholder="Lag" />
-                    <Button size="sm" className="h-7 bg-blue-600 text-white hover:bg-blue-700 text-xs px-2"
+                      className="w-14 h-7 text-xs border-white/15" placeholder="Lag" />
+                    <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
                       disabled={!newDetailRelPred || !scheduleId}
                       onClick={() => {
                         if (scheduleId && newDetailRelPred) {
@@ -2068,38 +2070,38 @@ export default function Scheduler() {
               </div>
 
               {/* CPM Results (read-only) */}
-              <div className="grid grid-cols-4 gap-2 bg-gray-50 rounded-md p-2">
+              <div className="grid grid-cols-4 gap-2 bg-white/5 rounded-md p-2 border border-white/10">
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">ES</div>
-                  <div className="text-xs font-medium text-gray-700">{formatDate(parseDateSafe(detailAct.earlyStart))}</div>
+                  <div className="text-xs font-medium text-gray-300">{formatDate(parseDateSafe(detailAct.earlyStart))}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">EF</div>
-                  <div className="text-xs font-medium text-gray-700">{formatDate(parseDateSafe(detailAct.earlyFinish))}</div>
+                  <div className="text-xs font-medium text-gray-300">{formatDate(parseDateSafe(detailAct.earlyFinish))}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">LS</div>
-                  <div className="text-xs font-medium text-gray-700">{formatDate(parseDateSafe(detailAct.lateStart))}</div>
+                  <div className="text-xs font-medium text-gray-300">{formatDate(parseDateSafe(detailAct.lateStart))}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">LF</div>
-                  <div className="text-xs font-medium text-gray-700">{formatDate(parseDateSafe(detailAct.lateFinish))}</div>
+                  <div className="text-xs font-medium text-gray-300">{formatDate(parseDateSafe(detailAct.lateFinish))}</div>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-md p-2">
+              <div className="grid grid-cols-3 gap-2 bg-white/5 rounded-md p-2 border border-white/10">
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">Total Float</div>
-                  <div className={`text-xs font-semibold ${detailAct.totalFloat <= 0 ? "text-red-600" : detailAct.totalFloat <= 5 ? "text-amber-600" : "text-emerald-600"}`}>
+                  <div className={`text-xs font-semibold ${detailAct.totalFloat <= 0 ? "text-red-400" : detailAct.totalFloat <= 5 ? "text-amber-600" : "text-emerald-600"}`}>
                     {detailAct.totalFloat != null ? `${detailAct.totalFloat}d` : "—"}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">Free Float</div>
-                  <div className="text-xs font-medium text-gray-700">{detailAct.freeFloat != null ? `${detailAct.freeFloat}d` : "—"}</div>
+                  <div className="text-xs font-medium text-gray-400">{detailAct.freeFloat != null ? `${detailAct.freeFloat}d` : "—"}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-[10px] text-gray-600">Critical</div>
-                  <div className={`text-xs font-semibold ${detailAct.isCritical ? "text-red-600" : "text-emerald-600"}`}>
+                  <div className={`text-xs font-semibold ${detailAct.isCritical ? "text-red-400" : "text-emerald-400"}`}>
                     {detailAct.isCritical ? "Yes" : "No"}
                   </div>
                 </div>
@@ -2108,8 +2110,8 @@ export default function Scheduler() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActivityDetailModal(false)} className="border-gray-300">Cancel</Button>
-            <Button onClick={saveActivityDetail} className="bg-blue-600 text-white hover:bg-blue-700" disabled={updateActivityMut.isPending}>
+            <Button variant="outline" onClick={() => setShowActivityDetailModal(false)} className="border-white/15">Cancel</Button>
+            <Button onClick={saveActivityDetail} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold" disabled={updateActivityMut.isPending}>
               Save Changes
             </Button>
           </DialogFooter>
@@ -2118,9 +2120,9 @@ export default function Scheduler() {
 
       {/* ── Add Activity Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Add Activity</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Add Activity</DialogTitle>
             <DialogDescription>Create a new task or milestone in this schedule.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -2129,12 +2131,12 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Type</Label>
               <div className="flex gap-2 mt-1">
                 <Button size="sm" variant={newActType === "task" ? "default" : "outline"}
-                  className={newActType === "task" ? "bg-blue-600 text-white" : "border-gray-300 text-gray-700"}
+                  className={newActType === "task" ? "bg-amber-500 text-white" : "border-white/15 text-gray-300"}
                   onClick={() => setNewActType("task")}>
                   Task
                 </Button>
                 <Button size="sm" variant={newActType === "milestone" ? "default" : "outline"}
-                  className={newActType === "milestone" ? "bg-amber-600 text-white" : "border-gray-300 text-gray-700"}
+                  className={newActType === "milestone" ? "bg-amber-600 text-white" : "border-white/15 text-gray-300"}
                   onClick={() => { setNewActType("milestone"); setNewActDuration("0"); }}>
                   ◆ Milestone
                 </Button>
@@ -2143,38 +2145,38 @@ export default function Scheduler() {
             {/* Activity ID (optional override) */}
             <div>
               <Label className="text-xs text-gray-600">Activity ID (optional)</Label>
-              <Input value={newActActivityId} onChange={(e) => setNewActActivityId(e.target.value)} placeholder="Auto-generated if blank" className="mt-1 border-gray-300" />
+              <Input value={newActActivityId} onChange={(e) => setNewActActivityId(e.target.value)} placeholder="Auto-generated if blank" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
             </div>
             <div>
               <Label className="text-xs text-gray-600">Activity Name</Label>
-              <Input value={newActName} onChange={(e) => setNewActName(e.target.value)} placeholder={newActType === "milestone" ? "e.g., Notice to Proceed" : "e.g., Foundation Footings"} className="mt-1 border-gray-300" />
+              <Input value={newActName} onChange={(e) => setNewActName(e.target.value)} placeholder={newActType === "milestone" ? "e.g., Notice to Proceed" : "e.g., Foundation Footings"} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-600">Duration (days)</Label>
                 <Input type="number" value={newActDuration} onChange={(e) => setNewActDuration(e.target.value)}
-                  className="mt-1 border-gray-300" disabled={newActType === "milestone"} />
+                  className="mt-1 border-white/15 bg-white/5 text-gray-200" disabled={newActType === "milestone"} />
               </div>
               <div>
                 <Label className="text-xs text-gray-600">WBS (optional)</Label>
                 {wbsNodes.length > 0 ? (
                   <Select value={newActWbs || "__none__"} onValueChange={(v) => setNewActWbs(v === "__none__" ? "" : v)}>
-                    <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      <SelectItem value="__none__" className="text-gray-900">None</SelectItem>
+                    <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="Select WBS" /></SelectTrigger>
+                    <SelectContent className="">
+                      <SelectItem value="__none__" className="">None</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={w.code} className="">{w.code} — {w.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input value={newActWbs} onChange={(e) => setNewActWbs(e.target.value)} placeholder="e.g., 2.0" className="mt-1 border-gray-300" />
+                  <Input value={newActWbs} onChange={(e) => setNewActWbs(e.target.value)} placeholder="e.g., 2.0" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 )}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActivityDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowActivityDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId && newActName.trim()) {
@@ -2188,7 +2190,7 @@ export default function Scheduler() {
                   setNewActName(""); setNewActDuration("5"); setNewActWbs(""); setNewActType("task"); setNewActActivityId(""); setShowActivityDialog(false);
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={!newActName.trim() || addActivityMut.isPending}
             >
               Add
@@ -2199,24 +2201,24 @@ export default function Scheduler() {
 
       {/* ── Bulk Add Activities Dialog ──────────────────────────────────────── */}
       <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Bulk Add Activities</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Bulk Add Activities</DialogTitle>
             <DialogDescription>Create multiple activities at once with auto-generated IDs.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-gray-600">Number of Activities</Label>
-              <Input type="number" min="1" max="500" value={bulkAddCount} onChange={(e) => setBulkAddCount(e.target.value)} className="mt-1 border-gray-300" />
+              <Input type="number" min="1" max="500" value={bulkAddCount} onChange={(e) => setBulkAddCount(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
             </div>
             <div>
               <Label className="text-xs text-gray-600">Name Prefix (optional)</Label>
-              <Input value={bulkAddPrefix} onChange={(e) => setBulkAddPrefix(e.target.value)} placeholder="e.g., Activity" className="mt-1 border-gray-300" />
+              <Input value={bulkAddPrefix} onChange={(e) => setBulkAddPrefix(e.target.value)} placeholder="e.g., Activity" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               <p className="text-[10px] text-gray-600 mt-1">Activities will be named "{bulkAddPrefix || 'Activity'} 1", "{bulkAddPrefix || 'Activity'} 2", etc.</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkAddDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkAddDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId) {
@@ -2227,7 +2229,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={bulkAddMut.isPending}
             >
               {bulkAddMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
@@ -2239,9 +2241,9 @@ export default function Scheduler() {
 
       {/* ── CSV Import Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showCsvImportDialog} onOpenChange={(open) => { setShowCsvImportDialog(open); if (!open) { setCsvParsedRows([]); setCsvFileName(""); } }}>
-        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base" style={{ maxHeight: "85vh" }}>
+        <DialogContent className="max-w-5xl" style={{ maxHeight: "85vh" }}>
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 flex items-center gap-2">
+            <DialogTitle className="font-semibold text-gray-100 flex items-center gap-2">
               <Upload className="w-5 h-5 text-emerald-600" /> Import Activities from CSV
             </DialogTitle>
             <DialogDescription>
@@ -2251,9 +2253,9 @@ export default function Scheduler() {
           <div className="space-y-4">
             {/* File upload */}
             <div>
-              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-white/15 rounded-lg cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors">
                 <Upload className="w-6 h-6 text-gray-600 mb-1" />
-                <span className="text-sm text-gray-700">{csvFileName || "Click to select CSV file"}</span>
+                <span className="text-sm text-gray-400">{csvFileName || "Click to select CSV file"}</span>
                 <span className="text-[10px] text-gray-600 mt-0.5">Accepts .csv files up to 1000 rows</span>
                 <input
                   type="file"
@@ -2313,9 +2315,9 @@ export default function Scheduler() {
             </div>
 
             {/* Template hint */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3">
               <p className="text-xs font-medium text-gray-600 mb-1">Expected CSV Format</p>
-              <code className="text-[10px] text-gray-700 block font-mono">
+              <code className="text-[10px] text-gray-400 block font-mono">
                 Activity ID,Name,Duration,WBS,Type,Predecessors<br/>
                 A1010,Site Survey,3,1.0,task,<br/>
                 A1020,Demolition,5,1.0,task,A1010FS<br/>
@@ -2327,31 +2329,31 @@ export default function Scheduler() {
 
             {/* Preview table */}
             {csvParsedRows.length > 0 && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
+              <div className="border border-white/10 rounded-lg overflow-hidden">
+                <div className="bg-white/5 px-3 py-1.5 border-b border-white/10 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-600">{csvParsedRows.length} activities to import</span>
                   <button onClick={() => { setCsvParsedRows([]); setCsvFileName(""); }} className="text-[10px] text-red-500 hover:underline">Clear</button>
                 </div>
                 <div className="max-h-48 overflow-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-white/5 sticky top-0">
                       <tr>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">#</th>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">ID</th>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">Name</th>
-                        <th className="px-2 py-1 text-center text-gray-700 font-medium">Dur</th>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">WBS</th>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">Type</th>
-                        <th className="px-2 py-1 text-left text-gray-700 font-medium">Preds</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">#</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">ID</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">Name</th>
+                        <th className="px-2 py-1 text-center text-gray-400 font-medium">Dur</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">WBS</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">Type</th>
+                        <th className="px-2 py-1 text-left text-gray-400 font-medium">Preds</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {csvParsedRows.slice(0, 50).map((row, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
+                        <tr key={i} className="hover:bg-white/5">
                           <td className="px-2 py-1 text-gray-600">{i + 1}</td>
-                          <td className="px-2 py-1 font-mono text-gray-700">{row.activityId || "(auto)"}</td>
-                          <td className="px-2 py-1 text-gray-900">{row.name}</td>
-                          <td className="px-2 py-1 text-center text-gray-700">{row.duration}d</td>
+                          <td className="px-2 py-1 font-mono text-gray-400">{row.activityId || "(auto)"}</td>
+                          <td className="px-2 py-1 text-gray-200">{row.name}</td>
+                          <td className="px-2 py-1 text-center text-gray-300">{row.duration}d</td>
                           <td className="px-2 py-1 text-gray-600">{row.wbs || "—"}</td>
                           <td className="px-2 py-1 text-gray-600">{row.activityType}</td>
                           <td className="px-2 py-1 text-gray-600 font-mono text-[10px]">{row.predecessors || "—"}</td>
@@ -2360,7 +2362,7 @@ export default function Scheduler() {
                     </tbody>
                   </table>
                   {csvParsedRows.length > 50 && (
-                    <div className="px-3 py-1.5 text-[10px] text-gray-600 bg-gray-50 border-t border-gray-100">
+                    <div className="px-3 py-1.5 text-[10px] text-gray-500 bg-white/5 border-t border-white/10">
                       Showing first 50 of {csvParsedRows.length} rows
                     </div>
                   )}
@@ -2369,7 +2371,7 @@ export default function Scheduler() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowCsvImportDialog(false); setCsvParsedRows([]); setCsvFileName(""); }} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowCsvImportDialog(false); setCsvParsedRows([]); setCsvFileName(""); }} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId && csvParsedRows.length > 0) {
@@ -2388,31 +2390,31 @@ export default function Scheduler() {
 
       {/* ── Activity ID Settings Dialog ─────────────────────────────────────── */}
       <Dialog open={showIdSettingsDialog} onOpenChange={setShowIdSettingsDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Activity ID Settings</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Activity ID Settings</DialogTitle>
             <DialogDescription>Configure how new Activity IDs are generated.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-gray-600">ID Prefix</Label>
-              <Input value={idSettingsPrefix} onChange={(e) => setIdSettingsPrefix(e.target.value)} placeholder="e.g., A, E, FOUND" className="mt-1 border-gray-300" />
+              <Input value={idSettingsPrefix} onChange={(e) => setIdSettingsPrefix(e.target.value)} placeholder="e.g., A, E, FOUND" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               <p className="text-[10px] text-gray-600 mt-1">Leave blank for numbers only. Example: "E" → E100, E110, E120</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-600">Start Number</Label>
-                <Input type="number" value={idSettingsStart} onChange={(e) => setIdSettingsStart(e.target.value)} className="mt-1 border-gray-300" />
+                <Input type="number" value={idSettingsStart} onChange={(e) => setIdSettingsStart(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
               <div>
                 <Label className="text-xs text-gray-600">Interval</Label>
-                <Input type="number" value={idSettingsInterval} onChange={(e) => setIdSettingsInterval(e.target.value)} className="mt-1 border-gray-300" />
+                <Input type="number" value={idSettingsInterval} onChange={(e) => setIdSettingsInterval(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 <p className="text-[10px] text-gray-600 mt-1">e.g., 10 → ...100, 110, 120</p>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowIdSettingsDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowIdSettingsDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId) {
@@ -2424,7 +2426,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={updateIdSettingsMut.isPending}
             >
               Save Settings
@@ -2435,19 +2437,19 @@ export default function Scheduler() {
 
       {/* ── Add Relationship Dialog ─────────────────────────────────────────── */}
       <Dialog open={showRelationshipDialog} onOpenChange={setShowRelationshipDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Add Relationship</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Add Relationship</DialogTitle>
             <DialogDescription>Define a logic tie between two activities.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-gray-600">Predecessor</Label>
               <Select value={newRelPred} onValueChange={setNewRelPred}>
-                <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select predecessor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60 text-gray-900">
+                <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="Select predecessor" /></SelectTrigger>
+                <SelectContent className="max-h-60">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)} className="text-gray-900">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2455,10 +2457,10 @@ export default function Scheduler() {
             <div>
               <Label className="text-xs text-gray-600">Successor</Label>
               <Select value={newRelSucc} onValueChange={setNewRelSucc}>
-                <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="Select successor" /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 max-h-60 text-gray-900">
+                <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="Select successor" /></SelectTrigger>
+                <SelectContent className="max-h-60">
                   {activities.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)} className="text-gray-900">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
+                    <SelectItem key={a.id} value={String(a.id)} className="">{a.activityId || `A${a.id}`} — {a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2467,30 +2469,30 @@ export default function Scheduler() {
               <div>
                 <Label className="text-xs text-gray-600">Type</Label>
                 <Select value={newRelType} onValueChange={setNewRelType}>
-                  <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      <SelectItem value="FS" className="text-gray-900">Finish-to-Start (FS)</SelectItem>
-                      <SelectItem value="SS" className="text-gray-900">Start-to-Start (SS)</SelectItem>
-                      <SelectItem value="FF" className="text-gray-900">Finish-to-Finish (FF)</SelectItem>
-                      <SelectItem value="SF" className="text-gray-900">Start-to-Finish (SF)</SelectItem>
+                  <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue /></SelectTrigger>
+                    <SelectContent className="">
+                      <SelectItem value="FS" className="">Finish-to-Start (FS)</SelectItem>
+                      <SelectItem value="SS" className="">Start-to-Start (SS)</SelectItem>
+                      <SelectItem value="FF" className="">Finish-to-Finish (FF)</SelectItem>
+                      <SelectItem value="SF" className="">Start-to-Finish (SF)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label className="text-xs text-gray-600">Lag (days)</Label>
-                <Input type="number" value={newRelLag} onChange={(e) => setNewRelLag(e.target.value)} className="mt-1 border-gray-300" />
+                <Input type="number" value={newRelLag} onChange={(e) => setNewRelLag(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRelationshipDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowRelationshipDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId && newRelPred && newRelSucc) {
                   addRelMut.mutate({ scheduleId, predecessorId: parseInt(newRelPred), successorId: parseInt(newRelSucc), relationshipType: newRelType as any, lagDays: parseInt(newRelLag) || 0 });
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={!newRelPred || !newRelSucc || addRelMut.isPending}
             >
               Add
@@ -2501,17 +2503,17 @@ export default function Scheduler() {
 
       {/* ── Save Baseline Dialog ────────────────────────────────────────────── */}
       <Dialog open={showBaselineDialog} onOpenChange={setShowBaselineDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Baseline</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Save Baseline</DialogTitle>
             <DialogDescription>Save the current schedule as the original baseline for comparison.</DialogDescription>
           </DialogHeader>
           <div>
             <Label className="text-xs text-gray-600">Baseline Name</Label>
-            <Input value={newBaselineName} onChange={(e) => setNewBaselineName(e.target.value)} placeholder="e.g., Original Baseline" className="mt-1 border-gray-300" />
+            <Input value={newBaselineName} onChange={(e) => setNewBaselineName(e.target.value)} placeholder="e.g., Original Baseline" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBaselineDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBaselineDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId && newBaselineName.trim()) {
@@ -2519,7 +2521,7 @@ export default function Scheduler() {
                   setNewBaselineName("");
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={!newBaselineName.trim() || saveBaselineMut.isPending}
             >
               Save Baseline
@@ -2530,9 +2532,9 @@ export default function Scheduler() {
 
       {/* ── Save Update Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Schedule Update</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Save Schedule Update</DialogTitle>
             <DialogDescription>
               Snapshot the current schedule as Update {baselines.filter((b: any) => b.snapshotType === "update").length + 1}.
               Data Date: {dataDate ? formatDate(dataDate) : "Not set"}
@@ -2544,12 +2546,12 @@ export default function Scheduler() {
               value={updateNotes}
               onChange={(e) => setUpdateNotes(e.target.value)}
               placeholder="e.g., Added 2 weeks for weather delay on foundation"
-              className="mt-1 border-gray-300"
+              className="mt-1 border-white/15 bg-white/5 text-gray-200"
               rows={3}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUpdateDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowUpdateDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId) {
@@ -2557,7 +2559,7 @@ export default function Scheduler() {
                   setUpdateNotes("");
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={saveUpdateMut.isPending}
             >
               Save Update
@@ -2568,9 +2570,9 @@ export default function Scheduler() {
 
       {/* ── Set Data Date Dialog ────────────────────────────────────────────── */}
       <Dialog open={showDataDatePicker} onOpenChange={setShowDataDatePicker}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Set Data Date</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Set Data Date</DialogTitle>
             <DialogDescription>The data date is the "as-of" date for CPM calculations. It is independent of today's calendar date.</DialogDescription>
           </DialogHeader>
           <div>
@@ -2579,11 +2581,11 @@ export default function Scheduler() {
               type="date"
               value={dataDateInput}
               onChange={(e) => setDataDateInput(e.target.value)}
-              className="mt-1 border-gray-300"
+              className="mt-1 border-white/15 bg-white/5 text-gray-200"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDataDatePicker(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowDataDatePicker(false)} className="border-white/15">Cancel</Button>
             <Button
               onClick={() => {
                 if (scheduleId && dataDateInput) {
@@ -2600,7 +2602,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={!dataDateInput || updateScheduleMut.isPending}
             >
               {updateScheduleMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Calendar className="w-4 h-4 mr-2" />}
@@ -2612,34 +2614,34 @@ export default function Scheduler() {
 
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Project Calendars</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Project Calendars</DialogTitle>
             <DialogDescription>Create and manage work calendars, set work days, and mark holidays.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {/* Create New Calendar */}
-            <div className="border border-dashed border-blue-300 bg-blue-50/30 rounded-lg p-3">
-              <Label className="text-xs text-blue-700 font-semibold mb-2 block">Create New Calendar</Label>
+            <div className="border border-dashed border-blue-300 bg-amber-500/10/30 rounded-lg p-3">
+              <Label className="text-xs text-amber-300 font-semibold mb-2 block">Create New Calendar</Label>
               <div className="grid grid-cols-3 gap-2">
                 <Input
                   placeholder="Calendar name"
-                  className="border-gray-300 text-sm"
+                  className="border-white/15 text-sm bg-white/5 text-gray-200"
                   id="newCalName"
                 />
                 <Select defaultValue="5day">
-                  <SelectTrigger className="border-gray-300 text-sm" id="newCalWorkWeek">
+                  <SelectTrigger className="border-white/15 text-sm bg-white/5 text-gray-200" id="newCalWorkWeek">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 text-gray-900">
-                    <SelectItem value="5day" className="text-gray-900">5-Day (Mon-Fri)</SelectItem>
-                    <SelectItem value="6day" className="text-gray-900">6-Day (Mon-Sat)</SelectItem>
-                    <SelectItem value="7day" className="text-gray-900">7-Day</SelectItem>
+                  <SelectContent className="">
+                    <SelectItem value="5day" className="">5-Day (Mon-Fri)</SelectItem>
+                    <SelectItem value="6day" className="">6-Day (Mon-Sat)</SelectItem>
+                    <SelectItem value="7day" className="">7-Day</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
                   size="sm"
-                  className="bg-blue-600 text-white hover:bg-blue-700 text-xs"
+                  className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs"
                   onClick={() => {
                     const nameEl = document.getElementById("newCalName") as HTMLInputElement;
                     const name = nameEl?.value?.trim();
@@ -2667,15 +2669,15 @@ export default function Scheduler() {
               const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
               const DAY_BITS = [1, 2, 4, 8, 16, 32, 64];
               return (
-                <div key={cal.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200">
+                <div key={cal.id} className="border border-white/10 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-white/5 border-b border-white/10">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-gray-900">{cal.name}</span>
-                      {cal.isDefault && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Default</span>}
+                      <span className="font-semibold text-sm text-gray-100">{cal.name}</span>
+                      {cal.isDefault && <span className="text-[10px] bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full font-medium">Default</span>}
                     </div>
                     <div className="flex items-center gap-1">
                       {!cal.isDefault && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-blue-600 hover:bg-blue-50"
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-amber-400 hover:bg-amber-500/10"
                           onClick={() => { if (scheduleId) addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: true, addUSHolidays: false }); }}
                         >Set Default</Button>
                       )}
@@ -2689,7 +2691,7 @@ export default function Scheduler() {
                   <div className="p-3 space-y-3">
                     {/* Work Days */}
                     <div>
-                      <Label className="text-[10px] text-gray-700 mb-1 block">Work Days</Label>
+                      <Label className="text-[10px] text-gray-400 mb-1 block">Work Days</Label>
                       <div className="flex gap-1">
                         {DAY_NAMES.map((day, i) => {
                           const isWork = (cal.workDaysMask & DAY_BITS[i]) !== 0;
@@ -2697,7 +2699,7 @@ export default function Scheduler() {
                             <button
                               key={day}
                               className={`px-2 py-1 text-[10px] rounded font-medium transition-colors ${
-                                isWork ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-gray-100 text-gray-600 border border-gray-200"
+                                isWork ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-white/8 text-gray-600 border border-white/10"
                               }`}
                               title={isWork ? `${day} is a work day (click to toggle)` : `${day} is a non-work day (click to toggle)`}
                             >
@@ -2711,9 +2713,9 @@ export default function Scheduler() {
                     {/* Holidays */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <Label className="text-[10px] text-gray-700">Holidays / Non-Work Days ({holidays.length})</Label>
+                        <Label className="text-[10px] text-gray-400">Holidays / Non-Work Days ({holidays.length})</Label>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-5 text-[10px] text-blue-600 hover:bg-blue-50 px-1"
+                          <Button size="sm" variant="ghost" className="h-5 text-[10px] text-amber-400 hover:bg-amber-500/10 px-1"
                             onClick={() => {
                               if (!scheduleId) return;
                               addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: cal.isDefault, addUSHolidays: true });
@@ -2726,20 +2728,20 @@ export default function Scheduler() {
                           {holidays.sort((a: any, b: any) => new Date(a.exceptionDate).getTime() - new Date(b.exceptionDate).getTime()).map((exc: any) => (
                             <div key={exc.id} className="flex items-center justify-between text-xs px-2 py-1 bg-red-50 rounded">
                               <div className="flex items-center gap-2">
-                                <span className="text-red-600 font-mono text-[10px]">{new Date(exc.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</span>
+                                <span className="text-red-400 font-mono text-[10px]">{new Date(exc.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</span>
                                 <span className="text-gray-600">{exc.description || "Holiday"}</span>
                               </div>
                               <button onClick={() => { if (scheduleId) deleteCalExcMut.mutate({ id: exc.id, scheduleId }); }}
-                                className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                                className="text-red-400 hover:text-red-300 p-0.5"><Trash2 className="w-3 h-3" /></button>
                             </div>
                           ))}
                         </div>
                       )}
                       {/* Add Holiday */}
                       <div className="flex gap-1 mt-1">
-                        <Input type="date" className="flex-1 border-gray-300 text-xs h-7" id={`newHolidayDate-${cal.id}`} />
-                        <Input placeholder="Description" className="flex-1 border-gray-300 text-xs h-7" id={`newHolidayDesc-${cal.id}`} />
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-gray-300 text-gray-700 px-2"
+                        <Input type="date" className="flex-1 border-white/15 text-xs bg-white/5 text-gray-200 h-7" id={`newHolidayDate-${cal.id}`} />
+                        <Input placeholder="Description" className="flex-1 border-white/15 text-xs bg-white/5 text-gray-200 h-7" id={`newHolidayDesc-${cal.id}`} />
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-white/15 text-gray-300 px-2"
                           onClick={() => {
                             const dateEl = document.getElementById(`newHolidayDate-${cal.id}`) as HTMLInputElement;
                             const descEl = document.getElementById(`newHolidayDesc-${cal.id}`) as HTMLInputElement;
@@ -2760,7 +2762,7 @@ export default function Scheduler() {
 
                     {/* Workday Overrides */}
                     <div>
-                      <Label className="text-[10px] text-gray-700 mb-1 block">Workday Overrides ({workdays.length})</Label>
+                      <Label className="text-[10px] text-gray-400 mb-1 block">Workday Overrides ({workdays.length})</Label>
                       {workdays.length > 0 && (
                         <div className="space-y-0.5 max-h-24 overflow-y-auto">
                           {workdays.map((exc: any) => (
@@ -2770,15 +2772,15 @@ export default function Scheduler() {
                                 <span className="text-gray-600">{exc.description || "Work Day"}</span>
                               </div>
                               <button onClick={() => { if (scheduleId) deleteCalExcMut.mutate({ id: exc.id, scheduleId }); }}
-                                className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                                className="text-red-400 hover:text-red-300 p-0.5"><Trash2 className="w-3 h-3" /></button>
                             </div>
                           ))}
                         </div>
                       )}
                       <div className="flex gap-1 mt-1">
-                        <Input type="date" className="flex-1 border-gray-300 text-xs h-7" id={`newWorkDate-${cal.id}`} />
-                        <Input placeholder="e.g., Saturday OT" className="flex-1 border-gray-300 text-xs h-7" id={`newWorkDesc-${cal.id}`} />
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-gray-300 text-gray-700 px-2"
+                        <Input type="date" className="flex-1 border-white/15 text-xs bg-white/5 text-gray-200 h-7" id={`newWorkDate-${cal.id}`} />
+                        <Input placeholder="e.g., Saturday OT" className="flex-1 border-white/15 text-xs bg-white/5 text-gray-200 h-7" id={`newWorkDesc-${cal.id}`} />
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-white/15 text-gray-300 px-2"
                           onClick={() => {
                             const dateEl = document.getElementById(`newWorkDate-${cal.id}`) as HTMLInputElement;
                             const descEl = document.getElementById(`newWorkDesc-${cal.id}`) as HTMLInputElement;
@@ -2802,32 +2804,32 @@ export default function Scheduler() {
             })}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCalendarDialog(false)} className="border-gray-300">Close</Button>
+            <Button variant="outline" onClick={() => setShowCalendarDialog(false)} className="border-white/15">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── Schedule Health Dialog ───────────────────────────────────────────── */}
       <Dialog open={showScheduleHealth} onOpenChange={setShowScheduleHealth}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Schedule Health Check</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Schedule Health Check</DialogTitle>
             <DialogDescription>Review schedule integrity and identify issues.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Summary stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{activities.length}</div>
-                <div className="text-xs text-gray-700">Total Activities</div>
+              <div className="text-center p-3 bg-white/5 rounded-lg">
+                <div className="text-2xl font-bold text-gray-100">{activities.length}</div>
+                <div className="text-xs text-gray-400">Total Activities</div>
               </div>
               <div className="text-center p-3 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{activities.filter((a) => a.isCritical).length}</div>
-                <div className="text-xs text-gray-700">Critical Activities</div>
+                <div className="text-2xl font-bold text-red-400">{activities.filter((a) => a.isCritical).length}</div>
+                <div className="text-xs text-gray-400">Critical Activities</div>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{relationships.length}</div>
-                <div className="text-xs text-gray-700">Relationships</div>
+              <div className="text-center p-3 bg-white/5 rounded-lg">
+                <div className="text-2xl font-bold text-gray-100">{relationships.length}</div>
+                <div className="text-xs text-gray-400">Relationships</div>
               </div>
             </div>
 
@@ -2839,7 +2841,7 @@ export default function Scheduler() {
                 ) : (
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
                 )}
-                <span className="text-sm font-medium text-gray-900">Open Ends</span>
+                <span className="text-sm font-medium text-gray-100">Open Ends</span>
               </div>
 
               {openEnds.openStarts.length > 0 && (
@@ -2851,7 +2853,7 @@ export default function Scheduler() {
                     {openEnds.openStarts.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-gray-700 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
+                        className="text-xs text-gray-400 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
                         <span className="font-mono text-amber-700">{a.activityId || `A${a.id}`}</span> — {a.name}
@@ -2870,7 +2872,7 @@ export default function Scheduler() {
                     {openEnds.openFinishes.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-gray-700 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
+                        className="text-xs text-gray-400 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
                         <span className="font-mono text-amber-700">{a.activityId || `A${a.id}`}</span> — {a.name}
@@ -2892,17 +2894,17 @@ export default function Scheduler() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-red-500" />
-                  <span className="text-sm font-medium text-gray-900">Negative Float</span>
+                  <span className="text-sm font-medium text-gray-100">Negative Float</span>
                 </div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {activities.filter((a) => (a.totalFloat ?? 0) < 0).map((a) => (
                     <div
                       key={a.id}
-                      className="text-xs text-gray-700 px-2 py-1 bg-red-50 rounded cursor-pointer hover:bg-red-100"
+                      className="text-xs text-gray-400 px-2 py-1 bg-red-50 rounded cursor-pointer hover:bg-red-500/15"
                       onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                     >
-                      <span className="font-mono text-red-700">{a.activityId || `A${a.id}`}</span> — {a.name}
-                      <span className="ml-2 text-red-600 font-semibold">{a.totalFloat}d</span>
+                      <span className="font-mono text-red-300">{a.activityId || `A${a.id}`}</span> — {a.name}
+                      <span className="ml-2 text-red-400 font-semibold">{a.totalFloat}d</span>
                     </div>
                   ))}
                 </div>
@@ -2910,40 +2912,40 @@ export default function Scheduler() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowScheduleHealth(false)} className="border-gray-300">Close</Button>
+            <Button variant="outline" onClick={() => setShowScheduleHealth(false)} className="border-white/15">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── Schedule Info Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showScheduleInfo} onOpenChange={setShowScheduleInfo}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Schedule Information</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Schedule Information</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-gray-700">Project Start</span><span className="text-gray-900 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Data Date</span><span className="text-gray-900 font-medium">{dataDate ? formatDate(dataDate) : "Not set"}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Last Calculated (Run Date)</span><span className="text-gray-900 font-medium">{lastCalculatedAt ? lastCalculatedAt.toLocaleString() : "Never"}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Total Activities</span><span className="text-gray-900 font-medium">{activities.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Critical Activities</span><span className="text-red-600 font-medium">{activities.filter((a) => a.isCritical).length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Baselines</span><span className="text-gray-900 font-medium">{baselines.filter((b: any) => b.snapshotType === "baseline").length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Updates</span><span className="text-gray-900 font-medium">{baselines.filter((b: any) => b.snapshotType === "update").length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Relationships</span><span className="text-gray-900 font-medium">{relationships.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Open Starts</span><span className={`font-medium ${openEnds.openStarts.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openStarts.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-700">Open Finishes</span><span className={`font-medium ${openEnds.openFinishes.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openFinishes.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Project Start</span><span className="text-gray-100 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Data Date</span><span className="text-gray-100 font-medium">{dataDate ? formatDate(dataDate) : "Not set"}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Last Calculated (Run Date)</span><span className="text-gray-100 font-medium">{lastCalculatedAt ? lastCalculatedAt.toLocaleString() : "Never"}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Total Activities</span><span className="text-gray-100 font-medium">{activities.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Critical Activities</span><span className="text-red-400 font-medium">{activities.filter((a) => a.isCritical).length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Baselines</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "baseline").length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Updates</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "update").length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Relationships</span><span className="text-gray-100 font-medium">{relationships.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Open Starts</span><span className={`font-medium ${openEnds.openStarts.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openStarts.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Open Finishes</span><span className={`font-medium ${openEnds.openFinishes.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openFinishes.length}</span></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowScheduleInfo(false)} className="border-gray-300">Close</Button>
+            <Button variant="outline" onClick={() => setShowScheduleInfo(false)} className="border-white/15">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
        {/* ── Gantt Display Settings Dialog ──────────────────────────────────── */}
       <Dialog open={showGanttSettings} onOpenChange={setShowGanttSettings}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Gantt Display Settings</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Gantt Display Settings</DialogTitle>
             <DialogDescription>Customize how activity labels appear on the Gantt chart.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2956,7 +2958,7 @@ export default function Scheduler() {
                   onChange={(e) => setGanttFontSize(Number(e.target.value))}
                   className="flex-1"
                 />
-                <span className="text-sm font-mono w-8 text-center text-gray-900">{ganttFontSize}</span>
+                <span className="text-sm font-mono w-8 text-center text-gray-100">{ganttFontSize}</span>
               </div>
             </div>
             <div>
@@ -2966,12 +2968,12 @@ export default function Scheduler() {
                   type="color"
                   value={ganttFontColor}
                   onChange={(e) => setGanttFontColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                  className="w-8 h-8 rounded border border-white/15 cursor-pointer"
                 />
                 <Input
                   value={ganttFontColor}
                   onChange={(e) => setGanttFontColor(e.target.value)}
-                  className="flex-1 h-8 text-sm border-gray-300 text-gray-900"
+                  className="flex-1 h-8 text-sm border-white/15 text-gray-100"
                   placeholder="#374151"
                 />
               </div>
@@ -2979,21 +2981,21 @@ export default function Scheduler() {
             <div>
               <Label className="text-xs text-gray-600">Font Family</Label>
               <Select value={ganttFontFamily} onValueChange={setGanttFontFamily}>
-                <SelectTrigger className="mt-1 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 text-gray-900">
-                  <SelectItem value="DM Sans" className="text-gray-900">DM Sans</SelectItem>
-                  <SelectItem value="Arial" className="text-gray-900">Arial</SelectItem>
-                  <SelectItem value="Helvetica" className="text-gray-900">Helvetica</SelectItem>
-                  <SelectItem value="Georgia" className="text-gray-900">Georgia</SelectItem>
-                  <SelectItem value="Times New Roman" className="text-gray-900">Times New Roman</SelectItem>
-                  <SelectItem value="Courier New" className="text-gray-900">Courier New</SelectItem>
-                  <SelectItem value="Verdana" className="text-gray-900">Verdana</SelectItem>
-                  <SelectItem value="Trebuchet MS" className="text-gray-900">Trebuchet MS</SelectItem>
+                <SelectTrigger className="mt-1 border-white/15 text-gray-100"><SelectValue /></SelectTrigger>
+                <SelectContent className="">
+                  <SelectItem value="DM Sans" className="">DM Sans</SelectItem>
+                  <SelectItem value="Arial" className="">Arial</SelectItem>
+                  <SelectItem value="Helvetica" className="">Helvetica</SelectItem>
+                  <SelectItem value="Georgia" className="">Georgia</SelectItem>
+                  <SelectItem value="Times New Roman" className="">Times New Roman</SelectItem>
+                  <SelectItem value="Courier New" className="">Courier New</SelectItem>
+                  <SelectItem value="Verdana" className="">Verdana</SelectItem>
+                  <SelectItem value="Trebuchet MS" className="">Trebuchet MS</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <Label className="text-xs text-gray-700 mb-2 block">Preview</Label>
+            <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+              <Label className="text-xs text-gray-400 mb-2 block">Preview</Label>
               <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }}>
                 Foundation Footings
               </div>
@@ -3003,17 +3005,17 @@ export default function Scheduler() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-gray-300 text-gray-900">Reset</Button>
-            <Button onClick={() => setShowGanttSettings(false)} className="bg-blue-600 text-white hover:bg-blue-700">Done</Button>
+            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-white/15 text-gray-100">Reset</Button>
+            <Button onClick={() => setShowGanttSettings(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
-        <DialogContent className="bg-white border-gray-200 max-w-5xl text-gray-900 text-base" style={{ maxHeight: "85vh" }}>
+        <DialogContent className="max-w-5xl" style={{ maxHeight: "85vh" }}>
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
             <DialogDescription>Build your project hierarchy. Parent items contain child items (indented). Click to expand/collapse.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -3032,26 +3034,26 @@ export default function Scheduler() {
             />
 
             {/* Add new WBS node */}
-            <div className="border-t border-gray-200 pt-3 space-y-2">
+            <div className="border-t border-white/10 pt-3 space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs text-gray-600">WBS Code</Label>
-                  <Input value={newWbsCode} onChange={(e) => setNewWbsCode(e.target.value)} placeholder="e.g., 2.1" className="mt-1 border-gray-300" />
+                  <Input value={newWbsCode} onChange={(e) => setNewWbsCode(e.target.value)} placeholder="e.g., 2.1" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 </div>
                 <div>
                   <Label className="text-xs text-gray-600">Name</Label>
-                  <Input value={newWbsName} onChange={(e) => setNewWbsName(e.target.value)} placeholder="e.g., Foundation" className="mt-1 border-gray-300" />
+                  <Input value={newWbsName} onChange={(e) => setNewWbsName(e.target.value)} placeholder="e.g., Foundation" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
                 </div>
               </div>
               {wbsNodes.length > 0 && (
                 <div>
                   <Label className="text-xs text-gray-600">Parent (optional)</Label>
                   <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
-                    <SelectTrigger className="mt-1 border-gray-300"><SelectValue placeholder="None (top level)" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      <SelectItem value=" " className="text-gray-900">None</SelectItem>
+                    <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="None (top level)" /></SelectTrigger>
+                    <SelectContent className="">
+                      <SelectItem value=" " className="">None</SelectItem>
                       {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={String(w.id)} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                        <SelectItem key={w.id} value={String(w.id)} className="">{w.code} — {w.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -3059,7 +3061,7 @@ export default function Scheduler() {
               )}
               <Button
                 size="sm"
-                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                className="w-full bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
                 disabled={!newWbsCode.trim() || !newWbsName.trim() || addWbsMut.isPending}
                 onClick={() => {
                   if (scheduleId && newWbsCode.trim() && newWbsName.trim()) {
@@ -3076,15 +3078,15 @@ export default function Scheduler() {
               </Button>
             </div>
             {/* CSI MasterFormat Library */}
-            <div className="border-t border-gray-200 pt-3">
+            <div className="border-t border-white/10 pt-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <h3 className="text-base font-semibold text-gray-100 flex items-center gap-2">
                   <BookOpen className="w-4 h-4" /> CSI MasterFormat Library
                 </h3>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-700"
+                  className="text-gray-400 hover:text-gray-200"
                   onClick={() => setShowCsiPicker(!showCsiPicker)}
                 >
                   {showCsiPicker ? "Collapse" : "Expand"}
@@ -3096,9 +3098,9 @@ export default function Scheduler() {
                     placeholder="Search divisions... (e.g., electrical, concrete)"
                     value={csiSearch}
                     onChange={(e) => setCsiSearch(e.target.value)}
-                    className="border-gray-300 text-sm"
+                    className="border-white/15 text-sm bg-white/5 text-gray-200"
                   />
-                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-md">
                     {CSI_ACTIVE_DIVISIONS
                       .filter(d => {
                         if (!csiSearch) return true;
@@ -3111,7 +3113,7 @@ export default function Scheduler() {
                         return (
                           <label
                             key={div.code}
-                            className={`flex items-center px-3 py-1.5 text-xs hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${alreadyExists ? "opacity-50" : ""}`}
+                            className={`flex items-center px-3 py-1.5 text-xs hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-b-0 ${alreadyExists ? "opacity-50" : ""}`}
                           >
                             <Checkbox
                               checked={selectedCsiCodes.has(div.code) || alreadyExists}
@@ -3129,8 +3131,8 @@ export default function Scheduler() {
                               className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
                               style={{ backgroundColor: colors.border }}
                             />
-                            <span className="font-mono text-gray-700 mr-2 w-6">{div.code}</span>
-                            <span className="text-gray-900">{div.name}</span>
+                            <span className="font-mono text-amber-400 mr-2 w-6">{div.code}</span>
+                            <span className="">{div.name}</span>
                             {alreadyExists && <span className="ml-auto text-gray-600 text-[10px]">Added</span>}
                           </label>
                         );
@@ -3140,7 +3142,7 @@ export default function Scheduler() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs border-gray-300"
+                      className="text-xs border-white/15"
                       onClick={() => {
                         const allCodes = CSI_ACTIVE_DIVISIONS
                           .filter(d => !wbsNodes.some((w: any) => w.code === d.code))
@@ -3153,7 +3155,7 @@ export default function Scheduler() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs border-gray-300"
+                      className="text-xs border-white/15"
                       onClick={() => setSelectedCsiCodes(new Set())}
                     >
                       Clear
@@ -3181,16 +3183,16 @@ export default function Scheduler() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWbsManager(false)} className="border-gray-300">Close</Button>
+            <Button variant="outline" onClick={() => setShowWbsManager(false)} className="border-white/15">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── Save Layout Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Save Layout</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Save Layout</DialogTitle>
             <DialogDescription>Save your current view settings (columns, grouping, sort, zoom, filters) as a reusable layout.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -3200,10 +3202,10 @@ export default function Scheduler() {
                 value={layoutName}
                 onChange={(e) => setLayoutName(e.target.value)}
                 placeholder="e.g., Critical Path View, By Trade, My Default"
-                className="mt-1 border-gray-300"
+                className="mt-1 border-white/15 bg-white/5 text-gray-200"
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-gray-400">
               <Checkbox
                 checked={layoutIsDefault}
                 onCheckedChange={(c) => setLayoutIsDefault(!!c)}
@@ -3212,9 +3214,9 @@ export default function Scheduler() {
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLayoutDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowLayoutDialog(false)} className="border-white/15">Cancel</Button>
             <Button
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               disabled={!layoutName.trim() || saveLayoutMut.isPending}
               onClick={() => {
                 if (scheduleId && layoutName.trim()) {
@@ -3236,36 +3238,36 @@ export default function Scheduler() {
 
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl text-gray-900 text-base">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-gray-900 text-lg">Advanced Filters</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Advanced Filters</DialogTitle>
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterCriticalOnly} onCheckedChange={(c) => setFilterCriticalOnly(!!c)} />
-                <span className="text-sm text-gray-900">Critical Path Only</span>
+                <span className="text-sm text-gray-100">Critical Path Only</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterLongestPath} onCheckedChange={(c) => setFilterLongestPath(!!c)} />
-                <span className="text-sm text-gray-900">Longest Path</span>
+                <span className="text-sm text-gray-100">Longest Path</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterOpenEnds} onCheckedChange={(c) => setFilterOpenEnds(!!c)} />
-                <span className="text-sm text-gray-900">Open Ends Only</span>
+                <span className="text-sm text-gray-100">Open Ends Only</span>
               </label>
             </div>
 
             <div>
               <Label className="text-xs text-gray-600">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
-                <SelectTrigger className="mt-1 border-gray-300"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 text-gray-900">
-                  <SelectItem value="none" className="text-gray-900">No lookahead filter</SelectItem>
-                  <SelectItem value="1week" className="text-gray-900">1-Week Lookahead</SelectItem>
-                  <SelectItem value="2week" className="text-gray-900">2-Week Lookahead</SelectItem>
-                  <SelectItem value="4week" className="text-gray-900">4-Week Lookahead</SelectItem>
+                <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue /></SelectTrigger>
+                <SelectContent className="">
+                  <SelectItem value="none" className="">No lookahead filter</SelectItem>
+                  <SelectItem value="1week" className="">1-Week Lookahead</SelectItem>
+                  <SelectItem value="2week" className="">2-Week Lookahead</SelectItem>
+                  <SelectItem value="4week" className="">4-Week Lookahead</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -3273,22 +3275,22 @@ export default function Scheduler() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-600">Float Min (days)</Label>
-                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-gray-300" />
+                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
               <div>
                 <Label className="text-xs text-gray-600">Float Max (days)</Label>
-                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-gray-300" />
+                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-600">Start Date From</Label>
-                <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-gray-300" />
+                <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
               <div>
                 <Label className="text-xs text-gray-600">Start Date To</Label>
-                <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-gray-300" />
+                <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
               </div>
             </div>
 
@@ -3297,7 +3299,7 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600 mb-2 block">Activity Codes</Label>
                 <Button
                   size="sm" variant="outline"
-                  className="text-xs border-gray-300"
+                  className="text-xs border-white/15"
                   onClick={() => setShowFilterPanel(!showFilterPanel)}
                 >
                   {showFilterPanel ? "Hide" : "Show"} Code Filter Bar
@@ -3308,7 +3310,7 @@ export default function Scheduler() {
           <DialogFooter>
             <Button
               variant="outline"
-              className="border-gray-300"
+              className="border-white/15"
               onClick={() => {
                 setFilterCriticalOnly(false);
                 setFilterLookahead("none");
@@ -3322,7 +3324,7 @@ export default function Scheduler() {
             >
               Clear All
             </Button>
-            <Button onClick={() => setShowAdvancedFilter(false)} className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button onClick={() => setShowAdvancedFilter(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">
               Apply
             </Button>
           </DialogFooter>
@@ -3434,15 +3436,15 @@ export default function Scheduler() {
 
       {/* ── Floating Selection Toolbar ──────────────────────────────────────── */}
       {selectedActivityIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1a1f2e] border border-white/15 rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-400">
             {selectedActivityIds.size} {selectedActivityIds.size === 1 ? "activity" : "activities"} selected
           </span>
           <div className="w-px h-5 bg-gray-200" />
           <Button
             size="sm"
             variant="outline"
-            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
             onClick={() => { setBulkWbsTarget(""); setShowBulkWbsDialog(true); }}
           >
             <FolderTree className="w-3.5 h-3.5 mr-1.5" /> Assign WBS
@@ -3450,7 +3452,7 @@ export default function Scheduler() {
           <Button
             size="sm"
             variant="outline"
-            className="border-red-300 text-red-600 hover:bg-red-50"
+            className="border-red-500/40 text-red-400 hover:bg-red-500/10"
             onClick={() => {
               if (scheduleId && confirm(`Delete ${selectedActivityIds.size} selected activities?`)) {
                 Array.from(selectedActivityIds).forEach(id => deleteActivityMut.mutate({ id, scheduleId }));
@@ -3463,7 +3465,7 @@ export default function Scheduler() {
           <Button
             size="sm"
             variant="ghost"
-            className="text-gray-700"
+            className="text-gray-400"
             onClick={() => setSelectedActivityIds(new Set())}
           >
             Clear
@@ -3473,28 +3475,28 @@ export default function Scheduler() {
 
       {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
       <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>
-        <DialogContent className="max-w-4xl bg-white text-gray-900 text-base font-medium">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 text-lg">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogTitle className="text-lg">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
               Select a WBS code to assign to all selected activities at once.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Select value={bulkWbsTarget || "__none__"} onValueChange={(v) => setBulkWbsTarget(v === "__none__" ? "" : v)}>
-              <SelectTrigger className="border-gray-300"><SelectValue placeholder="Select WBS" /></SelectTrigger>
-              <SelectContent className="bg-white border-gray-200 text-gray-900">
-                <SelectItem value="__none__" className="text-gray-900">None (remove WBS)</SelectItem>
+              <SelectTrigger className="border-white/15"><SelectValue placeholder="Select WBS" /></SelectTrigger>
+              <SelectContent className="">
+                <SelectItem value="__none__" className="">None (remove WBS)</SelectItem>
                 {wbsNodes.map((w: any) => (
-                  <SelectItem key={w.id} value={w.code} className="text-gray-900">{w.code} — {w.name}</SelectItem>
+                  <SelectItem key={w.id} value={w.code} className="">{w.code} — {w.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkWbsDialog(false)} className="border-gray-300">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkWbsDialog(false)} className="border-white/15">Cancel</Button>
             <Button
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
               onClick={() => {
                 if (!scheduleId) return;
                 const wbsValue = bulkWbsTarget || null;
