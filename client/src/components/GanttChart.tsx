@@ -93,38 +93,38 @@ const ARROW_HEAD_SIZE = 4;
 const HANDLE_RADIUS = 5;
 const EDGE_HIT_ZONE = 8;
 
-// Light theme colors
+// Premium SaaS theme colors — white Gantt canvas, amber critical, slate-blue non-critical
 const COLORS = {
-  critical: "#dc2626",
-  criticalFill: "#ef4444",
-  normal: "#16a34a",
-  normalFill: "#22c55e",
+  critical: "#b45309",       // amber-700 border
+  criticalFill: "#f59e0b",   // amber-400 fill — warm, high-visibility
+  normal: "#2563eb",         // blue-600 border
+  normalFill: "#3b82f6",     // blue-500 fill — slate-blue, professional
   target1: "#9ca3af",
   target1Fill: "#6b7280",
   target2: "#8b5cf6",
   target2Fill: "#7c3aed",
-  milestone: "#eab308",
-  progress: "#3b82f6",
+  milestone: "#f59e0b",      // amber milestone diamond
+  progress: "#1d4ed8",       // darker blue progress overlay
   arrow: "#6b7280",
-  arrowCritical: "#dc2626",
+  arrowCritical: "#b45309",  // amber arrow for critical links
   todayLine: "#9ca3af",
-  dataDateLine: "#2563eb", // Solid BLUE
+  dataDateLine: "#2563eb",   // Solid BLUE data date
   gridLine: "rgba(0,0,0,0.06)",
-  headerBg: "#f8f5f0", // Warm off-white/tan
+  headerBg: "#f8f5f0",       // Warm off-white/tan header
   headerText: "rgba(0,0,0,0.45)",
   headerTextBold: "rgba(0,0,0,0.7)",
-  selectedBg: "rgba(37,99,235,0.08)",
+  selectedBg: "rgba(245,158,11,0.10)", // amber selection highlight
   groupBg: "rgba(0,0,0,0.03)",
-  rowBg: "#faf8f5", // Very light warm white
-  rowAltBg: "#f5f2ed", // Slightly darker for alternating rows
+  rowBg: "#faf8f5",          // Very light warm white
+  rowAltBg: "#f5f2ed",       // Slightly darker alternating rows
   handleFill: "#2563eb",
   handleStroke: "#fff",
   connectLine: "#3b82f6",
   connectLineValid: "#16a34a",
-  labelText: "rgba(0,0,0,0.7)",
+  labelText: "rgba(0,0,0,0.72)",
   barBorder: "rgba(0,0,0,0.15)",
   headerBorder: "rgba(0,0,0,0.1)",
-  weekendBg: "rgba(0,0,0,0.02)",
+  weekendBg: "rgba(0,0,0,0.025)",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

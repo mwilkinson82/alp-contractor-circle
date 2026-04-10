@@ -1162,3 +1162,18 @@
 - [x] Redesign Sheet/sidebar panels
 - [x] All modals should have generous padding (p-8+), strong contrast, proper spacing
 - [x] Visual verification of every modal via browser
+
+## UI Polish Round 3 — Table Grid Lines, Toolbar Labels, Modal Accent, Gantt Colors
+- [x] Restore light table styling: white/near-white background with gray grid lines (borders between rows and columns)
+- [x] Add toolbar group labels: uppercase section labels (SCHEDULE, ACTIVITIES, VIEW, TOOLS) above each ribbon group
+- [x] Add modal header accent strip: 3px amber gradient top border on all DialogContent modals
+- [x] Update Gantt bar colors: critical path bars amber/red, non-critical bars slate-blue
+
+## Smith Residence — Full Template Build-Out
+- [x] Assign proper CSI-based WBS codes to all existing Smith Residence activities
+- [x] Add realistic resources to all activities (labor, equipment, materials)
+- [x] Add cost data (budgeted cost per activity) to all activities
+- [x] Add logic relationships between all activities (FS, SS, FF with lags)
+- [x] Ensure schedule can be calculated (CPM forward/backward pass)
+- [x] Verify histogram, cost reports, S-curve, and EVM reports all populate with data
+- [x] Mark schedule as a template in the DB

@@ -1166,10 +1166,12 @@ export default function Scheduler() {
         </div>
 
         {/* Row 2: Ribbon with grouped sections */}
-        <div className="h-11 flex items-center px-3 gap-1.5 overflow-x-auto">
+        <div className="flex items-end px-3 gap-1.5 overflow-x-auto pb-1.5 pt-1">
 
           {/* ── GROUP: Schedule ── */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+          <div className="flex flex-col items-start mr-1">
+            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Schedule</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
             <Button
               size="sm" variant="outline"
               className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/15 bg-amber-500/10 font-semibold"
@@ -1216,9 +1218,12 @@ export default function Scheduler() {
               DD: {dataDate ? formatDate(dataDate) : "Set"}
             </Button>
           </div>
+          </div>{/* end Schedule group wrapper */}
 
           {/* ── GROUP: Activities ── */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+          <div className="flex flex-col items-start mr-1">
+            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Activities</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
             <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300" onClick={() => setShowActivityDialog(true)}>
               <Plus className="w-3.5 h-3.5" /> Add
             </Button>
@@ -1229,9 +1234,12 @@ export default function Scheduler() {
               <Upload className="w-3.5 h-3.5" /> CSV
             </Button>
           </div>
+          </div>{/* end Activities group wrapper */}
 
           {/* ── GROUP: View ── */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+          <div className="flex flex-col items-start mr-1">
+            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">View</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
             {/* Zoom */}
             <div className="flex items-center border border-white/15 rounded-lg h-7 overflow-hidden">
               {(["day", "week", "month"] as const).map((z) => (
@@ -1307,9 +1315,12 @@ export default function Scheduler() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          </div>{/* end View group wrapper */}
 
           {/* ── GROUP: Tools ── */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8 mr-1">
+          <div className="flex flex-col items-start mr-1">
+            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Tools</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
             <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200" onClick={() => setShowResourcePanel(true)}>
               <DollarSign className="w-3.5 h-3.5" /> Resources
             </Button>
@@ -1319,6 +1330,7 @@ export default function Scheduler() {
               </Button>
             </Link>
           </div>
+          </div>{/* end Tools group wrapper */}
 
           <div className="flex-1" />
 
@@ -1491,11 +1503,11 @@ export default function Scheduler() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left: Activity Table */}
         <ResizablePanel defaultSize={45} minSize={25} maxSize={70}>
-          <div ref={tableRef} className="h-full overflow-auto bg-[#0f1219]">
+          <div ref={tableRef} className="h-full overflow-auto bg-white">
             {/* Table Header with sortable columns */}
-            <div className="sticky top-0 z-20 bg-[#151a28] border-b border-white/10">
+            <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
               <div
-                className="text-sm font-medium text-gray-400 h-11 items-center px-3 gap-1.5"
+                className="text-sm font-semibold text-gray-600 h-11 items-center px-3 gap-1.5"
                 style={{ display: "grid", gridTemplateColumns: gridTemplate }}
               >
                 <div></div>
@@ -1529,7 +1541,7 @@ export default function Scheduler() {
             </div>
 
             {/* Table Body */}
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-gray-200">
               {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
@@ -1576,16 +1588,16 @@ export default function Scheduler() {
                     return (
                       <div
                         key={act.id}
-                        className={`text-sm items-center px-3 gap-1.5 h-11 cursor-pointer transition-colors ${
+                        className={`text-sm items-center px-3 gap-1.5 h-11 cursor-pointer transition-colors border-b border-gray-100 ${
                           isSelected
-                            ? "bg-amber-500/15 border-l-2 border-l-amber-500 ring-1 ring-amber-500/30"
+                            ? "bg-amber-50 border-l-2 border-l-amber-500 ring-1 ring-amber-500/20"
                             : act.id === selectedActivityId
-                            ? "bg-white/5 border-l-2 border-l-amber-400"
+                            ? "bg-blue-50 border-l-2 border-l-blue-400"
                             : act.isCritical
-                            ? "hover:bg-red-500/10 border-l-2 border-l-red-500/60"
+                            ? "hover:bg-amber-50/60 border-l-2 border-l-amber-400"
                             : hasOpenEnd
-                            ? "hover:bg-amber-500/10 border-l-2 border-l-amber-500/50"
-                            : "hover:bg-white/5 border-l-2 border-l-transparent"
+                            ? "hover:bg-yellow-50 border-l-2 border-l-yellow-400"
+                            : "hover:bg-gray-50 border-l-2 border-l-transparent"
                         }`}
                         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
                         onClick={(e) => {
