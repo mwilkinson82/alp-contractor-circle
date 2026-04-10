@@ -693,14 +693,14 @@ export default function GanttChart({
       if (row.type === "group") {
         const depth = row.depth ?? 0;
         const indent = depth * 16;
-        // Use custom WBS color or default
-        const bgColor = row.wbsColor || (depth === 0 ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.03)");
-        const textColor = row.wbsTextColor || COLORS.headerTextBold;
+        // Gantt group rows use neutral grays only — WBS colors stay in the table
+        const bgColor = depth === 0 ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.04)";
+        const textColor = COLORS.headerTextBold;
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-        // Draw left accent bar for depth
+        // Draw a subtle left accent bar using neutral color
         if (depth > 0) {
-          ctx.fillStyle = row.wbsColor || "#94a3b8";
+          ctx.fillStyle = "#94a3b8";
           ctx.fillRect(indent - 8, y + 2, 3, ROW_HEIGHT - 4);
         }
         ctx.fillStyle = textColor;

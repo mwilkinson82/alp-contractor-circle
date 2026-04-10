@@ -1177,3 +1177,10 @@
 - [x] Ensure schedule can be calculated (CPM forward/backward pass)
 - [x] Verify histogram, cost reports, S-curve, and EVM reports all populate with data
 - [x] Mark schedule as a template in the DB
+
+## WBS Fixes — Gantt Bleed & Hierarchy
+- [x] Fix WBS color bands: should only appear in left table, NOT extend into Gantt chart rows
+- [x] Rebuild Smith Residence WBS: 3-level hierarchy (Root > General Conditions + Construction > CSI children)
+- [x] General Conditions children: Submittals > Prepare & Submit, Review & Approve
+- [x] Construction children: all 9 CSI phase nodes (Sitework, Foundation, Framing, Exterior, MEP Rough, Interior, MEP Trim, Site Improvements, Closeout)
+- [x] Reassign all 32 activities to correct new WBS node IDs
