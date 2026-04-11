@@ -297,18 +297,19 @@ export function PdfExportPreview({
   }, [previewWidth, paperDims]);
 
   // Helper: get the PDF-scaled pixel height for a given preview row
-  // Mirrors GanttChart.tsx getWbsRowHeight / getActivityRowHeight, scaled to PDF ppi
+  // Mirrors GanttChart.tsx getWbsRowHeight / getActivityRowHeight, scaled to PDF ppi AND magnificationZoom
   type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string } | { type: "activity"; act: Activity };
+  const zoomScale = magnificationZoom / 100;
   const getRowHeightPdf = useCallback((row: PreviewRow, ppi: number): number => {
     // Screen heights (px): WBS depth-0=56, depth-1=24, depth-2+=20, activity=32
-    // Scale to PDF: (screenPx / 96) * ppi  (96 dpi is CSS reference pixel density)
+    // Scale to PDF: (screenPx / 96) * ppi * zoomScale
     const screenH = row.type === "group"
       ? getWbsRowHeight(row.depth, false)
       : getActivityRowHeight(false);
-    return (screenH / 96) * ppi;
-  }, []);
+    return (screenH / 96) * ppi * zoomScale;
+  }, [zoomScale]);
 
-  // Calculate layout constants (no longer needs maxRows — pagination is cumulative)
+  // Calculate layout constants
   const rowsPerPage = useMemo(() => {
     const ppi = canvasDims.width / paperDims.w;
     const marginIn = 0.4;
@@ -316,16 +317,16 @@ export function PdfExportPreview({
     const headerH = 0.35 * ppi;
     const footerH = 0.25 * ppi;
     const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
-    const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
-    // Header row height: use activity row height as the column-header row
-    const headerRowH = (getActivityRowHeight(false) / 96) * ppi;
+    // baseFontSize scales with zoom so text stays proportional to row heights
+    const baseFontSize = Math.max(4, Math.min(10, ppi * 0.08 * zoomScale));
+    // Column-header row height also scales with zoom
+    const headerRowH = (getActivityRowHeight(false) / 96) * ppi * zoomScale;
     return { ppi, margin, headerH, footerH, contentH, baseFontSize, headerRowH };
-  }, [canvasDims, paperDims]);
+  }, [canvasDims, paperDims, zoomScale]);
 
   const pages = useMemo(() => {
-    const { ppi, contentH } = rowsPerPage;
-    // Header row (column labels) takes up one row height at the top of the content area
-    const headerRowH = (getActivityRowHeight(false) / 96) * ppi;
+    const { ppi, contentH, headerRowH } = rowsPerPage;
+    // headerRowH already includes zoomScale from rowsPerPage
     const result: (typeof previewRows)[] = [];
     let pageRows: typeof previewRows = [];
     let usedH = headerRowH; // start with the column-header row
@@ -617,12 +618,41 @@ export function PdfExportPreview({
           ctx.lineTo(cx - s, cy);
           ctx.closePath();
           ctx.fill();
+          // Milestone label to the right
+          const mlFont = Math.max(4, baseFontSize * 0.85);
+          ctx.font = `${mlFont}px 'DM Sans', sans-serif`;
+          ctx.fillStyle = "#1e293b";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(act.name, cx + s + 3, cy);
         } else {
           ctx.fillStyle = act.barColor || (act.isCritical ? "#ef4444" : "#22c55e");
           const radius = 1.5;
           ctx.beginPath();
           ctx.roundRect(bx, by, bw, bh, radius);
           ctx.fill();
+          // Activity name label — draw on bar if it fits, otherwise to the right
+          const barFont = Math.max(4, baseFontSize * 0.85);
+          ctx.font = `${barFont}px 'DM Sans', sans-serif`;
+          ctx.textBaseline = "middle";
+          const labelY = ry + rh / 2;
+          const labelPad = 3;
+          const textW = ctx.measureText(act.name).width;
+          if (textW + labelPad * 2 <= bw - 4) {
+            // Fits inside bar
+            ctx.save();
+            ctx.rect(bx, by, bw, bh);
+            ctx.clip();
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "left";
+            ctx.fillText(act.name, bx + labelPad, labelY);
+            ctx.restore();
+          } else {
+            // Draw to the right of bar
+            ctx.fillStyle = "#1e293b";
+            ctx.textAlign = "left";
+            ctx.fillText(act.name, bx + bw + 3, labelY);
+          }
         }
       }
 
