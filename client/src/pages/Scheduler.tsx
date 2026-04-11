@@ -1708,10 +1708,36 @@ export default function Scheduler() {
                             if (groupBy === "wbs") {
                               const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} \u2014 ${w.name}` === group || w.code === group);
                               if (wbsNode) {
-                                // Show badge with code, then just the name (not the full "code — name" label)
-                                const displayName = wbsNode.name && wbsNode.name !== wbsNode.code
-                                  ? wbsNode.name
-                                  : group.replace(`${wbsNode.code} \u2014 `, "");
+                                // Determine display name: use node.name if it's different from code
+                                // If name === code, derive a name from child activities
+                                let displayName = "";
+                                if (wbsNode.name && wbsNode.name !== wbsNode.code && wbsNode.name.trim() !== wbsNode.code.trim()) {
+                                  displayName = wbsNode.name;
+                                } else {
+                                  // Derive name from activities in this group
+                                  const actsInGroup = groupActs || [];
+                                  if (actsInGroup.length === 1) {
+                                    displayName = actsInGroup[0].name;
+                                  } else if (actsInGroup.length > 1) {
+                                    // Try to find common theme from activity names
+                                    const firstAct = actsInGroup[0]?.name || "";
+                                    const keywords = firstAct.split(/[\s\/\-&,]+/).filter((w: string) => w.length > 3);
+                                    const commonWord = keywords.find((kw: string) =>
+                                      actsInGroup.every((a: any) => a.name?.toLowerCase().includes(kw.toLowerCase()))
+                                    );
+                                    displayName = commonWord
+                                      ? commonWord.charAt(0).toUpperCase() + commonWord.slice(1)
+                                      : `${actsInGroup.length} Activities`;
+                                  } else {
+                                    // No activities — check if it has child WBS groups
+                                    const childNodes = wbsNodes.filter((w: any) => w.parentId === wbsNode.id);
+                                    if (childNodes.length > 0) {
+                                      displayName = `${childNodes.length} Sub-groups`;
+                                    } else {
+                                      displayName = "(unnamed)";
+                                    }
+                                  }
+                                }
                                 return (
                                   <>
                                     <span
