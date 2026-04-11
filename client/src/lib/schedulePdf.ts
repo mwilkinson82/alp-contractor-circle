@@ -120,6 +120,7 @@ export interface PdfExportOptions {
     depth: number;
     wbsColor?: string;
     wbsTextColor?: string;
+    ancestorColors?: string[];
   }>;
 }
 
@@ -633,7 +634,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     const zoomScale = ((options.magnificationZoom || 100) / 100) * ((options.pdfZoom || 100) / 100);
 
     // Build flat row list with WBS group headers interleaved
-    type PdfRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: typeof filteredActivities } | { type: "activity"; act: typeof filteredActivities[0] };
+    type PdfRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: typeof filteredActivities; ancestorColors?: string[] } | { type: "activity"; act: typeof filteredActivities[0]; ancestorColors?: string[] };
     const pdfRows: PdfRow[] = [];
     if (options.groupedActivities && options.groupedActivities.length > 0) {
       for (const g of options.groupedActivities) {
@@ -643,10 +644,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           // Check if this group or its descendants have activities
           const hasActs = gActs.length > 0 || (!showCriticalPathOnly);
           if (hasActs || gActs.length > 0) {
-            pdfRows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs as any });
+            pdfRows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs as any, ancestorColors: g.ancestorColors });
           }
           for (const act of gActs) {
-            pdfRows.push({ type: "activity", act });
+            pdfRows.push({ type: "activity", act, ancestorColors: g.ancestorColors });
           }
         } else {
           const gActs = showCriticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
@@ -882,11 +883,21 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (row.type === "group") {
           // WBS Group Header row — P6-style depth-based colors
           const depth = row.depth;
-          const indent = depth * 3; // mm indent per level
           // Background — depth-based: green → yellow → red → pink
           const bgColor = WBS_DEPTH_BG[depth % WBS_DEPTH_BG.length];
           doc.setFillColor(...bgColor);
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
+
+          // P6-style colored left bars — one per ancestor level
+          const anc = row.ancestorColors || [];
+          const barW = 1.2; // mm width per bar
+          const barGap = 0.4; // mm gap between bars
+          for (let ai = 0; ai < anc.length; ai++) {
+            const rgb = hexToRgb(anc[ai]);
+            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+            doc.rect(ganttLeft + ai * (barW + barGap), y, barW, rh, "F");
+          }
+          const leftBarsWidth = anc.length > 0 ? anc.length * (barW + barGap) + 1 : 0;
 
           // Group label text — bold black text
           doc.setTextColor(20, 20, 20);
@@ -894,14 +905,14 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7.5);
           // Truncate label instead of wrapping
           let groupLabel = row.label;
-          const groupMaxW = labelWidth - indent - 6;
+          const groupMaxW = labelWidth - leftBarsWidth - 4;
           if (doc.getTextWidth(groupLabel) > groupMaxW) {
             while (doc.getTextWidth(groupLabel + "...") > groupMaxW && groupLabel.length > 3) {
               groupLabel = groupLabel.slice(0, -1);
             }
             groupLabel = groupLabel + "...";
           }
-          doc.text(groupLabel, ganttLeft + 2 + indent, y + rh / 2 + 0.8);
+          doc.text(groupLabel, ganttLeft + leftBarsWidth + 2, y + rh / 2 + 0.8);
 
           // ── WBS Summary Bar in Gantt area ──
           const childActs = row.groupActivities || [];
@@ -947,6 +958,16 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (i % 2 === 0) {
           doc.setFillColor(...colors.warmGray);
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
+        }
+
+        // P6-style colored left bars on activity rows — one per ancestor level
+        const actAnc = row.ancestorColors || [];
+        const actBarW = 1.2; // mm width per bar
+        const actBarGap = 0.4; // mm gap between bars
+        for (let ai = 0; ai < actAnc.length; ai++) {
+          const rgb = hexToRgb(actAnc[ai]);
+          doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+          doc.rect(ganttLeft + ai * (actBarW + actBarGap), y, actBarW, rh, "F");
         }
 
         // Row separator line — thin but visible for clean visual separation

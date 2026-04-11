@@ -66,6 +66,7 @@ interface WbsGroup {
   depth: number;
   wbsColor?: string;
   wbsTextColor?: string;
+  ancestorColors?: string[];
 }
 
 interface PdfExportPreviewProps {
@@ -317,8 +318,8 @@ export function PdfExportPreview({
   // Build the ordered list of preview rows (WBS group headers + activities)
   const previewRows = useMemo(() => {
     type PreviewRow =
-      | { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[] }
-      | { type: "activity"; act: Activity };
+      | { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[]; ancestorColors?: string[] }
+      | { type: "activity"; act: Activity; ancestorColors?: string[] };
 
     const rows: PreviewRow[] = [];
     const useWbs = groupBy === "wbs" && groupedActivities && groupedActivities.length > 0;
@@ -327,10 +328,10 @@ export function PdfExportPreview({
       for (const g of groupedActivities!) {
         const gActs = criticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
         if (g.group && gActs.length > 0) {
-          rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs });
+          rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs, ancestorColors: g.ancestorColors });
         }
         for (const act of gActs) {
-          rows.push({ type: "activity", act });
+          rows.push({ type: "activity", act, ancestorColors: g.ancestorColors });
         }
       }
     } else {
@@ -367,7 +368,7 @@ export function PdfExportPreview({
 
   // Helper: get the PDF-scaled pixel height for a given preview row
   // Mirrors GanttChart.tsx getWbsRowHeight / getActivityRowHeight, scaled to PDF ppi AND magnificationZoom
-  type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[] } | { type: "activity"; act: Activity };
+  type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[]; ancestorColors?: string[] } | { type: "activity"; act: Activity; ancestorColors?: string[] };
   // Combined zoom: magnificationZoom from the scheduler * pdfZoom from the PDF preview controls
   const zoomScale = (magnificationZoom / 100) * (pdfZoom / 100);
   const getRowHeightPdf = useCallback((row: PreviewRow, ppi: number): number => {
@@ -590,17 +591,25 @@ export function PdfExportPreview({
 
       if (row.type === "group") {
         const depth = row.depth;
-        const indent = depth * 6;
         // P6-style depth-based WBS colors: green → yellow → red/salmon → pink
         const WBS_PREVIEW_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
         ctx.fillStyle = WBS_PREVIEW_BG[depth % WBS_PREVIEW_BG.length];
         ctx.fillRect(margin, ry, tableW, rh);
+        // P6-style colored left bars — one per ancestor level
+        const anc = row.ancestorColors || [];
+        const barW = 3; // px width per bar
+        const barGap = 1; // px gap between bars
+        for (let ai = 0; ai < anc.length; ai++) {
+          ctx.fillStyle = anc[ai];
+          ctx.fillRect(margin + ai * (barW + barGap), ry, barW, rh);
+        }
+        const leftBarsWidth = anc.length > 0 ? anc.length * (barW + barGap) + 3 : 0;
         // Bold black text
         ctx.fillStyle = "#141414";
         ctx.font = `bold ${depth === 0 ? baseFontSize * 1.2 : depth === 1 ? baseFontSize * 1.1 : baseFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = "left";
         const groupLabel = row.label.length > 50 ? row.label.slice(0, 50) + "…" : row.label;
-        ctx.fillText(groupLabel, margin + 4 + indent, ry + rh / 2);
+        ctx.fillText(groupLabel, margin + 4 + leftBarsWidth, ry + rh / 2);
         ctx.strokeStyle = "#c8c8c8";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
@@ -614,6 +623,14 @@ export function PdfExportPreview({
       if (actRowIndex % 2 === 1) {
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(margin, ry, tableW, rh);
+      }
+      // P6-style colored left bars on activity rows
+      const actAnc = row.ancestorColors || [];
+      const actBarW = 3; // px width per bar
+      const actBarGap = 1; // px gap between bars
+      for (let ai = 0; ai < actAnc.length; ai++) {
+        ctx.fillStyle = actAnc[ai];
+        ctx.fillRect(margin + ai * (actBarW + actBarGap), ry, actBarW, rh);
       }
       ctx.fillStyle = act.isCritical ? "#dc2626" : "#334155";
       ctx.font = `${baseFontSize}px 'DM Sans', sans-serif`;

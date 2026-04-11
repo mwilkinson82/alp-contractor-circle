@@ -4016,6 +4016,7 @@ export default function Scheduler() {
                 depth: g.depth ?? 0,
                 wbsColor: g.wbsColor,
                 wbsTextColor: g.wbsTextColor,
+                ancestorColors: g.ancestorColors,
               })) : undefined,
             });
             toast.success("PDF exported successfully");

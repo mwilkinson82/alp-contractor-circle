@@ -1635,3 +1635,8 @@
 ## PDF Fix Round 2.7
 - [x] Fix header custom text vertical centering — removed midY - 3 offset, now uses midY like other columns
 - [x] Fix preview canvas rich text vertical centering — totalH now uses scaled font sizes matching actual render sizes
+
+## PDF Fix Round 2.8
+- [x] Restore P6-style WBS depth indicator bars on left side of PDF table rows
+- [x] Add depth indicator bars to preview canvas for both WBS group and activity rows
+- [x] Thread ancestorColors through PdfExportOptions, PdfRow, WbsGroup, PreviewRow, and Scheduler export mapping
