@@ -765,15 +765,55 @@ export default function GanttChart({
         // Colored left bar
         ctx.fillStyle = barColor;
         ctx.fillRect(depth * 12, y, barWidth, ROW_HEIGHT);
-        // Group label text — full white, strip code prefix to show just the name
+        // Group label text — full white, bold
         ctx.fillStyle = "#ffffff";
-        ctx.font = depth === 0 ? "bold 12px 'DM Sans', sans-serif" : "bold 11px 'DM Sans', sans-serif";
+        ctx.font = depth === 0 ? "bold 13px 'DM Sans', sans-serif" : "bold 12px 'DM Sans', sans-serif";
         ctx.textAlign = "left";
-        // Strip "code — " prefix from label for cleaner display
+        // Hardcoded WBS name lookup for residential schedules
+        const WBS_NAMES: Record<string, string> = {
+          "1.0": "General Conditions", "2.0": "Submittals",
+          "2.1": "Prepare & Submit", "2.2": "Review & Approve",
+          "3.0": "Fabrication", "3.1": "Structural Steel",
+          "3.2": "Openings (Windows & Doors)", "3.3": "Millwork & Cabinetry",
+          "3.4": "MEP Equipment", "4.0": "Construction",
+          "4.1": "Sitework & Civil", "4.2": "Concrete & Foundation",
+          "4.3": "Structural Framing", "4.4": "Enclosure",
+          "4.5": "MEP Rough-In", "4.6": "Interior Finishes",
+          "4.7": "MEP Trim & Startup", "4.8": "Exterior & Landscaping",
+          "4.9": "Closeout",
+          "1.2": "Construction", "1.2.1": "Sitework & Civil",
+          "1.2.2": "Foundation", "1.2.3": "Structural Framing",
+          "1.2.4": "Enclosure", "1.2.5": "MEP Rough-In",
+          "1.2.6": "Interior Finishes", "1.2.7": "MEP Trim & Startup",
+          "1.2.8": "Exterior & Landscaping", "1.2.9": "Closeout",
+        };
         let groupLabel = row.group || "";
+        // Extract WBS code from label (format: "code — name")
         const dashIdx = groupLabel.indexOf(" \u2014 ");
-        if (dashIdx > 0) groupLabel = groupLabel.substring(dashIdx + 3);
-        ctx.fillText(groupLabel, 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 4);
+        const wbsCode = dashIdx > 0 ? groupLabel.substring(0, dashIdx) : groupLabel;
+        // Use lookup name, then label name, then code
+        if (WBS_NAMES[wbsCode]) {
+          groupLabel = WBS_NAMES[wbsCode];
+        } else if (dashIdx > 0) {
+          const labelName = groupLabel.substring(dashIdx + 3);
+          groupLabel = (labelName !== wbsCode) ? labelName : wbsCode;
+        }
+        // Draw code badge first
+        ctx.font = "bold 9px 'DM Mono', monospace";
+        ctx.fillStyle = barColor;
+        const badgeText = wbsCode;
+        const badgeW = ctx.measureText(badgeText).width + 8;
+        const badgeX = 16 + depth * 12 + barWidth;
+        const badgeY = y + ROW_HEIGHT / 2 - 5;
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, 14, 3);
+        ctx.fill();
+        ctx.fillStyle = "#000000";
+        ctx.fillText(badgeText, badgeX + 4, badgeY + 10);
+        // Draw name text
+        ctx.fillStyle = "#ffffff";
+        ctx.font = depth === 0 ? "bold 13px 'DM Sans', sans-serif" : "bold 12px 'DM Sans', sans-serif";
+        ctx.fillText(groupLabel, badgeX + badgeW + 8, y + ROW_HEIGHT / 2 + 4);
         continue;
       }
 

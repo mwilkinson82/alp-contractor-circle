@@ -1339,3 +1339,7 @@
 - [x] Rewrite residential template WBS: 1. General Conditions, 2. Submittals (Prepare & Submit / Review & Approve), 3. Fabrication (by CSI), 4. Construction (by CSI)
 - [x] Rewrite auto-assign logic to match activity names to correct phase (General/Submittal/Fabrication/Construction)
 - [x] Fix WBS name display when name === code (derive names from child activities)
+
+## WBS Title Fix (April 11 — Round 3)
+- [x] Fix WBS group header to always show title text in large bold white next to code badge
+- [x] Add residential template name mapping as fallback when WBS node name === code

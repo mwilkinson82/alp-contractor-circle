@@ -1703,52 +1703,62 @@ export default function Scheduler() {
                               ? <ChevronRight className="w-3.5 h-3.5" />
                               : <ChevronDown className="w-3.5 h-3.5" />}
                           </span>
-                          {/* WBS code badge + name — strip code from label when badge shown */}
+                          {/* WBS code badge + name */}
                           {(() => {
+                            // Hardcoded WBS name lookup for residential schedules
+                            const WBS_NAME_LOOKUP: Record<string, string> = {
+                              // New 4-phase codes
+                              "1.0": "General Conditions", "2.0": "Submittals",
+                              "2.1": "Prepare & Submit", "2.2": "Review & Approve",
+                              "3.0": "Fabrication", "3.1": "Structural Steel",
+                              "3.2": "Openings (Windows & Doors)", "3.3": "Millwork & Cabinetry",
+                              "3.4": "MEP Equipment", "4.0": "Construction",
+                              "4.1": "Sitework & Civil", "4.2": "Concrete & Foundation",
+                              "4.3": "Structural Framing", "4.4": "Enclosure",
+                              "4.5": "MEP Rough-In", "4.6": "Interior Finishes",
+                              "4.7": "MEP Trim & Startup", "4.8": "Exterior & Landscaping",
+                              "4.9": "Closeout",
+                              // Old residential codes (pre-rewrite schedules)
+                              "1.0.0": "Project", "1.1": "Pre-Construction",
+                              "1.2": "Construction", "1.2.1": "Sitework & Civil",
+                              "1.2.2": "Foundation", "1.2.3": "Structural Framing",
+                              "1.2.4": "Enclosure", "1.2.5": "MEP Rough-In",
+                              "1.2.6": "Interior Finishes", "1.2.7": "MEP Trim & Startup",
+                              "1.2.8": "Exterior & Landscaping", "1.2.9": "Closeout",
+                              "1.3": "Submittals & Fabrication",
+                            };
                             if (groupBy === "wbs") {
                               const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} \u2014 ${w.name}` === group || w.code === group);
                               if (wbsNode) {
-                                // Determine display name: use node.name if it's different from code
-                                // If name === code, derive a name from child activities
+                                // Priority: 1) DB name if meaningful, 2) hardcoded lookup, 3) derive from activities
                                 let displayName = "";
                                 if (wbsNode.name && wbsNode.name !== wbsNode.code && wbsNode.name.trim() !== wbsNode.code.trim()) {
                                   displayName = wbsNode.name;
+                                } else if (WBS_NAME_LOOKUP[wbsNode.code]) {
+                                  displayName = WBS_NAME_LOOKUP[wbsNode.code];
                                 } else {
-                                  // Derive name from activities in this group
+                                  // Derive from child activities
                                   const actsInGroup = groupActs || [];
                                   if (actsInGroup.length === 1) {
                                     displayName = actsInGroup[0].name;
                                   } else if (actsInGroup.length > 1) {
-                                    // Try to find common theme from activity names
-                                    const firstAct = actsInGroup[0]?.name || "";
-                                    const keywords = firstAct.split(/[\s\/\-&,]+/).filter((w: string) => w.length > 3);
-                                    const commonWord = keywords.find((kw: string) =>
-                                      actsInGroup.every((a: any) => a.name?.toLowerCase().includes(kw.toLowerCase()))
-                                    );
-                                    displayName = commonWord
-                                      ? commonWord.charAt(0).toUpperCase() + commonWord.slice(1)
-                                      : `${actsInGroup.length} Activities`;
+                                    displayName = `${actsInGroup.length} Activities`;
                                   } else {
-                                    // No activities — check if it has child WBS groups
                                     const childNodes = wbsNodes.filter((w: any) => w.parentId === wbsNode.id);
-                                    if (childNodes.length > 0) {
-                                      displayName = `${childNodes.length} Sub-groups`;
-                                    } else {
-                                      displayName = "(unnamed)";
-                                    }
+                                    displayName = childNodes.length > 0 ? `${childNodes.length} Sub-groups` : wbsNode.code;
                                   }
                                 }
                                 return (
                                   <>
                                     <span
-                                      className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                                      className="text-[11px] font-mono font-extrabold px-2 py-0.5 rounded mr-2.5 flex-shrink-0"
                                       style={{ backgroundColor: barColor, color: "#000000" }}
                                     >
                                       {wbsNode.code}
                                     </span>
                                     <span
-                                      className="font-bold tracking-wide truncate"
-                                      style={{ fontSize: d === 0 ? "0.875rem" : "0.8125rem", color: "#ffffff" }}
+                                      className="font-extrabold tracking-wide"
+                                      style={{ fontSize: d === 0 ? "0.9375rem" : "0.875rem", color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
                                     >
                                       {displayName}
                                     </span>
@@ -1759,8 +1769,8 @@ export default function Scheduler() {
                             // Fallback: non-WBS grouping or no matching node
                             return (
                               <span
-                                className="font-bold tracking-wide truncate"
-                                style={{ fontSize: d === 0 ? "0.875rem" : "0.8125rem", color: "#ffffff" }}
+                                className="font-extrabold tracking-wide"
+                                style={{ fontSize: d === 0 ? "0.9375rem" : "0.875rem", color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
                               >
                                 {group}
                               </span>
