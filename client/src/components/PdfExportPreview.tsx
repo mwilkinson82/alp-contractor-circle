@@ -305,11 +305,12 @@ export function PdfExportPreview({
     const footerH = 0.25 * ppi;
     const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
     const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
-    // Use average row height for pagination (will be adjusted per-row during rendering)
-    const avgRowH = (44 * ppi) / 96; // Average of parent/child rows
+    // Use average row height for pagination, scaled by magnification zoom
+    const zoomScale = magnificationZoom / 100;
+    const avgRowH = (44 * ppi * zoomScale) / 96; // Average of parent/child rows, zoom-scaled
     const maxRows = Math.max(1, Math.floor((contentH - avgRowH) / avgRowH));
     return { maxRows, ppi, margin, headerH, footerH, contentH, baseFontSize, avgRowH };
-  }, [canvasDims, paperDims]);
+  }, [canvasDims, paperDims, magnificationZoom]);
 
   const pages = useMemo(() => {
     const { maxRows } = rowsPerPage;
