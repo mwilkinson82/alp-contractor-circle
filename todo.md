@@ -1529,3 +1529,17 @@
 - [x] Do not hardcode column list — pass visible columns from scheduler state
 - [x] Dynamic column headers in Gantt left-side table (navy/gold header row)
 - [x] Both preview canvas and actual PDF generator use dynamic columns
+
+## PDF Export P6-Quality Rebuild
+- [x] Increase font sizes: 7pt for activities, 9pt bold for WBS groups
+- [x] WBS group rows: bright yellow background with bold text (like P6)
+- [x] Thick prominent WBS summary bars in Gantt (35% of row height)
+- [x] Activity labels to right of bars with bullet dot prefix (●), readable size
+- [x] Increase bar thickness to 65% of row height
+- [x] Add vertical month gridlines in Gantt area (0.2 lineWidth)
+- [x] Two-tier timescale: months on top, week ticks below
+- [x] WBS rows visibly taller than activity rows (10mm/8mm/6.5mm vs 7.5mm)
+- [x] Add page sizes: A3, A1, ARCH D (24x36), ARCH E (36x48) for plotter output
+- [x] Overall professional density matching P6
+- [x] Update preview canvas to match new PDF styling (yellow groups, bullet labels, thick bars)
+- [x] Self-QA: TypeScript clean, 365 tests pass

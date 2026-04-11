@@ -71,7 +71,7 @@ export interface PdfExportOptions {
   headerConfig?: PdfHeaderConfig;
 
   // Page settings
-  pageSize: "letter" | "legal" | "tabloid";
+  pageSize: "letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE" | [number, number];
   orientation: "landscape" | "portrait";
 
   // Display options
@@ -196,11 +196,21 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     ? activities.filter((a) => a.isCritical)
     : activities;
 
+  // Resolve page size — jsPDF supports letter/legal/tabloid/a3/a1 natively;
+  // for ARCH sizes we pass [width, height] in mm
+  const PAGE_SIZE_MM: Record<string, [number, number]> = {
+    archD: [609.6, 914.4],  // 24×36 inches
+    archE: [914.4, 1219.2], // 36×48 inches
+  };
+  const resolvedFormat: string | [number, number] = Array.isArray(pageSize)
+    ? pageSize
+    : PAGE_SIZE_MM[pageSize] || pageSize;
+
   // Create PDF
   const doc = new jsPDF({
     orientation,
     unit: "mm",
-    format: pageSize,
+    format: resolvedFormat,
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -536,13 +546,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
-    // Variable row heights: group rows are taller, activity rows are compact
+    // Variable row heights: group rows are taller, activity rows are compact (P6-style)
     const getRowH = (row: PdfRow): number => {
       if (row.type === "group") {
         const depth = row.depth;
-        return (depth === 0 ? 8.5 : depth === 1 ? 6.5 : 5.5) * zoomScale;
+        return (depth === 0 ? 10 : depth === 1 ? 8 : 6.5) * zoomScale;
       }
-      return 7 * zoomScale;
+      return 7.5 * zoomScale;
     };
 
     // Start Gantt on a new page (or continue on first page if no table)
@@ -622,10 +632,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const pageRows = pages[pageIdx];
 
       // ─── Draw column headers at top of Gantt table ─────────────────
-      const colHeaderH = 5;
+      const colHeaderH = 7;
       doc.setFillColor(...colors.navy);
       doc.rect(ganttLeft, ganttTop - colHeaderH - 1, labelWidth, colHeaderH, "F");
-      doc.setFontSize(5);
+      doc.setFontSize(6.5);
       doc.setTextColor(...colors.gold);
       doc.setFont("helvetica", "bold");
       let chX = ganttLeft;
@@ -655,25 +665,45 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const pageContentBottom = cumY;
 
       // ─── Draw Time Scale ──────────────────────────────────────────────────
-      doc.setFontSize(6);
-      doc.setTextColor(...colors.muted);
+      // Two-tier timescale: months on top, week ticks below (P6-style)
+      doc.setFontSize(7);
+      doc.setTextColor(...colors.text);
 
       const current = new Date(minDate);
       current.setDate(1);
       while (current <= maxDate) {
         const x = dateToX(current);
         if (x >= chartLeft && x <= ganttRight) {
-          doc.setDrawColor(230, 230, 230);
-          doc.setLineWidth(0.1);
+          // Month gridline — visible
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.2);
           doc.line(x, ganttTop, x, pageContentBottom);
-          doc.setTextColor(...colors.muted);
+          // Month label
+          doc.setTextColor(...colors.text);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7);
           doc.text(
             current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-            x + 1, ganttTop - 2
+            x + 1, ganttTop - 3
           );
+          // Week tick marks within this month
+          const weekDate = new Date(current);
+          weekDate.setDate(weekDate.getDate() + 7);
+          const nextMonth = new Date(current);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          while (weekDate < nextMonth && weekDate <= maxDate) {
+            const wx = dateToX(weekDate);
+            if (wx >= chartLeft && wx <= ganttRight) {
+              doc.setDrawColor(235, 235, 235);
+              doc.setLineWidth(0.08);
+              doc.line(wx, ganttTop, wx, pageContentBottom);
+            }
+            weekDate.setDate(weekDate.getDate() + 7);
+          }
         }
         current.setMonth(current.getMonth() + 1);
       }
+      doc.setFont("helvetica", "normal");
 
       // ─── Draw Data Date Line ──────────────────────────────────────────────
       if (dataDate) {
@@ -692,21 +722,19 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       pageRows.forEach((row, i) => {
         const y = rowYOffsets[i];
         const rh = getRowH(row);
-        const barH = rh * 0.5;
+        const barH = rh * 0.65;
 
         if (row.type === "group") {
-          // WBS Group Header row
+          // WBS Group Header row — P6-style bright yellow for top-level, lighter for children
           const depth = row.depth;
           const indent = depth * 4; // mm indent per level
-          // Background
-          if (row.bgColor) {
-            const hex = row.bgColor.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            doc.setFillColor(r, g, b);
+          // Background — P6 uses bright yellow for WBS groups
+          if (depth === 0) {
+            doc.setFillColor(255, 255, 180); // Bright yellow like P6
+          } else if (depth === 1) {
+            doc.setFillColor(255, 255, 210); // Lighter yellow
           } else {
-            doc.setFillColor(depth === 0 ? 226 : depth === 1 ? 241 : 248, depth === 0 ? 232 : depth === 1 ? 245 : 250, depth === 0 ? 240 : depth === 1 ? 249 : 252);
+            doc.setFillColor(255, 255, 230); // Lightest yellow
           }
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
 
@@ -718,15 +746,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.rect(ganttLeft + indent - 1, y + 0.5, 0.8, rh - 1, "F");
           }
 
-          // Group label text
-          if (row.textColor) {
-            const hex = row.textColor.replace('#', '');
-            doc.setTextColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
-          } else {
-            doc.setTextColor(depth === 0 ? 30 : 51, depth === 0 ? 41 : 65, depth === 0 ? 59 : 81);
-          }
-          doc.setFont("helvetica", depth === 0 ? "bold" : "normal");
-          doc.setFontSize(depth === 0 ? 6 : 5.5);
+          // Group label text — P6-style bold dark text
+          doc.setTextColor(20, 20, 20); // Dark black text for all WBS levels
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7);
           doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.5, { maxWidth: labelWidth - indent - 4 });
 
           // ── WBS Summary Bar in Gantt area ──
@@ -741,7 +764,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             const sbx1 = dateToX(new Date(summaryStart));
             const sbx2 = dateToX(new Date(summaryEnd));
             const sbw = Math.max(sbx2 - sbx1, 2);
-            const sbh = Math.max(1.5, rh * 0.22);
+            const sbh = Math.max(3, rh * 0.35);
             const sby = y + rh / 2 - sbh / 2;
             // Dark summary bar
             doc.setFillColor(26, 26, 26);
@@ -781,7 +804,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.line(ganttLeft, y + rh, ganttRight, y + rh);
 
         // Activity columns (dynamic based on visible columns)
-        doc.setFontSize(5.5);
+        doc.setFontSize(7);
         const txtColor = act.isCritical ? colors.critical : colors.text;
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
@@ -862,11 +885,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], "F");
             }
 
-            // Label to the right of diamond (clipped to Gantt area)
-            doc.setFontSize(4.5);
+            // Label to the right of diamond (clipped to Gantt area) — P6-style with bullet
+            doc.setFontSize(6);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const milestoneLabel = act.name;
+            const milestoneLabel = `\u25CF ${act.name}`;
             const labelStartX = cx + half + 1.5;
             const availSpace = ganttRight - labelStartX - 1;
             if (availSpace > 5) {
@@ -897,11 +920,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               }
             }
 
-            // Label to the right of bar (clipped to Gantt area)
-            doc.setFontSize(4.5);
+            // Label to the right of bar (clipped to Gantt area) — P6-style with bullet
+            doc.setFontSize(6);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const barLabel = act.name;
+            const barLabel = `\u25CF ${act.name}`;
             const labelStartX = x2 + 1.5;
             const availableSpace = ganttRight - labelStartX - 1;
             if (availableSpace > 5) {

@@ -23,7 +23,7 @@ export interface PdfHeaderFooterConfig {
   footerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
   headerColumnCount?: 3 | 5;
   footerColumnCount?: 3 | 5;
-  pageSize?: "letter" | "legal" | "tabloid";
+  pageSize?: "letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE";
   orientation?: "landscape" | "portrait";
   showGantt?: boolean;
   showTable?: boolean;
@@ -100,6 +100,10 @@ const PAPER_SIZES: Record<string, { w: number; h: number; label: string }> = {
   letter:  { w: 8.5,  h: 11,   label: "Letter (8.5×11)" },
   legal:   { w: 8.5,  h: 14,   label: "Legal (8.5×14)" },
   tabloid: { w: 11,   h: 17,   label: "Tabloid (11×17)" },
+  a3:      { w: 11.69, h: 16.54, label: "A3 (297×420mm)" },
+  a1:      { w: 23.39, h: 33.11, label: "A1 (594×841mm)" },
+  archD:   { w: 24,   h: 36,   label: "ARCH D (24×36)" },
+  archE:   { w: 36,   h: 48,   label: "ARCH E (36×48)" },
 };
 
 interface ColumnData {
@@ -144,7 +148,7 @@ export function PdfExportPreview({
     { position: 1, content: "date" },
     { position: 2, content: "page" },
   ]);
-  const [pageSize, setPageSize] = useState<"letter" | "legal" | "tabloid">("tabloid");
+  const [pageSize, setPageSize] = useState<"letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE">("tabloid");
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
   const [showGantt, setShowGantt] = useState(true);
   const [showTable, setShowTable] = useState(false);
@@ -488,16 +492,18 @@ export function PdfExportPreview({
       if (row.type === "group") {
         const depth = row.depth;
         const indent = depth * 8;
-        ctx.fillStyle = row.bgColor || (depth === 0 ? "#e2e8f0" : depth === 1 ? "#f1f5f9" : "#f8fafc");
+        // P6-style yellow backgrounds for WBS groups
+        ctx.fillStyle = depth === 0 ? "#ffffb4" : depth === 1 ? "#ffffd2" : "#ffffe6";
         ctx.fillRect(margin, ry, tableW, rh);
         if (depth > 0) {
           ctx.fillStyle = row.bgColor || "#94a3b8";
           ctx.fillRect(margin + indent - 2, ry + 1, 2, rh - 2);
         }
-        ctx.fillStyle = row.textColor || (depth === 0 ? "#1e293b" : "#334155");
-        ctx.font = `${depth === 0 ? "bold" : "normal"} ${baseFontSize}px 'DM Sans', sans-serif`;
+        // P6-style bold dark text for all WBS levels
+        ctx.fillStyle = "#141414";
+        ctx.font = `bold ${depth === 0 ? baseFontSize * 1.4 : depth === 1 ? baseFontSize * 1.2 : baseFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = "left";
-        const groupLabel = row.label.length > 40 ? row.label.slice(0, 40) + "…" : row.label;
+        const groupLabel = row.label.length > 50 ? row.label.slice(0, 50) + "…" : row.label;
         ctx.fillText(groupLabel, margin + 4 + indent, ry + rh / 2);
         ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 0.5;
@@ -626,12 +632,8 @@ export function PdfExportPreview({
         if (ry + rh > contentY + contentH - 4) break;
 
         if (row.type === "group") {
-          // Background tint
-          if (row.bgColor) {
-            ctx.fillStyle = row.bgColor + "33";
-          } else {
-            ctx.fillStyle = row.depth === 0 ? "#e2e8f022" : "#f1f5f911";
-          }
+          // P6-style yellow background tint in Gantt area too
+          ctx.fillStyle = row.depth === 0 ? "#ffffb4" : row.depth === 1 ? "#ffffd2" : "#ffffe6";
           ctx.fillRect(ganttX, ry, ganttW, rh);
 
           // ── WBS Summary Bar (matching GanttChart.tsx) ──
@@ -647,7 +649,7 @@ export function PdfExportPreview({
             const ePct = (summaryEnd - minDate) / dateRange;
             const sbx = ganttX + 4 + sPct * (ganttW - 8);
             const sbw = Math.max(4, (ePct - sPct) * (ganttW - 8));
-            const sbh = Math.max(4, rh * 0.22);
+            const sbh = Math.max(5, rh * 0.35);
             const sby = ry + rh / 2 - sbh / 2 + 1;
             // Dark summary bar
             ctx.fillStyle = "#1a1a1a";
@@ -699,41 +701,28 @@ export function PdfExportPreview({
           ctx.lineTo(cx - s, cy);
           ctx.closePath();
           ctx.fill();
-          // Milestone label to the right
-          const mlFont = Math.max(4, baseFontSize * 0.85);
+          // Milestone label to the right — P6-style with bullet
+          const mlFont = Math.max(5, baseFontSize * 0.95);
           ctx.font = `${mlFont}px 'DM Sans', sans-serif`;
           ctx.fillStyle = "#1e293b";
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(act.name, cx + s + 3, cy);
+          ctx.fillText(`\u25CF ${act.name}`, cx + s + 3, cy);
         } else {
           ctx.fillStyle = act.barColor || (act.isCritical ? "#ef4444" : "#22c55e");
           const radius = 1.5;
           ctx.beginPath();
           ctx.roundRect(bx, by, bw, bh, radius);
           ctx.fill();
-          // Activity name label — draw on bar if it fits, otherwise to the right
-          const barFont = Math.max(4, baseFontSize * 0.85);
+          // Activity name label — P6-style: always to the right with bullet dot
+          const barFont = Math.max(5, baseFontSize * 0.95);
           ctx.font = `${barFont}px 'DM Sans', sans-serif`;
           ctx.textBaseline = "middle";
           const labelY = ry + rh / 2;
-          const labelPad = 3;
-          const textW = ctx.measureText(act.name).width;
-          if (textW + labelPad * 2 <= bw - 4) {
-            // Fits inside bar
-            ctx.save();
-            ctx.rect(bx, by, bw, bh);
-            ctx.clip();
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "left";
-            ctx.fillText(act.name, bx + labelPad, labelY);
-            ctx.restore();
-          } else {
-            // Draw to the right of bar
-            ctx.fillStyle = "#1e293b";
-            ctx.textAlign = "left";
-            ctx.fillText(act.name, bx + bw + 3, labelY);
-          }
+          // Always draw label to the right of bar with bullet prefix
+          ctx.fillStyle = "#1e293b";
+          ctx.textAlign = "left";
+          ctx.fillText(`\u25CF ${act.name}`, bx + bw + 3, labelY);
         }
       }
 
@@ -1113,6 +1102,10 @@ export function PdfExportPreview({
                       <SelectItem value="letter" className="text-xs">Letter (8.5×11)</SelectItem>
                       <SelectItem value="legal" className="text-xs">Legal (8.5×14)</SelectItem>
                       <SelectItem value="tabloid" className="text-xs">Tabloid (11×17)</SelectItem>
+                      <SelectItem value="a3" className="text-xs">A3 (297×420mm)</SelectItem>
+                      <SelectItem value="a1" className="text-xs">A1 (594×841mm)</SelectItem>
+                      <SelectItem value="archD" className="text-xs">ARCH D (24×36)</SelectItem>
+                      <SelectItem value="archE" className="text-xs">ARCH E (36×48)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
