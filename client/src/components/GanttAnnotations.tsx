@@ -1,7 +1,7 @@
 /**
  * GanttAnnotations — SVG overlay for the Gantt chart that supports:
  *   - Text boxes (movable, editable)
- *   - Arrows (from point A to point B)
+ *   - Arrows (from point A to point B) with configurable endpoints and line styles
  *   - Time-period shading (highlight a date range with color + optional hatching)
  *
  * Used for delay analysis, impact presentations, and change order documentation.
@@ -45,6 +45,9 @@ export interface TextAnnotation {
   width: number;
 }
 
+export type ArrowLineStyle = "solid" | "dashed" | "dotted";
+export type ArrowEndpoint = "arrow" | "circle" | "diamond" | "none";
+
 export interface ArrowAnnotation {
   id: string;
   type: "arrow";
@@ -55,6 +58,9 @@ export interface ArrowAnnotation {
   color: string;
   strokeWidth: number;
   label?: string;
+  lineStyle?: ArrowLineStyle;
+  startEndpoint?: ArrowEndpoint;
+  endEndpoint?: ArrowEndpoint;
 }
 
 export interface ShadingAnnotation {
@@ -79,6 +85,14 @@ const COLORS = [
   "#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6",
   "#8b5cf6", "#ec4899", "#6b7280", "#000000", "#ffffff",
 ];
+
+// ── Dash array helpers ──────────────────────────────────────────────────
+function getDashArray(style: ArrowLineStyle | undefined, strokeWidth: number): string {
+  if (!style || style === "solid") return "";
+  if (style === "dashed") return `${strokeWidth * 4} ${strokeWidth * 2}`;
+  if (style === "dotted") return `${strokeWidth} ${strokeWidth * 2}`;
+  return "";
+}
 
 // ── Component ─────────────────────────────────────────────────────────────
 interface GanttAnnotationsProps {
@@ -208,6 +222,9 @@ export default function GanttAnnotations({
           x1: drawState.startX, y1: drawState.startY,
           x2: drawState.currentX, y2: drawState.currentY,
           color: "#ef4444", strokeWidth: 2,
+          lineStyle: "solid",
+          startEndpoint: "none",
+          endEndpoint: "arrow",
         };
         onAnnotationsChange([...annotations, newArrow]);
         setSelectedId(id);
@@ -257,6 +274,37 @@ export default function GanttAnnotations({
 
   if (!visible) return null;
 
+  // ── Helper: get marker ID for an endpoint type + color ────────────────
+  const getMarkerId = (endpoint: ArrowEndpoint | undefined, color: string, position: "start" | "end") => {
+    if (!endpoint || endpoint === "none") return undefined;
+    // Use a sanitized color for the ID
+    const safeColor = color.replace("#", "");
+    return `marker-${endpoint}-${safeColor}-${position}`;
+  };
+
+  // ── Collect unique markers needed ─────────────────────────────────────
+  const markerDefs: { id: string; endpoint: ArrowEndpoint; color: string; position: "start" | "end" }[] = [];
+  for (const ann of annotations) {
+    if (ann.type === "arrow") {
+      const a = ann as ArrowAnnotation;
+      const startEp = a.startEndpoint || "none";
+      const endEp = a.endEndpoint || "arrow";
+      if (startEp !== "none") {
+        const id = getMarkerId(startEp, a.color, "start")!;
+        if (!markerDefs.find(m => m.id === id)) markerDefs.push({ id, endpoint: startEp, color: a.color, position: "start" });
+      }
+      if (endEp !== "none") {
+        const id = getMarkerId(endEp, a.color, "end")!;
+        if (!markerDefs.find(m => m.id === id)) markerDefs.push({ id, endpoint: endEp, color: a.color, position: "end" });
+      }
+    }
+  }
+  // Also add default arrowhead for drawing preview
+  const previewMarkerId = "marker-arrow-ef4444-end";
+  if (!markerDefs.find(m => m.id === previewMarkerId)) {
+    markerDefs.push({ id: previewMarkerId, endpoint: "arrow", color: "#ef4444", position: "end" });
+  }
+
   return (
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
@@ -296,9 +344,9 @@ export default function GanttAnnotations({
 
       {/* ── Properties panel (when selected) ─────────────────────────────── */}
       {selected && (
-        <div className="pointer-events-auto absolute top-12 right-2 z-30 w-56 bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg p-3 space-y-2">
+        <div className="pointer-events-auto absolute top-12 right-2 z-30 w-64 max-h-[calc(100vh-120px)] overflow-y-auto bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-600 uppercase">
+            <span className="text-xs font-semibold text-gray-300 uppercase">
               {selected.type === "text" ? "Text Box" : selected.type === "arrow" ? "Arrow" : "Shading"}
             </span>
             <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => setSelectedId(null)}>
@@ -349,19 +397,79 @@ export default function GanttAnnotations({
             </>
           )}
 
-          {/* Arrow-specific props */}
-          {selected.type === "arrow" && (
-            <div className="flex items-center gap-2">
-              <Label className="text-[10px] text-gray-400">Width</Label>
-              <Input type="number" className="h-6 w-14 text-xs" min={1} max={8}
-                value={(selected as ArrowAnnotation).strokeWidth}
-                onChange={e => updateAnnotation(selected.id, { strokeWidth: parseInt(e.target.value) || 2 })} />
-              <Label className="text-[10px] text-gray-400 ml-1">Label</Label>
-              <Input className="h-6 text-xs flex-1" placeholder="Optional"
-                value={(selected as ArrowAnnotation).label || ""}
-                onChange={e => updateAnnotation(selected.id, { label: e.target.value })} />
-            </div>
-          )}
+          {/* Arrow-specific props — expanded with line style and endpoint options */}
+          {selected.type === "arrow" && (() => {
+            const arrow = selected as ArrowAnnotation;
+            return (
+              <div className="space-y-3">
+                {/* Stroke width */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-gray-400 shrink-0">Width</Label>
+                  <Input type="number" className="h-6 w-14 text-xs" min={1} max={8}
+                    value={arrow.strokeWidth}
+                    onChange={e => updateAnnotation(selected.id, { strokeWidth: parseInt(e.target.value) || 2 })} />
+                </div>
+
+                {/* Line style */}
+                <div>
+                  <Label className="text-[10px] text-gray-400">Line Style</Label>
+                  <Select value={arrow.lineStyle || "solid"}
+                    onValueChange={v => updateAnnotation(selected.id, { lineStyle: v as ArrowLineStyle })}>
+                    <SelectTrigger className="h-7 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solid">Solid ────</SelectItem>
+                      <SelectItem value="dashed">Dashed - - - -</SelectItem>
+                      <SelectItem value="dotted">Dotted · · · ·</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Start endpoint */}
+                <div>
+                  <Label className="text-[10px] text-gray-400">Start Point</Label>
+                  <Select value={arrow.startEndpoint || "none"}
+                    onValueChange={v => updateAnnotation(selected.id, { startEndpoint: v as ArrowEndpoint })}>
+                    <SelectTrigger className="h-7 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (flat)</SelectItem>
+                      <SelectItem value="arrow">Arrow ◄</SelectItem>
+                      <SelectItem value="circle">Circle ●</SelectItem>
+                      <SelectItem value="diamond">Diamond ◆</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* End endpoint */}
+                <div>
+                  <Label className="text-[10px] text-gray-400">End Point</Label>
+                  <Select value={arrow.endEndpoint || "arrow"}
+                    onValueChange={v => updateAnnotation(selected.id, { endEndpoint: v as ArrowEndpoint })}>
+                    <SelectTrigger className="h-7 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (flat)</SelectItem>
+                      <SelectItem value="arrow">Arrow ►</SelectItem>
+                      <SelectItem value="circle">Circle ●</SelectItem>
+                      <SelectItem value="diamond">Diamond ◆</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Label */}
+                <div>
+                  <Label className="text-[10px] text-gray-400">Label</Label>
+                  <Input className="h-7 text-xs mt-1" placeholder="Optional label text"
+                    value={arrow.label || ""}
+                    onChange={e => updateAnnotation(selected.id, { label: e.target.value })} />
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Shading-specific props */}
           {selected.type === "shading" && (
@@ -412,7 +520,7 @@ export default function GanttAnnotations({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Pattern definitions */}
+        {/* Pattern and marker definitions */}
         <defs>
           <pattern id="hatching" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" strokeWidth="1.5" />
@@ -424,9 +532,42 @@ export default function GanttAnnotations({
           <pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse">
             <circle cx="3" cy="3" r="1" fill="currentColor" />
           </pattern>
-          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
-          </marker>
+
+          {/* Dynamic markers for each arrow annotation */}
+          {markerDefs.map(m => {
+            const isStart = m.position === "start";
+            if (m.endpoint === "arrow") {
+              return (
+                <marker key={m.id} id={m.id}
+                  markerWidth="10" markerHeight="7"
+                  refX={isStart ? "0" : "10"} refY="3.5"
+                  orient="auto-start-reverse">
+                  <polygon points={isStart ? "10 0, 0 3.5, 10 7" : "0 0, 10 3.5, 0 7"} fill={m.color} />
+                </marker>
+              );
+            }
+            if (m.endpoint === "circle") {
+              return (
+                <marker key={m.id} id={m.id}
+                  markerWidth="8" markerHeight="8"
+                  refX="4" refY="4"
+                  orient="auto">
+                  <circle cx="4" cy="4" r="3" fill={m.color} />
+                </marker>
+              );
+            }
+            if (m.endpoint === "diamond") {
+              return (
+                <marker key={m.id} id={m.id}
+                  markerWidth="10" markerHeight="10"
+                  refX="5" refY="5"
+                  orient="auto">
+                  <polygon points="5 0, 10 5, 5 10, 0 5" fill={m.color} />
+                </marker>
+              );
+            }
+            return null;
+          })}
         </defs>
 
         {/* ── Render annotations ─────────────────────────────────────────── */}
@@ -473,12 +614,20 @@ export default function GanttAnnotations({
 
           if (ann.type === "arrow") {
             const a = ann as ArrowAnnotation;
+            const startEp = a.startEndpoint || "none";
+            const endEp = a.endEndpoint || "arrow";
+            const startMarkerId = getMarkerId(startEp, a.color, "start");
+            const endMarkerId = getMarkerId(endEp, a.color, "end");
+            const dashArray = getDashArray(a.lineStyle, a.strokeWidth);
+
             return (
               <g key={ann.id} onClick={(e) => { e.stopPropagation(); setSelectedId(ann.id); }}
                 style={{ color: a.color }}>
                 <line x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2}
                   stroke={a.color} strokeWidth={a.strokeWidth}
-                  markerEnd="url(#arrowhead)"
+                  strokeDasharray={dashArray}
+                  markerStart={startMarkerId ? `url(#${startMarkerId})` : undefined}
+                  markerEnd={endMarkerId ? `url(#${endMarkerId})` : undefined}
                   style={{ cursor: "move" }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -582,7 +731,7 @@ export default function GanttAnnotations({
           <line x1={drawState.startX} y1={drawState.startY}
             x2={drawState.currentX} y2={drawState.currentY}
             stroke="#ef4444" strokeWidth={2} strokeDasharray="4 2"
-            markerEnd="url(#arrowhead)" style={{ color: "#ef4444" }} />
+            markerEnd={`url(#${previewMarkerId})`} style={{ color: "#ef4444" }} />
         )}
         {drawState && tool === "shading" && (
           <rect

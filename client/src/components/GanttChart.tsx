@@ -80,13 +80,15 @@ interface GanttChartProps {
   onZoomChange?: (ppd: number) => void; // callback when user scrollwheel-zooms
   showCostOverlay?: boolean;
   costData?: Map<number, number>; // activityId -> budgetedCost in cents
+  costFontSize?: number; // px, default 8 — user-adjustable cost label font size
   criticalBarColor?: string | null; // per-schedule custom critical bar color (hex)
   normalBarColor?: string | null;   // per-schedule custom non-critical bar color (hex)
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 44;
+const BASE_ROW_HEIGHT = 44;
+const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
 const HEADER_HEIGHT = 48;
 const BAR_HEIGHT = 16;
 const BAR_Y_OFFSET = 17; // Push bar down to leave room for label above
@@ -112,9 +114,9 @@ const COLORS = {
   todayLine: "#9ca3af",
   dataDateLine: "#2563eb",   // Solid BLUE data date
   gridLine: "rgba(0,0,0,0.06)",
-  headerBg: "#f8f5f0",       // Warm off-white/tan header
-  headerText: "rgba(0,0,0,0.45)",
-  headerTextBold: "rgba(0,0,0,0.7)",
+  headerBg: "#d4a843",         // P6-style gold/yellow calendar header
+  headerText: "rgba(0,0,0,0.65)",
+  headerTextBold: "rgba(0,0,0,0.85)",
   selectedBg: "rgba(239,68,68,0.10)", // red selection highlight
   groupBg: "rgba(0,0,0,0.03)",
   rowBg: "#faf8f5",          // Very light warm white
@@ -223,9 +225,13 @@ export default function GanttChart({
   onZoomChange,
   showCostOverlay,
   costData,
+  costFontSize = 8,
   criticalBarColor,
   normalBarColor,
 }: GanttChartProps) {
+  // Dynamic row height: taller when cost overlay is active to prevent clipping
+  const ROW_HEIGHT = showCostOverlay ? COST_ROW_HEIGHT : BASE_ROW_HEIGHT;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -298,9 +304,9 @@ export default function GanttChart({
     return { rangeStart: start, rangeEnd: end, totalDays: daysBetween(start, end) };
   }, [activities, target1Activities, target2Activities, projectStartDate, dataDate]);
 
-  // Compute pixels per day based on zoom level (including "fit" and "custom")
+  // Compute pixels per day — always use customPixelsPerDay when provided
   const pixelsPerDay = useMemo(() => {
-    if (zoom === "custom" && customPixelsPerDay) {
+    if (customPixelsPerDay && customPixelsPerDay > 0) {
       return Math.max(0.5, Math.min(80, customPixelsPerDay));
     }
     if (zoom === "fit") {
@@ -311,6 +317,13 @@ export default function GanttChart({
     }
     return zoom === "day" ? 40 : zoom === "week" ? 14 : 4;
   }, [zoom, containerWidth, totalDays, customPixelsPerDay]);
+
+  // Auto-detect header granularity from actual ppd (not zoom state)
+  const effectiveHeaderMode: "day" | "week" | "month" = useMemo(() => {
+    if (pixelsPerDay >= 25) return "day";
+    if (pixelsPerDay >= 5) return "week";
+    return "month";
+  }, [pixelsPerDay]);
 
   const totalWidth = totalDays * pixelsPerDay;
   const totalHeight = HEADER_HEIGHT + flatRows.length * ROW_HEIGHT;
@@ -595,7 +608,7 @@ export default function GanttChart({
     ctx.strokeStyle = COLORS.gridLine;
     ctx.lineWidth = 1;
 
-    if (zoom === "day") {
+    if (effectiveHeaderMode === "day") {
       let current = new Date(rangeStart);
       while (current <= rangeEnd) {
         const x = daysBetween(rangeStart, current) * pixelsPerDay + offsetX;
@@ -625,7 +638,7 @@ export default function GanttChart({
         }
         current = addDays(current, 1);
       }
-    } else if (zoom === "week" || (zoom === "fit" && pixelsPerDay >= 5)) {
+    } else if (effectiveHeaderMode === "week") {
       let current = startOfWeek(new Date(rangeStart));
       while (current <= rangeEnd) {
         const x = daysBetween(rangeStart, current) * pixelsPerDay + offsetX;
@@ -675,9 +688,9 @@ export default function GanttChart({
       }
     }
 
-    // Header bottom border
-    ctx.strokeStyle = COLORS.headerBorder;
-    ctx.lineWidth = 1;
+    // Header bottom border — strong separation between calendar and data rows
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, HEADER_HEIGHT);
     ctx.lineTo(visibleWidth, HEADER_HEIGHT);
@@ -907,20 +920,19 @@ export default function GanttChart({
             // Find max cost for scaling
             let maxCost = 0;
             costData.forEach((c) => { if (c > maxCost) maxCost = c; });
-            const costBarMaxH = 8;
+            const costBarMaxH = 10;
             const costBarH = maxCost > 0 ? Math.max(2, (cost / maxCost) * costBarMaxH) : 0;
-            const costBarY = barY + BAR_HEIGHT + 1;
+            const costBarY = barY + BAR_HEIGHT + 2;
             ctx.fillStyle = "#3b82f6"; // blue
             ctx.globalAlpha = 0.5;
             ctx.fillRect(barX, costBarY, barW, costBarH);
             ctx.globalAlpha = 1;
-            // Cost label
-            if (barW > 30) {
-              ctx.fillStyle = "#1e40af";
-              ctx.font = `8px '${ganttFontFamily}', sans-serif`;
-              ctx.textAlign = "left";
-              ctx.fillText(`$${(cost / 100).toLocaleString()}`, barX + 2, costBarY + costBarH + 8);
-            }
+            // Cost label — uses user-configurable costFontSize
+            const cfs = Math.max(6, Math.min(16, costFontSize));
+            ctx.fillStyle = "#93c5fd"; // light blue for dark bg readability
+            ctx.font = `${cfs}px '${ganttFontFamily}', sans-serif`;
+            ctx.textAlign = "left";
+            ctx.fillText(`$${(cost / 100).toLocaleString()}`, barX + 2, costBarY + costBarH + cfs + 1);
           }
         }
       }
@@ -1142,7 +1154,7 @@ export default function GanttChart({
   }, [
     activities, relationships, target1Activities, target2Activities,
     flatRows, activityRowMap, rangeStart, rangeEnd, totalDays,
-    pixelsPerDay, zoom, scrollLeft, scrollTop, containerWidth, containerHeight,
+    pixelsPerDay, zoom, effectiveHeaderMode, scrollLeft, scrollTop, containerWidth, containerHeight,
     selectedActivityId, showArrows, showDataDateLine, showTodayLine, dataDate,
     hoveredActivity, hoveredEdge, dragState, dropTarget,
   ]);

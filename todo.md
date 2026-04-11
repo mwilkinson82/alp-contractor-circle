@@ -1269,3 +1269,17 @@
 - [x] Fix PDF.js worker CDN failure — use bundled worker URL instead of Cloudflare CDN
 - [x] Add logic lines (relationship arrows) toggle to PDF export settings
 - [x] Fix PDF export to respect WBS grouping and show WBS group headers
+
+## Gantt Chart & Toolbar Improvements (Marshall Feedback)
+- [x] Gantt rows auto-resize height when dollar cost resource text is cut off
+- [x] Cost font size control — user can increase/decrease dollar value font on Gantt (in Gantt Display Settings)
+- [x] Annotation arrow: show actual arrowhead at endpoint, not just a straight line
+- [x] Annotation arrow: options for solid/dashed/dotted line and endpoint styles (arrow/circle/diamond/none)
+- [x] Annotation arrow modal: widened to w-64 with proper scrolling
+- [x] Logic line button icon: changed to P6-style right-angle arrow
+- [x] All toolbar buttons: hover tooltips added identifying each button
+- [x] Construct Line branding: removed "A" logo, added "Powered by ALP" under Construct Line
+- [x] Gantt calendar header: P6-style warm gold/amber with thick bottom border separator
+- [x] Zoom slider: decoupled from view mode — auto-detects header granularity from ppd
+- [x] Toolbar group labels: amber-tinted, bold, with top border separator for visual hierarchy
+- [x] PDF.js worker: copied to client/public, served as static file (fixes CDN failure)

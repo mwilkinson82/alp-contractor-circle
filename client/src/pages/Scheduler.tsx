@@ -518,6 +518,7 @@ export default function Scheduler() {
   const [ganttFontColor, setGanttFontColor] = useState("#374151");
   const [ganttFontFamily, setGanttFontFamily] = useState("DM Sans");
   const [showGanttSettings, setShowGanttSettings] = useState(false);
+  const [costFontSize, setCostFontSize] = useState(9);
   /* Bar color overrides — initialized from schedule data when dialog opens */
   const [localCriticalBarColor, setLocalCriticalBarColor] = useState("#ef4444");
   const [localNormalBarColor, setLocalNormalBarColor] = useState("#22c55e");
@@ -1157,14 +1158,9 @@ export default function Scheduler() {
           </button>
           <div className="w-px h-5 bg-white/10" />
           {/* Construct Line Brand Mark */}
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-gray-950" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M2 14L8 2L14 14" />
-                <path d="M4 10h8" />
-              </svg>
-            </div>
-            <span className="text-sm font-bold tracking-tight text-white">Construct<span className="text-amber-400">Line</span></span>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
+            <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
           </div>
           <div className="w-px h-5 bg-white/10" />
           <h1 className="text-sm font-medium text-gray-300 truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
@@ -1246,23 +1242,23 @@ export default function Scheduler() {
                 DD: {dataDate ? formatDate(dataDate) : "Set"}
               </Button>
             </div>
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Schedule</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Schedule</span>
           </div>
 
           {/* ── GROUP: Activities ── */}
           <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
             <div className="flex items-center gap-0.5 flex-1">
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowActivityDialog(true)}>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowActivityDialog(true)} title="Add a new activity">
                 <Plus className="w-3.5 h-3.5" /> Add
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300 rounded-md" onClick={() => setShowBulkAddDialog(true)}>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300 rounded-md" onClick={() => setShowBulkAddDialog(true)} title="Bulk add multiple activities">
                 <Plus className="w-3.5 h-3.5" /> Bulk
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowCsvImportDialog(true)}>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowCsvImportDialog(true)} title="Import activities from CSV file">
                 <Upload className="w-3.5 h-3.5" /> CSV
               </Button>
             </div>
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Activities</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Activities</span>
           </div>
 
           {/* ── GROUP: View ── */}
@@ -1283,8 +1279,9 @@ export default function Scheduler() {
               <div className="flex items-center gap-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
                 <span className="text-[9px] text-gray-600">−</span>
                 <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
-                  onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); setZoom("custom"); }}
+                  onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); }}
                   className="w-14 h-1 accent-amber-500 cursor-pointer"
+                  title={`Timescale density: ${customPpd} px/day`}
                 />
                 <span className="text-[9px] text-gray-600">+</span>
               </div>
@@ -1292,8 +1289,12 @@ export default function Scheduler() {
               {/* Toggle Group */}
               <div className="flex items-center bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
                 <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showArrows ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
-                  onClick={() => setShowArrows(!showArrows)} title="Dependency arrows">
-                  <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
+                  onClick={() => setShowArrows(!showArrows)} title="Logic lines (relationship arrows)">
+                  {/* P6-style right-angle arrow icon for logic lines */}
+                  <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 4v8h6" />
+                    <path d="M7 10l2 2-2 2" />
+                  </svg>
                 </Button>
                 <div className="w-px h-4 bg-white/[0.06]" />
                 <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showDataDateLine ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
@@ -1316,17 +1317,18 @@ export default function Scheduler() {
                 <Pencil className="w-3.5 h-3.5" /> Annotate
               </Button>
               <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowColumnPicker(true)}>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowColumnPicker(true)} title="Choose visible table columns">
                 <Columns3 className="w-3.5 h-3.5" /> Columns
               </Button>
               <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1 rounded-md ${hasActiveFilters ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06]"} hover:text-gray-200`}
-                onClick={() => setShowAdvancedFilter(true)}>
+                onClick={() => setShowAdvancedFilter(true)} title="Filter activities by critical path, float, dates, and more">
                 <Filter className="w-3.5 h-3.5" /> Filter
                 {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
               </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md">
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" title="Group activities by WBS, Critical Path, or Activity Codes">
                     <Layers className="w-3.5 h-3.5" /> Group
                   </Button>
                 </DropdownMenuTrigger>
@@ -1348,22 +1350,22 @@ export default function Scheduler() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">View</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">View</span>
           </div>
 
           {/* ── GROUP: Tools ── */}
           <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
             <div className="flex items-center gap-0.5 flex-1">
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowResourcePanel(true)}>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowResourcePanel(true)} title="Manage resource assignments and costs">
                 <DollarSign className="w-3.5 h-3.5" /> Resources
               </Button>
               <Link href={`/scheduler/${scheduleId}/reports`}>
-                <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md">
+                <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" title="View schedule reports and analytics">
                   <BarChart3 className="w-3.5 h-3.5" /> Reports
                 </Button>
               </Link>
             </div>
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Tools</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Tools</span>
           </div>
 
           <div className="flex-1" />
@@ -1840,10 +1842,10 @@ export default function Scheduler() {
             customPixelsPerDay={customPpd}
             onZoomChange={(ppd) => {
               setCustomPpd(ppd);
-              setZoom("custom");
             }}
             showCostOverlay={showCostOverlay}
             costData={costDataMap}
+            costFontSize={costFontSize}
             criticalBarColor={schedule?.schedule?.criticalBarColor}
             normalBarColor={schedule?.schedule?.normalBarColor}
           />
@@ -3111,6 +3113,33 @@ export default function Scheduler() {
               </div>
             </div>
 
+            {/* ── Cost Overlay Font Size ── */}
+            <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
+              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Cost Overlay Font</Label>
+              <p className="text-[11px] text-gray-500">Controls the font size of dollar values displayed on Gantt bars when cost overlay is enabled.</p>
+              <div className="flex items-center gap-3">
+                <Label className="text-xs text-gray-400 shrink-0">Font Size (px)</Label>
+                <input
+                  type="range" min={7} max={16} step={1}
+                  value={costFontSize}
+                  onChange={(e) => setCostFontSize(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <span className="text-sm font-mono w-8 text-center text-gray-100">{costFontSize}</span>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <Label className="text-xs text-gray-400 mb-2 block">Preview</Label>
+                <div className="flex items-center gap-3">
+                  <div className="h-6 flex-1 rounded bg-emerald-500/80 flex items-center justify-end pr-2">
+                    <span style={{ fontSize: `${costFontSize}px` }} className="text-white font-semibold">$125,000</span>
+                  </div>
+                  <div className="h-6 flex-1 rounded bg-red-500/80 flex items-center justify-end pr-2">
+                    <span style={{ fontSize: `${costFontSize}px` }} className="text-white font-semibold">$48,750</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* ── Label Font Section ── */}
             <div>
               <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">Activity Label Font</Label>
@@ -3173,7 +3202,7 @@ export default function Scheduler() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-white/15 text-gray-100">Reset Font</Button>
+            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); setCostFontSize(9); }} className="border-white/15 text-gray-100">Reset All Fonts</Button>
             <Button onClick={() => setShowGanttSettings(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">Done</Button>
           </DialogFooter>
         </DialogContent>

@@ -228,10 +228,9 @@ export default function TakeoffDetail() {
 
   const handlePdfUpload = async (file: File, startPage: number) => {
     // Use pdf.js to render PDF pages to images
-    // Use the bundled worker URL via Vite's ?url import to avoid CDN version mismatches
+    // Worker file is copied to public/ dir so it's served as a static asset
     const pdfjsLib = await import("pdfjs-dist");
-    const workerUrl = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
