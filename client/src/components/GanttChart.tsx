@@ -54,6 +54,7 @@ interface GroupedActivities {
   depth?: number; // 0 = top-level, 1 = child, 2 = grandchild, etc.
   wbsColor?: string; // custom group bar color
   wbsTextColor?: string; // custom group text color
+  ancestorColors?: string[]; // P6-style left bar colors from root to this node
 }
 
 interface GanttChartProps {
@@ -252,18 +253,18 @@ export default function GanttChart({
 
   // Flatten grouped activities for row index mapping (respects collapsed groups)
   const flatRows = useMemo(() => {
-    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string; groupActivities?: Activity[] }> = [];
+    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string; groupActivities?: Activity[]; ancestorColors?: string[] }> = [];
     let idx = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities });
+        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities, ancestorColors: g.ancestorColors });
         idx++;
       }
       // Skip activities if this group is collapsed
       const groupKey = g.group || "all";
       if (collapsedGroups?.has(groupKey)) continue;
       for (const act of g.activities) {
-        rows.push({ type: "activity", activity: act, rowIndex: idx });
+        rows.push({ type: "activity", activity: act, rowIndex: idx, ancestorColors: g.ancestorColors });
         idx++;
       }
     }
@@ -759,21 +760,35 @@ export default function GanttChart({
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
-        // P6/CPM-style yellow/gold background with black text
-        const bgColors = [
-          "#c8a84e", // Level 0: dark gold
-          "#d4b85c", // Level 1: medium gold
-          "#e0c96e", // Level 2: light gold
-          "#e8d580", // Level 3: lighter gold
-          "#f0e090", // Level 4: pale gold
-          "#f5e8a0", // Level 5: very pale gold
-        ];
-        const bgColor = bgColors[Math.min(depth, bgColors.length - 1)];
-        // Fill entire row with gold background
+        const anc = row.ancestorColors || [];
+        // P6-style level background colors
+        const LEVEL_BG_CANVAS: Record<number, string> = {
+          0: "#e8d44d", // Level 0: Yellow/Gold
+          1: "#4a7ec8", // Level 1: Blue
+          2: "#5ba85b", // Level 2: Green
+          3: "#9b59b6", // Level 3: Purple
+          4: "#e67e22", // Level 4: Orange
+        };
+        const LEVEL_TEXT_CANVAS: Record<number, string> = {
+          0: "#000000",
+          1: "#ffffff",
+          2: "#ffffff",
+          3: "#ffffff",
+          4: "#ffffff",
+        };
+        const bgColor = LEVEL_BG_CANVAS[depth] ?? LEVEL_BG_CANVAS[4] ?? "#e8d44d";
+        const textColor = LEVEL_TEXT_CANVAS[depth] ?? "#ffffff";
+        // Fill entire row with level-based background
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+        // P6-style colored left bars
+        const BAR_W = 5;
+        for (let bi = 0; bi < anc.length; bi++) {
+          ctx.fillStyle = anc[bi];
+          ctx.fillRect(bi * (BAR_W + 2), y, BAR_W, ROW_HEIGHT);
+        }
         // Bottom border
-        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx.strokeStyle = "rgba(0,0,0,0.2)";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, y + ROW_HEIGHT);
@@ -850,6 +865,7 @@ export default function GanttChart({
       }
 
       const act = row.activity!;
+      const actAnc = row.ancestorColors || [];
 
       // Alternating row background
       if (row.rowIndex % 2 === 1) {
@@ -861,6 +877,13 @@ export default function GanttChart({
       if (act.id === selectedActivityId) {
         ctx.fillStyle = COLORS.selectedBg;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+      }
+
+      // P6-style left bars on activity rows
+      const ACT_BAR_W = 5;
+      for (let bi = 0; bi < actAnc.length; bi++) {
+        ctx.fillStyle = actAnc[bi];
+        ctx.fillRect(bi * (ACT_BAR_W + 2), y, ACT_BAR_W, ROW_HEIGHT);
       }
 
       // Row divider

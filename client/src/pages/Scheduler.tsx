@@ -685,7 +685,7 @@ export default function Scheduler() {
 
   /* ── Grouping ─────────────────────────────────────────────────────────── */
   const groupedActivities = useMemo(() => {
-    if (!groupBy) return [{ group: null as string | null, activities: sortedActivities, depth: 0 as number, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined }];
+    if (!groupBy) return [{ group: null as string | null, activities: sortedActivities, depth: 0 as number, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined, ancestorColors: [] as string[] }];
 
     if (groupBy === "wbs" && wbsNodes.length > 0) {
       // Build a map of WBS code -> activities
@@ -697,10 +697,21 @@ export default function Scheduler() {
       }
 
       // Build hierarchical groups by walking the WBS tree depth-first
-      type GroupEntry = { group: string; activities: any[]; depth: number; wbsColor?: string; wbsTextColor?: string };
+      // ancestorColors: array of colors from root to current node, used for P6-style left bars
+      type GroupEntry = { group: string; activities: any[]; depth: number; wbsColor?: string; wbsTextColor?: string; ancestorColors: string[] };
       const result: GroupEntry[] = [];
 
-      const walkTree = (parentId: number | null, depth: number) => {
+      // P6-style level colors: each depth level gets a distinct color
+      const LEVEL_COLORS = [
+        "#d4a843", // Level 0: Gold/Yellow (project level / top-level phases)
+        "#2563eb", // Level 1: Blue (major sub-phases)
+        "#16a34a", // Level 2: Green (sub-sub-phases)
+        "#9333ea", // Level 3: Purple
+        "#ea580c", // Level 4: Orange
+        "#0891b2", // Level 5: Cyan
+      ];
+
+      const walkTree = (parentId: number | null, depth: number, ancestors: string[]) => {
         const children = wbsNodes
           .filter((n: any) => (n.parentId || null) === parentId)
           .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code, undefined, { numeric: true }));
@@ -724,6 +735,10 @@ export default function Scheduler() {
             (a: any) => !childCodes.has(a.wbs)
           );
 
+          // This node's color from the level palette
+          const nodeColor = LEVEL_COLORS[depth % LEVEL_COLORS.length];
+          const currentAncestors = [...ancestors, nodeColor];
+
           // Always show the group header even if it has no direct activities
           // (it may have child groups with activities)
           const hasDescendantActs = Array.from(childCodes).some(code => (actsByWbs.get(code) || []).length > 0);
@@ -734,20 +749,21 @@ export default function Scheduler() {
               depth,
               wbsColor: node.groupColor || undefined,
               wbsTextColor: node.groupTextColor || undefined,
+              ancestorColors: currentAncestors,
             });
           }
 
           // Recurse into children
-          walkTree(node.id, depth + 1);
+          walkTree(node.id, depth + 1, currentAncestors);
         }
       };
 
-      walkTree(null, 0);
+      walkTree(null, 0, []);
 
       // Add "No WBS" group for activities without a WBS assignment
       const noWbsActs = actsByWbs.get("") || [];
       if (noWbsActs.length > 0) {
-        result.push({ group: "No WBS", activities: noWbsActs, depth: 0 });
+        result.push({ group: "No WBS", activities: noWbsActs, depth: 0, ancestorColors: [] });
       }
 
       return result;
@@ -775,7 +791,7 @@ export default function Scheduler() {
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(act);
     }
-    return Array.from(groups.entries()).map(([group, acts]) => ({ group: group as string | null, activities: acts, depth: 0, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined }));
+    return Array.from(groups.entries()).map(([group, acts]) => ({ group: group as string | null, activities: acts, depth: 0, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined, ancestorColors: [] as string[] }));
   }, [sortedActivities, groupBy, codeAssignments, codeCategories, wbsNodes]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
@@ -1641,23 +1657,31 @@ export default function Scheduler() {
 
             {/* Table Body */}
             <div className="divide-y divide-gray-200">
-              {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
+              {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor, ancestorColors }) => (
                 <div key={group || "all"}>
                   {group && (() => {
-                    // P6/CPM-style WBS group header — yellow/gold background with black text
+                    // P6-style WBS group header with level-based colors and left hierarchy bars
                     const d = depth ?? 0;
                     const groupKey = group || "all";
                     const isCollapsed = collapsedGroups?.has(groupKey);
-                    // Yellow/gold backgrounds — darker for top-level, lighter for children
-                    const bgColors = [
-                      "#c8a84e", // Level 0: dark gold
-                      "#d4b85c", // Level 1: medium gold
-                      "#e0c96e", // Level 2: light gold
-                      "#e8d580", // Level 3: lighter gold
-                      "#f0e090", // Level 4: pale gold
-                      "#f5e8a0", // Level 5: very pale gold
-                    ];
-                    const bgColor = bgColors[Math.min(d, bgColors.length - 1)];
+                    const anc = ancestorColors || [];
+                    // P6-style level background colors
+                    const LEVEL_BG: Record<number, string> = {
+                      0: "#e8d44d", // Level 0: Yellow/Gold (top-level phases)
+                      1: "#4a7ec8", // Level 1: Blue (sub-phases)
+                      2: "#5ba85b", // Level 2: Green
+                      3: "#9b59b6", // Level 3: Purple
+                      4: "#e67e22", // Level 4: Orange
+                    };
+                    const LEVEL_TEXT: Record<number, string> = {
+                      0: "#000000", // Black on yellow
+                      1: "#ffffff", // White on blue
+                      2: "#ffffff", // White on green
+                      3: "#ffffff", // White on purple
+                      4: "#ffffff", // White on orange
+                    };
+                    const bgColor = LEVEL_BG[d] ?? LEVEL_BG[4] ?? "#e8d44d";
+                    const textColor = LEVEL_TEXT[d] ?? "#ffffff";
                     // WBS name lookup
                     const WBS_NAME_LOOKUP: Record<string, string> = {
                       "1.0": "General Conditions", "2.0": "Submittals",
@@ -1694,54 +1718,71 @@ export default function Scheduler() {
                         }
                       }
                     }
+                    // Left bar width per level
+                    const BAR_W = 5;
                     return (
                       <div
-                        className="flex items-center cursor-pointer select-none"
+                        className="flex items-center cursor-pointer select-none relative"
                         style={{
                           backgroundColor: bgColor,
-                          borderBottom: "1px solid rgba(0,0,0,0.15)",
-                          minHeight: d === 0 ? "32px" : "26px",
-                          paddingLeft: `${8 + d * 20}px`,
+                          borderBottom: "1px solid rgba(0,0,0,0.2)",
+                          minHeight: d === 0 ? "30px" : "26px",
                           paddingRight: "12px",
-                          paddingTop: d === 0 ? "4px" : "2px",
-                          paddingBottom: d === 0 ? "4px" : "2px",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
                         title={isCollapsed ? "Click to expand" : "Click to collapse"}
                       >
-                        {/* Collapse toggle */}
-                        <span className="mr-1.5 flex-shrink-0" style={{ color: "#333" }}>
-                          {isCollapsed
-                            ? <ChevronRight className="w-3.5 h-3.5" />
-                            : <ChevronDown className="w-3.5 h-3.5" />}
-                        </span>
-                        {/* WBS code badge */}
-                        {wbsCode && (
-                          <span
-                            className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
-                            style={{ backgroundColor: "rgba(0,0,0,0.15)", color: "#1a1a1a" }}
-                          >
-                            {wbsCode}
+                        {/* P6-style colored left bars — one per ancestor level */}
+                        {anc.map((color, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              position: "absolute",
+                              left: `${i * (BAR_W + 2)}px`,
+                              top: 0,
+                              bottom: 0,
+                              width: `${BAR_W}px`,
+                              backgroundColor: color,
+                            }}
+                          />
+                        ))}
+                        {/* Content with indentation past the left bars */}
+                        <div
+                          className="flex items-center flex-1 min-w-0"
+                          style={{ paddingLeft: `${Math.max(anc.length * (BAR_W + 2) + 8, 12)}px` }}
+                        >
+                          {/* Collapse toggle */}
+                          <span className="mr-1.5 flex-shrink-0" style={{ color: textColor, opacity: 0.8 }}>
+                            {isCollapsed
+                              ? <ChevronRight className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />}
                           </span>
-                        )}
-                        {/* WBS name — black bold text */}
-                        <span
-                          className="font-bold tracking-wide"
-                          style={{
-                            fontSize: d === 0 ? "0.8125rem" : "0.75rem",
-                            color: "#1a1a1a",
-                            textTransform: d === 0 ? "uppercase" as const : "none" as const,
-                            letterSpacing: d === 0 ? "0.05em" : "0.02em",
-                          }}
-                        >
-                          {displayName}
-                        </span>
-                        <span
-                          className="ml-2 flex-shrink-0"
-                          style={{ fontSize: "0.625rem", fontWeight: 500, color: "rgba(0,0,0,0.5)" }}
-                        >
-                          {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
-                        </span>
+                          {/* WBS code badge */}
+                          {wbsCode && (
+                            <span
+                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                              style={{ backgroundColor: d === 0 ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)", color: textColor }}
+                            >
+                              {wbsCode}
+                            </span>
+                          )}
+                          {/* WBS name */}
+                          <span
+                            className="font-bold tracking-wide truncate"
+                            style={{
+                              fontSize: d === 0 ? "0.8125rem" : "0.75rem",
+                              color: textColor,
+                            }}
+                          >
+                            {displayName}
+                          </span>
+                          <span
+                            className="ml-2 flex-shrink-0"
+                            style={{ fontSize: "0.625rem", fontWeight: 500, color: textColor, opacity: 0.6 }}
+                          >
+                            {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
+                          </span>
+                        </div>
                       </div>
                     );
                   })()}
@@ -1750,21 +1791,23 @@ export default function Scheduler() {
                     const isOpenFinish = openEnds.openFinishes.some((a) => a.id === act.id);
                     const hasOpenEnd = isOpenStart || isOpenFinish;
                     const isSelected = selectedActivityIds.has(act.id);
+                    const actAnc = ancestorColors || [];
+                    const ACT_BAR_W = 5;
                     return (
                       <div
                         key={act.id}
-                        className={`text-sm items-center px-3 gap-1.5 h-11 cursor-pointer transition-colors border-b border-gray-100 ${
+                        className={`text-sm items-center gap-1.5 h-11 cursor-pointer transition-colors border-b border-gray-100 relative ${
                           isSelected
-                            ? "bg-amber-50 border-l-2 border-l-amber-500 ring-1 ring-amber-500/20"
+                            ? "bg-amber-50 ring-1 ring-amber-500/20"
                             : act.id === selectedActivityId
-                            ? "bg-blue-50 border-l-2 border-l-blue-400"
+                            ? "bg-blue-50"
                             : act.isCritical
-                            ? "hover:bg-amber-50/60 border-l-2 border-l-amber-400"
+                            ? "hover:bg-amber-50/60"
                             : hasOpenEnd
-                            ? "hover:bg-yellow-50 border-l-2 border-l-yellow-400"
-                            : "hover:bg-gray-50 border-l-2 border-l-transparent"
+                            ? "hover:bg-yellow-50"
+                            : "hover:bg-gray-50"
                         }`}
-                        style={{ display: "grid", gridTemplateColumns: gridTemplate }}
+                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px` }}
                         onClick={(e) => {
                           // Don't handle if click originated from checkbox or dropdown
                           const target = e.target as HTMLElement;
@@ -1796,6 +1839,21 @@ export default function Scheduler() {
                         onDoubleClick={() => openActivityDetail(act)}
                         title={selectedActivityIds.size > 0 ? "Shift+click to extend selection, Ctrl+click to toggle" : "Click to edit, Shift/Ctrl+click to multi-select"}
                       >
+                        {/* P6-style left bars on activity rows */}
+                        {actAnc.map((color, i) => (
+                          <div
+                            key={`bar-${i}`}
+                            style={{
+                              position: "absolute",
+                              left: `${i * (ACT_BAR_W + 2)}px`,
+                              top: 0,
+                              bottom: 0,
+                              width: `${ACT_BAR_W}px`,
+                              backgroundColor: color,
+                              zIndex: 1,
+                            }}
+                          />
+                        ))}
                         {/* Row actions */}
                         <div className="flex items-center gap-0.5">
                           <input

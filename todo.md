@@ -1348,3 +1348,10 @@
 - [x] Restyle WBS group rows: yellow/gold background with black bold text (like P6/reference CPM)
 - [x] Add WBS summary bars to Gantt chart (dark bar spanning earliest start to latest finish)
 - [x] Fix WBS collapse/expand — clicking chevron should toggle child activity visibility
+
+## WBS Hierarchy Visual Fix — P6 Style (April 11 — Round 4)
+- [x] Fix: Each WBS LEVEL gets its own distinct background color (not all gold) — P6 uses yellow for top-level, blue bands for sub-levels, white for activities
+- [x] Fix: Restore P6-style colored left-side vertical bars showing nesting hierarchy in table panel (bars run full height of parent group)
+- [ ] Fix: Fabrication must be a top-level peer of Submittals (not a child) — General Conditions, Submittals, Fabrication, Construction are all top-level phases (requires DB migration for existing Smith Residence schedule)
+- [x] Fix: Apply level-based coloring and left bars to Gantt canvas as well
+- [x] Fix: When expanded, parent-child relationship must be visually apparent through colored left bars (like P6)
