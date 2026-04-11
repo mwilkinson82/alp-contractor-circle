@@ -1,6 +1,6 @@
 /**
  * TakeoffDetail — Full takeoff project view with drawing upload,
- * AI processing status, and quantity review/edit table.
+ * Construct Line processing status, and quantity review/edit table.
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import {
   ArrowLeft,
   Upload,
@@ -34,6 +35,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -135,7 +137,7 @@ export default function TakeoffDetail() {
 
   const processMutation = trpc.takeoff.startProcessing.useMutation({
     onSuccess: () => {
-      toast.success("AI processing started! This may take a few minutes...");
+      toast.success("Construct Line takeoff started! This may take a few minutes...");
       refetchProject();
       refetchProgress();
     },
@@ -241,7 +243,7 @@ export default function TakeoffDetail() {
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       try {
         const page = await pdf.getPage(pageNum);
-        const scale = 2.0; // High resolution for AI analysis
+        const scale = 2.0; // High resolution for Construct Line analysis
         const viewport = page.getViewport({ scale });
 
         const canvas = document.createElement("canvas");
@@ -289,7 +291,56 @@ export default function TakeoffDetail() {
     handleFileUpload(e.dataTransfer.files);
   }, [handleFileUpload]);
 
-  // ─── Grouped Items ────────────────────────────────────────────────────────
+  //  // ─── Excel/CSV Export ──────────────────────────────────────────────────
+
+  const handleExportExcel = useCallback(() => {
+    if (!items || items.length === 0) return;
+    const rows = (items as any[]).map(item => ({
+      "CSI Code": item.csiCode || item.csiDivision || "",
+      "Description": item.description || "",
+      "Quantity": parseFloat(item.quantity) || 0,
+      "Unit": item.unit || "",
+      "Unit Cost ($)": (parseFloat(item.unitCost) || 0) / 100,
+      "Extended Cost ($)": (parseFloat(item.extendedCost) || 0) / 100,
+      "Confidence %": item.confidence || 0,
+      "Reviewed": item.reviewed ? "Yes" : "No",
+      "Notes": item.notes || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 12 }, { wch: 50 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 35 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Quantity Takeoff");
+    const fileName = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Exported to Excel");
+  }, [items, project]);
+
+  const handleExportCsv = useCallback(() => {
+    if (!items || items.length === 0) return;
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", "Unit Cost ($)", "Extended Cost ($)", "Confidence %", "Reviewed", "Notes"];
+    const rows = (items as any[]).map(item => [
+      item.csiCode || item.csiDivision || "",
+      `"${(item.description || "").replace(/"/g, '""')}"`,
+      parseFloat(item.quantity) || 0,
+      item.unit || "",
+      ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
+      ((parseFloat(item.extendedCost) || 0) / 100).toFixed(2),
+      item.confidence || 0,
+      item.reviewed ? "Yes" : "No",
+      `"${(item.notes || "").replace(/"/g, '""')}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exported to CSV");
+  }, [items, project]);
+
+  // ─── Grouped Items ──────────────────────────────────────────────────
 
   const groupedItems = useMemo(() => {
     if (!items) return {};
@@ -451,7 +502,7 @@ export default function TakeoffDetail() {
                   ) : (
                     <Sparkles className="w-5 h-5 mr-2" />
                   )}
-                  Start AI Quantity Takeoff
+                  Start Construct Line Takeoff
                   <span className="ml-2 text-sm opacity-75">
                     ({sheets.filter((s: any) => s.status === "pending").length} sheets to analyze)
                   </span>
@@ -466,7 +517,7 @@ export default function TakeoffDetail() {
                   <div className="flex items-center gap-3 mb-3">
                     <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
                     <span className="text-amber-400 font-semibold">
-                      AI is analyzing your drawings...
+                      Construct Line is analyzing your drawings...
                     </span>
                     <span className="text-amber-400/60 text-sm">
                       {progress.processedSheets} / {progress.totalSheets} sheets
@@ -574,7 +625,7 @@ export default function TakeoffDetail() {
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">No quantity items yet.</p>
                 <p className="text-sm mt-1">
-                  Upload drawings and run AI analysis to extract quantities.
+                  Upload drawings and run Construct Line analysis to extract quantities.
                 </p>
               </div>
             ) : (

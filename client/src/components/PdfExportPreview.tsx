@@ -1,27 +1,36 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+/**
+ * PdfExportPreview — WYSIWYG multi-page PDF preview with real relationship arrows.
+ *
+ * Key improvements:
+ * - Renders ALL pages as separate canvases stacked vertically in a scrollable container
+ * - Uses actual relationships data (predecessorId/successorId) for logic line arrows
+ * - Supports FS, SS, FF, SF relationship types with proper arrow routing
+ * - WBS group headers shown in both table and Gantt sides
+ */
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Download, Loader2, Eye, FileText, ImageIcon, Type } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Eye, Loader2, FileText, Type, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface PdfHeaderFooterConfig {
-  headerColumns: Array<{ position: number; content: string; customText?: string; imageDataUrl?: string }>;
-  footerColumns: Array<{ position: number; content: string; customText?: string; imageDataUrl?: string }>;
-  headerColumnCount: 3 | 5;
-  footerColumnCount: 3 | 5;
-  pageSize: "letter" | "legal" | "tabloid";
-  orientation: "landscape" | "portrait";
-  showGantt: boolean;
-  showTable: boolean;
-  criticalPathOnly: boolean;
-  showLogicLines: boolean;
-  headerBgColor: string;
-  headerAccentColor: string;
-  headerTextColor: string;
+  headerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
+  footerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
+  headerColumnCount?: 3 | 5;
+  footerColumnCount?: 3 | 5;
+  pageSize?: "letter" | "legal" | "tabloid";
+  orientation?: "landscape" | "portrait";
+  showGantt?: boolean;
+  showTable?: boolean;
+  criticalPathOnly?: boolean;
+  showLogicLines?: boolean;
+  headerBgColor?: string;
+  headerAccentColor?: string;
+  headerTextColor?: string;
 }
 
 interface Activity {
@@ -29,10 +38,19 @@ interface Activity {
   activityId: string;
   name: string;
   duration: number;
-  earlyStart: Date | null;
-  earlyFinish: Date | null;
-  isCritical: boolean;
-  barColor?: string | null;
+  earlyStart?: Date | string | null;
+  earlyFinish?: Date | string | null;
+  isCritical?: boolean;
+  percentComplete?: number;
+  barColor?: string;
+}
+
+interface Relationship {
+  id: number;
+  predecessorId: number;
+  successorId: number;
+  relationshipType: "FS" | "SS" | "FF" | "SF";
+  lagDays: number;
 }
 
 interface WbsGroup {
@@ -56,6 +74,8 @@ interface PdfExportPreviewProps {
   /** Pass groupedActivities when groupBy === "wbs" to show WBS headers in preview */
   groupedActivities?: WbsGroup[];
   groupBy?: string | null;
+  /** All relationships for drawing logic lines */
+  relationships?: Relationship[];
 }
 
 const CONTENT_OPTIONS = [
@@ -84,6 +104,13 @@ interface ColumnData {
   imageDataUrl?: string;
 }
 
+// Bar position info per activity (per page)
+interface BarPos {
+  x1: number;
+  x2: number;
+  yMid: number;
+}
+
 export function PdfExportPreview({
   open,
   onOpenChange,
@@ -96,6 +123,7 @@ export function PdfExportPreview({
   scheduleName,
   groupedActivities,
   groupBy,
+  relationships = [],
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
@@ -119,10 +147,14 @@ export function PdfExportPreview({
   const [headerAccentColor, setHeaderAccentColor] = useState("#c9a84c");
   const [headerTextColor, setHeaderTextColor] = useState("#e2e8f0");
 
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const previewContainerRef = useRef<HTMLDivElement>(null);
+  // Multi-page state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const [canvasReady, setCanvasReady] = useState(false);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [previewWidth, setPreviewWidth] = useState(800);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Image cache for loaded images
   const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
@@ -131,21 +163,21 @@ export function PdfExportPreview({
   useEffect(() => {
     if (open) {
       setCanvasReady(false);
-      const timer = setTimeout(() => setCanvasReady(true), 150);
+      setCurrentPage(0);
+      const timer = setTimeout(() => setCanvasReady(true), 200);
       return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // Measure container
+  // Measure container width
   useEffect(() => {
-    if (!open || !previewContainerRef.current) return;
+    if (!open || !containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        setContainerSize({ width, height });
+        setPreviewWidth(Math.max(400, entry.contentRect.width - 32));
       }
     });
-    observer.observe(previewContainerRef.current);
+    observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [open]);
 
@@ -184,11 +216,9 @@ export function PdfExportPreview({
       const current = type === "header" ? [...headerColumns] : [...footerColumns];
       current[pos] = { ...current[pos], imageDataUrl: dataUrl };
       setter(current);
-      // Pre-load the image for canvas rendering
       const img = new Image();
       img.onload = () => {
         loadedImagesRef.current[`${type}-${pos}`] = img;
-        // Trigger re-render
         setCanvasReady(false);
         setTimeout(() => setCanvasReady(true), 50);
       };
@@ -197,14 +227,14 @@ export function PdfExportPreview({
     reader.readAsDataURL(file);
   };
 
-  const getContentPreview = useCallback((col: ColumnData): string => {
+  const getContentPreview = useCallback((col: ColumnData, pageNum: number, total: number): string => {
     switch (col.content) {
       case "company": return companyName || "Company Name";
       case "project": return projectName || "Project Name";
       case "schedule": return scheduleName || "Schedule Name";
       case "date": return new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       case "datadate": return dataDate ? `DD: ${dataDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "DD: Not set";
-      case "page": return "Page 1 of 5";
+      case "page": return `Page ${pageNum} of ${total}`;
       case "custom": return col.customText || "Custom Text";
       case "image": return "[Image]";
       case "empty": return "";
@@ -219,16 +249,13 @@ export function PdfExportPreview({
       | { type: "activity"; act: Activity };
 
     const rows: PreviewRow[] = [];
-
     const useWbs = groupBy === "wbs" && groupedActivities && groupedActivities.length > 0;
 
     if (useWbs) {
       for (const g of groupedActivities!) {
         const gActs = criticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
-        if (g.group) {
-          if (gActs.length > 0) {
-            rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
-          }
+        if (g.group && gActs.length > 0) {
+          rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
         }
         for (const act of gActs) {
           rows.push({ type: "activity", act });
@@ -240,16 +267,17 @@ export function PdfExportPreview({
         rows.push({ type: "activity", act });
       }
     }
-
     return rows;
   }, [activities, groupedActivities, groupBy, criticalPathOnly]);
 
-  // For backward compat — flat list of activities for count display
-  const previewActivities = useMemo(() => {
-    return previewRows.filter(r => r.type === "activity").map(r => (r as { type: "activity"; act: Activity }).act);
-  }, [previewRows]);
+  // Build DB id → activityId string map for relationship arrow lookup
+  const dbIdToActivityId = useMemo(() => {
+    const map = new Map<number, string>();
+    activities.forEach(a => map.set(a.id, a.activityId));
+    return map;
+  }, [activities]);
 
-  // Calculate paper dimensions for the preview
+  // Paper dimensions
   const paperDims = useMemo(() => {
     const paper = PAPER_SIZES[pageSize];
     const pw = orientation === "landscape" ? paper.h : paper.w;
@@ -257,28 +285,45 @@ export function PdfExportPreview({
     return { w: pw, h: ph };
   }, [pageSize, orientation]);
 
-  // Calculate canvas pixel dimensions to fit container while maintaining paper aspect ratio
+  // Canvas pixel dimensions based on container width
   const canvasDims = useMemo(() => {
-    if (containerSize.width === 0 || containerSize.height === 0) return { width: 800, height: 500 };
     const aspect = paperDims.w / paperDims.h;
-    const containerW = containerSize.width - 32;
-    const containerH = containerSize.height - 32;
-    let w: number, h: number;
-    if (containerW / containerH > aspect) {
-      h = containerH;
-      w = h * aspect;
-    } else {
-      w = containerW;
-      h = w / aspect;
-    }
-    return { width: Math.round(w), height: Math.round(h) };
-  }, [containerSize, paperDims]);
+    const w = previewWidth;
+    const h = Math.round(w / aspect);
+    return { width: w, height: h };
+  }, [previewWidth, paperDims]);
 
-  // Draw canvas preview — true WYSIWYG
-  useEffect(() => {
-    if (!open || !canvasReady) return;
-    const canvas = previewCanvasRef.current;
-    if (!canvas) return;
+  // Calculate rows per page and total pages
+  const rowsPerPage = useMemo(() => {
+    const ppi = canvasDims.width / paperDims.w;
+    const marginIn = 0.4;
+    const margin = marginIn * ppi;
+    const headerH = 0.35 * ppi;
+    const footerH = 0.25 * ppi;
+    const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
+    const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
+    const rowH = Math.max(baseFontSize + 6, Math.min(16, contentH / 40));
+    const maxRows = Math.max(1, Math.floor((contentH - rowH) / rowH));
+    return { maxRows, rowH, ppi, margin, headerH, footerH, contentH, baseFontSize };
+  }, [canvasDims, paperDims]);
+
+  const pages = useMemo(() => {
+    const { maxRows } = rowsPerPage;
+    const result: typeof previewRows[] = [];
+    for (let i = 0; i < previewRows.length; i += maxRows) {
+      result.push(previewRows.slice(i, i + maxRows));
+    }
+    if (result.length === 0) result.push([]);
+    return result;
+  }, [previewRows, rowsPerPage]);
+
+  // Draw a single page onto a canvas
+  const drawPage = useCallback((
+    canvas: HTMLCanvasElement,
+    pageRows: typeof previewRows,
+    pageNum: number,
+    numPages: number,
+  ) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -293,15 +338,8 @@ export function PdfExportPreview({
 
     const w = displayW;
     const h = displayH;
-
-    // Scale factor: how many pixels per inch of paper
-    const ppi = w / paperDims.w;
-    const marginIn = 0.4;
-    const margin = marginIn * ppi;
-    const headerH = 0.35 * ppi;
-    const footerH = 0.25 * ppi;
+    const { ppi, margin, headerH, footerH, contentH, baseFontSize, rowH } = rowsPerPage;
     const contentY = margin + headerH + 4;
-    const contentH = h - margin * 2 - headerH - footerH - 12;
 
     // White page background
     ctx.fillStyle = "#ffffff";
@@ -336,7 +374,7 @@ export function PdfExportPreview({
         }
         return;
       }
-      const text = getContentPreview(col);
+      const text = getContentPreview(col, pageNum, numPages);
       ctx.fillStyle = i === 0 ? headerAccentColor : headerTextColor;
       ctx.font = i === 0 ? `bold ${headerFontSize}px 'DM Sans', sans-serif` : `${headerFontSize * 0.9}px 'DM Sans', sans-serif`;
       ctx.textAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
@@ -349,12 +387,6 @@ export function PdfExportPreview({
     const ganttX = margin + tableW + 4;
     const ganttW = w - margin * 2 - tableW - 4;
 
-    const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
-    const rowH = Math.max(baseFontSize + 6, Math.min(16, contentH / 40));
-    const maxRows = Math.floor((contentH - rowH) / rowH);
-    const visibleRows = previewRows.slice(0, maxRows);
-    const visibleActs = visibleRows.filter(r => r.type === "activity").map(r => (r as { type: "activity"; act: Activity }).act);
-
     // Table header
     ctx.fillStyle = "#f1f5f9";
     ctx.fillRect(margin, contentY, tableW, rowH);
@@ -364,6 +396,7 @@ export function PdfExportPreview({
     ctx.fillStyle = "#475569";
     ctx.font = `bold ${baseFontSize}px 'DM Sans', sans-serif`;
     ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
     ctx.fillText("ID", margin + 4, contentY + rowH / 2);
     ctx.fillText("Activity Name", margin + tableW * 0.12, contentY + rowH / 2);
     ctx.fillText("Dur", margin + tableW * 0.6, contentY + rowH / 2);
@@ -372,34 +405,25 @@ export function PdfExportPreview({
 
     // Table rows — with WBS group headers
     let actRowIndex = 0;
-    for (let i = 0; i < visibleRows.length; i++) {
-      const row = visibleRows[i];
+    for (let i = 0; i < pageRows.length; i++) {
+      const row = pageRows[i];
       const ry = contentY + (i + 1) * rowH;
       if (ry + rowH > contentY + contentH - 4) break;
 
       if (row.type === "group") {
-        // WBS group header row
         const depth = row.depth;
         const indent = depth * 8;
-        // Background
-        if (row.bgColor) {
-          ctx.fillStyle = row.bgColor;
-        } else {
-          ctx.fillStyle = depth === 0 ? "#e2e8f0" : depth === 1 ? "#f1f5f9" : "#f8fafc";
-        }
+        ctx.fillStyle = row.bgColor || (depth === 0 ? "#e2e8f0" : depth === 1 ? "#f1f5f9" : "#f8fafc");
         ctx.fillRect(margin, ry, tableW, rowH);
-        // Left accent bar
         if (depth > 0) {
           ctx.fillStyle = row.bgColor || "#94a3b8";
           ctx.fillRect(margin + indent - 2, ry + 1, 2, rowH - 2);
         }
-        // Label
         ctx.fillStyle = row.textColor || (depth === 0 ? "#1e293b" : "#334155");
         ctx.font = `${depth === 0 ? "bold" : "normal"} ${baseFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = "left";
         const groupLabel = row.label.length > 40 ? row.label.slice(0, 40) + "…" : row.label;
         ctx.fillText(groupLabel, margin + 4 + indent, ry + rowH / 2);
-        // Bottom separator
         ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
@@ -409,23 +433,19 @@ export function PdfExportPreview({
         continue;
       }
 
-      // Activity row
       const act = row.act;
       if (actRowIndex % 2 === 1) {
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(margin, ry, tableW, rowH);
       }
-
       ctx.fillStyle = act.isCritical ? "#dc2626" : "#334155";
       ctx.font = `${baseFontSize}px 'DM Sans', sans-serif`;
       ctx.textAlign = "left";
       ctx.fillText(act.activityId, margin + 4, ry + rowH / 2);
-
       const nameMaxChars = Math.floor(tableW * 0.45 / (baseFontSize * 0.55));
       const name = act.name.length > nameMaxChars ? act.name.slice(0, nameMaxChars) + "…" : act.name;
       ctx.fillText(name, margin + tableW * 0.12, ry + rowH / 2);
       ctx.fillText(`${act.duration}d`, margin + tableW * 0.6, ry + rowH / 2);
-
       if (act.earlyStart) {
         const es = new Date(act.earlyStart);
         ctx.fillText(`${es.getMonth() + 1}/${es.getDate()}`, margin + tableW * 0.72, ry + rowH / 2);
@@ -437,13 +457,11 @@ export function PdfExportPreview({
       actRowIndex++;
     }
 
-    // Table border
+    // Table border + row lines
     ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 0.5;
     ctx.strokeRect(margin, contentY, tableW, contentH);
-
-    // Row lines
-    for (let i = 1; i <= visibleRows.length; i++) {
+    for (let i = 1; i <= pageRows.length; i++) {
       const ry = contentY + i * rowH;
       if (ry > contentY + contentH - 4) break;
       ctx.strokeStyle = "#e2e8f0";
@@ -462,19 +480,19 @@ export function PdfExportPreview({
       ctx.lineWidth = 0.5;
       ctx.strokeRect(ganttX, contentY, ganttW, contentH);
 
+      // Compute date range from ALL activities (not just this page) for consistent scale
+      const allActs = previewRows.filter(r => r.type === "activity").map(r => (r as { type: "activity"; act: Activity }).act);
       let minDate = Infinity;
       let maxDate = -Infinity;
-      previewActivities.forEach(a => {
+      allActs.forEach(a => {
         if (a.earlyStart) minDate = Math.min(minDate, new Date(a.earlyStart).getTime());
         if (a.earlyFinish) maxDate = Math.max(maxDate, new Date(a.earlyFinish).getTime());
       });
       const dateRange = maxDate - minDate || 1;
 
       const tsFont = Math.max(5, baseFontSize * 0.85);
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = `${tsFont}px 'DM Sans', sans-serif`;
-      ctx.textAlign = "center";
 
+      // Month grid lines and labels
       if (minDate !== Infinity) {
         const startD = new Date(minDate);
         const endD = new Date(maxDate);
@@ -501,31 +519,29 @@ export function PdfExportPreview({
             ctx.lineTo(bx, contentY + contentH);
             ctx.stroke();
           }
-
           cur.setMonth(cur.getMonth() + 1);
         }
         months.forEach(m => {
           ctx.fillStyle = "#94a3b8";
           ctx.font = `${tsFont}px 'DM Sans', sans-serif`;
           ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
           ctx.fillText(m.label, m.x, contentY + rowH / 2);
         });
       }
 
-      // Track bar positions for logic lines (activityId → bar center x, row y center)
-      const barPositions = new Map<string, { x1: number; x2: number; yMid: number }>();
+      // Track bar positions for logic lines (activityId → bar positions)
+      const barPositions = new Map<string, BarPos>();
 
-      // Draw bars — iterate visibleRows to respect WBS group header rows
-      let ganttActIdx = 0;
-      for (let i = 0; i < visibleRows.length; i++) {
-        const row = visibleRows[i];
+      // Draw bars
+      for (let i = 0; i < pageRows.length; i++) {
+        const row = pageRows[i];
         const ry = contentY + (i + 1) * rowH;
         if (ry + rowH > contentY + contentH - 4) break;
 
         if (row.type === "group") {
-          // Draw shaded group header band on Gantt side too
           if (row.bgColor) {
-            ctx.fillStyle = row.bgColor + "33"; // 20% opacity
+            ctx.fillStyle = row.bgColor + "33";
           } else {
             ctx.fillStyle = row.depth === 0 ? "#e2e8f022" : "#f1f5f911";
           }
@@ -534,7 +550,7 @@ export function PdfExportPreview({
         }
 
         const act = row.act;
-        if (!act.earlyStart || !act.earlyFinish) { ganttActIdx++; continue; }
+        if (!act.earlyStart || !act.earlyFinish) continue;
 
         const startPct = (new Date(act.earlyStart).getTime() - minDate) / dateRange;
         const endPct = (new Date(act.earlyFinish).getTime() - minDate) / dateRange;
@@ -565,44 +581,74 @@ export function PdfExportPreview({
           ctx.roundRect(bx, by, bw, bh, radius);
           ctx.fill();
         }
-        ganttActIdx++;
       }
 
-      // ── Logic lines (relationship arrows) ──
-      if (showLogicLines && barPositions.size > 0) {
-        ctx.strokeStyle = "#64748b";
+      // ── Real Logic Lines (relationship arrows) ──
+      if (showLogicLines && barPositions.size > 0 && relationships.length > 0) {
+        ctx.strokeStyle = "#475569";
         ctx.lineWidth = 0.8;
-        ctx.globalAlpha = 0.6;
-        // Draw simplified FS arrows between visible activities
-        // We draw from finish of predecessor to start of successor
-        const actIds = Array.from(barPositions.keys());
-        for (let i = 0; i < actIds.length - 1; i++) {
-          const predPos = barPositions.get(actIds[i]);
-          const succPos = barPositions.get(actIds[i + 1]);
-          if (!predPos || !succPos) continue;
-          // Only draw if successor starts after predecessor finishes (FS logic)
-          if (succPos.x1 > predPos.x2 - 2) {
-            const x1 = predPos.x2;
-            const y1 = predPos.yMid;
-            const x2 = succPos.x1;
-            const y2 = succPos.yMid;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x1 + 3, y1);
-            ctx.lineTo(x1 + 3, y2);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-            // Arrowhead
-            ctx.beginPath();
-            ctx.moveTo(x2, y2);
-            ctx.lineTo(x2 - 3, y2 - 2);
-            ctx.lineTo(x2 - 3, y2 + 2);
-            ctx.closePath();
-            ctx.fillStyle = "#64748b";
-            ctx.fill();
+        ctx.globalAlpha = 0.7;
+
+        for (const rel of relationships) {
+          const predActId = dbIdToActivityId.get(rel.predecessorId);
+          const succActId = dbIdToActivityId.get(rel.successorId);
+          if (!predActId || !succActId) continue;
+
+          const predPos = barPositions.get(predActId);
+          const succPos = barPositions.get(succActId);
+          if (!predPos || !succPos) continue; // one or both not on this page
+
+          const type = rel.relationshipType || "FS";
+          let x1: number, y1: number, x2: number, y2: number;
+
+          // Determine connection points based on relationship type
+          switch (type) {
+            case "FS": x1 = predPos.x2; y1 = predPos.yMid; x2 = succPos.x1; y2 = succPos.yMid; break;
+            case "SS": x1 = predPos.x1; y1 = predPos.yMid; x2 = succPos.x1; y2 = succPos.yMid; break;
+            case "FF": x1 = predPos.x2; y1 = predPos.yMid; x2 = succPos.x2; y2 = succPos.yMid; break;
+            case "SF": x1 = predPos.x1; y1 = predPos.yMid; x2 = succPos.x2; y2 = succPos.yMid; break;
+            default:   x1 = predPos.x2; y1 = predPos.yMid; x2 = succPos.x1; y2 = succPos.yMid;
           }
+
+          // Draw right-angle routing: horizontal → vertical → horizontal
+          const midX = x1 + (x2 - x1) / 2;
+          ctx.beginPath();
+          ctx.setLineDash([]);
+          if (Math.abs(y1 - y2) < 2) {
+            // Same row — draw straight line
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+          } else {
+            // Route: from x1,y1 → right 4px → down/up to y2 → to x2,y2
+            const routeX = Math.max(x1 + 4, midX);
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(routeX, y1);
+            ctx.lineTo(routeX, y2);
+            ctx.lineTo(x2, y2);
+          }
+          ctx.stroke();
+
+          // Arrowhead at destination
+          const arrowSize = 3;
+          const isLeft = x2 < x1 + 4; // arrow points left
+          ctx.beginPath();
+          ctx.fillStyle = "#475569";
+          if (type === "FF" || (type === "SF" && !isLeft)) {
+            // Arrow pointing right at x2
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - arrowSize * 1.5, y2 - arrowSize);
+            ctx.lineTo(x2 - arrowSize * 1.5, y2 + arrowSize);
+          } else {
+            // Arrow pointing left at x2 (FS, SS default)
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 + arrowSize * 1.5, y2 - arrowSize);
+            ctx.lineTo(x2 + arrowSize * 1.5, y2 + arrowSize);
+          }
+          ctx.closePath();
+          ctx.fill();
         }
         ctx.globalAlpha = 1;
+        ctx.setLineDash([]);
       }
 
       // Data date line
@@ -620,7 +666,8 @@ export function PdfExportPreview({
           ctx.fillStyle = "#2563eb";
           ctx.font = `bold ${tsFont}px 'DM Sans', sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText("DD", ddX, contentY + rowH + 8);
+          ctx.textBaseline = "middle";
+          ctx.fillText("DD", ddX, contentY + rowH * 1.5);
         }
       }
     }
@@ -649,23 +696,36 @@ export function PdfExportPreview({
         }
         return;
       }
-      const text = getContentPreview(col);
+      const text = getContentPreview(col, pageNum, numPages);
       ctx.fillStyle = "#64748b";
       ctx.textAlign = i === 0 ? "left" : i === footerColumnCount - 1 ? "right" : "center";
       const tx = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? w - margin - 4 : margin + i * fColW + fColW / 2;
       ctx.fillText(text, tx, footerY + footerH / 2);
     });
+  }, [
+    canvasDims, paperDims, rowsPerPage, headerColumns, footerColumns, headerColumnCount, footerColumnCount,
+    showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
+    getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
+  ]);
 
-    // Activity count indicator
-    const totalFiltered = previewActivities.length;
-    if (totalFiltered > visibleActs.length) {
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = `italic ${baseFontSize * 0.8}px 'DM Sans', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(`Showing ${visibleActs.length} of ${totalFiltered} activities — full PDF will include all`, w / 2, contentY + contentH - 4);
-    }
+  // Render all pages
+  useEffect(() => {
+    if (!open || !canvasReady) return;
+    const numPages = pages.length;
+    setTotalPages(numPages);
+    canvasRefs.current = canvasRefs.current.slice(0, numPages);
 
-  }, [open, canvasReady, canvasDims, paperDims, headerColumns, footerColumns, headerColumnCount, footerColumnCount, showGantt, criticalPathOnly, showLogicLines, previewRows, previewActivities, companyName, projectName, scheduleName, dataDate, getContentPreview, headerBgColor, headerAccentColor, headerTextColor]);
+    // Small delay to allow DOM to update canvas refs
+    const timer = setTimeout(() => {
+      pages.forEach((pageRows, idx) => {
+        const canvas = canvasRefs.current[idx];
+        if (canvas) {
+          drawPage(canvas, pageRows, idx + 1, numPages);
+        }
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [open, canvasReady, pages, drawPage]);
 
   const handleExport = async () => {
     await onExport({
@@ -703,7 +763,7 @@ export function PdfExportPreview({
             <SelectTrigger className="border-white/15 text-[11px] bg-white/5 text-gray-200 h-7 w-full">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="">
+            <SelectContent>
               {CONTENT_OPTIONS.map(opt => (
                 <SelectItem key={opt.value} value={opt.value} className="text-xs">
                   <span className="flex items-center gap-1.5">
@@ -715,7 +775,6 @@ export function PdfExportPreview({
               ))}
             </SelectContent>
           </Select>
-          {/* Custom text input */}
           {col.content === "custom" && (
             <Input
               value={col.customText || ""}
@@ -724,7 +783,6 @@ export function PdfExportPreview({
               className="mt-1 h-7 text-[11px] border-white/15"
             />
           )}
-          {/* Image upload */}
           {col.content === "image" && (
             <div className="mt-1">
               {col.imageDataUrl ? (
@@ -767,22 +825,24 @@ export function PdfExportPreview({
     </div>
   );
 
+  const totalActivities = previewRows.filter(r => r.type === "activity").length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!p-0 !max-w-[92vw] !w-[92vw] !h-[88vh] !max-h-[88vh] [&>div:nth-child(2)]:!p-0 [&>div:nth-child(2)]:!overflow-hidden [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-full">
+      <DialogContent className="!p-0 !max-w-[94vw] !w-[94vw] !h-[90vh] !max-h-[90vh] [&>div:nth-child(2)]:!p-0 [&>div:nth-child(2)]:!overflow-hidden [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-full">
         <DialogHeader className="px-6 pt-5 pb-0 shrink-0">
           <DialogTitle className="font-semibold flex items-center gap-2">
             <Eye className="w-5 h-5 text-amber-400" /> PDF Export Preview
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-400">
-            True-to-scale preview. Change paper size and orientation to see exactly how your schedule will print.
+            Multi-page preview — scroll to see all pages. {totalActivities} activities across {totalPages} page{totalPages !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden px-6 py-3 min-h-0">
           <div className="flex gap-5 h-full">
-            {/* Left: WYSIWYG Preview — takes most of the space */}
-            <div className="flex-1 min-w-0 flex flex-col">
+            {/* Left: Multi-page scrollable preview */}
+            <div className="flex-1 min-w-0 flex flex-col" ref={containerRef}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-gray-600" />
@@ -790,34 +850,95 @@ export function PdfExportPreview({
                   {groupBy === "wbs" && (
                     <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded px-1.5 py-0.5 font-medium">WBS Grouped</span>
                   )}
+                  {showLogicLines && relationships.length > 0 && (
+                    <span className="text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/25 rounded px-1.5 py-0.5 font-medium">{relationships.length} relationships</span>
+                  )}
                 </div>
-                <span className="text-[10px] text-gray-600">
-                  {PAPER_SIZES[pageSize].label} — {orientation === "landscape" ? "Landscape" : "Portrait"} — {paperDims.w}" × {paperDims.h}"
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-gray-600">
+                    {PAPER_SIZES[pageSize].label} — {orientation === "landscape" ? "Landscape" : "Portrait"}
+                  </span>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0 border-white/15 text-gray-400"
+                        onClick={() => {
+                          const prev = Math.max(0, currentPage - 1);
+                          setCurrentPage(prev);
+                          scrollContainerRef.current?.children[prev]?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        disabled={currentPage === 0}
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                      <span className="text-[10px] text-gray-400 min-w-[60px] text-center">
+                        Page {currentPage + 1} of {totalPages}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 w-6 p-0 border-white/15 text-gray-400"
+                        onClick={() => {
+                          const next = Math.min(totalPages - 1, currentPage + 1);
+                          setCurrentPage(next);
+                          scrollContainerRef.current?.children[next]?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        disabled={currentPage === totalPages - 1}
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Scrollable pages container */}
               <div
-                ref={previewContainerRef}
-                className="flex-1 min-h-0 bg-[#0f1219] rounded-xl border border-white/10 flex items-center justify-center overflow-hidden"
+                ref={scrollContainerRef}
+                className="flex-1 min-h-0 bg-[#0f1219] rounded-xl border border-white/10 overflow-y-auto"
                 style={{ padding: "16px" }}
+                onScroll={(e) => {
+                  // Update current page indicator based on scroll position
+                  const container = e.currentTarget;
+                  const children = Array.from(container.children) as HTMLElement[];
+                  for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    const rect = child.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    if (rect.top >= containerRect.top - 50) {
+                      setCurrentPage(i);
+                      break;
+                    }
+                  }
+                }}
               >
-                <div className="relative" style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.12))" }}>
-                  <canvas
-                    ref={previewCanvasRef}
-                    className="rounded bg-[#0f1219]"
-                    style={{
-                      width: `${canvasDims.width}px`,
-                      height: `${canvasDims.height}px`,
-                      display: "block",
-                    }}
-                  />
-                </div>
+                {pages.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="mb-4 last:mb-0"
+                    style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.2))" }}
+                  >
+                    {totalPages > 1 && (
+                      <div className="text-[10px] text-gray-600 mb-1 text-center">
+                        Page {idx + 1} of {totalPages}
+                      </div>
+                    )}
+                    <canvas
+                      ref={(el) => { canvasRefs.current[idx] = el; }}
+                      className="rounded bg-white block mx-auto"
+                      style={{
+                        width: `${canvasDims.width}px`,
+                        height: `${canvasDims.height}px`,
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-              <p className="text-[10px] text-gray-600 text-center mt-1.5">
-                {previewActivities.length} activities {criticalPathOnly ? "(critical path only)" : ""} — Full PDF will paginate automatically
-              </p>
             </div>
 
-            {/* Right: Configuration Panel — narrower sidebar */}
+            {/* Right: Configuration Panel */}
             <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto">
               {/* Page Settings */}
               <div className="bg-white/5 rounded-lg border border-white/10 p-3 space-y-3">
@@ -828,7 +949,7 @@ export function PdfExportPreview({
                     <SelectTrigger className="border-white/15 text-xs bg-white/5 text-gray-200 h-8">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="">
+                    <SelectContent>
                       <SelectItem value="letter" className="text-xs">Letter (8.5×11)</SelectItem>
                       <SelectItem value="legal" className="text-xs">Legal (8.5×14)</SelectItem>
                       <SelectItem value="tabloid" className="text-xs">Tabloid (11×17)</SelectItem>
@@ -841,7 +962,7 @@ export function PdfExportPreview({
                     <SelectTrigger className="border-white/15 text-xs bg-white/5 text-gray-200 h-8">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="">
+                    <SelectContent>
                       <SelectItem value="landscape" className="text-xs">Landscape</SelectItem>
                       <SelectItem value="portrait" className="text-xs">Portrait</SelectItem>
                     </SelectContent>
@@ -868,7 +989,11 @@ export function PdfExportPreview({
                   <Checkbox checked={showLogicLines} onCheckedChange={(c) => setShowLogicLines(!!c)} />
                   <div>
                     <span className="text-xs text-gray-400">Show Logic Lines</span>
-                    <p className="text-[10px] text-gray-600 leading-tight">Relationship arrows between activities</p>
+                    <p className="text-[10px] text-gray-600 leading-tight">
+                      {relationships.length > 0
+                        ? `${relationships.length} real FS/SS/FF/SF arrows`
+                        : "Relationship arrows between activities"}
+                    </p>
                   </div>
                 </label>
               </div>

@@ -3553,6 +3553,7 @@ export default function Scheduler() {
         scheduleName={schedule?.schedule?.name || ""}
         groupedActivities={groupBy === "wbs" ? groupedActivities as any : undefined}
         groupBy={groupBy}
+        relationships={relationships as any}
         onExport={async (config) => {
           if (!schedule) return;
           setPdfExporting(true);
@@ -3604,11 +3605,11 @@ export default function Scheduler() {
               footerText: "",
               footerConfig,
               headerConfig,
-              pageSize: config.pageSize,
-              orientation: config.orientation,
-              showGantt: config.showGantt,
+              pageSize: config.pageSize ?? "tabloid",
+              orientation: config.orientation ?? "landscape",
+              showGantt: config.showGantt ?? true,
               showTable: config.showTable ?? false,
-              showCriticalPathOnly: config.criticalPathOnly,
+              showCriticalPathOnly: config.criticalPathOnly ?? false,
               showLogicLines: config.showLogicLines ?? false,
               headerBgColor: config.headerBgColor,
               headerAccentColor: config.headerAccentColor,

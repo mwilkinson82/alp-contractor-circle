@@ -1,5 +1,5 @@
 /**
- * TakeoffList — List of AI Quantity Takeoff projects.
+ * TakeoffList — List of Construct Line Takeoff projects.
  * Members can create new projects, view existing ones, and see status.
  */
 import { useState } from "react";
@@ -79,10 +79,10 @@ export default function TakeoffList() {
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            AI Quantity Takeoff
+            Construct Line Takeoff
           </h1>
           <p className="text-cream-muted mt-1">
-            Upload construction drawings and let AI extract quantities, costs, and a schedule of values.
+            Upload construction drawings and let Construct Line extract quantities, costs, and a schedule of values.
           </p>
         </div>
         <Button
@@ -107,7 +107,7 @@ export default function TakeoffList() {
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">No Takeoff Projects Yet</h3>
             <p className="text-cream-muted text-center max-w-md mb-6">
-              Create your first project, upload construction drawings, and let AI extract a complete quantity takeoff in minutes.
+              Create your first project, upload construction drawings, and let Construct Line extract a complete quantity takeoff in minutes.
             </p>
             <Button
               onClick={() => setShowCreate(true)}

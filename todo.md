@@ -1283,3 +1283,23 @@
 - [x] Zoom slider: decoupled from view mode — auto-detects header granularity from ppd
 - [x] Toolbar group labels: amber-tinted, bold, with top border separator for visual hierarchy
 - [x] PDF.js worker: copied to client/public, served as static file (fixes CDN failure)
+
+## PDF Export Enhancements
+- [x] Multi-page scrollable PDF preview with page navigation
+- [x] Real relationship arrows from actual relationships data in PDF export (wired to relationships array)
+- [x] Takeoff results export to Excel/CSV (export buttons in summary bar)
+- [ ] Schedule baseline snapshot and variance reporting (deferred)
+- [ ] Relationship arrows toggle in PDF export settings (on/off)
+- [ ] Relationship arrows visible in the PDF preview viewer
+
+## Takeoff Results Export
+- [ ] Add Excel/CSV export button to Takeoff Detail page
+- [ ] Export extracted quantities, materials, and costs per sheet
+
+## Schedule Baseline & Variance Reporting
+- [ ] Save as Baseline button to freeze current schedule state
+- [ ] Variance columns in exports (current vs. baseline dates)
+- [ ] Baseline comparison in schedule reports
+
+## Branding
+- [x] Replace all "AI" references in Takeoff with "Construct Line" (buttons, labels, headings, toasts)

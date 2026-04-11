@@ -94,7 +94,7 @@ function Router() {
       <Route path="/scheduler/:id" component={Scheduler} />
       <Route path="/scheduler/:id/reports" component={ScheduleReports} />
 
-      {/* AI Quantity Takeoff */}
+      {/* Construct Line Takeoff */}
       <Route path="/portal/takeoff">
         <MemberPortalLayout>
           <TakeoffList />
