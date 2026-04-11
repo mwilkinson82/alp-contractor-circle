@@ -295,41 +295,117 @@ export default function TakeoffDetail() {
 
   const handleExportExcel = useCallback(() => {
     if (!items || items.length === 0) return;
-    const rows = (items as any[]).map(item => ({
-      "CSI Code": item.csiCode || item.csiDivision || "",
-      "Description": item.description || "",
-      "Quantity": parseFloat(item.quantity) || 0,
-      "Unit": item.unit || "",
-      "Unit Cost ($)": (parseFloat(item.unitCost) || 0) / 100,
-      "Extended Cost ($)": (parseFloat(item.extendedCost) || 0) / 100,
-      "Confidence %": item.confidence || 0,
-      "Reviewed": item.reviewed ? "Yes" : "No",
-      "Notes": item.notes || "",
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 50 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 35 }];
+
+    // Group items by CSI division
+    const divGroups: Record<string, any[]> = {};
+    for (const item of items as any[]) {
+      const div = item.csiDivision || "00";
+      if (!divGroups[div]) divGroups[div] = [];
+      divGroups[div].push(item);
+    }
+    const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    // Build rows with CSI division headers and subtotals
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", "Unit Cost ($)", "Extended Cost ($)", "Confidence %", "Reviewed", "Notes"];
+    const aoa: any[][] = [headers];
+    let grandTotal = 0;
+
+    for (const div of sortedDivs) {
+      const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+      // Division header row
+      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", ""]);
+      let divTotal = 0;
+      for (const item of divGroups[div]) {
+        const extCost = (parseFloat(item.extendedCost) || 0) / 100;
+        divTotal += extCost;
+        aoa.push([
+          item.csiCode || item.csiDivision || "",
+          item.description || "",
+          parseFloat(item.quantity) || 0,
+          item.unit || "",
+          (parseFloat(item.unitCost) || 0) / 100,
+          extCost,
+          item.confidence || 0,
+          item.reviewed ? "Yes" : "No",
+          item.notes || "",
+        ]);
+      }
+      // Division subtotal row
+      aoa.push(["", `Subtotal — ${divName}`, "", "", "", divTotal, "", "", ""]);
+      // Blank separator row
+      aoa.push([]);
+      grandTotal += divTotal;
+    }
+    // Grand total row
+    aoa.push(["", "GRAND TOTAL", "", "", "", grandTotal, "", "", ""]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
+
+    // Style division headers and subtotals (bold via cell formatting)
+    let rowIdx = 1; // skip header
+    for (const div of sortedDivs) {
+      // Division header row
+      const headerCell = XLSX.utils.encode_cell({ r: rowIdx, c: 0 });
+      if (ws[headerCell]) ws[headerCell].s = { font: { bold: true, sz: 12 }, fill: { fgColor: { rgb: "F5F0E8" } } };
+      rowIdx += 1 + divGroups[div].length;
+      // Subtotal row
+      const subtotalCell = XLSX.utils.encode_cell({ r: rowIdx, c: 1 });
+      if (ws[subtotalCell]) ws[subtotalCell].s = { font: { bold: true } };
+      rowIdx += 2; // subtotal + blank
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Quantity Takeoff");
     const fileName = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    toast.success("Exported to Excel");
+    toast.success("Exported to Excel — grouped by CSI division");
   }, [items, project]);
 
   const handleExportCsv = useCallback(() => {
     if (!items || items.length === 0) return;
     const headers = ["CSI Code", "Description", "Quantity", "Unit", "Unit Cost ($)", "Extended Cost ($)", "Confidence %", "Reviewed", "Notes"];
-    const rows = (items as any[]).map(item => [
-      item.csiCode || item.csiDivision || "",
-      `"${(item.description || "").replace(/"/g, '""')}"`,
-      parseFloat(item.quantity) || 0,
-      item.unit || "",
-      ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
-      ((parseFloat(item.extendedCost) || 0) / 100).toFixed(2),
-      item.confidence || 0,
-      item.reviewed ? "Yes" : "No",
-      `"${(item.notes || "").replace(/"/g, '""')}"`,
-    ]);
-    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+
+    // Group by CSI division
+    const divGroups: Record<string, any[]> = {};
+    for (const item of items as any[]) {
+      const div = item.csiDivision || "00";
+      if (!divGroups[div]) divGroups[div] = [];
+      divGroups[div].push(item);
+    }
+    const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const csvRows: string[] = [headers.join(",")];
+    let grandTotal = 0;
+
+    for (const div of sortedDivs) {
+      const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+      // Division header row
+      csvRows.push(`"${div} \u2014 ${divName}","","","","","","","",""`);
+      let divTotal = 0;
+      for (const item of divGroups[div]) {
+        const extCost = (parseFloat(item.extendedCost) || 0) / 100;
+        divTotal += extCost;
+        csvRows.push([
+          item.csiCode || item.csiDivision || "",
+          `"${(item.description || "").replace(/"/g, '""')}"`,
+          parseFloat(item.quantity) || 0,
+          item.unit || "",
+          ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
+          extCost.toFixed(2),
+          item.confidence || 0,
+          item.reviewed ? "Yes" : "No",
+          `"${(item.notes || "").replace(/"/g, '""')}"`,
+        ].join(","));
+      }
+      // Division subtotal
+      csvRows.push(`"","Subtotal \u2014 ${divName}","","","",${divTotal.toFixed(2)},"","",""`);
+      csvRows.push(""); // blank separator
+      grandTotal += divTotal;
+    }
+    csvRows.push(`"","GRAND TOTAL","","","",${grandTotal.toFixed(2)},"","",""`);
+
+    const csv = csvRows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -337,7 +413,7 @@ export default function TakeoffDetail() {
     a.download = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Exported to CSV");
+    toast.success("Exported to CSV \u2014 grouped by CSI division");
   }, [items, project]);
 
   // ─── Grouped Items ──────────────────────────────────────────────────

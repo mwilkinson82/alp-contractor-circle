@@ -1327,3 +1327,10 @@
 ## FAB Activities WBS Assignment (April 11)
 - [x] Create WBS nodes: Submittals (parent) > Prepare & Submit + Review & Approve (children), Fabrication & Procurement (separate parent)
 - [x] Auto-assign FAB activities: Submit/Review/Fabricate patterns matched in auto-assign procedure → Prepare & Submit, Review/Approval → Review & Approve, Fabricate/Order/Deliver → Fabrication
+
+## Scheduler Bugs (April 11 - batch 2)
+- [x] Fix WBS group name text invisible — badges show but names next to them are not visible
+- [x] Fix layout not persisting on refresh — auto-save/auto-load of last used layout state
+- [x] Fix annotations not persisting on refresh — already implemented with 1.5s debounce auto-save
+- [x] Auto-assign FAB activities to WBS on existing schedules (Group > Auto-Assign Submittal/Fab WBS)
+- [x] Takeoff Excel/CSV export: grouped by CSI division with section headers, subtotals, and grand total

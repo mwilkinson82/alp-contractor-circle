@@ -1017,9 +1017,66 @@ export default function Scheduler() {
       toast.success("Layout applied");
     } catch { toast.error("Invalid layout config"); }
   }, []);
+  /* ── Auto-load default layout on schedule load ─────────────────────────────── */
+  const [defaultLayoutApplied, setDefaultLayoutApplied] = useState(false);
+  useEffect(() => { setDefaultLayoutApplied(false); }, [scheduleId]);
+  useEffect(() => {
+    if (defaultLayoutApplied || !layouts.length) return;
+    // First try to find a layout named "__autosave__" (last used state)
+    const autosave = layouts.find((l: any) => l.name === "__autosave__");
+    if (autosave) {
+      try {
+        const cfg = JSON.parse(autosave.config);
+        if (cfg.visibleColumns) setVisibleColumns(cfg.visibleColumns);
+        if (cfg.groupBy !== undefined) setGroupBy(cfg.groupBy);
+        if (cfg.sortState) setSortState(cfg.sortState);
+        if (cfg.zoom) { setZoom(cfg.zoom); if (cfg.customPpd) setCustomPpd(cfg.customPpd); }
+        if (cfg.showArrows !== undefined) setShowArrows(cfg.showArrows);
+        if (cfg.showDataDateLine !== undefined) setShowDataDateLine(cfg.showDataDateLine);
+        if (cfg.showTodayLine !== undefined) setShowTodayLine(cfg.showTodayLine);
+        if (cfg.ganttFontSize) setGanttFontSize(cfg.ganttFontSize);
+        if (cfg.ganttFontColor) setGanttFontColor(cfg.ganttFontColor);
+        if (cfg.ganttFontFamily) setGanttFontFamily(cfg.ganttFontFamily);
+        if (cfg.filterCriticalOnly !== undefined) setFilterCriticalOnly(cfg.filterCriticalOnly);
+        if (cfg.filterLongestPath !== undefined) setFilterLongestPath(cfg.filterLongestPath);
+        if (cfg.filterLookahead) setFilterLookahead(cfg.filterLookahead);
+        if (cfg.filterFloatMin !== undefined) setFilterFloatMin(cfg.filterFloatMin);
+        if (cfg.filterFloatMax !== undefined) setFilterFloatMax(cfg.filterFloatMax);
+        if (cfg.filterDateStart !== undefined) setFilterDateStart(cfg.filterDateStart);
+        if (cfg.filterDateEnd !== undefined) setFilterDateEnd(cfg.filterDateEnd);
+        if (cfg.filterOpenEnds !== undefined) setFilterOpenEnds(cfg.filterOpenEnds);
+      } catch {}
+      setDefaultLayoutApplied(true);
+      return;
+    }
+    // Otherwise try the user-marked default layout
+    const defaultLayout = layouts.find((l: any) => l.isDefault);
+    if (defaultLayout) {
+      applyLayoutConfig(defaultLayout.config);
+      setDefaultLayoutApplied(true);
+    } else {
+      setDefaultLayoutApplied(true);
+    }
+  }, [layouts, defaultLayoutApplied, applyLayoutConfig]);
 
-  /* ── Handlers ───────────────────────────────────────────────────────────── */
+  /* ── Auto-save layout state on changes (debounced) ──────────────────────── */
+  const autoSaveLayoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!scheduleId || !defaultLayoutApplied) return;
+    if (autoSaveLayoutRef.current) clearTimeout(autoSaveLayoutRef.current);
+    autoSaveLayoutRef.current = setTimeout(() => {
+      const config = captureLayoutConfig();
+      const existing = layouts.find((l: any) => l.name === "__autosave__");
+      if (existing) {
+        updateLayoutMut.mutate({ id: existing.id, scheduleId, config });
+      } else {
+        saveLayoutMut.mutate({ scheduleId, name: "__autosave__", isDefault: false, config });
+      }
+    }, 3000);
+    return () => { if (autoSaveLayoutRef.current) clearTimeout(autoSaveLayoutRef.current); };
+  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, scheduleId, defaultLayoutApplied]);
 
+  /* ── Handlers ─────────────────────────────────────────────────────────────── */
   /* Column resize handlers */
   const handleColResizeStart = useCallback((e: React.MouseEvent, colKey: string) => {
     e.preventDefault();
@@ -1459,8 +1516,8 @@ export default function Scheduler() {
                 <DropdownMenuItem onClick={() => { setLayoutName(""); setLayoutIsDefault(false); setShowLayoutDialog(true); }}>
                   <Save className="w-4 h-4 mr-2" /> Save Current Layout
                 </DropdownMenuItem>
-                {layouts.length > 0 && <DropdownMenuSeparator />}
-                {layouts.map((layout: any) => (
+                {layouts.filter((l: any) => l.name !== "__autosave__").length > 0 && <DropdownMenuSeparator />}
+                {layouts.filter((l: any) => l.name !== "__autosave__").map((layout: any) => (
                   <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config)}>
                     {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />}
                     <span className="flex-1 truncate">{layout.name}</span>
@@ -1646,24 +1703,43 @@ export default function Scheduler() {
                               ? <ChevronRight className="w-3.5 h-3.5" />
                               : <ChevronDown className="w-3.5 h-3.5" />}
                           </span>
-                          {/* WBS code badge — solid colored background for high contrast */}
-                          {groupBy === "wbs" && (() => {
-                            const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} — ${w.name}` === group || w.code === group);
-                            return wbsNode ? (
+                          {/* WBS code badge + name — strip code from label when badge shown */}
+                          {(() => {
+                            if (groupBy === "wbs") {
+                              const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} \u2014 ${w.name}` === group || w.code === group);
+                              if (wbsNode) {
+                                // Show badge with code, then just the name (not the full "code — name" label)
+                                const displayName = wbsNode.name && wbsNode.name !== wbsNode.code
+                                  ? wbsNode.name
+                                  : group.replace(`${wbsNode.code} \u2014 `, "");
+                                return (
+                                  <>
+                                    <span
+                                      className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                                      style={{ backgroundColor: barColor, color: "#000000" }}
+                                    >
+                                      {wbsNode.code}
+                                    </span>
+                                    <span
+                                      className="font-bold tracking-wide truncate"
+                                      style={{ fontSize: d === 0 ? "0.875rem" : "0.8125rem", color: "#ffffff" }}
+                                    >
+                                      {displayName}
+                                    </span>
+                                  </>
+                                );
+                              }
+                            }
+                            // Fallback: non-WBS grouping or no matching node
+                            return (
                               <span
-                                className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
-                                style={{ backgroundColor: barColor, color: "#000000" }}
+                                className="font-bold tracking-wide truncate"
+                                style={{ fontSize: d === 0 ? "0.875rem" : "0.8125rem", color: "#ffffff" }}
                               >
-                                {wbsNode.code}
+                                {group}
                               </span>
-                            ) : null;
+                            );
                           })()}
-                          <span
-                            className="font-semibold tracking-wide truncate"
-                            style={{ fontSize: d === 0 ? "0.8125rem" : "0.75rem", color: textColor }}
-                          >
-                            {group}
-                          </span>
                           <span
                             className="ml-2 flex-shrink-0"
                             style={{ fontSize: "0.6875rem", fontWeight: 400, color: "rgba(255,255,255,0.6)" }}

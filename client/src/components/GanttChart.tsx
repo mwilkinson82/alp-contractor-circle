@@ -765,11 +765,15 @@ export default function GanttChart({
         // Colored left bar
         ctx.fillStyle = barColor;
         ctx.fillRect(depth * 12, y, barWidth, ROW_HEIGHT);
-        // Group label text — full white for maximum contrast
+        // Group label text — full white, strip code prefix to show just the name
         ctx.fillStyle = "#ffffff";
-        ctx.font = depth === 0 ? "bold 11px 'DM Sans', sans-serif" : "600 10px 'DM Sans', sans-serif";
+        ctx.font = depth === 0 ? "bold 12px 'DM Sans', sans-serif" : "bold 11px 'DM Sans', sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(row.group || "", 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 4);
+        // Strip "code — " prefix from label for cleaner display
+        let groupLabel = row.group || "";
+        const dashIdx = groupLabel.indexOf(" \u2014 ");
+        if (dashIdx > 0) groupLabel = groupLabel.substring(dashIdx + 3);
+        ctx.fillText(groupLabel, 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 4);
         continue;
       }
 
