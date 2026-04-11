@@ -1491,3 +1491,11 @@
 - [x] Add keyboard event listeners for Ctrl+Plus/Minus zoom
 - [x] Test zoom in PDF export
 - [x] Test keyboard shortcuts work in Scheduler
+
+## Zoom Parity Fix (April 11)
+- [ ] Table row heights must scale with magnificationZoom (left side)
+- [ ] Table font sizes must scale with magnificationZoom
+- [ ] Gantt bar heights must scale with magnificationZoom (canvas right side)
+- [ ] Gantt bar label/text font sizes must scale with magnificationZoom
+- [ ] Summary bars must scale with magnificationZoom
+- [ ] Verify table and canvas stay in sync at 50%, 75%, 100%, 125%, 150%
