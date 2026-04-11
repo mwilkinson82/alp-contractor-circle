@@ -153,55 +153,57 @@ const SCHEDULE_TEMPLATES = {
     name: "Residential New Build",
     description: "Standard residential construction schedule with typical phases",
     activities: [
+      // ── 1. General Conditions ──
       { activityId: "A1010", name: "Site Survey & Layout", duration: 2, wbs: "1.0" },
-      { activityId: "A1020", name: "Demolition / Site Clearing", duration: 3, wbs: "1.0" },
-      { activityId: "A1030", name: "Excavation & Grading", duration: 5, wbs: "1.0" },
-      { activityId: "A1040", name: "Foundation Footings", duration: 5, wbs: "2.0" },
-      { activityId: "A1050", name: "Foundation Walls & Waterproofing", duration: 7, wbs: "2.0" },
-      { activityId: "A1060", name: "Slab on Grade / Basement Slab", duration: 3, wbs: "2.0" },
-      { activityId: "A1070", name: "Backfill & Compaction", duration: 2, wbs: "2.0" },
-      { activityId: "A1080", name: "Underground Plumbing Rough-In", duration: 3, wbs: "3.0" },
-      { activityId: "A1090", name: "Framing — First Floor", duration: 10, wbs: "3.0" },
-      { activityId: "A1100", name: "Framing — Second Floor", duration: 8, wbs: "3.0" },
-      { activityId: "A1110", name: "Roof Framing & Sheathing", duration: 7, wbs: "3.0" },
-      { activityId: "A1120", name: "Roofing (Shingles / Metal)", duration: 5, wbs: "3.0" },
-      { activityId: "A1130", name: "Windows & Exterior Doors", duration: 3, wbs: "4.0" },
-      { activityId: "A1140", name: "Exterior Siding / Masonry", duration: 10, wbs: "4.0" },
-      { activityId: "A1150", name: "Electrical Rough-In", duration: 8, wbs: "5.0" },
-      { activityId: "A1160", name: "Plumbing Rough-In", duration: 7, wbs: "5.0" },
-      { activityId: "A1170", name: "HVAC Rough-In", duration: 7, wbs: "5.0" },
-      { activityId: "A1180", name: "Insulation", duration: 4, wbs: "5.0" },
-      { activityId: "A1190", name: "Drywall Hang & Finish", duration: 12, wbs: "6.0" },
-      { activityId: "A1200", name: "Interior Trim & Doors", duration: 8, wbs: "6.0" },
-      { activityId: "A1210", name: "Cabinets & Countertops", duration: 5, wbs: "6.0" },
-      { activityId: "A1220", name: "Interior Paint", duration: 7, wbs: "6.0" },
-      { activityId: "A1230", name: "Flooring (Tile, Hardwood, Carpet)", duration: 8, wbs: "6.0" },
-      { activityId: "A1240", name: "Electrical Trim-Out", duration: 3, wbs: "7.0" },
-      { activityId: "A1250", name: "Plumbing Trim-Out", duration: 3, wbs: "7.0" },
-      { activityId: "A1260", name: "HVAC Trim-Out & Startup", duration: 2, wbs: "7.0" },
-      { activityId: "A1270", name: "Appliance Installation", duration: 2, wbs: "7.0" },
-      { activityId: "A1280", name: "Landscaping & Hardscape", duration: 7, wbs: "8.0" },
-      { activityId: "A1290", name: "Driveway & Walkways", duration: 4, wbs: "8.0" },
-      { activityId: "A1300", name: "Final Cleaning", duration: 2, wbs: "9.0" },
-      { activityId: "A1310", name: "Punch List", duration: 5, wbs: "9.0" },
-      { activityId: "A1320", name: "Final Inspections & CO", duration: 3, wbs: "9.0" },
-      // ── Submittals ──
-      { activityId: "FAB-001", name: "Submit Steel Shop Drawings", duration: 10, wbs: "10.1" },
-      { activityId: "FAB-002", name: "Steel Shop Drawing Review & Approval", duration: 14, wbs: "10.2" },
-      { activityId: "FAB-010", name: "Submit Window & Door Schedule", duration: 5, wbs: "10.1" },
-      { activityId: "FAB-011", name: "Window & Door Approval", duration: 10, wbs: "10.2" },
-      { activityId: "FAB-020", name: "Submit Millwork & Cabinet Drawings", duration: 7, wbs: "10.1" },
-      { activityId: "FAB-021", name: "Millwork Drawing Review & Approval", duration: 14, wbs: "10.2" },
-      // ── Fabrication & Procurement ──
-      { activityId: "FAB-003", name: "Fabricate Structural Steel", duration: 21, wbs: "11.0" },
-      { activityId: "FAB-004", name: "Deliver Structural Steel to Site", duration: 2, wbs: "11.0" },
-      { activityId: "FAB-012", name: "Manufacture Windows & Exterior Doors", duration: 35, wbs: "11.0" },
-      { activityId: "FAB-013", name: "Deliver Windows & Doors to Site", duration: 2, wbs: "11.0" },
-      { activityId: "FAB-022", name: "Fabricate Custom Cabinetry & Millwork", duration: 42, wbs: "11.0" },
-      { activityId: "FAB-023", name: "Deliver Millwork to Site", duration: 2, wbs: "11.0" },
-      { activityId: "FAB-030", name: "Order HVAC Equipment & Ductwork", duration: 3, wbs: "11.0" },
-      { activityId: "FAB-031", name: "HVAC Equipment Lead Time / Delivery", duration: 28, wbs: "11.0" },
-      { activityId: "FAB-032", name: "Order Plumbing Fixtures & Equipment", duration: 3, wbs: "11.0" },
+      { activityId: "A1300", name: "Final Cleaning", duration: 2, wbs: "1.0" },
+      { activityId: "A1310", name: "Punch List", duration: 5, wbs: "1.0" },
+      { activityId: "A1320", name: "Final Inspections & CO", duration: 3, wbs: "1.0" },
+      // ── 2. Submittals ──
+      { activityId: "FAB-001", name: "Submit Steel Shop Drawings", duration: 10, wbs: "2.1" },
+      { activityId: "FAB-010", name: "Submit Window & Door Schedule", duration: 5, wbs: "2.1" },
+      { activityId: "FAB-020", name: "Submit Millwork & Cabinet Drawings", duration: 7, wbs: "2.1" },
+      { activityId: "FAB-002", name: "Steel Shop Drawing Review & Approval", duration: 14, wbs: "2.2" },
+      { activityId: "FAB-011", name: "Window & Door Approval", duration: 10, wbs: "2.2" },
+      { activityId: "FAB-021", name: "Millwork Drawing Review & Approval", duration: 14, wbs: "2.2" },
+      // ── 3. Fabrication (by CSI trade) ──
+      { activityId: "FAB-003", name: "Fabricate Structural Steel", duration: 21, wbs: "3.1" },
+      { activityId: "FAB-004", name: "Deliver Structural Steel to Site", duration: 2, wbs: "3.1" },
+      { activityId: "FAB-012", name: "Manufacture Windows & Exterior Doors", duration: 35, wbs: "3.2" },
+      { activityId: "FAB-013", name: "Deliver Windows & Doors to Site", duration: 2, wbs: "3.2" },
+      { activityId: "FAB-022", name: "Fabricate Custom Cabinetry & Millwork", duration: 42, wbs: "3.3" },
+      { activityId: "FAB-023", name: "Deliver Millwork to Site", duration: 2, wbs: "3.3" },
+      { activityId: "FAB-030", name: "Order HVAC Equipment & Ductwork", duration: 3, wbs: "3.4" },
+      { activityId: "FAB-031", name: "HVAC Equipment Lead Time / Delivery", duration: 28, wbs: "3.4" },
+      { activityId: "FAB-032", name: "Order Plumbing Fixtures & Equipment", duration: 3, wbs: "3.4" },
+      // ── 4. Construction (by CSI trade) ──
+      { activityId: "A1020", name: "Demolition / Site Clearing", duration: 3, wbs: "4.1" },
+      { activityId: "A1030", name: "Excavation & Grading", duration: 5, wbs: "4.1" },
+      { activityId: "A1040", name: "Foundation Footings", duration: 5, wbs: "4.2" },
+      { activityId: "A1050", name: "Foundation Walls & Waterproofing", duration: 7, wbs: "4.2" },
+      { activityId: "A1060", name: "Slab on Grade / Basement Slab", duration: 3, wbs: "4.2" },
+      { activityId: "A1070", name: "Backfill & Compaction", duration: 2, wbs: "4.2" },
+      { activityId: "A1080", name: "Underground Plumbing Rough-In", duration: 3, wbs: "4.2" },
+      { activityId: "A1090", name: "Framing \u2014 First Floor", duration: 10, wbs: "4.3" },
+      { activityId: "A1100", name: "Framing \u2014 Second Floor", duration: 8, wbs: "4.3" },
+      { activityId: "A1110", name: "Roof Framing & Sheathing", duration: 7, wbs: "4.3" },
+      { activityId: "A1120", name: "Roofing (Shingles / Metal)", duration: 5, wbs: "4.4" },
+      { activityId: "A1130", name: "Windows & Exterior Doors", duration: 3, wbs: "4.4" },
+      { activityId: "A1140", name: "Exterior Siding / Masonry", duration: 10, wbs: "4.4" },
+      { activityId: "A1150", name: "Electrical Rough-In", duration: 8, wbs: "4.5" },
+      { activityId: "A1160", name: "Plumbing Rough-In", duration: 7, wbs: "4.5" },
+      { activityId: "A1170", name: "HVAC Rough-In", duration: 7, wbs: "4.5" },
+      { activityId: "A1180", name: "Insulation", duration: 4, wbs: "4.5" },
+      { activityId: "A1190", name: "Drywall Hang & Finish", duration: 12, wbs: "4.6" },
+      { activityId: "A1200", name: "Interior Trim & Doors", duration: 8, wbs: "4.6" },
+      { activityId: "A1210", name: "Cabinets & Countertops", duration: 5, wbs: "4.6" },
+      { activityId: "A1220", name: "Interior Paint", duration: 7, wbs: "4.6" },
+      { activityId: "A1230", name: "Flooring (Tile, Hardwood, Carpet)", duration: 8, wbs: "4.6" },
+      { activityId: "A1240", name: "Electrical Trim-Out", duration: 3, wbs: "4.7" },
+      { activityId: "A1250", name: "Plumbing Trim-Out", duration: 3, wbs: "4.7" },
+      { activityId: "A1260", name: "HVAC Trim-Out & Startup", duration: 2, wbs: "4.7" },
+      { activityId: "A1270", name: "Appliance Installation", duration: 2, wbs: "4.7" },
+      { activityId: "A1280", name: "Landscaping & Hardscape", duration: 7, wbs: "4.8" },
+      { activityId: "A1290", name: "Driveway & Walkways", duration: 4, wbs: "4.8" },
     ],
     relationships: [
       { pred: "A1010", succ: "A1020", type: "FS" as const, lag: 0 },
@@ -263,19 +265,29 @@ const SCHEDULE_TEMPLATES = {
       { pred: "A1130", succ: "FAB-032", type: "SS" as const, lag: 0 },
     ],
     wbsNodes: [
-      { code: "1.0", name: "Sitework & Civil", parentCode: null, sortOrder: 10, color: "#f59e0b", textColor: "#ffffff" },
-      { code: "2.0", name: "Foundation", parentCode: null, sortOrder: 20, color: "#6366f1", textColor: "#ffffff" },
-      { code: "3.0", name: "Structural Framing", parentCode: null, sortOrder: 30, color: "#10b981", textColor: "#ffffff" },
-      { code: "4.0", name: "Enclosure", parentCode: null, sortOrder: 40, color: "#ec4899", textColor: "#ffffff" },
-      { code: "5.0", name: "MEP Rough-In", parentCode: null, sortOrder: 50, color: "#3b82f6", textColor: "#ffffff" },
-      { code: "6.0", name: "Interior Finishes", parentCode: null, sortOrder: 60, color: "#8b5cf6", textColor: "#ffffff" },
-      { code: "7.0", name: "MEP Trim & Startup", parentCode: null, sortOrder: 70, color: "#14b8a6", textColor: "#ffffff" },
-      { code: "8.0", name: "Exterior & Landscaping", parentCode: null, sortOrder: 80, color: "#84cc16", textColor: "#ffffff" },
-      { code: "9.0", name: "Closeout", parentCode: null, sortOrder: 90, color: "#ef4444", textColor: "#ffffff" },
-      { code: "10.0", name: "Submittals", parentCode: null, sortOrder: 100, color: "#f97316", textColor: "#ffffff" },
-      { code: "10.1", name: "Prepare & Submit", parentCode: "10.0", sortOrder: 101, color: "#fb923c", textColor: "#000000" },
-      { code: "10.2", name: "Review & Approve", parentCode: "10.0", sortOrder: 102, color: "#fdba74", textColor: "#000000" },
-      { code: "11.0", name: "Fabrication & Procurement", parentCode: null, sortOrder: 110, color: "#06b6d4", textColor: "#ffffff" },
+      // 1. General Conditions — milestones, mobilization, permits, closeout
+      { code: "1.0", name: "General Conditions", parentCode: null, sortOrder: 10, color: "#f59e0b", textColor: "#ffffff" },
+      // 2. Submittals — prepare & submit, review & approve
+      { code: "2.0", name: "Submittals", parentCode: null, sortOrder: 20, color: "#f97316", textColor: "#ffffff" },
+      { code: "2.1", name: "Prepare & Submit", parentCode: "2.0", sortOrder: 21, color: "#fb923c", textColor: "#000000" },
+      { code: "2.2", name: "Review & Approve", parentCode: "2.0", sortOrder: 22, color: "#fdba74", textColor: "#000000" },
+      // 3. Fabrication — by CSI trade
+      { code: "3.0", name: "Fabrication", parentCode: null, sortOrder: 30, color: "#06b6d4", textColor: "#ffffff" },
+      { code: "3.1", name: "Structural Steel", parentCode: "3.0", sortOrder: 31, color: "#22d3ee", textColor: "#000000" },
+      { code: "3.2", name: "Openings (Windows & Doors)", parentCode: "3.0", sortOrder: 32, color: "#67e8f9", textColor: "#000000" },
+      { code: "3.3", name: "Millwork & Cabinetry", parentCode: "3.0", sortOrder: 33, color: "#a5f3fc", textColor: "#000000" },
+      { code: "3.4", name: "MEP Equipment", parentCode: "3.0", sortOrder: 34, color: "#cffafe", textColor: "#000000" },
+      // 4. Construction — by CSI trade
+      { code: "4.0", name: "Construction", parentCode: null, sortOrder: 40, color: "#10b981", textColor: "#ffffff" },
+      { code: "4.1", name: "Sitework & Civil", parentCode: "4.0", sortOrder: 41, color: "#34d399", textColor: "#000000" },
+      { code: "4.2", name: "Concrete & Foundation", parentCode: "4.0", sortOrder: 42, color: "#6366f1", textColor: "#ffffff" },
+      { code: "4.3", name: "Structural Framing", parentCode: "4.0", sortOrder: 43, color: "#818cf8", textColor: "#000000" },
+      { code: "4.4", name: "Enclosure", parentCode: "4.0", sortOrder: 44, color: "#ec4899", textColor: "#ffffff" },
+      { code: "4.5", name: "MEP Rough-In", parentCode: "4.0", sortOrder: 45, color: "#3b82f6", textColor: "#ffffff" },
+      { code: "4.6", name: "Interior Finishes", parentCode: "4.0", sortOrder: 46, color: "#8b5cf6", textColor: "#ffffff" },
+      { code: "4.7", name: "MEP Trim & Startup", parentCode: "4.0", sortOrder: 47, color: "#14b8a6", textColor: "#ffffff" },
+      { code: "4.8", name: "Exterior & Landscaping", parentCode: "4.0", sortOrder: 48, color: "#84cc16", textColor: "#ffffff" },
+      { code: "4.9", name: "Closeout", parentCode: "4.0", sortOrder: 49, color: "#ef4444", textColor: "#ffffff" },
     ],
     codeCategories: [
       { name: "Phase", values: ["Sitework", "Foundation", "Structure", "Enclosure", "MEP Rough-In", "Finishes", "MEP Trim", "Exterior", "Closeout", "Submittals", "Fabrication"] },
@@ -2661,29 +2673,89 @@ export const scheduleRouter = router({
         existingCodes.add(code);
       };
 
-      await ensureNode("10.0", "Submittals", null, 100, "#f97316", "#ffffff");
-      await ensureNode("10.1", "Prepare & Submit", "10.0", 101, "#fb923c", "#000000");
-      await ensureNode("10.2", "Review & Approve", "10.0", 102, "#fdba74", "#000000");
-      await ensureNode("11.0", "Fabrication & Procurement", null, 110, "#06b6d4", "#ffffff");
+      // 1. General Conditions
+      await ensureNode("1.0", "General Conditions", null, 10, "#f59e0b", "#ffffff");
+      // 2. Submittals
+      await ensureNode("2.0", "Submittals", null, 20, "#f97316", "#ffffff");
+      await ensureNode("2.1", "Prepare & Submit", "2.0", 21, "#fb923c", "#000000");
+      await ensureNode("2.2", "Review & Approve", "2.0", 22, "#fdba74", "#000000");
+      // 3. Fabrication (by CSI trade)
+      await ensureNode("3.0", "Fabrication", null, 30, "#06b6d4", "#ffffff");
+      await ensureNode("3.1", "Structural Steel", "3.0", 31, "#22d3ee", "#000000");
+      await ensureNode("3.2", "Openings (Windows & Doors)", "3.0", 32, "#67e8f9", "#000000");
+      await ensureNode("3.3", "Millwork & Cabinetry", "3.0", 33, "#a5f3fc", "#000000");
+      await ensureNode("3.4", "MEP Equipment", "3.0", 34, "#cffafe", "#000000");
+      // 4. Construction (by CSI trade)
+      await ensureNode("4.0", "Construction", null, 40, "#10b981", "#ffffff");
+      await ensureNode("4.1", "Sitework & Civil", "4.0", 41, "#34d399", "#000000");
+      await ensureNode("4.2", "Concrete & Foundation", "4.0", 42, "#6366f1", "#ffffff");
+      await ensureNode("4.3", "Structural Framing", "4.0", 43, "#818cf8", "#000000");
+      await ensureNode("4.4", "Enclosure", "4.0", 44, "#ec4899", "#ffffff");
+      await ensureNode("4.5", "MEP Rough-In", "4.0", 45, "#3b82f6", "#ffffff");
+      await ensureNode("4.6", "Interior Finishes", "4.0", 46, "#8b5cf6", "#ffffff");
+      await ensureNode("4.7", "MEP Trim & Startup", "4.0", 47, "#14b8a6", "#ffffff");
+      await ensureNode("4.8", "Exterior & Landscaping", "4.0", 48, "#84cc16", "#ffffff");
+      await ensureNode("4.9", "Closeout", "4.0", 49, "#ef4444", "#ffffff");
 
       // Auto-assign unassigned activities based on name patterns
       let assigned = 0;
       for (const act of acts) {
         if (act.wbs) continue; // already assigned
-        const name = act.name.toLowerCase();
+        const n = act.name.toLowerCase();
         let wbsCode: string | null = null;
 
-        // Prepare & Submit patterns
-        if (name.includes("submit") || name.includes("submittal")) {
-          wbsCode = "10.1";
+        // ── 2. Submittals ──
+        // Prepare & Submit
+        if (n.includes("submit") || n.includes("submittal")) {
+          wbsCode = "2.1";
         }
-        // Review & Approve patterns
-        else if (name.includes("review") || name.includes("approval") || name.includes("approve")) {
-          wbsCode = "10.2";
+        // Review & Approve
+        else if (n.includes("review") || n.includes("approval") || n.includes("approve")) {
+          wbsCode = "2.2";
         }
-        // Fabrication & Procurement patterns
-        else if (name.includes("fabricat") || name.includes("manufactur") || name.includes("deliver") || name.includes("order ") || name.includes("lead time") || name.includes("procurement")) {
-          wbsCode = "11.0";
+        // ── 3. Fabrication (match to CSI trade) ──
+        else if (n.includes("fabricat") || n.includes("manufactur") || n.includes("deliver") || n.includes("order ") || n.includes("lead time") || n.includes("procurement")) {
+          // Match to specific fabrication sub-WBS by trade
+          if (n.includes("steel") || n.includes("iron") || n.includes("metal")) {
+            wbsCode = "3.1"; // Structural Steel
+          } else if (n.includes("window") || n.includes("door") || n.includes("opening") || n.includes("glass") || n.includes("glazing")) {
+            wbsCode = "3.2"; // Openings
+          } else if (n.includes("millwork") || n.includes("cabinet") || n.includes("casework") || n.includes("woodwork")) {
+            wbsCode = "3.3"; // Millwork & Cabinetry
+          } else if (n.includes("hvac") || n.includes("plumb") || n.includes("electric") || n.includes("mechanic") || n.includes("duct") || n.includes("fixture") || n.includes("equipment")) {
+            wbsCode = "3.4"; // MEP Equipment
+          } else {
+            wbsCode = "3.0"; // General Fabrication
+          }
+        }
+        // ── 4. Construction (match to CSI trade) ──
+        // General Conditions / milestones
+        else if (n.includes("survey") || n.includes("mobiliz") || n.includes("permit") || n.includes("pre-construction") || n.includes("punch list") || n.includes("final inspect") || n.includes("final clean") || n.includes("certificate") || n.includes("closeout") || n.includes("substantial completion")) {
+          wbsCode = "1.0"; // General Conditions
+        }
+        else if (n.includes("demol") || n.includes("site clear") || n.includes("excavat") || n.includes("grading") || n.includes("earthwork") || n.includes("backfill") || n.includes("compact")) {
+          wbsCode = "4.1"; // Sitework & Civil
+        }
+        else if (n.includes("foundation") || n.includes("footing") || n.includes("slab") || n.includes("concrete") || n.includes("rebar") || n.includes("formwork") || n.includes("underground plumb")) {
+          wbsCode = "4.2"; // Concrete & Foundation
+        }
+        else if (n.includes("framing") || n.includes("structural") || n.includes("sheathing") || n.includes("truss") || n.includes("joist")) {
+          wbsCode = "4.3"; // Structural Framing
+        }
+        else if (n.includes("roof") || n.includes("window") || n.includes("door") || n.includes("siding") || n.includes("masonry") || n.includes("exterior") || n.includes("enclosure") || n.includes("waterproof") || n.includes("flashing")) {
+          wbsCode = "4.4"; // Enclosure
+        }
+        else if (n.includes("electrical rough") || n.includes("plumbing rough") || n.includes("hvac rough") || n.includes("rough-in") || n.includes("insulation") || n.includes("fire protect") || n.includes("sprinkler")) {
+          wbsCode = "4.5"; // MEP Rough-In
+        }
+        else if (n.includes("drywall") || n.includes("paint") || n.includes("floor") || n.includes("tile") || n.includes("carpet") || n.includes("hardwood") || n.includes("trim") || n.includes("cabinet") || n.includes("countertop") || n.includes("finish")) {
+          wbsCode = "4.6"; // Interior Finishes
+        }
+        else if (n.includes("electrical trim") || n.includes("plumbing trim") || n.includes("hvac trim") || n.includes("startup") || n.includes("appliance") || n.includes("commission")) {
+          wbsCode = "4.7"; // MEP Trim & Startup
+        }
+        else if (n.includes("landscape") || n.includes("hardscape") || n.includes("driveway") || n.includes("walkway") || n.includes("paving") || n.includes("fence") || n.includes("irrigation")) {
+          wbsCode = "4.8"; // Exterior & Landscaping
         }
 
         if (wbsCode) {
@@ -2692,6 +2764,6 @@ export const scheduleRouter = router({
         }
       }
 
-      return { assigned, message: `Auto-assigned ${assigned} activities to Submittal/Fabrication WBS` };
+      return { assigned, message: `Auto-assigned ${assigned} activities to proper construction WBS (General Conditions / Submittals / Fabrication / Construction)` };
     }),
 });

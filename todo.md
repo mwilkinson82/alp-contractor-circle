@@ -1335,7 +1335,7 @@
 - [x] Auto-assign FAB activities to WBS on existing schedules (Group > Auto-Assign Submittal/Fab WBS)
 - [x] Takeoff Excel/CSV export: grouped by CSI division with section headers, subtotals, and grand total
 
-## WBS Rewrite — Proper Construction Workflow (DEFERRED — Next Session)
-- [ ] Rewrite residential template WBS: 1. General Conditions, 2. Submittals (Prepare & Submit / Review & Approve), 3. Fabrication (by CSI), 4. Construction (by CSI)
-- [ ] Rewrite auto-assign logic to match activity names to correct phase (General/Submittal/Fabrication/Construction)
+## WBS Rewrite — Proper Construction Workflow (In Progress)
+- [x] Rewrite residential template WBS: 1. General Conditions, 2. Submittals (Prepare & Submit / Review & Approve), 3. Fabrication (by CSI), 4. Construction (by CSI)
+- [x] Rewrite auto-assign logic to match activity names to correct phase (General/Submittal/Fabrication/Construction)
 - [x] Fix WBS name display when name === code (derive names from child activities)
