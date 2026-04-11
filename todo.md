@@ -1399,3 +1399,13 @@
 ## Scheduler & Takeoff Fixes (April 11 — Round 8)
 - [x] Add Recalculate Status button to takeoff project cards (fixes "Error" status on completed projects)
 - [x] Add "Lag" label to relationship lag input fields in activity detail modal (predecessor + successor sections)
+
+
+## Scheduler Improvements (April 11 — Round 9)
+- [x] Variable WBS row heights: parent WBS rows thicker/taller than child WBS rows (P6-style visual hierarchy)
+- [x] Top-level WBS (depth 0-1) = tallest rows, mid-level WBS (depth 2) = medium, leaf WBS (depth 3+) = thinnest
+- [x] Apply variable heights to both table panel and Gantt canvas
+- [x] Gantt drag-to-connect: hover near right edge of bar shows connector icon
+- [x] Click and drag from right edge of one bar to left edge of another to create FS relationship
+- [x] Visual feedback: draw temporary arrow line while dragging
+- [x] On drop: create the relationship (predecessor = source bar, successor = target bar)

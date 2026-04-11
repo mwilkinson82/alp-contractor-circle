@@ -94,6 +94,15 @@ interface GanttChartProps {
 export const BASE_ROW_HEIGHT = 44;
 export const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
 export const HEADER_HEIGHT = 48;
+
+// P6-style variable row heights: parent WBS rows are thicker than child WBS rows
+export function getWbsRowHeight(depth: number, isCostOverlay: boolean): number {
+  const base = isCostOverlay ? 60 : (depth <= 0 ? 52 : depth === 1 ? 44 : 38);
+  return base;
+}
+export function getActivityRowHeight(isCostOverlay: boolean): number {
+  return isCostOverlay ? 60 : 36;
+}
 const BAR_HEIGHT = 16;
 const BAR_Y_OFFSET = 17; // Push bar down to leave room for label above
 const TARGET_BAR_HEIGHT = 5;
@@ -256,24 +265,30 @@ export default function GanttChart({
   // ─── Compute layout ──────────────────────────────────────────────────────
 
   // Flatten grouped activities for row index mapping (respects collapsed groups)
+  // Each row now has its own height and cumulative Y offset for variable row heights
   const flatRows = useMemo(() => {
-    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string; groupActivities?: Activity[]; ancestorColors?: string[] }> = [];
+    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string; groupActivities?: Activity[]; ancestorColors?: string[]; rowHeight: number; yOffset: number }> = [];
     let idx = 0;
+    let cumulativeY = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities, ancestorColors: g.ancestorColors });
+        const h = getWbsRowHeight(g.depth ?? 0, !!showCostOverlay);
+        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
+        cumulativeY += h;
         idx++;
       }
       // Skip activities if this group is collapsed
       const groupKey = g.group || "all";
       if (collapsedGroups?.has(groupKey)) continue;
       for (const act of g.activities) {
-        rows.push({ type: "activity", activity: act, rowIndex: idx, ancestorColors: g.ancestorColors });
+        const h = getActivityRowHeight(!!showCostOverlay);
+        rows.push({ type: "activity", activity: act, rowIndex: idx, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
+        cumulativeY += h;
         idx++;
       }
     }
     return rows;
-  }, [groupedActivities, collapsedGroups]);
+  }, [groupedActivities, collapsedGroups, showCostOverlay]);
 
   const activityRowMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -336,7 +351,7 @@ export default function GanttChart({
   }, [pixelsPerDay]);
 
   const totalWidth = totalDays * pixelsPerDay;
-  const totalHeight = HEADER_HEIGHT + flatRows.length * ROW_HEIGHT;
+  const totalHeight = HEADER_HEIGHT + (flatRows.length > 0 ? flatRows[flatRows.length - 1].yOffset + flatRows[flatRows.length - 1].rowHeight : 0);
 
   // ─── Resize observer ─────────────────────────────────────────────────────
 
@@ -443,18 +458,7 @@ export default function GanttChart({
 
     if (hit.edge === "start" || hit.edge === "finish") {
       if (e.altKey || e.metaKey) {
-        e.preventDefault();
-        setDragState({
-          mode: "connect",
-          activityId: hit.bar.activityId,
-          startX: hit.edge === "start" ? hit.bar.x : hit.bar.x + hit.bar.w,
-          startY: hit.bar.y + hit.bar.h / 2,
-          currentX: cx,
-          currentY: cy,
-          originalDuration: 0,
-          fromEdge: hit.edge,
-        });
-      } else {
+        // Alt+click on edge = resize (secondary action)
         e.preventDefault();
         const act = activities.find((a) => a.id === hit.bar.activityId);
         if (!act) return;
@@ -468,8 +472,26 @@ export default function GanttChart({
           originalDuration: act.duration,
           fromEdge: hit.edge,
         });
+        const canvas = canvasRef.current;
+        if (canvas) canvas.style.cursor = "ew-resize";
+      } else {
+        // Click on edge = connect (primary action — P6 style)
+        e.preventDefault();
+        setDragState({
+          mode: "connect",
+          activityId: hit.bar.activityId,
+          startX: hit.edge === "start" ? hit.bar.x : hit.bar.x + hit.bar.w,
+          startY: hit.bar.y + hit.bar.h / 2,
+          currentX: cx,
+          currentY: cy,
+          originalDuration: 0,
+          fromEdge: hit.edge,
+        });
       }
+      return;
     }
+
+    // Body click is handled by mouseUp (select/deselect)
   }, [getCanvasCoords, hitTestBar, activities, pixelsPerDay, onZoomChange]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -540,8 +562,8 @@ export default function GanttChart({
       // Regular click — select activity
       const { cx, cy } = getCanvasCoords(e);
       const adjustedY = cy + scrollTop - HEADER_HEIGHT;
-      const rowIndex = Math.floor(adjustedY / ROW_HEIGHT);
-      const row = flatRows.find((r) => r.rowIndex === rowIndex);
+      // Variable row heights: find row by cumulative Y offset
+      const row = flatRows.find((r) => adjustedY >= r.yOffset && adjustedY < r.yOffset + r.rowHeight);
       if (row?.type === "activity" && row.activity) {
         onSelectActivity(row.activity.id === selectedActivityId ? null : row.activity.id);
       }
@@ -610,8 +632,8 @@ export default function GanttChart({
     }
     // Also check row click
     const adjustedY = cy + scrollTop - HEADER_HEIGHT;
-    const rowIndex = Math.floor(adjustedY / ROW_HEIGHT);
-    const row = flatRows.find((r) => r.rowIndex === rowIndex);
+    // Variable row heights: find row by cumulative Y offset
+    const row = flatRows.find((r) => adjustedY >= r.yOffset && adjustedY < r.yOffset + r.rowHeight);
     if (row?.type === "activity" && row.activity) {
       onActivityDoubleClick(row.activity.id);
     }
@@ -759,20 +781,21 @@ export default function GanttChart({
     for (const ta of target2Activities) t2Map.set(ta.id, ta);
 
     for (const row of flatRows) {
-      const y = HEADER_HEIGHT + row.rowIndex * ROW_HEIGHT + offsetY;
-      if (y < HEADER_HEIGHT - ROW_HEIGHT || y > visibleHeight + ROW_HEIGHT) continue;
+      const rh = row.rowHeight;
+      const y = HEADER_HEIGHT + row.yOffset + offsetY;
+      if (y < HEADER_HEIGHT - rh || y > visibleHeight + rh) continue;
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
         // Gantt side: subtle neutral background for group rows (no color bands)
         ctx.fillStyle = depth === 0 ? "#f5f0e0" : "#f0ede8";
-        ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+        ctx.fillRect(0, y, visibleWidth, rh);
         // Bottom border
         ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(0, y + ROW_HEIGHT);
-        ctx.lineTo(visibleWidth, y + ROW_HEIGHT);
+        ctx.moveTo(0, y + rh);
+        ctx.lineTo(visibleWidth, y + rh);
         ctx.stroke();
         // WBS name lookup
         const WBS_NAMES: Record<string, string> = {
@@ -821,7 +844,7 @@ export default function GanttChart({
           const sumBarX = daysBetween(rangeStart, summaryStartDate) * pixelsPerDay + offsetX;
           const sumBarW = Math.max(daysBetween(summaryStartDate, summaryEndDate) * pixelsPerDay, 4);
           const sumBarH = 8; // Thick summary bar
-          const sumBarY = y + ROW_HEIGHT / 2 - sumBarH / 2 + 2;
+          const sumBarY = y + rh / 2 - sumBarH / 2 + 2;
           // Draw the summary bar — dark charcoal/black
           ctx.fillStyle = "#1a1a1a";
           ctx.fillRect(sumBarX, sumBarY, sumBarW, sumBarH);
@@ -849,20 +872,20 @@ export default function GanttChart({
       // Alternating row background
       if (row.rowIndex % 2 === 1) {
         ctx.fillStyle = COLORS.rowAltBg;
-        ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+        ctx.fillRect(0, y, visibleWidth, rh);
       }
 
       // Selected row highlight
       if (act.id === selectedActivityId) {
         ctx.fillStyle = COLORS.selectedBg;
-        ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
+        ctx.fillRect(0, y, visibleWidth, rh);
       }
 
       // Row divider
       ctx.strokeStyle = COLORS.gridLine;
       ctx.beginPath();
-      ctx.moveTo(0, y + ROW_HEIGHT);
-      ctx.lineTo(visibleWidth, y + ROW_HEIGHT);
+      ctx.moveTo(0, y + rh);
+      ctx.lineTo(visibleWidth, y + rh);
       ctx.stroke();
 
       if (!act.earlyStart || !act.earlyFinish) continue;
@@ -1069,8 +1092,12 @@ export default function GanttChart({
         const succAct = activities.find((a) => a.id === rel.successorId);
         if (!predAct?.earlyStart || !predAct?.earlyFinish || !succAct?.earlyStart || !succAct?.earlyFinish) continue;
 
-        const predY = HEADER_HEIGHT + predRow * ROW_HEIGHT + offsetY;
-        const succY = HEADER_HEIGHT + succRow * ROW_HEIGHT + offsetY;
+        // Variable row heights: look up Y from flatRows
+        const predFlatRow = flatRows.find(r => r.type === "activity" && r.activity?.id === rel.predecessorId);
+        const succFlatRow = flatRows.find(r => r.type === "activity" && r.activity?.id === rel.successorId);
+        if (!predFlatRow || !succFlatRow) continue;
+        const predY = HEADER_HEIGHT + predFlatRow.yOffset + offsetY;
+        const succY = HEADER_HEIGHT + succFlatRow.yOffset + offsetY;
 
         const predBarX = daysBetween(rangeStart, predAct.earlyStart) * pixelsPerDay + offsetX;
         const predBarEnd = daysBetween(rangeStart, predAct.earlyFinish) * pixelsPerDay + offsetX;
@@ -1329,7 +1356,7 @@ export default function GanttChart({
       {hoveredActivity && hoveredEdge && !dragState && (
         <div className="absolute top-1 right-1 z-10 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
           {hoveredEdge === "start" || hoveredEdge === "finish"
-            ? "Drag to resize · Alt+Drag to connect"
+            ? "Drag to connect · Alt+Drag to resize"
             : "Click to select · Double-click to edit"}
         </div>
       )}

@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useMember } from "@/hooks/useMember";
-import GanttChart, { BASE_ROW_HEIGHT, HEADER_HEIGHT } from "@/components/GanttChart";
+import GanttChart, { BASE_ROW_HEIGHT, HEADER_HEIGHT, getWbsRowHeight, getActivityRowHeight } from "@/components/GanttChart";
 import GanttAnnotations, { type Annotation } from "@/components/GanttAnnotations";
 import { WBSTree } from "@/components/WBSTree";
 import { PdfExportPreview } from "@/components/PdfExportPreview";
@@ -1759,7 +1759,7 @@ export default function Scheduler() {
                         style={{
                           backgroundColor: bgColor,
                           borderBottom: "1px solid rgba(0,0,0,0.2)",
-                          height: `${BASE_ROW_HEIGHT}px`,
+                          height: `${getWbsRowHeight(depth, false)}px`,
                           paddingRight: "12px",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
@@ -1841,7 +1841,7 @@ export default function Scheduler() {
                             ? "hover:bg-yellow-50"
                             : "hover:bg-gray-50"
                         }`}
-                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${BASE_ROW_HEIGHT}px` }}
+                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${getActivityRowHeight(false)}px` }}
                         onClick={(e) => {
                           // Don't handle if click originated from checkbox or dropdown
                           const target = e.target as HTMLElement;
