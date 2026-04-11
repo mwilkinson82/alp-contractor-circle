@@ -64,6 +64,12 @@
 - [x] Deploy via Manus hosting
 - [ ] Connect custom domain alpcontractorscircle.com
 
+## PDF Export Parity Fix
+- [x] Replace uniform avgRowH with per-row variable heights (getWbsRowHeight/getActivityRowHeight)
+- [x] Cumulative Y tracking in drawPage for table rows and Gantt bars
+- [x] Fix broken import statement in PdfExportPreview.tsx
+- [x] Pagination now accounts for variable row heights
+
 ## Pending
 - [x] Write vitest tests for ported code (61 passing, 3 skipped for missing RESEND_API_KEY)
 - [x] Save checkpoint and deploy

@@ -1,5 +1,4 @@
 /**
-import { getWbsRowHeight, getActivityRowHeight } from "@/components/GanttChart";
  * PdfExportPreview — WYSIWYG multi-page PDF preview with real relationship arrows.
  *
  * Key improvements:
@@ -9,6 +8,7 @@ import { getWbsRowHeight, getActivityRowHeight } from "@/components/GanttChart";
  * - WBS group headers shown in both table and Gantt sides
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { getWbsRowHeight, getActivityRowHeight } from "@/components/GanttChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -296,7 +296,19 @@ export function PdfExportPreview({
     return { width: w, height: h };
   }, [previewWidth, paperDims]);
 
-  // Calculate rows per page with variable row heights
+  // Helper: get the PDF-scaled pixel height for a given preview row
+  // Mirrors GanttChart.tsx getWbsRowHeight / getActivityRowHeight, scaled to PDF ppi
+  type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string } | { type: "activity"; act: Activity };
+  const getRowHeightPdf = useCallback((row: PreviewRow, ppi: number): number => {
+    // Screen heights (px): WBS depth-0=56, depth-1=24, depth-2+=20, activity=32
+    // Scale to PDF: (screenPx / 96) * ppi  (96 dpi is CSS reference pixel density)
+    const screenH = row.type === "group"
+      ? getWbsRowHeight(row.depth, false)
+      : getActivityRowHeight(false);
+    return (screenH / 96) * ppi;
+  }, []);
+
+  // Calculate layout constants (no longer needs maxRows — pagination is cumulative)
   const rowsPerPage = useMemo(() => {
     const ppi = canvasDims.width / paperDims.w;
     const marginIn = 0.4;
@@ -305,22 +317,32 @@ export function PdfExportPreview({
     const footerH = 0.25 * ppi;
     const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
     const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
-    // Use average row height for pagination, scaled by magnification zoom
-    const zoomScale = magnificationZoom / 100;
-    const avgRowH = (44 * ppi * zoomScale) / 96; // Average of parent/child rows, zoom-scaled
-    const maxRows = Math.max(1, Math.floor((contentH - avgRowH) / avgRowH));
-    return { maxRows, ppi, margin, headerH, footerH, contentH, baseFontSize, avgRowH };
-  }, [canvasDims, paperDims, magnificationZoom]);
+    // Header row height: use activity row height as the column-header row
+    const headerRowH = (getActivityRowHeight(false) / 96) * ppi;
+    return { ppi, margin, headerH, footerH, contentH, baseFontSize, headerRowH };
+  }, [canvasDims, paperDims]);
 
   const pages = useMemo(() => {
-    const { maxRows } = rowsPerPage;
-    const result: typeof previewRows[] = [];
-    for (let i = 0; i < previewRows.length; i += maxRows) {
-      result.push(previewRows.slice(i, i + maxRows));
+    const { ppi, contentH } = rowsPerPage;
+    // Header row (column labels) takes up one row height at the top of the content area
+    const headerRowH = (getActivityRowHeight(false) / 96) * ppi;
+    const result: (typeof previewRows)[] = [];
+    let pageRows: typeof previewRows = [];
+    let usedH = headerRowH; // start with the column-header row
+    for (const row of previewRows) {
+      const rh = getRowHeightPdf(row, ppi);
+      if (usedH + rh > contentH - 4 && pageRows.length > 0) {
+        result.push(pageRows);
+        pageRows = [];
+        usedH = headerRowH;
+      }
+      pageRows.push(row);
+      usedH += rh;
     }
+    if (pageRows.length > 0) result.push(pageRows);
     if (result.length === 0) result.push([]);
     return result;
-  }, [previewRows, rowsPerPage]);
+  }, [previewRows, rowsPerPage, getRowHeightPdf]);
 
   // Draw a single page onto a canvas
   const drawPage = useCallback((
@@ -343,7 +365,10 @@ export function PdfExportPreview({
 
     const w = displayW;
     const h = displayH;
-    const { ppi, margin, headerH, footerH, contentH, baseFontSize, avgRowH } = rowsPerPage; const rowH = avgRowH;
+    const { ppi, margin, headerH, footerH, contentH, baseFontSize, headerRowH } = rowsPerPage;
+    // Per-row heights are computed inline using getRowHeightPdf(row, ppi)
+    // headerRowH is used only for the column-label row at top of content area
+    const rowH = headerRowH; // used only for the column-label header row
     const contentY = margin + headerH + 4;
 
     // White page background
@@ -408,32 +433,41 @@ export function PdfExportPreview({
     ctx.fillText("Start", margin + tableW * 0.72, contentY + rowH / 2);
     ctx.fillText("Finish", margin + tableW * 0.87, contentY + rowH / 2);
 
-    // Table rows — with WBS group headers
+    // Table rows — variable row heights, cumulative Y tracking
+    // rowYOffsets[i] = Y position of row i (0-indexed into pageRows)
+    const rowYOffsets: number[] = [];
+    let cumY = contentY + rowH; // start after the column-header row
+    for (const row of pageRows) {
+      rowYOffsets.push(cumY);
+      cumY += getRowHeightPdf(row, ppi);
+    }
+
     let actRowIndex = 0;
     for (let i = 0; i < pageRows.length; i++) {
       const row = pageRows[i];
-      const ry = contentY + (i + 1) * rowH;
-      if (ry + rowH > contentY + contentH - 4) break;
+      const ry = rowYOffsets[i];
+      const rh = getRowHeightPdf(row, ppi);
+      if (ry + rh > contentY + contentH - 4) break;
 
       if (row.type === "group") {
         const depth = row.depth;
         const indent = depth * 8;
         ctx.fillStyle = row.bgColor || (depth === 0 ? "#e2e8f0" : depth === 1 ? "#f1f5f9" : "#f8fafc");
-        ctx.fillRect(margin, ry, tableW, rowH);
+        ctx.fillRect(margin, ry, tableW, rh);
         if (depth > 0) {
           ctx.fillStyle = row.bgColor || "#94a3b8";
-          ctx.fillRect(margin + indent - 2, ry + 1, 2, rowH - 2);
+          ctx.fillRect(margin + indent - 2, ry + 1, 2, rh - 2);
         }
         ctx.fillStyle = row.textColor || (depth === 0 ? "#1e293b" : "#334155");
         ctx.font = `${depth === 0 ? "bold" : "normal"} ${baseFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = "left";
         const groupLabel = row.label.length > 40 ? row.label.slice(0, 40) + "…" : row.label;
-        ctx.fillText(groupLabel, margin + 4 + indent, ry + rowH / 2);
+        ctx.fillText(groupLabel, margin + 4 + indent, ry + rh / 2);
         ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(margin, ry + rowH);
-        ctx.lineTo(margin + tableW, ry + rowH);
+        ctx.moveTo(margin, ry + rh);
+        ctx.lineTo(margin + tableW, ry + rh);
         ctx.stroke();
         continue;
       }
@@ -441,39 +475,41 @@ export function PdfExportPreview({
       const act = row.act;
       if (actRowIndex % 2 === 1) {
         ctx.fillStyle = "#f8fafc";
-        ctx.fillRect(margin, ry, tableW, rowH);
+        ctx.fillRect(margin, ry, tableW, rh);
       }
       ctx.fillStyle = act.isCritical ? "#dc2626" : "#334155";
       ctx.font = `${baseFontSize}px 'DM Sans', sans-serif`;
       ctx.textAlign = "left";
-      ctx.fillText(act.activityId, margin + 4, ry + rowH / 2);
+      ctx.fillText(act.activityId, margin + 4, ry + rh / 2);
       const nameMaxChars = Math.floor(tableW * 0.45 / (baseFontSize * 0.55));
       const name = act.name.length > nameMaxChars ? act.name.slice(0, nameMaxChars) + "…" : act.name;
-      ctx.fillText(name, margin + tableW * 0.12, ry + rowH / 2);
-      ctx.fillText(`${act.duration}d`, margin + tableW * 0.6, ry + rowH / 2);
+      ctx.fillText(name, margin + tableW * 0.12, ry + rh / 2);
+      ctx.fillText(`${act.duration}d`, margin + tableW * 0.6, ry + rh / 2);
       if (act.earlyStart) {
         const es = new Date(act.earlyStart);
-        ctx.fillText(`${es.getMonth() + 1}/${es.getDate()}`, margin + tableW * 0.72, ry + rowH / 2);
+        ctx.fillText(`${es.getMonth() + 1}/${es.getDate()}`, margin + tableW * 0.72, ry + rh / 2);
       }
       if (act.earlyFinish) {
         const ef = new Date(act.earlyFinish);
-        ctx.fillText(`${ef.getMonth() + 1}/${ef.getDate()}`, margin + tableW * 0.87, ry + rowH / 2);
+        ctx.fillText(`${ef.getMonth() + 1}/${ef.getDate()}`, margin + tableW * 0.87, ry + rh / 2);
       }
       actRowIndex++;
     }
 
-    // Table border + row lines
+    // Table border + row dividers (using cumulative Y offsets)
     ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 0.5;
     ctx.strokeRect(margin, contentY, tableW, contentH);
-    for (let i = 1; i <= pageRows.length; i++) {
-      const ry = contentY + i * rowH;
-      if (ry > contentY + contentH - 4) break;
+    for (let i = 0; i < rowYOffsets.length; i++) {
+      const ry = rowYOffsets[i];
+      const rh = getRowHeightPdf(pageRows[i], ppi);
+      const lineY = ry + rh;
+      if (lineY > contentY + contentH - 4) break;
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 0.3;
       ctx.beginPath();
-      ctx.moveTo(margin, ry);
-      ctx.lineTo(margin + tableW, ry);
+      ctx.moveTo(margin, lineY);
+      ctx.lineTo(margin + tableW, lineY);
       ctx.stroke();
     }
 
@@ -538,11 +574,12 @@ export function PdfExportPreview({
       // Track bar positions for logic lines (activityId → bar positions)
       const barPositions = new Map<string, BarPos>();
 
-      // Draw bars
+      // Draw bars — use same rowYOffsets from table section for alignment
       for (let i = 0; i < pageRows.length; i++) {
         const row = pageRows[i];
-        const ry = contentY + (i + 1) * rowH;
-        if (ry + rowH > contentY + contentH - 4) break;
+        const ry = rowYOffsets[i];
+        const rh = getRowHeightPdf(row, ppi);
+        if (ry + rh > contentY + contentH - 4) break;
 
         if (row.type === "group") {
           if (row.bgColor) {
@@ -550,7 +587,7 @@ export function PdfExportPreview({
           } else {
             ctx.fillStyle = row.depth === 0 ? "#e2e8f022" : "#f1f5f911";
           }
-          ctx.fillRect(ganttX, ry, ganttW, rowH);
+          ctx.fillRect(ganttX, ry, ganttW, rh);
           continue;
         }
 
@@ -561,11 +598,12 @@ export function PdfExportPreview({
         const endPct = (new Date(act.earlyFinish).getTime() - minDate) / dateRange;
         const bx = ganttX + 4 + startPct * (ganttW - 8);
         const bw = Math.max(3, (endPct - startPct) * (ganttW - 8));
-        const by = ry + 3;
-        const bh = rowH - 6;
+        const barPad = Math.max(2, rh * 0.12);
+        const by = ry + barPad;
+        const bh = rh - barPad * 2;
 
         // Store position for logic lines
-        barPositions.set(act.activityId, { x1: bx, x2: bx + bw, yMid: ry + rowH / 2 });
+        barPositions.set(act.activityId, { x1: bx, x2: bx + bw, yMid: ry + rh / 2 });
 
         if (act.duration === 0) {
           const cx = bx;
@@ -711,6 +749,7 @@ export function PdfExportPreview({
     canvasDims, paperDims, rowsPerPage, headerColumns, footerColumns, headerColumnCount, footerColumnCount,
     showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
     getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
+    getRowHeightPdf,
   ]);
 
   // Render all pages
