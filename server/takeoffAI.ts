@@ -18,6 +18,7 @@ import {
   recalculateProjectTotal,
   getPendingSheets,
   getTakeoffProject,
+  getDrawingSheetsByProject,
 } from "./takeoffDb";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 
@@ -421,9 +422,14 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   // Recalculate total cost
   await recalculateProjectTotal(projectId);
 
-  // Update final status
+  // Update final status — only mark as "error" if ALL sheets failed.
+  // If at least some sheets succeeded, mark as "completed" (partial errors are normal with large drawing sets).
+  const allSheets = await getDrawingSheetsByProject(projectId);
+  const completedSheets = allSheets.filter((s: any) => s.status === "completed");
+  const errorSheets = allSheets.filter((s: any) => s.status === "error");
+  const finalStatus = completedSheets.length > 0 ? "completed" : (errorSheets.length > 0 ? "error" : "completed");
   await updateTakeoffProject(projectId, {
-    status: hasError ? "error" : "completed",
+    status: finalStatus,
     processedSheets: processedCount,
   });
 }

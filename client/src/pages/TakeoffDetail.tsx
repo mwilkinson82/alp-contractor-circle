@@ -631,7 +631,7 @@ export default function TakeoffDetail() {
             ) : (
               <div className="space-y-4">
                 {/* Summary Bar */}
-                <div className="flex items-center justify-between bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-6 text-sm text-cream-muted">
                     <span>{items.length} line items</span>
                     <span>{Object.keys(groupedItems).length} CSI divisions</span>
@@ -639,11 +639,36 @@ export default function TakeoffDetail() {
                       {items.filter((i: any) => i.reviewed).length} reviewed
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-cream-muted text-sm">Total:</span>
-                    <span className="text-amber-400 font-bold text-xl">
-                      {formatCurrency(totalCost)}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-cream-muted text-sm">Total:</span>
+                      <span className="text-amber-400 font-bold text-xl">
+                        {formatCurrency(totalCost)}
+                      </span>
+                    </div>
+                    <div className="w-px h-6 bg-white/10" />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleExportExcel}
+                      disabled={!items || items.length === 0}
+                      className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      title="Export to Excel (.xlsx)"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      Excel
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleExportCsv}
+                      disabled={!items || items.length === 0}
+                      className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                      title="Export to CSV"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      CSV
+                    </Button>
                   </div>
                 </div>
 

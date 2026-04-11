@@ -1313,3 +1313,17 @@
 ## Takeoff Cost Editing
 - [ ] Editable cost per line item in takeoff detail (inline edit, save to DB)
 - [ ] Excel/CSV export with user-edited costs
+
+## Takeoff Bugs & Export (April 11)
+- [ ] Fix: Takeoff project shows "Error" status even when all 34/34 sheets are done
+- [ ] Add CSV/Excel export buttons to the Takeoff detail (Quantity Takeoff tab) page
+
+## WBS Contrast & Takeoff Fixes (April 11)
+- [ ] Fix WBS group row text contrast — hierarchy labels and WBS code badges too faint on dark background
+- [ ] Fix WBS text in Gantt canvas — group row labels washed out
+- [ ] Fix: Takeoff project shows "Error" status even when all sheets are done (any single sheet failure marks whole project)
+- [ ] Add CSV/Excel export buttons to Takeoff detail page
+
+## FAB Activities WBS Assignment (April 11)
+- [x] Create WBS nodes: Submittals (parent) > Prepare & Submit + Review & Approve (children), Fabrication & Procurement (separate parent)
+- [x] Auto-assign FAB activities: Submit/Review/Fabricate patterns matched in auto-assign procedure → Prepare & Submit, Review/Approval → Review & Approve, Fabricate/Order/Deliver → Fabrication

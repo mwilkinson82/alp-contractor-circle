@@ -185,6 +185,23 @@ const SCHEDULE_TEMPLATES = {
       { activityId: "A1300", name: "Final Cleaning", duration: 2, wbs: "9.0" },
       { activityId: "A1310", name: "Punch List", duration: 5, wbs: "9.0" },
       { activityId: "A1320", name: "Final Inspections & CO", duration: 3, wbs: "9.0" },
+      // ── Submittals ──
+      { activityId: "FAB-001", name: "Submit Steel Shop Drawings", duration: 10, wbs: "10.1" },
+      { activityId: "FAB-002", name: "Steel Shop Drawing Review & Approval", duration: 14, wbs: "10.2" },
+      { activityId: "FAB-010", name: "Submit Window & Door Schedule", duration: 5, wbs: "10.1" },
+      { activityId: "FAB-011", name: "Window & Door Approval", duration: 10, wbs: "10.2" },
+      { activityId: "FAB-020", name: "Submit Millwork & Cabinet Drawings", duration: 7, wbs: "10.1" },
+      { activityId: "FAB-021", name: "Millwork Drawing Review & Approval", duration: 14, wbs: "10.2" },
+      // ── Fabrication & Procurement ──
+      { activityId: "FAB-003", name: "Fabricate Structural Steel", duration: 21, wbs: "11.0" },
+      { activityId: "FAB-004", name: "Deliver Structural Steel to Site", duration: 2, wbs: "11.0" },
+      { activityId: "FAB-012", name: "Manufacture Windows & Exterior Doors", duration: 35, wbs: "11.0" },
+      { activityId: "FAB-013", name: "Deliver Windows & Doors to Site", duration: 2, wbs: "11.0" },
+      { activityId: "FAB-022", name: "Fabricate Custom Cabinetry & Millwork", duration: 42, wbs: "11.0" },
+      { activityId: "FAB-023", name: "Deliver Millwork to Site", duration: 2, wbs: "11.0" },
+      { activityId: "FAB-030", name: "Order HVAC Equipment & Ductwork", duration: 3, wbs: "11.0" },
+      { activityId: "FAB-031", name: "HVAC Equipment Lead Time / Delivery", duration: 28, wbs: "11.0" },
+      { activityId: "FAB-032", name: "Order Plumbing Fixtures & Equipment", duration: 3, wbs: "11.0" },
     ],
     relationships: [
       { pred: "A1010", succ: "A1020", type: "FS" as const, lag: 0 },
@@ -224,9 +241,44 @@ const SCHEDULE_TEMPLATES = {
       { pred: "A1290", succ: "A1300", type: "FS" as const, lag: 0 },
       { pred: "A1300", succ: "A1310", type: "FS" as const, lag: 0 },
       { pred: "A1310", succ: "A1320", type: "FS" as const, lag: 0 },
+      // ── Submittal & Fabrication relationships ──
+      { pred: "A1030", succ: "FAB-001", type: "FS" as const, lag: 0 },
+      { pred: "FAB-001", succ: "FAB-002", type: "FS" as const, lag: 0 },
+      { pred: "FAB-002", succ: "FAB-003", type: "FS" as const, lag: 0 },
+      { pred: "FAB-003", succ: "FAB-004", type: "FS" as const, lag: 0 },
+      { pred: "FAB-004", succ: "A1090", type: "FS" as const, lag: 0 },
+      { pred: "A1100", succ: "FAB-010", type: "SS" as const, lag: 0 },
+      { pred: "FAB-010", succ: "FAB-011", type: "FS" as const, lag: 0 },
+      { pred: "FAB-011", succ: "FAB-012", type: "FS" as const, lag: 0 },
+      { pred: "FAB-012", succ: "FAB-013", type: "FS" as const, lag: 0 },
+      { pred: "FAB-013", succ: "A1130", type: "FS" as const, lag: 0 },
+      { pred: "A1190", succ: "FAB-020", type: "SS" as const, lag: 0 },
+      { pred: "FAB-020", succ: "FAB-021", type: "FS" as const, lag: 0 },
+      { pred: "FAB-021", succ: "FAB-022", type: "FS" as const, lag: 0 },
+      { pred: "FAB-022", succ: "FAB-023", type: "FS" as const, lag: 0 },
+      { pred: "FAB-023", succ: "A1210", type: "FS" as const, lag: 0 },
+      { pred: "A1130", succ: "FAB-030", type: "SS" as const, lag: 0 },
+      { pred: "FAB-030", succ: "FAB-031", type: "FS" as const, lag: 0 },
+      { pred: "FAB-031", succ: "A1170", type: "FS" as const, lag: 0 },
+      { pred: "A1130", succ: "FAB-032", type: "SS" as const, lag: 0 },
+    ],
+    wbsNodes: [
+      { code: "1.0", name: "Sitework & Civil", parentCode: null, sortOrder: 10, color: "#f59e0b", textColor: "#ffffff" },
+      { code: "2.0", name: "Foundation", parentCode: null, sortOrder: 20, color: "#6366f1", textColor: "#ffffff" },
+      { code: "3.0", name: "Structural Framing", parentCode: null, sortOrder: 30, color: "#10b981", textColor: "#ffffff" },
+      { code: "4.0", name: "Enclosure", parentCode: null, sortOrder: 40, color: "#ec4899", textColor: "#ffffff" },
+      { code: "5.0", name: "MEP Rough-In", parentCode: null, sortOrder: 50, color: "#3b82f6", textColor: "#ffffff" },
+      { code: "6.0", name: "Interior Finishes", parentCode: null, sortOrder: 60, color: "#8b5cf6", textColor: "#ffffff" },
+      { code: "7.0", name: "MEP Trim & Startup", parentCode: null, sortOrder: 70, color: "#14b8a6", textColor: "#ffffff" },
+      { code: "8.0", name: "Exterior & Landscaping", parentCode: null, sortOrder: 80, color: "#84cc16", textColor: "#ffffff" },
+      { code: "9.0", name: "Closeout", parentCode: null, sortOrder: 90, color: "#ef4444", textColor: "#ffffff" },
+      { code: "10.0", name: "Submittals", parentCode: null, sortOrder: 100, color: "#f97316", textColor: "#ffffff" },
+      { code: "10.1", name: "Prepare & Submit", parentCode: "10.0", sortOrder: 101, color: "#fb923c", textColor: "#000000" },
+      { code: "10.2", name: "Review & Approve", parentCode: "10.0", sortOrder: 102, color: "#fdba74", textColor: "#000000" },
+      { code: "11.0", name: "Fabrication & Procurement", parentCode: null, sortOrder: 110, color: "#06b6d4", textColor: "#ffffff" },
     ],
     codeCategories: [
-      { name: "Phase", values: ["Sitework", "Foundation", "Structure", "Enclosure", "MEP Rough-In", "Finishes", "MEP Trim", "Exterior", "Closeout"] },
+      { name: "Phase", values: ["Sitework", "Foundation", "Structure", "Enclosure", "MEP Rough-In", "Finishes", "MEP Trim", "Exterior", "Closeout", "Submittals", "Fabrication"] },
       { name: "Trade", values: ["General", "Concrete", "Framing", "Roofing", "Electrical", "Plumbing", "HVAC", "Drywall", "Paint", "Flooring", "Landscaping"] },
     ],
   },
@@ -487,6 +539,33 @@ export const scheduleRouter = router({
               relationshipType: r.type,
               lagDays: r.lag,
             });
+          }
+        }
+
+        // Create WBS nodes from template
+        if ((template as any).wbsNodes) {
+          const wbsCodeToId = new Map<string, number>();
+          // First pass: create all nodes without parent links
+          for (const wn of (template as any).wbsNodes) {
+            const { id: wbsId } = await sdb.createWbsNode({
+              scheduleId,
+              code: wn.code,
+              name: wn.name,
+              sortOrder: wn.sortOrder,
+              groupColor: wn.color,
+              groupTextColor: wn.textColor,
+            });
+            wbsCodeToId.set(wn.code, wbsId);
+          }
+          // Second pass: set parent links
+          for (const wn of (template as any).wbsNodes) {
+            if (wn.parentCode) {
+              const parentId = wbsCodeToId.get(wn.parentCode);
+              const nodeId = wbsCodeToId.get(wn.code);
+              if (parentId && nodeId) {
+                await sdb.updateWbsNode(nodeId, { parentId });
+              }
+            }
           }
         }
 
@@ -2551,5 +2630,68 @@ export const scheduleRouter = router({
       if (recommendations.length === 0) recommendations.push("Schedule is in good health. Continue regular updates.");
 
       return { overallScore, grade, components, recommendations };
+    }),
+
+  // ── Auto-Assign WBS for Submittal/Fabrication Activities ──────────────────
+
+  autoAssignSubmittalWbs: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const acts = await sdb.getActivitiesBySchedule(input.scheduleId);
+      const wbsNodes = await sdb.getWbsBySchedule(input.scheduleId);
+
+      // Find or create the Submittals and Fabrication WBS hierarchy
+      const existingCodes = new Set(wbsNodes.map(w => w.code));
+
+      // Ensure parent nodes exist
+      const ensureNode = async (code: string, name: string, parentCode: string | null, sortOrder: number, color: string, textColor: string) => {
+        if (existingCodes.has(code)) return;
+        const parentId = parentCode ? wbsNodes.find(w => w.code === parentCode)?.id ?? null : null;
+        const { id } = await sdb.createWbsNode({
+          scheduleId: input.scheduleId,
+          code,
+          name,
+          sortOrder,
+          groupColor: color,
+          groupTextColor: textColor,
+          parentId,
+        });
+        wbsNodes.push({ id, scheduleId: input.scheduleId, code, name, sortOrder, groupColor: color, groupTextColor: textColor, parentId, createdAt: new Date() } as any);
+        existingCodes.add(code);
+      };
+
+      await ensureNode("10.0", "Submittals", null, 100, "#f97316", "#ffffff");
+      await ensureNode("10.1", "Prepare & Submit", "10.0", 101, "#fb923c", "#000000");
+      await ensureNode("10.2", "Review & Approve", "10.0", 102, "#fdba74", "#000000");
+      await ensureNode("11.0", "Fabrication & Procurement", null, 110, "#06b6d4", "#ffffff");
+
+      // Auto-assign unassigned activities based on name patterns
+      let assigned = 0;
+      for (const act of acts) {
+        if (act.wbs) continue; // already assigned
+        const name = act.name.toLowerCase();
+        let wbsCode: string | null = null;
+
+        // Prepare & Submit patterns
+        if (name.includes("submit") || name.includes("submittal")) {
+          wbsCode = "10.1";
+        }
+        // Review & Approve patterns
+        else if (name.includes("review") || name.includes("approval") || name.includes("approve")) {
+          wbsCode = "10.2";
+        }
+        // Fabrication & Procurement patterns
+        else if (name.includes("fabricat") || name.includes("manufactur") || name.includes("deliver") || name.includes("order ") || name.includes("lead time") || name.includes("procurement")) {
+          wbsCode = "11.0";
+        }
+
+        if (wbsCode) {
+          await sdb.updateActivity(act.id, { wbs: wbsCode });
+          assigned++;
+        }
+      }
+
+      return { assigned, message: `Auto-assigned ${assigned} activities to Submittal/Fabrication WBS` };
     }),
 });

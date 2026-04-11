@@ -937,6 +937,12 @@ export default function Scheduler() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /* ── Auto-Assign Submittal/Fab WBS Mutation ──────────────────────────── */
+  const autoAssignWbsMut = trpc.schedule.autoAssignSubmittalWbs.useMutation({
+    onSuccess: (data) => { utils.schedule.get.invalidate(); toast.success(data.message); setGroupBy("wbs"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   /* ── CSI Import Mutation ───────────────────────────────────────────────── */
   const importCsiMut = trpc.schedule.importCsiDivisions.useMutation({
     onSuccess: (data) => { utils.schedule.get.invalidate(); toast.success(`Imported ${data.created} CSI divisions`); setSelectedCsiCodes(new Set()); setShowCsiPicker(false); },
@@ -1339,6 +1345,12 @@ export default function Scheduler() {
                       <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => {
+                    autoAssignWbsMut.mutate({ scheduleId: scheduleId! });
+                  }}>
+                    <span className="text-cyan-400">Auto-Assign Submittal/Fab WBS</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -1592,14 +1604,14 @@ export default function Scheduler() {
                     const barWidth = Math.max(4, 8 - d * 1.5);
                     const groupKey = group || "all";
                     const isCollapsed = collapsedGroups?.has(groupKey);
-                    // Text color based on groupBy
-                    const textColor = (groupBy === "wbs" && wbsTextColor) ? wbsTextColor : "#e5e7eb";
+                    // Text: always bright white for maximum contrast on dark background
+                    const textColor = "#ffffff";
                     return (
                       <div
                         className="flex items-center cursor-pointer select-none border-b"
                         style={{
-                          backgroundColor: d === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
-                          borderBottomColor: "rgba(255,255,255,0.06)",
+                          backgroundColor: d === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+                          borderBottomColor: "rgba(255,255,255,0.1)",
                           minHeight: d === 0 ? "34px" : "28px",
                           position: "relative",
                         }}
@@ -1629,18 +1641,18 @@ export default function Scheduler() {
                           }}
                         >
                           {/* Collapse toggle */}
-                          <span className="mr-1.5 flex-shrink-0" style={{ color: barColor, opacity: 0.9 }}>
+                          <span className="mr-1.5 flex-shrink-0" style={{ color: barColor }}>
                             {isCollapsed
                               ? <ChevronRight className="w-3.5 h-3.5" />
                               : <ChevronDown className="w-3.5 h-3.5" />}
                           </span>
-                          {/* WBS code badge */}
+                          {/* WBS code badge — solid colored background for high contrast */}
                           {groupBy === "wbs" && (() => {
                             const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} — ${w.name}` === group || w.code === group);
                             return wbsNode ? (
                               <span
-                                className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
-                                style={{ backgroundColor: barColor + "20", color: barColor, border: `1px solid ${barColor}40` }}
+                                className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                                style={{ backgroundColor: barColor, color: "#000000" }}
                               >
                                 {wbsNode.code}
                               </span>
@@ -1654,7 +1666,7 @@ export default function Scheduler() {
                           </span>
                           <span
                             className="ml-2 flex-shrink-0"
-                            style={{ fontSize: "0.6875rem", fontWeight: 400, color: "rgba(255,255,255,0.4)" }}
+                            style={{ fontSize: "0.6875rem", fontWeight: 400, color: "rgba(255,255,255,0.6)" }}
                           >
                             {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
                           </span>

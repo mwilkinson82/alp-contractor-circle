@@ -760,16 +760,16 @@ export default function GanttChart({
         if (row.wbsColor) barColor = row.wbsColor;
         const barWidth = Math.max(4, 8 - depth * 1.5);
         // Subtle background
-        ctx.fillStyle = depth === 0 ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.025)";
+        ctx.fillStyle = depth === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
         // Colored left bar
         ctx.fillStyle = barColor;
         ctx.fillRect(depth * 12, y, barWidth, ROW_HEIGHT);
-        // Group label text
-        ctx.fillStyle = COLORS.headerTextBold;
-        ctx.font = depth === 0 ? "bold 10px 'DM Sans', sans-serif" : "600 10px 'DM Sans', sans-serif";
+        // Group label text — full white for maximum contrast
+        ctx.fillStyle = "#ffffff";
+        ctx.font = depth === 0 ? "bold 11px 'DM Sans', sans-serif" : "600 10px 'DM Sans', sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(row.group || "", 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 3);
+        ctx.fillText(row.group || "", 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 4);
         continue;
       }
 
