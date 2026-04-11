@@ -294,7 +294,7 @@ export default function GanttChart({
       }
     }
     return rows;
-  }, [groupedActivities, collapsedGroups, showCostOverlay]);
+  }, [groupedActivities, collapsedGroups, showCostOverlay, zoomLevel]);
 
   const activityRowMap = useMemo(() => {
     const map = new Map<number, number>();
