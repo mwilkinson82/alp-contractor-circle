@@ -311,6 +311,8 @@ export default function Scheduler() {
   const { member } = useMember();
   const [, navigate] = useLocation();
   const tableRef = useRef<HTMLDivElement>(null);
+  const [syncScrollTop, setSyncScrollTop] = useState(0);
+  const isTableScrollingRef = useRef(false);
   const utils = trpc.useUtils();
   const { record: recordAction, undo, redo, canUndo, canRedo, isProcessing: isUndoRedoProcessing, undoDescription, redoDescription, clear: clearHistory } = useUndoRedo();
 
@@ -345,6 +347,16 @@ export default function Scheduler() {
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(0);
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
+
+  // When selectedActivityId changes (e.g. from Gantt bar click), scroll the table row into view
+  useEffect(() => {
+    if (selectedActivityId && tableRef.current) {
+      const row = tableRef.current.querySelector(`[data-activity-id="${selectedActivityId}"]`);
+      if (row) {
+        row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+  }, [selectedActivityId]);
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const toggleGroupCollapse = (groupKey: string) => {
@@ -1618,7 +1630,13 @@ export default function Scheduler() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left: Activity Table */}
         <ResizablePanel defaultSize={45} minSize={25} maxSize={70}>
-          <div ref={tableRef} className="h-full overflow-auto bg-white">
+          <div ref={tableRef} className="h-full overflow-auto bg-white" onScroll={() => {
+              const el = tableRef.current;
+              if (el && !isTableScrollingRef.current) {
+                setSyncScrollTop(el.scrollTop);
+              }
+              isTableScrollingRef.current = false;
+            }}>
             {/* Table Header with sortable columns */}
             <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
               <div
@@ -1796,11 +1814,12 @@ export default function Scheduler() {
                     return (
                       <div
                         key={act.id}
+                        data-activity-id={act.id}
                         className={`text-sm items-center gap-1.5 h-11 cursor-pointer transition-colors border-b border-gray-100 relative ${
                           isSelected
                             ? "bg-amber-50 ring-1 ring-amber-500/20"
                             : act.id === selectedActivityId
-                            ? "bg-blue-50"
+                            ? "bg-blue-100 ring-1 ring-blue-400/30"
                             : act.isCritical
                             ? "hover:bg-amber-50/60"
                             : hasOpenEnd
@@ -2007,6 +2026,15 @@ export default function Scheduler() {
             costFontSize={costFontSize}
             criticalBarColor={schedule?.schedule?.criticalBarColor}
             normalBarColor={schedule?.schedule?.normalBarColor}
+            externalScrollTop={syncScrollTop}
+            onScrollTopChange={(st) => {
+              // Gantt scrolled → sync table
+              const el = tableRef.current;
+              if (el && Math.abs(el.scrollTop - st) > 1) {
+                isTableScrollingRef.current = true;
+                el.scrollTop = st;
+              }
+            }}
           />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}

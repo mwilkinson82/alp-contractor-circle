@@ -1355,3 +1355,17 @@
 - [ ] Fix: Fabrication must be a top-level peer of Submittals (not a child) — General Conditions, Submittals, Fabrication, Construction are all top-level phases (requires DB migration for existing Smith Residence schedule)
 - [x] Fix: Apply level-based coloring and left bars to Gantt canvas as well
 - [x] Fix: When expanded, parent-child relationship must be visually apparent through colored left bars (like P6)
+
+## WBS Hierarchy DB Fix & Manager Rebuild (April 11 — Round 5)
+- [x] Fix Smith Residence WBS: re-parent Fabrication & Procurement as top-level peer of Submittals (DB update)
+- [x] Rebuild WBS Manager: replace drag-and-drop with P6-style arrow buttons (Up/Down/Left/Right) in toolbar
+- [x] Arrow Up/Down: reorder siblings within same parent
+- [x] Arrow Left: promote node (move up one level, become sibling of current parent)
+- [x] Arrow Right: demote node (make it child of the sibling above it)
+- [x] Fix drag-and-drop lag/not-sticking issue (replaced with arrow buttons)
+- [x] Make WBS Manager more intuitive and user-friendly overall
+
+## Gantt/Table Sync & Visual Fixes (April 11 — Round 6)
+- [x] Fix: Remove P6 color bands (left bars + level backgrounds) from Gantt canvas — table side only
+- [x] Fix: Synchronized vertical scrolling between table panel and Gantt chart
+- [x] Fix: Clicking a Gantt bar highlights the corresponding activity row in the table

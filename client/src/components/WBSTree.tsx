@@ -1,6 +1,6 @@
-import { Trash2, ChevronDown, ChevronRight, Palette, Pencil, Check, X, ArrowUpRight, GripVertical } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight, Palette, Pencil, Check, X, ArrowUpRight, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
-import type { ReactNode, DragEvent } from "react";
+import type { ReactNode } from "react";
 
 interface WBSNode {
   id: number;
@@ -51,11 +51,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
   const [customBg, setCustomBg] = useState("#3B82F6");
   const [customText, setCustomText] = useState("#FFFFFF");
   const colorPickerRef = useRef<HTMLDivElement>(null);
-
-  // Drag state
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [dropTargetId, setDropTargetId] = useState<number | null>(null);
-  const [dropPosition, setDropPosition] = useState<"before" | "after" | "inside" | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
 
   const toggleExpanded = (id: number) => {
     const newExpanded = new Set(expandedIds);
@@ -109,43 +105,82 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
     setColorPickerNodeId(null);
   };
 
-  // Drag handlers
-  const handleDragStart = useCallback((e: DragEvent, nodeId: number) => {
-    setDraggedId(nodeId);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(nodeId));
-  }, []);
+  // ── P6-style arrow operations ──────────────────────────────────────────────
 
-  const handleDragOver = useCallback((e: DragEvent, nodeId: number) => {
-    e.preventDefault();
-    if (draggedId === nodeId) return;
-    // Determine drop position based on mouse Y within the element
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const h = rect.height;
-    let pos: "before" | "after" | "inside";
-    if (y < h * 0.25) pos = "before";
-    else if (y > h * 0.75) pos = "after";
-    else pos = "inside";
-    setDropTargetId(nodeId);
-    setDropPosition(pos);
-    e.dataTransfer.dropEffect = "move";
-  }, [draggedId]);
+  /** Get siblings (nodes with same parentId), sorted by sortOrder then code */
+  const getSiblings = useCallback((node: WBSNode) => {
+    return nodes
+      .filter(n => (n.parentId ?? null) === (node.parentId ?? null))
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code));
+  }, [nodes]);
 
-  const handleDrop = useCallback((e: DragEvent, targetId: number) => {
-    e.preventDefault();
-    if (draggedId !== null && draggedId !== targetId && dropPosition && onReorder) {
-      onReorder(draggedId, targetId, dropPosition);
-    }
-    setDraggedId(null);
-    setDropTargetId(null);
-    setDropPosition(null);
-  }, [draggedId, dropPosition, onReorder]);
+  /** Move Up: swap with previous sibling */
+  const moveUp = useCallback((node: WBSNode) => {
+    if (!onReorder) return;
+    const siblings = getSiblings(node);
+    const idx = siblings.findIndex(s => s.id === node.id);
+    if (idx <= 0) return; // Already first
+    const prevSibling = siblings[idx - 1];
+    onReorder(node.id, prevSibling.id, "before");
+  }, [getSiblings, onReorder]);
 
-  const handleDragEnd = useCallback(() => {
-    setDraggedId(null);
-    setDropTargetId(null);
-    setDropPosition(null);
+  /** Move Down: swap with next sibling */
+  const moveDown = useCallback((node: WBSNode) => {
+    if (!onReorder) return;
+    const siblings = getSiblings(node);
+    const idx = siblings.findIndex(s => s.id === node.id);
+    if (idx < 0 || idx >= siblings.length - 1) return; // Already last
+    const nextSibling = siblings[idx + 1];
+    onReorder(node.id, nextSibling.id, "after");
+  }, [getSiblings, onReorder]);
+
+  /** Indent Right: make this node a child of its previous sibling */
+  const indentRight = useCallback((node: WBSNode) => {
+    if (!onReorder) return;
+    const siblings = getSiblings(node);
+    const idx = siblings.findIndex(s => s.id === node.id);
+    if (idx <= 0) return; // No previous sibling to become parent
+    const newParent = siblings[idx - 1];
+    onReorder(node.id, newParent.id, "inside");
+    // Auto-expand the new parent so the moved node is visible
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.add(newParent.id);
+      return next;
+    });
+  }, [getSiblings, onReorder]);
+
+  /** Outdent Left: move this node up one level (become sibling of its parent) */
+  const outdentLeft = useCallback((node: WBSNode) => {
+    if (!onReorder || !node.parentId) return; // Already top level
+    const parent = nodes.find(n => n.id === node.parentId);
+    if (!parent) return;
+    // Place after the parent in the parent's sibling list
+    onReorder(node.id, parent.id, "after");
+  }, [nodes, onReorder]);
+
+  /** Check if move up is possible */
+  const canMoveUp = useCallback((node: WBSNode) => {
+    const siblings = getSiblings(node);
+    return siblings.findIndex(s => s.id === node.id) > 0;
+  }, [getSiblings]);
+
+  /** Check if move down is possible */
+  const canMoveDown = useCallback((node: WBSNode) => {
+    const siblings = getSiblings(node);
+    const idx = siblings.findIndex(s => s.id === node.id);
+    return idx >= 0 && idx < siblings.length - 1;
+  }, [getSiblings]);
+
+  /** Check if indent right is possible (has a previous sibling) */
+  const canIndentRight = useCallback((node: WBSNode) => {
+    const siblings = getSiblings(node);
+    return siblings.findIndex(s => s.id === node.id) > 0;
+  }, [getSiblings]);
+
+  /** Check if outdent left is possible (has a parent) */
+  const canOutdentLeft = useCallback((node: WBSNode) => {
+    return !!node.parentId;
   }, []);
 
   const renderNode = (node: WBSNode, depth: number = 0): ReactNode => {
@@ -157,45 +192,24 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
     const showColorPicker = colorPickerNodeId === node.id;
     const nodeBg = node.groupColor || "#3B82F6";
     const nodeText = node.groupTextColor || "#FFFFFF";
-    const isDragging = draggedId === node.id;
-    const isDropTarget = dropTargetId === node.id;
+    const isSelected = selectedNodeId === node.id;
 
     const descendantIds = getDescendantIds(node.id);
     const validParentOptions = nodes.filter(n => n.id !== node.id && !descendantIds.has(n.id));
 
-    // Drop indicator styling
-    let dropIndicatorClass = "";
-    if (isDropTarget && !isDragging) {
-      if (dropPosition === "before") dropIndicatorClass = "border-t-2 border-t-amber-400";
-      else if (dropPosition === "after") dropIndicatorClass = "border-b-2 border-b-amber-400";
-      else if (dropPosition === "inside") dropIndicatorClass = "ring-2 ring-amber-400/60 rounded";
-    }
-
     return (
-      <div key={node.id} className={isDragging ? "opacity-40" : ""}>
+      <div key={node.id}>
         <div
-          className={`flex items-center gap-1.5 py-2 px-2 hover:bg-white/5 rounded transition-colors group cursor-default ${dropIndicatorClass}`}
+          className={`flex items-center gap-1.5 py-2 px-2 rounded transition-colors group cursor-pointer ${
+            isSelected ? "bg-amber-500/15 ring-1 ring-amber-500/30" : "hover:bg-white/5"
+          }`}
           style={{ marginLeft: `${indent}px` }}
-          draggable={!!onReorder}
-          onDragStart={(e) => handleDragStart(e, node.id)}
-          onDragOver={(e) => handleDragOver(e, node.id)}
-          onDrop={(e) => handleDrop(e, node.id)}
-          onDragEnd={handleDragEnd}
+          onClick={() => setSelectedNodeId(isSelected ? null : node.id)}
         >
-          {/* Drag handle */}
-          {onReorder && (
-            <div
-              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 transition-colors opacity-0 group-hover:opacity-100"
-              title="Drag to reorder"
-            >
-              <GripVertical className="w-3.5 h-3.5" />
-            </div>
-          )}
-
           {/* Expand/Collapse Toggle */}
           {hasChildren ? (
             <button
-              onClick={() => toggleExpanded(node.id)}
+              onClick={(e) => { e.stopPropagation(); toggleExpanded(node.id); }}
               className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"
               title={isExpanded ? "Collapse" : "Expand"}
             >
@@ -207,14 +221,14 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
 
           {/* Color swatch */}
           <button
-            onClick={() => openColorPicker(node)}
+            onClick={(e) => { e.stopPropagation(); openColorPicker(node); }}
             className="flex-shrink-0 w-5 h-5 rounded border border-white/20 cursor-pointer hover:ring-2 hover:ring-amber-400/60 transition-all"
             style={{ backgroundColor: nodeBg }}
             title="Change group color"
           />
 
           {isEditing ? (
-            <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex-1 min-w-0 space-y-1.5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-1">
                 <input
                   type="text"
@@ -280,11 +294,11 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
                 </span>
               )}
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Action buttons — always visible for selected, hover for others */}
+              <div className={`flex items-center gap-0.5 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                 {onUpdateNode && (
                   <button
-                    onClick={() => startEditing(node)}
+                    onClick={(e) => { e.stopPropagation(); startEditing(node); }}
                     className="text-gray-400 hover:text-blue-400 p-0.5 transition-colors"
                     title="Edit WBS node"
                   >
@@ -292,14 +306,15 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
                   </button>
                 )}
                 <button
-                  onClick={() => openColorPicker(node)}
+                  onClick={(e) => { e.stopPropagation(); openColorPicker(node); }}
                   className="text-gray-400 hover:text-purple-400 p-0.5 transition-colors"
                   title="Change group color"
                 >
                   <Palette className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (confirm(`Delete WBS "${node.code}"${hasChildren ? " and all children?" : "?"}`)) {
                       onDelete(node.id);
                     }
@@ -373,34 +388,98 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
         {/* Children */}
         {hasChildren && isExpanded && (
           <div>
-            {children.map((child) => renderNode(child, depth + 1))}
+            {children
+              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code))
+              .map((child) => renderNode(child, depth + 1))}
           </div>
         )}
       </div>
     );
   };
 
-  const topLevelNodes = nodes.filter((w) => !w.parentId);
+  const topLevelNodes = nodes
+    .filter((w) => !w.parentId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.code.localeCompare(b.code));
+
+  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
   return (
-    <div className="overflow-y-auto border border-white/10 rounded-lg bg-[#0d1117]" style={{ maxHeight: "calc(60vh - 2rem)", minHeight: "200px" }}>
-      {nodes.length === 0 ? (
-        <div className="text-xs text-gray-500 text-center py-10">
-          No WBS nodes defined yet. Create your first node below.
-        </div>
-      ) : (
-        <div className="p-2">
-          {/* Legend */}
-          <div className="flex items-center gap-3 px-2 pb-2 mb-1 border-b border-white/8 text-[10px] text-gray-600">
-            {onReorder && <span className="flex items-center gap-1"><GripVertical className="w-3 h-3" /> Drag to reorder</span>}
-            <span className="flex items-center gap-1"><ChevronRight className="w-3 h-3" /> Click to expand</span>
-            <span className="ml-auto">{nodes.length} node{nodes.length !== 1 ? "s" : ""} total</span>
-          </div>
-          <div className="space-y-0">
-            {topLevelNodes.map((root) => renderNode(root))}
-          </div>
+    <div className="space-y-2">
+      {/* ── P6-Style Arrow Toolbar ──────────────────────────────────────────── */}
+      {onReorder && (
+        <div className="flex items-center gap-1 px-2 py-1.5 bg-[#0d1117] border border-white/10 rounded-lg">
+          <span className="text-[10px] text-gray-500 mr-1.5 font-medium">MOVE:</span>
+          <button
+            onClick={() => selectedNode && moveUp(selectedNode)}
+            disabled={!selectedNode || !canMoveUp(selectedNode)}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+            title="Move Up (swap with previous sibling)"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Up</span>
+          </button>
+          <button
+            onClick={() => selectedNode && moveDown(selectedNode)}
+            disabled={!selectedNode || !canMoveDown(selectedNode)}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+            title="Move Down (swap with next sibling)"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Down</span>
+          </button>
+          <div className="w-px h-5 bg-white/10 mx-1" />
+          <button
+            onClick={() => selectedNode && outdentLeft(selectedNode)}
+            disabled={!selectedNode || !canOutdentLeft(selectedNode)}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+            title="Outdent (promote to parent's level)"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Outdent</span>
+          </button>
+          <button
+            onClick={() => selectedNode && indentRight(selectedNode)}
+            disabled={!selectedNode || !canIndentRight(selectedNode)}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+            title="Indent (make child of previous sibling)"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Indent</span>
+          </button>
+          <div className="flex-1" />
+          {selectedNode && (
+            <span className="text-[10px] text-amber-400/80 font-mono">
+              Selected: {selectedNode.code} {selectedNode.name}
+            </span>
+          )}
+          {!selectedNode && (
+            <span className="text-[10px] text-gray-600 italic">
+              Click a node to select, then use arrows
+            </span>
+          )}
         </div>
       )}
+
+      {/* ── Tree ───────────────────────────────────────────────────────────── */}
+      <div className="overflow-y-auto border border-white/10 rounded-lg bg-[#0d1117]" style={{ maxHeight: "calc(60vh - 2rem)", minHeight: "200px" }}>
+        {nodes.length === 0 ? (
+          <div className="text-xs text-gray-500 text-center py-10">
+            No WBS nodes defined yet. Create your first node below.
+          </div>
+        ) : (
+          <div className="p-2">
+            {/* Legend */}
+            <div className="flex items-center gap-3 px-2 pb-2 mb-1 border-b border-white/8 text-[10px] text-gray-600">
+              <span className="flex items-center gap-1"><ChevronRight className="w-3 h-3" /> Click to expand</span>
+              <span className="flex items-center gap-1">Click row to select</span>
+              <span className="ml-auto">{nodes.length} node{nodes.length !== 1 ? "s" : ""} total</span>
+            </div>
+            <div className="space-y-0">
+              {topLevelNodes.map((root) => renderNode(root))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

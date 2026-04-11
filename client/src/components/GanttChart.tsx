@@ -85,6 +85,8 @@ interface GanttChartProps {
   costFontSize?: number; // px, default 8 — user-adjustable cost label font size
   criticalBarColor?: string | null; // per-schedule custom critical bar color (hex)
   normalBarColor?: string | null;   // per-schedule custom non-critical bar color (hex)
+  externalScrollTop?: number;       // scroll sync: external scroll position from table
+  onScrollTopChange?: (scrollTop: number) => void; // scroll sync: notify parent of scroll changes
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -231,6 +233,8 @@ export default function GanttChart({
   costFontSize = 8,
   criticalBarColor,
   normalBarColor,
+  externalScrollTop,
+  onScrollTopChange,
 }: GanttChartProps) {
   // Dynamic row height: taller when cost overlay is active to prevent clipping
   const ROW_HEIGHT = showCostOverlay ? COST_ROW_HEIGHT : BASE_ROW_HEIGHT;
@@ -760,35 +764,11 @@ export default function GanttChart({
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
-        const anc = row.ancestorColors || [];
-        // P6-style level background colors
-        const LEVEL_BG_CANVAS: Record<number, string> = {
-          0: "#e8d44d", // Level 0: Yellow/Gold
-          1: "#4a7ec8", // Level 1: Blue
-          2: "#5ba85b", // Level 2: Green
-          3: "#9b59b6", // Level 3: Purple
-          4: "#e67e22", // Level 4: Orange
-        };
-        const LEVEL_TEXT_CANVAS: Record<number, string> = {
-          0: "#000000",
-          1: "#ffffff",
-          2: "#ffffff",
-          3: "#ffffff",
-          4: "#ffffff",
-        };
-        const bgColor = LEVEL_BG_CANVAS[depth] ?? LEVEL_BG_CANVAS[4] ?? "#e8d44d";
-        const textColor = LEVEL_TEXT_CANVAS[depth] ?? "#ffffff";
-        // Fill entire row with level-based background
-        ctx.fillStyle = bgColor;
+        // Gantt side: subtle neutral background for group rows (no color bands)
+        ctx.fillStyle = depth === 0 ? "#f5f0e0" : "#f0ede8";
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-        // P6-style colored left bars
-        const BAR_W = 5;
-        for (let bi = 0; bi < anc.length; bi++) {
-          ctx.fillStyle = anc[bi];
-          ctx.fillRect(bi * (BAR_W + 2), y, BAR_W, ROW_HEIGHT);
-        }
         // Bottom border
-        ctx.strokeStyle = "rgba(0,0,0,0.2)";
+        ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, y + ROW_HEIGHT);
@@ -865,7 +845,6 @@ export default function GanttChart({
       }
 
       const act = row.activity!;
-      const actAnc = row.ancestorColors || [];
 
       // Alternating row background
       if (row.rowIndex % 2 === 1) {
@@ -877,13 +856,6 @@ export default function GanttChart({
       if (act.id === selectedActivityId) {
         ctx.fillStyle = COLORS.selectedBg;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-      }
-
-      // P6-style left bars on activity rows
-      const ACT_BAR_W = 5;
-      for (let bi = 0; bi < actAnc.length; bi++) {
-        ctx.fillStyle = actAnc[bi];
-        ctx.fillRect(bi * (ACT_BAR_W + 2), y, ACT_BAR_W, ROW_HEIGHT);
       }
 
       // Row divider
@@ -1306,13 +1278,30 @@ export default function GanttChart({
 
   // ─── Scroll handler ───────────────────────────────────────────────────────
 
+  // Track whether we're programmatically scrolling to avoid feedback loops
+  const isExternalScrollRef = useRef(false);
+
   const handleScroll = () => {
     const el = containerRef.current;
     if (el) {
       setScrollLeft(el.scrollLeft);
       setScrollTop(el.scrollTop);
+      // Notify parent of scroll changes (for sync with table) — but only if user-initiated
+      if (!isExternalScrollRef.current && onScrollTopChange) {
+        onScrollTopChange(el.scrollTop);
+      }
+      isExternalScrollRef.current = false;
     }
   };
+
+  // Respond to external scroll position changes (from table panel)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el && externalScrollTop !== undefined && Math.abs(el.scrollTop - externalScrollTop) > 1) {
+      isExternalScrollRef.current = true;
+      el.scrollTop = externalScrollTop;
+    }
+  }, [externalScrollTop]);
 
   // ─── Wheel zoom (Ctrl/Cmd + scroll to zoom timescale) ─────────────────────
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
