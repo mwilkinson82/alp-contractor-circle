@@ -580,6 +580,12 @@ export function PdfExportPreview({
       // Track bar positions for logic lines (activityId → bar positions)
       const barPositions = new Map<string, BarPos>();
 
+      // ── CLIP: All Gantt drawing clipped to the Gantt column boundary ──
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ganttX, contentY, ganttW, contentH);
+      ctx.clip();
+
       // Draw bars — use same rowYOffsets from table section for alignment
       for (let i = 0; i < pageRows.length; i++) {
         const row = pageRows[i];
@@ -786,6 +792,9 @@ export function PdfExportPreview({
           ctx.fillText("DD", ddX, contentY + rowH * 1.5);
         }
       }
+
+      // ── END CLIP: Restore canvas state after Gantt drawing ──
+      ctx.restore();
     }
 
     // ── Footer band ──

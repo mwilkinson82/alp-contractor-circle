@@ -1510,3 +1510,7 @@
 - [x] WBS summary bars in Gantt area (thick dark bars spanning full date range of group)
 - [x] Visible parent/child row height difference in PDF (match screen proportions)
 - [x] Zoom/fit controls in PDF preview panel (Fit All Content, zoom slider — like P6)
+
+## PDF Export WYSIWYG Round 4
+- [x] Clip all Gantt drawing (bars + text labels) to Gantt column boundary — no bleeding outside page
+- [x] Activity name labels that don't fit inside bar should be clipped or truncated, not overflow
