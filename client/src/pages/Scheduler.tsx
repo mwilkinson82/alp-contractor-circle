@@ -3927,7 +3927,7 @@ export default function Scheduler() {
           setPdfExporting(true);
           try {
             // Build footer config from the preview modal's column settings
-            const contentToToken = (col: { content: string; customText?: string; imageDataUrl?: string }) => {
+            const contentToToken = (col: { content: string; customText?: string; richTextLines?: any[]; imageDataUrl?: string }) => {
               switch (col.content) {
                 case "company": return "{companyName}";
                 case "project": return "{projectName}";
@@ -3935,7 +3935,14 @@ export default function Scheduler() {
                 case "date": return "{date}";
                 case "datadate": return "Data Date: {dataDate}";
                 case "page": return "Page {page} of {total}";
-                case "custom": return col.customText || "";
+                case "constructline": return "\u00A9 ConstructLine";
+                case "custom": {
+                  // If rich text lines exist, encode them as a JSON token
+                  if (col.richTextLines && col.richTextLines.length > 0) {
+                    return `{richtext:${JSON.stringify(col.richTextLines)}}`;
+                  }
+                  return col.customText || "";
+                }
                 case "image": return col.imageDataUrl ? `{image:${col.imageDataUrl}}` : "";
                 case "empty": return "";
                 default: return "";

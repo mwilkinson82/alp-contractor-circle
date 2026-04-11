@@ -16,11 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Eye, Loader2, FileText, Type, Image as ImageIcon, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Download, Eye, Loader2, FileText, Type, Image as ImageIcon, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, Bold, Italic, Underline, Plus, Trash2 } from "lucide-react";
 
 export interface PdfHeaderFooterConfig {
-  headerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
-  footerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
+  headerColumns?: { position: number; content: string; customText?: string; richTextLines?: RichTextLine[]; imageDataUrl?: string }[];
+  footerColumns?: { position: number; content: string; customText?: string; richTextLines?: RichTextLine[]; imageDataUrl?: string }[];
   headerColumnCount?: 3 | 5;
   footerColumnCount?: 3 | 5;
   pageSize?: "letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE";
@@ -94,7 +94,8 @@ const CONTENT_OPTIONS = [
   { value: "date", label: "Export Date" },
   { value: "datadate", label: "Data Date" },
   { value: "page", label: "Page Numbers" },
-  { value: "custom", label: "Custom Text" },
+  { value: "constructline", label: "\u00A9 ConstructLine" },
+  { value: "custom", label: "Custom Text (Rich)" },
   { value: "image", label: "Image / Logo" },
   { value: "empty", label: "(Empty)" },
 ];
@@ -110,10 +111,21 @@ const PAPER_SIZES: Record<string, { w: number; h: number; label: string }> = {
   archE:   { w: 36,   h: 48,   label: "ARCH E (36×48)" },
 };
 
+/** A single styled line of text within a custom text cell */
+export interface RichTextLine {
+  text: string;
+  fontSize?: number;    // 6-24pt, default 8
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;       // hex color, default inherit
+}
+
 interface ColumnData {
   position: number;
   content: string;
   customText?: string;
+  richTextLines?: RichTextLine[];
   imageDataUrl?: string;
 }
 
@@ -149,8 +161,8 @@ export function PdfExportPreview({
   ]);
   const [footerColumns, setFooterColumns] = useState<ColumnData[]>([
     { position: 0, content: "project" },
-    { position: 1, content: "date" },
-    { position: 2, content: "page" },
+    { position: 1, content: "page" },
+    { position: 2, content: "constructline" },
   ]);
   const [pageSize, setPageSize] = useState<"letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE">("tabloid");
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
@@ -235,6 +247,33 @@ export function PdfExportPreview({
     setter(current);
   };
 
+  // ── Rich text line helpers ──
+  const handleAddRichLine = (type: "header" | "footer", colIdx: number) => {
+    const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+    const current = type === "header" ? [...headerColumns] : [...footerColumns];
+    const lines = [...(current[colIdx].richTextLines || []), { text: "", fontSize: 8, bold: false, italic: false, underline: false, color: "#374151" }];
+    current[colIdx] = { ...current[colIdx], richTextLines: lines };
+    setter(current);
+  };
+
+  const handleRemoveRichLine = (type: "header" | "footer", colIdx: number, lineIdx: number) => {
+    const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+    const current = type === "header" ? [...headerColumns] : [...footerColumns];
+    const lines = [...(current[colIdx].richTextLines || [])];
+    lines.splice(lineIdx, 1);
+    current[colIdx] = { ...current[colIdx], richTextLines: lines };
+    setter(current);
+  };
+
+  const handleUpdateRichLine = (type: "header" | "footer", colIdx: number, lineIdx: number, updates: Partial<RichTextLine>) => {
+    const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+    const current = type === "header" ? [...headerColumns] : [...footerColumns];
+    const lines = [...(current[colIdx].richTextLines || [])];
+    lines[lineIdx] = { ...lines[lineIdx], ...updates };
+    current[colIdx] = { ...current[colIdx], richTextLines: lines };
+    setter(current);
+  };
+
   const handleImageUpload = (type: "header" | "footer", pos: number, file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -262,7 +301,13 @@ export function PdfExportPreview({
       case "date": return new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       case "datadate": return dataDate ? `DD: ${dataDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "DD: Not set";
       case "page": return `Page ${pageNum} of ${total}`;
-      case "custom": return col.customText || "Custom Text";
+      case "constructline": return "\u00A9 ConstructLine";
+      case "custom": {
+        if (col.richTextLines && col.richTextLines.length > 0) {
+          return col.richTextLines.map(l => l.text).filter(Boolean).join(" | ") || "Custom Text";
+        }
+        return col.customText || "Custom Text";
+      }
       case "image": return "[Image]";
       case "empty": return "";
       default: return "";
@@ -424,9 +469,47 @@ export function PdfExportPreview({
         const img = loadedImagesRef.current[`header-${i}`];
         if (img) {
           const imgH = headerH - 6;
-          const imgW = (img.width / img.height) * imgH;
-          const ix = i === 0 ? margin + 4 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - imgW - 4 : margin + i * hColW + (hColW - imgW) / 2;
-          ctx.drawImage(img, ix, margin + 3, imgW, imgH);
+          let imgW = (img.width / img.height) * imgH;
+          // Clamp image width to slot width
+          const maxHdrSlotW = hColW - 8;
+          const finalImgW = Math.min(imgW, maxHdrSlotW);
+          const finalImgH = finalImgW === imgW ? imgH : (finalImgW / imgW) * imgH;
+          const ix = i === 0 ? margin + 4 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - finalImgW - 4 : margin + i * hColW + (hColW - finalImgW) / 2;
+          const iy = margin + (headerH - finalImgH) / 2;
+          ctx.drawImage(img, ix, iy, finalImgW, finalImgH);
+        }
+        return;
+      }
+      // Rich text lines rendering for header
+      if (col.content === "custom" && col.richTextLines && col.richTextLines.length > 0) {
+        const lines = col.richTextLines;
+        const align: CanvasTextAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
+        const tx = i === 0 ? margin + 8 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - 8 : margin + i * hColW + hColW / 2;
+        const lineGap = 2;
+        const totalH = lines.reduce((s: number, l: any) => s + ((l.fontSize || 8) * 1.2), 0) + (lines.length - 1) * lineGap;
+        let curY = margin + (headerH - totalH) / 2;
+        for (const line of lines) {
+          const fs = (line.fontSize || 8) * (baseFontSize / 8) * 0.9;
+          const weight = line.bold ? "bold" : "normal";
+          const style = line.italic ? "italic" : "normal";
+          ctx.font = `${style} ${weight} ${fs}px 'DM Sans', sans-serif`;
+          ctx.fillStyle = line.color || headerTextColor;
+          ctx.textAlign = align;
+          ctx.textBaseline = "top";
+          ctx.fillText(line.text || "", tx, curY);
+          if (line.underline && line.text) {
+            const tw = ctx.measureText(line.text).width;
+            let ulX = tx;
+            if (align === "center") ulX = tx - tw / 2;
+            else if (align === "right") ulX = tx - tw;
+            ctx.strokeStyle = line.color || headerTextColor;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(ulX, curY + fs + 1);
+            ctx.lineTo(ulX + tw, curY + fs + 1);
+            ctx.stroke();
+          }
+          curY += fs * 1.2 + lineGap;
         }
         return;
       }
@@ -435,6 +518,7 @@ export function PdfExportPreview({
       ctx.font = i === 0 ? `bold ${headerFontSize}px 'DM Sans', sans-serif` : `${headerFontSize * 0.9}px 'DM Sans', sans-serif`;
       ctx.textAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
       const tx = i === 0 ? margin + 8 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - 8 : margin + i * hColW + hColW / 2;
+      ctx.textBaseline = "middle";
       ctx.fillText(text, tx, margin + headerH / 2);
     });
 
@@ -884,8 +968,47 @@ export function PdfExportPreview({
         if (img) {
           const imgH = footerH - 4;
           const imgW = (img.width / img.height) * imgH;
-          const ix = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? margin + i * fColW + fColW - imgW - 4 : margin + i * fColW + (fColW - imgW) / 2;
-          ctx.drawImage(img, ix, footerY + 2, imgW, imgH);
+          // Clamp image width to slot width
+          const maxSlotW = fColW - 8;
+          const finalW = Math.min(imgW, maxSlotW);
+          const finalH = finalW === imgW ? imgH : (finalW / imgW) * imgH;
+          const ix = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? margin + i * fColW + fColW - finalW - 4 : margin + i * fColW + (fColW - finalW) / 2;
+          const iy = footerY + (footerH - finalH) / 2;
+          ctx.drawImage(img, ix, iy, finalW, finalH);
+        }
+        return;
+      }
+      // Rich text lines rendering
+      if (col.content === "custom" && col.richTextLines && col.richTextLines.length > 0) {
+        const lines = col.richTextLines;
+        const align: CanvasTextAlign = i === 0 ? "left" : i === footerColumnCount - 1 ? "right" : "center";
+        const tx = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? w - margin - 4 : margin + i * fColW + fColW / 2;
+        // Calculate total height
+        const lineGap = 2;
+        const totalH = lines.reduce((s, l) => s + (l.fontSize || 8) * 1.2, 0) + (lines.length - 1) * lineGap;
+        let curY = footerY + (footerH - totalH) / 2;
+        for (const line of lines) {
+          const fs = (line.fontSize || 8) * (baseFontSize / 8) * 0.9;
+          const weight = line.bold ? "bold" : "normal";
+          const style = line.italic ? "italic" : "normal";
+          ctx.font = `${style} ${weight} ${fs}px 'DM Sans', sans-serif`;
+          ctx.fillStyle = line.color || "#64748b";
+          ctx.textAlign = align;
+          ctx.textBaseline = "top";
+          ctx.fillText(line.text || "", tx, curY);
+          if (line.underline && line.text) {
+            const tw = ctx.measureText(line.text).width;
+            let ulX = tx;
+            if (align === "center") ulX = tx - tw / 2;
+            else if (align === "right") ulX = tx - tw;
+            ctx.strokeStyle = line.color || "#64748b";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(ulX, curY + fs + 1);
+            ctx.lineTo(ulX + tw, curY + fs + 1);
+            ctx.stroke();
+          }
+          curY += fs * 1.2 + lineGap;
         }
         return;
       }
@@ -893,6 +1016,7 @@ export function PdfExportPreview({
       ctx.fillStyle = "#64748b";
       ctx.textAlign = i === 0 ? "left" : i === footerColumnCount - 1 ? "right" : "center";
       const tx = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? w - margin - 4 : margin + i * fColW + fColW / 2;
+      ctx.textBaseline = "middle";
       ctx.fillText(text, tx, footerY + footerH / 2);
     });
   }, [
@@ -976,12 +1100,67 @@ export function PdfExportPreview({
             </SelectContent>
           </Select>
           {col.content === "custom" && (
-            <Input
-              value={col.customText || ""}
-              onChange={(e) => handleCustomTextChange(type, idx, e.target.value)}
-              placeholder="Enter custom text..."
-              className="mt-1 h-7 text-[11px] border-white/15"
-            />
+            <div className="mt-1 space-y-1 border border-white/10 rounded p-1.5 bg-white/[0.02]">
+              {(col.richTextLines || []).map((line, li) => (
+                <div key={li} className="space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={line.text}
+                      onChange={(e) => handleUpdateRichLine(type, idx, li, { text: e.target.value })}
+                      placeholder={`Line ${li + 1}...`}
+                      className="flex-1 h-6 text-[10px] border-white/10 bg-white/5"
+                    />
+                    <button
+                      onClick={() => handleRemoveRichLine(type, idx, li)}
+                      className="p-0.5 text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-0.5 flex-wrap">
+                    <button
+                      onClick={() => handleUpdateRichLine(type, idx, li, { bold: !line.bold })}
+                      className={`p-0.5 rounded text-[9px] ${line.bold ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                      <Bold className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleUpdateRichLine(type, idx, li, { italic: !line.italic })}
+                      className={`p-0.5 rounded text-[9px] ${line.italic ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                      <Italic className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleUpdateRichLine(type, idx, li, { underline: !line.underline })}
+                      className={`p-0.5 rounded text-[9px] ${line.underline ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                      <Underline className="w-3 h-3" />
+                    </button>
+                    <select
+                      value={line.fontSize || 8}
+                      onChange={(e) => handleUpdateRichLine(type, idx, li, { fontSize: Number(e.target.value) })}
+                      className="h-4 text-[8px] bg-white/5 border border-white/10 rounded text-gray-300 px-0.5"
+                    >
+                      {[6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map(s => (
+                        <option key={s} value={s}>{s}pt</option>
+                      ))}
+                    </select>
+                    <input
+                      type="color"
+                      value={line.color || "#374151"}
+                      onChange={(e) => handleUpdateRichLine(type, idx, li, { color: e.target.value })}
+                      className="w-4 h-4 rounded border border-white/10 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => handleAddRichLine(type, idx)}
+                className="flex items-center gap-1 text-[9px] text-amber-400 hover:text-amber-300 mt-0.5"
+              >
+                <Plus className="w-3 h-3" /> Add Line
+              </button>
+            </div>
           )}
           {col.content === "image" && (
             <div className="mt-1">

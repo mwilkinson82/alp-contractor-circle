@@ -137,12 +137,35 @@ function isImageToken(token: string): boolean {
   return token.startsWith("{image:");
 }
 
+function isRichTextToken(token: string): boolean {
+  return token.startsWith("{richtext:");
+}
+
+interface RichTextLine {
+  text: string;
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+}
+
+function parseRichTextToken(token: string): RichTextLine[] {
+  try {
+    const json = token.slice(10, -1); // strip {richtext: and }
+    return JSON.parse(json);
+  } catch {
+    return [];
+  }
+}
+
 function getImageDataUrl(token: string): string {
   return token.slice(7, -1); // strip {image: and }
 }
 
 function resolveToken(token: string, ctx: { pageNum: number; totalPages: number; scheduleName: string; dataDate: Date | null; projectStartDate: Date; companyName: string; projectName: string }): string {
   if (isImageToken(token)) return ""; // images handled separately
+  if (isRichTextToken(token)) return ""; // rich text handled separately
   return token
     .replace(/\{page\}/g, String(ctx.pageNum))
     .replace(/\{total\}/g, String(ctx.totalPages))
@@ -154,21 +177,73 @@ function resolveToken(token: string, ctx: { pageNum: number; totalPages: number;
     .replace(/\{projectName\}/g, ctx.projectName);
 }
 
-function addImageToDoc(doc: any, token: string, x: number, y: number, maxH: number, align: "left" | "center" | "right" = "left") {
+// Image dimension cache for proper aspect ratio
+const imageDimensionCache = new Map<string, { w: number; h: number }>();
+
+function getImageDimensions(dataUrl: string): { w: number; h: number } | null {
+  if (imageDimensionCache.has(dataUrl)) return imageDimensionCache.get(dataUrl)!;
+  // Try to extract from data URL via an off-screen image (sync fallback: use default ratio)
+  return null;
+}
+
+function addImageToDoc(doc: any, token: string, x: number, y: number, maxH: number, align: "left" | "center" | "right" = "left", maxW?: number) {
   if (!isImageToken(token)) return;
   try {
     const dataUrl = getImageDataUrl(token);
-    // jsPDF addImage with auto-detect format from data URL
     const imgH = maxH - 2;
-    // Estimate width from aspect ratio (assume roughly 3:1 for logos)
-    const imgW = imgH * 3;
+    // Try to get actual image properties from jsPDF
+    let imgW: number;
+    try {
+      const imgProps = doc.getImageProperties(dataUrl);
+      const aspect = imgProps.width / imgProps.height;
+      imgW = imgH * aspect;
+      // Clamp to maxW if provided
+      if (maxW && imgW > maxW) {
+        imgW = maxW;
+      }
+    } catch {
+      // Fallback: assume 2:1 aspect ratio
+      imgW = imgH * 2;
+    }
     let ix = x;
     if (align === "right") ix = x - imgW;
     else if (align === "center") ix = x - imgW / 2;
     doc.addImage(dataUrl, ix, y, imgW, imgH);
   } catch (e) {
-    // Silently fail if image can't be added
     console.warn("Failed to add image to PDF:", e);
+  }
+}
+
+/** Render rich text lines vertically centered in a slot */
+function renderRichText(doc: any, lines: RichTextLine[], x: number, y: number, slotH: number, align: "left" | "center" | "right" = "left") {
+  if (!lines || lines.length === 0) return;
+  // Calculate total height of all lines
+  const lineSpacing = 1.2; // mm between lines
+  const lineHeights = lines.map(l => (l.fontSize || 8) * 0.352778); // pt to mm
+  const totalTextH = lineHeights.reduce((s, h) => s + h, 0) + (lines.length - 1) * lineSpacing;
+  // Start Y: vertically center the block
+  let curY = y + (slotH - totalTextH) / 2 + lineHeights[0] * 0.75; // 0.75 for baseline offset
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fontSize = line.fontSize || 8;
+    const fontStyle = (line.bold && line.italic) ? "bolditalic" : line.bold ? "bold" : line.italic ? "italic" : "normal";
+    doc.setFont("helvetica", fontStyle);
+    doc.setFontSize(fontSize);
+    if (line.color) {
+      const hex = line.color.replace('#', '');
+      doc.setTextColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
+    }
+    doc.text(line.text || "", x, curY, { align });
+    // Draw underline manually
+    if (line.underline && line.text) {
+      const textW = doc.getTextWidth(line.text);
+      let ulX = x;
+      if (align === "center") ulX = x - textW / 2;
+      else if (align === "right") ulX = x - textW;
+      doc.setLineWidth(0.15);
+      doc.line(ulX, curY + 0.5, ulX + textW, curY + 0.5);
+    }
+    curY += lineHeights[i] + lineSpacing;
   }
 }
 
@@ -277,9 +352,12 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const usableWidth = pageWidth - 2 * margin;
       const midY = headerHeight / 2 + 1;
 
-      // Left column - always bold gold (or image)
+      const hdrSlotMaxW = usableWidth / cols;
+      // Left column - always bold gold (or image or rich text)
       if (isImageToken(headerConfig.left)) {
-        addImageToDoc(doc, headerConfig.left, margin, 1, headerHeight - 2, "left");
+        addImageToDoc(doc, headerConfig.left, margin, 1, headerHeight - 2, "left", hdrSlotMaxW - 2);
+      } else if (isRichTextToken(headerConfig.left)) {
+        renderRichText(doc, parseRichTextToken(headerConfig.left), margin, 0, headerHeight, "left");
       } else {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
@@ -292,11 +370,17 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       doc.setFontSize(7.5);
       doc.setTextColor(...hdrText);
 
-      const renderHeaderSlot = (token: string, x: number, y: number, align: "left" | "center" | "right") => {
+      const renderHeaderSlot = (token: string, x: number, hy: number, align: "left" | "center" | "right") => {
         if (isImageToken(token)) {
-          addImageToDoc(doc, token, x, 1, headerHeight - 2, align);
+          addImageToDoc(doc, token, x, 1, headerHeight - 2, align, hdrSlotMaxW - 2);
+        } else if (isRichTextToken(token)) {
+          renderRichText(doc, parseRichTextToken(token), x, 0, headerHeight, align);
+          // Reset font after rich text
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(...hdrText);
         } else {
-          doc.text(resolveToken(token, ctx), x, y, { align });
+          doc.text(resolveToken(token, ctx), x, hy, { align });
         }
       };
 
@@ -354,9 +438,17 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const cols = footerConfig.columns;
       const footerMidY = y + footerHeight / 2 + 1;
 
+      const slotMaxW = usableWidth / cols;
       const renderFooterSlot = (token: string, x: number, fy: number, align: "left" | "center" | "right") => {
         if (isImageToken(token)) {
-          addImageToDoc(doc, token, x, y + 1, footerHeight - 2, align);
+          addImageToDoc(doc, token, x, y + 1, footerHeight - 2, align, slotMaxW - 2);
+        } else if (isRichTextToken(token)) {
+          const lines = parseRichTextToken(token);
+          renderRichText(doc, lines, x, y, footerHeight, align);
+          // Reset font after rich text
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(6.5);
+          doc.setTextColor(...colors.muted);
         } else {
           doc.text(resolveToken(token, ctx), x, fy, { align });
         }

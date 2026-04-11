@@ -1620,3 +1620,14 @@
 - [x] Fix footer image positioning for variable heights
 - [x] Improve text vertical centering in rows (offset +0.8 instead of +1)
 - [x] Preview canvas dynamically adjusts header/footer area based on mm settings
+
+## PDF Fix Round 2.6 — Rich Text Footer/Header
+- [x] Fix footer image aspect ratio (maintain proportions, don't squish)
+- [x] Add rich text data model for header/footer cells (multiple lines, bold/italic/underline/size/color)
+- [x] Build rich text editor UI in PdfExportPreview (per-line formatting controls)
+- [x] Render rich text lines in PDF export (schedulePdf.ts) with proper font styles and sizes
+- [x] Render rich text in preview canvas with proper formatting
+- [x] Fix default footer right column to "© ConstructLine" instead of page numbers
+- [x] Added "constructline" content option for header/footer cells
+- [x] Image aspect ratio uses actual dimensions via jsPDF getImageProperties
+- [x] Images clamped to slot width to prevent overflow
