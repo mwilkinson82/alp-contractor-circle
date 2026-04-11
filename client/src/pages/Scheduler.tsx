@@ -1644,149 +1644,108 @@ export default function Scheduler() {
               {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
-                    // P6-style WBS hierarchy with narrow colored left bars
+                    // P6/CPM-style WBS group header — yellow/gold background with black text
                     const d = depth ?? 0;
-                    // Color palette for depth levels (P6-inspired)
-                    const depthColors = [
-                      "#d4a843", // Level 0: amber/gold (project level)
-                      "#3b82f6", // Level 1: blue
-                      "#22c55e", // Level 2: green
-                      "#a855f7", // Level 3: purple
-                      "#f97316", // Level 4: orange
-                      "#06b6d4", // Level 5: cyan
-                    ];
-                    let barColor = depthColors[d % depthColors.length];
-                    if (groupBy === "wbs" && wbsColor) barColor = wbsColor;
-                    // Left bar width decreases with depth (P6 style)
-                    const barWidth = Math.max(4, 8 - d * 1.5);
                     const groupKey = group || "all";
                     const isCollapsed = collapsedGroups?.has(groupKey);
-                    // Text: always bright white for maximum contrast on dark background
-                    const textColor = "#ffffff";
+                    // Yellow/gold backgrounds — darker for top-level, lighter for children
+                    const bgColors = [
+                      "#c8a84e", // Level 0: dark gold
+                      "#d4b85c", // Level 1: medium gold
+                      "#e0c96e", // Level 2: light gold
+                      "#e8d580", // Level 3: lighter gold
+                      "#f0e090", // Level 4: pale gold
+                      "#f5e8a0", // Level 5: very pale gold
+                    ];
+                    const bgColor = bgColors[Math.min(d, bgColors.length - 1)];
+                    // WBS name lookup
+                    const WBS_NAME_LOOKUP: Record<string, string> = {
+                      "1.0": "General Conditions", "2.0": "Submittals",
+                      "2.1": "Prepare & Submit", "2.2": "Review & Approve",
+                      "3.0": "Fabrication", "3.1": "Structural Steel",
+                      "3.2": "Openings (Windows & Doors)", "3.3": "Millwork & Cabinetry",
+                      "3.4": "MEP Equipment", "4.0": "Construction",
+                      "4.1": "Sitework & Civil", "4.2": "Concrete & Foundation",
+                      "4.3": "Structural Framing", "4.4": "Enclosure",
+                      "4.5": "MEP Rough-In", "4.6": "Interior Finishes",
+                      "4.7": "MEP Trim & Startup", "4.8": "Exterior & Landscaping",
+                      "4.9": "Closeout",
+                      "1.0.0": "Project", "1.1": "Pre-Construction",
+                      "1.2": "Construction", "1.2.1": "Sitework & Civil",
+                      "1.2.2": "Foundation", "1.2.3": "Structural Framing",
+                      "1.2.4": "Enclosure", "1.2.5": "MEP Rough-In",
+                      "1.2.6": "Interior Finishes", "1.2.7": "MEP Trim & Startup",
+                      "1.2.8": "Exterior & Landscaping", "1.2.9": "Closeout",
+                      "1.3": "Submittals & Fabrication",
+                    };
+                    let displayName = group;
+                    let wbsCode = "";
+                    if (groupBy === "wbs") {
+                      const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} \u2014 ${w.name}` === group || w.code === group);
+                      if (wbsNode) {
+                        wbsCode = wbsNode.code;
+                        if (wbsNode.name && wbsNode.name !== wbsNode.code) {
+                          displayName = wbsNode.name;
+                        } else if (WBS_NAME_LOOKUP[wbsNode.code]) {
+                          displayName = WBS_NAME_LOOKUP[wbsNode.code];
+                        } else {
+                          const actsInGroup = groupActs || [];
+                          displayName = actsInGroup.length > 0 ? `${actsInGroup.length} Activities` : wbsNode.code;
+                        }
+                      }
+                    }
                     return (
                       <div
-                        className="flex items-center cursor-pointer select-none border-b"
+                        className="flex items-center cursor-pointer select-none"
                         style={{
-                          backgroundColor: d === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-                          borderBottomColor: "rgba(255,255,255,0.1)",
-                          minHeight: d === 0 ? "34px" : "28px",
-                          position: "relative",
+                          backgroundColor: bgColor,
+                          borderBottom: "1px solid rgba(0,0,0,0.15)",
+                          minHeight: d === 0 ? "32px" : "26px",
+                          paddingLeft: `${8 + d * 20}px`,
+                          paddingRight: "12px",
+                          paddingTop: d === 0 ? "4px" : "2px",
+                          paddingBottom: d === 0 ? "4px" : "2px",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
                         title={isCollapsed ? "Click to expand" : "Click to collapse"}
                       >
-                        {/* P6-style colored left bar */}
-                        <div
+                        {/* Collapse toggle */}
+                        <span className="mr-1.5 flex-shrink-0" style={{ color: "#333" }}>
+                          {isCollapsed
+                            ? <ChevronRight className="w-3.5 h-3.5" />
+                            : <ChevronDown className="w-3.5 h-3.5" />}
+                        </span>
+                        {/* WBS code badge */}
+                        {wbsCode && (
+                          <span
+                            className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                            style={{ backgroundColor: "rgba(0,0,0,0.15)", color: "#1a1a1a" }}
+                          >
+                            {wbsCode}
+                          </span>
+                        )}
+                        {/* WBS name — black bold text */}
+                        <span
+                          className="font-bold tracking-wide"
                           style={{
-                            position: "absolute",
-                            left: `${d * 12}px`,
-                            top: 0,
-                            bottom: 0,
-                            width: `${barWidth}px`,
-                            backgroundColor: barColor,
-                            borderRadius: "0 2px 2px 0",
-                          }}
-                        />
-                        {/* Content with indentation */}
-                        <div
-                          className="flex items-center flex-1 min-w-0"
-                          style={{
-                            paddingLeft: `${16 + d * 12 + barWidth}px`,
-                            paddingRight: "12px",
-                            paddingTop: d === 0 ? "5px" : "3px",
-                            paddingBottom: d === 0 ? "5px" : "3px",
+                            fontSize: d === 0 ? "0.8125rem" : "0.75rem",
+                            color: "#1a1a1a",
+                            textTransform: d === 0 ? "uppercase" as const : "none" as const,
+                            letterSpacing: d === 0 ? "0.05em" : "0.02em",
                           }}
                         >
-                          {/* Collapse toggle */}
-                          <span className="mr-1.5 flex-shrink-0" style={{ color: barColor }}>
-                            {isCollapsed
-                              ? <ChevronRight className="w-3.5 h-3.5" />
-                              : <ChevronDown className="w-3.5 h-3.5" />}
-                          </span>
-                          {/* WBS code badge + name */}
-                          {(() => {
-                            // Hardcoded WBS name lookup for residential schedules
-                            const WBS_NAME_LOOKUP: Record<string, string> = {
-                              // New 4-phase codes
-                              "1.0": "General Conditions", "2.0": "Submittals",
-                              "2.1": "Prepare & Submit", "2.2": "Review & Approve",
-                              "3.0": "Fabrication", "3.1": "Structural Steel",
-                              "3.2": "Openings (Windows & Doors)", "3.3": "Millwork & Cabinetry",
-                              "3.4": "MEP Equipment", "4.0": "Construction",
-                              "4.1": "Sitework & Civil", "4.2": "Concrete & Foundation",
-                              "4.3": "Structural Framing", "4.4": "Enclosure",
-                              "4.5": "MEP Rough-In", "4.6": "Interior Finishes",
-                              "4.7": "MEP Trim & Startup", "4.8": "Exterior & Landscaping",
-                              "4.9": "Closeout",
-                              // Old residential codes (pre-rewrite schedules)
-                              "1.0.0": "Project", "1.1": "Pre-Construction",
-                              "1.2": "Construction", "1.2.1": "Sitework & Civil",
-                              "1.2.2": "Foundation", "1.2.3": "Structural Framing",
-                              "1.2.4": "Enclosure", "1.2.5": "MEP Rough-In",
-                              "1.2.6": "Interior Finishes", "1.2.7": "MEP Trim & Startup",
-                              "1.2.8": "Exterior & Landscaping", "1.2.9": "Closeout",
-                              "1.3": "Submittals & Fabrication",
-                            };
-                            if (groupBy === "wbs") {
-                              const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} \u2014 ${w.name}` === group || w.code === group);
-                              if (wbsNode) {
-                                // Priority: 1) DB name if meaningful, 2) hardcoded lookup, 3) derive from activities
-                                let displayName = "";
-                                if (wbsNode.name && wbsNode.name !== wbsNode.code && wbsNode.name.trim() !== wbsNode.code.trim()) {
-                                  displayName = wbsNode.name;
-                                } else if (WBS_NAME_LOOKUP[wbsNode.code]) {
-                                  displayName = WBS_NAME_LOOKUP[wbsNode.code];
-                                } else {
-                                  // Derive from child activities
-                                  const actsInGroup = groupActs || [];
-                                  if (actsInGroup.length === 1) {
-                                    displayName = actsInGroup[0].name;
-                                  } else if (actsInGroup.length > 1) {
-                                    displayName = `${actsInGroup.length} Activities`;
-                                  } else {
-                                    const childNodes = wbsNodes.filter((w: any) => w.parentId === wbsNode.id);
-                                    displayName = childNodes.length > 0 ? `${childNodes.length} Sub-groups` : wbsNode.code;
-                                  }
-                                }
-                                return (
-                                  <>
-                                    <span
-                                      className="text-[11px] font-mono font-extrabold px-2 py-0.5 rounded mr-2.5 flex-shrink-0"
-                                      style={{ backgroundColor: barColor, color: "#000000" }}
-                                    >
-                                      {wbsNode.code}
-                                    </span>
-                                    <span
-                                      className="font-extrabold tracking-wide"
-                                      style={{ fontSize: d === 0 ? "0.9375rem" : "0.875rem", color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
-                                    >
-                                      {displayName}
-                                    </span>
-                                  </>
-                                );
-                              }
-                            }
-                            // Fallback: non-WBS grouping or no matching node
-                            return (
-                              <span
-                                className="font-extrabold tracking-wide"
-                                style={{ fontSize: d === 0 ? "0.9375rem" : "0.875rem", color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
-                              >
-                                {group}
-                              </span>
-                            );
-                          })()}
-                          <span
-                            className="ml-2 flex-shrink-0"
-                            style={{ fontSize: "0.6875rem", fontWeight: 400, color: "rgba(255,255,255,0.6)" }}
-                          >
-                            {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
-                          </span>
-                        </div>
+                          {displayName}
+                        </span>
+                        <span
+                          className="ml-2 flex-shrink-0"
+                          style={{ fontSize: "0.625rem", fontWeight: 500, color: "rgba(0,0,0,0.5)" }}
+                        >
+                          {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
+                        </span>
                       </div>
                     );
                   })()}
-                  {groupActs.map((act) => {
+                  {!collapsedGroups?.has(group || "all") && groupActs.map((act) => {
                     const isOpenStart = openEnds.openStarts.some((a) => a.id === act.id);
                     const isOpenFinish = openEnds.openFinishes.some((a) => a.id === act.id);
                     const hasOpenEnd = isOpenStart || isOpenFinish;
@@ -1971,6 +1930,7 @@ export default function Scheduler() {
             selectedActivityId={selectedActivityId}
             onSelectActivity={setSelectedActivityId}
             groupedActivities={groupedActivities}
+            collapsedGroups={collapsedGroups}
             showArrows={showArrows}
             showDataDateLine={showDataDateLine}
             showTodayLine={showTodayLine}

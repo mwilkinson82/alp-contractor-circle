@@ -1343,3 +1343,8 @@
 ## WBS Title Fix (April 11 — Round 3)
 - [x] Fix WBS group header to always show title text in large bold white next to code badge
 - [x] Add residential template name mapping as fallback when WBS node name === code
+
+## WBS Visual Overhaul — Match Reference CPM (April 11)
+- [x] Restyle WBS group rows: yellow/gold background with black bold text (like P6/reference CPM)
+- [x] Add WBS summary bars to Gantt chart (dark bar spanning earliest start to latest finish)
+- [x] Fix WBS collapse/expand — clicking chevron should toggle child activity visibility

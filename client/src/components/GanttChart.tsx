@@ -68,6 +68,7 @@ interface GanttChartProps {
   onSelectActivity: (id: number | null) => void;
   onActivityDoubleClick?: (id: number) => void;
   groupedActivities: GroupedActivities[];
+  collapsedGroups?: Set<string>;
   showArrows: boolean;
   showDataDateLine: boolean;
   showTodayLine: boolean;
@@ -213,6 +214,7 @@ export default function GanttChart({
   onSelectActivity,
   onActivityDoubleClick,
   groupedActivities,
+  collapsedGroups,
   showArrows,
   showDataDateLine,
   showTodayLine,
@@ -248,22 +250,25 @@ export default function GanttChart({
 
   // ─── Compute layout ──────────────────────────────────────────────────────
 
-  // Flatten grouped activities for row index mapping
+  // Flatten grouped activities for row index mapping (respects collapsed groups)
   const flatRows = useMemo(() => {
-    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string }> = [];
+    const rows: Array<{ type: "group" | "activity"; group?: string; activity?: Activity; rowIndex: number; depth?: number; wbsColor?: string; wbsTextColor?: string; groupActivities?: Activity[] }> = [];
     let idx = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor });
+        rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities });
         idx++;
       }
+      // Skip activities if this group is collapsed
+      const groupKey = g.group || "all";
+      if (collapsedGroups?.has(groupKey)) continue;
       for (const act of g.activities) {
         rows.push({ type: "activity", activity: act, rowIndex: idx });
         idx++;
       }
     }
     return rows;
-  }, [groupedActivities]);
+  }, [groupedActivities, collapsedGroups]);
 
   const activityRowMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -754,22 +759,27 @@ export default function GanttChart({
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
-        // P6-style colored left bar — matches table panel hierarchy
-        const depthColors = ["#d4a843", "#3b82f6", "#22c55e", "#a855f7", "#f97316", "#06b6d4"];
-        let barColor = depthColors[depth % depthColors.length];
-        if (row.wbsColor) barColor = row.wbsColor;
-        const barWidth = Math.max(4, 8 - depth * 1.5);
-        // Subtle background
-        ctx.fillStyle = depth === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
+        // P6/CPM-style yellow/gold background with black text
+        const bgColors = [
+          "#c8a84e", // Level 0: dark gold
+          "#d4b85c", // Level 1: medium gold
+          "#e0c96e", // Level 2: light gold
+          "#e8d580", // Level 3: lighter gold
+          "#f0e090", // Level 4: pale gold
+          "#f5e8a0", // Level 5: very pale gold
+        ];
+        const bgColor = bgColors[Math.min(depth, bgColors.length - 1)];
+        // Fill entire row with gold background
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-        // Colored left bar
-        ctx.fillStyle = barColor;
-        ctx.fillRect(depth * 12, y, barWidth, ROW_HEIGHT);
-        // Group label text — full white, bold
-        ctx.fillStyle = "#ffffff";
-        ctx.font = depth === 0 ? "bold 13px 'DM Sans', sans-serif" : "bold 12px 'DM Sans', sans-serif";
-        ctx.textAlign = "left";
-        // Hardcoded WBS name lookup for residential schedules
+        // Bottom border
+        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y + ROW_HEIGHT);
+        ctx.lineTo(visibleWidth, y + ROW_HEIGHT);
+        ctx.stroke();
+        // WBS name lookup
         const WBS_NAMES: Record<string, string> = {
           "1.0": "General Conditions", "2.0": "Submittals",
           "2.1": "Prepare & Submit", "2.2": "Review & Approve",
@@ -788,32 +798,54 @@ export default function GanttChart({
           "1.2.8": "Exterior & Landscaping", "1.2.9": "Closeout",
         };
         let groupLabel = row.group || "";
-        // Extract WBS code from label (format: "code — name")
         const dashIdx = groupLabel.indexOf(" \u2014 ");
         const wbsCode = dashIdx > 0 ? groupLabel.substring(0, dashIdx) : groupLabel;
-        // Use lookup name, then label name, then code
         if (WBS_NAMES[wbsCode]) {
           groupLabel = WBS_NAMES[wbsCode];
         } else if (dashIdx > 0) {
           const labelName = groupLabel.substring(dashIdx + 3);
           groupLabel = (labelName !== wbsCode) ? labelName : wbsCode;
         }
-        // Draw code badge first
-        ctx.font = "bold 9px 'DM Mono', monospace";
-        ctx.fillStyle = barColor;
-        const badgeText = wbsCode;
-        const badgeW = ctx.measureText(badgeText).width + 8;
-        const badgeX = 16 + depth * 12 + barWidth;
-        const badgeY = y + ROW_HEIGHT / 2 - 5;
-        ctx.beginPath();
-        ctx.roundRect(badgeX, badgeY, badgeW, 14, 3);
-        ctx.fill();
-        ctx.fillStyle = "#000000";
-        ctx.fillText(badgeText, badgeX + 4, badgeY + 10);
-        // Draw name text
-        ctx.fillStyle = "#ffffff";
-        ctx.font = depth === 0 ? "bold 13px 'DM Sans', sans-serif" : "bold 12px 'DM Sans', sans-serif";
-        ctx.fillText(groupLabel, badgeX + badgeW + 8, y + ROW_HEIGHT / 2 + 4);
+
+        // ── WBS Summary/Rollup Bar ──────────────────────────────────────
+        // Compute earliest start and latest finish from all child activities
+        const childActs = row.groupActivities || [];
+        let summaryStartDate: Date | null = null;
+        let summaryEndDate: Date | null = null;
+        for (const child of childActs) {
+          if (child.earlyStart) {
+            const s = child.earlyStart instanceof Date ? child.earlyStart : new Date(child.earlyStart);
+            if (!summaryStartDate || s < summaryStartDate) summaryStartDate = s;
+          }
+          if (child.earlyFinish) {
+            const f = child.earlyFinish instanceof Date ? child.earlyFinish : new Date(child.earlyFinish);
+            if (!summaryEndDate || f > summaryEndDate) summaryEndDate = f;
+          }
+        }
+        if (summaryStartDate && summaryEndDate) {
+          const sumBarX = daysBetween(rangeStart, summaryStartDate) * pixelsPerDay + offsetX;
+          const sumBarW = Math.max(daysBetween(summaryStartDate, summaryEndDate) * pixelsPerDay, 4);
+          const sumBarH = 8; // Thick summary bar
+          const sumBarY = y + ROW_HEIGHT / 2 - sumBarH / 2 + 2;
+          // Draw the summary bar — dark charcoal/black
+          ctx.fillStyle = "#1a1a1a";
+          ctx.fillRect(sumBarX, sumBarY, sumBarW, sumBarH);
+          // Start bracket (downward tick)
+          ctx.fillRect(sumBarX, sumBarY, 3, sumBarH + 4);
+          // End bracket (downward tick)
+          ctx.fillRect(sumBarX + sumBarW - 3, sumBarY, 3, sumBarH + 4);
+          // Diamond at end
+          const diamondX = sumBarX + sumBarW;
+          const diamondY = sumBarY + sumBarH / 2;
+          const ds = 5;
+          ctx.beginPath();
+          ctx.moveTo(diamondX, diamondY - ds);
+          ctx.lineTo(diamondX + ds, diamondY);
+          ctx.lineTo(diamondX, diamondY + ds);
+          ctx.lineTo(diamondX - ds, diamondY);
+          ctx.closePath();
+          ctx.fill();
+        }
         continue;
       }
 
