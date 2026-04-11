@@ -628,7 +628,7 @@ export function PdfExportPreview({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 flex flex-col !max-w-[92vw] !w-[92vw] !h-[88vh] !max-h-[88vh]">
+      <DialogContent className="!p-0 !max-w-[92vw] !w-[92vw] !h-[88vh] !max-h-[88vh] [&>div:nth-child(2)]:!p-0 [&>div:nth-child(2)]:!overflow-hidden [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-full">
         <DialogHeader className="px-6 pt-5 pb-0 shrink-0">
           <DialogTitle className="font-semibold flex items-center gap-2">
             <Eye className="w-5 h-5 text-amber-400" /> PDF Export Preview

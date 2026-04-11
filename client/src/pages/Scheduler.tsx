@@ -1148,15 +1148,26 @@ export default function Scheduler() {
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
     <div className="h-screen flex flex-col bg-[#0f1219] text-gray-100">
-      {/* ── Top Toolbar ── Premium Dark SaaS Ribbon ────────────────────── */}
+      {/* ── Top Toolbar ── Construct Line SaaS Ribbon ────────────────────── */}
       <div className="border-b border-white/10 bg-[#151a28] shrink-0">
-        {/* Row 1: Title bar */}
-        <div className="h-10 flex items-center px-4 gap-3 border-b border-white/5">
+        {/* Row 1: Title bar with Construct Line branding */}
+        <div className="h-11 flex items-center px-4 gap-3 border-b border-white/5">
           <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="w-px h-5 bg-white/10" />
-          <h1 className="text-sm font-bold text-white truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
+          {/* Construct Line Brand Mark */}
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-gray-950" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M2 14L8 2L14 14" />
+                <path d="M4 10h8" />
+              </svg>
+            </div>
+            <span className="text-sm font-bold tracking-tight text-white">Construct<span className="text-amber-400">Line</span></span>
+          </div>
+          <div className="w-px h-5 bg-white/10" />
+          <h1 className="text-sm font-medium text-gray-300 truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
           <div className="flex-1" />
           {/* Search */}
           {showSearch && (
@@ -1181,182 +1192,190 @@ export default function Scheduler() {
           </Button>
         </div>
 
-        {/* Row 2: Ribbon with grouped sections */}
-        <div className="flex items-end px-3 gap-1.5 overflow-x-auto pb-1.5 pt-1">
+        {/* Row 2: Professional SaaS Ribbon Toolbar */}
+        <div className="flex items-stretch px-2 gap-0 overflow-x-auto">
 
           {/* ── GROUP: Schedule ── */}
-          <div className="flex flex-col items-start mr-1">
-            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Schedule</span>
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
-            <Button
-              size="sm" variant="outline"
-              className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/15 bg-amber-500/10 font-semibold"
-              onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
-              disabled={recalcMut.isPending}
-            >
-              {recalcMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-              Calculate
-            </Button>
-            <Button
-              size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
-              onClick={undo}
-              disabled={!canUndo || isUndoRedoProcessing}
-              title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
-            >
-              <Undo2 className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
-              onClick={redo}
-              disabled={!canRedo || isUndoRedoProcessing}
-              title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
-            >
-              <Redo2 className="w-4 h-4" />
-            </Button>
-            <div className="w-px h-5 bg-white/10" />
-            <Button
-              size="sm" variant="outline"
-              className={`h-7 text-xs gap-1 ${
-                dataDate
-                  ? "border-sky-500/30 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20"
-                  : "border-amber-500/40 text-amber-400 bg-amber-500/10 animate-pulse"
-              }`}
-              onClick={() => {
-                const today = new Date().toISOString().split("T")[0];
-                setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : today);
-                setShowDataDatePicker(true);
-              }}
-              title="Click to set or change the Data Date"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              DD: {dataDate ? formatDate(dataDate) : "Set"}
-            </Button>
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+            <div className="flex items-center gap-1 flex-1">
+              <Button
+                size="sm" variant="outline"
+                className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/15 bg-amber-500/10 font-semibold rounded-md shadow-sm shadow-amber-500/10"
+                onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
+                disabled={recalcMut.isPending}
+              >
+                {recalcMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                Calculate
+              </Button>
+              <div className="flex items-center bg-white/[0.04] rounded-md border border-white/[0.06]">
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 rounded-r-none"
+                  onClick={undo}
+                  disabled={!canUndo || isUndoRedoProcessing}
+                  title={undoDescription ? `Undo: ${undoDescription}` : "Nothing to undo (Ctrl+Z)"}
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </Button>
+                <div className="w-px h-4 bg-white/[0.08]" />
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 rounded-l-none"
+                  onClick={redo}
+                  disabled={!canRedo || isUndoRedoProcessing}
+                  title={redoDescription ? `Redo: ${redoDescription}` : "Nothing to redo (Ctrl+Shift+Z)"}
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <Button
+                size="sm" variant="outline"
+                className={`h-8 text-xs gap-1.5 rounded-md ${
+                  dataDate
+                    ? "border-sky-500/25 text-sky-300 bg-sky-500/8 hover:bg-sky-500/15"
+                    : "border-amber-500/40 text-amber-400 bg-amber-500/10 animate-pulse"
+                }`}
+                onClick={() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  setDataDateInput(dataDate ? dataDate.toISOString().split("T")[0] : today);
+                  setShowDataDatePicker(true);
+                }}
+                title="Click to set or change the Data Date"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                DD: {dataDate ? formatDate(dataDate) : "Set"}
+              </Button>
+            </div>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Schedule</span>
           </div>
-          </div>{/* end Schedule group wrapper */}
 
           {/* ── GROUP: Activities ── */}
-          <div className="flex flex-col items-start mr-1">
-            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Activities</span>
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300" onClick={() => setShowActivityDialog(true)}>
-              <Plus className="w-3.5 h-3.5" /> Add
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-sky-400 hover:bg-sky-500/15 hover:text-sky-300" onClick={() => setShowBulkAddDialog(true)}>
-              <Plus className="w-3.5 h-3.5" /> Bulk
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300" onClick={() => setShowCsvImportDialog(true)}>
-              <Upload className="w-3.5 h-3.5" /> CSV
-            </Button>
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+            <div className="flex items-center gap-0.5 flex-1">
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowActivityDialog(true)}>
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300 rounded-md" onClick={() => setShowBulkAddDialog(true)}>
+                <Plus className="w-3.5 h-3.5" /> Bulk
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowCsvImportDialog(true)}>
+                <Upload className="w-3.5 h-3.5" /> CSV
+              </Button>
+            </div>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Activities</span>
           </div>
-          </div>{/* end Activities group wrapper */}
 
           {/* ── GROUP: View ── */}
-          <div className="flex flex-col items-start mr-1">
-            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">View</span>
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
-            {/* Zoom */}
-            <div className="flex items-center border border-white/15 rounded-lg h-7 overflow-hidden">
-              {(["day", "week", "month"] as const).map((z) => (
-                <button
-                  key={z}
-                  onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
-                  className={`px-2.5 text-xs h-full transition-all font-medium ${zoom === z ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
-                >
-                  {z.charAt(0).toUpperCase() + z.slice(1)}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-0.5 ml-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
-              <span className="text-[9px] text-gray-500">−</span>
-              <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
-                onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); setZoom("custom"); }}
-                className="w-16 h-1.5 accent-amber-500 cursor-pointer"
-              />
-              <span className="text-[9px] text-gray-500">+</span>
-            </div>
-            <div className="w-px h-5 bg-white/10 mx-0.5" />
-            {/* Toggles */}
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showArrows ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
-              onClick={() => setShowArrows(!showArrows)} title="Toggle dependency arrows">
-              <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
-            </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showDataDateLine ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
-              onClick={() => setShowDataDateLine(!showDataDateLine)} title="Toggle data date line">
-              <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
-            </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showTodayLine ? "text-amber-400" : "text-gray-500 hover:text-gray-300"}`}
-              onClick={() => setShowTodayLine(!showTodayLine)} title="Toggle today line">
-              <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
-            </Button>
-            <Button size="sm" variant="ghost" className={`h-7 w-7 p-0 ${showCostOverlay ? "text-emerald-400" : "text-gray-500 hover:text-gray-300"}`}
-              onClick={() => setShowCostOverlay(!showCostOverlay)} title="Toggle cost overlay">
-              <DollarSign className="w-3.5 h-3.5" />
-            </Button>
-            <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-7 text-xs gap-1 ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400" : "text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
-              onClick={() => setShowAnnotations(!showAnnotations)} title="Toggle annotation overlay for delay analysis">
-              <Pencil className="w-3.5 h-3.5" /> Annotate
-            </Button>
-            <div className="w-px h-5 bg-white/10 mx-0.5" />
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200" onClick={() => setShowColumnPicker(true)}>
-              <Columns3 className="w-3.5 h-3.5" /> Columns
-            </Button>
-            <Button size="sm" variant="ghost" className={`h-7 text-xs gap-1 ${hasActiveFilters ? "text-amber-400" : "text-gray-400"} hover:bg-white/10 hover:text-gray-200`}
-              onClick={() => setShowAdvancedFilter(true)}>
-              <Filter className="w-3.5 h-3.5" /> Filter
-              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200">
-                  <Layers className="w-3.5 h-3.5" /> Group
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setGroupBy(null)}>
-                  <span className={!groupBy ? "font-semibold text-amber-400" : ""}>None</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
-                  <span className={groupBy === "wbs" ? "font-semibold text-amber-400" : ""}>WBS</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGroupBy("critical")}>
-                  <span className={groupBy === "critical" ? "font-semibold text-amber-400" : ""}>Critical Path</span>
-                </DropdownMenuItem>
-                {codeCategories.map((cat: any) => (
-                  <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                    <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
-                  </DropdownMenuItem>
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+            <div className="flex items-center gap-1 flex-1">
+              {/* Zoom Segmented Control */}
+              <div className="flex items-center rounded-md h-8 overflow-hidden border border-white/[0.08] bg-white/[0.03]">
+                {(["day", "week", "month"] as const).map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
+                    className={`px-2.5 text-[11px] h-full transition-all font-medium ${zoom === z ? "bg-amber-500/20 text-amber-300 shadow-inner shadow-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                  >
+                    {z.charAt(0).toUpperCase() + z.slice(1)}
+                  </button>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+              <div className="flex items-center gap-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
+                <span className="text-[9px] text-gray-600">−</span>
+                <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
+                  onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); setZoom("custom"); }}
+                  className="w-14 h-1 accent-amber-500 cursor-pointer"
+                />
+                <span className="text-[9px] text-gray-600">+</span>
+              </div>
+              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+              {/* Toggle Group */}
+              <div className="flex items-center bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showArrows ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                  onClick={() => setShowArrows(!showArrows)} title="Dependency arrows">
+                  <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
+                </Button>
+                <div className="w-px h-4 bg-white/[0.06]" />
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showDataDateLine ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                  onClick={() => setShowDataDateLine(!showDataDateLine)} title="Data date line">
+                  <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
+                </Button>
+                <div className="w-px h-4 bg-white/[0.06]" />
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showTodayLine ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                  onClick={() => setShowTodayLine(!showTodayLine)} title="Today line">
+                  <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
+                </Button>
+                <div className="w-px h-4 bg-white/[0.06]" />
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showCostOverlay ? "text-emerald-400 bg-emerald-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                  onClick={() => setShowCostOverlay(!showCostOverlay)} title="Cost overlay">
+                  <DollarSign className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-8 text-xs gap-1 rounded-md ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400 shadow-sm shadow-amber-500/20" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                onClick={() => setShowAnnotations(!showAnnotations)} title="Annotation overlay for delay analysis">
+                <Pencil className="w-3.5 h-3.5" /> Annotate
+              </Button>
+              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowColumnPicker(true)}>
+                <Columns3 className="w-3.5 h-3.5" /> Columns
+              </Button>
+              <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1 rounded-md ${hasActiveFilters ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06]"} hover:text-gray-200`}
+                onClick={() => setShowAdvancedFilter(true)}>
+                <Filter className="w-3.5 h-3.5" /> Filter
+                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md">
+                    <Layers className="w-3.5 h-3.5" /> Group
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setGroupBy(null)}>
+                    <span className={!groupBy ? "font-semibold text-amber-400" : ""}>None</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
+                    <span className={groupBy === "wbs" ? "font-semibold text-amber-400" : ""}>WBS</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setGroupBy("critical")}>
+                    <span className={groupBy === "critical" ? "font-semibold text-amber-400" : ""}>Critical Path</span>
+                  </DropdownMenuItem>
+                  {codeCategories.map((cat: any) => (
+                    <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
+                      <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">View</span>
           </div>
-          </div>{/* end View group wrapper */}
 
           {/* ── GROUP: Tools ── */}
-          <div className="flex flex-col items-start mr-1">
-            <span className="text-[9px] font-bold tracking-widest text-gray-500 uppercase px-2 mb-0.5">Tools</span>
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/8">
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200" onClick={() => setShowResourcePanel(true)}>
-              <DollarSign className="w-3.5 h-3.5" /> Resources
-            </Button>
-            <Link href={`/scheduler/${scheduleId}/reports`}>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-gray-400 hover:bg-white/10 hover:text-gray-200">
-                <BarChart3 className="w-3.5 h-3.5" /> Reports
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+            <div className="flex items-center gap-0.5 flex-1">
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowResourcePanel(true)}>
+                <DollarSign className="w-3.5 h-3.5" /> Resources
               </Button>
-            </Link>
+              <Link href={`/scheduler/${scheduleId}/reports`}>
+                <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md">
+                  <BarChart3 className="w-3.5 h-3.5" /> Reports
+                </Button>
+              </Link>
+            </div>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-500/80 uppercase text-center mt-1">Tools</span>
           </div>
-          </div>{/* end Tools group wrapper */}
 
           <div className="flex-1" />
 
-          {/* ── Settings Menu (labeled, highlighted) ── */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-white/15 text-gray-300 bg-white/5 hover:bg-white/10 hover:text-white">
-                <Settings className="w-3.5 h-3.5" /> Settings
-              </Button>
-            </DropdownMenuTrigger>
+          {/* ── Settings ── */}
+          <div className="flex items-center py-1.5 px-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-white/[0.1] text-gray-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white rounded-md">
+                  <Settings className="w-3.5 h-3.5" /> Settings
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
                 <svg viewBox="0 0 16 16" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
@@ -1454,7 +1473,8 @@ export default function Scheduler() {
               <Download className="w-4 h-4 mr-2" /> Export PDF
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+          </div>
         </div>{/* end ribbon row */}
       </div>{/* end toolbar */}
 
@@ -2299,7 +2319,7 @@ export default function Scheduler() {
 
       {/* ── CSV Import Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showCsvImportDialog} onOpenChange={(open) => { setShowCsvImportDialog(open); if (!open) { setCsvParsedRows([]); setCsvFileName(""); } }}>
-        <DialogContent className="max-w-5xl" style={{ maxHeight: "85vh" }}>
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-100 flex items-center gap-2">
               <Upload className="w-5 h-5 text-emerald-600" /> Import Activities from CSV
@@ -3161,7 +3181,7 @@ export default function Scheduler() {
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
-        <DialogContent className="max-w-5xl flex flex-col" style={{ maxHeight: "90vh", height: "90vh" }}>
+        <DialogContent className="max-w-5xl !max-h-[90vh] [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-[calc(90vh-2rem)]">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="font-semibold text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
             <DialogDescription>Build your project hierarchy. Drag nodes to reorder. Click color swatch to change group color. Click ▶ to expand/collapse.</DialogDescription>

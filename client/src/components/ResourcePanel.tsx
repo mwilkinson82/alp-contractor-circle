@@ -222,7 +222,7 @@ export default function ResourcePanel({ scheduleId, activities, open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-amber-400" /> Resources & Cost Loading

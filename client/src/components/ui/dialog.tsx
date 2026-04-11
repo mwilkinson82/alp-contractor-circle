@@ -119,10 +119,10 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           // Premium dark SaaS modal with amber accent strip
-          "bg-[#1a1f2e] text-gray-100 font-medium text-base overflow-hidden",
+          "bg-[#1a1f2e] text-gray-100 font-medium text-base",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%]",
-          "gap-5 rounded-xl border border-white/10 shadow-2xl shadow-black/40 duration-200",
+          "fixed top-[50%] left-[50%] z-50 flex flex-col w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%]",
+          "max-h-[calc(100vh-2rem)] rounded-xl border border-white/10 shadow-2xl shadow-black/40 duration-200",
           "sm:max-w-4xl",
           className
         )}
@@ -130,9 +130,9 @@ function DialogContent({
         {...props}
       >
         {/* Amber accent strip at top */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-t-xl" />
-        {/* Content wrapper with padding (offset for accent strip) */}
-        <div className="pt-8 px-8 pb-8 grid gap-5">
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-t-xl shrink-0 z-10" />
+        {/* Content wrapper with padding — scrollable when content exceeds viewport */}
+        <div className="pt-8 px-8 pb-8 grid gap-5 overflow-y-auto overscroll-contain">
           {children}
         </div>
         {showCloseButton && (

@@ -748,7 +748,7 @@ export default function TakeoffDetail() {
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
       <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {previewSheet?.sheetName || `Page ${previewSheet?.pageNumber}`}

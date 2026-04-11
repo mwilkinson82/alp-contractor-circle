@@ -1258,3 +1258,9 @@
 - [ ] Increase frontend file size validation from 16MB to 250MB
 - [ ] Update user-facing error messages to reflect new 250MB limit
 - [ ] Increase tRPC input string length limit if applicable
+
+## QA/QC, Branding & Toolbar Redesign
+- [x] QA/QC: Full audit of EVERY modal/dialog/popup for scroll issues
+- [x] QA/QC: Fix all modals to be scrollable with reachable buttons (especially PDF export modal)
+- [x] Add "Construct Line" branding in the Scheduler header
+- [x] Redesign Scheduler toolbar — proper grouping, separation, visual hierarchy, polished SaaS look
