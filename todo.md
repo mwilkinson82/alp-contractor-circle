@@ -1440,3 +1440,14 @@
 - [x] User selects region when creating takeoff project
 - [x] Display region and multiplier on takeoff detail page (badges on project cards)
 - [x] Allow region change after creation (recalculates all costs)
+
+
+### Edit Division/Region After Creation (April 11)
+- [x] Add "Edit Settings" button/panel to takeoff detail page
+- [x] Allow changing selectedDivisions after project creation (updates future extraction scope only)
+- [x] Allow changing costRegion after project creation (recalculates all item costs automatically)
+- [x] Build updateProjectSettings backend procedure
+- [x] Build recalculateItemCosts backend procedure (applies new multiplier to all items)
+- [x] Show cost recalculation confirmation/toast when region changes
+- [x] Test: verify division change doesn't affect existing items
+- [x] Test: verify region change recalculates all item costs correctly

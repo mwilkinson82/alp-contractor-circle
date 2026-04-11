@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import {
   ArrowLeft,
   Upload,
@@ -496,6 +497,27 @@ export default function TakeoffDetail() {
                 <span className="text-emerald-400/60 text-xs">estimated</span>
               </div>
             )}
+            <ProjectSettingsPanel
+              projectId={projectId}
+              currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
+              currentRegion={project.costRegion}
+              onSave={async (divisions, region) => {
+                return new Promise((resolve, reject) => {
+                  const settingsMutation = trpc.takeoff.updateProjectSettings.useMutation({
+                    onSuccess: (result) => {
+                      refetchProject();
+                      resolve(result);
+                    },
+                    onError: (err) => reject(err),
+                  });
+                  settingsMutation.mutate({
+                    projectId,
+                    selectedDivisions: divisions || [],
+                    costRegion: region,
+                  });
+                });
+              }}
+            />
           </div>
         </div>
       </div>

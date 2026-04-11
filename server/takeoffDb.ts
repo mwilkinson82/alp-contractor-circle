@@ -79,10 +79,8 @@ export async function createDrawingSheet(data: InsertDrawingSheet) {
 export async function createDrawingSheetsBatch(data: InsertDrawingSheet[]) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
-  if (data.length === 0) return [];
-  const [result] = await db.insert(drawingSheets).values(data);
-  // Return the first inserted ID; caller can infer subsequent IDs
-  return result.insertId;
+  if (data.length === 0) return;
+  await db.insert(drawingSheets).values(data);
 }
 
 export async function getDrawingSheetsByProject(projectId: number) {
@@ -107,7 +105,7 @@ export async function getDrawingSheet(id: number) {
 
 export async function updateDrawingSheet(
   id: number,
-  data: Partial<InsertDrawingSheet & { status: string; errorMessage: string | null; aiRawResponse: string | null; sheetName: string | null; sheetType: string }>
+  data: Partial<InsertDrawingSheet>
 ) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
@@ -195,4 +193,57 @@ export async function recalculateProjectTotal(projectId: number) {
     .set({ totalEstimatedCost: total })
     .where(eq(takeoffProjects.id, projectId));
   return total;
+}
+
+/**
+ * Recalculate all item costs for a project based on a new cost multiplier.
+ * 
+ * When a region changes, this function:
+ * 1. Gets all items for the project
+ * 2. For each item, recalculates unitCost and extendedCost using the new multiplier
+ * 3. Updates each item in the database
+ * 4. Recalculates the project total
+ * 
+ * @param projectId - The project ID
+ * @param oldMultiplier - The previous multiplier (basis points, e.g., 10000 = 1.00x)
+ * @param newMultiplier - The new multiplier (basis points)
+ * @returns The new project total in cents
+ */
+export async function recalculateItemCosts(
+  projectId: number,
+  oldMultiplier: number,
+  newMultiplier: number
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+
+  // Get all items for this project
+  const items = await getTakeoffItemsByProject(projectId);
+  
+  if (items.length === 0) {
+    // No items to recalculate, just return current total
+    return await recalculateProjectTotal(projectId);
+  }
+
+  // Calculate adjustment ratio: newMultiplier / oldMultiplier
+  // This converts costs from old region to new region
+  const adjustmentRatio = newMultiplier / oldMultiplier;
+
+  // Update each item
+  for (const item of items) {
+    // Recalculate unit cost: old unit cost * adjustment ratio
+    const newUnitCost = item.unitCost ? Math.round(item.unitCost * adjustmentRatio) : 0;
+    
+    // Recalculate extended cost: new unit cost * quantity
+    const quantity = parseFloat(item.quantity || "0");
+    const newExtendedCost = Math.round(newUnitCost * quantity);
+
+    await updateTakeoffItem(item.id, {
+      unitCost: newUnitCost,
+      extendedCost: newExtendedCost,
+    });
+  }
+
+  // Recalculate project total
+  return await recalculateProjectTotal(projectId);
 }

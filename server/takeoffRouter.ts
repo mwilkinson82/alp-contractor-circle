@@ -23,6 +23,7 @@ import {
   recalculateProjectTotal,
   updateDrawingSheet,
   deleteTakeoffItemsBySheet,
+  recalculateItemCosts,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
@@ -515,4 +516,70 @@ export const takeoffRouter = router({
   getCostRegions: publicProcedure.query(async () => {
     return COST_REGIONS;
   }),
+
+  /** Update project settings (divisions and/or region) after creation */
+  updateProjectSettings: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        selectedDivisions: z.array(z.string()).optional(),
+        costRegion: z.string().max(64).nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+
+      const updates: any = {};
+      let regionChanged = false;
+      let oldMultiplier = project.costMultiplier || 10000;
+      let newMultiplier = oldMultiplier;
+
+      // Handle division update (only affects future extractions, not existing items)
+      if (input.selectedDivisions !== undefined) {
+        if (input.selectedDivisions.length === 0) {
+          updates.selectedDivisions = null;
+        } else {
+          const validCodes = input.selectedDivisions.filter((c) =>
+            ALL_TAKEOFF_DIVISION_CODES.includes(c)
+          );
+          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+        }
+      }
+
+      // Handle region update (recalculates all existing item costs)
+      if (input.costRegion !== undefined) {
+        if (input.costRegion === null) {
+          updates.costRegion = null;
+          updates.costMultiplier = 10000; // Reset to national average
+          newMultiplier = 10000;
+        } else {
+          const multiplier = getRegionMultiplier(input.costRegion);
+          if (multiplier !== null) {
+            updates.costRegion = input.costRegion;
+            updates.costMultiplier = multiplier;
+            newMultiplier = multiplier;
+          } else {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Invalid cost region: ${input.costRegion}`,
+            });
+          }
+        }
+        regionChanged = newMultiplier !== oldMultiplier;
+      }
+
+      // Update project settings
+      await updateTakeoffProject(input.projectId, updates);
+
+      // If region changed, recalculate all item costs
+      if (regionChanged) {
+        await recalculateItemCosts(input.projectId, oldMultiplier, newMultiplier);
+      }
+
+      return { success: true, regionChanged };
+    }),
 });
