@@ -1409,3 +1409,34 @@
 - [x] Click and drag from right edge of one bar to left edge of another to create FS relationship
 - [x] Visual feedback: draw temporary arrow line while dragging
 - [x] On drop: create the relationship (predecessor = source bar, successor = target bar)
+
+## Level of Effort / Hammock Activities (Future)
+- [ ] Add Activity Type selector in activity creation modal: Task (default), Milestone (existing), Level of Effort / Hammock
+- [ ] LOE/Hammock: start driven by earliest start of predecessor(s), finish driven by latest finish of successor(s)
+- [ ] LOE/Hammock: duration auto-calculated (not user-editable) — stretches/shrinks as driving activities shift
+- [ ] LOE/Hammock: does NOT participate in critical path calculation
+- [ ] LOE/Hammock: visual representation on Gantt — distinct bar style (e.g., dashed or hatched bar spanning full duration)
+- [ ] LOE/Hammock: common use cases — Project Management, Site Supervision, General Conditions overhead, Insurance/Bonding
+- [ ] CPM engine update: handle LOE activities differently during forward/backward pass
+- [ ] LOE/Hammock: recalculate dates when driving predecessor/successor dates change
+- [ ] Database schema: add activity_type field to activities table (task | milestone | loe)
+
+
+## Takeoff: Division Selector & Regional Cost Factors (April 11)
+
+### Division Selector
+- [x] Add CSI MasterFormat division selector to takeoff creation flow
+- [x] Show division checkboxes (Div 1-33) before AI processes drawings
+- [x] Default to "All Divisions" for GCs
+- [x] Specialty subs can select only their divisions (e.g., Div 3 Concrete, Div 4 Masonry, Div 5 Metals)
+- [x] Scope the AI prompt to only extract quantities for selected divisions
+- [x] Save selected divisions to the takeoff project record
+- [x] Display which divisions were selected on the takeoff detail page
+
+### Regional Cost Factors
+- [x] Create cost regions (Northeast, Southeast, Midwest, Southwest, West Coast, Pacific NW, etc.)
+- [x] Add metro-level granularity where possible (NYC, Boston, Miami, Chicago, Dallas, LA, etc.)
+- [x] Apply regional multiplier to base material costs for each line item
+- [x] User selects region when creating takeoff project
+- [x] Display region and multiplier on takeoff detail page (badges on project cards)
+- [x] Allow region change after creation (recalculates all costs)

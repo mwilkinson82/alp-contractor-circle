@@ -222,3 +222,44 @@ export function getWbsColor(wbsCode: string): { bg: string; border: string; text
   }
   return FALLBACK_COLORS[Math.abs(hash) % FALLBACK_COLORS.length];
 }
+
+// ─── Takeoff-Specific Division Helpers ──────────────────────────────────────
+
+/**
+ * Divisions commonly used in quantity takeoffs (excludes reserved, process, etc.)
+ * These are the divisions shown in the takeoff division selector UI.
+ */
+export const TAKEOFF_DIVISIONS = CSI_DIVISIONS.filter(
+  (d) => d.group !== "reserved" && d.group !== "process" && d.code !== "00"
+);
+
+/** Quick lookup map: code → division name (for takeoff display) */
+export const TAKEOFF_DIVISION_MAP: Record<string, string> = Object.fromEntries(
+  TAKEOFF_DIVISIONS.map((d) => [d.code, d.name])
+);
+
+/** All valid takeoff division codes */
+export const ALL_TAKEOFF_DIVISION_CODES = TAKEOFF_DIVISIONS.map((d) => d.code);
+
+/**
+ * Pre-built division presets for common sub-contractor scopes.
+ * These are convenience shortcuts in the division selector UI.
+ */
+export const DIVISION_PRESETS: { label: string; description: string; codes: string[] }[] = [
+  { label: "All Divisions", description: "Full GC takeoff — every CSI division", codes: ALL_TAKEOFF_DIVISION_CODES },
+  { label: "Concrete Sub", description: "Division 03 only", codes: ["03"] },
+  { label: "Masonry Sub", description: "Division 04 only", codes: ["04"] },
+  { label: "Steel / Metals", description: "Division 05 only", codes: ["05"] },
+  { label: "Framing & Carpentry", description: "Division 06 only", codes: ["06"] },
+  { label: "Roofing", description: "Division 07 only", codes: ["07"] },
+  { label: "Doors & Windows", description: "Division 08 only", codes: ["08"] },
+  { label: "Drywall & Finishes", description: "Division 09 only", codes: ["09"] },
+  { label: "Plumbing", description: "Division 22 only", codes: ["22"] },
+  { label: "HVAC", description: "Division 23 only", codes: ["23"] },
+  { label: "Electrical", description: "Division 26 only", codes: ["26"] },
+  { label: "Fire Protection", description: "Division 21 only", codes: ["21"] },
+  { label: "Sitework Package", description: "Existing Conditions + Earthwork + Exterior + Utilities", codes: ["02", "31", "32", "33"] },
+  { label: "MEP Package", description: "Fire, Plumbing, HVAC, Electrical, Comms, Security", codes: ["21", "22", "23", "26", "27", "28"] },
+  { label: "Building Envelope", description: "Masonry + Metals + Roofing + Openings", codes: ["04", "05", "07", "08"] },
+  { label: "Interior Finishes", description: "Finishes + Specialties + Furnishings", codes: ["09", "10", "12"] },
+];

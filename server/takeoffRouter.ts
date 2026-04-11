@@ -25,6 +25,8 @@ import {
   deleteTakeoffItemsBySheet,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
+import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
+import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 
 /** Helper: extract member from Discord session cookie */
 async function getMemberFromRequest(req: any): Promise<Member | null> {
@@ -91,25 +93,58 @@ export const takeoffRouter = router({
       z.object({
         name: z.string().min(1).max(256),
         description: z.string().max(2000).optional(),
+        /** JSON array of selected CSI division codes, or null/empty for all */
+        selectedDivisions: z.array(z.string()).optional(),
+        /** Cost region code */
+        costRegion: z.string().max(64).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
+
+      // Validate and serialize divisions
+      let divisionsJson: string | null = null;
+      if (input.selectedDivisions && input.selectedDivisions.length > 0) {
+        // Validate all codes are valid
+        const validCodes = input.selectedDivisions.filter((c) =>
+          ALL_TAKEOFF_DIVISION_CODES.includes(c)
+        );
+        if (validCodes.length > 0) {
+          divisionsJson = JSON.stringify(validCodes);
+        }
+      }
+
+      // Validate and look up cost region multiplier
+      let costRegion: string | null = null;
+      let costMultiplier: number | null = null;
+      if (input.costRegion) {
+        const multiplier = getRegionMultiplier(input.costRegion);
+        if (multiplier !== null) {
+          costRegion = input.costRegion;
+          costMultiplier = multiplier;
+        }
+      }
+
       const id = await createTakeoffProject({
         memberId: member.id,
         name: input.name,
         description: input.description || null,
+        selectedDivisions: divisionsJson,
+        costRegion,
+        costMultiplier,
       });
       return { id };
     }),
 
-  /** Update project name/description */
+  /** Update project name/description/divisions/region */
   updateProject: publicProcedure
     .input(
       z.object({
         id: z.number(),
         name: z.string().min(1).max(256).optional(),
         description: z.string().max(2000).optional(),
+        selectedDivisions: z.array(z.string()).optional(),
+        costRegion: z.string().max(64).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -121,6 +156,33 @@ export const takeoffRouter = router({
       const updates: any = {};
       if (input.name !== undefined) updates.name = input.name;
       if (input.description !== undefined) updates.description = input.description;
+
+      // Handle division update
+      if (input.selectedDivisions !== undefined) {
+        if (input.selectedDivisions.length === 0) {
+          updates.selectedDivisions = null;
+        } else {
+          const validCodes = input.selectedDivisions.filter((c) =>
+            ALL_TAKEOFF_DIVISION_CODES.includes(c)
+          );
+          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+        }
+      }
+
+      // Handle region update
+      if (input.costRegion !== undefined) {
+        if (input.costRegion === null) {
+          updates.costRegion = null;
+          updates.costMultiplier = null;
+        } else {
+          const multiplier = getRegionMultiplier(input.costRegion);
+          if (multiplier !== null) {
+            updates.costRegion = input.costRegion;
+            updates.costMultiplier = multiplier;
+          }
+        }
+      }
+
       await updateTakeoffProject(input.id, updates);
       return { success: true };
     }),
@@ -281,11 +343,22 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Sheet not found or has no image" });
       }
 
+      // Parse selected divisions from project
+      let selectedDivisions: string[] | null = null;
+      if (project.selectedDivisions) {
+        try {
+          const parsed = JSON.parse(project.selectedDivisions);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length < ALL_TAKEOFF_DIVISION_CODES.length) {
+            selectedDivisions = parsed;
+          }
+        } catch { /* ignore */ }
+      }
+
       // Reset sheet status
       await updateDrawingSheet(input.sheetId, { status: "pending" as any });
 
       // Process in background
-      processDrawingSheet(input.sheetId, sheet.imageUrl, input.projectId)
+      processDrawingSheet(input.sheetId, sheet.imageUrl, input.projectId, selectedDivisions)
         .then(() => recalculateProjectTotal(input.projectId))
         .catch((err) => {
           console.error(`[Takeoff] Reprocess error for sheet ${input.sheetId}:`, err);
@@ -437,4 +510,9 @@ export const takeoffRouter = router({
       await recalculateProjectTotal(input.projectId);
       return { status: finalStatus, processedSheets: completedSheets.length };
     }),
+
+  /** Get available cost regions */
+  getCostRegions: publicProcedure.query(async () => {
+    return COST_REGIONS;
+  }),
 });

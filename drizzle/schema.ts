@@ -733,6 +733,12 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   processedSheets: int("processedSheets").default(0).notNull(),
   /** Grand total estimated cost (cents) */
   totalEstimatedCost: int("totalEstimatedCost").default(0).notNull(),
+  /** JSON array of selected CSI division codes, e.g. ["03","05","09"] - null means all divisions */
+  selectedDivisions: text("selectedDivisions"),
+  /** Cost region code for regional cost factor adjustment - null means national average */
+  costRegion: varchar("costRegion", { length: 64 }),
+  /** Regional cost multiplier (stored as integer basis points, e.g. 10500 = 1.05x) - null means 1.00x */
+  costMultiplier: int("costMultiplier"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

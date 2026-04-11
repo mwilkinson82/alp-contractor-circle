@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import DivisionSelector from "@/components/DivisionSelector";
+import RegionSelector from "@/components/RegionSelector";
 import {
   Plus,
   FileStack,
@@ -25,6 +27,8 @@ import {
   Sparkles,
   FileText,
   RefreshCw,
+  Layers,
+  MapPin,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -49,6 +53,8 @@ export default function TakeoffList() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
+  const [costRegion, setCostRegion] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data: projects, isLoading, refetch } = trpc.takeoff.listProjects.useQuery();
@@ -58,6 +64,8 @@ export default function TakeoffList() {
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
+      setSelectedDivisions([]);
+      setCostRegion(null);
       navigate(`/takeoff/${result.id}`);
     },
     onError: (err) => toast.error(err.message),
@@ -77,6 +85,15 @@ export default function TakeoffList() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const handleCreate = () => {
+    createMutation.mutate({
+      name: newName,
+      description: newDesc || undefined,
+      selectedDivisions: selectedDivisions.length > 0 ? selectedDivisions : undefined,
+      costRegion: costRegion || undefined,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -131,6 +148,15 @@ export default function TakeoffList() {
           {projects.map((project: any) => {
             const statusConfig = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
+            // Parse selected divisions for display
+            let divCount: number | null = null;
+            try {
+              if (project.selectedDivisions) {
+                const parsed = JSON.parse(project.selectedDivisions);
+                if (Array.isArray(parsed)) divCount = parsed.length;
+              }
+            } catch { /* ignore */ }
+
             return (
               <Card
                 key={project.id}
@@ -171,6 +197,28 @@ export default function TakeoffList() {
                       <span className="font-semibold text-amber-400">
                         {formatCurrency(project.totalEstimatedCost)}
                       </span>
+                    )}
+                  </div>
+                  {/* Division & Region badges */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {divCount !== null && (
+                      <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">
+                        <Layers className="w-2.5 h-2.5 mr-1" />
+                        {divCount} div{divCount !== 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                    {!divCount && (
+                      <Badge className="bg-white/5 text-cream-muted/60 border-white/10 text-[10px]">
+                        <Layers className="w-2.5 h-2.5 mr-1" />
+                        All divs
+                      </Badge>
+                    )}
+                    {project.costRegion && (
+                      <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                        <MapPin className="w-2.5 h-2.5 mr-1" />
+                        {project.costRegion}
+                        {project.costMultiplier && ` (${(project.costMultiplier / 10000).toFixed(2)}x)`}
+                      </Badge>
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
@@ -216,11 +264,11 @@ export default function TakeoffList() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Takeoff Project</DialogTitle>
             <DialogDescription>
-              Create a project to upload drawings and extract quantities.
+              Create a project, select which CSI divisions to extract, and choose a cost region for pricing.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -239,7 +287,31 @@ export default function TakeoffList() {
                 placeholder="Brief description of the project..."
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                rows={3}
+                rows={2}
+              />
+            </div>
+
+            {/* Division Selector */}
+            <div className="space-y-1">
+              <Label className="text-xs text-cream-muted">
+                Which CSI divisions should Construct Line extract?
+              </Label>
+              <DivisionSelector
+                value={selectedDivisions}
+                onChange={setSelectedDivisions}
+                defaultExpanded={false}
+              />
+            </div>
+
+            {/* Region Selector */}
+            <div className="space-y-1">
+              <Label className="text-xs text-cream-muted">
+                What region are you pricing for? (adjusts unit costs)
+              </Label>
+              <RegionSelector
+                value={costRegion}
+                onChange={setCostRegion}
+                defaultExpanded={false}
               />
             </div>
           </div>
@@ -248,7 +320,7 @@ export default function TakeoffList() {
               Cancel
             </Button>
             <Button
-              onClick={() => createMutation.mutate({ name: newName, description: newDesc || undefined })}
+              onClick={handleCreate}
               disabled={!newName.trim() || createMutation.isPending}
               className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
             >
