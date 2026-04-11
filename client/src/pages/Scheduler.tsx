@@ -335,6 +335,7 @@ export default function Scheduler() {
 
   /* ── View State ───────────────────────────────────────────────────────── */
   const [zoom, setZoom] = useState<"day" | "week" | "month" | "custom">("week");
+  const [magnificationZoom, setMagnificationZoom] = useState(100); // 50, 75, 100, 125, 150 - for row height scaling
   const [customPpd, setCustomPpd] = useState<number>(14); // pixels per day for custom zoom
   const [showArrows, setShowArrows] = useState(true);
   const [showDataDateLine, setShowDataDateLine] = useState(true);
@@ -1384,6 +1385,19 @@ export default function Scheduler() {
               </div>
               {/* Drag calendar header left/right to zoom — no slider needed */}
               <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+              {/* Magnification Zoom Control */}
+              <div className="flex items-center rounded-md h-8 overflow-hidden border border-white/[0.08] bg-white/[0.03]">
+                {[50, 75, 100, 125, 150].map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => setMagnificationZoom(z)}
+                    className={`px-2 text-[10px] h-full transition-all font-medium ${magnificationZoom === z ? "bg-cyan-500/20 text-cyan-300 shadow-inner shadow-cyan-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                    title={`Zoom ${z}% - scales row heights`}
+                  >
+                    {z}%
+                  </button>
+                ))}
+              </div>
               {/* Toggle Group */}
               <div className="flex items-center bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
                 <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showArrows ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}

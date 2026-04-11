@@ -87,6 +87,7 @@ interface GanttChartProps {
   normalBarColor?: string | null;   // per-schedule custom non-critical bar color (hex)
   externalScrollTop?: number;       // scroll sync: external scroll position from table
   onScrollTopChange?: (scrollTop: number) => void; // scroll sync: notify parent of scroll changes
+  magnificationZoom?: number; // 50-150 for row height scaling
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -96,12 +97,15 @@ export const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to
 export const HEADER_HEIGHT = 48;
 
 // P6-style variable row heights: parent WBS rows are thicker than child WBS rows
+// Child rows are now significantly smaller (40-50% of parent) for dramatic visual hierarchy
 export function getWbsRowHeight(depth: number, isCostOverlay: boolean): number {
-  const base = isCostOverlay ? 60 : (depth <= 0 ? 52 : depth === 1 ? 44 : 38);
+  // Parent (depth 0): 56px, Child (depth 1): 24px, Grandchild (depth 2): 20px
+  const base = isCostOverlay ? 60 : (depth <= 0 ? 56 : depth === 1 ? 24 : 20);
   return base;
 }
 export function getActivityRowHeight(isCostOverlay: boolean): number {
-  return isCostOverlay ? 60 : 36;
+  // Activity rows are smaller than parent WBS rows but larger than child WBS rows
+  return isCostOverlay ? 60 : 32;
 }
 const BAR_HEIGHT = 16;
 const BAR_Y_OFFSET = 17; // Push bar down to leave room for label above
@@ -244,6 +248,7 @@ export default function GanttChart({
   normalBarColor,
   externalScrollTop,
   onScrollTopChange,
+  magnificationZoom = 100,
 }: GanttChartProps) {
   // Dynamic row height: taller when cost overlay is active to prevent clipping
   const ROW_HEIGHT = showCostOverlay ? COST_ROW_HEIGHT : BASE_ROW_HEIGHT;
@@ -254,6 +259,7 @@ export default function GanttChart({
   const [containerHeight, setContainerHeight] = useState(600);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const zoomLevel = magnificationZoom ?? 100; // Use prop, fallback to 100 // 50, 75, 100, 125, 150
 
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoveredActivity, setHoveredActivity] = useState<number | null>(null);
@@ -272,7 +278,7 @@ export default function GanttChart({
     let cumulativeY = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        const h = getWbsRowHeight(g.depth ?? 0, !!showCostOverlay);
+        const baseH = getWbsRowHeight(g.depth ?? 0, !!showCostOverlay); const h = Math.round(baseH * zoomLevel / 100);
         rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
         cumulativeY += h;
         idx++;
@@ -281,7 +287,7 @@ export default function GanttChart({
       const groupKey = g.group || "all";
       if (collapsedGroups?.has(groupKey)) continue;
       for (const act of g.activities) {
-        const h = getActivityRowHeight(!!showCostOverlay);
+        const baseH = getActivityRowHeight(!!showCostOverlay); const h = Math.round(baseH * zoomLevel / 100);
         rows.push({ type: "activity", activity: act, rowIndex: idx, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
         cumulativeY += h;
         idx++;

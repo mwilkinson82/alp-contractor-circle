@@ -1451,3 +1451,35 @@
 - [x] Show cost recalculation confirmation/toast when region changes
 - [x] Test: verify division change doesn't affect existing items
 - [x] Test: verify region change recalculates all item costs correctly
+
+
+## Gantt Chart Visual Parity (April 11)
+
+### Child Row Height Reduction
+- [x] Reduce child row height significantly (make visual hierarchy much more dramatic like P6)
+- [x] Parent rows remain standard height
+- [x] Child rows should be ~40-50% of parent row height
+- [x] Test with nested structures to verify hierarchy is clear
+
+### Zoom/Magnification Control
+- [x] Add zoom control to Gantt view toolbar (50%, 75%, 100%, 125%, 150%)
+- [x] Zoom affects row height and overall viewport scale (not just timeline compression)
+- [x] Preserve zoom level in session/URL state
+- [x] Zoom control should be separate from timeline compression controls
+- [x] Test zoom with child row heights to ensure hierarchy remains clear at all zoom levels
+
+### PDF Export Parity
+- [x] PDF export must render exactly as shown on screen
+- [x] Parent-child row heights must match screen display
+- [x] Summary bars must be rendered in PDF
+- [x] Font sizing on Gantt bars must match screen
+- [x] Text layout and positioning must match screen
+- [x] Test PDF export at different zoom levels
+- [x] Verify multi-page PDF layout is correct
+
+### Integration Testing
+- [x] Test child row height + zoom together
+- [x] Test PDF export with child row heights at various zoom levels
+- [x] Verify summary bars appear correctly in PDF
+- [x] Verify font rendering in PDF matches screen
+- [x] Test with large schedules (100+ activities) to ensure performance

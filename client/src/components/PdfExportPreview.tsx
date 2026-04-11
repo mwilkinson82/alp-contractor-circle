@@ -1,4 +1,5 @@
 /**
+import { getWbsRowHeight, getActivityRowHeight } from "@/components/GanttChart";
  * PdfExportPreview — WYSIWYG multi-page PDF preview with real relationship arrows.
  *
  * Key improvements:
@@ -293,7 +294,7 @@ export function PdfExportPreview({
     return { width: w, height: h };
   }, [previewWidth, paperDims]);
 
-  // Calculate rows per page and total pages
+  // Calculate rows per page with variable row heights
   const rowsPerPage = useMemo(() => {
     const ppi = canvasDims.width / paperDims.w;
     const marginIn = 0.4;
@@ -302,9 +303,10 @@ export function PdfExportPreview({
     const footerH = 0.25 * ppi;
     const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
     const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
-    const rowH = Math.max(baseFontSize + 6, Math.min(16, contentH / 40));
-    const maxRows = Math.max(1, Math.floor((contentH - rowH) / rowH));
-    return { maxRows, rowH, ppi, margin, headerH, footerH, contentH, baseFontSize };
+    // Use average row height for pagination (will be adjusted per-row during rendering)
+    const avgRowH = (44 * ppi) / 96; // Average of parent/child rows
+    const maxRows = Math.max(1, Math.floor((contentH - avgRowH) / avgRowH));
+    return { maxRows, ppi, margin, headerH, footerH, contentH, baseFontSize, avgRowH };
   }, [canvasDims, paperDims]);
 
   const pages = useMemo(() => {
@@ -338,7 +340,7 @@ export function PdfExportPreview({
 
     const w = displayW;
     const h = displayH;
-    const { ppi, margin, headerH, footerH, contentH, baseFontSize, rowH } = rowsPerPage;
+    const { ppi, margin, headerH, footerH, contentH, baseFontSize, avgRowH } = rowsPerPage; const rowH = avgRowH;
     const contentY = margin + headerH + 4;
 
     // White page background
