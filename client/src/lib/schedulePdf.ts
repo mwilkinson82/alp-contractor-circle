@@ -255,14 +255,15 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   function drawHeader() {
     if (hdrBg) {
       doc.setFillColor(...hdrBg);
-      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.rect(margin, 2, pageWidth - 2 * margin, headerHeight - 2, "F");
     } else {
       doc.setDrawColor(210, 210, 210);
       doc.setLineWidth(0.3);
-      doc.rect(0, 0, pageWidth, headerHeight, "S");
+      doc.rect(margin, 2, pageWidth - 2 * margin, headerHeight - 2, "S");
     }
+    // Accent line bounded within margins (aligned with content borders)
     doc.setFillColor(...hdrAccent);
-    doc.rect(0, headerHeight - 0.6, pageWidth, 0.6, "F");
+    doc.rect(margin, headerHeight - 0.6, pageWidth - 2 * margin, 0.6, "F");
 
     const ctx = { pageNum: 0, totalPages: 0, scheduleName, dataDate, projectStartDate, companyName, projectName };
 
@@ -660,9 +661,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         const cw = ganttColWidths[ci];
         const isLeft = col.header === "Activity Name" || col.header === "ID";
         if (isLeft) {
-          doc.text(col.header, chX + 1.5, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.8);
+          doc.text(col.header, chX + 1.5, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1);
         } else {
-          doc.text(col.header, chX + cw / 2, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.8, { align: "center" });
+          doc.text(col.header, chX + cw / 2, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1, { align: "center" });
         }
         chX += cw;
       }
@@ -793,7 +794,16 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           doc.setTextColor(20, 20, 20);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7.5);
-          doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.2, { maxWidth: labelWidth - indent - 4 });
+          // Truncate label instead of wrapping
+          let groupLabel = row.label;
+          const groupMaxW = labelWidth - indent - 6;
+          if (doc.getTextWidth(groupLabel) > groupMaxW) {
+            while (doc.getTextWidth(groupLabel + "...") > groupMaxW && groupLabel.length > 3) {
+              groupLabel = groupLabel.slice(0, -1);
+            }
+            groupLabel = groupLabel + "...";
+          }
+          doc.text(groupLabel, ganttLeft + 2 + indent, y + rh / 2 + 1);
 
           // ── WBS Summary Bar in Gantt area ──
           const childActs = row.groupActivities || [];
@@ -826,9 +836,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.triangle(dx, dy - ds, dx - ds, dy, dx, dy + ds, "F");
           }
 
-          // Separator
+          // Separator — consistent with activity row separators
           doc.setDrawColor(...colors.border);
-          doc.setLineWidth(0.1);
+          doc.setLineWidth(0.15);
           doc.line(ganttLeft, y + rh, ganttRight, y + rh);
           return;
         }
@@ -841,10 +851,14 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
         }
 
-        // Row separator line — very thin, light gray (P6-style)
+        // Row separator line — thin but visible for clean visual separation
         doc.setDrawColor(...colors.lightBorder);
-        doc.setLineWidth(0.05);
+        doc.setLineWidth(0.15);
         doc.line(ganttLeft, y + rh, ganttRight, y + rh);
+        // Also draw top separator for first row
+        if (i === 0) {
+          doc.line(ganttLeft, y, ganttRight, y);
+        }
 
         // Activity columns (dynamic based on visible columns)
         doc.setFontSize(7.5);
@@ -857,32 +871,23 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           const cw = ganttColWidths[ci];
           let val = col.getValue(act);
           const isLeft = col.header === "Activity Name" || col.header === "ID";
-          if (col.header === "Activity Name") {
-            // Truncate name to fit column width — word-boundary aware
-            const maxW = cw - 3;
-            if (doc.getTextWidth(val) > maxW) {
-              // Try to cut at last space that fits
-              let truncated = val;
-              while (doc.getTextWidth(truncated + "...") > maxW && truncated.length > 3) {
-                const lastSpace = truncated.lastIndexOf(" ");
-                if (lastSpace > 5) {
-                  truncated = truncated.substring(0, lastSpace);
-                } else {
-                  truncated = truncated.slice(0, -1);
-                }
-              }
-              val = truncated + "...";
+          // Truncate all cell values to prevent wrapping
+          const cellMaxW = cw - 3;
+          if (doc.getTextWidth(val) > cellMaxW) {
+            while (doc.getTextWidth(val + "...") > cellMaxW && val.length > 3) {
+              val = val.slice(0, -1);
             }
+            val = val + "...";
           }
           if (isLeft) {
-            doc.text(val, cellX + 1.5, y + rh / 2 + 2, { maxWidth: cw - 3 });
+            doc.text(val, cellX + 1.5, y + rh / 2 + 1);
           } else {
-            doc.text(val, cellX + cw / 2, y + rh / 2 + 2, { align: "center", maxWidth: cw - 2 });
+            doc.text(val, cellX + cw / 2, y + rh / 2 + 1, { align: "center" });
           }
-          // Column separator line — very subtle
+          // Column separator line
           if (ci > 0) {
             doc.setDrawColor(...colors.lightBorder);
-            doc.setLineWidth(0.04);
+            doc.setLineWidth(0.1);
             doc.line(cellX, y, cellX, y + rh);
           }
           cellX += cw;
@@ -938,15 +943,22 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], "F");
             }
 
-            // Label to the right of diamond (clipped to Gantt area) — P6-style with bullet
+            // Label to the right of diamond — truncate to fit, no wrapping
             doc.setFontSize(6.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const milestoneLabel = `- ${act.name}`;
+            let milestoneLabel = `- ${act.name}`;
             const labelStartX = cx + half + 1.5;
             const availSpace = ganttRight - labelStartX - 1;
             if (availSpace > 5) {
-              doc.text(milestoneLabel, labelStartX, cy + 1.2, { maxWidth: availSpace });
+              // Truncate label to fit available space
+              if (doc.getTextWidth(milestoneLabel) > availSpace) {
+                while (doc.getTextWidth(milestoneLabel + "...") > availSpace && milestoneLabel.length > 3) {
+                  milestoneLabel = milestoneLabel.slice(0, -1);
+                }
+                milestoneLabel = milestoneLabel + "...";
+              }
+              doc.text(milestoneLabel, labelStartX, cy + 0.8);
             }
           } else {
             // Regular bar
@@ -973,15 +985,22 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               }
             }
 
-            // Label to the right of bar (clipped to Gantt area) — P6-style with bullet
+            // Label to the right of bar — truncate to fit, no wrapping
             doc.setFontSize(6.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const barLabel = `- ${act.name}`;
+            let barLabel = `- ${act.name}`;
             const labelStartX = x2 + 1.5;
             const availableSpace = ganttRight - labelStartX - 1;
             if (availableSpace > 5) {
-              doc.text(barLabel, labelStartX, barY + barH / 2 + 1.2, { maxWidth: availableSpace });
+              // Truncate label to fit available space
+              if (doc.getTextWidth(barLabel) > availableSpace) {
+                while (doc.getTextWidth(barLabel + "...") > availableSpace && barLabel.length > 3) {
+                  barLabel = barLabel.slice(0, -1);
+                }
+                barLabel = barLabel + "...";
+              }
+              doc.text(barLabel, labelStartX, barY + barH / 2 + 0.8);
             }
           }
         }

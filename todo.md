@@ -1596,3 +1596,14 @@
 - [x] Fix right-edge label clipping — labels use maxWidth to stay within Gantt boundary
 - [x] Fix "Final Completion" milestone label being cut off at right edge
 - [x] Add "\u00a9 ConstructLine" branding in bottom-right (like P6's Oracle Corporation)
+
+## PDF Fix Round 2.4
+- [x] Header accent line bounded within margins (aligned with table/Gantt borders, not full page width)
+- [x] Header background bounded within margins (one cohesive bordered piece)
+- [x] Fix vertical text positioning — reduced +2 offset to +1 for proper centering
+- [x] Add thin horizontal lines between every row for visual separation (0.15mm line width)
+- [x] Fix bar labels wrapping — all labels now truncated with "..." instead of maxWidth wrapping
+- [x] Fix "Final Completion" and other right-edge labels being cut off (truncation with ellipsis)
+- [x] Remove duplicate Activity Name truncation logic
+- [x] WBS group labels truncated instead of wrapped
+- [x] Column separator lines made more visible (0.1mm)
