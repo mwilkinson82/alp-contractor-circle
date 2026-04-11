@@ -362,7 +362,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(...hdrAccent);
-        doc.text(resolveToken(headerConfig.left, ctx), margin, midY - 3);
+        doc.text(resolveToken(headerConfig.left, ctx), margin, midY);
       }
 
       // Other columns

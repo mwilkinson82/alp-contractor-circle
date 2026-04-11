@@ -485,11 +485,14 @@ export function PdfExportPreview({
         const lines = col.richTextLines;
         const align: CanvasTextAlign = i === 0 ? "left" : i === headerColumnCount - 1 ? "right" : "center";
         const tx = i === 0 ? margin + 8 : i === headerColumnCount - 1 ? margin + i * hColW + hColW - 8 : margin + i * hColW + hColW / 2;
+        // Calculate total height using SCALED font sizes (same scale as rendering)
         const lineGap = 2;
-        const totalH = lines.reduce((s: number, l: any) => s + ((l.fontSize || 8) * 1.2), 0) + (lines.length - 1) * lineGap;
+        const scaledSizes = lines.map((l: any) => (l.fontSize || 8) * (baseFontSize / 8) * 0.9);
+        const totalH = scaledSizes.reduce((s: number, fs: number) => s + fs * 1.2, 0) + (lines.length - 1) * lineGap;
         let curY = margin + (headerH - totalH) / 2;
-        for (const line of lines) {
-          const fs = (line.fontSize || 8) * (baseFontSize / 8) * 0.9;
+        for (let li = 0; li < lines.length; li++) {
+          const line = lines[li];
+          const fs = scaledSizes[li];
           const weight = line.bold ? "bold" : "normal";
           const style = line.italic ? "italic" : "normal";
           ctx.font = `${style} ${weight} ${fs}px 'DM Sans', sans-serif`;
@@ -983,12 +986,14 @@ export function PdfExportPreview({
         const lines = col.richTextLines;
         const align: CanvasTextAlign = i === 0 ? "left" : i === footerColumnCount - 1 ? "right" : "center";
         const tx = i === 0 ? margin + 4 : i === footerColumnCount - 1 ? w - margin - 4 : margin + i * fColW + fColW / 2;
-        // Calculate total height
+        // Calculate total height using SCALED font sizes (same scale as rendering)
         const lineGap = 2;
-        const totalH = lines.reduce((s, l) => s + (l.fontSize || 8) * 1.2, 0) + (lines.length - 1) * lineGap;
+        const scaledSizes = lines.map((l: any) => (l.fontSize || 8) * (baseFontSize / 8) * 0.9);
+        const totalH = scaledSizes.reduce((s: number, fs: number) => s + fs * 1.2, 0) + (lines.length - 1) * lineGap;
         let curY = footerY + (footerH - totalH) / 2;
-        for (const line of lines) {
-          const fs = (line.fontSize || 8) * (baseFontSize / 8) * 0.9;
+        for (let li = 0; li < lines.length; li++) {
+          const line = lines[li];
+          const fs = scaledSizes[li];
           const weight = line.bold ? "bold" : "normal";
           const style = line.italic ? "italic" : "normal";
           ctx.font = `${style} ${weight} ${fs}px 'DM Sans', sans-serif`;

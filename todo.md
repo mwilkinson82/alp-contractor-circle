@@ -1631,3 +1631,7 @@
 - [x] Added "constructline" content option for header/footer cells
 - [x] Image aspect ratio uses actual dimensions via jsPDF getImageProperties
 - [x] Images clamped to slot width to prevent overflow
+
+## PDF Fix Round 2.7
+- [x] Fix header custom text vertical centering — removed midY - 3 offset, now uses midY like other columns
+- [x] Fix preview canvas rich text vertical centering — totalH now uses scaled font sizes matching actual render sizes
