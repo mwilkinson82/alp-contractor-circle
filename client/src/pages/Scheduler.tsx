@@ -519,6 +519,11 @@ export default function Scheduler() {
   const [newDetailRelPred, setNewDetailRelPred] = useState("");
   const [newDetailRelType, setNewDetailRelType] = useState("FS");
   const [newDetailRelLag, setNewDetailRelLag] = useState("0");
+  const [newDetailRelSucc, setNewDetailRelSucc] = useState("");
+  const [newDetailRelSuccType, setNewDetailRelSuccType] = useState("FS");
+  const [newDetailRelSuccLag, setNewDetailRelSuccLag] = useState("0");
+  const [detailPredSearch, setDetailPredSearch] = useState("");
+  const [detailSuccSearch, setDetailSuccSearch] = useState("");
 
   /* ── PDF State ────────────────────────────────────────────────────────── */
   const [pdfCompanyName, setPdfCompanyName] = useState("");
@@ -2252,8 +2257,29 @@ export default function Scheduler() {
                     />
                   </div>
                 </div>
-                {(detailConstraintType === "ASAP" || detailConstraintType === "ALAP") && (
-                  <p className="text-[10px] text-gray-600 mt-1">No date required for {detailConstraintType === "ASAP" ? "As Soon As Possible" : "As Late As Possible"}</p>
+                {detailConstraintType === "ASAP" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">No date required. Activity will be scheduled as early as its predecessors allow. This is the default for most activities.</p>
+                )}
+                {detailConstraintType === "ALAP" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">No date required. Activity will be scheduled as late as possible without delaying successors.</p>
+                )}
+                {detailConstraintType === "SNET" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">Activity cannot start before this date. Use for activities that depend on external events (e.g., "Notice to Proceed" — cannot start before the contract date).</p>
+                )}
+                {detailConstraintType === "SNLT" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">Activity must start on or before this date. Use when a deadline requires work to begin by a certain point.</p>
+                )}
+                {detailConstraintType === "FNET" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">Activity cannot finish before this date. Use for activities that have a minimum wait period (e.g., concrete curing).</p>
+                )}
+                {detailConstraintType === "FNLT" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">Activity must finish on or before this date. Use for hard deadlines (e.g., "Receive Building Permit" must be done by a specific date).</p>
+                )}
+                {detailConstraintType === "MSO" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-amber-400">Hard constraint.</strong> Activity must start exactly on this date. Use for milestones like "Notice to Proceed" or "Contract Start" that are fixed to a specific date.</p>
+                )}
+                {detailConstraintType === "MFO" && (
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-amber-400">Hard constraint.</strong> Activity must finish exactly on this date. Use for contractual deadlines like "Substantial Completion" or "Final Completion" dates.</p>
                 )}
               </div>
               </div>
@@ -2302,25 +2328,46 @@ export default function Scheduler() {
                     <span className="text-gray-600 italic">No relationships</span>
                   )}
                 </div>
-                {/* Add Relationship Inline */}
+                {/* Add Predecessor with Search */}
                 <div className="mt-2 p-2 bg-white/5 rounded-md border border-white/10">
                   <div className="text-[10px] text-gray-400 font-medium mb-1">Add Predecessor</div>
+                  <Input
+                    value={detailPredSearch}
+                    onChange={(e) => setDetailPredSearch(e.target.value)}
+                    placeholder="Search by ID or name..."
+                    className="h-7 text-xs border-white/15 bg-white/5 text-gray-200 mb-1"
+                  />
+                  <div className="max-h-28 overflow-y-auto border border-white/10 rounded mb-1">
+                    {activities
+                      .filter((a) => a.id !== detailAct.id)
+                      .filter((a) => {
+                        if (!detailPredSearch) return true;
+                        const s = detailPredSearch.toLowerCase();
+                        return (a.activityId || "").toLowerCase().includes(s) || a.name.toLowerCase().includes(s);
+                      })
+                      .map((a) => (
+                        <div
+                          key={a.id}
+                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelPred ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                          onClick={() => setNewDetailRelPred(String(a.id))}
+                        >
+                          <span className="font-mono text-gray-500 w-20 shrink-0">{a.activityId || `A${a.id}`}</span>
+                          <span className="truncate">{a.name}</span>
+                          <span className="ml-auto text-gray-600 shrink-0">{a.duration}d</span>
+                        </div>
+                      ))}
+                  </div>
                   <div className="flex gap-1 items-end">
-                    <Select value={newDetailRelPred} onValueChange={setNewDetailRelPred}>
-                      <SelectTrigger className="flex-1 h-7 text-xs border-white/15"><SelectValue placeholder="Select activity" /></SelectTrigger>
-                      <SelectContent className="max-h-48">
-                        {activities.filter((a) => a.id !== detailAct.id).map((a) => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">{a.activityId} — {a.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex-1 text-xs text-gray-400">
+                      {newDetailRelPred ? `Selected: ${activities.find(a => String(a.id) === newDetailRelPred)?.activityId || ""} — ${activities.find(a => String(a.id) === newDetailRelPred)?.name || ""}` : "Select an activity above"}
+                    </div>
                     <Select value={newDetailRelType} onValueChange={setNewDetailRelType}>
                       <SelectTrigger className="w-16 h-7 text-xs border-white/15"><SelectValue /></SelectTrigger>
-                      <SelectContent className="">
-                        <SelectItem value="FS" className="">FS</SelectItem>
-                        <SelectItem value="SS" className="">SS</SelectItem>
-                        <SelectItem value="FF" className="">FF</SelectItem>
-                        <SelectItem value="SF" className="">SF</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="FS">FS</SelectItem>
+                        <SelectItem value="SS">SS</SelectItem>
+                        <SelectItem value="FF">FF</SelectItem>
+                        <SelectItem value="SF">SF</SelectItem>
                       </SelectContent>
                     </Select>
                     <Input type="number" value={newDetailRelLag} onChange={(e) => setNewDetailRelLag(e.target.value)}
@@ -2338,6 +2385,71 @@ export default function Scheduler() {
                           });
                           setNewDetailRelPred("");
                           setNewDetailRelLag("0");
+                          setDetailPredSearch("");
+                        }
+                      }}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                {/* Add Successor with Search */}
+                <div className="mt-2 p-2 bg-white/5 rounded-md border border-white/10">
+                  <div className="text-[10px] text-gray-400 font-medium mb-1">Add Successor</div>
+                  <Input
+                    value={detailSuccSearch}
+                    onChange={(e) => setDetailSuccSearch(e.target.value)}
+                    placeholder="Search by ID or name..."
+                    className="h-7 text-xs border-white/15 bg-white/5 text-gray-200 mb-1"
+                  />
+                  <div className="max-h-28 overflow-y-auto border border-white/10 rounded mb-1">
+                    {activities
+                      .filter((a) => a.id !== detailAct.id)
+                      .filter((a) => {
+                        if (!detailSuccSearch) return true;
+                        const s = detailSuccSearch.toLowerCase();
+                        return (a.activityId || "").toLowerCase().includes(s) || a.name.toLowerCase().includes(s);
+                      })
+                      .map((a) => (
+                        <div
+                          key={a.id}
+                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelSucc ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                          onClick={() => setNewDetailRelSucc(String(a.id))}
+                        >
+                          <span className="font-mono text-gray-500 w-20 shrink-0">{a.activityId || `A${a.id}`}</span>
+                          <span className="truncate">{a.name}</span>
+                          <span className="ml-auto text-gray-600 shrink-0">{a.duration}d</span>
+                        </div>
+                      ))}
+                  </div>
+                  <div className="flex gap-1 items-end">
+                    <div className="flex-1 text-xs text-gray-400">
+                      {newDetailRelSucc ? `Selected: ${activities.find(a => String(a.id) === newDetailRelSucc)?.activityId || ""} — ${activities.find(a => String(a.id) === newDetailRelSucc)?.name || ""}` : "Select an activity above"}
+                    </div>
+                    <Select value={newDetailRelSuccType} onValueChange={setNewDetailRelSuccType}>
+                      <SelectTrigger className="w-16 h-7 text-xs border-white/15"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FS">FS</SelectItem>
+                        <SelectItem value="SS">SS</SelectItem>
+                        <SelectItem value="FF">FF</SelectItem>
+                        <SelectItem value="SF">SF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input type="number" value={newDetailRelSuccLag} onChange={(e) => setNewDetailRelSuccLag(e.target.value)}
+                      className="w-14 h-7 text-xs border-white/15" placeholder="Lag" />
+                    <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
+                      disabled={!newDetailRelSucc || !scheduleId}
+                      onClick={() => {
+                        if (scheduleId && newDetailRelSucc) {
+                          addRelMut.mutate({
+                            scheduleId,
+                            predecessorId: detailAct.id,
+                            successorId: parseInt(newDetailRelSucc),
+                            relationshipType: newDetailRelSuccType as any,
+                            lagDays: parseInt(newDetailRelSuccLag) || 0,
+                          });
+                          setNewDetailRelSucc("");
+                          setNewDetailRelSuccLag("0");
+                          setDetailSuccSearch("");
                         }
                       }}>
                       Add
@@ -3933,6 +4045,188 @@ export default function Scheduler() {
                 toast.success(`WBS ${wbsValue ? `set to ${wbsValue}` : "cleared"} for ${selectedActivityIds.size} activities`);
                 setSelectedActivityIds(new Set());
                 setShowBulkWbsDialog(false);
+              }}
+            >
+              Assign to {selectedActivityIds.size} Activities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bulk Predecessor Assignment Dialog ─────────────────────────── */}
+      <Dialog open={showBulkPredecessorDialog} onOpenChange={setShowBulkPredecessorDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Assign Predecessor to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Select one activity to set as the predecessor for all selected activities.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              value={bulkRelSearchPred}
+              onChange={(e) => setBulkRelSearchPred(e.target.value)}
+              placeholder="Search activities by ID or name..."
+              className="border-white/15 bg-white/5 text-gray-200"
+            />
+            <div className="max-h-48 overflow-y-auto border border-white/10 rounded">
+              {activities
+                .filter((a) => !selectedActivityIds.has(a.id))
+                .filter((a) => {
+                  if (!bulkRelSearchPred) return true;
+                  const s = bulkRelSearchPred.toLowerCase();
+                  return (a.activityId || "").toLowerCase().includes(s) || a.name.toLowerCase().includes(s);
+                })
+                .map((a) => (
+                  <div
+                    key={a.id}
+                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkPredecessorTarget ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                    onClick={() => setBulkPredecessorTarget(String(a.id))}
+                  >
+                    <span className="font-mono text-gray-500 w-24 shrink-0">{a.activityId || `A${a.id}`}</span>
+                    <span className="truncate">{a.name}</span>
+                    <span className="ml-auto text-gray-600 shrink-0 text-xs">{a.duration}d</span>
+                  </div>
+                ))}
+            </div>
+            {bulkPredecessorTarget && (
+              <div className="text-sm text-amber-400">
+                Selected: {activities.find(a => String(a.id) === bulkPredecessorTarget)?.activityId} — {activities.find(a => String(a.id) === bulkPredecessorTarget)?.name}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <div>
+                <Label className="text-xs text-gray-500">Relationship Type</Label>
+                <Select value={bulkPredecessorType} onValueChange={setBulkPredecessorType}>
+                  <SelectTrigger className="w-24 border-white/15"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FS">FS (Finish-Start)</SelectItem>
+                    <SelectItem value="SS">SS (Start-Start)</SelectItem>
+                    <SelectItem value="FF">FF (Finish-Finish)</SelectItem>
+                    <SelectItem value="SF">SF (Start-Finish)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Lag (days)</Label>
+                <Input type="number" value={bulkPredecessorLag} onChange={(e) => setBulkPredecessorLag(e.target.value)}
+                  className="w-20 border-white/15" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowBulkPredecessorDialog(false); setBulkPredecessorTarget(""); setBulkRelSearchPred(""); }} className="border-white/15">Cancel</Button>
+            <Button
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
+              disabled={!bulkPredecessorTarget || !scheduleId}
+              onClick={() => {
+                if (!scheduleId || !bulkPredecessorTarget) return;
+                const predId = parseInt(bulkPredecessorTarget);
+                Array.from(selectedActivityIds).forEach(succId => {
+                  addRelMut.mutate({
+                    scheduleId,
+                    predecessorId: predId,
+                    successorId: succId,
+                    relationshipType: bulkPredecessorType as any,
+                    lagDays: parseInt(bulkPredecessorLag) || 0,
+                  });
+                });
+                toast.success(`Predecessor assigned to ${selectedActivityIds.size} activities`);
+                setSelectedActivityIds(new Set());
+                setShowBulkPredecessorDialog(false);
+                setBulkPredecessorTarget("");
+                setBulkRelSearchPred("");
+              }}
+            >
+              Assign to {selectedActivityIds.size} Activities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bulk Successor Assignment Dialog ───────────────────────────── */}
+      <Dialog open={showBulkSuccessorDialog} onOpenChange={setShowBulkSuccessorDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Assign Successor to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Select one activity to set as the successor for all selected activities.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              value={bulkRelSearchSucc}
+              onChange={(e) => setBulkRelSearchSucc(e.target.value)}
+              placeholder="Search activities by ID or name..."
+              className="border-white/15 bg-white/5 text-gray-200"
+            />
+            <div className="max-h-48 overflow-y-auto border border-white/10 rounded">
+              {activities
+                .filter((a) => !selectedActivityIds.has(a.id))
+                .filter((a) => {
+                  if (!bulkRelSearchSucc) return true;
+                  const s = bulkRelSearchSucc.toLowerCase();
+                  return (a.activityId || "").toLowerCase().includes(s) || a.name.toLowerCase().includes(s);
+                })
+                .map((a) => (
+                  <div
+                    key={a.id}
+                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkSuccessorTarget ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                    onClick={() => setBulkSuccessorTarget(String(a.id))}
+                  >
+                    <span className="font-mono text-gray-500 w-24 shrink-0">{a.activityId || `A${a.id}`}</span>
+                    <span className="truncate">{a.name}</span>
+                    <span className="ml-auto text-gray-600 shrink-0 text-xs">{a.duration}d</span>
+                  </div>
+                ))}
+            </div>
+            {bulkSuccessorTarget && (
+              <div className="text-sm text-amber-400">
+                Selected: {activities.find(a => String(a.id) === bulkSuccessorTarget)?.activityId} — {activities.find(a => String(a.id) === bulkSuccessorTarget)?.name}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <div>
+                <Label className="text-xs text-gray-500">Relationship Type</Label>
+                <Select value={bulkSuccessorType} onValueChange={setBulkSuccessorType}>
+                  <SelectTrigger className="w-24 border-white/15"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FS">FS (Finish-Start)</SelectItem>
+                    <SelectItem value="SS">SS (Start-Start)</SelectItem>
+                    <SelectItem value="FF">FF (Finish-Finish)</SelectItem>
+                    <SelectItem value="SF">SF (Start-Finish)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Lag (days)</Label>
+                <Input type="number" value={bulkSuccessorLag} onChange={(e) => setBulkSuccessorLag(e.target.value)}
+                  className="w-20 border-white/15" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowBulkSuccessorDialog(false); setBulkSuccessorTarget(""); setBulkRelSearchSucc(""); }} className="border-white/15">Cancel</Button>
+            <Button
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
+              disabled={!bulkSuccessorTarget || !scheduleId}
+              onClick={() => {
+                if (!scheduleId || !bulkSuccessorTarget) return;
+                const succId = parseInt(bulkSuccessorTarget);
+                Array.from(selectedActivityIds).forEach(predId => {
+                  addRelMut.mutate({
+                    scheduleId,
+                    predecessorId: predId,
+                    successorId: succId,
+                    relationshipType: bulkSuccessorType as any,
+                    lagDays: parseInt(bulkSuccessorLag) || 0,
+                  });
+                });
+                toast.success(`Successor assigned to ${selectedActivityIds.size} activities`);
+                setSelectedActivityIds(new Set());
+                setShowBulkSuccessorDialog(false);
+                setBulkSuccessorTarget("");
+                setBulkRelSearchSucc("");
               }}
             >
               Assign to {selectedActivityIds.size} Activities

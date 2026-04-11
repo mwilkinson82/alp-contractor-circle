@@ -1381,17 +1381,17 @@
 ### Mass Relationship Assignment
 - [x] Add: When multiple activities selected (via checkboxes), show badge at bottom
 - [x] Add: Badge includes "Assign Predecessor" and "Assign Successor" buttons
-- [ ] Add: Clicking button opens modal to select predecessor/successor for ALL selected activities
-- [ ] Ensure all selected activities get the same relationship assigned
+- [x] Add: Clicking button opens modal to select predecessor/successor for ALL selected activities
+- [x] Ensure all selected activities get the same relationship assigned
 
 ### Successor Assignment + Search in Modal
-- [ ] Add: Successor assignment tab in activity modal (currently only predecessor)
-- [ ] Add: Search field in both predecessor and successor sections
-- [ ] Search should filter by activity ID, name, or WBS code
-- [ ] Show activity details (duration, dates) in search results for clarity
+- [x] Add: Successor assignment tab in activity modal (currently only predecessor)
+- [x] Add: Search field in both predecessor and successor sections
+- [x] Search should filter by activity ID, name, or WBS code
+- [x] Show activity details (duration, dates) in search results for clarity
 
 ### Date Constraint UX
-- [ ] Clarify: Must Start By vs Must Finish By vs Must Start On vs Must Finish On
-- [ ] Add: Guidance for milestones (e.g., "Notice to Proceed" should use Must Start On)
-- [ ] Add: Guidance for regular activities (e.g., "Receive Permit" should use Must Finish By)
-- [ ] Improve: Constraint type selector with descriptions/tooltips
+- [x] Clarify: Must Start By vs Must Finish By vs Must Start On vs Must Finish On
+- [x] Add: Guidance for milestones (e.g., "Notice to Proceed" should use Must Start On)
+- [x] Add: Guidance for regular activities (e.g., "Receive Permit" should use Must Finish By)
+- [x] Improve: Constraint type selector with descriptions/tooltips
