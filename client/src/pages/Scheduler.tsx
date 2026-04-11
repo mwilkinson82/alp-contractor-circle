@@ -1792,7 +1792,7 @@ export default function Scheduler() {
                         style={{
                           backgroundColor: bgColor,
                           borderBottom: "1px solid rgba(0,0,0,0.2)",
-                          height: `${getWbsRowHeight(depth, false)}px`,
+                          height: `${Math.round(getWbsRowHeight(depth, false) * magnificationZoom / 100)}px`,
                           paddingRight: "12px",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
@@ -1874,7 +1874,7 @@ export default function Scheduler() {
                             ? "hover:bg-yellow-50"
                             : "hover:bg-gray-50"
                         }`}
-                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${getActivityRowHeight(false)}px` }}
+                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${Math.round(getActivityRowHeight(false) * magnificationZoom / 100)}px` }}
                         onClick={(e) => {
                           // Don't handle if click originated from checkbox or dropdown
                           const target = e.target as HTMLElement;
@@ -2083,8 +2083,8 @@ export default function Scheduler() {
                 el.scrollTop = st;
               }
             }}
-          />
             magnificationZoom={magnificationZoom}
+          />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}
             height={ganttContainerRef.current?.scrollHeight || 1000}
