@@ -761,6 +761,20 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
 
       // ─── Draw Rows (Group Headers + Activity Bars) ────────────────────────
+      // ─── Draw outer border: left edge of table ─────────────────────
+      doc.setDrawColor(...colors.border);
+      doc.setLineWidth(0.3);
+      // Left border of table
+      doc.line(ganttLeft, ganttTop - colHeaderH - 1, ganttLeft, pageContentBottom);
+      // Right border of Gantt
+      doc.line(ganttRight, ganttTop - colHeaderH - 1, ganttRight, pageContentBottom);
+      // Top border (across full width)
+      doc.line(ganttLeft, ganttTop - colHeaderH - 1, ganttRight, ganttTop - colHeaderH - 1);
+      // Bottom border (across full width)
+      doc.line(ganttLeft, pageContentBottom, ganttRight, pageContentBottom);
+      // Separator between column headers and data rows
+      doc.line(ganttLeft, ganttTop, ganttRight, ganttTop);
+
       pageRows.forEach((row, i) => {
         const y = rowYOffsets[i];
         const rh = getRowH(row);
@@ -1017,6 +1031,12 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     doc.setLineDashPattern([], 0);
     doc.setTextColor(...colors.muted);
     doc.text("Total Float", legendX + 10, legendY + 2);
+
+    // ─── ConstructLine branding (bottom-right, like P6's "Oracle Corporation") ──
+    doc.setFontSize(5.5);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "normal");
+    doc.text("\u00A9 ConstructLine", ganttRight, legendY + 2, { align: "right" });
   }
 
   // ─── Add Page Numbers ───────────────────────────────────────────────────────

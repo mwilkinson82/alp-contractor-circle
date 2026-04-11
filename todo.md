@@ -1588,3 +1588,11 @@
 - [x] Increase activity row height from 7mm to 9mm for clear separation
 - [x] Increase WBS group row heights proportionally (9-11mm)
 - [x] Ensure no text overlap between adjacent rows
+
+## PDF Borders & Label Clipping Fix (Round 2.3)
+- [x] Add left border to table area
+- [x] Add right border to Gantt area
+- [x] Add top/bottom borders to complete the box around both areas
+- [x] Fix right-edge label clipping — labels use maxWidth to stay within Gantt boundary
+- [x] Fix "Final Completion" milestone label being cut off at right edge
+- [x] Add "\u00a9 ConstructLine" branding in bottom-right (like P6's Oracle Corporation)
