@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Eye, Loader2, FileText, Type, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Eye, Loader2, FileText, Type, Image as ImageIcon, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 export interface PdfHeaderFooterConfig {
   headerColumns?: { position: number; content: string; customText?: string; imageDataUrl?: string }[];
@@ -150,6 +150,10 @@ export function PdfExportPreview({
   const [headerAccentColor, setHeaderAccentColor] = useState("#c9a84c");
   const [headerTextColor, setHeaderTextColor] = useState("#e2e8f0");
 
+  // PDF zoom/fit control — independent of the scheduler magnificationZoom
+  // This controls how content is scaled to fit the page
+  const [pdfZoom, setPdfZoom] = useState(100); // 25-200%
+
   // Multi-page state
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -248,7 +252,7 @@ export function PdfExportPreview({
   // Build the ordered list of preview rows (WBS group headers + activities)
   const previewRows = useMemo(() => {
     type PreviewRow =
-      | { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string }
+      | { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[] }
       | { type: "activity"; act: Activity };
 
     const rows: PreviewRow[] = [];
@@ -258,7 +262,7 @@ export function PdfExportPreview({
       for (const g of groupedActivities!) {
         const gActs = criticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
         if (g.group && gActs.length > 0) {
-          rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
+          rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs });
         }
         for (const act of gActs) {
           rows.push({ type: "activity", act });
@@ -298,8 +302,9 @@ export function PdfExportPreview({
 
   // Helper: get the PDF-scaled pixel height for a given preview row
   // Mirrors GanttChart.tsx getWbsRowHeight / getActivityRowHeight, scaled to PDF ppi AND magnificationZoom
-  type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string } | { type: "activity"; act: Activity };
-  const zoomScale = magnificationZoom / 100;
+  type PreviewRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: Activity[] } | { type: "activity"; act: Activity };
+  // Combined zoom: magnificationZoom from the scheduler * pdfZoom from the PDF preview controls
+  const zoomScale = (magnificationZoom / 100) * (pdfZoom / 100);
   const getRowHeightPdf = useCallback((row: PreviewRow, ppi: number): number => {
     // Screen heights (px): WBS depth-0=56, depth-1=24, depth-2+=20, activity=32
     // Scale to PDF: (screenPx / 96) * ppi * zoomScale
@@ -583,12 +588,50 @@ export function PdfExportPreview({
         if (ry + rh > contentY + contentH - 4) break;
 
         if (row.type === "group") {
+          // Background tint
           if (row.bgColor) {
             ctx.fillStyle = row.bgColor + "33";
           } else {
             ctx.fillStyle = row.depth === 0 ? "#e2e8f022" : "#f1f5f911";
           }
           ctx.fillRect(ganttX, ry, ganttW, rh);
+
+          // ── WBS Summary Bar (matching GanttChart.tsx) ──
+          const childActs = row.groupActivities || [];
+          let summaryStart = Infinity;
+          let summaryEnd = -Infinity;
+          for (const child of childActs) {
+            if (child.earlyStart) summaryStart = Math.min(summaryStart, new Date(child.earlyStart).getTime());
+            if (child.earlyFinish) summaryEnd = Math.max(summaryEnd, new Date(child.earlyFinish).getTime());
+          }
+          if (summaryStart < Infinity && summaryEnd > -Infinity && minDate !== Infinity) {
+            const sPct = (summaryStart - minDate) / dateRange;
+            const ePct = (summaryEnd - minDate) / dateRange;
+            const sbx = ganttX + 4 + sPct * (ganttW - 8);
+            const sbw = Math.max(4, (ePct - sPct) * (ganttW - 8));
+            const sbh = Math.max(4, rh * 0.22);
+            const sby = ry + rh / 2 - sbh / 2 + 1;
+            // Dark summary bar
+            ctx.fillStyle = "#1a1a1a";
+            ctx.fillRect(sbx, sby, sbw, sbh);
+            // Start bracket (downward tick)
+            const tickW = Math.max(1.5, sbh * 0.3);
+            const tickH = sbh + Math.max(2, sbh * 0.5);
+            ctx.fillRect(sbx, sby, tickW, tickH);
+            // End bracket (downward tick)
+            ctx.fillRect(sbx + sbw - tickW, sby, tickW, tickH);
+            // Diamond at end
+            const dx = sbx + sbw;
+            const dy = sby + sbh / 2;
+            const ds = Math.max(2.5, sbh * 0.4);
+            ctx.beginPath();
+            ctx.moveTo(dx, dy - ds);
+            ctx.lineTo(dx + ds, dy);
+            ctx.lineTo(dx, dy + ds);
+            ctx.lineTo(dx - ds, dy);
+            ctx.closePath();
+            ctx.fill();
+          }
           continue;
         }
 
@@ -1070,6 +1113,74 @@ export function PdfExportPreview({
                     </p>
                   </div>
                 </label>
+              </div>
+
+              {/* Zoom & Fit Controls */}
+              <div className="bg-white/5 rounded-lg border border-white/10 p-3 space-y-2">
+                <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Scale</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0 border-white/15 text-gray-400 bg-white/5"
+                    onClick={() => setPdfZoom(z => Math.max(25, z - 10))}
+                    disabled={pdfZoom <= 25}
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </Button>
+                  <div className="flex-1 text-center">
+                    <span className="text-xs font-medium text-gray-300">{pdfZoom}%</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0 border-white/15 text-gray-400 bg-white/5"
+                    onClick={() => setPdfZoom(z => Math.min(200, z + 10))}
+                    disabled={pdfZoom >= 200}
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {[25, 50, 75, 100, 150].map(z => (
+                    <Button
+                      key={z}
+                      size="sm"
+                      variant={pdfZoom === z ? "default" : "outline"}
+                      className={`h-6 text-[10px] px-2 ${pdfZoom === z ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                      onClick={() => setPdfZoom(z)}
+                    >
+                      {z}%
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-[10px] border-white/15 text-amber-400 bg-white/5 hover:bg-amber-500/10 font-medium"
+                  onClick={() => {
+                    // Calculate zoom to fit all content on one page
+                    const { ppi, contentH, headerRowH } = rowsPerPage;
+                    // Compute total content height at 100% combined zoom (magnification * 100%)
+                    const magScale = magnificationZoom / 100;
+                    let totalH = headerRowH / (pdfZoom / 100); // header at current pdfZoom, normalize
+                    for (const row of previewRows) {
+                      const screenH = row.type === "group"
+                        ? getWbsRowHeight(row.depth, false)
+                        : getActivityRowHeight(false);
+                      totalH += (screenH / 96) * ppi * magScale;
+                    }
+                    // Find pdfZoom that makes totalH fit in contentH
+                    const fitZoom = Math.floor((contentH / totalH) * 100);
+                    setPdfZoom(Math.max(10, Math.min(200, fitZoom)));
+                  }}
+                >
+                  <Maximize2 className="w-3 h-3 mr-1" />
+                  Fit All on One Page
+                </Button>
+                <p className="text-[9px] text-gray-600 leading-tight">
+                  Scheduler zoom: {magnificationZoom}% × PDF scale: {pdfZoom}% = {Math.round(magnificationZoom * pdfZoom / 100)}% effective
+                </p>
               </div>
 
               {/* Header/Footer Configuration */}

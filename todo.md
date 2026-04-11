@@ -1505,3 +1505,8 @@
 - [ ] Gantt bar label/text font sizes must scale with magnificationZoom
 - [ ] Summary bars must scale with magnificationZoom
 - [ ] Verify table and canvas stay in sync at 50%, 75%, 100%, 125%, 150%
+
+## PDF Export WYSIWYG Round 3
+- [x] WBS summary bars in Gantt area (thick dark bars spanning full date range of group)
+- [x] Visible parent/child row height difference in PDF (match screen proportions)
+- [x] Zoom/fit controls in PDF preview panel (Fit All Content, zoom slider — like P6)
