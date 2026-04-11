@@ -32,6 +32,7 @@ export interface PdfHeaderFooterConfig {
   headerBgColor?: string;
   headerAccentColor?: string;
   headerTextColor?: string;
+  pdfZoom?: number;
 }
 
 interface Activity {
@@ -868,6 +869,7 @@ export function PdfExportPreview({
       headerBgColor,
       headerAccentColor,
       headerTextColor,
+      pdfZoom,
     });
   };
 

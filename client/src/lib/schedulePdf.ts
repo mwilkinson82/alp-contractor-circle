@@ -85,6 +85,11 @@ export interface PdfExportOptions {
   headerAccentColor?: string;
   headerTextColor?: string;
 
+  // PDF scale (from preview zoom controls, default 100)
+  pdfZoom?: number;
+  // Scheduler magnification zoom (default 100)
+  magnificationZoom?: number;
+
   // WBS grouping for Gantt
   groupedActivities?: Array<{
     group: string | null;
@@ -499,8 +504,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       return;
     }
 
+    // Zoom scale factor
+    const zoomScale = ((options.magnificationZoom || 100) / 100) * ((options.pdfZoom || 100) / 100);
+
     // Build flat row list with WBS group headers interleaved
-    type PdfRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string } | { type: "activity"; act: typeof filteredActivities[0] };
+    type PdfRow = { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string; groupActivities?: typeof filteredActivities } | { type: "activity"; act: typeof filteredActivities[0] };
     const pdfRows: PdfRow[] = [];
     if (options.groupedActivities && options.groupedActivities.length > 0) {
       for (const g of options.groupedActivities) {
@@ -510,7 +518,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           // Check if this group or its descendants have activities
           const hasActs = gActs.length > 0 || (!showCriticalPathOnly);
           if (hasActs || gActs.length > 0) {
-            pdfRows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
+            pdfRows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor, groupActivities: gActs as any });
           }
           for (const act of gActs) {
             pdfRows.push({ type: "activity", act });
@@ -528,6 +536,15 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
+    // Variable row heights: group rows are taller, activity rows are compact
+    const getRowH = (row: PdfRow): number => {
+      if (row.type === "group") {
+        const depth = row.depth;
+        return (depth === 0 ? 8.5 : depth === 1 ? 6.5 : 5.5) * zoomScale;
+      }
+      return 7 * zoomScale;
+    };
+
     // Start Gantt on a new page (or continue on first page if no table)
     if (showTable) {
       doc.addPage();
@@ -539,11 +556,21 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     const ganttBottom = pageHeight - footerHeight - legendHeight - 4;
     const ganttHeight = ganttBottom - ganttTop;
 
-    // Calculate row height - aim for readable size, paginate if needed
-    const idealRowH = 7;
-    const maxRowsPerPage = Math.floor(ganttHeight / idealRowH);
-    const rowH = Math.min(idealRowH, ganttHeight / Math.min(pdfRows.length, maxRowsPerPage));
-    const barH = rowH * 0.5;
+    // Paginate using variable row heights — accumulate until page is full
+    const pages: PdfRow[][] = [];
+    let currentPage: PdfRow[] = [];
+    let currentH = 0;
+    for (const row of pdfRows) {
+      const rh = getRowH(row);
+      if (currentH + rh > ganttHeight && currentPage.length > 0) {
+        pages.push(currentPage);
+        currentPage = [];
+        currentH = 0;
+      }
+      currentPage.push(row);
+      currentH += rh;
+    }
+    if (currentPage.length > 0) pages.push(currentPage);
 
     // Calculate label width based on longest activity name
     const longestLabel = filteredActivities.reduce((max, act) => {
@@ -565,17 +592,24 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     };
 
     // ─── Paginate Gantt ──────────────────────────────────────────────────────
-    let rowIndex = 0;
     let isFirstGanttPage = true;
 
-    while (rowIndex < pdfRows.length) {
+    for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
       if (!isFirstGanttPage) {
         doc.addPage();
         drawHeader();
       }
       isFirstGanttPage = false;
 
-      const pageRows = pdfRows.slice(rowIndex, rowIndex + maxRowsPerPage);
+      const pageRows = pages[pageIdx];
+      // Compute cumulative Y offsets for variable row heights
+      const rowYOffsets: number[] = [];
+      let cumY = ganttTop;
+      for (const row of pageRows) {
+        rowYOffsets.push(cumY);
+        cumY += getRowH(row);
+      }
+      const pageContentBottom = cumY;
 
       // ─── Draw Time Scale ──────────────────────────────────────────────────
       doc.setFontSize(6);
@@ -588,7 +622,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (x >= chartLeft && x <= ganttRight) {
           doc.setDrawColor(230, 230, 230);
           doc.setLineWidth(0.1);
-          doc.line(x, ganttTop, x, ganttTop + pageRows.length * rowH);
+          doc.line(x, ganttTop, x, pageContentBottom);
           doc.setTextColor(...colors.muted);
           doc.text(
             current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
@@ -604,7 +638,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (ddX >= chartLeft && ddX <= ganttRight) {
           doc.setDrawColor(...colors.steelBlue);
           doc.setLineWidth(0.5);
-          doc.line(ddX, ganttTop - 3, ddX, ganttTop + pageRows.length * rowH);
+          doc.line(ddX, ganttTop - 3, ddX, pageContentBottom);
           doc.setFontSize(5.5);
           doc.setTextColor(...colors.steelBlue);
           doc.text("DD", ddX + 0.5, ganttTop - 3.5);
@@ -613,7 +647,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
 
       // ─── Draw Rows (Group Headers + Activity Bars) ────────────────────────
       pageRows.forEach((row, i) => {
-        const y = ganttTop + i * rowH;
+        const y = rowYOffsets[i];
+        const rh = getRowH(row);
+        const barH = rh * 0.5;
 
         if (row.type === "group") {
           // WBS Group Header row
@@ -629,14 +665,14 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           } else {
             doc.setFillColor(depth === 0 ? 226 : depth === 1 ? 241 : 248, depth === 0 ? 232 : depth === 1 ? 245 : 250, depth === 0 ? 240 : depth === 1 ? 249 : 252);
           }
-          doc.rect(ganttLeft, y, ganttRight - ganttLeft, rowH, "F");
+          doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
 
           // Left accent bar for child groups
           if (depth > 0) {
             const accentColor = row.bgColor || "#94a3b8";
             const hex = accentColor.replace('#', '');
             doc.setFillColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
-            doc.rect(ganttLeft + indent - 1, y + 1, 0.8, rowH - 2, "F");
+            doc.rect(ganttLeft + indent - 1, y + 0.5, 0.8, rh - 1, "F");
           }
 
           // Group label text
@@ -648,12 +684,43 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           }
           doc.setFont("helvetica", depth === 0 ? "bold" : "normal");
           doc.setFontSize(depth === 0 ? 6 : 5.5);
-          doc.text(row.label, ganttLeft + 2 + indent, y + rowH / 2 + 1.5, { maxWidth: labelWidth - indent - 4 });
+          doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.5, { maxWidth: labelWidth - indent - 4 });
+
+          // ── WBS Summary Bar in Gantt area ──
+          const childActs = row.groupActivities || [];
+          let summaryStart = Infinity;
+          let summaryEnd = -Infinity;
+          for (const child of childActs) {
+            if (child.earlyStart) summaryStart = Math.min(summaryStart, new Date(child.earlyStart).getTime());
+            if (child.earlyFinish) summaryEnd = Math.max(summaryEnd, new Date(child.earlyFinish).getTime());
+          }
+          if (summaryStart < Infinity && summaryEnd > -Infinity) {
+            const sbx1 = dateToX(new Date(summaryStart));
+            const sbx2 = dateToX(new Date(summaryEnd));
+            const sbw = Math.max(sbx2 - sbx1, 2);
+            const sbh = Math.max(1.5, rh * 0.22);
+            const sby = y + rh / 2 - sbh / 2;
+            // Dark summary bar
+            doc.setFillColor(26, 26, 26);
+            doc.rect(sbx1, sby, sbw, sbh, "F");
+            // Start bracket (downward tick)
+            const tickW = Math.max(0.5, sbh * 0.3);
+            const tickH = sbh + Math.max(1, sbh * 0.5);
+            doc.rect(sbx1, sby, tickW, tickH, "F");
+            // End bracket (downward tick)
+            doc.rect(sbx1 + sbw - tickW, sby, tickW, tickH, "F");
+            // Diamond at end
+            const dx = sbx1 + sbw;
+            const dy = sby + sbh / 2;
+            const ds = Math.max(1, sbh * 0.4);
+            doc.triangle(dx, dy - ds, dx + ds, dy, dx, dy + ds, "F");
+            doc.triangle(dx, dy - ds, dx - ds, dy, dx, dy + ds, "F");
+          }
 
           // Separator
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.1);
-          doc.line(ganttLeft, y + rowH, ganttRight, y + rowH);
+          doc.line(ganttLeft, y + rh, ganttRight, y + rh);
           return;
         }
 
@@ -662,13 +729,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         // Alternating row background (full width including label area)
         if (i % 2 === 0) {
           doc.setFillColor(...colors.warmGray);
-          doc.rect(ganttLeft, y, ganttRight - ganttLeft, rowH, "F");
+          doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
         }
 
         // Row separator line
         doc.setDrawColor(235, 235, 235);
         doc.setLineWidth(0.05);
-        doc.line(ganttLeft, y + rowH, ganttRight, y + rowH);
+        doc.line(ganttLeft, y + rh, ganttRight, y + rh);
 
         // Activity label (full name, no truncation)
         doc.setFontSize(5.5);
@@ -676,20 +743,19 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
         const label = `${act.activityId} ${act.name}`;
-        // Use maxWidth to auto-wrap if needed, but with enough space it won't
-        doc.text(label, ganttLeft + 1, y + rowH / 2 + 1.5, { maxWidth: labelWidth - 3 });
+        doc.text(label, ganttLeft + 1, y + rh / 2 + 1.5, { maxWidth: labelWidth - 3 });
 
         // Vertical separator between labels and chart
         doc.setDrawColor(...colors.border);
         doc.setLineWidth(0.15);
-        doc.line(chartLeft, y, chartLeft, y + rowH);
+        doc.line(chartLeft, y, chartLeft, y + rh);
 
         // Bar
         if (act.earlyStart && act.earlyFinish) {
           const x1 = dateToX(act.earlyStart);
           const x2 = dateToX(act.earlyFinish);
           const barWidth = Math.max(x2 - x1, 1.5);
-          const barY = y + (rowH - barH) / 2;
+          const barY = y + (rh - barH) / 2;
 
           // Determine bar color
           let barColor: [number, number, number];
@@ -717,28 +783,27 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.setDrawColor(...barColor);
             doc.setLineWidth(0.2);
 
-            // Draw diamond as 4 triangles meeting at center
             const points = [
-              [cx, cy - half],       // top
-              [cx + half, cy],       // right
-              [cx, cy + half],       // bottom
-              [cx - half, cy],       // left
+              [cx, cy - half],
+              [cx + half, cy],
+              [cx, cy + half],
+              [cx - half, cy],
             ];
-            // Draw filled polygon using triangle fan
             for (let t = 0; t < 4; t++) {
               const p1 = points[t];
               const p2 = points[(t + 1) % 4];
               doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], "F");
             }
 
-            // Label to the right of diamond
+            // Label to the right of diamond (clipped to Gantt area)
             doc.setFontSize(4.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
             const milestoneLabel = act.name;
             const labelStartX = cx + half + 1.5;
-            if (labelStartX + 30 < ganttRight) {
-              doc.text(milestoneLabel, labelStartX, cy + 1.2, { maxWidth: ganttRight - labelStartX - 2 });
+            const availSpace = ganttRight - labelStartX - 1;
+            if (availSpace > 5) {
+              doc.text(milestoneLabel, labelStartX, cy + 1.2, { maxWidth: availSpace });
             }
           } else {
             // Regular bar
@@ -755,7 +820,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
 
             // Float bar (dashed extension)
             if (act.totalFloat && act.totalFloat > 0 && act.lateFinish) {
-              const floatX = dateToX(act.lateFinish);
+              const floatX = Math.min(dateToX(act.lateFinish), ganttRight);
               if (floatX > x2) {
                 doc.setDrawColor(...colors.muted);
                 doc.setLineWidth(0.15);
@@ -765,26 +830,26 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               }
             }
 
-            // Label to the right of bar (not above, to avoid overlap)
+            // Label to the right of bar (clipped to Gantt area)
             doc.setFontSize(4.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
             const barLabel = act.name;
             const labelStartX = x2 + 1.5;
-            const availableSpace = ganttRight - labelStartX - 2;
-            if (availableSpace > 10) {
+            const availableSpace = ganttRight - labelStartX - 1;
+            if (availableSpace > 5) {
               doc.text(barLabel, labelStartX, barY + barH / 2 + 1.2, { maxWidth: availableSpace });
             }
           }
         }
       });
-
-      rowIndex += maxRowsPerPage;
     }
 
     // ─── Legend (on last Gantt page, below activities) ───────────────────
-    const lastPageActCount = pdfRows.length % maxRowsPerPage || maxRowsPerPage;
-    const legendY = ganttTop + lastPageActCount * rowH + 4;
+    const lastPage = pages[pages.length - 1] || [];
+    let lastPageH = 0;
+    for (const r of lastPage) lastPageH += getRowH(r);
+    const legendY = ganttTop + lastPageH + 4;
 
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");

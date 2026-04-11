@@ -1514,3 +1514,10 @@
 ## PDF Export WYSIWYG Round 4
 - [x] Clip all Gantt drawing (bars + text labels) to Gantt column boundary — no bleeding outside page
 - [x] Activity name labels that don't fit inside bar should be clipped or truncated, not overflow
+
+## PDF Export WYSIWYG Round 5 (P6 Parity)
+- [x] Fix activity name text clipping near right edge of Gantt area
+- [x] Ensure WBS summary bars render in actual exported PDF (not just preview)
+- [x] Port variable row heights, zoom scaling, summary bars to schedulePdf.ts
+- [x] Pass pdfZoom and magnificationZoom from preview to actual PDF generator
+- [x] Legend on last page (Critical Path = red, Non-Critical = green, Data Date, Total Float)

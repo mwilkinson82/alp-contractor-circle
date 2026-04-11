@@ -3981,6 +3981,8 @@ export default function Scheduler() {
               headerBgColor: config.headerBgColor,
               headerAccentColor: config.headerAccentColor,
               headerTextColor: config.headerTextColor,
+              pdfZoom: config.pdfZoom ?? 100,
+              magnificationZoom,
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({
