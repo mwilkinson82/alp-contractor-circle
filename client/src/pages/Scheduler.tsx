@@ -518,6 +518,9 @@ export default function Scheduler() {
   const [ganttFontColor, setGanttFontColor] = useState("#374151");
   const [ganttFontFamily, setGanttFontFamily] = useState("DM Sans");
   const [showGanttSettings, setShowGanttSettings] = useState(false);
+  /* Bar color overrides — initialized from schedule data when dialog opens */
+  const [localCriticalBarColor, setLocalCriticalBarColor] = useState("#ef4444");
+  const [localNormalBarColor, setLocalNormalBarColor] = useState("#22c55e");
 
   /* ── Advanced Filter State ────────────────────────────────────────────── */
   const [filterCriticalOnly, setFilterCriticalOnly] = useState(false);
@@ -886,6 +889,10 @@ export default function Scheduler() {
   });
   const updateIdSettingsMut = trpc.schedule.updateScheduleIdSettings.useMutation({
     onSuccess: () => { utils.schedule.get.invalidate(); setShowIdSettingsDialog(false); toast.success("ID settings updated"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateBarColorsMut = trpc.schedule.updateScheduleBarColors.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Bar colors saved"); },
     onError: (e: any) => toast.error(e.message),
   });
   const deleteRelMut = trpc.schedule.deleteRelationship.useMutation({
@@ -1817,6 +1824,8 @@ export default function Scheduler() {
             }}
             showCostOverlay={showCostOverlay}
             costData={costDataMap}
+            criticalBarColor={schedule?.schedule?.criticalBarColor}
+            normalBarColor={schedule?.schedule?.normalBarColor}
           />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}
@@ -2991,70 +3000,160 @@ export default function Scheduler() {
       </Dialog>
 
        {/* ── Gantt Display Settings Dialog ──────────────────────────────────── */}
-      <Dialog open={showGanttSettings} onOpenChange={setShowGanttSettings}>
+      <Dialog open={showGanttSettings} onOpenChange={(open) => {
+          if (open) {
+            // Initialize local bar colors from schedule data when dialog opens
+            setLocalCriticalBarColor(schedule?.schedule?.criticalBarColor || "#ef4444");
+            setLocalNormalBarColor(schedule?.schedule?.normalBarColor || "#22c55e");
+          }
+          setShowGanttSettings(open);
+        }}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Gantt Display Settings</DialogTitle>
-            <DialogDescription>Customize how activity labels appear on the Gantt chart.</DialogDescription>
+            <DialogDescription>Customize how activity labels and bars appear on the Gantt chart.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-xs text-gray-600">Font Size (px)</Label>
-              <div className="flex items-center gap-3 mt-1">
-                <input
-                  type="range" min={7} max={18} step={1}
-                  value={ganttFontSize}
-                  onChange={(e) => setGanttFontSize(Number(e.target.value))}
-                  className="flex-1"
-                />
-                <span className="text-sm font-mono w-8 text-center text-gray-100">{ganttFontSize}</span>
+          <div className="space-y-5">
+            {/* ── Bar Colors Section ── */}
+            <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
+              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Gantt Bar Colors</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1.5 block">Critical Path Bars</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={localCriticalBarColor}
+                      onChange={(e) => setLocalCriticalBarColor(e.target.value)}
+                      className="w-9 h-9 rounded border border-white/15 cursor-pointer bg-transparent"
+                    />
+                    <Input
+                      value={localCriticalBarColor}
+                      onChange={(e) => setLocalCriticalBarColor(e.target.value)}
+                      className="flex-1 h-8 text-sm border-white/15 text-gray-100 font-mono"
+                      placeholder="#ef4444"
+                    />
+                    <div className="w-8 h-8 rounded border border-white/20 shrink-0" style={{ background: localCriticalBarColor }} />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">Default: red (#ef4444)</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1.5 block">Non-Critical Bars</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={localNormalBarColor}
+                      onChange={(e) => setLocalNormalBarColor(e.target.value)}
+                      className="w-9 h-9 rounded border border-white/15 cursor-pointer bg-transparent"
+                    />
+                    <Input
+                      value={localNormalBarColor}
+                      onChange={(e) => setLocalNormalBarColor(e.target.value)}
+                      className="flex-1 h-8 text-sm border-white/15 text-gray-100 font-mono"
+                      placeholder="#22c55e"
+                    />
+                    <div className="w-8 h-8 rounded border border-white/20 shrink-0" style={{ background: localNormalBarColor }} />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">Default: green (#22c55e)</p>
+                </div>
+              </div>
+              {/* Bar color preview */}
+              <div className="flex items-center gap-3 mt-2">
+                <div className="h-5 rounded flex-1" style={{ background: localCriticalBarColor, opacity: 0.9 }} />
+                <span className="text-[10px] text-gray-500">Critical</span>
+                <div className="h-5 rounded flex-1" style={{ background: localNormalBarColor, opacity: 0.9 }} />
+                <span className="text-[10px] text-gray-500">Non-Critical</span>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs border-white/15 text-gray-300"
+                  onClick={() => { setLocalCriticalBarColor("#ef4444"); setLocalNormalBarColor("#22c55e"); }}
+                >
+                  Reset to P6 Defaults
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-xs bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                  disabled={updateBarColorsMut.isPending}
+                  onClick={() => {
+                    if (!scheduleId) return;
+                    updateBarColorsMut.mutate({
+                      scheduleId,
+                      criticalBarColor: localCriticalBarColor,
+                      normalBarColor: localNormalBarColor,
+                    });
+                  }}
+                >
+                  {updateBarColorsMut.isPending ? "Saving..." : "Save Bar Colors"}
+                </Button>
               </div>
             </div>
+
+            {/* ── Label Font Section ── */}
             <div>
-              <Label className="text-xs text-gray-600">Font Color</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={ganttFontColor}
-                  onChange={(e) => setGanttFontColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-white/15 cursor-pointer"
-                />
-                <Input
-                  value={ganttFontColor}
-                  onChange={(e) => setGanttFontColor(e.target.value)}
-                  className="flex-1 h-8 text-sm border-white/15 text-gray-100"
-                  placeholder="#374151"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-600">Font Family</Label>
-              <Select value={ganttFontFamily} onValueChange={setGanttFontFamily}>
-                <SelectTrigger className="mt-1 border-white/15 text-gray-100"><SelectValue /></SelectTrigger>
-                <SelectContent className="">
-                  <SelectItem value="DM Sans" className="">DM Sans</SelectItem>
-                  <SelectItem value="Arial" className="">Arial</SelectItem>
-                  <SelectItem value="Helvetica" className="">Helvetica</SelectItem>
-                  <SelectItem value="Georgia" className="">Georgia</SelectItem>
-                  <SelectItem value="Times New Roman" className="">Times New Roman</SelectItem>
-                  <SelectItem value="Courier New" className="">Courier New</SelectItem>
-                  <SelectItem value="Verdana" className="">Verdana</SelectItem>
-                  <SelectItem value="Trebuchet MS" className="">Trebuchet MS</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-              <Label className="text-xs text-gray-400 mb-2 block">Preview</Label>
-              <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }}>
-                Foundation Footings
-              </div>
-              <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }} className="mt-1">
-                Framing — First Floor
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">Activity Label Font</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-gray-600">Font Size (px)</Label>
+                  <div className="flex items-center gap-3 mt-1">
+                    <input
+                      type="range" min={7} max={18} step={1}
+                      value={ganttFontSize}
+                      onChange={(e) => setGanttFontSize(Number(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-mono w-8 text-center text-gray-100">{ganttFontSize}</span>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600">Font Color</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="color"
+                      value={ganttFontColor}
+                      onChange={(e) => setGanttFontColor(e.target.value)}
+                      className="w-8 h-8 rounded border border-white/15 cursor-pointer"
+                    />
+                    <Input
+                      value={ganttFontColor}
+                      onChange={(e) => setGanttFontColor(e.target.value)}
+                      className="flex-1 h-8 text-sm border-white/15 text-gray-100"
+                      placeholder="#374151"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600">Font Family</Label>
+                  <Select value={ganttFontFamily} onValueChange={setGanttFontFamily}>
+                    <SelectTrigger className="mt-1 border-white/15 text-gray-100"><SelectValue /></SelectTrigger>
+                    <SelectContent className="">
+                      <SelectItem value="DM Sans" className="">DM Sans</SelectItem>
+                      <SelectItem value="Arial" className="">Arial</SelectItem>
+                      <SelectItem value="Helvetica" className="">Helvetica</SelectItem>
+                      <SelectItem value="Georgia" className="">Georgia</SelectItem>
+                      <SelectItem value="Times New Roman" className="">Times New Roman</SelectItem>
+                      <SelectItem value="Courier New" className="">Courier New</SelectItem>
+                      <SelectItem value="Verdana" className="">Verdana</SelectItem>
+                      <SelectItem value="Trebuchet MS" className="">Trebuchet MS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <Label className="text-xs text-gray-400 mb-2 block">Preview</Label>
+                  <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }}>
+                    Foundation Footings
+                  </div>
+                  <div style={{ fontSize: `${ganttFontSize}px`, color: ganttFontColor, fontFamily: `'${ganttFontFamily}', sans-serif` }} className="mt-1">
+                    Framing — First Floor
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-white/15 text-gray-100">Reset</Button>
+            <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); }} className="border-white/15 text-gray-100">Reset Font</Button>
             <Button onClick={() => setShowGanttSettings(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">Done</Button>
           </DialogFooter>
         </DialogContent>

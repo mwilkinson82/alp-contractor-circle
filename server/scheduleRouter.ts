@@ -863,6 +863,25 @@ export const scheduleRouter = router({
       return { success: true };
     }),
 
+  /** Update per-schedule Gantt bar colors */
+  updateScheduleBarColors: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        criticalBarColor: z.string().max(16).nullable().optional(),
+        normalBarColor: z.string().max(16).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { scheduleId, ...colors } = input;
+      await requireScheduleOwner(ctx.req, scheduleId);
+      const updates: any = {};
+      if (colors.criticalBarColor !== undefined) updates.criticalBarColor = colors.criticalBarColor;
+      if (colors.normalBarColor !== undefined) updates.normalBarColor = colors.normalBarColor;
+      await sdb.updateSchedule(scheduleId, updates);
+      return { success: true };
+    }),
+
   // ── Relationships ────────────────────────────────────────────────────────
 
   addRelationship: publicProcedure

@@ -47,12 +47,28 @@ async function requireMember(req: any) {
   return member;
 }
 
+/**
+ * Helper: require admin role.
+ * Construct Line (AI Takeoff) is admin-only during the initial rollout.
+ * Non-admin members see a "Coming Soon" message in the sidebar.
+ */
+async function requireAdminMember(req: any) {
+  const member = await requireMember(req);
+  if (member.memberRole !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Construct Line is currently in early access for admins only. Stay tuned!",
+    });
+  }
+  return member;
+}
+
 export const takeoffRouter = router({
   // ─── Projects ─────────────────────────────────────────────────────────────
 
   /** List all takeoff projects for the current member */
   listProjects: publicProcedure.query(async ({ ctx }) => {
-    const member = await requireMember(ctx.req);
+    const member = await requireAdminMember(ctx.req);
     return getTakeoffProjectsByMember(member.id);
   }),
 
@@ -60,7 +76,7 @@ export const takeoffRouter = router({
   getProject: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.id);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
@@ -78,7 +94,7 @@ export const takeoffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const id = await createTakeoffProject({
         memberId: member.id,
         name: input.name,
@@ -97,7 +113,7 @@ export const takeoffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.id);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -113,7 +129,7 @@ export const takeoffRouter = router({
   deleteProject: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.id);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -137,7 +153,7 @@ export const takeoffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -186,7 +202,7 @@ export const takeoffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -228,7 +244,7 @@ export const takeoffRouter = router({
   startProcessing: publicProcedure
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -253,7 +269,7 @@ export const takeoffRouter = router({
   reprocessSheet: publicProcedure
     .input(z.object({ sheetId: z.number(), projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -284,7 +300,7 @@ export const takeoffRouter = router({
   getItems: publicProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -296,7 +312,7 @@ export const takeoffRouter = router({
   getItemsBySheet: publicProcedure
     .input(z.object({ sheetId: z.number(), projectId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -321,7 +337,7 @@ export const takeoffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -353,7 +369,7 @@ export const takeoffRouter = router({
   deleteItem: publicProcedure
     .input(z.object({ id: z.number(), projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
@@ -367,7 +383,7 @@ export const takeoffRouter = router({
   getProgress: publicProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });

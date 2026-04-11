@@ -213,6 +213,10 @@ export const schedules = mysqlTable("schedules", {
   activityIdInterval: int("activityIdInterval").default(1).notNull(),
   /** Next activity ID number to assign (e.g. 1010, 1020) */
   activityIdNext: int("activityIdNext").default(1).notNull(),
+  /** Custom bar color for critical path activities (hex, e.g. #ef4444). Null = global default red */
+  criticalBarColor: varchar("criticalBarColor", { length: 16 }),
+  /** Custom bar color for non-critical activities (hex, e.g. #22c55e). Null = global default green */
+  normalBarColor: varchar("normalBarColor", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

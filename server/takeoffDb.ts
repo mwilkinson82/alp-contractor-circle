@@ -20,13 +20,15 @@ async function getDb() {
 // ─── Takeoff Projects ─────────────────────────────────────────────────────────
 
 export async function createTakeoffProject(data: InsertTakeoffProject) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   const [result] = await db.insert(takeoffProjects).values(data);
   return result.insertId;
 }
 
 export async function getTakeoffProjectsByMember(memberId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return [];
   return db
     .select()
     .from(takeoffProjects)
@@ -35,7 +37,8 @@ export async function getTakeoffProjectsByMember(memberId: number) {
 }
 
 export async function getTakeoffProject(id: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return null;
   const rows = await db
     .select()
     .from(takeoffProjects)
@@ -47,7 +50,8 @@ export async function updateTakeoffProject(
   id: number,
   data: Partial<InsertTakeoffProject>
 ) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   await db
     .update(takeoffProjects)
     .set(data)
@@ -55,7 +59,8 @@ export async function updateTakeoffProject(
 }
 
 export async function deleteTakeoffProject(id: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   // Cascade: delete items → sheets → project
   await db.delete(takeoffItems).where(eq(takeoffItems.projectId, id));
   await db.delete(drawingSheets).where(eq(drawingSheets.projectId, id));
@@ -65,13 +70,15 @@ export async function deleteTakeoffProject(id: number) {
 // ─── Drawing Sheets ───────────────────────────────────────────────────────────
 
 export async function createDrawingSheet(data: InsertDrawingSheet) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   const [result] = await db.insert(drawingSheets).values(data);
   return result.insertId;
 }
 
 export async function createDrawingSheetsBatch(data: InsertDrawingSheet[]) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   if (data.length === 0) return [];
   const [result] = await db.insert(drawingSheets).values(data);
   // Return the first inserted ID; caller can infer subsequent IDs
@@ -79,7 +86,8 @@ export async function createDrawingSheetsBatch(data: InsertDrawingSheet[]) {
 }
 
 export async function getDrawingSheetsByProject(projectId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return [];
   return db
     .select()
     .from(drawingSheets)
@@ -88,7 +96,8 @@ export async function getDrawingSheetsByProject(projectId: number) {
 }
 
 export async function getDrawingSheet(id: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return null;
   const rows = await db
     .select()
     .from(drawingSheets)
@@ -100,7 +109,8 @@ export async function updateDrawingSheet(
   id: number,
   data: Partial<InsertDrawingSheet & { status: string; errorMessage: string | null; aiRawResponse: string | null; sheetName: string | null; sheetType: string }>
 ) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   await db
     .update(drawingSheets)
     .set(data)
@@ -108,7 +118,8 @@ export async function updateDrawingSheet(
 }
 
 export async function getPendingSheets(projectId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return [];
   return db
     .select()
     .from(drawingSheets)
@@ -124,13 +135,15 @@ export async function getPendingSheets(projectId: number) {
 // ─── Takeoff Items ────────────────────────────────────────────────────────────
 
 export async function createTakeoffItemsBatch(data: InsertTakeoffItem[]) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   if (data.length === 0) return;
   await db.insert(takeoffItems).values(data);
 }
 
 export async function getTakeoffItemsByProject(projectId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return [];
   return db
     .select()
     .from(takeoffItems)
@@ -139,7 +152,8 @@ export async function getTakeoffItemsByProject(projectId: number) {
 }
 
 export async function getTakeoffItemsBySheet(sheetId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) return [];
   return db
     .select()
     .from(takeoffItems)
@@ -151,7 +165,8 @@ export async function updateTakeoffItem(
   id: number,
   data: Partial<InsertTakeoffItem & { reviewed: boolean }>
 ) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   await db
     .update(takeoffItems)
     .set(data)
@@ -159,17 +174,20 @@ export async function updateTakeoffItem(
 }
 
 export async function deleteTakeoffItem(id: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   await db.delete(takeoffItems).where(eq(takeoffItems.id, id));
 }
 
 export async function deleteTakeoffItemsBySheet(sheetId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   await db.delete(takeoffItems).where(eq(takeoffItems.sheetId, sheetId));
 }
 
 export async function recalculateProjectTotal(projectId: number) {
-  const db = getDb();
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
   const items = await getTakeoffItemsByProject(projectId);
   const total = items.reduce((sum: number, item: { extendedCost: number | null }) => sum + (item.extendedCost || 0), 0);
   await db

@@ -38,9 +38,9 @@ async function startServer() {
   // Register Stripe webhook BEFORE express.json() middleware
   registerStripeWebhook(app);
   
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // 350MB limit: supports 250MB raw construction drawing PDFs with base64 encoding overhead (~33%)
+  app.use(express.json({ limit: "350mb" }));
+  app.use(express.urlencoded({ limit: "350mb", extended: true }));
   
   // ICS calendar endpoint for Apple Calendar (bi-weekly Sunday 5 PM ET)
   app.get("/api/calendar/circle-biweekly.ics", (_req, res) => {

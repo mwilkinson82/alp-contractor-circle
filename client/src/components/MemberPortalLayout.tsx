@@ -1,6 +1,17 @@
 /**
  * Member Portal Layout — Midnight Ember themed sidebar navigation.
  * Uses Discord auth (useMember) instead of Manus auth (useAuth).
+ *
+ * Sidebar structure:
+ * - Dashboard
+ * - Replay Library
+ * - Templates
+ * - Construct Line (collapsible parent — admin only)
+ *   ├── Scheduler
+ *   └── Takeoff (admin only; non-admins see "Coming Soon" badge)
+ * - Account
+ * - Admin Panel (admin only)
+ * - Subscribers / Members / Analytics / Drip (admin only)
  */
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
@@ -15,22 +26,27 @@ import {
   X,
   Crown,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   Users,
   BarChart3,
   CalendarRange,
   Mail,
   Sparkles,
+  HardHat,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
 
-const menuItems = [
+// ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
+
+const topMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/portal", adminOnly: false },
   { icon: PlayCircle, label: "Replay Library", path: "/portal/replays", adminOnly: false },
   { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
-  { icon: CalendarRange, label: "CPM Scheduler", path: "/portal/scheduler", adminOnly: true },
-  { icon: Sparkles, label: "AI Takeoff", path: "/portal/takeoff", adminOnly: true },
+];
+
+const bottomMenuItems = [
   { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
   { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
   { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
@@ -38,6 +54,8 @@ const menuItems = [
   { icon: BarChart3, label: "Analytics", path: "/portal/analytics", adminOnly: true },
   { icon: Mail, label: "Drip Campaigns", path: "/portal/drip", adminOnly: true },
 ];
+
+// ─── Skeletons & Login Prompt ─────────────────────────────────────────────────
 
 function MemberPortalSkeleton() {
   return (
@@ -80,6 +98,99 @@ function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => st
   );
 }
 
+// ─── Construct Line Sub-Nav ───────────────────────────────────────────────────
+
+function ConstructLineNav({
+  isAdmin,
+  location,
+  setLocation,
+  onNavigate,
+}: {
+  isAdmin: boolean;
+  location: string;
+  setLocation: (path: string) => void;
+  onNavigate?: () => void;
+}) {
+  // Auto-expand if currently on a Construct Line sub-page
+  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff");
+  const [expanded, setExpanded] = useState(isOnConstructLine);
+
+  const isSchedulerActive = location.startsWith("/portal/scheduler");
+  const isTakeoffActive = location.startsWith("/portal/takeoff");
+  const isParentActive = isOnConstructLine;
+
+  const navigate = (path: string) => {
+    setLocation(path);
+    onNavigate?.();
+  };
+
+  return (
+    <div>
+      {/* Parent: Construct Line */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+          isParentActive
+            ? "bg-ember/10 text-ember font-medium"
+            : "text-cream-muted hover:text-cream hover:bg-white/5"
+        }`}
+      >
+        <HardHat className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`} />
+        <span className="flex-1 text-left">Construct Line</span>
+        {expanded
+          ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+          : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+        }
+      </button>
+
+      {/* Children */}
+      {expanded && (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/8 pl-3">
+          {/* Scheduler */}
+          <button
+            onClick={() => navigate("/portal/scheduler")}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+              isSchedulerActive
+                ? "bg-ember/10 text-ember font-medium"
+                : "text-cream-muted hover:text-cream hover:bg-white/5"
+            }`}
+          >
+            <CalendarRange className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`} />
+            <span>Scheduler</span>
+            {isSchedulerActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+          </button>
+
+          {/* Takeoff — admin only, others see Coming Soon */}
+          {isAdmin ? (
+            <button
+              onClick={() => navigate("/portal/takeoff")}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+                isTakeoffActive
+                  ? "bg-ember/10 text-ember font-medium"
+                  : "text-cream-muted hover:text-cream hover:bg-white/5"
+              }`}
+            >
+              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
+              <span>Takeoff</span>
+              {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-cream-muted/40 cursor-not-allowed">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>Takeoff</span>
+              <span className="ml-auto text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                Soon
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Layout ──────────────────────────────────────────────────────────────
+
 export default function MemberPortalLayout({
   children,
 }: {
@@ -107,11 +218,21 @@ export default function MemberPortalLayout({
         : "Member";
 
   const isAdmin = member?.memberRole === "admin";
-  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || isAdmin);
 
-  const activeItem = visibleMenuItems.find(item =>
+  // Determine active page label for mobile header
+  const allPaths = [
+    ...topMenuItems,
+    { label: "Scheduler", path: "/portal/scheduler" },
+    { label: "Takeoff", path: "/portal/takeoff" },
+    ...bottomMenuItems,
+  ];
+  const activeItem = allPaths.find(item =>
     location === item.path || (item.path !== "/portal" && location.startsWith(item.path))
-  ) || visibleMenuItems[0];
+  );
+  const activeLabel = activeItem?.label || (location.startsWith("/portal/scheduler") ? "Scheduler" : "Portal");
+
+  const visibleTopItems = topMenuItems.filter(item => !item.adminOnly || isAdmin);
+  const visibleBottomItems = bottomMenuItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <div className="min-h-screen bg-navy-deep flex">
@@ -136,8 +257,9 @@ export default function MemberPortalLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1">
-            {visibleMenuItems.map(item => {
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            {/* Top items */}
+            {visibleTopItems.map(item => {
               const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
               return (
                 <button
@@ -155,16 +277,49 @@ export default function MemberPortalLayout({
                 </button>
               );
             })}
-            {/* Coming Soon Badge for Non-Admins */}
-            {!isAdmin && (
+
+            {/* Construct Line — collapsible section (admin sees full, others see limited) */}
+            {isAdmin ? (
+              <ConstructLineNav
+                isAdmin={isAdmin}
+                location={location}
+                setLocation={setLocation}
+              />
+            ) : (
+              /* Non-admin: show Construct Line as locked with Coming Soon */
               <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-cream-muted/50 cursor-not-allowed opacity-60">
-                <CalendarRange className="w-4 h-4" />
-                <span>CPM Scheduler</span>
+                <HardHat className="w-4 h-4" />
+                <span>Construct Line</span>
                 <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                   Coming soon
                 </span>
               </div>
             )}
+
+            {/* Separator before bottom items */}
+            {visibleBottomItems.length > 0 && (
+              <div className="border-t border-white/5 my-1" />
+            )}
+
+            {/* Bottom items */}
+            {visibleBottomItems.map(item => {
+              const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => setLocation(item.path)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-ember/10 text-ember font-medium"
+                      : "text-cream-muted hover:text-cream hover:bg-white/5"
+                  }`}
+                >
+                  <item.icon className={`w-4 h-4 ${isActive ? "text-ember" : ""}`} />
+                  <span>{item.label}</span>
+                  {isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+                </button>
+              );
+            })}
           </nav>
 
           {/* User Profile */}
@@ -204,7 +359,7 @@ export default function MemberPortalLayout({
                 {mobileMenuOpen ? <X className="w-4 h-4 text-cream" /> : <Menu className="w-4 h-4 text-cream" />}
               </button>
               <span className="font-heading text-sm font-semibold text-cream">
-                {activeItem?.label || "Portal"}
+                {activeLabel}
               </span>
             </div>
             <img
@@ -217,9 +372,10 @@ export default function MemberPortalLayout({
 
         {/* Mobile Menu Overlay */}
         {isMobile && mobileMenuOpen && (
-          <div className="fixed inset-0 z-40 bg-navy-deep/95 backdrop-blur-lg pt-14">
+          <div className="fixed inset-0 z-40 bg-navy-deep/95 backdrop-blur-lg pt-14 overflow-y-auto">
             <nav className="p-4 space-y-2">
-              {visibleMenuItems.map(item => {
+              {/* Top items */}
+              {visibleTopItems.map(item => {
                 const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
                 return (
                   <button
@@ -239,16 +395,68 @@ export default function MemberPortalLayout({
                   </button>
                 );
               })}
-              {/* Coming Soon Badge for Non-Admins (Mobile) */}
-              {!isAdmin && (
+
+              {/* Construct Line (mobile) */}
+              {isAdmin ? (
+                <>
+                  <div className="px-4 pt-2 pb-1">
+                    <p className="text-[10px] text-cream-muted/40 uppercase tracking-widest font-medium">Construct Line</p>
+                  </div>
+                  <button
+                    onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                      location.startsWith("/portal/scheduler") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    }`}
+                  >
+                    <CalendarRange className="w-5 h-5" />
+                    <span>Scheduler</span>
+                  </button>
+                  <button
+                    onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                      location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    <span>Takeoff</span>
+                  </button>
+                </>
+              ) : (
                 <div className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted/50 cursor-not-allowed opacity-60">
-                  <CalendarRange className="w-5 h-5" />
-                  <span>CPM Scheduler</span>
+                  <HardHat className="w-5 h-5" />
+                  <span>Construct Line</span>
                   <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                     Coming soon
                   </span>
                 </div>
               )}
+
+              {/* Bottom items */}
+              {visibleBottomItems.length > 0 && (
+                <div className="border-t border-white/5 pt-2 mt-2 space-y-2">
+                  {visibleBottomItems.map(item => {
+                    const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          setLocation(item.path);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                          isActive
+                            ? "bg-ember/10 text-ember font-medium"
+                            : "text-cream-muted hover:text-cream hover:bg-white/5"
+                        }`}
+                      >
+                        <item.icon className={`w-5 h-5 ${isActive ? "text-ember" : ""}`} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="border-t border-white/5 pt-4 mt-4">
                 <button
                   onClick={logout}

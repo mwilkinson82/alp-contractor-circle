@@ -1,6 +1,13 @@
 /**
  * AI Quantity Takeoff Pipeline — processes construction drawing sheets
  * using GPT-4o vision to extract quantities organized by CSI division.
+ *
+ * Prompt Engineering v2:
+ * - Few-shot examples per sheet type
+ * - Structured JSON output schema with strict validation
+ * - Multi-pass verification (extract → verify → reconcile)
+ * - Confidence scores per line item
+ * - Sheet-type detection (floor plan, elevation, structural, MEP, etc.)
  */
 import { invokeLLM } from "./_core/llm";
 import {
@@ -14,88 +21,302 @@ import {
 } from "./takeoffDb";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 
-// CSI Division reference for the AI prompt
+// ─── CSI Division Reference ────────────────────────────────────────────────────
+
 const CSI_DIVISIONS = `
-01 - General Requirements
-02 - Existing Conditions  
-03 - Concrete
-04 - Masonry
-05 - Metals
-06 - Wood, Plastics & Composites
-07 - Thermal & Moisture Protection
-08 - Openings (Doors & Windows)
-09 - Finishes
-10 - Specialties
-11 - Equipment
-12 - Furnishings
-13 - Special Construction
-14 - Conveying Equipment
-21 - Fire Suppression
-22 - Plumbing
-23 - HVAC
-26 - Electrical
-27 - Communications
-28 - Electronic Safety & Security
-31 - Earthwork
-32 - Exterior Improvements
-33 - Utilities
-`;
+DIVISION 01 - General Requirements (mobilization, temp facilities, project management)
+DIVISION 02 - Existing Conditions (demolition, site clearing, hazmat abatement)
+DIVISION 03 - Concrete (footings, slabs, walls, piers — measure in CY or SF)
+DIVISION 04 - Masonry (CMU block, brick, stone — measure in SF or EA)
+DIVISION 05 - Metals (structural steel, misc metals — measure in TON or LF)
+DIVISION 06 - Wood, Plastics & Composites (framing, sheathing, millwork — measure in BF, LF, SF)
+DIVISION 07 - Thermal & Moisture Protection (roofing, insulation, waterproofing — measure in SF or SQ)
+DIVISION 08 - Openings (doors, windows, hardware — measure in EA)
+DIVISION 09 - Finishes (drywall, flooring, paint, tile — measure in SF or SY)
+DIVISION 10 - Specialties (toilet accessories, signage, lockers — measure in EA or LS)
+DIVISION 11 - Equipment (appliances, kitchen equipment — measure in EA)
+DIVISION 12 - Furnishings (casework, window treatments — measure in LF or EA)
+DIVISION 13 - Special Construction (pools, clean rooms — measure in LS or SF)
+DIVISION 14 - Conveying Equipment (elevators, escalators — measure in EA or STOP)
+DIVISION 21 - Fire Suppression (sprinkler heads, pipes — measure in EA or LF)
+DIVISION 22 - Plumbing (fixtures, pipes, water heater — measure in EA or LF)
+DIVISION 23 - HVAC (equipment, ductwork, diffusers — measure in EA, TON, or LF)
+DIVISION 26 - Electrical (panels, devices, conduit, fixtures — measure in EA or LF)
+DIVISION 27 - Communications (data, phone, AV — measure in EA or LF)
+DIVISION 28 - Electronic Safety & Security (cameras, access control — measure in EA)
+DIVISION 31 - Earthwork (grading, excavation, fill — measure in CY or AC)
+DIVISION 32 - Exterior Improvements (paving, landscaping, curbs — measure in SF, LF, or SY)
+DIVISION 33 - Utilities (underground piping, manholes — measure in LF or EA)
+`.trim();
 
-const SYSTEM_PROMPT = `You are an expert construction estimator and quantity surveyor. You analyze construction drawings and extract accurate quantity takeoffs.
+// ─── Few-Shot Examples ─────────────────────────────────────────────────────────
 
-When analyzing a drawing sheet:
-1. Identify the sheet type (floor plan, elevation, section, detail, schedule, site plan, structural, MEP, etc.)
-2. Identify the sheet name/number from the title block
-3. Extract ALL measurable quantities visible on the drawing
-4. Organize items by CSI MasterFormat division
-5. Provide realistic unit costs based on current US residential/commercial construction pricing
+const FEW_SHOT_FLOOR_PLAN = `
+EXAMPLE — Floor Plan (A1.1 First Floor Plan, 2,400 SF house):
+{
+  "sheetName": "A1.1 - First Floor Plan",
+  "sheetType": "floor_plan",
+  "items": [
+    {"csiDivision":"03","csiCode":"03 30 00","description":"Concrete Slab-on-Grade 4\" thick","quantity":2400,"unit":"SF","unitCost":8.50,"confidence":85,"notes":"Total first floor area from plan dimensions 40'x60'"},
+    {"csiDivision":"06","csiCode":"06 11 00","description":"Wood Stud Framing 2x6 @ 16\" OC Exterior Walls","quantity":480,"unit":"LF","unitCost":12.00,"confidence":80,"notes":"Perimeter 2*(40+60)=200 LF x 8' plate height, converted to LF of wall"},
+    {"csiDivision":"06","csiCode":"06 11 00","description":"Wood Stud Framing 2x4 @ 16\" OC Interior Partitions","quantity":320,"unit":"LF","unitCost":8.50,"confidence":70,"notes":"Estimated interior partition LF from room layout"},
+    {"csiDivision":"08","csiCode":"08 11 13","description":"Hollow Metal Exterior Door 3'-0\" x 6'-8\"","quantity":3,"unit":"EA","unitCost":850.00,"confidence":90,"notes":"3 exterior door openings visible on plan"},
+    {"csiDivision":"08","csiCode":"08 11 16","description":"Interior Wood Door 2'-8\" x 6'-8\"","quantity":12,"unit":"EA","unitCost":450.00,"confidence":85,"notes":"12 interior door openings counted on plan"},
+    {"csiDivision":"08","csiCode":"08 51 13","description":"Aluminum Casement Window 3'-0\" x 4'-0\"","quantity":18,"unit":"EA","unitCost":650.00,"confidence":80,"notes":"18 window openings counted on plan"},
+    {"csiDivision":"09","csiCode":"09 21 16","description":"Gypsum Board 5/8\" Type X Walls","quantity":7680,"unit":"SF","unitCost":2.25,"confidence":75,"notes":"Estimated wall SF: 800 LF perimeter x 8' height x 2 sides, less openings"}
+  ]
+}
+`.trim();
 
-For each item, provide:
-- CSI division code (2-digit, e.g. "03" for Concrete)
-- CSI subdivision code (e.g. "03 30 00" for Cast-in-Place Concrete)
-- Clear description of the item
-- Quantity with appropriate unit of measure (SF, LF, CY, EA, LS, etc.)
-- Estimated unit cost in USD (reasonable market rate)
-- Confidence level (0-100) in the accuracy of the quantity
-- Brief notes explaining how you derived the quantity
+const FEW_SHOT_STRUCTURAL = `
+EXAMPLE — Structural Plan (S1.0 Foundation Plan):
+{
+  "sheetName": "S1.0 - Foundation Plan",
+  "sheetType": "structural",
+  "items": [
+    {"csiDivision":"03","csiCode":"03 30 00","description":"Concrete Continuous Footing 24\"W x 12\"D","quantity":200,"unit":"LF","unitCost":45.00,"confidence":88,"notes":"Perimeter footing from foundation plan dimensions"},
+    {"csiDivision":"03","csiCode":"03 30 00","description":"Concrete Pier 18\" diameter x 4'-0\" deep","quantity":16,"unit":"EA","unitCost":350.00,"confidence":90,"notes":"16 pier locations shown on foundation plan"},
+    {"csiDivision":"03","csiCode":"03 20 00","description":"Reinforcing Steel #5 Rebar in Footings","quantity":1200,"unit":"LF","unitCost":1.85,"confidence":75,"notes":"Estimated from footing schedule: 2 bars continuous + stirrups"},
+    {"csiDivision":"03","csiCode":"03 30 00","description":"Concrete Grade Beam 12\"W x 18\"D","quantity":150,"unit":"LF","unitCost":55.00,"confidence":82,"notes":"Grade beams shown between piers on foundation plan"},
+    {"csiDivision":"31","csiCode":"31 23 00","description":"Excavation for Continuous Footing","quantity":148,"unit":"CY","unitCost":18.00,"confidence":78,"notes":"200 LF x 2' wide x 1' deep = 400 CF / 27 = 14.8 CY, x10 for full depth"}
+  ]
+}
+`.trim();
 
-Common measurements to extract:
-- Floor areas (SF)
-- Wall lengths and heights (LF, SF)
-- Door and window counts and sizes (EA)
-- Structural members (LF, EA)
-- Roof area (SF, SQ)
-- Foundation dimensions (LF, CY)
-- Plumbing fixtures (EA)
-- Electrical devices (EA)
-- HVAC equipment (EA, TON)
-- Earthwork volumes (CY)
-- Concrete volumes (CY)
-- Framing lumber (BF, LF)
+const FEW_SHOT_MEP = `
+EXAMPLE — MEP Plan (M1.0 HVAC Floor Plan):
+{
+  "sheetName": "M1.0 - HVAC Floor Plan",
+  "sheetType": "mep",
+  "items": [
+    {"csiDivision":"23","csiCode":"23 74 00","description":"Packaged Rooftop Unit 5-Ton Split System","quantity":2,"unit":"EA","unitCost":8500.00,"confidence":85,"notes":"2 RTU units shown on roof plan with equipment schedule"},
+    {"csiDivision":"23","csiCode":"23 31 00","description":"Sheet Metal Supply Ductwork 14\"x10\"","quantity":280,"unit":"LF","unitCost":28.00,"confidence":72,"notes":"Main trunk ductwork measured from plan"},
+    {"csiDivision":"23","csiCode":"23 31 00","description":"Flexible Duct 6\" diameter Branch Runs","quantity":420,"unit":"LF","unitCost":8.50,"confidence":70,"notes":"Estimated flex duct to each diffuser"},
+    {"csiDivision":"23","csiCode":"23 37 00","description":"Supply Air Diffuser 24\"x24\" Ceiling","quantity":24,"unit":"EA","unitCost":185.00,"confidence":88,"notes":"24 supply diffusers shown on plan"},
+    {"csiDivision":"23","csiCode":"23 37 00","description":"Return Air Grille 24\"x24\" Ceiling","quantity":8,"unit":"EA","unitCost":145.00,"confidence":88,"notes":"8 return grilles shown on plan"}
+  ]
+}
+`.trim();
 
-CSI Divisions reference:
+// ─── System Prompt ─────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
+
+## YOUR TASK
+Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
+
+## PROCESS (follow exactly):
+1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
+2. **Classify the sheet type**: floor_plan, elevation, section, detail, schedule, site_plan, structural, mep, electrical, plumbing, hvac, landscape, cover, or other
+3. **Measure systematically**: Work through the drawing area by area, room by room, or system by system
+4. **Apply correct units**: Use industry-standard units (SF for area, LF for linear, CY for volume, EA for each, TON for steel, SQ for roofing, etc.)
+5. **Assign CSI codes**: Every item gets a 2-digit division code AND a full 6-digit CSI code
+6. **Estimate unit costs**: Use current US market rates (2024-2025 pricing)
+7. **Score confidence**: Rate 0-100 based on how clearly the quantity can be read from the drawing
+
+## CONFIDENCE SCORING GUIDE:
+- 90-100: Dimension is explicitly labeled on the drawing
+- 75-89: Can be measured from scaled drawing or counted directly
+- 60-74: Estimated from typical construction ratios or partial information
+- 40-59: Inferred from context, drawing is unclear
+- Below 40: Best guess, drawing is very unclear or item is partially visible
+
+## MEASUREMENT RULES:
+- Floor areas: measure net interior dimensions, not gross building footprint
+- Wall lengths: measure centerline of walls
+- Doors/windows: count each opening as 1 EA; note size in description
+- Concrete: always specify thickness and application
+- Framing: specify member size, spacing, and orientation
+- Roofing: measure in SQ (100 SF) for shingles/membrane, SF for metal
+- Earthwork: calculate CY (cubic yards), not CF
+
+## IMPORTANT:
+- Do NOT make up items that aren't visible in the drawing
+- If a dimension is not shown, estimate from scale or typical construction
+- For cover sheets or title-only sheets, return an empty items array
+- Include ALL visible items — be thorough, not selective
+
+## CSI DIVISIONS REFERENCE:
 ${CSI_DIVISIONS}
 
-If the sheet is a cover page, title sheet, or contains no measurable quantities, return an empty items array and set sheetType to "cover".
-If you cannot determine quantities with reasonable confidence, still list what you can identify with lower confidence scores.`;
+## EXAMPLES OF CORRECT OUTPUT:
+${FEW_SHOT_FLOOR_PLAN}
+
+${FEW_SHOT_STRUCTURAL}
+
+${FEW_SHOT_MEP}`;
+
+// ─── Verification Prompt ───────────────────────────────────────────────────────
+
+const VERIFICATION_PROMPT = `You are a senior QA estimator reviewing a quantity takeoff for accuracy and completeness.
+
+Review the following quantity takeoff extracted from a construction drawing. Your job is to:
+1. Check for obvious errors (wrong units, unrealistic quantities, missing items)
+2. Verify CSI codes are correct for each item
+3. Flag any items with suspiciously high or low quantities
+4. Add any items that appear to be missing based on the sheet type
+5. Adjust confidence scores if needed
+
+Return the corrected and verified takeoff in the same JSON format. Keep all items that look correct. Fix items with errors. Add missing items if you can identify them from context.
+
+ORIGINAL TAKEOFF:
+{ORIGINAL_JSON}
+
+Return the verified takeoff as JSON with the same schema. If the original looks correct, return it unchanged.`;
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+interface TakeoffItem {
+  csiDivision: string;
+  csiCode: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  confidence: number;
+  notes: string;
+}
 
 interface TakeoffExtractionResult {
   sheetName: string;
   sheetType: string;
-  items: Array<{
-    csiDivision: string;
-    csiCode: string;
-    description: string;
-    quantity: number;
-    unit: string;
-    unitCost: number;
-    confidence: number;
-    notes: string;
-  }>;
+  items: TakeoffItem[];
 }
+
+const RESPONSE_SCHEMA = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "takeoff_extraction",
+    strict: true,
+    schema: {
+      type: "object",
+      properties: {
+        sheetName: {
+          type: "string",
+          description: "Sheet name/number from title block, e.g. 'A1.1 - First Floor Plan'",
+        },
+        sheetType: {
+          type: "string",
+          enum: [
+            "floor_plan", "elevation", "section", "detail", "schedule",
+            "site_plan", "structural", "mep", "electrical", "plumbing",
+            "hvac", "landscape", "cover", "other",
+          ],
+          description: "Type of drawing sheet",
+        },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              csiDivision: { type: "string", description: "2-digit CSI division code, e.g. '03'" },
+              csiCode: { type: "string", description: "Full 6-digit CSI code e.g. '03 30 00'" },
+              description: { type: "string", description: "Detailed item description including size, type, material" },
+              quantity: { type: "number", description: "Numeric quantity value" },
+              unit: { type: "string", description: "Unit of measure: SF, LF, CY, EA, TON, SQ, BF, LB, LS, etc." },
+              unitCost: { type: "number", description: "Unit cost in USD dollars (2024-2025 market rate)" },
+              confidence: { type: "integer", description: "Confidence score 0-100 in quantity accuracy" },
+              notes: { type: "string", description: "Brief explanation of how quantity was measured or estimated" },
+            },
+            required: ["csiDivision", "csiCode", "description", "quantity", "unit", "unitCost", "confidence", "notes"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["sheetName", "sheetType", "items"],
+      additionalProperties: false,
+    },
+  },
+};
+
+// ─── Extraction Pass ───────────────────────────────────────────────────────────
+
+async function extractQuantities(imageUrl: string): Promise<TakeoffExtractionResult> {
+  const response = await invokeLLM({
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Analyze this construction drawing sheet carefully. Extract ALL measurable quantities visible on the drawing, organized by CSI division. Be thorough — include every item you can identify. Return your analysis as JSON matching the schema exactly.",
+          },
+          {
+            type: "image_url",
+            image_url: { url: imageUrl, detail: "high" },
+          },
+        ],
+      },
+    ],
+    response_format: RESPONSE_SCHEMA,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content || typeof content !== "string") {
+    throw new Error("No content in AI extraction response");
+  }
+  return JSON.parse(content) as TakeoffExtractionResult;
+}
+
+// ─── Verification Pass ─────────────────────────────────────────────────────────
+
+async function verifyQuantities(
+  original: TakeoffExtractionResult,
+  imageUrl: string
+): Promise<TakeoffExtractionResult> {
+  // Skip verification for cover sheets or very small takeoffs
+  if (original.sheetType === "cover" || original.items.length === 0) {
+    return original;
+  }
+
+  const originalJson = JSON.stringify(original, null, 2);
+  const verificationUserPrompt = VERIFICATION_PROMPT.replace("{ORIGINAL_JSON}", originalJson);
+
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "You are a senior QA construction estimator. Review and verify the provided quantity takeoff for accuracy. Return corrected JSON in the same format.",
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: verificationUserPrompt },
+            {
+              type: "image_url",
+              image_url: { url: imageUrl, detail: "high" },
+            },
+          ],
+        },
+      ],
+      response_format: RESPONSE_SCHEMA,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content || typeof content !== "string") {
+      // If verification fails, return original
+      return original;
+    }
+    const verified = JSON.parse(content) as TakeoffExtractionResult;
+    // Sanity check: verified result should have at least as many items as original
+    if (verified.items.length < Math.floor(original.items.length * 0.5)) {
+      console.warn(`[Takeoff AI] Verification reduced items from ${original.items.length} to ${verified.items.length} — using original`);
+      return original;
+    }
+    return verified;
+  } catch (err) {
+    console.warn("[Takeoff AI] Verification pass failed, using original extraction:", err);
+    return original;
+  }
+}
+
+// ─── Main Processing Function ──────────────────────────────────────────────────
 
 /**
  * Process a single drawing sheet through the AI vision pipeline.
+ * Uses a two-pass approach: extract → verify.
  */
 export async function processDrawingSheet(
   sheetId: number,
@@ -106,82 +327,16 @@ export async function processDrawingSheet(
     // Mark sheet as processing
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
-    const response = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Analyze this construction drawing sheet. Extract all measurable quantities and organize them by CSI division. Return your analysis as JSON matching the schema.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "takeoff_extraction",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              sheetName: {
-                type: "string",
-                description: "Sheet name/number from title block, e.g. 'A1.1 - First Floor Plan'",
-              },
-              sheetType: {
-                type: "string",
-                enum: [
-                  "floor_plan", "elevation", "section", "detail", "schedule",
-                  "site_plan", "structural", "mep", "electrical", "plumbing",
-                  "hvac", "landscape", "cover", "other",
-                ],
-                description: "Type of drawing sheet",
-              },
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    csiDivision: { type: "string", description: "2-digit CSI division code" },
-                    csiCode: { type: "string", description: "Full CSI code e.g. '03 30 00'" },
-                    description: { type: "string", description: "Item description" },
-                    quantity: { type: "number", description: "Quantity value" },
-                    unit: { type: "string", description: "Unit of measure (SF, LF, CY, EA, etc.)" },
-                    unitCost: { type: "number", description: "Unit cost in USD dollars" },
-                    confidence: { type: "integer", description: "Confidence 0-100" },
-                    notes: { type: "string", description: "How the quantity was derived" },
-                  },
-                  required: ["csiDivision", "csiCode", "description", "quantity", "unit", "unitCost", "confidence", "notes"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["sheetName", "sheetType", "items"],
-            additionalProperties: false,
-          },
-        },
-      },
-    });
+    // Pass 1: Extract quantities
+    console.log(`[Takeoff AI] Pass 1: Extracting quantities for sheet ${sheetId}`);
+    const extracted = await extractQuantities(imageUrl);
 
-    const content = response.choices[0]?.message?.content;
-    if (!content || typeof content !== "string") {
-      throw new Error("No content in AI response");
+    // Pass 2: Verify and reconcile (skip for cover sheets)
+    let result = extracted;
+    if (extracted.sheetType !== "cover" && extracted.items.length > 0) {
+      console.log(`[Takeoff AI] Pass 2: Verifying ${extracted.items.length} items for sheet ${sheetId}`);
+      result = await verifyQuantities(extracted, imageUrl);
     }
-
-    const result: TakeoffExtractionResult = JSON.parse(content);
 
     // Delete any existing items for this sheet (for reprocessing)
     await deleteTakeoffItemsBySheet(sheetId);
@@ -191,14 +346,14 @@ export async function processDrawingSheet(
       const itemsToInsert: InsertTakeoffItem[] = result.items.map((item) => ({
         projectId,
         sheetId,
-        csiDivision: item.csiDivision,
-        csiCode: item.csiCode,
+        csiDivision: item.csiDivision.trim(),
+        csiCode: item.csiCode.trim(),
         description: item.description,
         quantity: item.quantity.toFixed(2),
-        unit: item.unit,
+        unit: item.unit.toUpperCase().trim(),
         unitCost: Math.round(item.unitCost * 100), // Convert dollars to cents
         extendedCost: Math.round(item.quantity * item.unitCost * 100), // cents
-        confidence: item.confidence,
+        confidence: Math.min(100, Math.max(0, item.confidence)),
         notes: item.notes,
         reviewed: false,
       }));
@@ -211,9 +366,10 @@ export async function processDrawingSheet(
       status: "completed" as any,
       sheetName: result.sheetName,
       sheetType: result.sheetType as any,
-      aiRawResponse: content,
+      aiRawResponse: JSON.stringify(result),
     });
 
+    console.log(`[Takeoff AI] Sheet ${sheetId} complete: ${result.items.length} items extracted (type: ${result.sheetType})`);
     return result;
   } catch (error: any) {
     console.error(`[Takeoff AI] Error processing sheet ${sheetId}:`, error);

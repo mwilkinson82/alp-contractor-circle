@@ -80,6 +80,8 @@ interface GanttChartProps {
   onZoomChange?: (ppd: number) => void; // callback when user scrollwheel-zooms
   showCostOverlay?: boolean;
   costData?: Map<number, number>; // activityId -> budgetedCost in cents
+  criticalBarColor?: string | null; // per-schedule custom critical bar color (hex)
+  normalBarColor?: string | null;   // per-schedule custom non-critical bar color (hex)
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -93,27 +95,27 @@ const ARROW_HEAD_SIZE = 4;
 const HANDLE_RADIUS = 5;
 const EDGE_HIT_ZONE = 8;
 
-// Premium SaaS theme colors — white Gantt canvas, amber critical, slate-blue non-critical
+// Industry standard colors — white Gantt canvas, RED critical, GREEN non-critical
 const COLORS = {
-  critical: "#b45309",       // amber-700 border
-  criticalFill: "#f59e0b",   // amber-400 fill — warm, high-visibility
-  normal: "#2563eb",         // blue-600 border
-  normalFill: "#3b82f6",     // blue-500 fill — slate-blue, professional
+  critical: "#b91c1c",       // red-700 border — industry standard critical path
+  criticalFill: "#ef4444",   // red-500 fill — industry standard critical path
+  normal: "#15803d",         // green-700 border — industry standard non-critical
+  normalFill: "#22c55e",     // green-500 fill — industry standard non-critical
   target1: "#9ca3af",
   target1Fill: "#6b7280",
   target2: "#8b5cf6",
   target2Fill: "#7c3aed",
-  milestone: "#f59e0b",      // amber milestone diamond
-  progress: "#1d4ed8",       // darker blue progress overlay
+  milestone: "#ef4444",      // red milestone diamond (critical path indicator)
+  progress: "#166534",       // darker green progress overlay
   arrow: "#6b7280",
-  arrowCritical: "#b45309",  // amber arrow for critical links
+  arrowCritical: "#b91c1c",  // red arrow for critical links
   todayLine: "#9ca3af",
   dataDateLine: "#2563eb",   // Solid BLUE data date
   gridLine: "rgba(0,0,0,0.06)",
   headerBg: "#f8f5f0",       // Warm off-white/tan header
   headerText: "rgba(0,0,0,0.45)",
   headerTextBold: "rgba(0,0,0,0.7)",
-  selectedBg: "rgba(245,158,11,0.10)", // amber selection highlight
+  selectedBg: "rgba(239,68,68,0.10)", // red selection highlight
   groupBg: "rgba(0,0,0,0.03)",
   rowBg: "#faf8f5",          // Very light warm white
   rowAltBg: "#f5f2ed",       // Slightly darker alternating rows
@@ -221,6 +223,8 @@ export default function GanttChart({
   onZoomChange,
   showCostOverlay,
   costData,
+  criticalBarColor,
+  normalBarColor,
 }: GanttChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -806,11 +810,15 @@ export default function GanttChart({
         ctx.textAlign = "left";
         ctx.fillText(act.name, cx + size + 4, cy + 3);
       } else {
-        // Determine bar color: custom > critical/non-critical default
-        const barFillColor = act.barColor || (act.isCritical ? COLORS.criticalFill : COLORS.normalFill);
+        // Determine bar color: per-activity custom > per-schedule custom > global default
+        const effectiveCriticalFill = criticalBarColor || COLORS.criticalFill;
+        const effectiveNormalFill = normalBarColor || COLORS.normalFill;
+        const effectiveCriticalBorder = criticalBarColor ? (criticalBarColor + "cc") : COLORS.critical;
+        const effectiveNormalBorder = normalBarColor ? (normalBarColor + "cc") : COLORS.normal;
+        const barFillColor = act.barColor || (act.isCritical ? effectiveCriticalFill : effectiveNormalFill);
         const barStrokeColor = act.barColor
           ? (act.barColor + "cc") // slightly darker for border
-          : (act.isCritical ? COLORS.critical : COLORS.normal);
+          : (act.isCritical ? effectiveCriticalBorder : effectiveNormalBorder);
 
         // Bar background
         const radius = 3;

@@ -1225,3 +1225,36 @@
 ### Tests
 - [x] Vitest tests for takeoff tRPC procedures (10 tests passing)
 - [x] Vitest tests for AI processing pipeline
+
+## Marshall's 5 Decisions — Implementation
+
+### 1. Gantt Bar Colors
+- [ ] Switch critical path bars to RED (industry standard)
+- [ ] Switch non-critical bars to GREEN (industry standard)
+- [ ] Add per-schedule bar color customization in Settings
+- [ ] Store color preferences in schedule settings
+
+### 2. Rename & Restructure Navigation
+- [ ] Rename "AI Takeoff" to "Construct Line" as parent item
+- [ ] Restructure sidebar: Construct Line > Scheduler, Takeoff as sub-items
+- [ ] UX flow: clicking Construct Line shows sub-options
+
+### 3. Owner-Only Takeoff Access
+- [ ] Lock takeoff feature behind Marshall's account only
+- [ ] Show "Coming Soon" badge for non-owner members
+- [ ] Non-owner members cannot access takeoff pages
+
+### 4. AI Prompt Engineering
+- [ ] Few-shot examples for construction drawing analysis
+- [ ] Structured output schemas for quantity extraction
+- [ ] Multi-pass verification (extract → verify → refine)
+- [ ] Build robust prompt engineering infrastructure
+
+### 5. Keep GPT-4o (no extra cost)
+- [x] Decision: keep built-in Manus LLM (GPT-4o) — no direct API cost
+
+## Upload Limit Increase
+- [ ] Increase Express body-parser JSON limit from 50MB to 350MB (base64 overhead ~33%)
+- [ ] Increase frontend file size validation from 16MB to 250MB
+- [ ] Update user-facing error messages to reflect new 250MB limit
+- [ ] Increase tRPC input string length limit if applicable
