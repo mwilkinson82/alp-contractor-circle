@@ -278,7 +278,7 @@ export default function GanttChart({
     let cumulativeY = 0;
     for (const g of groupedActivities) {
       if (g.group) {
-        const baseH = getWbsRowHeight(g.depth ?? 0, !!showCostOverlay); const h = Math.round(baseH * zoomLevel / 100);
+        const h = getWbsRowHeight(g.depth ?? 0, !!showCostOverlay);
         rows.push({ type: "group", group: g.group, rowIndex: idx, depth: g.depth ?? 0, wbsColor: g.wbsColor, wbsTextColor: g.wbsTextColor, groupActivities: g.activities, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
         cumulativeY += h;
         idx++;
@@ -287,7 +287,7 @@ export default function GanttChart({
       const groupKey = g.group || "all";
       if (collapsedGroups?.has(groupKey)) continue;
       for (const act of g.activities) {
-        const baseH = getActivityRowHeight(!!showCostOverlay); const h = Math.round(baseH * zoomLevel / 100);
+        const h = getActivityRowHeight(!!showCostOverlay);
         rows.push({ type: "activity", activity: act, rowIndex: idx, ancestorColors: g.ancestorColors, rowHeight: h, yOffset: cumulativeY });
         cumulativeY += h;
         idx++;
@@ -683,21 +683,6 @@ export default function GanttChart({
 
     const barRects: BarRect[] = [];
 
-    // ── Zoom-scaled drawing constants ──────────────────────────────────
-    const zs = zoomLevel / 100; // zoom scale factor
-    const scaledBarHeight = Math.round(BAR_HEIGHT * zs);
-    const scaledBarYOffset = Math.round(BAR_Y_OFFSET * zs);
-    const scaledTargetBarHeight = Math.round(TARGET_BAR_HEIGHT * zs);
-    const scaledFontSize = Math.max(6, Math.round(ganttFontSize * zs));
-    const scaledCostFontSize = Math.max(5, Math.round(costFontSize * zs));
-    const scaledHandleRadius = Math.max(3, Math.round(HANDLE_RADIUS * zs));
-    const scaledArrowHeadSize = Math.max(2, Math.round(ARROW_HEAD_SIZE * zs));
-    const scaledMilestoneSize = Math.max(3, Math.round(6 * zs));
-    const scaledSumBarH = Math.max(4, Math.round(8 * zs));
-    const scaledHeaderFont = Math.max(7, Math.round(10 * zs));
-    const scaledHeaderBoldFont = Math.max(8, Math.round(11 * zs));
-    const scaledTodayFont = Math.max(7, Math.round(9 * zs));
-
     // ── Draw time scale header ──────────────────────────────────────────
 
     ctx.fillStyle = COLORS.headerBg;
@@ -717,7 +702,7 @@ export default function GanttChart({
             ctx.fillRect(x, HEADER_HEIGHT, pixelsPerDay, visibleHeight);
           }
           ctx.fillStyle = COLORS.headerText;
-          ctx.font = `${scaledHeaderFont}px 'DM Sans', sans-serif`;
+          ctx.font = "10px 'DM Sans', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(formatDay(current), x + pixelsPerDay / 2, HEADER_HEIGHT - 6);
           ctx.fillStyle = current.getDay() === 0 || current.getDay() === 6
@@ -730,7 +715,7 @@ export default function GanttChart({
         }
         if (current.getDate() === 1) {
           ctx.fillStyle = COLORS.headerTextBold;
-          ctx.font = `bold ${scaledHeaderBoldFont}px 'DM Sans', sans-serif`;
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
           ctx.textAlign = "left";
           ctx.fillText(formatMonthYear(current), x + 4, 14);
         }
@@ -743,7 +728,7 @@ export default function GanttChart({
         const weekWidth = 7 * pixelsPerDay;
         if (x > -weekWidth && x < visibleWidth + weekWidth) {
           ctx.fillStyle = COLORS.headerText;
-          ctx.font = `${scaledHeaderFont}px 'DM Sans', sans-serif`;
+          ctx.font = "10px 'DM Sans', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(formatWeek(current), x + weekWidth / 2, HEADER_HEIGHT - 8);
           ctx.beginPath();
@@ -753,7 +738,7 @@ export default function GanttChart({
         }
         if (current.getDate() <= 7) {
           ctx.fillStyle = COLORS.headerTextBold;
-          ctx.font = `bold ${scaledHeaderBoldFont}px 'DM Sans', sans-serif`;
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
           ctx.textAlign = "left";
           ctx.fillText(formatMonthYear(startOfMonth(current)), x + 4, 14);
         }
@@ -768,7 +753,7 @@ export default function GanttChart({
         const monthWidth = daysInMonth * pixelsPerDay;
         if (x > -monthWidth && x < visibleWidth + monthWidth) {
           ctx.fillStyle = COLORS.headerText;
-          ctx.font = `${scaledHeaderFont}px 'DM Sans', sans-serif`;
+          ctx.font = "10px 'DM Sans', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(current.toLocaleDateString("en-US", { month: "short" }), x + monthWidth / 2, HEADER_HEIGHT - 8);
           ctx.beginPath();
@@ -778,7 +763,7 @@ export default function GanttChart({
         }
         if (current.getMonth() === 0) {
           ctx.fillStyle = COLORS.headerTextBold;
-          ctx.font = `bold ${scaledHeaderBoldFont}px 'DM Sans', sans-serif`;
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
           ctx.textAlign = "left";
           ctx.fillText(String(current.getFullYear()), x + 4, 14);
         }
@@ -864,7 +849,7 @@ export default function GanttChart({
         if (summaryStartDate && summaryEndDate) {
           const sumBarX = daysBetween(rangeStart, summaryStartDate) * pixelsPerDay + offsetX;
           const sumBarW = Math.max(daysBetween(summaryStartDate, summaryEndDate) * pixelsPerDay, 4);
-          const sumBarH = scaledSumBarH; // Thick summary bar (zoom-scaled)
+          const sumBarH = 8; // Thick summary bar
           const sumBarY = y + rh / 2 - sumBarH / 2 + 2;
           // Draw the summary bar — dark charcoal/black
           ctx.fillStyle = "#1a1a1a";
@@ -876,7 +861,7 @@ export default function GanttChart({
           // Diamond at end
           const diamondX = sumBarX + sumBarW;
           const diamondY = sumBarY + sumBarH / 2;
-          const ds = Math.round(5 * zs);
+          const ds = 5;
           ctx.beginPath();
           ctx.moveTo(diamondX, diamondY - ds);
           ctx.lineTo(diamondX + ds, diamondY);
@@ -913,7 +898,7 @@ export default function GanttChart({
 
       let barX = daysBetween(rangeStart, act.earlyStart) * pixelsPerDay + offsetX;
       let barW = Math.max(daysBetween(act.earlyStart, act.earlyFinish) * pixelsPerDay, 3);
-      const barY = y + scaledBarYOffset;
+      const barY = y + BAR_Y_OFFSET;
 
       // If this activity is being resized, adjust bar visually
       if (dragState && (dragState.mode === "resize-left" || dragState.mode === "resize-right") && dragState.activityId === act.id) {
@@ -936,7 +921,7 @@ export default function GanttChart({
           const t1w = Math.max(daysBetween(t1Start, t1Finish) * pixelsPerDay, 3);
           ctx.fillStyle = COLORS.target1Fill;
           ctx.globalAlpha = 0.35;
-          ctx.fillRect(t1x, barY + scaledBarHeight + 2, t1w, scaledTargetBarHeight);
+          ctx.fillRect(t1x, barY + BAR_HEIGHT + 2, t1w, TARGET_BAR_HEIGHT);
           ctx.globalAlpha = 1;
         }
       }
@@ -951,7 +936,7 @@ export default function GanttChart({
           const t2w = Math.max(daysBetween(t2Start, t2Finish) * pixelsPerDay, 3);
           ctx.fillStyle = COLORS.target2Fill;
           ctx.globalAlpha = 0.35;
-          ctx.fillRect(t2x, barY + scaledBarHeight + 2 + (t1Act ? scaledTargetBarHeight + 1 : 0), t2w, scaledTargetBarHeight);
+          ctx.fillRect(t2x, barY + BAR_HEIGHT + 2 + (t1Act ? TARGET_BAR_HEIGHT + 1 : 0), t2w, TARGET_BAR_HEIGHT);
           ctx.globalAlpha = 1;
         }
       }
@@ -961,8 +946,8 @@ export default function GanttChart({
       if (act.duration === 0 || (act as any).activityType === "milestone") {
         // Milestone diamond — use custom barColor if set, else default
         const cx = barX;
-        const cy = barY + scaledBarHeight / 2;
-        const size = scaledMilestoneSize;
+        const cy = barY + BAR_HEIGHT / 2;
+        const size = 6;
         const milestoneFill = act.barColor || COLORS.milestone;
         ctx.fillStyle = milestoneFill;
         ctx.beginPath();
@@ -980,7 +965,7 @@ export default function GanttChart({
 
         // Label above milestone
         ctx.fillStyle = ganttFontColor || COLORS.labelText;
-        ctx.font = `${scaledFontSize}px '${ganttFontFamily}', sans-serif`;
+        ctx.font = `${ganttFontSize}px '${ganttFontFamily}', sans-serif`;
         ctx.textAlign = "left";
         ctx.fillText(act.name, cx + size + 4, cy + 3);
       } else {
@@ -998,7 +983,7 @@ export default function GanttChart({
         const radius = 3;
         ctx.fillStyle = barFillColor;
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, scaledBarHeight, radius);
+        ctx.roundRect(barX, barY, barW, BAR_HEIGHT, radius);
         ctx.fill();
 
         // Progress fill
@@ -1008,7 +993,7 @@ export default function GanttChart({
           ctx.fillStyle = COLORS.progress;
           ctx.globalAlpha = 0.4;
           ctx.beginPath();
-          ctx.roundRect(barX, barY, progressW, scaledBarHeight, radius);
+          ctx.roundRect(barX, barY, progressW, BAR_HEIGHT, radius);
           ctx.fill();
           ctx.globalAlpha = 1;
         }
@@ -1021,13 +1006,13 @@ export default function GanttChart({
           : barStrokeColor;
         ctx.lineWidth = isHovered || isDropCandidate ? 2 : 1;
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, scaledBarHeight, radius);
+        ctx.roundRect(barX, barY, barW, BAR_HEIGHT, radius);
         ctx.stroke();
         ctx.lineWidth = 1;
 
         // Activity label ABOVE the bar — full name, no truncation
         ctx.fillStyle = ganttFontColor || COLORS.labelText;
-        ctx.font = `${scaledFontSize}px '${ganttFontFamily}', sans-serif`;
+        ctx.font = `${ganttFontSize}px '${ganttFontFamily}', sans-serif`;
         ctx.textAlign = "left";
         ctx.textBaseline = "bottom";
         ctx.fillText(act.name, barX, barY - 2);
@@ -1037,12 +1022,12 @@ export default function GanttChart({
         if (isHovered && !dragState) {
           // Left handle (Start)
           const lhX = barX;
-          const lhY = barY + scaledBarHeight / 2;
+          const lhY = barY + BAR_HEIGHT / 2;
           ctx.fillStyle = COLORS.handleFill;
           ctx.strokeStyle = COLORS.handleStroke;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(lhX, lhY, scaledHandleRadius, 0, Math.PI * 2);
+          ctx.arc(lhX, lhY, HANDLE_RADIUS, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
           ctx.fillStyle = "#fff";
@@ -1055,12 +1040,12 @@ export default function GanttChart({
 
           // Right handle (Finish)
           const rhX = barX + barW;
-          const rhY = barY + scaledBarHeight / 2;
+          const rhY = barY + BAR_HEIGHT / 2;
           ctx.fillStyle = COLORS.handleFill;
           ctx.strokeStyle = COLORS.handleStroke;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(rhX, rhY, scaledHandleRadius, 0, Math.PI * 2);
+          ctx.arc(rhX, rhY, HANDLE_RADIUS, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
           ctx.fillStyle = "#fff";
@@ -1072,7 +1057,7 @@ export default function GanttChart({
           ctx.fill();
         }
 
-        barRects.push({ activityId: act.id, x: barX, y: barY, w: barW, h: scaledBarHeight, isMilestone: false });
+        barRects.push({ activityId: act.id, x: barX, y: barY, w: barW, h: BAR_HEIGHT, isMilestone: false });
 
         // ── Cost overlay bar (below activity bar) ─────────────────────────
         if (showCostOverlay && costData) {
@@ -1083,7 +1068,7 @@ export default function GanttChart({
             costData.forEach((c) => { if (c > maxCost) maxCost = c; });
             const costBarMaxH = 10;
             const costBarH = maxCost > 0 ? Math.max(2, (cost / maxCost) * costBarMaxH) : 0;
-            const costBarY = barY + scaledBarHeight + 2;
+            const costBarY = barY + BAR_HEIGHT + 2;
             ctx.fillStyle = "#3b82f6"; // blue
             ctx.globalAlpha = 0.5;
             ctx.fillRect(barX, costBarY, barW, costBarH);
@@ -1091,7 +1076,7 @@ export default function GanttChart({
             // Cost label — uses user-configurable costFontSize
             const cfs = Math.max(6, Math.min(16, costFontSize));
             ctx.fillStyle = "#93c5fd"; // light blue for dark bg readability
-            ctx.font = `${scaledCostFontSize}px '${ganttFontFamily}', sans-serif`;
+            ctx.font = `${cfs}px '${ganttFontFamily}', sans-serif`;
             ctx.textAlign = "left";
             ctx.fillText(`$${(cost / 100).toLocaleString()}`, barX + 2, costBarY + costBarH + cfs + 1);
           }
@@ -1129,24 +1114,24 @@ export default function GanttChart({
 
         switch (rel.relationshipType) {
           case "FS":
-            startX = predBarEnd; startY = predY + scaledBarYOffset + scaledBarHeight / 2;
-            endX = succBarX; endY = succY + scaledBarYOffset + scaledBarHeight / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "SS":
-            startX = predBarX; startY = predY + scaledBarYOffset + scaledBarHeight / 2;
-            endX = succBarX; endY = succY + scaledBarYOffset + scaledBarHeight / 2;
+            startX = predBarX; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "FF":
-            startX = predBarEnd; startY = predY + scaledBarYOffset + scaledBarHeight / 2;
-            endX = succBarEnd; endY = succY + scaledBarYOffset + scaledBarHeight / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarEnd; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           case "SF":
-            startX = predBarX; startY = predY + scaledBarYOffset + scaledBarHeight / 2;
-            endX = succBarEnd; endY = succY + scaledBarYOffset + scaledBarHeight / 2;
+            startX = predBarX; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarEnd; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
             break;
           default:
-            startX = predBarEnd; startY = predY + scaledBarYOffset + scaledBarHeight / 2;
-            endX = succBarX; endY = succY + scaledBarYOffset + scaledBarHeight / 2;
+            startX = predBarEnd; startY = predY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
+            endX = succBarX; endY = succY + BAR_Y_OFFSET + BAR_HEIGHT / 2;
         }
 
         const isCriticalRel = predAct.isCritical && succAct.isCritical;
@@ -1165,8 +1150,8 @@ export default function GanttChart({
         // Arrow head
         ctx.beginPath();
         ctx.moveTo(endX, endY);
-        ctx.lineTo(endX - scaledArrowHeadSize, endY - scaledArrowHeadSize);
-        ctx.lineTo(endX - scaledArrowHeadSize, endY + scaledArrowHeadSize);
+        ctx.lineTo(endX - ARROW_HEAD_SIZE, endY - ARROW_HEAD_SIZE);
+        ctx.lineTo(endX - ARROW_HEAD_SIZE, endY + ARROW_HEAD_SIZE);
         ctx.closePath();
         ctx.fill();
       }
@@ -1195,12 +1180,12 @@ export default function GanttChart({
       ctx.beginPath();
       ctx.moveTo(dragState.currentX, dragState.currentY);
       ctx.lineTo(
-        dragState.currentX - scaledArrowHeadSize * 2 * Math.cos(angle - Math.PI / 6),
-        dragState.currentY - scaledArrowHeadSize * 2 * Math.sin(angle - Math.PI / 6),
+        dragState.currentX - ARROW_HEAD_SIZE * 2 * Math.cos(angle - Math.PI / 6),
+        dragState.currentY - ARROW_HEAD_SIZE * 2 * Math.sin(angle - Math.PI / 6),
       );
       ctx.lineTo(
-        dragState.currentX - scaledArrowHeadSize * 2 * Math.cos(angle + Math.PI / 6),
-        dragState.currentY - scaledArrowHeadSize * 2 * Math.sin(angle + Math.PI / 6),
+        dragState.currentX - ARROW_HEAD_SIZE * 2 * Math.cos(angle + Math.PI / 6),
+        dragState.currentY - ARROW_HEAD_SIZE * 2 * Math.sin(angle + Math.PI / 6),
       );
       ctx.closePath();
       ctx.fill();
@@ -1214,7 +1199,7 @@ export default function GanttChart({
           ctx.fillStyle = COLORS.connectLineValid;
           ctx.globalAlpha = 0.3;
           ctx.beginPath();
-          ctx.arc(handleX, handleY, scaledHandleRadius + 4, 0, Math.PI * 2);
+          ctx.arc(handleX, handleY, HANDLE_RADIUS + 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.globalAlpha = 1;
 
@@ -1228,7 +1213,7 @@ export default function GanttChart({
           else relLabel = "SF";
 
           ctx.fillStyle = COLORS.connectLineValid;
-          ctx.font = `bold ${scaledHeaderBoldFont}px 'DM Sans', sans-serif`;
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(relLabel, handleX, handleY - 14);
         }
@@ -1257,7 +1242,7 @@ export default function GanttChart({
       ctx.roundRect(lx, ly, labelW, labelH, 4);
       ctx.fill();
       ctx.fillStyle = "#fff";
-      ctx.font = `bold ${scaledHeaderBoldFont}px 'DM Sans', sans-serif`;
+      ctx.font = "bold 11px 'DM Sans', sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`${newDuration}d`, dragState.currentX, ly + labelH / 2);
@@ -1279,7 +1264,7 @@ export default function GanttChart({
 
         // Label at top
         ctx.fillStyle = COLORS.dataDateLine;
-        ctx.font = `bold ${scaledTodayFont}px 'DM Sans', sans-serif`;
+        ctx.font = "bold 9px 'DM Sans', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("DATA DATE", ddX, HEADER_HEIGHT - 4);
 
@@ -1311,7 +1296,7 @@ export default function GanttChart({
         ctx.setLineDash([]);
 
         ctx.fillStyle = COLORS.todayLine;
-        ctx.font = `bold ${scaledTodayFont}px 'DM Sans', sans-serif`;
+        ctx.font = "bold 9px 'DM Sans', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("TODAY", todayX, HEADER_HEIGHT - 4);
       }

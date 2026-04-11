@@ -1675,7 +1675,22 @@ export default function Scheduler() {
       )}
 
       {/* ── Split Pane ──────────────────────────────────────────────────────── */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
+      <div
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            transform: `scale(${magnificationZoom / 100})`,
+            transformOrigin: 'top left',
+            width: `${10000 / magnificationZoom}%`,
+            height: `${10000 / magnificationZoom}%`,
+          }}
+        >
+      <ResizablePanelGroup direction="horizontal" className="flex-1" style={{ height: '100%' }}>
         {/* Left: Activity Table */}
         <ResizablePanel defaultSize={45} minSize={25} maxSize={70}>
           <div ref={tableRef} className="h-full overflow-auto bg-white" onScroll={() => {
@@ -1792,9 +1807,8 @@ export default function Scheduler() {
                         style={{
                           backgroundColor: bgColor,
                           borderBottom: "1px solid rgba(0,0,0,0.2)",
-                          height: `${Math.round(getWbsRowHeight(depth, false) * magnificationZoom / 100)}px`,
+                          height: `${getWbsRowHeight(depth, false)}px`,
                           paddingRight: "12px",
-                          fontSize: `${Math.round(13 * magnificationZoom / 100)}px`,
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
                         title={isCollapsed ? "Click to expand" : "Click to collapse"}
@@ -1875,7 +1889,7 @@ export default function Scheduler() {
                             ? "hover:bg-yellow-50"
                             : "hover:bg-gray-50"
                         }`}
-                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${Math.round(getActivityRowHeight(false) * magnificationZoom / 100)}px`, fontSize: `${Math.round(14 * magnificationZoom / 100)}px` }}
+                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${getActivityRowHeight(false)}px` }}
                         onClick={(e) => {
                           // Don't handle if click originated from checkbox or dropdown
                           const target = e.target as HTMLElement;
@@ -2096,6 +2110,8 @@ export default function Scheduler() {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+        </div>
+      </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* ── DIALOGS ──────────────────────────────────────────────────────── */}
