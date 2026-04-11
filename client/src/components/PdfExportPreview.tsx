@@ -36,6 +36,8 @@ export interface PdfHeaderFooterConfig {
   visibleColumns?: string[];
   gridlineInterval?: "none" | "weekly" | "monthly" | "quarterly";
   timescaleLabels?: "months" | "quarters" | "both";
+  headerHeightMm?: number;
+  footerHeightMm?: number;
 }
 
 interface Activity {
@@ -167,6 +169,10 @@ export function PdfExportPreview({
   // Gridline & timescale controls
   const [gridlineInterval, setGridlineInterval] = useState<"none" | "weekly" | "monthly" | "quarterly">("monthly");
   const [timescaleLabels, setTimescaleLabels] = useState<"months" | "quarters" | "both">("months");
+
+  // Header/footer height controls (in mm)
+  const [headerHeightMm, setHeaderHeightMm] = useState(22);
+  const [footerHeightMm, setFooterHeightMm] = useState(14);
 
   // Multi-page state
   const [currentPage, setCurrentPage] = useState(0);
@@ -333,15 +339,15 @@ export function PdfExportPreview({
     const ppi = canvasDims.width / paperDims.w;
     const marginIn = 0.4;
     const margin = marginIn * ppi;
-    const headerH = 0.35 * ppi;
-    const footerH = 0.25 * ppi;
+    const headerH = (headerHeightMm / 25.4) * ppi;
+    const footerH = (footerHeightMm / 25.4) * ppi;
     const contentH = canvasDims.height - margin * 2 - headerH - footerH - 12;
     // baseFontSize scales with zoom so text stays proportional to row heights
     const baseFontSize = Math.max(4, Math.min(10, ppi * 0.08 * zoomScale));
     // Column-header row height also scales with zoom
     const headerRowH = (getActivityRowHeight(false) / 96) * ppi * zoomScale;
     return { ppi, margin, headerH, footerH, contentH, baseFontSize, headerRowH };
-  }, [canvasDims, paperDims, zoomScale]);
+  }, [canvasDims, paperDims, zoomScale, headerHeightMm, footerHeightMm]);
 
   const pages = useMemo(() => {
     const { ppi, contentH, headerRowH } = rowsPerPage;
@@ -893,7 +899,7 @@ export function PdfExportPreview({
     canvasDims, paperDims, rowsPerPage, headerColumns, footerColumns, headerColumnCount, footerColumnCount,
     showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
     getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
-    getRowHeightPdf, gridlineInterval, timescaleLabels,
+    getRowHeightPdf, gridlineInterval, timescaleLabels, headerHeightMm, footerHeightMm,
   ]);
 
   // Render all pages
@@ -934,6 +940,8 @@ export function PdfExportPreview({
       visibleColumns,
       gridlineInterval,
       timescaleLabels,
+      headerHeightMm,
+      footerHeightMm,
     });
   };
 
@@ -1357,6 +1365,32 @@ export function PdfExportPreview({
                       </div>
                     </div>
 
+                    {/* Header Height Control */}
+                    <div className="mt-2 pt-2 border-t border-white/10">
+                      <Label className="text-[10px] text-gray-400 mb-0.5 block">Height: {headerHeightMm}mm</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min={14}
+                          max={60}
+                          step={2}
+                          value={headerHeightMm}
+                          onChange={(e) => setHeaderHeightMm(Number(e.target.value))}
+                          className="flex-1 h-1.5 accent-amber-500"
+                        />
+                        <span className="text-[10px] text-gray-500 w-10 text-right">{headerHeightMm}mm</span>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {[14, 22, 30, 40, 50].map(h => (
+                          <Button key={h} size="sm" variant={headerHeightMm === h ? "default" : "outline"}
+                            className={`h-5 text-[9px] px-1.5 ${headerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            onClick={() => setHeaderHeightMm(h)}>
+                            {h === 14 ? "XS" : h === 22 ? "S" : h === 30 ? "M" : h === 40 ? "L" : "XL"}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
                     {renderColumnEditor("header", headerColumns, headerColumnCount)}
                   </TabsContent>
 
@@ -1371,6 +1405,33 @@ export function PdfExportPreview({
                         </Button>
                       ))}
                     </div>
+
+                    {/* Footer Height Control */}
+                    <div>
+                      <Label className="text-[10px] text-gray-400 mb-0.5 block">Height: {footerHeightMm}mm</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min={10}
+                          max={60}
+                          step={2}
+                          value={footerHeightMm}
+                          onChange={(e) => setFooterHeightMm(Number(e.target.value))}
+                          className="flex-1 h-1.5 accent-amber-500"
+                        />
+                        <span className="text-[10px] text-gray-500 w-10 text-right">{footerHeightMm}mm</span>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {[10, 14, 22, 30, 40].map(h => (
+                          <Button key={h} size="sm" variant={footerHeightMm === h ? "default" : "outline"}
+                            className={`h-5 text-[9px] px-1.5 ${footerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            onClick={() => setFooterHeightMm(h)}>
+                            {h === 10 ? "XS" : h === 14 ? "S" : h === 22 ? "M" : h === 30 ? "L" : "XL"}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
                     {renderColumnEditor("footer", footerColumns, footerColumnCount)}
                   </TabsContent>
                 </Tabs>

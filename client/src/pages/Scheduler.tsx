@@ -3986,6 +3986,8 @@ export default function Scheduler() {
               magnificationZoom,
               gridlineInterval: config.gridlineInterval ?? "monthly",
               timescaleLabels: config.timescaleLabels ?? "months",
+              headerHeightMm: config.headerHeightMm ?? 22,
+              footerHeightMm: config.footerHeightMm ?? 14,
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({

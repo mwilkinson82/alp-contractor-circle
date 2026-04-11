@@ -1607,3 +1607,16 @@
 - [x] Remove duplicate Activity Name truncation logic
 - [x] WBS group labels truncated instead of wrapped
 - [x] Column separator lines made more visible (0.1mm)
+
+## PDF Fix Round 2.5
+- [x] Increase activity row height from 9mm to 10mm for better readability
+- [x] Increase WBS group row heights (12/11/10mm by depth)
+- [x] Add header height slider control (14-60mm, XS/S/M/L/XL presets)
+- [x] Add footer height slider control (10-60mm, XS/S/M/L/XL presets)
+- [x] Make header/footer heights dynamic in PDF generator (headerHeightMm/footerHeightMm options)
+- [x] Wire headerHeightMm/footerHeightMm from preview config through Scheduler.tsx to generateSchedulePdf
+- [x] Fix default footer to show "© ConstructLine" in bottom-right
+- [x] Fix footer text vertical centering for variable heights (use footerHeight/2 + 1 instead of hardcoded y+5)
+- [x] Fix footer image positioning for variable heights
+- [x] Improve text vertical centering in rows (offset +0.8 instead of +1)
+- [x] Preview canvas dynamically adjusts header/footer area based on mm settings
