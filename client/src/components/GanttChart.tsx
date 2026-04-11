@@ -91,9 +91,9 @@ interface GanttChartProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BASE_ROW_HEIGHT = 44;
-const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
-const HEADER_HEIGHT = 48;
+export const BASE_ROW_HEIGHT = 44;
+export const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
+export const HEADER_HEIGHT = 48;
 const BAR_HEIGHT = 16;
 const BAR_Y_OFFSET = 17; // Push bar down to leave room for label above
 const TARGET_BAR_HEIGHT = 5;

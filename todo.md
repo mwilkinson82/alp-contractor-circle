@@ -1369,3 +1369,29 @@
 - [x] Fix: Remove P6 color bands (left bars + level backgrounds) from Gantt canvas — table side only
 - [x] Fix: Synchronized vertical scrolling between table panel and Gantt chart
 - [x] Fix: Clicking a Gantt bar highlights the corresponding activity row in the table
+
+
+## Scheduler Improvements (April 11 — Round 7)
+
+### Row Alignment (Table ↔ Gantt)
+- [x] Fix: Table rows and Gantt bars must be perfectly aligned row-by-row
+- [x] Ensure sticky headers don't break alignment
+- [x] Match row heights between table and Gantt canvas
+
+### Mass Relationship Assignment
+- [x] Add: When multiple activities selected (via checkboxes), show badge at bottom
+- [x] Add: Badge includes "Assign Predecessor" and "Assign Successor" buttons
+- [ ] Add: Clicking button opens modal to select predecessor/successor for ALL selected activities
+- [ ] Ensure all selected activities get the same relationship assigned
+
+### Successor Assignment + Search in Modal
+- [ ] Add: Successor assignment tab in activity modal (currently only predecessor)
+- [ ] Add: Search field in both predecessor and successor sections
+- [ ] Search should filter by activity ID, name, or WBS code
+- [ ] Show activity details (duration, dates) in search results for clarity
+
+### Date Constraint UX
+- [ ] Clarify: Must Start By vs Must Finish By vs Must Start On vs Must Finish On
+- [ ] Add: Guidance for milestones (e.g., "Notice to Proceed" should use Must Start On)
+- [ ] Add: Guidance for regular activities (e.g., "Receive Permit" should use Must Finish By)
+- [ ] Improve: Constraint type selector with descriptions/tooltips

@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useMember } from "@/hooks/useMember";
-import GanttChart from "@/components/GanttChart";
+import GanttChart, { BASE_ROW_HEIGHT, HEADER_HEIGHT } from "@/components/GanttChart";
 import GanttAnnotations, { type Annotation } from "@/components/GanttAnnotations";
 import { WBSTree } from "@/components/WBSTree";
 import { PdfExportPreview } from "@/components/PdfExportPreview";
@@ -477,6 +477,16 @@ export default function Scheduler() {
   const [lastClickedId, setLastClickedId] = useState<number | null>(null);
   const [showBulkWbsDialog, setShowBulkWbsDialog] = useState(false);
   const [bulkWbsTarget, setBulkWbsTarget] = useState("");
+  const [showBulkPredecessorDialog, setShowBulkPredecessorDialog] = useState(false);
+  const [bulkPredecessorTarget, setBulkPredecessorTarget] = useState("");
+  const [bulkPredecessorType, setBulkPredecessorType] = useState("FS");
+  const [bulkPredecessorLag, setBulkPredecessorLag] = useState("0");
+  const [showBulkSuccessorDialog, setShowBulkSuccessorDialog] = useState(false);
+  const [bulkSuccessorTarget, setBulkSuccessorTarget] = useState("");
+  const [bulkSuccessorType, setBulkSuccessorType] = useState("FS");
+  const [bulkSuccessorLag, setBulkSuccessorLag] = useState("0");
+  const [bulkRelSearchPred, setBulkRelSearchPred] = useState("");
+  const [bulkRelSearchSucc, setBulkRelSearchSucc] = useState("");
 
   /* ── Form State ───────────────────────────────────────────────────────── */
   const [newActName, setNewActName] = useState("");
@@ -1744,7 +1754,7 @@ export default function Scheduler() {
                         style={{
                           backgroundColor: bgColor,
                           borderBottom: "1px solid rgba(0,0,0,0.2)",
-                          minHeight: d === 0 ? "30px" : "26px",
+                          height: `${BASE_ROW_HEIGHT}px`,
                           paddingRight: "12px",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
@@ -1815,7 +1825,7 @@ export default function Scheduler() {
                       <div
                         key={act.id}
                         data-activity-id={act.id}
-                        className={`text-sm items-center gap-1.5 h-11 cursor-pointer transition-colors border-b border-gray-100 relative ${
+                        className={`text-sm items-center gap-1.5 cursor-pointer transition-colors border-b border-gray-100 relative ${
                           isSelected
                             ? "bg-amber-50 ring-1 ring-amber-500/20"
                             : act.id === selectedActivityId
@@ -1826,7 +1836,7 @@ export default function Scheduler() {
                             ? "hover:bg-yellow-50"
                             : "hover:bg-gray-50"
                         }`}
-                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px` }}
+                        style={{ display: "grid", gridTemplateColumns: gridTemplate, paddingLeft: `${actAnc.length * (ACT_BAR_W + 2)}px`, height: `${BASE_ROW_HEIGHT}px` }}
                         onClick={(e) => {
                           // Don't handle if click originated from checkbox or dropdown
                           const target = e.target as HTMLElement;
@@ -3849,6 +3859,22 @@ export default function Scheduler() {
             onClick={() => { setBulkWbsTarget(""); setShowBulkWbsDialog(true); }}
           >
             <FolderTree className="w-3.5 h-3.5 mr-1.5" /> Assign WBS
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+            onClick={() => setShowBulkPredecessorDialog(true)}
+          >
+            Assign Predecessor
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+            onClick={() => setShowBulkSuccessorDialog(true)}
+          >
+            Assign Successor
           </Button>
           <Button
             size="sm"
