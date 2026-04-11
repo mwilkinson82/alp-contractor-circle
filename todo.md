@@ -1543,3 +1543,34 @@
 - [x] Overall professional density matching P6
 - [x] Update preview canvas to match new PDF styling (yellow groups, bullet labels, thick bars)
 - [x] Self-QA: TypeScript clean, 365 tests pass
+
+## PDF Export P6-Accurate Rebuild (Round 2)
+- [x] WBS depth-based coloring: depth-0 green, depth-1 yellow, depth-2 red/salmon, depth-3+ pink/magenta
+- [x] Clean white background for activity rows (not dark themed)
+- [x] Activity text must be BLACK (not red)
+- [x] Column headers: readable text on subtle gray/blue header (not red on dark navy)
+- [x] Proper font sizing: activity rows ~7-8pt black, WBS groups bold slightly larger
+- [x] Activity bars: dark navy/black filled, thin but visible
+- [x] Activity bar labels: black text to right of bar with bullet prefix, readable size
+- [x] WBS summary bars: thick dark bars at WBS row level
+- [ ] Milestones: diamond shapes (pending)
+- [x] Timescale: clean two-tier (months top, weeks bottom), light vertical gridlines
+- [x] Thin light gray gridlines throughout table (not heavy)
+- [x] Compact but readable row heights (~5-6mm activities, slightly taller WBS)
+- [ ] Fix pagination: don't leave page 2 nearly empty (pending)
+- [x] Match preview canvas to actual PDF output exactly
+- [x] Header block: project title left, data date right
+- [x] Footer: project name left, date center, page X of Y right
+- [x] Overall clean white professional P6 aesthetic
+- [x] Configurable gridline interval: None, Weekly, Monthly, Quarterly
+- [x] Configurable timescale labels: Months, Quarters, or two-tier
+- [x] Gridline controls in PDF export settings panel
+- [x] Wire gridline settings to both preview canvas and PDF generator
+
+## P6 Page Setup Parity (Round 3 — Next)
+- [ ] ConstructLine branding in bottom-right corner of every page (replaces Oracle Corporation)
+- [ ] Margin controls: Top, Bottom, Left, Right (in inches)
+- [ ] Timescale Start/Finish options (PS, PF, DD, CD, CW, CM, Custom Date)
+- [ ] Break Page Every Group option
+- [ ] Bar legend in footer (Critical, Non-Critical, Milestone, Data Date)
+- [ ] All Columns vs. Visible Columns toggle

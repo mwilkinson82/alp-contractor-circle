@@ -3984,6 +3984,8 @@ export default function Scheduler() {
               headerTextColor: config.headerTextColor,
               pdfZoom: config.pdfZoom ?? 100,
               magnificationZoom,
+              gridlineInterval: config.gridlineInterval ?? "monthly",
+              timescaleLabels: config.timescaleLabels ?? "months",
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({

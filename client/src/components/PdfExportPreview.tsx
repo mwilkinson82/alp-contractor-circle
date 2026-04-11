@@ -34,6 +34,8 @@ export interface PdfHeaderFooterConfig {
   headerTextColor?: string;
   pdfZoom?: number;
   visibleColumns?: string[];
+  gridlineInterval?: "none" | "weekly" | "monthly" | "quarterly";
+  timescaleLabels?: "months" | "quarters" | "both";
 }
 
 interface Activity {
@@ -161,6 +163,10 @@ export function PdfExportPreview({
   // PDF zoom/fit control — independent of the scheduler magnificationZoom
   // This controls how content is scaled to fit the page
   const [pdfZoom, setPdfZoom] = useState(100); // 25-200%
+
+  // Gridline & timescale controls
+  const [gridlineInterval, setGridlineInterval] = useState<"none" | "weekly" | "monthly" | "quarterly">("monthly");
+  const [timescaleLabels, setTimescaleLabels] = useState<"months" | "quarters" | "both">("months");
 
   // Multi-page state
   const [currentPage, setCurrentPage] = useState(0);
@@ -491,21 +497,18 @@ export function PdfExportPreview({
 
       if (row.type === "group") {
         const depth = row.depth;
-        const indent = depth * 8;
-        // P6-style yellow backgrounds for WBS groups
-        ctx.fillStyle = depth === 0 ? "#ffffb4" : depth === 1 ? "#ffffd2" : "#ffffe6";
+        const indent = depth * 6;
+        // P6-style depth-based WBS colors: green → yellow → red/salmon → pink
+        const WBS_PREVIEW_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
+        ctx.fillStyle = WBS_PREVIEW_BG[depth % WBS_PREVIEW_BG.length];
         ctx.fillRect(margin, ry, tableW, rh);
-        if (depth > 0) {
-          ctx.fillStyle = row.bgColor || "#94a3b8";
-          ctx.fillRect(margin + indent - 2, ry + 1, 2, rh - 2);
-        }
-        // P6-style bold dark text for all WBS levels
+        // Bold black text
         ctx.fillStyle = "#141414";
-        ctx.font = `bold ${depth === 0 ? baseFontSize * 1.4 : depth === 1 ? baseFontSize * 1.2 : baseFontSize}px 'DM Sans', sans-serif`;
+        ctx.font = `bold ${depth === 0 ? baseFontSize * 1.2 : depth === 1 ? baseFontSize * 1.1 : baseFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = "left";
         const groupLabel = row.label.length > 50 ? row.label.slice(0, 50) + "…" : row.label;
         ctx.fillText(groupLabel, margin + 4 + indent, ry + rh / 2);
-        ctx.strokeStyle = "#cbd5e1";
+        ctx.strokeStyle = "#c8c8c8";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(margin, ry + rh);
@@ -577,42 +580,79 @@ export function PdfExportPreview({
 
       const tsFont = Math.max(5, baseFontSize * 0.85);
 
-      // Month grid lines and labels
+      // Configurable gridlines and timescale labels
       if (minDate !== Infinity) {
         const startD = new Date(minDate);
         const endD = new Date(maxDate);
         startD.setDate(1);
-        const months: { label: string; x: number }[] = [];
+
+        // Draw timescale header background
+        ctx.fillStyle = "#ebeef2";
+        ctx.fillRect(ganttX, contentY, ganttW, rowH);
+
         const cur = new Date(startD);
         while (cur <= endD) {
           const monthStart = cur.getTime();
           const nextMonth = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-          const monthEnd = Math.min(nextMonth.getTime(), maxDate);
-          const midPct = ((monthStart + monthEnd) / 2 - minDate) / dateRange;
-          const mx = ganttX + 4 + midPct * (ganttW - 8);
-          const shortMonth = cur.toLocaleDateString("en-US", { month: "short" });
-          const yr = cur.getFullYear().toString().slice(-2);
-          months.push({ label: `${shortMonth} '${yr}`, x: mx });
-
-          const boundaryPct = (nextMonth.getTime() - minDate) / dateRange;
+          const boundaryPct = (monthStart - minDate) / dateRange;
           const bx = ganttX + 4 + boundaryPct * (ganttW - 8);
-          if (bx > ganttX && bx < ganttX + ganttW) {
-            ctx.strokeStyle = "#e2e8f0";
-            ctx.lineWidth = 0.3;
-            ctx.beginPath();
-            ctx.moveTo(bx, contentY + rowH);
-            ctx.lineTo(bx, contentY + contentH);
-            ctx.stroke();
+          const isQuarterBoundary = cur.getMonth() % 3 === 0;
+
+          // Gridlines based on interval setting
+          if (gridlineInterval !== "none" && bx > ganttX && bx < ganttX + ganttW) {
+            if (gridlineInterval === "monthly" || (gridlineInterval === "quarterly" && isQuarterBoundary)) {
+              ctx.strokeStyle = gridlineInterval === "quarterly" && isQuarterBoundary ? "#c8c8c8" : "#e0e0e0";
+              ctx.lineWidth = gridlineInterval === "quarterly" && isQuarterBoundary ? 0.5 : 0.3;
+              ctx.beginPath();
+              ctx.moveTo(bx, contentY + rowH);
+              ctx.lineTo(bx, contentY + contentH);
+              ctx.stroke();
+            }
           }
+
+          // Weekly sub-gridlines
+          if (gridlineInterval === "weekly") {
+            const weekDate = new Date(cur);
+            weekDate.setDate(weekDate.getDate() + 7);
+            while (weekDate < nextMonth && weekDate <= endD) {
+              const wPct = (weekDate.getTime() - minDate) / dateRange;
+              const wx = ganttX + 4 + wPct * (ganttW - 8);
+              if (wx > ganttX && wx < ganttX + ganttW) {
+                ctx.strokeStyle = "#eeeeee";
+                ctx.lineWidth = 0.2;
+                ctx.beginPath();
+                ctx.moveTo(wx, contentY + rowH);
+                ctx.lineTo(wx, contentY + contentH);
+                ctx.stroke();
+              }
+              weekDate.setDate(weekDate.getDate() + 7);
+            }
+          }
+
+          // Labels
+          if (bx > ganttX && bx < ganttX + ganttW) {
+            ctx.fillStyle = "#4a4f55";
+            ctx.font = `bold ${tsFont}px 'DM Sans', sans-serif`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            const shortMonth = cur.toLocaleDateString("en-US", { month: "short" });
+            const yr = cur.getFullYear().toString().slice(-2);
+            if (timescaleLabels === "months" || timescaleLabels === "both") {
+              ctx.fillText(`${shortMonth} '${yr}`, bx + 2, contentY + rowH / 2);
+            }
+            if (timescaleLabels === "quarters" && isQuarterBoundary) {
+              const qNum = Math.floor(cur.getMonth() / 3) + 1;
+              ctx.fillText(`Q${qNum} '${yr}`, bx + 2, contentY + rowH / 2);
+            }
+            if (timescaleLabels === "both" && isQuarterBoundary) {
+              const qNum = Math.floor(cur.getMonth() / 3) + 1;
+              ctx.font = `${tsFont * 0.85}px 'DM Sans', sans-serif`;
+              ctx.fillText(`Q${qNum}`, bx + 2, contentY + rowH * 0.25);
+            }
+          }
+
           cur.setMonth(cur.getMonth() + 1);
         }
-        months.forEach(m => {
-          ctx.fillStyle = "#94a3b8";
-          ctx.font = `${tsFont}px 'DM Sans', sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(m.label, m.x, contentY + rowH / 2);
-        });
       }
 
       // Track bar positions for logic lines (activityId → bar positions)
@@ -632,11 +672,12 @@ export function PdfExportPreview({
         if (ry + rh > contentY + contentH - 4) break;
 
         if (row.type === "group") {
-          // P6-style yellow background tint in Gantt area too
-          ctx.fillStyle = row.depth === 0 ? "#ffffb4" : row.depth === 1 ? "#ffffd2" : "#ffffe6";
+          // P6-style depth-based background in Gantt area
+          const WBS_GANTT_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
+          ctx.fillStyle = WBS_GANTT_BG[row.depth % WBS_GANTT_BG.length];
           ctx.fillRect(ganttX, ry, ganttW, rh);
 
-          // ── WBS Summary Bar (matching GanttChart.tsx) ──
+          // ── WBS Summary Bar (thinner, P6-style) ──
           const childActs = row.groupActivities || [];
           let summaryStart = Infinity;
           let summaryEnd = -Infinity;
@@ -649,21 +690,21 @@ export function PdfExportPreview({
             const ePct = (summaryEnd - minDate) / dateRange;
             const sbx = ganttX + 4 + sPct * (ganttW - 8);
             const sbw = Math.max(4, (ePct - sPct) * (ganttW - 8));
-            const sbh = Math.max(5, rh * 0.35);
-            const sby = ry + rh / 2 - sbh / 2 + 1;
+            const sbh = Math.max(3, rh * 0.25);
+            const sby = ry + rh / 2 - sbh / 2;
             // Dark summary bar
-            ctx.fillStyle = "#1a1a1a";
+            ctx.fillStyle = "#282828";
             ctx.fillRect(sbx, sby, sbw, sbh);
             // Start bracket (downward tick)
-            const tickW = Math.max(1.5, sbh * 0.3);
-            const tickH = sbh + Math.max(2, sbh * 0.5);
+            const tickW = Math.max(1, sbh * 0.25);
+            const tickH = sbh + Math.max(1.5, sbh * 0.4);
             ctx.fillRect(sbx, sby, tickW, tickH);
             // End bracket (downward tick)
             ctx.fillRect(sbx + sbw - tickW, sby, tickW, tickH);
             // Diamond at end
             const dx = sbx + sbw;
             const dy = sby + sbh / 2;
-            const ds = Math.max(2.5, sbh * 0.4);
+            const ds = Math.max(2, sbh * 0.35);
             ctx.beginPath();
             ctx.moveTo(dx, dy - ds);
             ctx.lineTo(dx + ds, dy);
@@ -852,7 +893,7 @@ export function PdfExportPreview({
     canvasDims, paperDims, rowsPerPage, headerColumns, footerColumns, headerColumnCount, footerColumnCount,
     showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
     getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
-    getRowHeightPdf,
+    getRowHeightPdf, gridlineInterval, timescaleLabels,
   ]);
 
   // Render all pages
@@ -891,6 +932,8 @@ export function PdfExportPreview({
       headerTextColor,
       pdfZoom,
       visibleColumns,
+      gridlineInterval,
+      timescaleLabels,
     });
   };
 
@@ -1149,6 +1192,38 @@ export function PdfExportPreview({
                     </p>
                   </div>
                 </label>
+              </div>
+
+              {/* Gridline & Timescale Controls */}
+              <div className="bg-white/5 rounded-lg border border-white/10 p-3 space-y-2">
+                <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Gridlines & Timescale</Label>
+                <div>
+                  <Label className="text-[10px] text-gray-400 mb-0.5 block">Gridline Interval</Label>
+                  <Select value={gridlineInterval} onValueChange={(v) => setGridlineInterval(v as any)}>
+                    <SelectTrigger className="border-white/15 text-xs bg-white/5 text-gray-200 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-xs">None</SelectItem>
+                      <SelectItem value="weekly" className="text-xs">Weekly</SelectItem>
+                      <SelectItem value="monthly" className="text-xs">Monthly</SelectItem>
+                      <SelectItem value="quarterly" className="text-xs">Quarterly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-gray-400 mb-0.5 block">Timescale Labels</Label>
+                  <Select value={timescaleLabels} onValueChange={(v) => setTimescaleLabels(v as any)}>
+                    <SelectTrigger className="border-white/15 text-xs bg-white/5 text-gray-200 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="months" className="text-xs">Months</SelectItem>
+                      <SelectItem value="quarters" className="text-xs">Quarters</SelectItem>
+                      <SelectItem value="both" className="text-xs">Both (Months + Quarters)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Zoom & Fit Controls */}

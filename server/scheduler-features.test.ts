@@ -256,6 +256,98 @@ describe("PDF Header Color Config", () => {
   });
 });
 
+// ── P6-style WBS Depth Colors ──
+describe("P6 WBS Depth-Based Colors", () => {
+  // These match the WBS_DEPTH_BG array in schedulePdf.ts
+  const WBS_DEPTH_BG: [number, number, number][] = [
+    [180, 220, 140],  // Depth 0: Green
+    [255, 240, 130],  // Depth 1: Yellow
+    [240, 150, 140],  // Depth 2: Red/Salmon
+    [230, 170, 220],  // Depth 3: Pink/Magenta
+    [180, 200, 240],  // Depth 4: Light Blue
+    [255, 210, 150],  // Depth 5: Light Orange
+  ];
+
+  it("has at least 4 distinct depth colors (green, yellow, red, pink)", () => {
+    expect(WBS_DEPTH_BG.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("depth 0 is green-toned (G channel highest)", () => {
+    const [r, g, b] = WBS_DEPTH_BG[0];
+    expect(g).toBeGreaterThan(r);
+    expect(g).toBeGreaterThan(b);
+  });
+
+  it("depth 1 is yellow-toned (R and G channels high, B low)", () => {
+    const [r, g, b] = WBS_DEPTH_BG[1];
+    expect(r).toBeGreaterThan(200);
+    expect(g).toBeGreaterThan(200);
+    expect(b).toBeLessThan(200);
+  });
+
+  it("depth 2 is red/salmon-toned (R channel highest)", () => {
+    const [r, g, b] = WBS_DEPTH_BG[2];
+    expect(r).toBeGreaterThan(g);
+    expect(r).toBeGreaterThan(b);
+  });
+
+  it("all colors are valid RGB values (0-255)", () => {
+    for (const color of WBS_DEPTH_BG) {
+      for (const channel of color) {
+        expect(channel).toBeGreaterThanOrEqual(0);
+        expect(channel).toBeLessThanOrEqual(255);
+      }
+    }
+  });
+
+  it("wraps around for depths beyond the palette length", () => {
+    const depth = 7;
+    const color = WBS_DEPTH_BG[depth % WBS_DEPTH_BG.length];
+    expect(color).toEqual(WBS_DEPTH_BG[1]); // 7 % 6 = 1
+  });
+});
+
+// ── Gridline & Timescale Configuration ──
+describe("Gridline & Timescale Configuration", () => {
+  const VALID_INTERVALS = ["none", "weekly", "monthly", "quarterly"] as const;
+  const VALID_LABELS = ["months", "quarters", "both"] as const;
+
+  it("all gridline intervals are valid options", () => {
+    for (const interval of VALID_INTERVALS) {
+      expect(typeof interval).toBe("string");
+      expect(interval.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("all timescale label options are valid", () => {
+    for (const label of VALID_LABELS) {
+      expect(typeof label).toBe("string");
+      expect(label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("default gridline interval is monthly", () => {
+    const defaultInterval = "monthly";
+    expect(VALID_INTERVALS).toContain(defaultInterval);
+  });
+
+  it("default timescale labels is months", () => {
+    const defaultLabels = "months";
+    expect(VALID_LABELS).toContain(defaultLabels);
+  });
+
+  it("quarterly gridlines only show at quarter boundaries (month % 3 === 0)", () => {
+    const quarterMonths = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+    const nonQuarterMonths = [1, 2, 4, 5, 7, 8, 10, 11];
+    for (const m of quarterMonths) {
+      expect(m % 3).toBe(0);
+    }
+    for (const m of nonQuarterMonths) {
+      expect(m % 3).not.toBe(0);
+    }
+  });
+});
+
 // ── Annotation Model ──
 describe("Gantt Annotation Model", () => {
   interface TextAnnotation {

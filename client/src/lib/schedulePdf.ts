@@ -90,6 +90,10 @@ export interface PdfExportOptions {
   // Scheduler magnification zoom (default 100)
   magnificationZoom?: number;
 
+  // Timescale / gridline options
+  gridlineInterval?: "none" | "weekly" | "monthly" | "quarterly";
+  timescaleLabels?: "months" | "quarters" | "both";
+
   // WBS grouping for Gantt
   groupedActivities?: Array<{
     group: string | null;
@@ -219,19 +223,31 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   const headerHeight = 22;
   const footerHeight = 14;
 
-  // ─── Color Palette ──────────────────────────────────────────────────────────
+  // ─── Color Palette (P6-style clean white) ─────────────────────────────────
   const colors = {
     navy: [13, 27, 42] as [number, number, number],
     gold: [201, 168, 76] as [number, number, number],
     steelBlue: [74, 111, 165] as [number, number, number],
     white: [255, 255, 255] as [number, number, number],
-    warmGray: [245, 243, 239] as [number, number, number],
-    text: [30, 30, 30] as [number, number, number],
+    warmGray: [248, 248, 248] as [number, number, number],
+    text: [20, 20, 20] as [number, number, number],
     muted: [120, 120, 120] as [number, number, number],
-    border: [210, 210, 210] as [number, number, number],
-    critical: [220, 38, 38] as [number, number, number],
-    green: [22, 163, 74] as [number, number, number],
+    border: [200, 200, 200] as [number, number, number],
+    lightBorder: [225, 225, 225] as [number, number, number],
+    critical: [200, 30, 30] as [number, number, number],
+    green: [22, 130, 60] as [number, number, number],
+    colHeader: [235, 238, 242] as [number, number, number],
+    colHeaderText: [50, 55, 65] as [number, number, number],
   };
+  // P6-style WBS depth colors: green → yellow → red/salmon → pink/magenta
+  const WBS_DEPTH_BG: [number, number, number][] = [
+    [180, 220, 140],  // Depth 0: Green
+    [255, 240, 130],  // Depth 1: Yellow
+    [240, 150, 140],  // Depth 2: Red/Salmon
+    [230, 170, 220],  // Depth 3: Pink/Magenta
+    [180, 200, 240],  // Depth 4: Light Blue
+    [255, 210, 150],  // Depth 5: Light Orange
+  ];
   const hdrAccent = options.headerAccentColor ? hexToRgb(options.headerAccentColor) : colors.gold;
   const hdrText = options.headerTextColor ? hexToRgb(options.headerTextColor) : colors.white;
 
@@ -458,10 +474,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         lineWidth: 0.1,
       },
       headStyles: {
-        fillColor: colors.navy,
-        textColor: colors.gold,
+        fillColor: colors.colHeader,
+        textColor: colors.colHeaderText,
         fontStyle: "bold",
-        fontSize: 7,
+        fontSize: 6.5,
       },
       alternateRowStyles: {
         fillColor: colors.warmGray,
@@ -546,13 +562,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
-    // Variable row heights: group rows are taller, activity rows are compact (P6-style)
+    // Variable row heights: compact P6-style density
     const getRowH = (row: PdfRow): number => {
       if (row.type === "group") {
         const depth = row.depth;
-        return (depth === 0 ? 10 : depth === 1 ? 8 : 6.5) * zoomScale;
+        return (depth === 0 ? 7 : depth === 1 ? 6 : 5.5) * zoomScale;
       }
-      return 7.5 * zoomScale;
+      return 5.5 * zoomScale;
     };
 
     // Start Gantt on a new page (or continue on first page if no table)
@@ -631,12 +647,12 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
 
       const pageRows = pages[pageIdx];
 
-      // ─── Draw column headers at top of Gantt table ─────────────────
-      const colHeaderH = 7;
-      doc.setFillColor(...colors.navy);
+      // ─── Draw column headers at top of Gantt table (P6-style light gray) ──
+      const colHeaderH = 6;
+      doc.setFillColor(...colors.colHeader);
       doc.rect(ganttLeft, ganttTop - colHeaderH - 1, labelWidth, colHeaderH, "F");
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.gold);
+      doc.setFontSize(6);
+      doc.setTextColor(...colors.colHeaderText);
       doc.setFont("helvetica", "bold");
       let chX = ganttLeft;
       for (let ci = 0; ci < ganttActiveCols.length; ci++) {
@@ -664,43 +680,69 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
       const pageContentBottom = cumY;
 
-      // ─── Draw Time Scale ──────────────────────────────────────────────────
-      // Two-tier timescale: months on top, week ticks below (P6-style)
-      doc.setFontSize(7);
-      doc.setTextColor(...colors.text);
+        // ─── Draw Time Scale (configurable gridlines & labels) ─────────────
+      const gridInterval = options.gridlineInterval || "monthly";
+      const tsLabels = options.timescaleLabels || "months";
 
+      // Draw timescale labels in the header area above the Gantt
+      // Also draw the timescale header background
+      doc.setFillColor(...colors.colHeader);
+      doc.rect(chartLeft, ganttTop - colHeaderH - 1, chartWidth, colHeaderH, "F");
+
+      // Month-based iteration for labels and gridlines
       const current = new Date(minDate);
       current.setDate(1);
       while (current <= maxDate) {
         const x = dateToX(current);
+        const nextMonth = new Date(current);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
         if (x >= chartLeft && x <= ganttRight) {
-          // Month gridline — visible
-          doc.setDrawColor(200, 200, 200);
-          doc.setLineWidth(0.2);
-          doc.line(x, ganttTop, x, pageContentBottom);
-          // Month label
-          doc.setTextColor(...colors.text);
+          const isQuarterBoundary = current.getMonth() % 3 === 0;
+
+          // Gridlines based on interval setting
+          if (gridInterval === "monthly" || (gridInterval === "quarterly" && isQuarterBoundary)) {
+            doc.setDrawColor(...colors.border);
+            doc.setLineWidth(gridInterval === "quarterly" && isQuarterBoundary ? 0.2 : 0.12);
+            doc.line(x, ganttTop, x, pageContentBottom);
+          }
+
+          // Labels
+          doc.setTextColor(...colors.colHeaderText);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(7);
-          doc.text(
-            current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-            x + 1, ganttTop - 3
-          );
-          // Week tick marks within this month
+          doc.setFontSize(5.5);
+          if (tsLabels === "months" || tsLabels === "both") {
+            doc.text(
+              current.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+              x + 1, ganttTop - colHeaderH / 2
+            );
+          }
+          if (tsLabels === "quarters" && isQuarterBoundary) {
+            const qNum = Math.floor(current.getMonth() / 3) + 1;
+            doc.text(`Q${qNum} '${current.getFullYear().toString().slice(-2)}`, x + 1, ganttTop - colHeaderH / 2);
+          }
+          if (tsLabels === "both" && isQuarterBoundary) {
+            const qNum = Math.floor(current.getMonth() / 3) + 1;
+            doc.setFontSize(5);
+            doc.text(`Q${qNum}`, x + 1, ganttTop - colHeaderH + 1.5);
+          }
+        }
+
+        // Weekly sub-gridlines (only if gridInterval is "weekly")
+        if (gridInterval === "weekly") {
           const weekDate = new Date(current);
           weekDate.setDate(weekDate.getDate() + 7);
-          const nextMonth = new Date(current);
-          nextMonth.setMonth(nextMonth.getMonth() + 1);
           while (weekDate < nextMonth && weekDate <= maxDate) {
             const wx = dateToX(weekDate);
             if (wx >= chartLeft && wx <= ganttRight) {
-              doc.setDrawColor(235, 235, 235);
-              doc.setLineWidth(0.08);
+              doc.setDrawColor(...colors.lightBorder);
+              doc.setLineWidth(0.06);
               doc.line(wx, ganttTop, wx, pageContentBottom);
             }
             weekDate.setDate(weekDate.getDate() + 7);
           }
         }
+
         current.setMonth(current.getMonth() + 1);
       }
       doc.setFont("helvetica", "normal");
@@ -722,35 +764,22 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       pageRows.forEach((row, i) => {
         const y = rowYOffsets[i];
         const rh = getRowH(row);
-        const barH = rh * 0.65;
+        const barH = rh * 0.50;
 
         if (row.type === "group") {
-          // WBS Group Header row — P6-style bright yellow for top-level, lighter for children
+          // WBS Group Header row — P6-style depth-based colors
           const depth = row.depth;
-          const indent = depth * 4; // mm indent per level
-          // Background — P6 uses bright yellow for WBS groups
-          if (depth === 0) {
-            doc.setFillColor(255, 255, 180); // Bright yellow like P6
-          } else if (depth === 1) {
-            doc.setFillColor(255, 255, 210); // Lighter yellow
-          } else {
-            doc.setFillColor(255, 255, 230); // Lightest yellow
-          }
+          const indent = depth * 3; // mm indent per level
+          // Background — depth-based: green → yellow → red → pink
+          const bgColor = WBS_DEPTH_BG[depth % WBS_DEPTH_BG.length];
+          doc.setFillColor(...bgColor);
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
 
-          // Left accent bar for child groups
-          if (depth > 0) {
-            const accentColor = row.bgColor || "#94a3b8";
-            const hex = accentColor.replace('#', '');
-            doc.setFillColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
-            doc.rect(ganttLeft + indent - 1, y + 0.5, 0.8, rh - 1, "F");
-          }
-
-          // Group label text — P6-style bold dark text
-          doc.setTextColor(20, 20, 20); // Dark black text for all WBS levels
+          // Group label text — bold black text
+          doc.setTextColor(20, 20, 20);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7);
-          doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.5, { maxWidth: labelWidth - indent - 4 });
+          doc.setFontSize(depth === 0 ? 7.5 : depth === 1 ? 7 : 6.5);
+          doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.2, { maxWidth: labelWidth - indent - 4 });
 
           // ── WBS Summary Bar in Gantt area ──
           const childActs = row.groupActivities || [];
@@ -764,10 +793,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             const sbx1 = dateToX(new Date(summaryStart));
             const sbx2 = dateToX(new Date(summaryEnd));
             const sbw = Math.max(sbx2 - sbx1, 2);
-            const sbh = Math.max(3, rh * 0.35);
+            const sbh = Math.max(2, rh * 0.28);
             const sby = y + rh / 2 - sbh / 2;
             // Dark summary bar
-            doc.setFillColor(26, 26, 26);
+            doc.setFillColor(40, 40, 40);
             doc.rect(sbx1, sby, sbw, sbh, "F");
             // Start bracket (downward tick)
             const tickW = Math.max(0.5, sbh * 0.3);
@@ -784,7 +813,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           }
 
           // Separator
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(...colors.border);
           doc.setLineWidth(0.1);
           doc.line(ganttLeft, y + rh, ganttRight, y + rh);
           return;
@@ -798,13 +827,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           doc.rect(ganttLeft, y, ganttRight - ganttLeft, rh, "F");
         }
 
-        // Row separator line
-        doc.setDrawColor(235, 235, 235);
+        // Row separator line — very thin, light gray (P6-style)
+        doc.setDrawColor(...colors.lightBorder);
         doc.setLineWidth(0.05);
         doc.line(ganttLeft, y + rh, ganttRight, y + rh);
 
         // Activity columns (dynamic based on visible columns)
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         const txtColor = act.isCritical ? colors.critical : colors.text;
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
@@ -826,10 +855,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           } else {
             doc.text(val, cellX + cw / 2, y + rh / 2 + 1.5, { align: "center", maxWidth: cw - 1 });
           }
-          // Column separator line
+          // Column separator line — very subtle
           if (ci > 0) {
-            doc.setDrawColor(230, 230, 230);
-            doc.setLineWidth(0.05);
+            doc.setDrawColor(...colors.lightBorder);
+            doc.setLineWidth(0.04);
             doc.line(cellX, y, cellX, y + rh);
           }
           cellX += cw;
@@ -886,7 +915,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             }
 
             // Label to the right of diamond (clipped to Gantt area) — P6-style with bullet
-            doc.setFontSize(6);
+            doc.setFontSize(5.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
             const milestoneLabel = `\u25CF ${act.name}`;
@@ -921,7 +950,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             }
 
             // Label to the right of bar (clipped to Gantt area) — P6-style with bullet
-            doc.setFontSize(6);
+            doc.setFontSize(5.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
             const barLabel = `\u25CF ${act.name}`;
