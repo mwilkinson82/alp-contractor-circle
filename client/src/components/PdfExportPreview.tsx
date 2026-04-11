@@ -748,7 +748,7 @@ export function PdfExportPreview({
           ctx.fillStyle = "#1e293b";
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(`\u25CF ${act.name}`, cx + s + 3, cy);
+          ctx.fillText(`- ${act.name}`, cx + s + 3, cy);
         } else {
           ctx.fillStyle = act.barColor || (act.isCritical ? "#ef4444" : "#22c55e");
           const radius = 1.5;
@@ -763,7 +763,7 @@ export function PdfExportPreview({
           // Always draw label to the right of bar with bullet prefix
           ctx.fillStyle = "#1e293b";
           ctx.textAlign = "left";
-          ctx.fillText(`\u25CF ${act.name}`, bx + bw + 3, labelY);
+          ctx.fillText(`- ${act.name}`, bx + bw + 3, labelY);
         }
       }
 

@@ -384,7 +384,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   // ─── Build Column Definitions ───────────────────────────────────────────────
   const columnMap: Record<string, { header: string; minWidth: number; dataKey: string; grow: boolean }> = {
     activityId: { header: "ID", minWidth: 16, dataKey: "activityId", grow: false },
-    name: { header: "Activity Name", minWidth: 55, dataKey: "name", grow: true },
+    name: { header: "Activity Name", minWidth: 70, dataKey: "name", grow: true },
     duration: { header: "Dur", minWidth: 11, dataKey: "duration", grow: false },
     percentComplete: { header: "%", minWidth: 11, dataKey: "percentComplete", grow: false },
     earlyStart: { header: "ES", minWidth: 22, dataKey: "earlyStart", grow: false },
@@ -467,8 +467,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       body: tableData.map((row) => selectedColumns.map((c) => (row as any)[c.dataKey])),
       theme: "plain",
       styles: {
-        fontSize: 7,
-        cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 },
+        fontSize: 8,
+        cellPadding: { top: 2.2, bottom: 2.2, left: 2, right: 2 },
         textColor: colors.text,
         lineColor: colors.border,
         lineWidth: 0.1,
@@ -477,7 +477,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         fillColor: colors.colHeader,
         textColor: colors.colHeaderText,
         fontStyle: "bold",
-        fontSize: 6.5,
+        fontSize: 7.5,
       },
       alternateRowStyles: {
         fillColor: colors.warmGray,
@@ -566,9 +566,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     const getRowH = (row: PdfRow): number => {
       if (row.type === "group") {
         const depth = row.depth;
-        return (depth === 0 ? 7 : depth === 1 ? 6 : 5.5) * zoomScale;
+        return (depth === 0 ? 9 : depth === 1 ? 8 : 7.5) * zoomScale;
       }
-      return 5.5 * zoomScale;
+      return 7 * zoomScale;
     };
 
     // Start Gantt on a new page (or continue on first page if no table)
@@ -601,7 +601,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     // ─── Dynamic column definitions for Gantt left-side table ─────────────
     const ganttColDefs: Record<string, { header: string; minWidth: number; grow: boolean; getValue: (act: any) => string }> = {
       activityId: { header: "ID", minWidth: 14, grow: false, getValue: (a) => a.activityId || "" },
-      name: { header: "Activity Name", minWidth: 40, grow: true, getValue: (a) => a.name || "" },
+      name: { header: "Activity Name", minWidth: 70, grow: true, getValue: (a) => a.name || "" },
       duration: { header: "Dur", minWidth: 10, grow: false, getValue: (a) => `${a.duration}d` },
       percentComplete: { header: "%", minWidth: 8, grow: false, getValue: (a) => `${Math.round(parseFloat(String(a.percentComplete)) || 0)}%` },
       earlyStart: { header: "ES", minWidth: 18, grow: false, getValue: (a) => a.earlyStart ? new Date(a.earlyStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
@@ -648,10 +648,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const pageRows = pages[pageIdx];
 
       // ─── Draw column headers at top of Gantt table (P6-style light gray) ──
-      const colHeaderH = 6;
+      const colHeaderH = 7;
       doc.setFillColor(...colors.colHeader);
       doc.rect(ganttLeft, ganttTop - colHeaderH - 1, labelWidth, colHeaderH, "F");
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(...colors.colHeaderText);
       doc.setFont("helvetica", "bold");
       let chX = ganttLeft;
@@ -660,9 +660,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         const cw = ganttColWidths[ci];
         const isLeft = col.header === "Activity Name" || col.header === "ID";
         if (isLeft) {
-          doc.text(col.header, chX + 1, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.5);
+          doc.text(col.header, chX + 1.5, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.8);
         } else {
-          doc.text(col.header, chX + cw / 2, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.5, { align: "center" });
+          doc.text(col.header, chX + cw / 2, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.8, { align: "center" });
         }
         chX += cw;
       }
@@ -764,7 +764,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       pageRows.forEach((row, i) => {
         const y = rowYOffsets[i];
         const rh = getRowH(row);
-        const barH = rh * 0.50;
+        const barH = rh * 0.55;
 
         if (row.type === "group") {
           // WBS Group Header row — P6-style depth-based colors
@@ -778,7 +778,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           // Group label text — bold black text
           doc.setTextColor(20, 20, 20);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(depth === 0 ? 7.5 : depth === 1 ? 7 : 6.5);
+          doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7.5);
           doc.text(row.label, ganttLeft + 2 + indent, y + rh / 2 + 1.2, { maxWidth: labelWidth - indent - 4 });
 
           // ── WBS Summary Bar in Gantt area ──
@@ -833,7 +833,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.line(ganttLeft, y + rh, ganttRight, y + rh);
 
         // Activity columns (dynamic based on visible columns)
-        doc.setFontSize(6);
+        doc.setFontSize(7.5);
         const txtColor = act.isCritical ? colors.critical : colors.text;
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
@@ -844,16 +844,26 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           let val = col.getValue(act);
           const isLeft = col.header === "Activity Name" || col.header === "ID";
           if (col.header === "Activity Name") {
-            // Truncate name to fit column width
-            const maxW = cw - 2;
-            while (doc.getTextWidth(val) > maxW && val.length > 3) {
-              val = val.slice(0, -2) + "\u2026";
+            // Truncate name to fit column width — word-boundary aware
+            const maxW = cw - 3;
+            if (doc.getTextWidth(val) > maxW) {
+              // Try to cut at last space that fits
+              let truncated = val;
+              while (doc.getTextWidth(truncated + "...") > maxW && truncated.length > 3) {
+                const lastSpace = truncated.lastIndexOf(" ");
+                if (lastSpace > 5) {
+                  truncated = truncated.substring(0, lastSpace);
+                } else {
+                  truncated = truncated.slice(0, -1);
+                }
+              }
+              val = truncated + "...";
             }
           }
           if (isLeft) {
-            doc.text(val, cellX + 1, y + rh / 2 + 1.5, { maxWidth: cw - 2 });
+            doc.text(val, cellX + 1.5, y + rh / 2 + 2, { maxWidth: cw - 3 });
           } else {
-            doc.text(val, cellX + cw / 2, y + rh / 2 + 1.5, { align: "center", maxWidth: cw - 1 });
+            doc.text(val, cellX + cw / 2, y + rh / 2 + 2, { align: "center", maxWidth: cw - 2 });
           }
           // Column separator line — very subtle
           if (ci > 0) {
@@ -915,10 +925,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             }
 
             // Label to the right of diamond (clipped to Gantt area) — P6-style with bullet
-            doc.setFontSize(5.5);
+            doc.setFontSize(6.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const milestoneLabel = `\u25CF ${act.name}`;
+            const milestoneLabel = `- ${act.name}`;
             const labelStartX = cx + half + 1.5;
             const availSpace = ganttRight - labelStartX - 1;
             if (availSpace > 5) {
@@ -950,10 +960,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             }
 
             // Label to the right of bar (clipped to Gantt area) — P6-style with bullet
-            doc.setFontSize(5.5);
+            doc.setFontSize(6.5);
             doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            const barLabel = `\u25CF ${act.name}`;
+            const barLabel = `- ${act.name}`;
             const labelStartX = x2 + 1.5;
             const availableSpace = ganttRight - labelStartX - 1;
             if (availableSpace > 5) {

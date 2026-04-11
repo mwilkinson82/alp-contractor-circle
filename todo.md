@@ -1574,3 +1574,12 @@
 - [ ] Break Page Every Group option
 - [ ] Bar legend in footer (Critical, Non-Critical, Milestone, Data Date)
 - [ ] All Columns vs. Visible Columns toggle
+
+## PDF Readability Critical Fix (Round 2.1)
+- [x] Activity Name column too narrow — text truncated mid-word. Widened to 70mm minWidth
+- [x] Gantt bar labels cut off at right edge — word-boundary truncation with "..." ellipsis
+- [x] Bullet character "●" renders as "%I" in jsPDF — replaced with dash prefix "- "
+- [x] Row heights too small — increased to 7mm activities, 7.5-9mm WBS groups
+- [x] Font sizes too small — increased to 7.5pt activities, 7-9pt WBS, 7pt headers
+- [x] Every other row partially clipped — taller rows with more cell padding
+- [x] Update preview canvas to match all fixes (bullet char fixed)
