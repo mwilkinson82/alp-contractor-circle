@@ -318,6 +318,25 @@ export default function Scheduler() {
 
   // Clear undo/redo history when switching schedules
   useEffect(() => { clearHistory(); }, [scheduleId, clearHistory]);
+  // Keyboard shortcuts for zoom (Ctrl+Plus/Minus)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=" || e.key === "-")) {
+        e.preventDefault();
+        setMagnificationZoom(prev => {
+          const zoomLevels = [50, 75, 100, 125, 150];
+          const currentIndex = zoomLevels.indexOf(prev);
+          if (e.key === "+" || e.key === "=") {
+            return currentIndex < zoomLevels.length - 1 ? zoomLevels[currentIndex + 1] : prev;
+          } else {
+            return currentIndex > 0 ? zoomLevels[currentIndex - 1] : prev;
+          }
+        });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   /* ── Data Queries ───────────────────────────────────────────────────────── */
   const scheduleQuery = trpc.schedule.get.useQuery(
@@ -2065,6 +2084,7 @@ export default function Scheduler() {
               }
             }}
           />
+            magnificationZoom={magnificationZoom}
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}
             height={ganttContainerRef.current?.scrollHeight || 1000}
@@ -3881,6 +3901,7 @@ export default function Scheduler() {
         dataDate={dataDate}
         scheduleName={schedule?.schedule?.name || ""}
         groupedActivities={groupBy === "wbs" ? groupedActivities as any : undefined}
+        magnificationZoom={magnificationZoom}
         groupBy={groupBy}
         relationships={relationships as any}
         onExport={async (config) => {

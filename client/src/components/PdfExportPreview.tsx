@@ -77,6 +77,7 @@ interface PdfExportPreviewProps {
   groupBy?: string | null;
   /** All relationships for drawing logic lines */
   relationships?: Relationship[];
+  magnificationZoom?: number; // 50-150 for PDF row height scaling
 }
 
 const CONTENT_OPTIONS = [
@@ -125,6 +126,7 @@ export function PdfExportPreview({
   groupedActivities,
   groupBy,
   relationships = [],
+  magnificationZoom = 100,
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);

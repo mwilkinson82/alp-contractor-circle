@@ -1483,3 +1483,11 @@
 - [x] Verify summary bars appear correctly in PDF
 - [x] Verify font rendering in PDF matches screen
 - [x] Test with large schedules (100+ activities) to ensure performance
+
+
+## Zoom PDF Export & Keyboard Shortcuts (April 11)
+- [x] Pass magnificationZoom prop to PDF export preview
+- [x] Update PDF rendering to scale row heights by zoom level
+- [x] Add keyboard event listeners for Ctrl+Plus/Minus zoom
+- [x] Test zoom in PDF export
+- [x] Test keyboard shortcuts work in Scheduler
