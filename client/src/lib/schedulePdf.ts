@@ -562,13 +562,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
-    // Variable row heights: compact P6-style density
+    // Variable row heights: generous spacing for readability
     const getRowH = (row: PdfRow): number => {
       if (row.type === "group") {
         const depth = row.depth;
-        return (depth === 0 ? 9 : depth === 1 ? 8 : 7.5) * zoomScale;
+        return (depth === 0 ? 11 : depth === 1 ? 10 : 9) * zoomScale;
       }
-      return 7 * zoomScale;
+      return 9 * zoomScale;
     };
 
     // Start Gantt on a new page (or continue on first page if no table)

@@ -1583,3 +1583,8 @@
 - [x] Font sizes too small — increased to 7.5pt activities, 7-9pt WBS, 7pt headers
 - [x] Every other row partially clipped — taller rows with more cell padding
 - [x] Update preview canvas to match all fixes (bullet char fixed)
+
+## PDF Row Height Fix (Round 2.2)
+- [x] Increase activity row height from 7mm to 9mm for clear separation
+- [x] Increase WBS group row heights proportionally (9-11mm)
+- [x] Ensure no text overlap between adjacent rows
