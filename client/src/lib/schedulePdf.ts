@@ -572,14 +572,32 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     }
     if (currentPage.length > 0) pages.push(currentPage);
 
-    // Calculate label width based on longest activity name
-    const longestLabel = filteredActivities.reduce((max, act) => {
-      const label = `${act.activityId} ${act.name}`;
-      return label.length > max.length ? label : max;
-    }, "");
-    doc.setFontSize(5.5);
-    const measuredLabelWidth = doc.getTextWidth(longestLabel);
-    const labelWidth = Math.min(Math.max(measuredLabelWidth + 4, 60), 100); // Clamp between 60-100mm
+    // ─── Dynamic column definitions for Gantt left-side table ─────────────
+    const ganttColDefs: Record<string, { header: string; minWidth: number; grow: boolean; getValue: (act: any) => string }> = {
+      activityId: { header: "ID", minWidth: 14, grow: false, getValue: (a) => a.activityId || "" },
+      name: { header: "Activity Name", minWidth: 40, grow: true, getValue: (a) => a.name || "" },
+      duration: { header: "Dur", minWidth: 10, grow: false, getValue: (a) => `${a.duration}d` },
+      percentComplete: { header: "%", minWidth: 8, grow: false, getValue: (a) => `${Math.round(parseFloat(String(a.percentComplete)) || 0)}%` },
+      earlyStart: { header: "ES", minWidth: 18, grow: false, getValue: (a) => a.earlyStart ? new Date(a.earlyStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      earlyFinish: { header: "EF", minWidth: 18, grow: false, getValue: (a) => a.earlyFinish ? new Date(a.earlyFinish).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      lateStart: { header: "LS", minWidth: 18, grow: false, getValue: (a) => a.lateStart ? new Date(a.lateStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      lateFinish: { header: "LF", minWidth: 18, grow: false, getValue: (a) => a.lateFinish ? new Date(a.lateFinish).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      totalFloat: { header: "TF", minWidth: 10, grow: false, getValue: (a) => a.totalFloat != null ? `${a.totalFloat}d` : "\u2014" },
+      freeFloat: { header: "FF", minWidth: 10, grow: false, getValue: (a) => a.freeFloat != null ? `${a.freeFloat}d` : "\u2014" },
+      wbs: { header: "WBS", minWidth: 12, grow: false, getValue: (a) => a.wbs || "\u2014" },
+    };
+    const ganttActiveCols = columns.filter(k => ganttColDefs[k]).map(k => ganttColDefs[k]);
+    // Compute column widths: sum minWidths, distribute extra to grow columns
+    const totalMinW = ganttActiveCols.reduce((s, c) => s + c.minWidth, 0);
+    // Table takes ~45% of page width, clamped to fit columns
+    const usableWidth = pageWidth - 2 * margin;
+    const labelWidth = Math.min(Math.max(totalMinW + 4, usableWidth * 0.35), usableWidth * 0.55);
+    const ganttGrowCount = ganttActiveCols.filter(c => c.grow).length;
+    const ganttExtraW = Math.max(0, labelWidth - totalMinW);
+    const ganttColWidths = ganttActiveCols.map(c => {
+      if (c.grow && ganttGrowCount > 0 && ganttExtraW > 0) return c.minWidth + ganttExtraW / ganttGrowCount;
+      return c.minWidth;
+    });
 
     const ganttLeft = margin;
     const ganttRight = pageWidth - margin;
@@ -602,6 +620,31 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       isFirstGanttPage = false;
 
       const pageRows = pages[pageIdx];
+
+      // ─── Draw column headers at top of Gantt table ─────────────────
+      const colHeaderH = 5;
+      doc.setFillColor(...colors.navy);
+      doc.rect(ganttLeft, ganttTop - colHeaderH - 1, labelWidth, colHeaderH, "F");
+      doc.setFontSize(5);
+      doc.setTextColor(...colors.gold);
+      doc.setFont("helvetica", "bold");
+      let chX = ganttLeft;
+      for (let ci = 0; ci < ganttActiveCols.length; ci++) {
+        const col = ganttActiveCols[ci];
+        const cw = ganttColWidths[ci];
+        const isLeft = col.header === "Activity Name" || col.header === "ID";
+        if (isLeft) {
+          doc.text(col.header, chX + 1, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.5);
+        } else {
+          doc.text(col.header, chX + cw / 2, ganttTop - colHeaderH - 1 + colHeaderH / 2 + 1.5, { align: "center" });
+        }
+        chX += cw;
+      }
+      // Vertical separator between table and chart header
+      doc.setDrawColor(...colors.border);
+      doc.setLineWidth(0.15);
+      doc.line(chartLeft, ganttTop - colHeaderH - 1, chartLeft, ganttTop);
+
       // Compute cumulative Y offsets for variable row heights
       const rowYOffsets: number[] = [];
       let cumY = ganttTop;
@@ -737,15 +780,39 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         doc.setLineWidth(0.05);
         doc.line(ganttLeft, y + rh, ganttRight, y + rh);
 
-        // Activity label (full name, no truncation)
+        // Activity columns (dynamic based on visible columns)
         doc.setFontSize(5.5);
         const txtColor = act.isCritical ? colors.critical : colors.text;
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
-        const label = `${act.activityId} ${act.name}`;
-        doc.text(label, ganttLeft + 1, y + rh / 2 + 1.5, { maxWidth: labelWidth - 3 });
+        let cellX = ganttLeft;
+        for (let ci = 0; ci < ganttActiveCols.length; ci++) {
+          const col = ganttActiveCols[ci];
+          const cw = ganttColWidths[ci];
+          let val = col.getValue(act);
+          const isLeft = col.header === "Activity Name" || col.header === "ID";
+          if (col.header === "Activity Name") {
+            // Truncate name to fit column width
+            const maxW = cw - 2;
+            while (doc.getTextWidth(val) > maxW && val.length > 3) {
+              val = val.slice(0, -2) + "\u2026";
+            }
+          }
+          if (isLeft) {
+            doc.text(val, cellX + 1, y + rh / 2 + 1.5, { maxWidth: cw - 2 });
+          } else {
+            doc.text(val, cellX + cw / 2, y + rh / 2 + 1.5, { align: "center", maxWidth: cw - 1 });
+          }
+          // Column separator line
+          if (ci > 0) {
+            doc.setDrawColor(230, 230, 230);
+            doc.setLineWidth(0.05);
+            doc.line(cellX, y, cellX, y + rh);
+          }
+          cellX += cw;
+        }
 
-        // Vertical separator between labels and chart
+        // Vertical separator between table and chart
         doc.setDrawColor(...colors.border);
         doc.setLineWidth(0.15);
         doc.line(chartLeft, y, chartLeft, y + rh);

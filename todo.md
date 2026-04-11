@@ -1521,3 +1521,11 @@
 - [x] Port variable row heights, zoom scaling, summary bars to schedulePdf.ts
 - [x] Pass pdfZoom and magnificationZoom from preview to actual PDF generator
 - [x] Legend on last page (Critical Path = red, Non-Critical = green, Data Date, Total Float)
+
+## PDF Export Column Parity Fix
+- [x] PDF export table must show the exact columns visible on the scheduler screen
+- [x] Include WBS column if user has it visible
+- [x] Include TF (Total Float) column if user has it visible
+- [x] Do not hardcode column list — pass visible columns from scheduler state
+- [x] Dynamic column headers in Gantt left-side table (navy/gold header row)
+- [x] Both preview canvas and actual PDF generator use dynamic columns

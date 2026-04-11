@@ -3919,6 +3919,7 @@ export default function Scheduler() {
         scheduleName={schedule?.schedule?.name || ""}
         groupedActivities={groupBy === "wbs" ? groupedActivities as any : undefined}
         magnificationZoom={magnificationZoom}
+        visibleColumns={visibleColumns}
         groupBy={groupBy}
         relationships={relationships as any}
         onExport={async (config) => {

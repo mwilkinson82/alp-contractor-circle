@@ -33,6 +33,7 @@ export interface PdfHeaderFooterConfig {
   headerAccentColor?: string;
   headerTextColor?: string;
   pdfZoom?: number;
+  visibleColumns?: string[];
 }
 
 interface Activity {
@@ -79,6 +80,7 @@ interface PdfExportPreviewProps {
   /** All relationships for drawing logic lines */
   relationships?: Relationship[];
   magnificationZoom?: number; // 50-150 for PDF row height scaling
+  visibleColumns?: string[]; // Column keys visible on the scheduler screen
 }
 
 const CONTENT_OPTIONS = [
@@ -128,6 +130,7 @@ export function PdfExportPreview({
   groupBy,
   relationships = [],
   magnificationZoom = 100,
+  visibleColumns = ["activityId", "name", "duration", "earlyStart", "earlyFinish", "totalFloat", "wbs"],
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
@@ -424,6 +427,31 @@ export function PdfExportPreview({
     const ganttX = margin + tableW + 4;
     const ganttW = w - margin * 2 - tableW - 4;
 
+    // ── Column definitions for dynamic table ──
+    const colDefs: Record<string, { header: string; minFrac: number; grow: boolean; getValue: (act: Activity) => string }> = {
+      activityId: { header: "ID", minFrac: 0.10, grow: false, getValue: (a) => a.activityId || "" },
+      name: { header: "Activity Name", minFrac: 0.30, grow: true, getValue: (a) => a.name || "" },
+      duration: { header: "Dur", minFrac: 0.06, grow: false, getValue: (a) => `${a.duration}d` },
+      percentComplete: { header: "%", minFrac: 0.05, grow: false, getValue: (a) => `${Math.round(parseFloat(String((a as any).percentComplete)) || 0)}%` },
+      earlyStart: { header: "ES", minFrac: 0.09, grow: false, getValue: (a) => a.earlyStart ? new Date(a.earlyStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      earlyFinish: { header: "EF", minFrac: 0.09, grow: false, getValue: (a) => a.earlyFinish ? new Date(a.earlyFinish).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      lateStart: { header: "LS", minFrac: 0.09, grow: false, getValue: (a) => (a as any).lateStart ? new Date((a as any).lateStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      lateFinish: { header: "LF", minFrac: 0.09, grow: false, getValue: (a) => (a as any).lateFinish ? new Date((a as any).lateFinish).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "" },
+      totalFloat: { header: "TF", minFrac: 0.05, grow: false, getValue: (a) => (a as any).totalFloat != null ? `${(a as any).totalFloat}d` : "\u2014" },
+      freeFloat: { header: "FF", minFrac: 0.05, grow: false, getValue: (a) => (a as any).freeFloat != null ? `${(a as any).freeFloat}d` : "\u2014" },
+      wbs: { header: "WBS", minFrac: 0.07, grow: false, getValue: (a) => (a as any).wbs || "\u2014" },
+    };
+    const activeCols = visibleColumns.filter(k => colDefs[k]).map(k => colDefs[k]);
+    // Compute column pixel widths from fractions
+    const totalMinFrac = activeCols.reduce((s, c) => s + c.minFrac, 0);
+    const growCount = activeCols.filter(c => c.grow).length;
+    const extraFrac = Math.max(0, 1 - totalMinFrac);
+    const colWidths = activeCols.map(c => {
+      let frac = c.minFrac;
+      if (c.grow && growCount > 0 && extraFrac > 0) frac += extraFrac / growCount;
+      return frac * tableW;
+    });
+
     // Table header
     ctx.fillStyle = "#f1f5f9";
     ctx.fillRect(margin, contentY, tableW, rowH);
@@ -432,13 +460,14 @@ export function PdfExportPreview({
     ctx.strokeRect(margin, contentY, tableW, rowH);
     ctx.fillStyle = "#475569";
     ctx.font = `bold ${baseFontSize}px 'DM Sans', sans-serif`;
-    ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText("ID", margin + 4, contentY + rowH / 2);
-    ctx.fillText("Activity Name", margin + tableW * 0.12, contentY + rowH / 2);
-    ctx.fillText("Dur", margin + tableW * 0.6, contentY + rowH / 2);
-    ctx.fillText("Start", margin + tableW * 0.72, contentY + rowH / 2);
-    ctx.fillText("Finish", margin + tableW * 0.87, contentY + rowH / 2);
+    let colX = margin;
+    for (let ci = 0; ci < activeCols.length; ci++) {
+      ctx.textAlign = ci === 0 || activeCols[ci].header === "Activity Name" ? "left" : "center";
+      const tx = ci === 0 || activeCols[ci].header === "Activity Name" ? colX + 3 : colX + colWidths[ci] / 2;
+      ctx.fillText(activeCols[ci].header, tx, contentY + rowH / 2);
+      colX += colWidths[ci];
+    }
 
     // Table rows — variable row heights, cumulative Y tracking
     // rowYOffsets[i] = Y position of row i (0-indexed into pageRows)
@@ -486,19 +515,21 @@ export function PdfExportPreview({
       }
       ctx.fillStyle = act.isCritical ? "#dc2626" : "#334155";
       ctx.font = `${baseFontSize}px 'DM Sans', sans-serif`;
-      ctx.textAlign = "left";
-      ctx.fillText(act.activityId, margin + 4, ry + rh / 2);
-      const nameMaxChars = Math.floor(tableW * 0.45 / (baseFontSize * 0.55));
-      const name = act.name.length > nameMaxChars ? act.name.slice(0, nameMaxChars) + "…" : act.name;
-      ctx.fillText(name, margin + tableW * 0.12, ry + rh / 2);
-      ctx.fillText(`${act.duration}d`, margin + tableW * 0.6, ry + rh / 2);
-      if (act.earlyStart) {
-        const es = new Date(act.earlyStart);
-        ctx.fillText(`${es.getMonth() + 1}/${es.getDate()}`, margin + tableW * 0.72, ry + rh / 2);
-      }
-      if (act.earlyFinish) {
-        const ef = new Date(act.earlyFinish);
-        ctx.fillText(`${ef.getMonth() + 1}/${ef.getDate()}`, margin + tableW * 0.87, ry + rh / 2);
+      ctx.textBaseline = "middle";
+      let cellX = margin;
+      for (let ci = 0; ci < activeCols.length; ci++) {
+        const col = activeCols[ci];
+        const cw = colWidths[ci];
+        ctx.textAlign = ci === 0 || col.header === "Activity Name" ? "left" : "center";
+        let val = col.getValue(act);
+        // Truncate if too wide
+        if (col.header === "Activity Name") {
+          const maxChars = Math.floor(cw / (baseFontSize * 0.55));
+          if (val.length > maxChars) val = val.slice(0, maxChars) + "\u2026";
+        }
+        const tx = ci === 0 || col.header === "Activity Name" ? cellX + 3 : cellX + cw / 2;
+        ctx.fillText(val, tx, ry + rh / 2);
+        cellX += cw;
       }
       actRowIndex++;
     }
@@ -870,6 +901,7 @@ export function PdfExportPreview({
       headerAccentColor,
       headerTextColor,
       pdfZoom,
+      visibleColumns,
     });
   };
 
