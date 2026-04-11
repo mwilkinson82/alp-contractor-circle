@@ -1395,3 +1395,7 @@
 - [x] Add: Guidance for milestones (e.g., "Notice to Proceed" should use Must Start On)
 - [x] Add: Guidance for regular activities (e.g., "Receive Permit" should use Must Finish By)
 - [x] Improve: Constraint type selector with descriptions/tooltips
+
+## Scheduler & Takeoff Fixes (April 11 — Round 8)
+- [x] Add Recalculate Status button to takeoff project cards (fixes "Error" status on completed projects)
+- [x] Add "Lag" label to relationship lag input fields in activity detail modal (predecessor + successor sections)

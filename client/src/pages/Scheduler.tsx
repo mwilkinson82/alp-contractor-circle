@@ -2370,8 +2370,11 @@ export default function Scheduler() {
                         <SelectItem value="SF">SF</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Input type="number" value={newDetailRelLag} onChange={(e) => setNewDetailRelLag(e.target.value)}
-                      className="w-14 h-7 text-xs border-white/15" placeholder="Lag" />
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-gray-500 mb-0.5">Lag (days)</span>
+                      <Input type="number" value={newDetailRelLag} onChange={(e) => setNewDetailRelLag(e.target.value)}
+                        className="w-16 h-7 text-xs border-white/15" placeholder="0" />
+                    </div>
                     <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
                       disabled={!newDetailRelPred || !scheduleId}
                       onClick={() => {
@@ -2434,8 +2437,11 @@ export default function Scheduler() {
                         <SelectItem value="SF">SF</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Input type="number" value={newDetailRelSuccLag} onChange={(e) => setNewDetailRelSuccLag(e.target.value)}
-                      className="w-14 h-7 text-xs border-white/15" placeholder="Lag" />
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-gray-500 mb-0.5">Lag (days)</span>
+                      <Input type="number" value={newDetailRelSuccLag} onChange={(e) => setNewDetailRelSuccLag(e.target.value)}
+                        className="w-16 h-7 text-xs border-white/15" placeholder="0" />
+                    </div>
                     <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
                       disabled={!newDetailRelSucc || !scheduleId}
                       onClick={() => {

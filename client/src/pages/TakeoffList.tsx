@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Sparkles,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -65,6 +66,13 @@ export default function TakeoffList() {
     onSuccess: () => {
       toast.success("Project deleted");
       setDeleteId(null);
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const recalcMutation = trpc.takeoff.recalculateStatus.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Status recalculated: ${result.status} (${result.processedSheets} sheets done)`);
       refetch();
     },
     onError: (err) => toast.error(err.message),
@@ -170,6 +178,21 @@ export default function TakeoffList() {
                       {new Date(project.createdAt).toLocaleDateString()}
                     </span>
                     <div className="flex items-center gap-2">
+                      {(project.status === "error" || project.status === "completed") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                          title="Recalculate Status"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            recalcMutation.mutate({ projectId: project.id });
+                          }}
+                          disabled={recalcMutation.isPending}
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

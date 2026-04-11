@@ -404,4 +404,37 @@ export const takeoffRouter = router({
         })),
       };
     }),
+
+  /** Recalculate project status based on current sheet statuses */
+  recalculateStatus: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      const sheets = await getDrawingSheetsByProject(input.projectId);
+      const completedSheets = sheets.filter((s: any) => s.status === "completed");
+      const errorSheets = sheets.filter((s: any) => s.status === "error");
+      const processingSheets = sheets.filter((s: any) => s.status === "processing");
+      let finalStatus: string;
+      if (processingSheets.length > 0) {
+        finalStatus = "processing";
+      } else if (completedSheets.length > 0) {
+        finalStatus = "completed";
+      } else if (errorSheets.length > 0) {
+        finalStatus = "error";
+      } else if (sheets.length === 0) {
+        finalStatus = "draft";
+      } else {
+        finalStatus = "completed";
+      }
+      await updateTakeoffProject(input.projectId, {
+        status: finalStatus as "draft" | "uploading" | "processing" | "completed" | "error",
+        processedSheets: completedSheets.length,
+      });
+      await recalculateProjectTotal(input.projectId);
+      return { status: finalStatus, processedSheets: completedSheets.length };
+    }),
 });
