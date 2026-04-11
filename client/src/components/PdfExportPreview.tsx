@@ -18,6 +18,7 @@ export interface PdfHeaderFooterConfig {
   showGantt: boolean;
   showTable: boolean;
   criticalPathOnly: boolean;
+  showLogicLines: boolean;
   headerBgColor: string;
   headerAccentColor: string;
   headerTextColor: string;
@@ -34,6 +35,14 @@ interface Activity {
   barColor?: string | null;
 }
 
+interface WbsGroup {
+  group: string | null;
+  activities: Activity[];
+  depth: number;
+  wbsColor?: string;
+  wbsTextColor?: string;
+}
+
 interface PdfExportPreviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,6 +53,9 @@ interface PdfExportPreviewProps {
   activities: Activity[];
   dataDate: Date | null;
   scheduleName: string;
+  /** Pass groupedActivities when groupBy === "wbs" to show WBS headers in preview */
+  groupedActivities?: WbsGroup[];
+  groupBy?: string | null;
 }
 
 const CONTENT_OPTIONS = [
@@ -82,6 +94,8 @@ export function PdfExportPreview({
   activities,
   dataDate,
   scheduleName,
+  groupedActivities,
+  groupBy,
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
@@ -100,6 +114,7 @@ export function PdfExportPreview({
   const [showGantt, setShowGantt] = useState(true);
   const [showTable, setShowTable] = useState(false);
   const [criticalPathOnly, setCriticalPathOnly] = useState(false);
+  const [showLogicLines, setShowLogicLines] = useState(false);
   const [headerBgColor, setHeaderBgColor] = useState("#0d1b2a");
   const [headerAccentColor, setHeaderAccentColor] = useState("#c9a84c");
   const [headerTextColor, setHeaderTextColor] = useState("#e2e8f0");
@@ -197,10 +212,42 @@ export function PdfExportPreview({
     }
   }, [companyName, projectName, scheduleName, dataDate]);
 
+  // Build the ordered list of preview rows (WBS group headers + activities)
+  const previewRows = useMemo(() => {
+    type PreviewRow =
+      | { type: "group"; label: string; depth: number; bgColor?: string; textColor?: string }
+      | { type: "activity"; act: Activity };
+
+    const rows: PreviewRow[] = [];
+
+    const useWbs = groupBy === "wbs" && groupedActivities && groupedActivities.length > 0;
+
+    if (useWbs) {
+      for (const g of groupedActivities!) {
+        const gActs = criticalPathOnly ? g.activities.filter(a => a.isCritical) : g.activities;
+        if (g.group) {
+          if (gActs.length > 0) {
+            rows.push({ type: "group", label: g.group, depth: g.depth, bgColor: g.wbsColor, textColor: g.wbsTextColor });
+          }
+        }
+        for (const act of gActs) {
+          rows.push({ type: "activity", act });
+        }
+      }
+    } else {
+      const filtered = criticalPathOnly ? activities.filter(a => a.isCritical) : activities;
+      for (const act of filtered) {
+        rows.push({ type: "activity", act });
+      }
+    }
+
+    return rows;
+  }, [activities, groupedActivities, groupBy, criticalPathOnly]);
+
+  // For backward compat — flat list of activities for count display
   const previewActivities = useMemo(() => {
-    const filtered = criticalPathOnly ? activities.filter(a => a.isCritical) : activities;
-    return filtered;
-  }, [activities, criticalPathOnly]);
+    return previewRows.filter(r => r.type === "activity").map(r => (r as { type: "activity"; act: Activity }).act);
+  }, [previewRows]);
 
   // Calculate paper dimensions for the preview
   const paperDims = useMemo(() => {
@@ -274,8 +321,6 @@ export function PdfExportPreview({
       ctx.lineWidth = 0.5;
       ctx.strokeRect(margin, margin, w - margin * 2, headerH);
     }
-    ctx.fillStyle = headerAccentColor;
-    ctx.fillRect(margin, margin + headerH - 2, w - margin * 2, 2);
 
     const hColW = (w - margin * 2) / headerColumnCount;
     const headerFontSize = Math.max(7, Math.min(12, ppi * 0.12));
@@ -307,7 +352,8 @@ export function PdfExportPreview({
     const baseFontSize = Math.max(5.5, Math.min(10, ppi * 0.08));
     const rowH = Math.max(baseFontSize + 6, Math.min(16, contentH / 40));
     const maxRows = Math.floor((contentH - rowH) / rowH);
-    const visibleActs = previewActivities.slice(0, maxRows);
+    const visibleRows = previewRows.slice(0, maxRows);
+    const visibleActs = visibleRows.filter(r => r.type === "activity").map(r => (r as { type: "activity"; act: Activity }).act);
 
     // Table header
     ctx.fillStyle = "#f1f5f9";
@@ -324,13 +370,48 @@ export function PdfExportPreview({
     ctx.fillText("Start", margin + tableW * 0.72, contentY + rowH / 2);
     ctx.fillText("Finish", margin + tableW * 0.87, contentY + rowH / 2);
 
-    // Table rows
-    for (let i = 0; i < visibleActs.length; i++) {
-      const act = visibleActs[i];
+    // Table rows — with WBS group headers
+    let actRowIndex = 0;
+    for (let i = 0; i < visibleRows.length; i++) {
+      const row = visibleRows[i];
       const ry = contentY + (i + 1) * rowH;
       if (ry + rowH > contentY + contentH - 4) break;
 
-      if (i % 2 === 1) {
+      if (row.type === "group") {
+        // WBS group header row
+        const depth = row.depth;
+        const indent = depth * 8;
+        // Background
+        if (row.bgColor) {
+          ctx.fillStyle = row.bgColor;
+        } else {
+          ctx.fillStyle = depth === 0 ? "#e2e8f0" : depth === 1 ? "#f1f5f9" : "#f8fafc";
+        }
+        ctx.fillRect(margin, ry, tableW, rowH);
+        // Left accent bar
+        if (depth > 0) {
+          ctx.fillStyle = row.bgColor || "#94a3b8";
+          ctx.fillRect(margin + indent - 2, ry + 1, 2, rowH - 2);
+        }
+        // Label
+        ctx.fillStyle = row.textColor || (depth === 0 ? "#1e293b" : "#334155");
+        ctx.font = `${depth === 0 ? "bold" : "normal"} ${baseFontSize}px 'DM Sans', sans-serif`;
+        ctx.textAlign = "left";
+        const groupLabel = row.label.length > 40 ? row.label.slice(0, 40) + "…" : row.label;
+        ctx.fillText(groupLabel, margin + 4 + indent, ry + rowH / 2);
+        // Bottom separator
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(margin, ry + rowH);
+        ctx.lineTo(margin + tableW, ry + rowH);
+        ctx.stroke();
+        continue;
+      }
+
+      // Activity row
+      const act = row.act;
+      if (actRowIndex % 2 === 1) {
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(margin, ry, tableW, rowH);
       }
@@ -353,6 +434,7 @@ export function PdfExportPreview({
         const ef = new Date(act.earlyFinish);
         ctx.fillText(`${ef.getMonth() + 1}/${ef.getDate()}`, margin + tableW * 0.87, ry + rowH / 2);
       }
+      actRowIndex++;
     }
 
     // Table border
@@ -361,7 +443,7 @@ export function PdfExportPreview({
     ctx.strokeRect(margin, contentY, tableW, contentH);
 
     // Row lines
-    for (let i = 1; i <= visibleActs.length; i++) {
+    for (let i = 1; i <= visibleRows.length; i++) {
       const ry = contentY + i * rowH;
       if (ry > contentY + contentH - 4) break;
       ctx.strokeStyle = "#e2e8f0";
@@ -430,12 +512,29 @@ export function PdfExportPreview({
         });
       }
 
-      // Draw bars
-      for (let i = 0; i < visibleActs.length; i++) {
-        const act = visibleActs[i];
+      // Track bar positions for logic lines (activityId → bar center x, row y center)
+      const barPositions = new Map<string, { x1: number; x2: number; yMid: number }>();
+
+      // Draw bars — iterate visibleRows to respect WBS group header rows
+      let ganttActIdx = 0;
+      for (let i = 0; i < visibleRows.length; i++) {
+        const row = visibleRows[i];
         const ry = contentY + (i + 1) * rowH;
         if (ry + rowH > contentY + contentH - 4) break;
-        if (!act.earlyStart || !act.earlyFinish) continue;
+
+        if (row.type === "group") {
+          // Draw shaded group header band on Gantt side too
+          if (row.bgColor) {
+            ctx.fillStyle = row.bgColor + "33"; // 20% opacity
+          } else {
+            ctx.fillStyle = row.depth === 0 ? "#e2e8f022" : "#f1f5f911";
+          }
+          ctx.fillRect(ganttX, ry, ganttW, rowH);
+          continue;
+        }
+
+        const act = row.act;
+        if (!act.earlyStart || !act.earlyFinish) { ganttActIdx++; continue; }
 
         const startPct = (new Date(act.earlyStart).getTime() - minDate) / dateRange;
         const endPct = (new Date(act.earlyFinish).getTime() - minDate) / dateRange;
@@ -443,6 +542,9 @@ export function PdfExportPreview({
         const bw = Math.max(3, (endPct - startPct) * (ganttW - 8));
         const by = ry + 3;
         const bh = rowH - 6;
+
+        // Store position for logic lines
+        barPositions.set(act.activityId, { x1: bx, x2: bx + bw, yMid: ry + rowH / 2 });
 
         if (act.duration === 0) {
           const cx = bx;
@@ -463,6 +565,44 @@ export function PdfExportPreview({
           ctx.roundRect(bx, by, bw, bh, radius);
           ctx.fill();
         }
+        ganttActIdx++;
+      }
+
+      // ── Logic lines (relationship arrows) ──
+      if (showLogicLines && barPositions.size > 0) {
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 0.8;
+        ctx.globalAlpha = 0.6;
+        // Draw simplified FS arrows between visible activities
+        // We draw from finish of predecessor to start of successor
+        const actIds = Array.from(barPositions.keys());
+        for (let i = 0; i < actIds.length - 1; i++) {
+          const predPos = barPositions.get(actIds[i]);
+          const succPos = barPositions.get(actIds[i + 1]);
+          if (!predPos || !succPos) continue;
+          // Only draw if successor starts after predecessor finishes (FS logic)
+          if (succPos.x1 > predPos.x2 - 2) {
+            const x1 = predPos.x2;
+            const y1 = predPos.yMid;
+            const x2 = succPos.x1;
+            const y2 = succPos.yMid;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1 + 3, y1);
+            ctx.lineTo(x1 + 3, y2);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - 3, y2 - 2);
+            ctx.lineTo(x2 - 3, y2 + 2);
+            ctx.closePath();
+            ctx.fillStyle = "#64748b";
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
       }
 
       // Data date line
@@ -525,7 +665,7 @@ export function PdfExportPreview({
       ctx.fillText(`Showing ${visibleActs.length} of ${totalFiltered} activities — full PDF will include all`, w / 2, contentY + contentH - 4);
     }
 
-  }, [open, canvasReady, canvasDims, paperDims, headerColumns, footerColumns, headerColumnCount, footerColumnCount, showGantt, criticalPathOnly, previewActivities, companyName, projectName, scheduleName, dataDate, getContentPreview, headerBgColor, headerAccentColor, headerTextColor]);
+  }, [open, canvasReady, canvasDims, paperDims, headerColumns, footerColumns, headerColumnCount, footerColumnCount, showGantt, criticalPathOnly, showLogicLines, previewRows, previewActivities, companyName, projectName, scheduleName, dataDate, getContentPreview, headerBgColor, headerAccentColor, headerTextColor]);
 
   const handleExport = async () => {
     await onExport({
@@ -538,6 +678,7 @@ export function PdfExportPreview({
       showGantt,
       showTable,
       criticalPathOnly,
+      showLogicLines,
       headerBgColor,
       headerAccentColor,
       headerTextColor,
@@ -646,6 +787,9 @@ export function PdfExportPreview({
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-gray-600" />
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Preview</span>
+                  {groupBy === "wbs" && (
+                    <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded px-1.5 py-0.5 font-medium">WBS Grouped</span>
+                  )}
                 </div>
                 <span className="text-[10px] text-gray-600">
                   {PAPER_SIZES[pageSize].label} — {orientation === "landscape" ? "Landscape" : "Portrait"} — {paperDims.w}" × {paperDims.h}"
@@ -719,6 +863,13 @@ export function PdfExportPreview({
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={criticalPathOnly} onCheckedChange={(c) => setCriticalPathOnly(!!c)} />
                   <span className="text-xs text-gray-400">Critical Path Only</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={showLogicLines} onCheckedChange={(c) => setShowLogicLines(!!c)} />
+                  <div>
+                    <span className="text-xs text-gray-400">Show Logic Lines</span>
+                    <p className="text-[10px] text-gray-600 leading-tight">Relationship arrows between activities</p>
+                  </div>
                 </label>
               </div>
 

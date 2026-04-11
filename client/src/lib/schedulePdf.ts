@@ -78,6 +78,7 @@ export interface PdfExportOptions {
   showGantt: boolean;
   showTable: boolean;
   showCriticalPathOnly: boolean;
+  showLogicLines?: boolean;
 
   // Header color customization
   headerBgColor?: string;
@@ -177,6 +178,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     footerConfig,
     headerConfig,
   } = options;
+  const showLogicLines = options.showLogicLines ?? false;
 
   // Parse hex color to RGB tuple
   const hexToRgb = (hex: string): [number, number, number] => {

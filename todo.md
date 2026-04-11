@@ -1264,3 +1264,8 @@
 - [x] QA/QC: Fix all modals to be scrollable with reachable buttons (especially PDF export modal)
 - [x] Add "Construct Line" branding in the Scheduler header
 - [x] Redesign Scheduler toolbar — proper grouping, separation, visual hierarchy, polished SaaS look
+
+## PDF Fixes
+- [x] Fix PDF.js worker CDN failure — use bundled worker URL instead of Cloudflare CDN
+- [x] Add logic lines (relationship arrows) toggle to PDF export settings
+- [x] Fix PDF export to respect WBS grouping and show WBS group headers

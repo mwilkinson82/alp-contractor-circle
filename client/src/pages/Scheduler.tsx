@@ -3522,6 +3522,8 @@ export default function Scheduler() {
         activities={filteredActivities}
         dataDate={dataDate}
         scheduleName={schedule?.schedule?.name || ""}
+        groupedActivities={groupBy === "wbs" ? groupedActivities as any : undefined}
+        groupBy={groupBy}
         onExport={async (config) => {
           if (!schedule) return;
           setPdfExporting(true);
@@ -3578,6 +3580,7 @@ export default function Scheduler() {
               showGantt: config.showGantt,
               showTable: config.showTable ?? false,
               showCriticalPathOnly: config.criticalPathOnly,
+              showLogicLines: config.showLogicLines ?? false,
               headerBgColor: config.headerBgColor,
               headerAccentColor: config.headerAccentColor,
               headerTextColor: config.headerTextColor,
