@@ -1276,15 +1276,7 @@ export default function Scheduler() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-0.5" title="Drag to adjust timescale density (or Ctrl+Scroll on Gantt)">
-                <span className="text-[9px] text-gray-600">−</span>
-                <input type="range" min="0.5" max="60" step="0.5" value={customPpd}
-                  onChange={(e) => { setCustomPpd(parseFloat(e.target.value)); }}
-                  className="w-14 h-1 accent-amber-500 cursor-pointer"
-                  title={`Timescale density: ${customPpd} px/day`}
-                />
-                <span className="text-[9px] text-gray-600">+</span>
-              </div>
+              {/* Drag calendar header left/right to zoom — no slider needed */}
               <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
               {/* Toggle Group */}
               <div className="flex items-center bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
@@ -1583,65 +1575,90 @@ export default function Scheduler() {
               {groupedActivities.map(({ group, activities: groupActs, depth, wbsColor, wbsTextColor }) => (
                 <div key={group || "all"}>
                   {group && (() => {
-                    // P6-style colored band header
-                    let groupBg = "#374151";
-                    let groupText = "#f9fafb";
+                    // P6-style WBS hierarchy with narrow colored left bars
                     const d = depth ?? 0;
-                    if (groupBy === "wbs") {
-                      if (wbsColor) groupBg = wbsColor;
-                      else groupBg = d === 0 ? "#1e293b" : d === 1 ? "#374151" : "#4b5563";
-                      if (wbsTextColor) groupText = wbsTextColor;
-                      else groupText = "#f9fafb";
-                    }
-                    // Determine if this group is collapsed
+                    // Color palette for depth levels (P6-inspired)
+                    const depthColors = [
+                      "#d4a843", // Level 0: amber/gold (project level)
+                      "#3b82f6", // Level 1: blue
+                      "#22c55e", // Level 2: green
+                      "#a855f7", // Level 3: purple
+                      "#f97316", // Level 4: orange
+                      "#06b6d4", // Level 5: cyan
+                    ];
+                    let barColor = depthColors[d % depthColors.length];
+                    if (groupBy === "wbs" && wbsColor) barColor = wbsColor;
+                    // Left bar width decreases with depth (P6 style)
+                    const barWidth = Math.max(4, 8 - d * 1.5);
                     const groupKey = group || "all";
                     const isCollapsed = collapsedGroups?.has(groupKey);
+                    // Text color based on groupBy
+                    const textColor = (groupBy === "wbs" && wbsTextColor) ? wbsTextColor : "#e5e7eb";
                     return (
                       <div
                         className="flex items-center cursor-pointer select-none border-b"
                         style={{
-                          backgroundColor: groupBg,
-                          color: groupText,
-                          borderBottomColor: "rgba(0,0,0,0.2)",
-                          paddingLeft: `${8 + d * 20}px`,
-                          paddingRight: "12px",
-                          paddingTop: d === 0 ? "7px" : "5px",
-                          paddingBottom: d === 0 ? "7px" : "5px",
+                          backgroundColor: d === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
+                          borderBottomColor: "rgba(255,255,255,0.06)",
                           minHeight: d === 0 ? "34px" : "28px",
+                          position: "relative",
                         }}
                         onClick={() => toggleGroupCollapse?.(groupKey)}
                         title={isCollapsed ? "Click to expand" : "Click to collapse"}
                       >
-                        {/* Collapse toggle */}
-                        <span className="mr-2 flex-shrink-0 opacity-80">
-                          {isCollapsed
-                            ? <ChevronRight className="w-3.5 h-3.5" />
-                            : <ChevronDown className="w-3.5 h-3.5" />}
-                        </span>
-                        {/* WBS code badge for WBS grouping */}
-                        {groupBy === "wbs" && (() => {
-                          const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} — ${w.name}` === group || w.code === group);
-                          return wbsNode ? (
-                            <span
-                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0 opacity-90"
-                              style={{ backgroundColor: "rgba(0,0,0,0.25)", color: groupText }}
-                            >
-                              {wbsNode.code}
-                            </span>
-                          ) : null;
-                        })()}
-                        <span
-                          className="font-bold tracking-wide truncate"
-                          style={{ fontSize: d === 0 ? "0.8125rem" : "0.75rem" }}
+                        {/* P6-style colored left bar */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${d * 12}px`,
+                            top: 0,
+                            bottom: 0,
+                            width: `${barWidth}px`,
+                            backgroundColor: barColor,
+                            borderRadius: "0 2px 2px 0",
+                          }}
+                        />
+                        {/* Content with indentation */}
+                        <div
+                          className="flex items-center flex-1 min-w-0"
+                          style={{
+                            paddingLeft: `${16 + d * 12 + barWidth}px`,
+                            paddingRight: "12px",
+                            paddingTop: d === 0 ? "5px" : "3px",
+                            paddingBottom: d === 0 ? "5px" : "3px",
+                          }}
                         >
-                          {group}
-                        </span>
-                        <span
-                          className="ml-2 flex-shrink-0 opacity-70"
-                          style={{ fontSize: "0.6875rem", fontWeight: 400 }}
-                        >
-                          {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
-                        </span>
+                          {/* Collapse toggle */}
+                          <span className="mr-1.5 flex-shrink-0" style={{ color: barColor, opacity: 0.9 }}>
+                            {isCollapsed
+                              ? <ChevronRight className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />}
+                          </span>
+                          {/* WBS code badge */}
+                          {groupBy === "wbs" && (() => {
+                            const wbsNode = wbsNodes.find((w: any) => w.name === group || `${w.code} — ${w.name}` === group || w.code === group);
+                            return wbsNode ? (
+                              <span
+                                className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                                style={{ backgroundColor: barColor + "20", color: barColor, border: `1px solid ${barColor}40` }}
+                              >
+                                {wbsNode.code}
+                              </span>
+                            ) : null;
+                          })()}
+                          <span
+                            className="font-semibold tracking-wide truncate"
+                            style={{ fontSize: d === 0 ? "0.8125rem" : "0.75rem", color: textColor }}
+                          >
+                            {group}
+                          </span>
+                          <span
+                            className="ml-2 flex-shrink-0"
+                            style={{ fontSize: "0.6875rem", fontWeight: 400, color: "rgba(255,255,255,0.4)" }}
+                          >
+                            {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
+                          </span>
+                        </div>
                       </div>
                     );
                   })()}

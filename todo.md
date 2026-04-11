@@ -1303,3 +1303,13 @@
 
 ## Branding
 - [x] Replace all "AI" references in Takeoff with "Construct Line" (buttons, labels, headings, toasts)
+
+
+## P6-Style Gantt Improvements (April 11)
+- [x] Gantt horizontal drag-to-zoom: remove zoom slider, keep Day/Week/Month buttons, allow mouse drag on calendar header to compress/expand
+- [x] Calendar header: changed from gold to subtle warm gray (#f0ede8)
+- [x] WBS hierarchy visualization: P6-style nested colored left bars in both table panel and Gantt canvas, depth-based indentation with decreasing bar width
+
+## Takeoff Cost Editing
+- [ ] Editable cost per line item in takeoff detail (inline edit, save to DB)
+- [ ] Excel/CSV export with user-edited costs

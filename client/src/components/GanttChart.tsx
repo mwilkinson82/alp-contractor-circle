@@ -114,9 +114,9 @@ const COLORS = {
   todayLine: "#9ca3af",
   dataDateLine: "#2563eb",   // Solid BLUE data date
   gridLine: "rgba(0,0,0,0.06)",
-  headerBg: "#d4a843",         // P6-style gold/yellow calendar header
-  headerText: "rgba(0,0,0,0.65)",
-  headerTextBold: "rgba(0,0,0,0.85)",
+  headerBg: "#f0ede8",         // Subtle warm gray calendar header (P6-style)
+  headerText: "rgba(0,0,0,0.55)",
+  headerTextBold: "rgba(0,0,0,0.8)",
   selectedBg: "rgba(239,68,68,0.10)", // red selection highlight
   groupBg: "rgba(0,0,0,0.03)",
   rowBg: "#faf8f5",          // Very light warm white
@@ -390,6 +390,25 @@ export default function GanttChart({
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const { cx, cy } = getCanvasCoords(e);
+
+    // Header drag-to-zoom: clicking in the calendar header area starts horizontal zoom
+    if (cy < HEADER_HEIGHT) {
+      e.preventDefault();
+      setDragState({
+        mode: "header-zoom" as any,
+        activityId: 0,
+        startX: e.clientX,
+        startY: e.clientY,
+        currentX: e.clientX,
+        currentY: e.clientY,
+        originalDuration: pixelsPerDay, // store current ppd as "originalDuration"
+        fromEdge: "start",
+      });
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "ew-resize";
+      return;
+    }
+
     const hit = hitTestBar(cx, cy);
     if (!hit) {
       // No bar hit — start pan mode
@@ -441,12 +460,22 @@ export default function GanttChart({
         });
       }
     }
-  }, [getCanvasCoords, hitTestBar, activities]);
+  }, [getCanvasCoords, hitTestBar, activities, pixelsPerDay, onZoomChange]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const { cx, cy } = getCanvasCoords(e);
 
     if (dragState) {
+      if ((dragState.mode as string) === "header-zoom") {
+        // Horizontal drag on calendar header: right = expand (increase ppd), left = compress (decrease ppd)
+        const dx = e.clientX - dragState.startX;
+        const basePpd = dragState.originalDuration; // stored ppd
+        const sensitivity = 0.005; // ppd change per pixel of drag
+        const newPpd = Math.max(0.5, Math.min(80, basePpd * Math.pow(1.005, dx)));
+        if (onZoomChange) onZoomChange(newPpd);
+        return;
+      }
+
       if (dragState.mode === "pan") {
         const dx = e.clientX - dragState.startX;
         const dy = e.clientY - dragState.startY;
@@ -471,6 +500,15 @@ export default function GanttChart({
       return;
     }
 
+    // Show ew-resize cursor when hovering over calendar header
+    if (cy < HEADER_HEIGHT) {
+      setHoveredActivity(null);
+      setHoveredEdge(null);
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "ew-resize";
+      return;
+    }
+
     const hit = hitTestBar(cx, cy);
     if (hit) {
       setHoveredActivity(hit.bar.activityId);
@@ -485,7 +523,7 @@ export default function GanttChart({
       const canvas = canvasRef.current;
       if (canvas) canvas.style.cursor = "grab";
     }
-  }, [getCanvasCoords, hitTestBar, hitTestBarAny, dragState]);
+  }, [getCanvasCoords, hitTestBar, hitTestBarAny, dragState, onZoomChange]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!dragState) {
@@ -497,6 +535,13 @@ export default function GanttChart({
       if (row?.type === "activity" && row.activity) {
         onSelectActivity(row.activity.id === selectedActivityId ? null : row.activity.id);
       }
+      return;
+    }
+
+    if ((dragState.mode as string) === "header-zoom") {
+      setDragState(null);
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "default";
       return;
     }
 
@@ -709,21 +754,22 @@ export default function GanttChart({
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
-        const indent = depth * 16;
-        // Gantt group rows use neutral grays only — WBS colors stay in the table
-        const bgColor = depth === 0 ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.04)";
-        const textColor = COLORS.headerTextBold;
-        ctx.fillStyle = bgColor;
+        // P6-style colored left bar — matches table panel hierarchy
+        const depthColors = ["#d4a843", "#3b82f6", "#22c55e", "#a855f7", "#f97316", "#06b6d4"];
+        let barColor = depthColors[depth % depthColors.length];
+        if (row.wbsColor) barColor = row.wbsColor;
+        const barWidth = Math.max(4, 8 - depth * 1.5);
+        // Subtle background
+        ctx.fillStyle = depth === 0 ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.025)";
         ctx.fillRect(0, y, visibleWidth, ROW_HEIGHT);
-        // Draw a subtle left accent bar using neutral color
-        if (depth > 0) {
-          ctx.fillStyle = "#94a3b8";
-          ctx.fillRect(indent - 8, y + 2, 3, ROW_HEIGHT - 4);
-        }
-        ctx.fillStyle = textColor;
+        // Colored left bar
+        ctx.fillStyle = barColor;
+        ctx.fillRect(depth * 12, y, barWidth, ROW_HEIGHT);
+        // Group label text
+        ctx.fillStyle = COLORS.headerTextBold;
         ctx.font = depth === 0 ? "bold 10px 'DM Sans', sans-serif" : "600 10px 'DM Sans', sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(row.group || "", 8 + indent, y + ROW_HEIGHT / 2 + 3);
+        ctx.fillText(row.group || "", 16 + depth * 12 + barWidth, y + ROW_HEIGHT / 2 + 3);
         continue;
       }
 
