@@ -215,6 +215,28 @@ function addImageToDoc(doc: any, token: string, x: number, y: number, maxH: numb
   }
 }
 
+/** Calculate the minimum height (mm) needed to render a rich text block without clipping */
+function calcRichTextHeight(lines: RichTextLine[]): number {
+  if (!lines || lines.length === 0) return 0;
+  const lineSpacing = 1.2; // mm between lines
+  const lineHeights = lines.map(l => (l.fontSize || 8) * 0.352778); // pt to mm
+  return lineHeights.reduce((s, h) => s + h, 0) + (lines.length - 1) * lineSpacing + 4; // +4mm padding
+}
+
+/** Calculate the minimum footer/header height needed for all configured slots */
+function calcMinSlotHeight(config: { left: string; center: string; right: string; centerLeft?: string; centerRight?: string }): number {
+  const tokens = [config.left, config.center, config.right, config.centerLeft || "", config.centerRight || ""].filter(Boolean);
+  let maxH = 0;
+  for (const token of tokens) {
+    if (isRichTextToken(token)) {
+      const lines = parseRichTextToken(token);
+      const h = calcRichTextHeight(lines);
+      if (h > maxH) maxH = h;
+    }
+  }
+  return maxH;
+}
+
 /** Render rich text lines vertically centered in a slot */
 function renderRichText(doc: any, lines: RichTextLine[], x: number, y: number, slotH: number, align: "left" | "center" | "right" = "left") {
   if (!lines || lines.length === 0) return;
@@ -301,7 +323,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 12;
   const headerHeight = options.headerHeightMm || 22;
-  const footerHeight = options.footerHeightMm || 14;
+  // Auto-expand footer height based on rich text content
+  const userFooterHeight = options.footerHeightMm || 14;
+  const minFooterH = footerConfig ? calcMinSlotHeight(footerConfig) : 0;
+  const footerHeight = Math.max(userFooterHeight, minFooterH);
 
   // ─── Color Palette (P6-style clean white) ─────────────────────────────────
   const colors = {
@@ -979,6 +1004,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           doc.line(ganttLeft, y, ganttRight, y);
         }
 
+        // Calculate depth bars width for text offset
+        const actLeftBarsWidth = actAnc.length > 0 ? actAnc.length * (actBarW + actBarGap) + 0.5 : 0;
+
         // Activity columns (dynamic based on visible columns)
         doc.setFontSize(7.5);
         const txtColor = act.isCritical ? colors.critical : colors.text;
@@ -990,8 +1018,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           const cw = ganttColWidths[ci];
           let val = col.getValue(act);
           const isLeft = col.header === "Activity Name" || col.header === "ID";
+          // For the first column (ID), offset text past the depth bars
+          const textOffset = ci === 0 ? actLeftBarsWidth : 0;
           // Truncate all cell values to prevent wrapping
-          const cellMaxW = cw - 3;
+          const cellMaxW = cw - 3 - textOffset;
           if (doc.getTextWidth(val) > cellMaxW) {
             while (doc.getTextWidth(val + "...") > cellMaxW && val.length > 3) {
               val = val.slice(0, -1);
@@ -999,7 +1029,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             val = val + "...";
           }
           if (isLeft) {
-            doc.text(val, cellX + 1.5, y + rh / 2 + 0.8);
+            doc.text(val, cellX + 1.5 + textOffset, y + rh / 2 + 0.8);
           } else {
             doc.text(val, cellX + cw / 2, y + rh / 2 + 0.8, { align: "center" });
           }

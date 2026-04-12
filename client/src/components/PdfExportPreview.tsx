@@ -632,6 +632,8 @@ export function PdfExportPreview({
         ctx.fillStyle = actAnc[ai];
         ctx.fillRect(margin + ai * (actBarW + actBarGap), ry, actBarW, rh);
       }
+      // Calculate depth bars width to offset first column text
+      const actLeftBarsWidth = actAnc.length > 0 ? actAnc.length * (actBarW + actBarGap) + 2 : 0;
       ctx.fillStyle = act.isCritical ? "#dc2626" : "#334155";
       ctx.font = `${baseFontSize}px 'DM Sans', sans-serif`;
       ctx.textBaseline = "middle";
@@ -641,12 +643,14 @@ export function PdfExportPreview({
         const cw = colWidths[ci];
         ctx.textAlign = ci === 0 || col.header === "Activity Name" ? "left" : "center";
         let val = col.getValue(act);
+        // For the first column (ID), offset text past the depth bars
+        const textOffset = ci === 0 ? actLeftBarsWidth : 0;
         // Truncate if too wide
         if (col.header === "Activity Name") {
-          const maxChars = Math.floor(cw / (baseFontSize * 0.55));
+          const maxChars = Math.floor((cw - textOffset) / (baseFontSize * 0.55));
           if (val.length > maxChars) val = val.slice(0, maxChars) + "\u2026";
         }
-        const tx = ci === 0 || col.header === "Activity Name" ? cellX + 3 : cellX + cw / 2;
+        const tx = ci === 0 || col.header === "Activity Name" ? cellX + 3 + textOffset : cellX + cw / 2;
         ctx.fillText(val, tx, ry + rh / 2);
         cellX += cw;
       }

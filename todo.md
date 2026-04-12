@@ -1640,3 +1640,12 @@
 - [x] Restore P6-style WBS depth indicator bars on left side of PDF table rows
 - [x] Add depth indicator bars to preview canvas for both WBS group and activity rows
 - [x] Thread ancestorColors through PdfExportOptions, PdfRow, WbsGroup, PreviewRow, and Scheduler export mapping
+
+## CRITICAL BUGS — Client-Facing
+- [ ] Fix Discord bot sending triple welcome messages (sends 3 identical messages instead of 1)
+- [ ] Fix webhook product matching — Carson Holden's $497 purchase was ignored because session.metadata.product_key was missing; add fallback for untagged purchases
+
+## PDF Fix Round 2.9
+- [x] Fix WBS depth bars overlapping Activity ID text — shift cell text to start after the depth bars (like P6)
+- [x] Fix footer auto-expand — footer height auto-grows based on rich text content (calcRichTextHeight + calcMinSlotHeight)
+- [x] Preview canvas also offsets first column text past depth bars
