@@ -1662,3 +1662,18 @@
 - [ ] QTO: Australian regional cost factors (Sydney, Melbourne, Brisbane, Perth, rural)
 - [ ] QTO: Update AI prompts to support currency/country context and scope-specific instructions
 - [ ] QTO: Update all currency display/export from hardcoded USD to dynamic currency
+- [ ] BUG: New Takeoff Project modal text overlap — description and Project Name label scrambled
+- [ ] BUG: New Takeoff Project modal too narrow/tall — needs width fix
+- [ ] BUG: Currency selection (USD/GBP/AUD) missing from New Project modal
+- [ ] BUG: Pre-Analysis Modal does NOT fire when clicking Analyze Drawings — must intercept that button
+
+## QTO Pre-Analysis Modal Bug Fixes
+- [x] Bug 1: Widen New Project modal from sm:max-w-lg to sm:max-w-2xl — text no longer overlaps
+- [x] Bug 1: Add currency selection (USD/GBP/AUD) with flag icons to New Project modal
+- [x] Bug 1: Pass currency to RegionSelector so regions filter by country
+- [x] Bug 1: Add currency to createProject backend input schema and pass to DB
+- [x] Bug 2: Show "Analyze Drawings" button whenever sheets exist (not just when pending)
+- [x] Bug 2: Pre-Analysis Modal now fires on click for both pending and completed projects
+- [x] Bug 2: "Re-Analyze Drawings" variant shown for already-completed projects (blue/indigo gradient)
+- [x] Bug 2: Updated pendingSheetCount to fall back to total sheets for re-analysis case
+- [x] All 391 tests passing after fixes

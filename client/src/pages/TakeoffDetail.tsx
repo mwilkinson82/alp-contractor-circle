@@ -597,22 +597,33 @@ export default function TakeoffDetail() {
               </div>
             </div>
 
-            {/* Process Button — opens Pre-Analysis Modal */}
-            {sheets.length > 0 && hasPendingSheets && !isProcessing && (
+            {/* Analyze Drawings Button — opens Pre-Analysis Modal */}
+            {/* Shows when: sheets exist AND not currently processing */}
+            {sheets.length > 0 && !isProcessing && (
               <div className="mb-6">
                 <Button
                   onClick={() => setShowPreAnalysis(true)}
                   disabled={processMutation.isPending}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-6 text-lg shadow-lg"
+                  className={`w-full font-semibold py-6 text-lg shadow-lg ${
+                    hasPendingSheets
+                      ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                      : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  }`}
                 >
                   {processMutation.isPending ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  ) : (
+                  ) : hasPendingSheets ? (
                     <Sparkles className="w-5 h-5 mr-2" />
+                  ) : (
+                    <Play className="w-5 h-5 mr-2" />
                   )}
-                  Start Construct Line Takeoff
+                  {hasPendingSheets
+                    ? "Analyze Drawings"
+                    : "Re-Analyze Drawings"}
                   <span className="ml-2 text-sm opacity-75">
-                    ({sheets.filter((s: any) => s.status === "pending").length} sheets to analyze)
+                    ({hasPendingSheets
+                      ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`
+                      : `${sheets.length} sheets — update settings & re-run`})
                   </span>
                 </Button>
               </div>
@@ -632,7 +643,7 @@ export default function TakeoffDetail() {
                   scopeText: settings.scopeText || null,
                 });
               }}
-              pendingSheetCount={sheets.filter((s: any) => s.status === "pending").length}
+              pendingSheetCount={sheets.filter((s: any) => s.status === "pending").length || sheets.length}
               isSubmitting={processMutation.isPending}
               existingDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               existingRegion={project.costRegion}

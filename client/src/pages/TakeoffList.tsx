@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Layers,
   MapPin,
+  DollarSign,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -39,10 +40,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   error: { label: "Error", color: "bg-red-500/20 text-red-300 border-red-500/30", icon: AlertCircle },
 };
 
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
+const CURRENCY_OPTIONS = [
+  { code: "USD" as const, label: "US Dollar", symbol: "$", flag: "🇺🇸" },
+  { code: "GBP" as const, label: "British Pound", symbol: "£", flag: "🇬🇧" },
+  { code: "AUD" as const, label: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
+];
+
+function formatCurrency(cents: number, currencyCode: string = "USD"): string {
+  const locale = currencyCode === "GBP" ? "en-GB" : currencyCode === "AUD" ? "en-AU" : "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "USD",
+    currency: currencyCode,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
@@ -53,6 +61,7 @@ export default function TakeoffList() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newCurrency, setNewCurrency] = useState<"USD" | "GBP" | "AUD">("USD");
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
   const [costRegion, setCostRegion] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -64,6 +73,7 @@ export default function TakeoffList() {
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
+      setNewCurrency("USD");
       setSelectedDivisions([]);
       setCostRegion(null);
       navigate(`/takeoff/${result.id}`);
@@ -90,6 +100,7 @@ export default function TakeoffList() {
     createMutation.mutate({
       name: newName,
       description: newDesc || undefined,
+      currency: newCurrency,
       selectedDivisions: selectedDivisions.length > 0 ? selectedDivisions : undefined,
       costRegion: costRegion || undefined,
     });
@@ -195,12 +206,18 @@ export default function TakeoffList() {
                     </div>
                     {project.totalEstimatedCost > 0 && (
                       <span className="font-semibold text-amber-400">
-                        {formatCurrency(project.totalEstimatedCost)}
+                        {formatCurrency(project.totalEstimatedCost, project.currency || "USD")}
                       </span>
                     )}
                   </div>
-                  {/* Division & Region badges */}
+                  {/* Division, Region & Currency badges */}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {project.currency && project.currency !== "USD" && (
+                      <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-[10px]">
+                        <DollarSign className="w-2.5 h-2.5 mr-1" />
+                        {project.currency}
+                      </Badge>
+                    )}
                     {divCount !== null && (
                       <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">
                         <Layers className="w-2.5 h-2.5 mr-1" />
@@ -262,37 +279,84 @@ export default function TakeoffList() {
         </div>
       )}
 
-      {/* Create Dialog */}
+      {/* Create Dialog — wider modal with currency selection */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-navy-deep border-white/10 text-cream">
           <DialogHeader>
-            <DialogTitle>New Takeoff Project</DialogTitle>
-            <DialogDescription>
-              Create a project, select which CSI divisions to extract, and choose a cost region for pricing.
+            <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
+            <DialogDescription className="text-cream-muted">
+              Set up your project, select currency and CSI divisions, then choose a cost region for pricing.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-5 py-2">
+            {/* Project Name */}
             <div className="space-y-2">
-              <Label>Project Name</Label>
+              <Label className="text-sm font-semibold text-cream">Project Name</Label>
               <Input
                 placeholder="e.g. Smith Residence Bid"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 autoFocus
+                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50"
               />
             </div>
+
+            {/* Description */}
             <div className="space-y-2">
-              <Label>Description (optional)</Label>
+              <Label className="text-sm text-cream-muted">Description (optional)</Label>
               <Textarea
                 placeholder="Brief description of the project..."
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
                 rows={2}
+                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 resize-none"
               />
             </div>
 
+            {/* Currency Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-cream flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-amber-500" />
+                Currency
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+                {CURRENCY_OPTIONS.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setNewCurrency(c.code);
+                      // Reset region when currency changes since regions are country-specific
+                      if (c.code !== newCurrency) setCostRegion(null);
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                      newCurrency === c.code
+                        ? "border-amber-500/50 bg-amber-500/10"
+                        : "border-white/10 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="text-xl">{c.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-cream text-sm">{c.symbol}</span>
+                        <span className="text-cream-muted text-xs">{c.code}</span>
+                      </div>
+                      <p className="text-[11px] text-cream-muted/70 truncate">{c.label}</p>
+                    </div>
+                    {newCurrency === c.code && (
+                      <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Division Selector */}
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label className="text-xs text-cream-muted">
                 Which CSI divisions should Construct Line extract?
               </Label>
@@ -303,8 +367,8 @@ export default function TakeoffList() {
               />
             </div>
 
-            {/* Region Selector */}
-            <div className="space-y-1">
+            {/* Region Selector — filtered by selected currency */}
+            <div className="space-y-2">
               <Label className="text-xs text-cream-muted">
                 What region are you pricing for? (adjusts unit costs)
               </Label>
@@ -312,11 +376,12 @@ export default function TakeoffList() {
                 value={costRegion}
                 onChange={setCostRegion}
                 defaultExpanded={false}
+                currency={newCurrency}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="text-cream-muted hover:text-cream">
               Cancel
             </Button>
             <Button

@@ -94,6 +94,8 @@ export const takeoffRouter = router({
       z.object({
         name: z.string().min(1).max(256),
         description: z.string().max(2000).optional(),
+        /** Currency code: USD, GBP, or AUD */
+        currency: z.enum(["USD", "GBP", "AUD"]).optional(),
         /** JSON array of selected CSI division codes, or null/empty for all */
         selectedDivisions: z.array(z.string()).optional(),
         /** Cost region code */
@@ -130,6 +132,7 @@ export const takeoffRouter = router({
         memberId: member.id,
         name: input.name,
         description: input.description || null,
+        currency: input.currency || "USD",
         selectedDivisions: divisionsJson,
         costRegion,
         costMultiplier,
