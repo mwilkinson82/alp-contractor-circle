@@ -56,8 +56,8 @@ describe("Template Google Drive URLs", () => {
     }
   });
 
-  it("all 19 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(19);
+  it("all 26 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(26);
   });
 
   it("template IDs are unique", () => {
@@ -82,6 +82,7 @@ describe("Template Google Drive URLs", () => {
     expect(categories.has("sales")).toBe(true);
     expect(categories.has("finance")).toBe(true);
     expect(categories.has("operations")).toBe(true);
+    expect(categories.has("contractor_circle")).toBe(true);
   });
 
   it("file types are only google-doc, google-sheet, or pdf", () => {

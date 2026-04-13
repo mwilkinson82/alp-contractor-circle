@@ -27,7 +27,7 @@ import { useMember } from "@/hooks/useMember";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { Send, Lightbulb, CheckCircle } from "lucide-react";
 
-type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance" | "estimating";
+type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance" | "estimating" | "contractor_circle";
 
 interface Template {
   id: string;
@@ -243,7 +243,7 @@ const TEMPLATES: Template[] = [
     ],
   },
   {
-    id: "12",
+    id: "22",
     title: "Subcontractor Agreement",
     description: "Complete subcontractor agreement template covering scope, payment, insurance, lien waivers, and termination provisions.",
     longDescription: "A comprehensive subcontractor agreement built for contractors who need airtight paperwork before any sub touches a jobsite. Covers scope of work, contract price and payment schedule, insurance and indemnification requirements, lien waiver provisions, change order process, termination for cause, and dispute resolution. Built on the same framework Marshall used on $2.5B+ in construction.",
@@ -263,7 +263,7 @@ const TEMPLATES: Template[] = [
     ],
   },
   {
-    id: "13",
+    id: "23",
     title: "Daily Job Log / Field Report",
     description: "Daily field report template for tracking crew, progress, weather, materials, and issues on every jobsite.",
     longDescription: "A professional daily job log and field report template that keeps every jobsite documented and every day on record. Tracks date, project, superintendent, weather conditions, crew count and hours, work completed by trade, materials received, equipment used, subcontractors on site, safety observations, issues and delays, and photos/attachments log. The documentation that protects you in disputes and keeps your PM system tight.",
@@ -424,10 +424,10 @@ const TEMPLATES: Template[] = [
   },
   {
     id: "12",
-    title: "EOS for Contractors \u2014 Inaugural Call Deck",
+    title: "Presentation from Call #1: EOS for Contractors",
     description: "Complete EOS operating system breakdown tailored for contractors. Covers the VITO, Rocks, Scorecard, L10 Meeting, IDS Process, Core Processes, and more.",
     longDescription: "The full EOS (Entrepreneurial Operating System) framework adapted specifically for construction contractors. This comprehensive deck walks through every component of EOS including the Vision/Traction Organizer (VITO), setting and tracking Rocks, building your Scorecard with leading and lagging indicators, running effective L10 Meetings, the IDS (Identify, Discuss, Solve) problem-solving process, documenting Core Processes, and implementing the People Analyzer. Built from the ALP Contractor Circle inaugural call.",
-    category: "operations",
+    category: "contractor_circle",
     fileType: "pdf",
     downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf",
     featured: true,
@@ -547,6 +547,27 @@ const TEMPLATES: Template[] = [
       "Complete example V/TO for a mid-size general contractor",
     ],
   },
+  {
+    id: "26",
+    title: "Presentation from Call #2: Your Business is Your Biggest Asset",
+    description: "The full deck from ALP Contractor Circle Call #2. Covers why your company is your biggest asset, real PE/M&A acquisition data by sector, valuation multiples, what private equity firms look for when they buy contractors, the ALP EOS VITO through the exit lens, and a deep dive into the People Component.",
+    longDescription: "The complete deck from ALP Contractor Circle Call #2: Your Biggest Asset. This presentation reframes the entire ALP Operating System through the lens of building a company with real market value — not just one that pays you while you run it, but one that's worth something when you're ready to step back. Covers real PE/M&A data: which construction sectors get acquired (MEP, roofing, HVAC, water/wastewater), at what multiples (4-8x EBITDA), and by whom (Dycom, TopBuild, Legence, Installed Building Products). Walks through the VITO framework with exit-lens framing, then goes deep on the People Component — Accountability Charts, the People Analyzer, GWC, and the Right Person / Right Seat matrix with real contractor examples. Includes the ALP Operating System = PE Due Diligence Checklist mapping table.",
+    category: "contractor_circle",
+    fileType: "pdf",
+    downloadUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Call2_Your_Biggest_Asset_a98da66c.pdf",
+    featured: true,
+    badge: "New",
+    pages: "Full Deck",
+    highlights: [
+      "PE/M&A data — which contractors get acquired and at what multiples",
+      "Sector analysis — MEP, roofing, HVAC, water/wastewater, residential trades",
+      "What PE firms look for — 7 criteria that drive acquisition decisions",
+      "What kills deals — 6 red flags that destroy market value",
+      "VITO framework through the exit lens — every component mapped to PE value",
+      "People Component deep dive — Accountability Chart, People Analyzer, GWC",
+      "ALP Operating System = PE Due Diligence Checklist mapping table",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
@@ -557,6 +578,7 @@ const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementT
   { value: "operations", label: "Operations", icon: BarChart3 },
   { value: "finance", label: "Finance", icon: FileSpreadsheet },
   { value: "estimating", label: "Estimating", icon: Calculator },
+  { value: "contractor_circle", label: "Circle Presentations", icon: BookOpen },
 ];
 
 const FILE_CONFIG: Record<string, { color: string; bg: string; border: string; label: string; icon: React.ElementType; accent: string }> = {
