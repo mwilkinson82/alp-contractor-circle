@@ -1649,3 +1649,16 @@
 - [x] Fix WBS depth bars overlapping Activity ID text — shift cell text to start after the depth bars (like P6)
 - [x] Fix footer auto-expand — footer height auto-grows based on rich text content (calcRichTextHeight + calcMinSlotHeight)
 - [x] Preview canvas also offsets first column text past depth bars
+
+
+## QTO Pre-Analysis Modal & Multi-Currency Support
+- [ ] QTO Pre-Analysis Modal: Currency selection (USD/GBP/AUD) before analysis
+- [ ] QTO Pre-Analysis Modal: Move CSI division selection from edit settings into the modal
+- [ ] QTO Pre-Analysis Modal: Regional factoring — US (existing), UK (BCIS-style), AUS regions
+- [ ] QTO Pre-Analysis Modal: Scope-specific text input for sub-scope filtering within CSI divisions
+- [ ] QTO Pre-Analysis Modal: Persistent user preferences (remember last selections)
+- [ ] QTO: Construction-specific currency conversion factors (USD baseline → GBP/AUD)
+- [ ] QTO: UK regional cost factors (London, Birmingham, Manchester, Edinburgh, rural)
+- [ ] QTO: Australian regional cost factors (Sydney, Melbourne, Brisbane, Perth, rural)
+- [ ] QTO: Update AI prompts to support currency/country context and scope-specific instructions
+- [ ] QTO: Update all currency display/export from hardcoded USD to dynamic currency

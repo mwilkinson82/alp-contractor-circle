@@ -15,7 +15,9 @@ import {
   getRegionMultiplier,
   getRegion,
   applyRegionalMultiplier,
+  getRegionGroupsForCurrency,
 } from "../shared/costRegions";
+import { CURRENCIES, getCurrency, formatCurrencyAmount } from "../shared/currencies";
 
 describe("Division Selector", () => {
   it("should have all expected CSI divisions", () => {
@@ -183,6 +185,100 @@ describe("Regional Cost Factors", () => {
       const expected = multiplier.toFixed(2) + "x";
       expect(region.displayMultiplier).toBe(expected);
     }
+  });
+});
+
+describe("UK Regional Cost Factors", () => {
+  it("should have UK region groups", () => {
+    const ukGroups = getRegionGroupsForCurrency("GBP");
+    expect(ukGroups.length).toBeGreaterThan(0);
+    expect(ukGroups.every((g) => g.country === "UK")).toBe(true);
+  });
+
+  it("should have UK national average at 1.00x", () => {
+    const ukNational = COST_REGIONS.find((r) => r.code === "uk-national");
+    expect(ukNational).toBeTruthy();
+    expect(ukNational?.multiplier).toBe(10000);
+  });
+
+  it("should have Inner London as highest UK cost", () => {
+    const innerLondon = COST_REGIONS.find((r) => r.code === "uk-inner-london");
+    expect(innerLondon).toBeTruthy();
+    expect(innerLondon?.multiplier).toBeGreaterThan(12000);
+  });
+
+  it("should have Birmingham in West Midlands", () => {
+    const westMidlands = COST_REGIONS.find((r) => r.code === "uk-west-midlands");
+    expect(westMidlands).toBeTruthy();
+    expect(westMidlands?.description).toContain("Birmingham");
+  });
+
+  it("should have Northern Ireland as lower cost", () => {
+    const ni = COST_REGIONS.find((r) => r.code === "uk-northern-ireland");
+    expect(ni).toBeTruthy();
+    expect(ni?.multiplier).toBeLessThan(10000);
+  });
+});
+
+describe("Australian Regional Cost Factors", () => {
+  it("should have AU region groups", () => {
+    const auGroups = getRegionGroupsForCurrency("AUD");
+    expect(auGroups.length).toBeGreaterThan(0);
+    expect(auGroups.every((g) => g.country === "AU")).toBe(true);
+  });
+
+  it("should have AU national average at 1.00x", () => {
+    const auNational = COST_REGIONS.find((r) => r.code === "au-national");
+    expect(auNational).toBeTruthy();
+    expect(auNational?.multiplier).toBe(10000);
+  });
+
+  it("should have Sydney as highest AU cost", () => {
+    const sydney = COST_REGIONS.find((r) => r.code === "au-sydney");
+    expect(sydney).toBeTruthy();
+    expect(sydney?.multiplier).toBeGreaterThan(12000);
+  });
+
+  it("should have Melbourne as high cost", () => {
+    const melbourne = COST_REGIONS.find((r) => r.code === "au-melbourne");
+    expect(melbourne).toBeTruthy();
+    expect(melbourne?.multiplier).toBeGreaterThan(10000);
+  });
+});
+
+describe("Currency Support", () => {
+  it("should have USD, GBP, AUD currencies", () => {
+    expect(CURRENCIES.length).toBe(3);
+    expect(getCurrency("USD")).toBeTruthy();
+    expect(getCurrency("GBP")).toBeTruthy();
+    expect(getCurrency("AUD")).toBeTruthy();
+  });
+
+  it("should format USD correctly", () => {
+    const formatted = formatCurrencyAmount(10000, "USD");
+    expect(formatted).toContain("100");
+  });
+
+  it("should format GBP correctly", () => {
+    const formatted = formatCurrencyAmount(10000, "GBP");
+    expect(formatted).toContain("100");
+    expect(formatted).toContain("\u00a3");
+  });
+
+  it("should format AUD correctly", () => {
+    const formatted = formatCurrencyAmount(10000, "AUD");
+    expect(formatted).toContain("100");
+  });
+
+  it("getRegionGroupsForCurrency should filter by country", () => {
+    const usGroups = getRegionGroupsForCurrency("USD");
+    expect(usGroups.every((g) => g.country === "US")).toBe(true);
+
+    const ukGroups = getRegionGroupsForCurrency("GBP");
+    expect(ukGroups.every((g) => g.country === "UK")).toBe(true);
+
+    const auGroups = getRegionGroupsForCurrency("AUD");
+    expect(auGroups.every((g) => g.country === "AU")).toBe(true);
   });
 });
 

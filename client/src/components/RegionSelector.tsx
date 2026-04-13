@@ -2,16 +2,22 @@
  * RegionSelector — Cost region picker for Takeoff projects.
  *
  * Features:
- * - Grouped by geographic region (Northeast, Southeast, etc.)
+ * - Grouped by geographic region
+ * - Filters regions by currency/country (USD→US, GBP→UK, AUD→AU)
  * - Shows multiplier for each metro area
  * - Search/filter functionality
  * - Clear display of selected region with multiplier
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { COST_REGION_GROUPS, type CostRegion } from "../../../shared/costRegions";
+import {
+  COST_REGION_GROUPS,
+  getRegionGroupsForCurrency,
+  type CostRegion,
+  type CostRegionGroup,
+} from "../../../shared/costRegions";
 import {
   ChevronDown,
   ChevronUp,
@@ -25,41 +31,79 @@ interface RegionSelectorProps {
   onChange: (code: string | null) => void;
   /** Whether to start expanded */
   defaultExpanded?: boolean;
+  /** Currency code to filter regions by country (USD, GBP, AUD). Defaults to all. */
+  currency?: string;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  US: "Multipliers based on RSMeans City Cost Index data. National Average = 1.00x baseline.",
+  UK: "Multipliers based on BCIS Location Factor data (RICS). UK National Average = 1.00x baseline.",
+  AU: "Multipliers based on Rawlinsons Construction Cost Guide. AU National Average = 1.00x baseline.",
+};
+
+const CURRENCY_TO_COUNTRY: Record<string, string> = {
+  USD: "US",
+  GBP: "UK",
+  AUD: "AU",
+};
 
 export default function RegionSelector({
   value,
   onChange,
   defaultExpanded = false,
+  currency,
 }: RegionSelectorProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [search, setSearch] = useState("");
 
+  // Get the region groups filtered by currency
+  const regionGroups = useMemo(() => {
+    if (!currency) return COST_REGION_GROUPS;
+    return getRegionGroupsForCurrency(currency);
+  }, [currency]);
+
+  // When currency changes, reset selection if current region doesn't belong to the new country
+  useEffect(() => {
+    if (!value || !currency) return;
+    const country = CURRENCY_TO_COUNTRY[currency];
+    if (!country) return;
+    const allCodes = regionGroups.flatMap((g) => g.metros.map((m) => m.code));
+    if (!allCodes.includes(value)) {
+      onChange(null); // Reset to national average for new country
+    }
+  }, [currency, regionGroups]);
+
   // Find selected region details
   const selectedRegion = useMemo(() => {
     if (!value) return null;
-    for (const group of COST_REGION_GROUPS) {
+    for (const group of regionGroups) {
       const found = group.metros.find((m) => m.code === value);
       if (found) return found;
     }
     return null;
-  }, [value]);
+  }, [value, regionGroups]);
 
   // Filter regions by search
   const filteredGroups = useMemo(() => {
-    if (!search.trim()) return COST_REGION_GROUPS;
+    if (!search.trim()) return regionGroups;
     const q = search.toLowerCase();
-    return COST_REGION_GROUPS.map((group) => ({
-      ...group,
-      metros: group.metros.filter(
-        (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.description.toLowerCase().includes(q) ||
-          m.code.toLowerCase().includes(q) ||
-          group.region.toLowerCase().includes(q)
-      ),
-    })).filter((g) => g.metros.length > 0);
-  }, [search]);
+    return regionGroups
+      .map((group) => ({
+        ...group,
+        metros: group.metros.filter(
+          (m) =>
+            m.name.toLowerCase().includes(q) ||
+            m.description.toLowerCase().includes(q) ||
+            m.code.toLowerCase().includes(q) ||
+            group.region.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((g) => g.metros.length > 0);
+  }, [search, regionGroups]);
+
+  // Footer source label
+  const country = currency ? CURRENCY_TO_COUNTRY[currency] : "US";
+  const sourceLabel = SOURCE_LABELS[country || "US"] || SOURCE_LABELS.US;
 
   const getMultiplierColor = (multiplier: number) => {
     if (multiplier >= 12000) return "text-red-400";
@@ -169,7 +213,7 @@ export default function RegionSelector({
 
           {/* Info footer */}
           <div className="px-3 py-2 border-t border-white/5 text-[10px] text-cream-muted/50">
-            Multipliers based on RSMeans City Cost Index data. National Average = 1.00x baseline.
+            {sourceLabel}
           </div>
         </div>
       )}

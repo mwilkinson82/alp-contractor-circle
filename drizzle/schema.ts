@@ -739,6 +739,10 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   costRegion: varchar("costRegion", { length: 64 }),
   /** Regional cost multiplier (stored as integer basis points, e.g. 10500 = 1.05x) - null means 1.00x */
   costMultiplier: int("costMultiplier"),
+  /** Currency code: USD, GBP, AUD — defaults to USD */
+  currency: varchar("currency", { length: 8 }).default("USD"),
+  /** Free-text scope description for targeted extraction within a CSI division */
+  scopeText: text("scopeText"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

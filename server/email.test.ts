@@ -23,7 +23,7 @@ describe("Welcome Email #1 — HTML", () => {
 
   it("includes the Discord invite link", () => {
     const html = buildWelcomeEmailHtml({ name: "Test User" });
-    expect(html).toContain("https://discord.gg/jnwDPTY6D3");
+    expect(html).toContain("https://discord.gg/2pagscG2Np");
   });
 
   it("includes the Founding Member badge", () => {
@@ -95,7 +95,7 @@ describe("Welcome Email #1 — Plain Text", () => {
 
   it("includes the Discord link", () => {
     const text = buildWelcomeEmailText({ name: "Test" });
-    expect(text).toContain("https://discord.gg/jnwDPTY6D3");
+    expect(text).toContain("https://discord.gg/2pagscG2Np");
   });
 
   it("includes all three steps", () => {

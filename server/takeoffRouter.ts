@@ -305,7 +305,14 @@ export const takeoffRouter = router({
 
   /** Start AI processing for all pending sheets in a project */
   startProcessing: publicProcedure
-    .input(z.object({ projectId: z.number() }))
+    .input(z.object({
+      projectId: z.number(),
+      /** Optional pre-analysis modal settings */
+      currency: z.enum(["USD", "GBP", "AUD"]).optional(),
+      costRegion: z.string().max(64).nullable().optional(),
+      selectedDivisions: z.array(z.string()).optional(),
+      scopeText: z.string().max(2000).nullable().optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
@@ -318,6 +325,45 @@ export const takeoffRouter = router({
           code: "CONFLICT",
           message: "Project is already being processed.",
         });
+      }
+
+      // Apply pre-analysis modal settings to project before processing
+      const updates: any = {};
+
+      if (input.currency !== undefined) {
+        updates.currency = input.currency;
+      }
+
+      if (input.scopeText !== undefined) {
+        updates.scopeText = input.scopeText;
+      }
+
+      if (input.selectedDivisions !== undefined) {
+        if (input.selectedDivisions.length === 0) {
+          updates.selectedDivisions = null;
+        } else {
+          const validCodes = input.selectedDivisions.filter((c: string) =>
+            ALL_TAKEOFF_DIVISION_CODES.includes(c)
+          );
+          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+        }
+      }
+
+      if (input.costRegion !== undefined) {
+        if (input.costRegion === null) {
+          updates.costRegion = null;
+          updates.costMultiplier = 10000;
+        } else {
+          const multiplier = getRegionMultiplier(input.costRegion);
+          if (multiplier !== null) {
+            updates.costRegion = input.costRegion;
+            updates.costMultiplier = multiplier;
+          }
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateTakeoffProject(input.projectId, updates);
       }
 
       // Start processing in background (don't await)

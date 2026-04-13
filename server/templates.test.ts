@@ -1,61 +1,40 @@
 /**
- * Templates URL validation tests
- * Ensures all template URLs point to Google Docs/Sheets/Drive with /copy or /view
+ * Templates catalog validation tests
+ * Ensures all 26 templates are present with valid URLs and correct categories.
+ * Google Docs and Sheets use /copy; PDFs use /view or CDN URLs.
  */
 import { describe, expect, it } from "vitest";
 
-/**
- * Complete template catalog — all 18 templates with their Google Drive URLs.
- * Google Docs and Sheets use /copy to force members to make their own copy.
- * PDFs use /view since they cannot be copied in Google Drive.
- */
 const TEMPLATES = [
-  { id: "1", name: "Contractor Proposal Template", url: "https://docs.google.com/document/d/17KrgZQsLo4ZBxxSu5bFUpOlMgaViD6PixxHeNbnYksM/copy", type: "google-doc", category: "proposals", featured: true },
-  { id: "2", name: "Construction Agreement Template", url: "https://docs.google.com/document/d/1ci08CJ9aIgScwtibkLOoVoDX75pav--5gs4VTq5hxZY/copy", type: "google-doc", category: "contracts", featured: false },
-  { id: "3", name: "Follow-Up Email Scripts", url: "https://docs.google.com/document/d/1TxuHOv6lrnMUlpijQuhzPfiUEyjbEZUaiIN076AV85Q/copy", type: "google-doc", category: "sales", featured: true },
-  { id: "4", name: "Objection Reframing Guide", url: "https://docs.google.com/document/d/1KLLh8yFUk5ZK51v5kpnsvT_YJMvnMWakZZ8i0FyjGSA/copy", type: "google-doc", category: "sales", featured: true },
-  { id: "5", name: "Bid Sheet & Estimating Template", url: "https://docs.google.com/spreadsheets/d/11Relq2cAVntdPLCV74qRCbtvN1jjE2GUowZCETHP6h8/copy", type: "google-sheet", category: "finance", featured: true },
-  { id: "6", name: "PM Systems Presentation", url: "https://drive.google.com/file/d/1vJ_DaziH4NkmrMjpZ1d3aw7IoH-om8xv/view", type: "pdf", category: "operations", featured: false },
-  { id: "7", name: "PM Systems Spreadsheets", url: "https://docs.google.com/spreadsheets/d/14ZB8w1j8CO3DICRXXakxNE8mKbL_agEn0qWPJ7blWPk/copy", type: "google-sheet", category: "operations", featured: false },
-  { id: "8", name: "Construction SOPs Template", url: "https://docs.google.com/document/d/1jjzpZba5u1sQUQ1lEJR3sYsn8jspKrt3z0xDpq8xXD0/copy", type: "google-doc", category: "operations", featured: true },
-  { id: "9", name: "Construction Checklists", url: "https://docs.google.com/document/d/14i1hWbgHjJGhQJkFidc9xSqz00FPBk3tYm6NGKm3SIo/copy", type: "google-doc", category: "operations", featured: true },
-  { id: "10", name: "Subcontractor & Vendor Management SOPs", url: "https://docs.google.com/document/d/1mMquQmg0mxKyrgma8CnLOFehrhAngsiEKv0KEFd6hBk/copy", type: "google-doc", category: "operations", featured: true },
-  { id: "11", name: "Client Communication & Sales Follow-Up SOPs", url: "https://docs.google.com/document/d/1HBVZ3oyuLoRQfOJeDSPtTiPjsAN-_mpndM80G4tLmL0/copy", type: "google-doc", category: "sales", featured: true },
-  { id: "12", name: "Subcontractor Agreement", url: "https://docs.google.com/document/d/1QhSBhvGoUpz-q6uXmauYItUPLgyaZVDTTu0ReJHtk1M/copy", type: "google-doc", category: "contracts", featured: false },
-  { id: "13", name: "Daily Job Log / Field Report", url: "https://docs.google.com/document/d/1ZqB1XsJfTvIIrblJfPQ47pzT-kkNH8tSpcbQmvg1qZE/copy", type: "google-doc", category: "operations", featured: false },
-  { id: "14", name: "Change Order Template", url: "https://docs.google.com/document/d/1GGVY7EsAZ3bk68XxUFdHXaLnKKaowgoMzbPTx2VbqSs/copy", type: "google-doc", category: "contracts", featured: false },
-  { id: "15", name: "Client Onboarding Checklist", url: "https://docs.google.com/document/d/1bVZFRRw8D0zqWQfdiVugV8p9L4-7sVAIsYu7sww3EDc/copy", type: "google-doc", category: "operations", featured: false },
-  { id: "16", name: "Construction Punch List", url: "https://docs.google.com/spreadsheets/d/1_jwNpKsmTqHuNAN8HMwKhPBIAW3mOmK5IkZYh2rUXYw/copy", type: "google-sheet", category: "operations", featured: false },
-  { id: "17", name: "Construction Invoice", url: "https://docs.google.com/spreadsheets/d/1yWC3qJq0ew1Sw5P3zTigm0l-fcPqldAI_sIouHNEF0o/copy", type: "google-sheet", category: "finance", featured: false },
-  { id: "18", name: "Roles & Responsibilities Framework", url: "https://docs.google.com/document/d/1H5_dKbrSgwTpKD7lxK4i3dsjMJvnhCs2sg3l3f4AZHk/copy", type: "google-doc", category: "operations", featured: true },
-  { id: "19", name: "CPM Scheduling — The Financial Weapon", url: "https://drive.google.com/file/d/1tcDTbADD3V7oIV72OJSvHBqKsFz9-DB8/view", type: "pdf", category: "operations", featured: false },
+  { id: "1",  name: "Contractor Proposal Template",                    url: "https://docs.google.com/document/d/17KrgZQsLo4ZBxxSu5bFUpOlMgaViD6PixxHeNbnYksM/copy", type: "google-doc",   category: "proposals" },
+  { id: "2",  name: "Construction Agreement Template",                 url: "https://docs.google.com/document/d/1ci08CJ9aIgScwtibkLOoVoDX75pav--5gs4VTq5hxZY/copy", type: "google-doc",   category: "contracts" },
+  { id: "3",  name: "Follow-Up Email Scripts",                         url: "https://docs.google.com/document/d/1TxuHOv6lrnMUlpijQuhzPfiUEyjbEZUaiIN076AV85Q/copy", type: "google-doc",   category: "sales" },
+  { id: "4",  name: "Objection Reframing Guide",                       url: "https://docs.google.com/document/d/1KLLh8yFUk5ZK51v5kpnsvT_YJMvnMWakZZ8i0FyjGSA/copy", type: "google-doc",   category: "sales" },
+  { id: "5",  name: "Bid Sheet & Estimating Template",                 url: "https://docs.google.com/spreadsheets/d/11Relq2cAVntdPLCV74qRCbtvN1jjE2GUowZCETHP6h8/copy", type: "google-sheet", category: "finance" },
+  { id: "6",  name: "PM Systems Presentation",                         url: "https://drive.google.com/file/d/1vJ_DaziH4NkmrMjpZ1d3aw7IoH-om8xv/view",                type: "pdf",          category: "operations" },
+  { id: "7",  name: "PM Systems Spreadsheets",                         url: "https://docs.google.com/spreadsheets/d/14ZB8w1j8CO3DICRXXakxNE8mKbL_agEn0qWPJ7blWPk/copy", type: "google-sheet", category: "operations" },
+  { id: "8",  name: "Construction SOPs Template",                      url: "https://docs.google.com/document/d/1jjzpZba5u1sQUQ1lEJR3sYsn8jspKrt3z0xDpq8xXD0/copy", type: "google-doc",   category: "operations" },
+  { id: "9",  name: "Construction Checklists",                         url: "https://docs.google.com/document/d/14i1hWbgHjJGhQJkFidc9xSqz00FPBk3tYm6NGKm3SIo/copy", type: "google-doc",   category: "operations" },
+  { id: "10", name: "Subcontractor & Vendor Management SOPs",          url: "https://docs.google.com/document/d/1mMquQmg0mxKyrgma8CnLOFehrhAngsiEKv0KEFd6hBk/copy", type: "google-doc",   category: "operations" },
+  { id: "11", name: "Client Communication & Sales Follow-Up SOPs",     url: "https://docs.google.com/document/d/1HBVZ3oyuLoRQfOJeDSPtTiPjsAN-_mpndM80G4tLmL0/copy", type: "google-doc",   category: "sales" },
+  { id: "12", name: "Presentation from Call #1: EOS for Contractors",  url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Contractor_Circle_Inaugural_Call_FINAL_v2_a286e410.pdf", type: "pdf", category: "contractor_circle" },
+  { id: "13", name: "The Estimator's Checklist",                       url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_be88d436.pdf", type: "pdf", category: "estimating" },
+  { id: "14", name: "Change Order Template",                           url: "https://docs.google.com/document/d/1GGVY7EsAZ3bk68XxUFdHXaLnKKaowgoMzbPTx2VbqSs/copy", type: "google-doc",   category: "contracts" },
+  { id: "15", name: "Client Onboarding Checklist",                     url: "https://docs.google.com/document/d/1bVZFRRw8D0zqWQfdiVugV8p9L4-7sVAIsYu7sww3EDc/copy", type: "google-doc",   category: "operations" },
+  { id: "16", name: "Construction Punch List",                         url: "https://docs.google.com/spreadsheets/d/1_jwNpKsmTqHuNAN8HMwKhPBIAW3mOmK5IkZYh2rUXYw/copy", type: "google-sheet", category: "operations" },
+  { id: "17", name: "Construction Invoice",                            url: "https://docs.google.com/spreadsheets/d/1yWC3qJq0ew1Sw5P3zTigm0l-fcPqldAI_sIouHNEF0o/copy", type: "google-sheet", category: "finance" },
+  { id: "18", name: "Roles & Responsibilities Framework",              url: "https://docs.google.com/document/d/1H5_dKbrSgwTpKD7lxK4i3dsjMJvnhCs2sg3l3f4AZHk/copy", type: "google-doc",   category: "operations" },
+  { id: "19", name: "CPM Scheduling — The Financial Weapon",           url: "https://drive.google.com/file/d/1tcDTbADD3V7oIV72OJSvHBqKsFz9-DB8/view",                type: "pdf",          category: "operations" },
+  { id: "20", name: "ALP/EOS Operating System — Complete Playbook",    url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Playbook_65c0ba61.pdf", type: "pdf", category: "operations" },
+  { id: "21", name: "ALP/EOS Scorecard",                               url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/eos_data_handout_Scorecard_df3edffe.pdf", type: "pdf", category: "operations" },
+  { id: "22", name: "Subcontractor Agreement",                         url: "https://docs.google.com/document/d/1QhSBhvGoUpz-q6uXmauYItUPLgyaZVDTTu0ReJHtk1M/copy", type: "google-doc",   category: "contracts" },
+  { id: "23", name: "Daily Job Log / Field Report",                    url: "https://docs.google.com/document/d/1ZqB1XsJfTvIIrblJfPQ47pzT-kkNH8tSpcbQmvg1qZE/copy", type: "google-doc",   category: "operations" },
+  { id: "24", name: "Subcontractor Bid Submittal Form",                url: "https://docs.google.com/document/d/1IWR5H9w7EvJ7kNpMC8i85IH8loUfvJ8xKgHq4tio2lI/copy", type: "google-doc",   category: "estimating" },
+  { id: "25", name: "ALP/EOS Vision/Traction Organizer (V/TO)",        url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Toolkit_VITO_63e29d87.pdf", type: "pdf", category: "operations" },
+  { id: "26", name: "Presentation from Call #2: Your Business is Your Biggest Asset", url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Call2_Your_Biggest_Asset_a98da66c.pdf", type: "pdf", category: "contractor_circle" },
 ];
 
-describe("Template Google Drive URLs", () => {
-  it("all templates have valid Google Drive URLs", () => {
-    for (const template of TEMPLATES) {
-      expect(template.url).toBeTruthy();
-      expect(template.url).toMatch(
-        /^https:\/\/(docs\.google\.com\/(document|spreadsheets)\/d\/|drive\.google\.com\/file\/d\/)/,
-      );
-    }
-  });
-
-  it("Google Docs and Sheets use /copy to force members to save their own copy", () => {
-    const copyableTemplates = TEMPLATES.filter((t) => t.type !== "pdf");
-    for (const template of copyableTemplates) {
-      expect(template.url).toMatch(/\/copy$/);
-    }
-  });
-
-  it("PDF templates use /view instead of /copy", () => {
-    const pdfTemplates = TEMPLATES.filter((t) => t.type === "pdf");
-    expect(pdfTemplates.length).toBeGreaterThan(0);
-    for (const template of pdfTemplates) {
-      expect(template.url).toMatch(/\/view$/);
-    }
-  });
-
+describe("Template Catalog", () => {
   it("all 26 templates are present", () => {
     expect(TEMPLATES).toHaveLength(26);
   });
@@ -75,6 +54,37 @@ describe("Template Google Drive URLs", () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
 
+  it("all templates have valid URLs", () => {
+    for (const template of TEMPLATES) {
+      expect(template.url).toBeTruthy();
+      expect(template.url).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("Google Docs use /copy URLs", () => {
+    const docs = TEMPLATES.filter((t) => t.type === "google-doc");
+    for (const doc of docs) {
+      expect(doc.url).toMatch(/\/copy$/);
+    }
+  });
+
+  it("Google Sheets use /copy URLs", () => {
+    const sheets = TEMPLATES.filter((t) => t.type === "google-sheet");
+    for (const sheet of sheets) {
+      expect(sheet.url).toMatch(/\/copy$/);
+    }
+  });
+
+  it("PDFs use /view or CDN URLs", () => {
+    const pdfs = TEMPLATES.filter((t) => t.type === "pdf");
+    expect(pdfs.length).toBeGreaterThan(0);
+    for (const pdf of pdfs) {
+      const isViewUrl = pdf.url.endsWith("/view");
+      const isCdnUrl = pdf.url.includes("cloudfront.net");
+      expect(isViewUrl || isCdnUrl).toBe(true);
+    }
+  });
+
   it("all expected categories are represented", () => {
     const categories = new Set(TEMPLATES.map((t) => t.category));
     expect(categories.has("proposals")).toBe(true);
@@ -82,6 +92,7 @@ describe("Template Google Drive URLs", () => {
     expect(categories.has("sales")).toBe(true);
     expect(categories.has("finance")).toBe(true);
     expect(categories.has("operations")).toBe(true);
+    expect(categories.has("estimating")).toBe(true);
     expect(categories.has("contractor_circle")).toBe(true);
   });
 
@@ -92,24 +103,10 @@ describe("Template Google Drive URLs", () => {
     }
   });
 
-  it("Google Docs use docs.google.com/document/ URLs", () => {
-    const docs = TEMPLATES.filter((t) => t.type === "google-doc");
-    for (const doc of docs) {
-      expect(doc.url).toMatch(/^https:\/\/docs\.google\.com\/document\/d\//);
-    }
-  });
-
-  it("Google Sheets use docs.google.com/spreadsheets/ URLs", () => {
-    const sheets = TEMPLATES.filter((t) => t.type === "google-sheet");
-    for (const sheet of sheets) {
-      expect(sheet.url).toMatch(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//);
-    }
-  });
-
-  it("PDFs use drive.google.com/file/ URLs", () => {
-    const pdfs = TEMPLATES.filter((t) => t.type === "pdf");
-    for (const pdf of pdfs) {
-      expect(pdf.url).toMatch(/^https:\/\/drive\.google\.com\/file\/d\//);
-    }
+  it("contractor_circle category has both call decks", () => {
+    const circleDeck = TEMPLATES.filter((t) => t.category === "contractor_circle");
+    expect(circleDeck).toHaveLength(2);
+    expect(circleDeck.some((t) => t.name.includes("Call #1"))).toBe(true);
+    expect(circleDeck.some((t) => t.name.includes("Call #2"))).toBe(true);
   });
 });

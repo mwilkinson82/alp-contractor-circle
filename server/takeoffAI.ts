@@ -135,15 +135,40 @@ EXAMPLE — MEP Plan (M1.0 HVAC Floor Plan):
 
 // ─── System Prompt Builder ────────────────────────────────────────────────────
 
-function buildSystemPrompt(selectedDivisions: string[] | null): string {
+function buildCurrencyInstruction(currency: string | null): string {
+  if (!currency || currency === "USD") return "";
+  if (currency === "GBP") {
+    return `\n\n## CURRENCY — IMPORTANT\nAll unit costs MUST be in British Pounds Sterling (£ GBP). Use current UK construction market rates (2024-2025 pricing). Think in terms of UK material suppliers, UK labour rates, and UK market conditions. Do NOT convert from USD — price directly in GBP as a UK-based estimator would.`;
+  }
+  if (currency === "AUD") {
+    return `\n\n## CURRENCY — IMPORTANT\nAll unit costs MUST be in Australian Dollars (A$ AUD). Use current Australian construction market rates (2024-2025 pricing). Think in terms of Australian material suppliers, Australian labour rates, and Australian market conditions. Do NOT convert from USD — price directly in AUD as an Australian-based estimator would.`;
+  }
+  return "";
+}
+
+function buildScopeTextInstruction(scopeText: string | null): string {
+  if (!scopeText || scopeText.trim().length === 0) return "";
+  return `\n\n## SPECIFIC SCOPE FILTER — CRITICAL\nThe user has specified a particular scope of work within the selected CSI divisions. You MUST only extract items that match this specific scope description:\n\n"${scopeText.trim()}"\n\nOnly return line items directly relevant to this scope. Ignore everything else on the drawing that falls outside this specific scope, even if it belongs to a selected CSI division. For example, if the user says "foundations only — spread footings and grade beams" within Division 03 (Concrete), do NOT include slabs, walls, or other concrete work — only footings and grade beams.`;
+}
+
+function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null): string {
   const divisionRef = buildDivisionReference(selectedDivisions);
   const scopeInstruction = buildScopingInstruction(selectedDivisions);
+  const currencyInstruction = buildCurrencyInstruction(currency || null);
+  const scopeTextInstruction = buildScopeTextInstruction(scopeText || null);
+
+  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+  const currencyPricingNote = currency === "GBP"
+    ? "Use current UK market rates (2024-2025 pricing) in British Pounds (£)"
+    : currency === "AUD"
+      ? "Use current Australian market rates (2024-2025 pricing) in Australian Dollars (A$)"
+      : "Use current US market rates (2024-2025 pricing)";
 
   return `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
 
 ## YOUR TASK
 Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
-${scopeInstruction}
+${scopeInstruction}${currencyInstruction}${scopeTextInstruction}
 
 ## PROCESS (follow exactly):
 1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
@@ -151,7 +176,7 @@ ${scopeInstruction}
 3. **Measure systematically**: Work through the drawing area by area, room by room, or system by system
 4. **Apply correct units**: Use industry-standard units (SF for area, LF for linear, CY for volume, EA for each, TON for steel, SQ for roofing, etc.)
 5. **Assign CSI codes**: Every item gets a 2-digit division code AND a full 6-digit CSI code
-6. **Estimate unit costs**: Use current US market rates (2024-2025 pricing)
+6. **Estimate unit costs**: ${currencyPricingNote}
 7. **Score confidence**: Rate 0-100 based on how clearly the quantity can be read from the drawing
 
 ## CONFIDENCE SCORING GUIDE:
@@ -255,7 +280,7 @@ const RESPONSE_SCHEMA = {
               description: { type: "string", description: "Detailed item description including size, type, material" },
               quantity: { type: "number", description: "Numeric quantity value" },
               unit: { type: "string", description: "Unit of measure: SF, LF, CY, EA, TON, SQ, BF, LB, LS, etc." },
-              unitCost: { type: "number", description: "Unit cost in USD dollars (2024-2025 market rate)" },
+              unitCost: { type: "number", description: "Unit cost in ${currencyLabel} (2024-2025 market rate)" },
               confidence: { type: "integer", description: "Confidence score 0-100 in quantity accuracy" },
               notes: { type: "string", description: "Brief explanation of how quantity was measured or estimated" },
             },
@@ -274,9 +299,11 @@ const RESPONSE_SCHEMA = {
 
 async function extractQuantities(
   imageUrl: string,
-  selectedDivisions: string[] | null
+  selectedDivisions: string[] | null,
+  currency?: string | null,
+  scopeText?: string | null
 ): Promise<TakeoffExtractionResult> {
-  const systemPrompt = buildSystemPrompt(selectedDivisions);
+  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText);
   const scopeNote = selectedDivisions && selectedDivisions.length > 0
     ? ` Only extract items for the specified CSI divisions: ${selectedDivisions.join(", ")}.`
     : "";
@@ -396,7 +423,9 @@ export async function processDrawingSheet(
   sheetId: number,
   imageUrl: string,
   projectId: number,
-  selectedDivisions: string[] | null = null
+  selectedDivisions: string[] | null = null,
+  currency?: string | null,
+  scopeText?: string | null
 ): Promise<TakeoffExtractionResult | null> {
   try {
     // Mark sheet as processing
@@ -404,7 +433,7 @@ export async function processDrawingSheet(
 
     // Pass 1: Extract quantities (scoped to selected divisions)
     console.log(`[Takeoff AI] Pass 1: Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}`);
-    const extracted = await extractQuantities(imageUrl, selectedDivisions);
+    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText);
 
     // Pass 2: Verify and reconcile (skip for cover sheets)
     let result = extracted;
@@ -497,7 +526,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
       continue;
     }
 
-    const result = await processDrawingSheet(sheet.id, sheet.imageUrl, projectId, selectedDivisions);
+    const result = await processDrawingSheet(sheet.id, sheet.imageUrl, projectId, selectedDivisions, project.currency, project.scopeText);
     processedCount++;
 
     if (!result) {

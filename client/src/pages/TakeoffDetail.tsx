@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
+import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
 import {
   ArrowLeft,
   Upload,
@@ -30,6 +31,7 @@ import {
   Edit3,
   Trash2,
   DollarSign,
+  PoundSterling,
   FileStack,
   Download,
   Check,
@@ -41,10 +43,17 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
+const CURRENCY_LOCALE: Record<string, string> = {
+  USD: "en-US",
+  GBP: "en-GB",
+  AUD: "en-AU",
+};
+
+function formatCurrency(cents: number, currencyCode: string = "USD"): string {
+  const locale = CURRENCY_LOCALE[currencyCode] || "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "USD",
+    currency: currencyCode,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);
@@ -95,6 +104,7 @@ export default function TakeoffDetail() {
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [showPreAnalysis, setShowPreAnalysis] = useState(false);
 
   // ─── Data Queries ─────────────────────────────────────────────────────────
 
@@ -492,7 +502,7 @@ export default function TakeoffDetail() {
               <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-400 font-bold text-lg">
-                  {formatCurrency(totalCost)}
+                  {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
                 <span className="text-emerald-400/60 text-xs">estimated</span>
               </div>
@@ -587,11 +597,11 @@ export default function TakeoffDetail() {
               </div>
             </div>
 
-            {/* Process Button */}
+            {/* Process Button — opens Pre-Analysis Modal */}
             {sheets.length > 0 && hasPendingSheets && !isProcessing && (
               <div className="mb-6">
                 <Button
-                  onClick={() => processMutation.mutate({ projectId })}
+                  onClick={() => setShowPreAnalysis(true)}
                   disabled={processMutation.isPending}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-6 text-lg shadow-lg"
                 >
@@ -607,6 +617,28 @@ export default function TakeoffDetail() {
                 </Button>
               </div>
             )}
+
+            {/* Pre-Analysis Modal */}
+            <PreAnalysisModal
+              open={showPreAnalysis}
+              onClose={() => setShowPreAnalysis(false)}
+              onConfirm={(settings: PreAnalysisSettings) => {
+                setShowPreAnalysis(false);
+                processMutation.mutate({
+                  projectId,
+                  currency: settings.currency,
+                  costRegion: settings.costRegion,
+                  selectedDivisions: settings.selectedDivisions,
+                  scopeText: settings.scopeText || null,
+                });
+              }}
+              pendingSheetCount={sheets.filter((s: any) => s.status === "pending").length}
+              isSubmitting={processMutation.isPending}
+              existingDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
+              existingRegion={project.costRegion}
+              existingCurrency={project.currency}
+              existingScopeText={project.scopeText}
+            />
 
             {/* Processing Progress */}
             {isProcessing && progress && (
@@ -741,7 +773,7 @@ export default function TakeoffDetail() {
                     <div className="flex items-center gap-2">
                       <span className="text-cream-muted text-sm">Total:</span>
                       <span className="text-amber-400 font-bold text-xl">
-                        {formatCurrency(totalCost)}
+                        {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
                     </div>
                     <div className="w-px h-6 bg-white/10" />
@@ -803,7 +835,7 @@ export default function TakeoffDetail() {
                             </span>
                           </div>
                           <span className="text-amber-400 font-semibold">
-                            {formatCurrency(divTotal)}
+                            {formatCurrency(divTotal, project?.currency || "USD")}
                           </span>
                         </button>
 
@@ -847,10 +879,10 @@ export default function TakeoffDetail() {
                                     </td>
                                     <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
                                     <td className="px-4 py-2 text-right text-cream font-mono">
-                                      {formatCurrency(item.unitCost)}
+                                      {formatCurrency(item.unitCost, project?.currency || "USD")}
                                     </td>
                                     <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
-                                      {formatCurrency(item.extendedCost)}
+                                      {formatCurrency(item.extendedCost, project?.currency || "USD")}
                                     </td>
                                     <td className="px-4 py-2 text-center">
                                       <Badge
@@ -953,6 +985,7 @@ export default function TakeoffDetail() {
         onClose={() => setEditingItem(null)}
         onSave={(data) => updateItemMutation.mutate(data)}
         isPending={updateItemMutation.isPending}
+        currencyCode={project?.currency || "USD"}
       />
     </div>
   );
@@ -966,12 +999,14 @@ function EditItemDialog({
   onClose,
   onSave,
   isPending,
+  currencyCode = "USD",
 }: {
   item: any;
   projectId: number;
   onClose: () => void;
   onSave: (data: any) => void;
   isPending: boolean;
+  currencyCode?: string;
 }) {
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -1016,7 +1051,7 @@ function EditItemDialog({
               <Input value={unit} onChange={(e) => setUnit(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Unit Cost ($)</Label>
+              <Label>Unit Cost ({currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$"})</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -1030,7 +1065,8 @@ function EditItemDialog({
               <span className="text-cream-muted">Extended Cost:</span>
               <span className="text-amber-400 font-bold text-lg">
                 {formatCurrency(
-                  Math.round(parseFloat(quantity || "0") * parseFloat(unitCost || "0") * 100)
+                  Math.round(parseFloat(quantity || "0") * parseFloat(unitCost || "0") * 100),
+                  currencyCode
                 )}
               </span>
             </div>
