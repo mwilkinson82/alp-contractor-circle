@@ -1718,3 +1718,10 @@
 - [x] Save user preferred currency in database and auto-select in PreAnalysis Modal
 - [x] Add estimated time remaining to ProcessingOverlay
 - [x] Add sound notification (chime + browser notification) when analysis completes
+
+## Item Detail Modal — April 14
+- [x] Build ItemDetailModal component — click any takeoff row to see full description + edit quantity/cost
+- [x] Show full untruncated description in the modal
+- [x] Allow editing quantity, unit, unit cost from the modal
+- [x] Integrate into TakeoffDetail table — row click opens modal
+- [x] Previous/Next arrow key navigation between items

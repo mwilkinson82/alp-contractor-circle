@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
 import ProcessingOverlay from "@/components/ProcessingOverlay";
+import ItemDetailModal from "@/components/ItemDetailModal";
 import { playCompletionChime, sendCompletionNotification } from "@/lib/completionChime";
 import {
   ArrowLeft,
@@ -103,6 +104,7 @@ export default function TakeoffDetail() {
   const [activeTab, setActiveTab] = useState("sheets");
   const [previewSheet, setPreviewSheet] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -916,15 +918,16 @@ export default function TakeoffDetail() {
                                 {(divItems as any[]).map((item: any) => (
                                   <tr
                                     key={item.id}
-                                    className={`border-t border-white/5 hover:bg-white/5 transition-colors ${
+                                    className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
                                       item.reviewed ? "bg-emerald-500/5" : ""
                                     }`}
+                                    onClick={() => setSelectedItem(item)}
                                   >
                                     <td className="px-4 py-2 text-cream-muted font-mono text-xs">
                                       {item.csiCode || item.csiDivision}
                                     </td>
-                                    <td className="px-4 py-2 text-cream">
-                                      {item.description}
+                                    <td className="px-4 py-2 text-cream max-w-xs">
+                                      <p className="line-clamp-2">{item.description}</p>
                                       {item.notes && (
                                         <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
                                           {item.notes}
@@ -954,15 +957,16 @@ export default function TakeoffDetail() {
                                         {item.confidence}%
                                       </Badge>
                                     </td>
-                                    <td className="px-4 py-2 text-center">
+                                    <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                       <div className="flex items-center justify-center gap-1">
                                         <Button
                                           variant="ghost"
                                           size="sm"
                                           className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
-                                          onClick={() => setEditingItem(item)}
+                                          onClick={() => setSelectedItem(item)}
+                                          title="View details"
                                         >
-                                          <Edit3 className="w-3 h-3" />
+                                          <Eye className="w-3 h-3" />
                                         </Button>
                                         {!item.reviewed && (
                                           <Button
@@ -1035,7 +1039,7 @@ export default function TakeoffDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Edit Item Modal ─────────────────────────────────────────────── */}
+      {/* ─── Edit Item Modal (legacy, kept for fallback) ───────────────── */}
       <EditItemDialog
         item={editingItem}
         projectId={projectId}
@@ -1044,6 +1048,56 @@ export default function TakeoffDetail() {
         isPending={updateItemMutation.isPending}
         currencyCode={project?.currency || "USD"}
       />
+
+      {/* ─── Item Detail Modal ──────────────────────────────────────────── */}
+      {(() => {
+        // Build flat item list for prev/next navigation
+        const allItems = items
+          ? Object.entries(
+              (items as any[]).reduce((acc: Record<string, any[]>, item: any) => {
+                const div = item.csiDivision || "Other";
+                if (!acc[div]) acc[div] = [];
+                acc[div].push(item);
+                return acc;
+              }, {})
+            )
+              .sort(([a], [b]) => a.localeCompare(b))
+              .flatMap(([, divItems]) => divItems as any[])
+          : [];
+        const selectedIdx = selectedItem
+          ? allItems.findIndex((i: any) => i.id === selectedItem.id)
+          : -1;
+        return (
+          <ItemDetailModal
+            item={selectedItem}
+            projectId={projectId}
+            currencyCode={project?.currency || "USD"}
+            onClose={() => setSelectedItem(null)}
+            onSave={(data) => {
+              updateItemMutation.mutate(data);
+              // Update selectedItem in place so modal reflects changes
+              setSelectedItem((prev: any) => prev ? { ...prev, ...data, unitCost: data.unitCost, extendedCost: Math.round(parseFloat(data.quantity || "0") * (data.unitCost || 0)) } : null);
+            }}
+            onDelete={(data) => {
+              deleteItemMutation.mutate(data);
+              setSelectedItem(null);
+            }}
+            onMarkReviewed={(data) => {
+              updateItemMutation.mutate(data);
+              setSelectedItem((prev: any) => prev ? { ...prev, reviewed: true } : null);
+            }}
+            isPending={updateItemMutation.isPending}
+            hasPrev={selectedIdx > 0}
+            hasNext={selectedIdx >= 0 && selectedIdx < allItems.length - 1}
+            onPrev={() => {
+              if (selectedIdx > 0) setSelectedItem(allItems[selectedIdx - 1]);
+            }}
+            onNext={() => {
+              if (selectedIdx < allItems.length - 1) setSelectedItem(allItems[selectedIdx + 1]);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
