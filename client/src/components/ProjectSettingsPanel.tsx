@@ -74,7 +74,7 @@ export default function ProjectSettingsPanel({
 
       {/* Settings Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>

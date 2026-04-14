@@ -163,7 +163,7 @@ export default function PreAnalysisModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[600px] bg-navy-deep border-white/10 text-cream max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl text-cream flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />

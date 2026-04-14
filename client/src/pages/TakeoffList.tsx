@@ -281,7 +281,7 @@ export default function TakeoffList() {
 
       {/* Create Dialog — wider modal with currency selection */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-navy-deep border-white/10 text-cream">
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
             <DialogDescription className="text-cream-muted">
@@ -402,7 +402,7 @@ export default function TakeoffList() {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Project?</DialogTitle>
             <DialogDescription>

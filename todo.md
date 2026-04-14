@@ -1677,3 +1677,8 @@
 - [x] Bug 2: "Re-Analyze Drawings" variant shown for already-completed projects (blue/indigo gradient)
 - [x] Bug 2: Updated pendingSheetCount to fall back to total sheets for re-analysis case
 - [x] All 391 tests passing after fixes
+
+## Modal Width Fixes — All Modals Wider Not Taller
+- [x] Fix New Takeoff Project modal — description text overlapping Project Name label, needs much wider max-width
+- [x] Audit and widen all other modals (PreAnalysisModal, delete confirmations, settings panels, etc.)
+- [x] Ensure DialogDescription doesn't overlap with first form field in any modal
