@@ -1,6 +1,6 @@
 /**
  * ProcessingOverlay — Animated construction-themed overlay shown during
- * Construct Line analysis. Features:
+ * ConstructLine analysis. Features:
  * - Animated blueprint/construction visual
  * - Rotating status messages that cycle through analysis phases
  * - Real sheet-by-sheet progress bar
@@ -57,6 +57,16 @@ export default function ProcessingOverlay({
 }: ProcessingOverlayProps) {
   const [messageIndex, setMessageIndex] = useState(0);
   const [dotCount, setDotCount] = useState(1);
+  const [startTime] = useState(() => Date.now());
+  const [elapsed, setElapsed] = useState(0);
+
+  // Track elapsed time for ETA calculation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - startTime);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
 
   // Rotate through status messages every 3.5 seconds
   useEffect(() => {
@@ -117,7 +127,7 @@ export default function ProcessingOverlay({
         {/* Status Message — fades between phases */}
         <div className="text-center mb-8">
           <h3 className="text-lg font-semibold text-cream mb-2">
-            Construct Line is Working
+            ConstructLine is Working
           </h3>
           <p className="text-amber-300/90 text-sm font-medium h-5 transition-all duration-300">
             {currentPhase.text}
@@ -201,8 +211,31 @@ export default function ProcessingOverlay({
           </div>
         )}
 
+        {/* Estimated Time Remaining */}
+        {(() => {
+          const remaining = totalSheets - processedSheets;
+          if (remaining <= 0) return null;
+          // Use actual avg if we have data, otherwise estimate ~30s per sheet
+          const avgPerSheet = processedSheets > 0 && elapsed > 5000
+            ? elapsed / processedSheets
+            : 30000;
+          const etaMs = remaining * avgPerSheet;
+          const etaMin = Math.ceil(etaMs / 60000);
+          const etaSec = Math.ceil(etaMs / 1000);
+          const timeStr = etaSec < 60
+            ? `~${etaSec} seconds`
+            : etaMin === 1
+              ? "~1 minute"
+              : `~${etaMin} minutes`;
+          return (
+            <p className="text-center text-xs text-cream-muted/60 mt-4 mb-1">
+              Estimated time remaining: <span className="text-amber-300/80 font-medium">{timeStr}</span>
+            </p>
+          );
+        })()}
+
         {/* Tip */}
-        <p className="text-center text-[11px] text-cream-muted/40 mt-6">
+        <p className="text-center text-[11px] text-cream-muted/40 mt-2">
           You can leave this page — analysis continues in the background
         </p>
       </div>

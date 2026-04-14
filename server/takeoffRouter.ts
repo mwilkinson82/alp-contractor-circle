@@ -9,6 +9,9 @@ import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord
 import type { Member } from "../drizzle/schema";
 import { storagePut } from "./storage";
 import {
+  updateMemberPreferredCurrency,
+  getMemberPreferredCurrency} from "./memberDb";
+import {
   createTakeoffProject,
   getTakeoffProjectsByMember,
   getTakeoffProject,
@@ -52,7 +55,7 @@ async function requireMember(req: any) {
 
 /**
  * Helper: require admin role.
- * Construct Line (AI Takeoff) is admin-only during the initial rollout.
+ * ConstructLine (AI Takeoff) is admin-only during the initial rollout.
  * Non-admin members see a "Coming Soon" message in the sidebar.
  */
 async function requireAdminMember(req: any) {
@@ -60,7 +63,7 @@ async function requireAdminMember(req: any) {
   if (member.memberRole !== "admin") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Construct Line is currently in early access for admins only. Stay tuned!",
+      message: "ConstructLine is currently in early access for admins only. Stay tuned!",
     });
   }
   return member;
@@ -559,6 +562,22 @@ export const takeoffRouter = router({
       });
       await recalculateProjectTotal(input.projectId);
       return { status: finalStatus, processedSheets: completedSheets.length };
+    }),
+
+  /** Get the current member's preferred currency */
+  getPreferredCurrency: publicProcedure.query(async ({ ctx }) => {
+    const member = await requireAdminMember(ctx.req);
+    const currency = await getMemberPreferredCurrency(member.id);
+    return { currency: currency || "USD" };
+  }),
+
+  /** Save the current member's preferred currency */
+  savePreferredCurrency: publicProcedure
+    .input(z.object({ currency: z.enum(["USD", "GBP", "AUD"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      await updateMemberPreferredCurrency(member.id, input.currency);
+      return { success: true };
     }),
 
   /** Get available cost regions */

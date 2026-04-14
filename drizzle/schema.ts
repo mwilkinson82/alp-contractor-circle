@@ -49,6 +49,8 @@ export const members = mysqlTable("members", {
   ]).default("none").notNull(),
   /** Member role within the circle */
   memberRole: mysqlEnum("memberRole", ["member", "founding_member", "admin"]).default("member").notNull(),
+  /** Preferred currency for ConstructLine takeoffs */
+  preferredCurrency: varchar("preferredCurrency", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

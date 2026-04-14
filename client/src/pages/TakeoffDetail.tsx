@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
 import ProcessingOverlay from "@/components/ProcessingOverlay";
+import { playCompletionChime, sendCompletionNotification } from "@/lib/completionChime";
 import {
   ArrowLeft,
   Upload,
@@ -107,6 +108,10 @@ export default function TakeoffDetail() {
   const [uploading, setUploading] = useState(false);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
 
+  // ─── Preferred Currency ──────────────────────────────────────────────────
+  const preferredCurrencyQuery = trpc.takeoff.getPreferredCurrency.useQuery();
+  const savePreferredCurrency = trpc.takeoff.savePreferredCurrency.useMutation();
+
   // ─── Data Queries ─────────────────────────────────────────────────────────
 
   const { data: project, isLoading, refetch: refetchProject } = trpc.takeoff.getProject.useQuery(
@@ -141,6 +146,9 @@ export default function TakeoffDetail() {
 
     // Detect transition: was processing, now completed
     if (prevStatus === "processing" && currentStatus === "completed") {
+      // Play completion chime and send browser notification
+      playCompletionChime();
+      sendCompletionNotification(project?.name || "Project");
       // Refetch items since new ones were just extracted
       refetchItems().then(() => {
         setActiveTab("items");
@@ -515,10 +523,17 @@ export default function TakeoffDetail() {
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
+            <div className="w-px h-6 bg-white/10" />
+            {/* ConstructLine Brand Mark */}
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
+              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+            </div>
+            <div className="w-px h-6 bg-white/10" />
             <div>
-              <h1 className="text-xl font-bold text-cream">{project.name}</h1>
+              <h1 className="text-lg font-bold text-cream">{project.name}</h1>
               {project.description && (
-                <p className="text-sm text-cream-muted">{project.description}</p>
+                <p className="text-xs text-cream-muted">{project.description}</p>
               )}
             </div>
           </div>
@@ -672,6 +687,8 @@ export default function TakeoffDetail() {
               onClose={() => setShowPreAnalysis(false)}
               onConfirm={(settings: PreAnalysisSettings) => {
                 setShowPreAnalysis(false);
+                // Save preferred currency for next time
+                savePreferredCurrency.mutate({ currency: settings.currency });
                 processMutation.mutate({
                   projectId,
                   currency: settings.currency,
@@ -685,6 +702,7 @@ export default function TakeoffDetail() {
               existingDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               existingRegion={project.costRegion}
               existingCurrency={project.currency}
+              preferredCurrency={preferredCurrencyQuery.data?.currency}
               existingScopeText={project.scopeText}
             />
 

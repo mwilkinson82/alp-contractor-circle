@@ -128,3 +128,26 @@ export async function getMemberByStripeCustomerId(stripeCustomerId: string): Pro
 
   return result.length > 0 ? result[0] : undefined;
 }
+
+/**
+ * Update a member's preferred currency for ConstructLine takeoffs.
+ */
+export async function updateMemberPreferredCurrency(memberId: number, currency: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.update(members).set({ preferredCurrency: currency }).where(eq(members.id, memberId));
+}
+
+/**
+ * Get a member's preferred currency.
+ */
+export async function getMemberPreferredCurrency(memberId: number): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const result = await db
+    .select({ preferredCurrency: members.preferredCurrency })
+    .from(members)
+    .where(eq(members.id, memberId))
+    .limit(1);
+  return result.length > 0 ? result[0].preferredCurrency ?? null : null;
+}

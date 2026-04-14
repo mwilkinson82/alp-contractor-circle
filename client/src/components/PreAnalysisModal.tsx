@@ -1,5 +1,5 @@
 /**
- * PreAnalysisModal — Pops up when user clicks "Start Construct Line Takeoff".
+ * PreAnalysisModal — Pops up when user clicks "Start ConstructLine Takeoff".
  *
  * Steps:
  * 1. Currency selection (USD / GBP / AUD)
@@ -113,6 +113,8 @@ interface PreAnalysisModalProps {
   existingRegion?: string | null;
   existingCurrency?: string | null;
   existingScopeText?: string | null;
+  /** User's preferred currency from database (auto-select for new projects) */
+  preferredCurrency?: string;
 }
 
 export default function PreAnalysisModal({
@@ -125,13 +127,14 @@ export default function PreAnalysisModal({
   existingRegion,
   existingCurrency,
   existingScopeText,
+  preferredCurrency,
 }: PreAnalysisModalProps) {
   const [step, setStep] = useState(1);
   const saved = useMemo(() => loadSavedSettings(), []);
 
-  // Initialize from existing project settings, then saved prefs, then defaults
+  // Initialize from existing project settings, then preferred currency, then saved prefs, then defaults
   const [currency, setCurrency] = useState<"USD" | "GBP" | "AUD">(
-    (existingCurrency as any) || saved.currency || "USD"
+    (existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD"
   );
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(
     existingDivisions || saved.selectedDivisions || []
@@ -170,7 +173,7 @@ export default function PreAnalysisModal({
             Configure Analysis
           </DialogTitle>
           <DialogDescription className="text-cream-muted">
-            Set your preferences before Construct Line analyzes {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
+            Set your preferences before ConstructLine analyzes {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -303,7 +306,7 @@ export default function PreAnalysisModal({
               <div>
                 <p className="text-sm text-cream font-medium">Leave this blank to take off everything</p>
                 <p className="text-xs text-cream-muted mt-0.5">
-                  Construct Line will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
+                  ConstructLine will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
                 </p>
               </div>
             </div>

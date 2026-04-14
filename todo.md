@@ -1711,3 +1711,10 @@
 - [x] Show real sheet-by-sheet progress bar during analysis
 - [x] Rotating status messages (Scanning structural elements, Measuring quantities, etc.)
 - [x] Replace dead-looking toast with full content area overlay during processing
+
+## ConstructLine Branding + Features — April 14
+- [x] Add ConstructLine branding header (same style as CPM Scheduler) to QTO detail page
+- [x] Fix all "Construct Line" references to "ConstructLine" (one word) throughout the app
+- [x] Save user preferred currency in database and auto-select in PreAnalysis Modal
+- [x] Add estimated time remaining to ProcessingOverlay
+- [x] Add sound notification (chime + browser notification) when analysis completes
