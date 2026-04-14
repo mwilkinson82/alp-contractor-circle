@@ -1702,3 +1702,6 @@
 
 ## Scope Step Clarity — April 14
 - [x] Make scope step in Pre-Analysis Modal clearly optional — communicate that leaving it blank takes off all drawings
+
+## DivisionSelector Scroll Fix — April 14
+- [x] Make CSI divisions checklist scrollable inside DivisionSelector so all 26 divisions are visible
