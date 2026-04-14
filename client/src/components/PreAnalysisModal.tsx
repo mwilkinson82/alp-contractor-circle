@@ -289,25 +289,47 @@ export default function PreAnalysisModal({
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-amber-500" />
-              <Label className="text-sm font-semibold text-cream">Specific Scope (Optional)</Label>
+              <Label className="text-sm font-semibold text-cream">Narrow Your Scope</Label>
+              <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Optional</Badge>
             </div>
-            <p className="text-xs text-cream-muted -mt-2">
-              Describe your specific scope of work to narrow the takeoff. Leave blank to extract everything in the selected divisions.
-            </p>
+
+            {/* Clear "leave blank" callout */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-cream font-medium">Leave this blank to take off everything</p>
+                <p className="text-xs text-cream-muted mt-0.5">
+                  Construct Line will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
+                </p>
+              </div>
+            </div>
+
             <Textarea
               value={scopeText}
               onChange={(e) => setScopeText(e.target.value)}
-              placeholder="e.g., Foundations only — spread footings and grade beams"
-              className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 min-h-[100px] resize-none"
+              placeholder="Leave blank for full takeoff — or type a specific scope like 'Foundations only' or 'Structural steel framing'"
+              className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 min-h-[100px] resize-none"
               maxLength={2000}
             />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-cream-muted/50">{scopeText.length}/2000</span>
+              {scopeText.trim() && (
+                <button
+                  onClick={() => setScopeText("")}
+                  className="text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  Clear — take off everything
+                </button>
+              )}
             </div>
             {/* Example scopes */}
             <div className="space-y-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-cream-muted/60">
-                Examples (click to use)
+                Or click an example to narrow scope
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {SCOPE_EXAMPLES.map((ex) => (

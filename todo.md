@@ -1699,3 +1699,6 @@
 - [x] Simplify New Project modal — remove currency/CSI/region selectors, keep only name + description
 - [x] Add currency symbols ($/£/A$) to items table based on project currency
 - [x] Add currency symbols to Excel/CSV exports
+
+## Scope Step Clarity — April 14
+- [x] Make scope step in Pre-Analysis Modal clearly optional — communicate that leaving it blank takes off all drawings
