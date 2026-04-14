@@ -1682,3 +1682,8 @@
 - [x] Fix New Takeoff Project modal — description text overlapping Project Name label, needs much wider max-width
 - [x] Audit and widen all other modals (PreAnalysisModal, delete confirmations, settings panels, etc.)
 - [x] Ensure DialogDescription doesn't overlap with first form field in any modal
+
+## Modal Scroll & Header Fixes
+- [x] CSI Divisions expanded list needs internal scroll with max-height (can't see Electrical checkbox)
+- [x] Region selector expanded list needs internal scroll with max-height
+- [x] Modal header (title/description) must stay pinned/sticky when content scrolls — currently gets pushed off screen

@@ -74,7 +74,7 @@ export default function ProjectSettingsPanel({
 
       {/* Settings Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
@@ -82,7 +82,7 @@ export default function ProjectSettingsPanel({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 overflow-y-auto overscroll-contain min-h-0">
             {/* Current Settings Summary */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
               <div className="text-xs font-medium text-cream-muted">Current Settings</div>

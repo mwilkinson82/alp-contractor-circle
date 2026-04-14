@@ -281,14 +281,14 @@ export default function TakeoffList() {
 
       {/* Create Dialog — wider modal with currency selection */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
             <DialogDescription className="text-cream-muted">
               Set up your project, select currency and CSI divisions, then choose a cost region for pricing.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-2">
+          <div className="space-y-5 py-2 overflow-y-auto overscroll-contain min-h-0">
             {/* Project Name */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-cream">Project Name</Label>

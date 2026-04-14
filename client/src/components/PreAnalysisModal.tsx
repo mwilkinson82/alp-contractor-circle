@@ -163,7 +163,7 @@ export default function PreAnalysisModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-xl text-cream flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
@@ -174,6 +174,8 @@ export default function PreAnalysisModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Scrollable body area */}
+        <div className="overflow-y-auto overscroll-contain min-h-0">
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-1 py-2">
           {[1, 2, 3, 4].map((s) => (
@@ -352,6 +354,8 @@ export default function PreAnalysisModal({
             </div>
           </div>
         )}
+
+        </div>{/* end scrollable body */}
 
         <DialogFooter className="flex items-center justify-between gap-2 pt-2">
           <div className="flex gap-2">

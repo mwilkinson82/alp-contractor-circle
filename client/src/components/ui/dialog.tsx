@@ -131,8 +131,15 @@ function DialogContent({
       >
         {/* Amber accent strip at top */}
         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-t-xl shrink-0 z-10" />
-        {/* Content wrapper with padding — scrollable when content exceeds viewport */}
-        <div className="pt-8 px-8 pb-8 grid gap-5 overflow-y-auto overscroll-contain">
+        {/* 
+          Structured layout: header pinned top, footer pinned bottom, body scrolls.
+          We use CSS to target data-slot attributes so header/footer stay fixed
+          while the middle content scrolls.
+        */}
+        <div className="flex flex-col max-h-[calc(100vh-4rem)] pt-8 px-8 pb-8 gap-5
+          [&>[data-slot=dialog-header]]:shrink-0
+          [&>[data-slot=dialog-footer]]:shrink-0
+        ">
           {children}
         </div>
         {showCloseButton && (
