@@ -6,7 +6,7 @@
  * - Dashboard
  * - Replay Library
  * - Templates
- * - Construct Line (collapsible parent — admin only)
+ * - ConstructLine (collapsible parent — admin only)
  *   ├── Scheduler
  *   └── Takeoff (admin only; non-admins see "Coming Soon" badge)
  * - Account
@@ -98,7 +98,7 @@ function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => st
   );
 }
 
-// ─── Construct Line Sub-Nav ───────────────────────────────────────────────────
+// ─── ConstructLine Sub-Nav ───────────────────────────────────────────────────
 
 function ConstructLineNav({
   isAdmin,
@@ -111,7 +111,7 @@ function ConstructLineNav({
   setLocation: (path: string) => void;
   onNavigate?: () => void;
 }) {
-  // Auto-expand if currently on a Construct Line sub-page
+  // Auto-expand if currently on a ConstructLine sub-page
   const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff");
   const [expanded, setExpanded] = useState(isOnConstructLine);
 
@@ -126,7 +126,7 @@ function ConstructLineNav({
 
   return (
     <div>
-      {/* Parent: Construct Line */}
+      {/* Parent: ConstructLine */}
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
@@ -136,7 +136,7 @@ function ConstructLineNav({
         }`}
       >
         <HardHat className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`} />
-        <span className="flex-1 text-left">Construct Line</span>
+        <span className="flex-1 text-left">ConstructLine</span>
         {expanded
           ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
           : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
@@ -278,7 +278,7 @@ export default function MemberPortalLayout({
               );
             })}
 
-            {/* Construct Line — collapsible section (admin sees full, others see limited) */}
+            {/* ConstructLine — collapsible section (admin sees full, others see limited) */}
             {isAdmin ? (
               <ConstructLineNav
                 isAdmin={isAdmin}
@@ -286,10 +286,10 @@ export default function MemberPortalLayout({
                 setLocation={setLocation}
               />
             ) : (
-              /* Non-admin: show Construct Line as locked with Coming Soon */
+              /* Non-admin: show ConstructLine as locked with Coming Soon */
               <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-cream-muted/50 cursor-not-allowed opacity-60">
                 <HardHat className="w-4 h-4" />
-                <span>Construct Line</span>
+                <span>ConstructLine</span>
                 <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                   Coming soon
                 </span>
@@ -396,11 +396,11 @@ export default function MemberPortalLayout({
                 );
               })}
 
-              {/* Construct Line (mobile) */}
+              {/* ConstructLine (mobile) */}
               {isAdmin ? (
                 <>
                   <div className="px-4 pt-2 pb-1">
-                    <p className="text-[10px] text-cream-muted/40 uppercase tracking-widest font-medium">Construct Line</p>
+                    <p className="text-[10px] text-cream-muted/40 uppercase tracking-widest font-medium">ConstructLine</p>
                   </div>
                   <button
                     onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
@@ -424,7 +424,7 @@ export default function MemberPortalLayout({
               ) : (
                 <div className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted/50 cursor-not-allowed opacity-60">
                   <HardHat className="w-5 h-5" />
-                  <span>Construct Line</span>
+                  <span>ConstructLine</span>
                   <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                     Coming soon
                   </span>

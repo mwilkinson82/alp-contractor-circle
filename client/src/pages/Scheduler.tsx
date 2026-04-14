@@ -1275,15 +1275,15 @@ export default function Scheduler() {
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
     <div className="h-screen flex flex-col bg-[#0f1219] text-gray-100">
-      {/* ── Top Toolbar ── Construct Line SaaS Ribbon ────────────────────── */}
+      {/* ── Top Toolbar ── ConstructLine SaaS Ribbon ────────────────────── */}
       <div className="border-b border-white/10 bg-[#151a28] shrink-0">
-        {/* Row 1: Title bar with Construct Line branding */}
+        {/* Row 1: Title bar with ConstructLine branding */}
         <div className="h-11 flex items-center px-4 gap-3 border-b border-white/5">
           <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="w-px h-5 bg-white/10" />
-          {/* Construct Line Brand Mark */}
+          {/* ConstructLine Brand Mark */}
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
             <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>

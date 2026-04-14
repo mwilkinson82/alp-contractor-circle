@@ -1,5 +1,5 @@
 /**
- * TakeoffList — List of Construct Line Takeoff projects.
+ * TakeoffList — List of ConstructLine Takeoff projects.
  * Members can create new projects, view existing ones, and see status.
  */
 import { useState } from "react";
@@ -22,7 +22,6 @@ import {
   Upload,
   Trash2,
   ArrowRight,
-  Sparkles,
   FileText,
   RefreshCw,
   Layers,
@@ -94,15 +93,20 @@ export default function TakeoffList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-cream flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            {/* ConstructLine Brand Mark */}
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
+              <span className="text-[9px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
             </div>
-            Construct Line Takeoff
-          </h1>
-          <p className="text-cream-muted mt-1">
-            Upload construction drawings and let Construct Line extract quantities, costs, and a schedule of values.
-          </p>
+            <div className="w-px h-8 bg-white/10" />
+            <div>
+              <h1 className="text-xl font-bold text-cream">Quantity Takeoff</h1>
+              <p className="text-cream-muted text-sm">
+                Upload construction drawings and let ConstructLine extract quantities, costs, and a schedule of values.
+              </p>
+            </div>
+          </div>
         </div>
         <Button
           onClick={() => setShowCreate(true)}
@@ -126,7 +130,7 @@ export default function TakeoffList() {
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">No Takeoff Projects Yet</h3>
             <p className="text-cream-muted text-center max-w-md mb-6">
-              Create your first project, upload construction drawings, and let Construct Line extract a complete quantity takeoff in minutes.
+              Create your first project, upload construction drawings, and let ConstructLine extract a complete quantity takeoff in minutes.
             </p>
             <Button
               onClick={() => setShowCreate(true)}
@@ -297,7 +301,7 @@ export default function TakeoffList() {
 
             {/* Helpful hint */}
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-              <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <Layers className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-cream-muted">
                 After creating your project, upload your construction drawings and click <strong className="text-amber-400">"Analyze Drawings"</strong> — that's where you'll choose your currency, CSI divisions, and regional pricing.
               </p>

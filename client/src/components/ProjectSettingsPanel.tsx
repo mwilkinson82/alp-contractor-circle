@@ -15,7 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
-import { Loader2, Settings, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Settings, AlertCircle, RefreshCw, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "US Dollar", flag: "\u{1F1FA}\u{1F1F8}" },
@@ -29,7 +30,8 @@ interface ProjectSettingsPanelProps {
   currentRegion: string | null;
   currentRegionName?: string;
   currentCurrency?: string | null;
-  onSave: (divisions: string[] | null, region: string | null, currency?: string) => Promise<{ regionChanged?: boolean }>;
+  currentScopeText?: string | null;
+  onSave: (divisions: string[] | null, region: string | null, currency?: string, scopeText?: string | null) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
   /** Whether sheets have been processed (to show re-analyze option) */
@@ -42,6 +44,7 @@ export default function ProjectSettingsPanel({
   currentRegion,
   currentRegionName,
   currentCurrency,
+  currentScopeText,
   onSave,
   onReAnalyze,
   hasProcessedSheets,
@@ -50,6 +53,7 @@ export default function ProjectSettingsPanel({
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(currentDivisions || []);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
+  const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
   const [saving, setSaving] = useState(false);
 
   // Reset state when dialog opens (in case project data changed externally)
@@ -58,13 +62,15 @@ export default function ProjectSettingsPanel({
       setSelectedDivisions(currentDivisions || []);
       setSelectedRegion(currentRegion || null);
       setSelectedCurrency(currentCurrency || "USD");
+      setScopeText(currentScopeText || "");
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
   const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged;
+  const scopeChanged = scopeText !== (currentScopeText || "");
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged;
 
   const handleSave = async () => {
     setSaving(true);
@@ -73,6 +79,7 @@ export default function ProjectSettingsPanel({
         selectedDivisions.length > 0 ? selectedDivisions : null,
         selectedRegion,
         currencyChanged ? selectedCurrency : undefined,
+        scopeChanged ? (scopeText.trim() || null) : undefined,
       );
 
       if (result.regionChanged) {
@@ -147,6 +154,12 @@ export default function ProjectSettingsPanel({
                   </Badge>
                 )}
               </div>
+              {currentScopeText && (
+                <div className="mt-1 text-xs text-cream-muted/70 border-t border-white/5 pt-2">
+                  <span className="font-medium text-cream-muted">Scope:</span>{" "}
+                  <span className="italic">{currentScopeText.length > 120 ? currentScopeText.slice(0, 120) + "..." : currentScopeText}</span>
+                </div>
+              )}
             </div>
 
             {/* Currency Toggle */}
@@ -247,6 +260,36 @@ export default function ProjectSettingsPanel({
                 </div>
               )}
             </div>
+
+            {/* Scope Text */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-400" />
+                Scope Description
+                <span className="text-xs text-cream-muted">(optional — guides ConstructLine analysis)</span>
+              </div>
+              <Textarea
+                value={scopeText}
+                onChange={(e) => setScopeText(e.target.value)}
+                placeholder="e.g. Focus on structural steel and concrete for the main building only. Exclude site work and landscaping."
+                className="min-h-[80px] bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 resize-none"
+                maxLength={2000}
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-cream-muted/50">
+                  Leave blank to analyze all drawings without scope filtering.
+                </p>
+                <span className="text-[10px] text-cream-muted/40">{scopeText.length}/2000</span>
+              </div>
+              {scopeChanged && hasProcessedSheets && (
+                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-amber-300">
+                    Scope changes will take effect on the next re-analysis.
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -256,6 +299,7 @@ export default function ProjectSettingsPanel({
                 setSelectedDivisions(currentDivisions || []);
                 setSelectedRegion(currentRegion || null);
                 setSelectedCurrency(currentCurrency || "USD");
+                setScopeText(currentScopeText || "");
                 setOpen(false);
               }}
               disabled={saving}

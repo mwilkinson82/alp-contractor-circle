@@ -596,8 +596,9 @@ export default function TakeoffDetail() {
               currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               currentRegion={project.costRegion}
               currentCurrency={project.currency}
+              currentScopeText={project.scopeText}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency) => {
+              onSave={async (divisions, region, currency, scopeText) => {
                 return new Promise<{ regionChanged?: boolean }>((resolve, reject) => {
                   settingsMutation.mutate(
                     {
@@ -605,6 +606,7 @@ export default function TakeoffDetail() {
                       selectedDivisions: divisions || [],
                       costRegion: region,
                       currency: currency as any,
+                      ...(scopeText !== undefined ? { scopeText } : {}),
                     },
                     {
                       onSuccess: (result) => resolve(result),
@@ -706,16 +708,12 @@ export default function TakeoffDetail() {
                       : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                   }`}
                 >
-                  {processMutation.isPending ? (
+                  {processMutation.isPending && (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  ) : hasPendingSheets ? (
-                    <Sparkles className="w-5 h-5 mr-2" />
-                  ) : (
-                    <Play className="w-5 h-5 mr-2" />
                   )}
                   {hasPendingSheets
-                    ? "Analyze Drawings"
-                    : "Re-Analyze Drawings"}
+                    ? "ConstructLine Analyze Drawings"
+                    : "ConstructLine Re-Analyze Drawings"}
                   <span className="ml-2 text-sm opacity-75">
                     ({hasPendingSheets
                       ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`

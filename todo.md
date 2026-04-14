@@ -1736,3 +1736,10 @@
 - [x] Add ConstructLine branding (ConstructLine | Powered by ALP) to Excel/CSV export headers
 - [x] Add project name, date, and currency to export headers
 - [x] Fix remaining "Construct Line" (two words) references to "ConstructLine"
+
+## Branding & UX Fixes — April 14 (Round 2)
+- [x] Fix "Construct Line" branding on project list page (TakeoffList.tsx) — ConstructLine brand mark with "Powered by ALP" + "Quantity Takeoff" header
+- [x] Fix "Construct Line" in sidebar navigation — all references now "ConstructLine" (one word)
+- [x] Fix "Construct Line" in Scheduler.tsx — all references now "ConstructLine"
+- [x] Rename "Analyze Drawings" button to "ConstructLine Analyze Drawings" and remove the sparkles/play icons
+- [x] Add scope text visible/editable in Edit Settings modal (ProjectSettingsPanel) — shows current scope in summary, editable textarea with 2000 char limit, saves to backend
