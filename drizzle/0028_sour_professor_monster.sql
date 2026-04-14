@@ -1,0 +1,1 @@
+ALTER TABLE `takeoff_projects` MODIFY COLUMN `status` enum('draft','uploading','processing','post_processing','completed','error') NOT NULL DEFAULT 'draft';

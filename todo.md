@@ -1743,3 +1743,16 @@
 - [x] Fix "Construct Line" in Scheduler.tsx — all references now "ConstructLine"
 - [x] Rename "Analyze Drawings" button to "ConstructLine Analyze Drawings" and remove the sparkles/play icons
 - [x] Add scope text visible/editable in Edit Settings modal (ProjectSettingsPanel) — shows current scope in summary, editable textarea with 2000 char limit, saves to backend
+
+## ConstructLine Accuracy Improvements — April 14, 2026
+
+- [x] Priority 1: Cross-sheet consolidation — postProcessTakeoff() merges duplicate items by description+CSI, sums quantities, averages costs
+- [x] Priority 2: Plan-view measurement — LLM-powered lump-sum enhancement extracts dimensions from plan views to replace LS with measured quantities
+- [x] Priority 3: Scope enforcement — LLM-powered scope filter removes out-of-scope items based on natural language scope text
+- [x] Priority 4: Formwork generation — auto-generates SFCA formwork items for concrete footings, slabs, grade beams, piers, walls
+- [x] Priority 5: Rebar calculation from plan+section — combines plan dimensions with section rebar callouts to calculate total LF
+- [x] Enhanced system prompt with anti-lump-sum rules, plan-view measurement instructions, and show-your-math requirement
+- [x] Strengthened scope text instruction to be a hard filter (overrides CSI selection)
+- [x] Added "Consolidate & Enhance" button to Quantity Takeoff tab toolbar
+- [x] Added post_processing status to project status enum and DB migration
+- [x] Added reprocessConsolidate tRPC endpoint for manual post-processing trigger

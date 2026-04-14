@@ -21,6 +21,7 @@ import {
   getTakeoffProject,
   getDrawingSheetsByProject,
 } from "./takeoffDb";
+import { postProcessTakeoff } from "./takeoffPostProcess";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { TAKEOFF_DIVISION_MAP, ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 
@@ -148,7 +149,18 @@ function buildCurrencyInstruction(currency: string | null): string {
 
 function buildScopeTextInstruction(scopeText: string | null): string {
   if (!scopeText || scopeText.trim().length === 0) return "";
-  return `\n\n## SPECIFIC SCOPE FILTER — CRITICAL\nThe user has specified a particular scope of work within the selected CSI divisions. You MUST only extract items that match this specific scope description:\n\n"${scopeText.trim()}"\n\nOnly return line items directly relevant to this scope. Ignore everything else on the drawing that falls outside this specific scope, even if it belongs to a selected CSI division. For example, if the user says "foundations only — spread footings and grade beams" within Division 03 (Concrete), do NOT include slabs, walls, or other concrete work — only footings and grade beams.`;
+  return `\n\n## SPECIFIC SCOPE FILTER — CRITICAL (HARD FILTER)
+The user has specified a PRECISE scope of work. This is a HARD FILTER — you MUST ONLY extract items that match this scope:
+
+"${scopeText.trim()}"
+
+RULES:
+- ONLY return items that are EXPLICITLY within this scope description
+- If the scope says "foundation through SOG only, none of the vertical" — do NOT include above-grade walls, columns, beams, or any vertical structure
+- If the scope says specific elements are "included" (e.g., "vacuum enclosure foundations included") — include those
+- If the scope says specific elements are "excluded" (e.g., "20 foot drive slab excluded") — do NOT include those
+- When in doubt about whether an item is in scope, EXCLUDE it
+- This scope filter overrides the CSI division selection — even if a CSI division is selected, only items matching the scope text should be returned`;
 }
 
 function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null): string {
@@ -195,11 +207,32 @@ ${scopeInstruction}${currencyInstruction}${scopeTextInstruction}
 - Roofing: measure in SQ (100 SF) for shingles/membrane, SF for metal
 - Earthwork: calculate CY (cubic yards), not CF
 
+## PLAN VIEW MEASUREMENT — CRITICAL:
+When analyzing a PLAN VIEW (floor plan, foundation plan, site plan, structural plan):
+- ALWAYS extract overall building dimensions from the plan (e.g., 110'-4" x 82'-2")
+- CALCULATE areas: length × width = SF for slabs, foundations, etc.
+- CALCULATE volumes: SF × thickness / 27 = CY for concrete
+- TRACE perimeters: add up all footing/wall runs for total LF
+- COUNT elements: piers, columns, footings, openings — count each one individually
+- MEASURE pit dimensions: read length × width × depth from the plan
+- For SLAB-ON-GRADE: calculate total SF from building footprint minus excluded areas
+- For FOOTINGS: trace the continuous footing line on the plan and sum total LF
+- For GRADE BEAMS: trace each beam run and measure LF
+- Show your calculation in the notes field (e.g., "110.33' × 82.17' = 9,067 SF")
+
+## ANTI-LUMP-SUM RULE — CRITICAL:
+- NEVER use "LS" (Lump Sum) as a unit if you can calculate a measured quantity
+- If you can see ANY dimension on the drawing, USE IT to calculate a real quantity
+- Only use LS as an absolute last resort when NO dimensions are available
+- Every LS item MUST include a note explaining WHY it couldn't be measured
+- Contractors CANNOT bid from lump sums — measured quantities are essential
+
 ## IMPORTANT:
 - Do NOT make up items that aren't visible in the drawing
 - If a dimension is not shown, estimate from scale or typical construction
 - For cover sheets or title-only sheets, return an empty items array
 - Include ALL visible items — be thorough, not selective
+- ALWAYS show your math in the notes field — this builds contractor confidence
 
 ## CSI DIVISIONS REFERENCE:
 ${divisionRef}
@@ -539,14 +572,30 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     });
   }
 
-  // Recalculate total cost
-  await recalculateProjectTotal(projectId);
-
-  // Update final status — only mark as "error" if ALL sheets failed.
-  // If at least some sheets succeeded, mark as "completed" (partial errors are normal with large drawing sets).
+  // ─── Post-Processing Pipeline ─────────────────────────────────────────────
+  // Run consolidation, plan-view enhancement, scope enforcement, formwork, and rebar
   const allSheets = await getDrawingSheetsByProject(projectId);
   const completedSheets = allSheets.filter((s: any) => s.status === "completed");
   const errorSheets = allSheets.filter((s: any) => s.status === "error");
+
+  if (completedSheets.length > 0) {
+    try {
+      console.log(`[Takeoff AI] Starting post-processing pipeline for project ${projectId}...`);
+      await updateTakeoffProject(projectId, { status: "post_processing" as any });
+      const ppStats = await postProcessTakeoff(projectId);
+      console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
+    } catch (ppError: any) {
+      console.error(`[Takeoff AI] Post-processing failed (items preserved from per-sheet extraction):`, ppError);
+      // If post-processing fails, items from per-sheet extraction are still in DB
+      // Just recalculate totals from what we have
+      await recalculateProjectTotal(projectId);
+    }
+  } else {
+    // No completed sheets — just recalculate from whatever we have
+    await recalculateProjectTotal(projectId);
+  }
+
+  // Update final status
   const finalStatus = completedSheets.length > 0 ? "completed" : (errorSheets.length > 0 ? "error" : "completed");
   await updateTakeoffProject(projectId, {
     status: finalStatus,

@@ -726,6 +726,7 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
     "draft",
     "uploading",
     "processing",
+    "post_processing",
     "completed",
     "error",
   ]).default("draft").notNull(),

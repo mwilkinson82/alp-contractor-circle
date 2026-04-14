@@ -197,6 +197,13 @@
       "when": 1776165050957,
       "tag": "0027_past_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1776178574442,
+      "tag": "0028_sour_professor_monster",
+      "breakpoints": true
     }
   ]
 }

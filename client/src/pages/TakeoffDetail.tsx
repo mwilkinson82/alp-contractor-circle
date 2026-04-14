@@ -231,6 +231,14 @@ export default function TakeoffDetail() {
     onError: (err) => toast.error(`Settings error: ${err.message}`),
   });
 
+  const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
+    onSuccess: () => {
+      toast.success("Post-processing started! Consolidating items, enhancing measurements, and generating formwork...");
+      refetchProject();
+    },
+    onError: (err) => toast.error(`Consolidation error: ${err.message}`),
+  });
+
   // ─── File Upload Handler ──────────────────────────────────────────────────
 
   const handleFileUpload = useCallback(async (files: FileList | null) => {
@@ -548,7 +556,7 @@ export default function TakeoffDetail() {
   }
 
   const sheets = project.sheets || [];
-  const isProcessing = progress?.status === "processing";
+  const isProcessing = progress?.status === "processing" || progress?.status === "post_processing";
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
   const totalCost = project.totalEstimatedCost || 0;
 
@@ -875,6 +883,22 @@ export default function TakeoffDetail() {
                         {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
                     </div>
+                    <div className="w-px h-6 bg-white/10" />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => consolidateMutation.mutate({ projectId })}
+                      disabled={consolidateMutation.isPending || isProcessing}
+                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                      title="Run AI post-processing: consolidate duplicates, enhance lump sums with plan measurements, generate formwork, and enforce scope"
+                    >
+                      {consolidateMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      Consolidate & Enhance
+                    </Button>
                     <div className="w-px h-6 bg-white/10" />
                     <Button
                       size="sm"

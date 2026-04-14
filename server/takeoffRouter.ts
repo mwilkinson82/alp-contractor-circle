@@ -31,6 +31,7 @@ import {
   bulkUnreviewItems,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
+import { postProcessTakeoff } from "./takeoffPostProcess";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 
@@ -693,5 +694,34 @@ export const takeoffRouter = router({
       }
 
       return { success: true, regionChanged };
+    }),
+
+  /** Run post-processing pipeline on an existing completed project */
+  reprocessConsolidate: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+      if (project.status !== "completed") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Project must be completed before running consolidation.",
+        });
+      }
+      // Run post-processing in background
+      await updateTakeoffProject(input.projectId, { status: "processing" as any });
+      postProcessTakeoff(input.projectId)
+        .then(async (stats) => {
+          console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);
+          await updateTakeoffProject(input.projectId, { status: "completed" });
+        })
+        .catch(async (err) => {
+          console.error(`[Takeoff Router] Consolidation failed for project ${input.projectId}:`, err);
+          await updateTakeoffProject(input.projectId, { status: "completed" });
+        });
+      return { success: true, message: "Post-processing started. Items will be consolidated shortly." };
     }),
 });
