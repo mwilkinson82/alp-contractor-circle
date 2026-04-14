@@ -762,6 +762,7 @@ export default function TakeoffDetail() {
                 <ProcessingOverlay
                   totalSheets={progress.totalSheets}
                   processedSheets={progress.processedSheets}
+                  projectStatus={progress.status}
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,

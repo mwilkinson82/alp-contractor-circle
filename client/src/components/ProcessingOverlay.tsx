@@ -48,12 +48,15 @@ interface ProcessingOverlayProps {
     pageNumber: number;
     status: string;
   }>;
+  /** Current project status for phase display */
+  projectStatus?: string;
 }
 
 export default function ProcessingOverlay({
   totalSheets,
   processedSheets,
   sheets,
+  projectStatus,
 }: ProcessingOverlayProps) {
   const [messageIndex, setMessageIndex] = useState(0);
   const [dotCount, setDotCount] = useState(1);
@@ -129,6 +132,38 @@ export default function ProcessingOverlay({
           <h3 className="text-lg font-semibold text-cream mb-2">
             ConstructLine is Working
           </h3>
+          {/* Two-pass phase indicator */}
+          {processedSheets === 0 && (projectStatus === "processing") && (
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                Pass 1: Indexing Drawings
+              </Badge>
+              <span className="text-cream-muted/40 text-xs">Building project context from all sheets</span>
+            </div>
+          )}
+          {processedSheets > 0 && (projectStatus === "processing") && (
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                Pass 1: Complete
+              </Badge>
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                Pass 2: Extracting Quantities
+              </Badge>
+            </div>
+          )}
+          {projectStatus === "post_processing" && (
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                Pass 1: Complete
+              </Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                Pass 2: Complete
+              </Badge>
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                Consolidating & Enhancing
+              </Badge>
+            </div>
+          )}
           <p className="text-amber-300/90 text-sm font-medium h-5 transition-all duration-300">
             {currentPhase.text}
           </p>

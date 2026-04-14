@@ -22,6 +22,7 @@ import {
   getDrawingSheetsByProject,
 } from "./takeoffDb";
 import { postProcessTakeoff } from "./takeoffPostProcess";
+import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { TAKEOFF_DIVISION_MAP, ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 
@@ -163,7 +164,7 @@ RULES:
 - This scope filter overrides the CSI division selection — even if a CSI division is selected, only items matching the scope text should be returned`;
 }
 
-function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null): string {
+function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null): string {
   const divisionRef = buildDivisionReference(selectedDivisions);
   const scopeInstruction = buildScopingInstruction(selectedDivisions);
   const currencyInstruction = buildCurrencyInstruction(currency || null);
@@ -176,11 +177,15 @@ function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string
       ? "Use current Australian market rates (2024-2025 pricing) in Australian Dollars (A$)"
       : "Use current US market rates (2024-2025 pricing)";
 
+  const contextBlock = projectContext
+    ? `\n\n${projectContext}`
+    : "";
+
   return `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
 
 ## YOUR TASK
 Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
-${scopeInstruction}${currencyInstruction}${scopeTextInstruction}
+${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${contextBlock}
 
 ## PROCESS (follow exactly):
 1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
@@ -334,9 +339,10 @@ async function extractQuantities(
   imageUrl: string,
   selectedDivisions: string[] | null,
   currency?: string | null,
-  scopeText?: string | null
+  scopeText?: string | null,
+  projectContext?: string | null
 ): Promise<TakeoffExtractionResult> {
-  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText);
+  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext);
   const scopeNote = selectedDivisions && selectedDivisions.length > 0
     ? ` Only extract items for the specified CSI divisions: ${selectedDivisions.join(", ")}.`
     : "";
@@ -458,20 +464,22 @@ export async function processDrawingSheet(
   projectId: number,
   selectedDivisions: string[] | null = null,
   currency?: string | null,
-  scopeText?: string | null
+  scopeText?: string | null,
+  projectContext?: string | null
 ): Promise<TakeoffExtractionResult | null> {
   try {
     // Mark sheet as processing
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
-    // Pass 1: Extract quantities (scoped to selected divisions)
-    console.log(`[Takeoff AI] Pass 1: Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}`);
-    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText);
+    // Extraction pass: Extract quantities (scoped to selected divisions, with project context)
+    const hasContext = projectContext ? " [with project context]" : "";
+    console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}`);
+    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext);
 
-    // Pass 2: Verify and reconcile (skip for cover sheets)
+    // Verification pass: Verify and reconcile (skip for cover sheets)
     let result = extracted;
     if (extracted.sheetType !== "cover" && extracted.items.length > 0) {
-      console.log(`[Takeoff AI] Pass 2: Verifying ${extracted.items.length} items for sheet ${sheetId}`);
+      console.log(`[Takeoff AI] Verifying ${extracted.items.length} items for sheet ${sheetId}`);
       result = await verifyQuantities(extracted, imageUrl, selectedDivisions);
     }
 
@@ -545,6 +553,31 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
 
   await updateTakeoffProject(projectId, { status: "processing" });
 
+  // ─── PASS 1: Index All Sheets ──────────────────────────────────────────────
+  // Quick scan every sheet to build a project context with dimensions & elements.
+  // This context gets injected into Pass 2 so the AI knows building dimensions
+  // when analyzing section/detail sheets.
+  let projectContextText: string | null = null;
+  try {
+    console.log(`[Takeoff AI] === PASS 1: Indexing all sheets for project ${projectId} ===`);
+    const projectContext = await indexAllSheets(projectId);
+    if (projectContext.contextSummary && projectContext.allElements.length > 0) {
+      projectContextText = projectContext.contextSummary;
+      console.log(`[Takeoff AI] Pass 1 complete: ${projectContext.sheets.length} sheets indexed, ${projectContext.allElements.length} elements found`);
+      if (projectContext.buildingFootprint.areaSF) {
+        console.log(`[Takeoff AI] Building footprint: ${projectContext.buildingFootprint.lengthFt?.toFixed(1)}' × ${projectContext.buildingFootprint.widthFt?.toFixed(1)}' = ${projectContext.buildingFootprint.areaSF?.toFixed(0)} SF`);
+      }
+    } else {
+      console.log(`[Takeoff AI] Pass 1 complete but no significant context extracted — proceeding without context`);
+    }
+  } catch (indexError: any) {
+    console.warn(`[Takeoff AI] Pass 1 (indexing) failed — proceeding without context:`, indexError.message);
+    // Non-fatal: if indexing fails, we still do the extraction without context
+  }
+
+  // ─── PASS 2: Extract Quantities with Context ───────────────────────────────
+  console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} ===`);
+
   const pendingSheets = await getPendingSheets(projectId);
   let processedCount = project.processedSheets || 0;
   let hasError = false;
@@ -559,7 +592,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
       continue;
     }
 
-    const result = await processDrawingSheet(sheet.id, sheet.imageUrl, projectId, selectedDivisions, project.currency, project.scopeText);
+    const result = await processDrawingSheet(sheet.id, sheet.imageUrl, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText);
     processedCount++;
 
     if (!result) {

@@ -1756,3 +1756,14 @@
 - [x] Added "Consolidate & Enhance" button to Quantity Takeoff tab toolbar
 - [x] Added post_processing status to project status enum and DB migration
 - [x] Added reprocessConsolidate tRPC endpoint for manual post-processing trigger
+
+## Two-Pass Analysis System — April 14, 2026
+
+- [x] Pass 1: Sheet indexing module (takeoffSheetIndex.ts) — quick LLM scan classifies each sheet and extracts all visible dimensions
+- [x] Pass 1: Plan-view dimension extraction — building footprint, footing runs, pit dimensions, member sizes, rebar callouts
+- [x] Pass 1: Structured project context — aggregates all dimensions/elements into contextSummary text for injection
+- [x] Pass 2: Context-injected analysis — every sheet extraction prompt now includes full project context with building dimensions
+- [x] Pass 2: Cross-reference enabled — section sheets receive plan-view footing lengths, slab areas, element counts for accurate calculations
+- [x] Wired into processAllPendingSheets — Pass 1 runs before extraction loop, context injected into every processDrawingSheet call
+- [ ] Make CSI divisions optional (default to "All") — deferred, works fine as-is with scope text as primary filter
+- [x] Updated ProcessingOverlay to show Pass 1 (Indexing) / Pass 2 (Extracting) / Post-Processing phase badges
