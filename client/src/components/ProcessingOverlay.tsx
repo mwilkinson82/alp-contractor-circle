@@ -1,6 +1,7 @@
 /**
  * ProcessingOverlay — Animated construction-themed overlay shown during
  * ConstructLine analysis. Features:
+ * - Clear 3-step phase progression: Index → Extract → Consolidate
  * - Animated blueprint/construction visual
  * - Rotating status messages that cycle through analysis phases
  * - Real sheet-by-sheet progress bar
@@ -19,22 +20,38 @@ import {
   Hammer,
   Wrench,
   DollarSign,
+  CheckCircle2,
+  Loader2,
+  Circle,
 } from "lucide-react";
 
 // ─── Status Messages ──────────────────────────────────────────────────────────
 
-const ANALYSIS_PHASES = [
-  { icon: ScanLine, text: "Scanning drawing for construction elements..." },
-  { icon: FileSearch, text: "Identifying plan details and annotations..." },
-  { icon: Layers, text: "Detecting layers and building systems..." },
-  { icon: Ruler, text: "Measuring quantities and dimensions..." },
+const PHASE1_MESSAGES = [
+  { icon: ScanLine, text: "Scanning all drawings to build project context..." },
+  { icon: FileSearch, text: "Identifying plan views and section details..." },
+  { icon: Ruler, text: "Extracting building dimensions from plans..." },
+  { icon: Layers, text: "Mapping structural elements across sheets..." },
+];
+
+const PHASE2_MESSAGES = [
   { icon: Boxes, text: "Classifying materials by CSI division..." },
   { icon: Calculator, text: "Calculating material quantities..." },
-  { icon: HardHat, text: "Cross-referencing with industry standards..." },
+  { icon: HardHat, text: "Cross-referencing with plan dimensions..." },
   { icon: Hammer, text: "Matching items to unit cost database..." },
   { icon: Wrench, text: "Applying regional cost adjustments..." },
   { icon: DollarSign, text: "Finalizing cost estimates..." },
 ];
+
+const PHASE3_MESSAGES = [
+  { icon: Layers, text: "Merging duplicate items across sheets..." },
+  { icon: Calculator, text: "Replacing lump sums with measured quantities..." },
+  { icon: Ruler, text: "Generating formwork calculations..." },
+  { icon: ScanLine, text: "Enforcing scope compliance..." },
+  { icon: DollarSign, text: "Recalculating final costs..." },
+];
+
+type AnalysisPhase = "indexing" | "extracting" | "consolidating";
 
 interface ProcessingOverlayProps {
   /** Total number of sheets being processed */
@@ -59,9 +76,24 @@ export default function ProcessingOverlay({
   projectStatus,
 }: ProcessingOverlayProps) {
   const [messageIndex, setMessageIndex] = useState(0);
-  const [dotCount, setDotCount] = useState(1);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
+
+  // Determine current phase
+  const currentPhase: AnalysisPhase = useMemo(() => {
+    if (projectStatus === "post_processing") return "consolidating";
+    if (processedSheets > 0) return "extracting";
+    return "indexing";
+  }, [projectStatus, processedSheets]);
+
+  // Get messages for current phase
+  const phaseMessages = useMemo(() => {
+    switch (currentPhase) {
+      case "indexing": return PHASE1_MESSAGES;
+      case "extracting": return PHASE2_MESSAGES;
+      case "consolidating": return PHASE3_MESSAGES;
+    }
+  }, [currentPhase]);
 
   // Track elapsed time for ETA calculation
   useEffect(() => {
@@ -73,26 +105,22 @@ export default function ProcessingOverlay({
 
   // Rotate through status messages every 3.5 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % ANALYSIS_PHASES.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
+    setMessageIndex(0); // Reset when phase changes
+  }, [currentPhase]);
 
-  // Animate the dots
   useEffect(() => {
     const interval = setInterval(() => {
-      setDotCount((prev) => (prev % 3) + 1);
-    }, 600);
+      setMessageIndex((prev) => (prev + 1) % phaseMessages.length);
+    }, 3500);
     return () => clearInterval(interval);
-  }, []);
+  }, [phaseMessages]);
 
   const percentage = totalSheets > 0
     ? Math.round((processedSheets / totalSheets) * 100)
     : 0;
 
-  const currentPhase = ANALYSIS_PHASES[messageIndex];
-  const CurrentIcon = currentPhase.icon;
+  const currentMessage = phaseMessages[messageIndex % phaseMessages.length];
+  const CurrentIcon = currentMessage.icon;
 
   // Find the currently processing sheet
   const currentSheet = useMemo(() => {
@@ -100,7 +128,15 @@ export default function ProcessingOverlay({
     return sheets.find((s) => s.status === "processing");
   }, [sheets]);
 
-  const dots = ".".repeat(dotCount);
+  // Phase step config
+  const phases = [
+    { key: "indexing" as const, label: "Index Drawings", description: "Building project context" },
+    { key: "extracting" as const, label: "Extract Quantities", description: "Analyzing each sheet" },
+    { key: "consolidating" as const, label: "Consolidate & Enhance", description: "Merging & refining results" },
+  ];
+
+  const phaseOrder: AnalysisPhase[] = ["indexing", "extracting", "consolidating"];
+  const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
   return (
     <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden">
@@ -109,7 +145,7 @@ export default function ProcessingOverlay({
 
       <div className="px-8 py-10">
         {/* Animated Icon Cluster */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-6">
           <div className="relative">
             {/* Outer ring — slow pulse */}
             <div className="w-28 h-28 rounded-full border-2 border-amber-500/20 flex items-center justify-center animate-[pulse_3s_ease-in-out_infinite]">
@@ -127,82 +163,173 @@ export default function ProcessingOverlay({
           </div>
         </div>
 
-        {/* Status Message — fades between phases */}
-        <div className="text-center mb-8">
-          <h3 className="text-lg font-semibold text-cream mb-2">
-            ConstructLine is Working
-          </h3>
-          {/* Two-pass phase indicator */}
-          {processedSheets === 0 && (projectStatus === "processing") && (
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
-                Pass 1: Indexing Drawings
-              </Badge>
-              <span className="text-cream-muted/40 text-xs">Building project context from all sheets</span>
-            </div>
-          )}
-          {processedSheets > 0 && (projectStatus === "processing") && (
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
-                Pass 1: Complete
-              </Badge>
-              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
-                Pass 2: Extracting Quantities
-              </Badge>
-            </div>
-          )}
-          {projectStatus === "post_processing" && (
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
-                Pass 1: Complete
-              </Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
-                Pass 2: Complete
-              </Badge>
-              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
-                Consolidating & Enhancing
-              </Badge>
-            </div>
-          )}
-          <p className="text-amber-300/90 text-sm font-medium h-5 transition-all duration-300">
-            {currentPhase.text}
-          </p>
+        {/* Title */}
+        <h3 className="text-lg font-semibold text-cream text-center mb-6">
+          ConstructLine is Working
+        </h3>
+
+        {/* ─── 3-Step Phase Progress ─────────────────────────────────────── */}
+        <div className="max-w-lg mx-auto mb-8">
+          <div className="flex items-center justify-between">
+            {phases.map((phase, i) => {
+              const isComplete = i < currentPhaseIndex;
+              const isActive = i === currentPhaseIndex;
+              const isPending = i > currentPhaseIndex;
+
+              return (
+                <div key={phase.key} className="flex-1 flex flex-col items-center relative">
+                  {/* Connector line */}
+                  {i > 0 && (
+                    <div
+                      className={`absolute top-4 right-1/2 w-full h-0.5 -z-10 ${
+                        isComplete || isActive
+                          ? "bg-emerald-500/40"
+                          : "bg-white/10"
+                      }`}
+                    />
+                  )}
+
+                  {/* Step circle */}
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-500 ${
+                      isComplete
+                        ? "bg-emerald-500/20 border-2 border-emerald-500/50"
+                        : isActive
+                          ? "bg-amber-500/20 border-2 border-amber-500/50"
+                          : "bg-white/5 border-2 border-white/10"
+                    }`}
+                  >
+                    {isComplete ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : isActive ? (
+                      <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                    ) : (
+                      <Circle className="w-3 h-3 text-cream-muted/30" />
+                    )}
+                  </div>
+
+                  {/* Step label */}
+                  <span
+                    className={`text-xs font-semibold text-center leading-tight ${
+                      isComplete
+                        ? "text-emerald-400"
+                        : isActive
+                          ? "text-amber-300"
+                          : "text-cream-muted/30"
+                    }`}
+                  >
+                    {phase.label}
+                  </span>
+
+                  {/* Step description */}
+                  <span
+                    className={`text-[10px] text-center mt-0.5 ${
+                      isComplete
+                        ? "text-emerald-400/60"
+                        : isActive
+                          ? "text-amber-300/60"
+                          : "text-cream-muted/20"
+                    }`}
+                  >
+                    {isComplete ? "Done" : isActive ? phase.description : "Waiting"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Current phase message */}
+        <p className="text-amber-300/90 text-sm font-medium text-center mb-6 h-5 transition-all duration-300">
+          {currentMessage.text}
+        </p>
+
+        {/* Progress Bar — different behavior per phase */}
         <div className="max-w-md mx-auto mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-cream-muted">
-              Sheet {processedSheets} of {totalSheets}
-            </span>
-            <span className="text-xs font-semibold text-amber-400">
-              {percentage}%
-            </span>
-          </div>
-          <div className="w-full bg-navy-deep/80 rounded-full h-3 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
-              style={{
-                width: `${Math.max(percentage, 3)}%`,
-                background: "linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)",
-                backgroundSize: "200% 100%",
-                animation: "shimmer 2s ease-in-out infinite",
-              }}
-            >
-              {/* Shine effect */}
-              <div
-                className="absolute inset-0 opacity-30"
-                style={{
-                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
-                  animation: "shimmer 1.5s ease-in-out infinite",
-                }}
-              />
-            </div>
-          </div>
+          {currentPhase === "indexing" ? (
+            <>
+              {/* Indeterminate progress for indexing */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-cream-muted">
+                  Scanning {totalSheets} sheets...
+                </span>
+                <span className="text-xs font-semibold text-amber-400">
+                  Indexing
+                </span>
+              </div>
+              <div className="w-full bg-navy-deep/80 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full relative overflow-hidden"
+                  style={{
+                    width: "100%",
+                    background: "linear-gradient(90deg, transparent, #f59e0b, #ea580c, #f59e0b, transparent)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 1.5s ease-in-out infinite",
+                    opacity: 0.6,
+                  }}
+                />
+              </div>
+            </>
+          ) : currentPhase === "extracting" ? (
+            <>
+              {/* Determinate progress for extraction */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-cream-muted">
+                  Sheet {processedSheets} of {totalSheets}
+                </span>
+                <span className="text-xs font-semibold text-amber-400">
+                  {percentage}%
+                </span>
+              </div>
+              <div className="w-full bg-navy-deep/80 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
+                  style={{
+                    width: `${Math.max(percentage, 3)}%`,
+                    background: "linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 2s ease-in-out infinite",
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 opacity-30"
+                    style={{
+                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                      animation: "shimmer 1.5s ease-in-out infinite",
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Indeterminate progress for consolidation */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-cream-muted">
+                  All {totalSheets} sheets extracted
+                </span>
+                <span className="text-xs font-semibold text-amber-400">
+                  Enhancing
+                </span>
+              </div>
+              <div className="w-full bg-navy-deep/80 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full relative overflow-hidden"
+                  style={{
+                    width: "100%",
+                    background: "linear-gradient(90deg, transparent, #10b981, #059669, #10b981, transparent)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 1.5s ease-in-out infinite",
+                    opacity: 0.6,
+                  }}
+                />
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Currently Processing Sheet */}
-        {currentSheet && (
+        {/* Currently Processing Sheet — only during extraction */}
+        {currentPhase === "extracting" && currentSheet && (
           <div className="text-center mb-6">
             <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-xs px-3 py-1">
               Analyzing: {currentSheet.sheetName || `Page ${currentSheet.pageNumber}`}
@@ -210,8 +337,8 @@ export default function ProcessingOverlay({
           </div>
         )}
 
-        {/* Sheet Status Pills */}
-        {sheets && sheets.length > 0 && sheets.length <= 20 && (
+        {/* Sheet Status Pills — only during extraction, max 20 */}
+        {currentPhase === "extracting" && sheets && sheets.length > 0 && sheets.length <= 20 && (
           <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
             {sheets.map((sheet) => {
               const isCompleted = sheet.status === "completed";
@@ -246,11 +373,10 @@ export default function ProcessingOverlay({
           </div>
         )}
 
-        {/* Estimated Time Remaining */}
-        {(() => {
+        {/* Estimated Time Remaining — only during extraction */}
+        {currentPhase === "extracting" && (() => {
           const remaining = totalSheets - processedSheets;
           if (remaining <= 0) return null;
-          // Use actual avg if we have data, otherwise estimate ~30s per sheet
           const avgPerSheet = processedSheets > 0 && elapsed > 5000
             ? elapsed / processedSheets
             : 30000;
@@ -270,7 +396,7 @@ export default function ProcessingOverlay({
         })()}
 
         {/* Tip */}
-        <p className="text-center text-[11px] text-cream-muted/40 mt-2">
+        <p className="text-center text-[11px] text-cream-muted/40 mt-4">
           You can leave this page — analysis continues in the background
         </p>
       </div>

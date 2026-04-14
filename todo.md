@@ -1767,3 +1767,11 @@
 - [x] Wired into processAllPendingSheets — Pass 1 runs before extraction loop, context injected into every processDrawingSheet call
 - [ ] Make CSI divisions optional (default to "All") — deferred, works fine as-is with scope text as primary filter
 - [x] Updated ProcessingOverlay to show Pass 1 (Indexing) / Pass 2 (Extracting) / Post-Processing phase badges
+
+## Processing Overlay UX Fix — April 14, 2026
+
+- [x] Fix ProcessingOverlay: complete rewrite with 3-step visual stepper (Index → Extract → Consolidate)
+- [x] Each step shows checkmark (done), spinner (active), or circle (waiting) — no ambiguity
+- [x] Progress bar changes per phase: indeterminate shimmer (indexing), determinate % (extracting), green shimmer (consolidating)
+- [x] Phase-specific rotating messages for each step
+- [x] Sheet pills and ETA only shown during extraction phase
