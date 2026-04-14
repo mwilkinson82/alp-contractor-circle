@@ -1725,3 +1725,14 @@
 - [x] Allow editing quantity, unit, unit cost from the modal
 - [x] Integrate into TakeoffDetail table — row click opens modal
 - [x] Previous/Next arrow key navigation between items
+
+## Bulk Review, Notes, Export Branding — April 14
+- [x] Add bulk review/approve button per division — mark all items in a section as reviewed at once
+- [x] Add bulk unreview button per division — toggle back to unreviewed
+- [x] Show review count badge per division (e.g. "3/12 reviewed" or "All Reviewed")
+- [x] Show green checkmark icon on reviewed rows in the items table
+- [x] Add notes column to takeoff_items schema and backend
+- [x] Add notes field to ItemDetailModal — let contractors add comments to individual line items
+- [x] Add ConstructLine branding (ConstructLine | Powered by ALP) to Excel/CSV export headers
+- [x] Add project name, date, and currency to export headers
+- [x] Fix remaining "Construct Line" (two words) references to "ConstructLine"

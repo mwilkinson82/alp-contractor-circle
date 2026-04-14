@@ -108,6 +108,7 @@ export default function ItemDetailModal({
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [unitCost, setUnitCost] = useState("");
+  const [notes, setNotes] = useState("");
 
   const symbol = CURRENCY_SYMBOLS[currencyCode] || "$";
 
@@ -118,6 +119,7 @@ export default function ItemDetailModal({
       setQuantity(parseFloat(item.quantity as string)?.toString() || "0");
       setUnit(item.unit || "EA");
       setUnitCost(((item.unitCost || 0) / 100).toFixed(2));
+      setNotes(item.notes || "");
       setIsEditing(false);
     }
   }, [item]);
@@ -161,6 +163,7 @@ export default function ItemDetailModal({
       quantity,
       unit,
       unitCost: Math.round(parseFloat(unitCost || "0") * 100),
+      notes: notes || undefined,
       reviewed: true,
     });
     setIsEditing(false);
@@ -231,10 +234,31 @@ export default function ItemDetailModal({
                 <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
                   {item.description || "No description"}
                 </p>
-                {item.notes && (
-                  <p className="text-cream-muted text-xs mt-3 pt-3 border-t border-white/5 leading-relaxed whitespace-pre-wrap">
-                    {item.notes}
-                  </p>
+              </div>
+            )}
+          </div>
+
+          {/* Notes / Contractor Comments */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-amber-400" />
+              <Label className="text-cream-muted text-xs uppercase tracking-wider">Your Notes</Label>
+              <span className="text-cream-muted/50 text-xs">(optional — add comments, reminders, or flags)</span>
+            </div>
+            {isEditing ? (
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="e.g., Verify with sub, Price seems high, Check spec sheet..."
+                className="bg-navy-deep/50 border-white/10 text-cream resize-none"
+              />
+            ) : (
+              <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3">
+                {notes ? (
+                  <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">{notes}</p>
+                ) : (
+                  <p className="text-cream-muted/50 text-sm italic">No notes yet — click Edit Item to add comments</p>
                 )}
               </div>
             )}

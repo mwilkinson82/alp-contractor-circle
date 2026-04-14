@@ -247,3 +247,53 @@ export async function recalculateItemCosts(
   // Recalculate project total
   return await recalculateProjectTotal(projectId);
 }
+
+/** Bulk mark all items in a division (or all items) as reviewed */
+export async function bulkReviewItems(
+  projectId: number,
+  csiDivision?: string | null
+) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  if (csiDivision) {
+    await db
+      .update(takeoffItems)
+      .set({ reviewed: true })
+      .where(
+        and(
+          eq(takeoffItems.projectId, projectId),
+          eq(takeoffItems.csiDivision, csiDivision)
+        )
+      );
+  } else {
+    await db
+      .update(takeoffItems)
+      .set({ reviewed: true })
+      .where(eq(takeoffItems.projectId, projectId));
+  }
+}
+
+/** Bulk mark all items in a division (or all items) as unreviewed */
+export async function bulkUnreviewItems(
+  projectId: number,
+  csiDivision?: string | null
+) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  if (csiDivision) {
+    await db
+      .update(takeoffItems)
+      .set({ reviewed: false })
+      .where(
+        and(
+          eq(takeoffItems.projectId, projectId),
+          eq(takeoffItems.csiDivision, csiDivision)
+        )
+      );
+  } else {
+    await db
+      .update(takeoffItems)
+      .set({ reviewed: false })
+      .where(eq(takeoffItems.projectId, projectId));
+  }
+}

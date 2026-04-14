@@ -1,6 +1,6 @@
 /**
  * TakeoffDetail — Full takeoff project view with drawing upload,
- * Construct Line processing status, and quantity review/edit table.
+ * ConstructLine processing status, and quantity review/edit table.
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
@@ -42,6 +42,8 @@ import {
   ChevronDown,
   ChevronRight,
   FileSpreadsheet,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -171,7 +173,7 @@ export default function TakeoffDetail() {
 
   const processMutation = trpc.takeoff.startProcessing.useMutation({
     onSuccess: () => {
-      toast.success("Construct Line takeoff started! This may take a few minutes...");
+      toast.success("ConstructLine takeoff started! This may take a few minutes...");
       refetchProject();
       refetchProgress();
     },
@@ -202,6 +204,22 @@ export default function TakeoffDetail() {
       toast.success("Item deleted");
       refetchItems();
       refetchProject();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const bulkReviewMutation = trpc.takeoff.bulkReview.useMutation({
+    onSuccess: () => {
+      toast.success("All items marked as reviewed");
+      refetchItems();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const bulkUnreviewMutation = trpc.takeoff.bulkUnreview.useMutation({
+    onSuccess: () => {
+      toast.success("All items marked as unreviewed");
+      refetchItems();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -284,7 +302,7 @@ export default function TakeoffDetail() {
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       try {
         const page = await pdf.getPage(pageNum);
-        const scale = 2.0; // High resolution for Construct Line analysis
+        const scale = 2.0; // High resolution for ConstructLine analysis
         const viewport = page.getViewport({ scale });
 
         const canvas = document.createElement("canvas");
@@ -349,9 +367,16 @@ export default function TakeoffDetail() {
     }
     const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    // Build rows with CSI division headers and subtotals
+    // Build rows with branding header and CSI division headers and subtotals
+    const projectName = (project as any)?.name || "Takeoff";
+    const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Unit Cost (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
-    const aoa: any[][] = [headers];
+    const aoa: any[][] = [
+      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", ""],
+      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", `Currency: ${currencyCode}`, "", ""],
+      [], // blank separator
+      headers,
+    ];
     let grandTotal = 0;
 
     for (const div of sortedDivs) {
@@ -386,8 +411,18 @@ export default function TakeoffDetail() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
 
+    // Style branding rows
+    const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+    if (ws[brandCell]) ws[brandCell].s = { font: { bold: true, sz: 16, color: { rgb: "0D1B2A" } } };
+    const projCell = XLSX.utils.encode_cell({ r: 1, c: 0 });
+    if (ws[projCell]) ws[projCell].s = { font: { bold: true, sz: 11 } };
+    const dateCell = XLSX.utils.encode_cell({ r: 1, c: 3 });
+    if (ws[dateCell]) ws[dateCell].s = { font: { sz: 11 } };
+    const currCell = XLSX.utils.encode_cell({ r: 1, c: 6 });
+    if (ws[currCell]) ws[currCell].s = { font: { sz: 11 } };
+
     // Style division headers and subtotals (bold via cell formatting)
-    let rowIdx = 1; // skip header
+    let rowIdx = 4; // skip branding (0), project info (1), blank (2), headers (3)
     for (const div of sortedDivs) {
       // Division header row
       const headerCell = XLSX.utils.encode_cell({ r: rowIdx, c: 0 });
@@ -421,7 +456,14 @@ export default function TakeoffDetail() {
     }
     const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    const csvRows: string[] = [headers.join(",")];
+    const projectName = (project as any)?.name || "Takeoff";
+    const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const csvRows: string[] = [
+      `"ConstructLine | Powered by ALP","","","","","","","",""`,
+      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","Currency: ${currencyCode}","",""`,
+      "",
+      headers.join(","),
+    ];
     let grandTotal = 0;
 
     for (const div of sortedDivs) {
@@ -814,7 +856,7 @@ export default function TakeoffDetail() {
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">No quantity items yet.</p>
                 <p className="text-sm mt-1">
-                  Upload drawings and run Construct Line analysis to extract quantities.
+                  Upload drawings and run ConstructLine analysis to extract quantities.
                 </p>
               </div>
             ) : (
@@ -872,14 +914,18 @@ export default function TakeoffDetail() {
                     );
                     const divName = CSI_DIVISION_NAMES[division] || `Division ${division}`;
 
+                    const divReviewedCount = (divItems as any[]).filter((i: any) => i.reviewed).length;
+                    const divItemCount = (divItems as any[]).length;
+                    const allReviewed = divReviewedCount === divItemCount;
+
                     return (
                       <div key={division} className="border border-white/10 rounded-lg overflow-hidden">
                         {/* Division Header */}
-                        <button
-                          className="w-full flex items-center justify-between px-4 py-3 bg-navy-medium/70 hover:bg-navy-medium transition-colors"
-                          onClick={() => toggleDivision(division)}
-                        >
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
+                          <button
+                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                            onClick={() => toggleDivision(division)}
+                          >
                             {isCollapsed ? (
                               <ChevronRight className="w-4 h-4 text-cream-muted" />
                             ) : (
@@ -890,13 +936,47 @@ export default function TakeoffDetail() {
                             </Badge>
                             <span className="text-cream font-semibold">{divName}</span>
                             <span className="text-cream-muted text-sm">
-                              ({(divItems as any[]).length} items)
+                              ({divItemCount} items)
+                            </span>
+                            {divReviewedCount > 0 && (
+                              <Badge className={`text-xs ${
+                                allReviewed
+                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              }`}>
+                                {allReviewed ? "All Reviewed" : `${divReviewedCount}/${divItemCount} reviewed`}
+                              </Badge>
+                            )}
+                          </button>
+                          <div className="flex items-center gap-3">
+                            {allReviewed ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs gap-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                                onClick={() => bulkUnreviewMutation.mutate({ projectId, csiDivision: division })}
+                                disabled={bulkUnreviewMutation.isPending}
+                              >
+                                <Square className="w-3.5 h-3.5" />
+                                Unreview All
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                onClick={() => bulkReviewMutation.mutate({ projectId, csiDivision: division })}
+                                disabled={bulkReviewMutation.isPending}
+                              >
+                                <CheckSquare className="w-3.5 h-3.5" />
+                                Review All
+                              </Button>
+                            )}
+                            <span className="text-amber-400 font-semibold">
+                              {formatCurrency(divTotal, project?.currency || "USD")}
                             </span>
                           </div>
-                          <span className="text-amber-400 font-semibold">
-                            {formatCurrency(divTotal, project?.currency || "USD")}
-                          </span>
-                        </button>
+                        </div>
 
                         {/* Division Items Table */}
                         {!isCollapsed && (
@@ -924,7 +1004,10 @@ export default function TakeoffDetail() {
                                     onClick={() => setSelectedItem(item)}
                                   >
                                     <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                      {item.csiCode || item.csiDivision}
+                                      <div className="flex items-center gap-1">
+                                        {item.reviewed && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
+                                        {item.csiCode || item.csiDivision}
+                                      </div>
                                     </td>
                                     <td className="px-4 py-2 text-cream max-w-xs">
                                       <p className="line-clamp-2">{item.description}</p>

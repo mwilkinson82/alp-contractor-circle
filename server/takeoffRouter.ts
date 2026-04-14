@@ -27,6 +27,8 @@ import {
   updateDrawingSheet,
   deleteTakeoffItemsBySheet,
   recalculateItemCosts,
+  bulkReviewItems,
+  bulkUnreviewItems,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
@@ -502,6 +504,42 @@ export const takeoffRouter = router({
       }
       await deleteTakeoffItem(input.id);
       await recalculateProjectTotal(input.projectId);
+      return { success: true };
+    }),
+
+  /** Bulk mark all items in a division as reviewed */
+  bulkReview: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        csiDivision: z.string().nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      await bulkReviewItems(input.projectId, input.csiDivision);
+      return { success: true };
+    }),
+
+  /** Bulk mark all items in a division as unreviewed */
+  bulkUnreview: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        csiDivision: z.string().nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      await bulkUnreviewItems(input.projectId, input.csiDivision);
       return { success: true };
     }),
 
