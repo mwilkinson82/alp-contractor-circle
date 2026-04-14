@@ -1705,3 +1705,9 @@
 
 ## DivisionSelector Scroll Fix — April 14
 - [x] Make CSI divisions checklist scrollable inside DivisionSelector so all 26 divisions are visible
+
+## Processing Overlay — April 14
+- [x] Build animated construction-themed processing overlay component
+- [x] Show real sheet-by-sheet progress bar during analysis
+- [x] Rotating status messages (Scanning structural elements, Measuring quantities, etc.)
+- [x] Replace dead-looking toast with full content area overlay during processing

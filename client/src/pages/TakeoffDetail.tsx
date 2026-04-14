@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
+import ProcessingOverlay from "@/components/ProcessingOverlay";
 import {
   ArrowLeft,
   Upload,
@@ -687,29 +688,20 @@ export default function TakeoffDetail() {
               existingScopeText={project.scopeText}
             />
 
-            {/* Processing Progress */}
+            {/* Processing Overlay — animated construction-themed progress */}
             {isProcessing && progress && (
-              <Card className="bg-amber-500/10 border-amber-500/20 mb-6">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
-                    <span className="text-amber-400 font-semibold">
-                      Construct Line is analyzing your drawings...
-                    </span>
-                    <span className="text-amber-400/60 text-sm">
-                      {progress.processedSheets} / {progress.totalSheets} sheets
-                    </span>
-                  </div>
-                  <div className="w-full bg-navy-deep/50 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${progress.totalSheets > 0 ? (progress.processedSheets / progress.totalSheets) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="mb-6">
+                <ProcessingOverlay
+                  totalSheets={progress.totalSheets}
+                  processedSheets={progress.processedSheets}
+                  sheets={sheets.map((s: any) => ({
+                    id: s.id,
+                    sheetName: s.sheetName,
+                    pageNumber: s.pageNumber,
+                    status: s.status,
+                  }))}
+                />
+              </div>
             )}
 
             {/* Sheet Grid */}
