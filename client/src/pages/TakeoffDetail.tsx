@@ -129,12 +129,24 @@ export default function TakeoffDetail() {
     }}
   );
 
-  // Auto-switch to items tab when processing completes
+  // Track previous processing status to detect completion transition
+  const prevStatusRef = useRef<string | null>(null);
+
+  // Auto-switch to items tab when processing completes & refetch items
   useEffect(() => {
-    if (progress?.status === "completed" && items && items.length > 0) {
-      setActiveTab("items");
+    const currentStatus = progress?.status || project?.status;
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = currentStatus || null;
+
+    // Detect transition: was processing, now completed
+    if (prevStatus === "processing" && currentStatus === "completed") {
+      // Refetch items since new ones were just extracted
+      refetchItems().then(() => {
+        setActiveTab("items");
+        toast.success("Analysis complete! Showing your quantity takeoff.");
+      });
     }
-  }, [progress?.status, items]);
+  }, [progress?.status, project?.status, refetchItems]);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 
@@ -314,6 +326,9 @@ export default function TakeoffDetail() {
   const handleExportExcel = useCallback(() => {
     if (!items || items.length === 0) return;
 
+    const currencyCode = project?.currency || "USD";
+    const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+
     // Group items by CSI division
     const divGroups: Record<string, any[]> = {};
     for (const item of items as any[]) {
@@ -324,7 +339,7 @@ export default function TakeoffDetail() {
     const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
     // Build rows with CSI division headers and subtotals
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", "Unit Cost ($)", "Extended Cost ($)", "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Unit Cost (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
     const aoa: any[][] = [headers];
     let grandTotal = 0;
 
@@ -382,7 +397,9 @@ export default function TakeoffDetail() {
 
   const handleExportCsv = useCallback(() => {
     if (!items || items.length === 0) return;
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", "Unit Cost ($)", "Extended Cost ($)", "Confidence %", "Reviewed", "Notes"];
+    const currencyCode = project?.currency || "USD";
+    const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Unit Cost (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};

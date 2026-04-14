@@ -13,8 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import DivisionSelector from "@/components/DivisionSelector";
-import RegionSelector from "@/components/RegionSelector";
 import {
   Plus,
   FileStack,
@@ -40,12 +38,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   error: { label: "Error", color: "bg-red-500/20 text-red-300 border-red-500/30", icon: AlertCircle },
 };
 
-const CURRENCY_OPTIONS = [
-  { code: "USD" as const, label: "US Dollar", symbol: "$", flag: "🇺🇸" },
-  { code: "GBP" as const, label: "British Pound", symbol: "£", flag: "🇬🇧" },
-  { code: "AUD" as const, label: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
-];
-
 function formatCurrency(cents: number, currencyCode: string = "USD"): string {
   const locale = currencyCode === "GBP" ? "en-GB" : currencyCode === "AUD" ? "en-AU" : "en-US";
   return new Intl.NumberFormat(locale, {
@@ -61,21 +53,15 @@ export default function TakeoffList() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newCurrency, setNewCurrency] = useState<"USD" | "GBP" | "AUD">("USD");
-  const [selectedDivisions, setSelectedDivisions] = useState<string[]>([]);
-  const [costRegion, setCostRegion] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data: projects, isLoading, refetch } = trpc.takeoff.listProjects.useQuery();
   const createMutation = trpc.takeoff.createProject.useMutation({
     onSuccess: (result) => {
-      toast.success("Project created!");
+      toast.success("Project created! Upload your drawings and click Analyze.");
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
-      setNewCurrency("USD");
-      setSelectedDivisions([]);
-      setCostRegion(null);
       navigate(`/takeoff/${result.id}`);
     },
     onError: (err) => toast.error(err.message),
@@ -100,9 +86,6 @@ export default function TakeoffList() {
     createMutation.mutate({
       name: newName,
       description: newDesc || undefined,
-      currency: newCurrency,
-      selectedDivisions: selectedDivisions.length > 0 ? selectedDivisions : undefined,
-      costRegion: costRegion || undefined,
     });
   };
 
@@ -243,19 +226,18 @@ export default function TakeoffList() {
                       {new Date(project.createdAt).toLocaleDateString()}
                     </span>
                     <div className="flex items-center gap-2">
-                      {(project.status === "error" || project.status === "completed") && (
+                      {project.status === "processing" && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
-                          title="Recalculate Status"
+                          title="Recalculate status"
                           onClick={(e) => {
                             e.stopPropagation();
                             recalcMutation.mutate({ projectId: project.id });
                           }}
-                          disabled={recalcMutation.isPending}
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </Button>
                       )}
                       <Button
@@ -279,16 +261,16 @@ export default function TakeoffList() {
         </div>
       )}
 
-      {/* Create Dialog — wider modal with currency selection */}
+      {/* Create Dialog — simplified: just name + description */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
             <DialogDescription className="text-cream-muted">
-              Set up your project, select currency and CSI divisions, then choose a cost region for pricing.
+              Name your project, then upload drawings and click "Analyze" to configure currency, divisions, and regional pricing.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-2 overflow-y-auto overscroll-contain min-h-0">
+          <div className="space-y-5 py-2">
             {/* Project Name */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-cream">Project Name</Label>
@@ -313,71 +295,12 @@ export default function TakeoffList() {
               />
             </div>
 
-            {/* Currency Selection */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-cream flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-amber-500" />
-                Currency
-              </Label>
-              <div className="grid grid-cols-3 gap-3">
-                {CURRENCY_OPTIONS.map((c) => (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => {
-                      setNewCurrency(c.code);
-                      // Reset region when currency changes since regions are country-specific
-                      if (c.code !== newCurrency) setCostRegion(null);
-                    }}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
-                      newCurrency === c.code
-                        ? "border-amber-500/50 bg-amber-500/10"
-                        : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="text-xl">{c.flag}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-cream text-sm">{c.symbol}</span>
-                        <span className="text-cream-muted text-xs">{c.code}</span>
-                      </div>
-                      <p className="text-[11px] text-cream-muted/70 truncate">{c.label}</p>
-                    </div>
-                    {newCurrency === c.code && (
-                      <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Division Selector */}
-            <div className="space-y-2">
-              <Label className="text-xs text-cream-muted">
-                Which CSI divisions should Construct Line extract?
-              </Label>
-              <DivisionSelector
-                value={selectedDivisions}
-                onChange={setSelectedDivisions}
-                defaultExpanded={false}
-              />
-            </div>
-
-            {/* Region Selector — filtered by selected currency */}
-            <div className="space-y-2">
-              <Label className="text-xs text-cream-muted">
-                What region are you pricing for? (adjusts unit costs)
-              </Label>
-              <RegionSelector
-                value={costRegion}
-                onChange={setCostRegion}
-                defaultExpanded={false}
-                currency={newCurrency}
-              />
+            {/* Helpful hint */}
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
+              <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-cream-muted">
+                After creating your project, upload your construction drawings and click <strong className="text-amber-400">"Analyze Drawings"</strong> — that's where you'll choose your currency, CSI divisions, and regional pricing.
+              </p>
             </div>
           </div>
           <DialogFooter>

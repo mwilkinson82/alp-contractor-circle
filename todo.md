@@ -1693,3 +1693,9 @@
 - [x] Add currency toggle buttons (US/UK/AUS) in Edit Settings RegionSelector so user can switch countries
 - [x] Fix React error #321 (minified) when changing CSI divisions in Edit Settings
 - [x] Allow re-analysis from Edit Settings when divisions change — don't require re-upload
+
+## UX Improvements — April 14
+- [x] Auto-redirect to Quantity Takeoff tab when analysis/processing completes (no page refresh needed)
+- [x] Simplify New Project modal — remove currency/CSI/region selectors, keep only name + description
+- [x] Add currency symbols ($/£/A$) to items table based on project currency
+- [x] Add currency symbols to Excel/CSV exports
