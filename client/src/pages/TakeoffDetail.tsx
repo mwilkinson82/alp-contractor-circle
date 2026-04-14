@@ -183,6 +183,13 @@ export default function TakeoffDetail() {
     onError: (err) => toast.error(err.message),
   });
 
+  const settingsMutation = trpc.takeoff.updateProjectSettings.useMutation({
+    onSuccess: () => {
+      refetchProject();
+    },
+    onError: (err) => toast.error(`Settings error: ${err.message}`),
+  });
+
   // ─── File Upload Handler ──────────────────────────────────────────────────
 
   const handleFileUpload = useCallback(async (files: FileList | null) => {
@@ -511,20 +518,32 @@ export default function TakeoffDetail() {
               projectId={projectId}
               currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               currentRegion={project.costRegion}
-              onSave={async (divisions, region) => {
-                return new Promise((resolve, reject) => {
-                  const settingsMutation = trpc.takeoff.updateProjectSettings.useMutation({
-                    onSuccess: (result) => {
-                      refetchProject();
-                      resolve(result);
+              currentCurrency={project.currency}
+              hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
+              onSave={async (divisions, region, currency) => {
+                return new Promise<{ regionChanged?: boolean }>((resolve, reject) => {
+                  settingsMutation.mutate(
+                    {
+                      projectId,
+                      selectedDivisions: divisions || [],
+                      costRegion: region,
+                      currency: currency as any,
                     },
-                    onError: (err) => reject(err),
-                  });
-                  settingsMutation.mutate({
-                    projectId,
-                    selectedDivisions: divisions || [],
-                    costRegion: region,
-                  });
+                    {
+                      onSuccess: (result) => resolve(result),
+                      onError: (err) => reject(err),
+                    },
+                  );
+                });
+              }}
+              onReAnalyze={(divisions) => {
+                // Re-analyze with updated divisions — triggers startProcessing
+                processMutation.mutate({
+                  projectId,
+                  selectedDivisions: divisions || [],
+                  currency: (project.currency || "USD") as "USD" | "GBP" | "AUD",
+                  costRegion: project.costRegion || null,
+                  scopeText: project.scopeText || null,
                 });
               }}
             />

@@ -1,27 +1,39 @@
 /**
- * ProjectSettingsPanel — Edit takeoff project divisions and cost region after creation.
+ * ProjectSettingsPanel — Edit takeoff project divisions, currency, and cost region after creation.
  *
  * Features:
- * - Edit selected divisions (affects future extractions only)
+ * - Currency toggle buttons (USD/GBP/AUD) so region list auto-filters to the correct country
+ * - Edit selected divisions
  * - Edit cost region (recalculates all item costs automatically)
  * - Shows current settings with badges
- * - Confirmation before saving changes
+ * - "Re-Analyze" option when divisions change so user doesn't have to re-upload drawings
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
-import { Loader2, Settings, AlertCircle } from "lucide-react";
+import { Loader2, Settings, AlertCircle, RefreshCw } from "lucide-react";
+
+const CURRENCIES = [
+  { code: "USD", symbol: "$", label: "US Dollar", flag: "\u{1F1FA}\u{1F1F8}" },
+  { code: "GBP", symbol: "\u00A3", label: "British Pound", flag: "\u{1F1EC}\u{1F1E7}" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar", flag: "\u{1F1E6}\u{1F1FA}" },
+] as const;
 
 interface ProjectSettingsPanelProps {
   projectId: number;
   currentDivisions: string[] | null;
   currentRegion: string | null;
   currentRegionName?: string;
-  onSave: (divisions: string[] | null, region: string | null) => Promise<{ regionChanged?: boolean }>;
+  currentCurrency?: string | null;
+  onSave: (divisions: string[] | null, region: string | null, currency?: string) => Promise<{ regionChanged?: boolean }>;
+  /** Called when user wants to re-analyze with new divisions */
+  onReAnalyze?: (divisions: string[] | null) => void;
+  /** Whether sheets have been processed (to show re-analyze option) */
+  hasProcessedSheets?: boolean;
 }
 
 export default function ProjectSettingsPanel({
@@ -29,21 +41,39 @@ export default function ProjectSettingsPanel({
   currentDivisions,
   currentRegion,
   currentRegionName,
+  currentCurrency,
   onSave,
+  onReAnalyze,
+  hasProcessedSheets,
 }: ProjectSettingsPanelProps) {
   const [open, setOpen] = useState(false);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(currentDivisions || []);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
   const [saving, setSaving] = useState(false);
 
-  const divisionsChanged = JSON.stringify(selectedDivisions.sort()) !== JSON.stringify((currentDivisions || []).sort());
+  // Reset state when dialog opens (in case project data changed externally)
+  useEffect(() => {
+    if (open) {
+      setSelectedDivisions(currentDivisions || []);
+      setSelectedRegion(currentRegion || null);
+      setSelectedCurrency(currentCurrency || "USD");
+    }
+  }, [open, currentDivisions, currentRegion, currentCurrency]);
+
+  const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
-  const hasChanges = divisionsChanged || regionChanged;
+  const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged;
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await onSave(selectedDivisions.length > 0 ? selectedDivisions : null, selectedRegion);
+      const result = await onSave(
+        selectedDivisions.length > 0 ? selectedDivisions : null,
+        selectedRegion,
+        currencyChanged ? selectedCurrency : undefined,
+      );
 
       if (result.regionChanged) {
         toast.success("Region updated — all item costs recalculated!");
@@ -56,6 +86,13 @@ export default function ProjectSettingsPanel({
       toast.error(`Error: ${err.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReAnalyze = () => {
+    if (onReAnalyze) {
+      onReAnalyze(selectedDivisions.length > 0 ? selectedDivisions : null);
+      setOpen(false);
     }
   };
 
@@ -78,21 +115,23 @@ export default function ProjectSettingsPanel({
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
-              Adjust divisions (affects future extractions) and cost region (recalculates all costs).
+              Adjust currency, divisions, and cost region for this project.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4 overflow-y-auto overscroll-contain min-h-0">
+          <div className="space-y-6 py-2 overflow-y-auto overscroll-contain min-h-0">
             {/* Current Settings Summary */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
               <div className="text-xs font-medium text-cream-muted">Current Settings</div>
               <div className="flex flex-wrap gap-2">
+                <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20">
+                  {CURRENCIES.find((c) => c.code === (currentCurrency || "USD"))?.flag}{" "}
+                  {currentCurrency || "USD"}
+                </Badge>
                 {currentDivisions && currentDivisions.length > 0 ? (
-                  <>
-                    <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20">
-                      {currentDivisions.length} divisions
-                    </Badge>
-                  </>
+                  <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20">
+                    {currentDivisions.length} divisions
+                  </Badge>
                 ) : (
                   <Badge className="bg-white/5 text-cream-muted border-white/10">
                     All divisions
@@ -110,23 +149,79 @@ export default function ProjectSettingsPanel({
               </div>
             </div>
 
+            {/* Currency Toggle */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream">
+                Currency
+                <span className="text-xs text-cream-muted ml-2">(filters available regions)</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {CURRENCIES.map((c) => {
+                  const isActive = selectedCurrency === c.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCurrency(c.code);
+                        // Reset region when switching currency since regions are country-specific
+                        if (c.code !== selectedCurrency) {
+                          setSelectedRegion(null);
+                        }
+                      }}
+                      className={`flex items-center gap-2 p-3 rounded-lg border transition-colors text-left ${
+                        isActive
+                          ? "border-amber-500/50 bg-amber-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-lg">{c.flag}</span>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-semibold text-cream">{c.symbol}</span>
+                          <span className="text-sm font-medium text-cream">{c.code}</span>
+                        </div>
+                        <span className="text-[10px] text-cream-muted">{c.label}</span>
+                      </div>
+                      {isActive && (
+                        <div className="ml-auto w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Division Selector */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-cream">
                 CSI Divisions
-                <span className="text-xs text-cream-muted ml-2">(affects future extractions only)</span>
               </div>
               <DivisionSelector
                 value={selectedDivisions}
                 onChange={setSelectedDivisions}
                 defaultExpanded={false}
               />
-              {divisionsChanged && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20">
+              {divisionsChanged && hasProcessedSheets && onReAnalyze && (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
                   <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-blue-300">
-                    Division changes only affect future sheet extractions. Existing items will not be affected.
-                  </span>
+                  <div className="flex-1">
+                    <span className="text-xs text-blue-300 block mb-2">
+                      Division changes require re-analysis to extract new line items. Click "Re-Analyze" below to process your drawings with the updated divisions.
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={handleReAnalyze}
+                      className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Re-Analyze with New Divisions
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -141,6 +236,7 @@ export default function ProjectSettingsPanel({
                 value={selectedRegion}
                 onChange={setSelectedRegion}
                 defaultExpanded={false}
+                currency={selectedCurrency}
               />
               {regionChanged && (
                 <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
@@ -159,6 +255,7 @@ export default function ProjectSettingsPanel({
               onClick={() => {
                 setSelectedDivisions(currentDivisions || []);
                 setSelectedRegion(currentRegion || null);
+                setSelectedCurrency(currentCurrency || "USD");
                 setOpen(false);
               }}
               disabled={saving}

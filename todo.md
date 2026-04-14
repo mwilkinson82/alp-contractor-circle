@@ -1687,3 +1687,9 @@
 - [x] CSI Divisions expanded list needs internal scroll with max-height (can't see Electrical checkbox)
 - [x] Region selector expanded list needs internal scroll with max-height
 - [x] Modal header (title/description) must stay pinned/sticky when content scrolls — currently gets pushed off screen
+
+## Edit Settings Modal Fixes
+- [x] RegionSelector in Edit Settings shows US regions even when project is UK — pass project currency to filter correctly
+- [x] Add currency toggle buttons (US/UK/AUS) in Edit Settings RegionSelector so user can switch countries
+- [x] Fix React error #321 (minified) when changing CSI divisions in Edit Settings
+- [x] Allow re-analysis from Edit Settings when divisions change — don't require re-upload

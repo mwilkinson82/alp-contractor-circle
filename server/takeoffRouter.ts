@@ -573,6 +573,7 @@ export const takeoffRouter = router({
         projectId: z.number(),
         selectedDivisions: z.array(z.string()).optional(),
         costRegion: z.string().max(64).nullable().optional(),
+        currency: z.enum(["USD", "GBP", "AUD"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -586,6 +587,11 @@ export const takeoffRouter = router({
       let regionChanged = false;
       let oldMultiplier = project.costMultiplier || 10000;
       let newMultiplier = oldMultiplier;
+
+      // Handle currency update
+      if (input.currency !== undefined) {
+        updates.currency = input.currency;
+      }
 
       // Handle division update (only affects future extractions, not existing items)
       if (input.selectedDivisions !== undefined) {
