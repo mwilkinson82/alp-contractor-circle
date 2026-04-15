@@ -9,6 +9,7 @@
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
 import { invokeLLM, type Message } from "./_core/llm";
+import { applyPricing, validateRebarQuantities, type TakeoffItem as CostTakeoffItem } from "./costLookup.js";
 import {
   getTakeoffItemsByProject,
   getTakeoffProject,
@@ -344,7 +345,7 @@ Return a JSON array of consolidated items. Each item must have:
 - description: consolidated description (be specific about dimensions, locations)
 - quantity: best available quantity
 - unit: unit of measure
-- unitCost: unit cost in ${currencyLabel}
+- unitCost: set to 1 for all items (pricing applied from cost database after consolidation)
 - confidence: confidence score 0-100
 - notes: explanation of consolidation decisions
 - outOfScope: boolean — true if this item should be REMOVED because it's outside the defined scope
@@ -413,7 +414,7 @@ IMPORTANT RULES:
                 description: { type: "string" },
                 quantity: { type: "number" },
                 unit: { type: "string" },
-                unitCost: { type: "number" },
+                unitCost: { type: "number", description: "Set to 1 for all items" },
                 confidence: { type: "integer" },
                 notes: { type: "string" },
                 outOfScope: { type: "boolean" },
@@ -602,7 +603,7 @@ Return a JSON array. For each lump-sum item, return:
 - canMeasure: boolean — true if you can determine a measured quantity from the plans
 - measuredQuantity: number (0 if canMeasure is false)
 - measuredUnit: string (the correct unit: SF, LF, CY, EA, etc.)
-- unitCost: number in ${currencyLabel} (appropriate for the measured unit)
+- unitCost: set to 1 (pricing applied from cost database)
 - confidence: 0-100
 - measurementNotes: how you measured it (reference specific plan dimensions)
 
@@ -779,7 +780,7 @@ Return formwork items as a JSON array. Each item should be:
 - description: specific formwork description (e.g., "Formwork for Continuous Footing 24\"W × 12\"D")
 - quantity: SFCA (square feet of contact area)
 - unit: "SFCA"
-- unitCost: cost per SFCA in ${currencyLabel} (typically $4-8/SFCA for footings, $8-15/SFCA for walls)
+- unitCost: set to 1 (pricing applied from cost database)
 - confidence: 0-100
 - notes: calculation breakdown
 - forConcreteItem: description of the concrete item this formwork is for
@@ -990,7 +991,7 @@ Return enhanced rebar items as a JSON array. For each rebar item:
 - quantity: total LF of rebar
 - unit: "LF"
 - weightLbs: total weight in pounds
-- unitCost: cost per LF in ${currencyLabel}
+- unitCost: set to 1 (pricing applied from cost database)
 - confidence: 0-100
 - notes: calculation breakdown (show the math)
 - replacesOriginal: description of the original item this replaces (or "new" if it's a new item)`;
@@ -1404,8 +1405,65 @@ function removeSpecNotes(items: RawItem[]): RawItem[] {
   }
   return filtered;
 }
+// ─── Cross-Division Dedup ──────────────────────────────────────────────────────
 
-// ─── Main Post-Processing Pipeline ────────────────────────────────────────────
+/**
+ * Remove items that appear in multiple CSI divisions (e.g., base course in both 03 and 31).
+ * Keeps the item in its most natural division.
+ */
+function crossDivisionDedup(items: ConsolidatedItem[]): ConsolidatedItem[] {
+  const crossDivPatterns = [
+    { keywords: ["base course", "compacted base", "aggregate base", "crushed stone base", "abc base"], preferDivision: "31" },
+    { keywords: ["vapor barrier", "vapor retarder", "moisture barrier", "poly barrier", "polyethylene"], preferDivision: "07" },
+    { keywords: ["backfill", "compacted fill", "structural fill"], preferDivision: "31" },
+    { keywords: ["gravel", "crushed stone", "aggregate"], preferDivision: "31" },
+    { keywords: ["geotextile", "filter fabric", "weed barrier"], preferDivision: "31" },
+    { keywords: ["waterproofing", "dampproofing"], preferDivision: "07" },
+  ];
+
+  const toRemove = new Set<number>();
+
+  for (const pattern of crossDivPatterns) {
+    // Find all items matching this pattern
+    const matches: { index: number; item: ConsolidatedItem }[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const desc = items[i].description.toLowerCase();
+      if (pattern.keywords.some(kw => desc.includes(kw))) {
+        matches.push({ index: i, item: items[i] });
+      }
+    }
+
+    if (matches.length <= 1) continue;
+
+    // Group by division
+    const byDiv = new Map<string, { index: number; item: ConsolidatedItem }[]>();
+    for (const m of matches) {
+      const div = m.item.csiDivision;
+      if (!byDiv.has(div)) byDiv.set(div, []);
+      byDiv.get(div)!.push(m);
+    }
+
+    if (byDiv.size <= 1) continue;
+
+    // Keep items in preferred division, remove from others
+    for (const [div, divMatches] of Array.from(byDiv.entries())) {
+      if (div !== pattern.preferDivision) {
+        for (const m of divMatches) {
+          console.log(`[CrossDivDedup] Removing "${m.item.description}" from CSI ${div} (keeping in ${pattern.preferDivision})`);
+          toRemove.add(m.index);
+        }
+      }
+    }
+  }
+
+  if (toRemove.size > 0) {
+    console.log(`[CrossDivDedup] Removed ${toRemove.size} cross-division duplicates`);
+  }
+
+  return items.filter((_, i) => !toRemove.has(i));
+}
+
+// ─── Main Post-Processing Pipeline ────────────────────────────────────────────────
 
 /**
  * Run the full post-processing pipeline on a completed takeoff project.
@@ -1480,6 +1538,44 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   const cyAfter = consolidated.filter(i => i.unit === "CY" && i.csiDivision === "03").length;
   const cyItemsAdded = cyAfter - cyBefore;
   console.log(`[PostProcess] CY calculation: ${cyItemsAdded} summary CY items added`);
+
+  // Step 5.5: Cross-division dedup (base course, vapor barrier can appear in CSI 03 AND 31)
+  consolidated = crossDivisionDedup(consolidated);
+  console.log(`[PostProcess] After cross-division dedup: ${consolidated.length} items`);
+
+  // Step 6: Apply cost table pricing
+  const costTableItems: CostTakeoffItem[] = consolidated.map(item => ({
+    description: item.description,
+    csiCode: item.csiCode,
+    csiDivision: item.csiDivision,
+    quantity: item.quantity,
+    unit: item.unit,
+    unitCost: item.unitCost / 100, // cents to dollars for lookup
+    confidence: item.confidence,
+    notes: item.notes,
+  }));
+
+  // Apply cost table (returns items with dollar-denominated costs)
+  let pricedItems = applyPricing(costTableItems, 1.0); // national average first
+  
+  // Validate rebar quantities
+  pricedItems = validateRebarQuantities(pricedItems);
+
+  // Write prices back to consolidated items (convert dollars back to cents)
+  for (let i = 0; i < consolidated.length; i++) {
+    const priced = pricedItems[i];
+    if (priced) {
+      const uc = priced.unitCost ?? 0;
+      consolidated[i].unitCost = Math.round(uc * 100); // dollars to cents
+      consolidated[i].extendedCost = Math.round(priced.quantity * uc * 100); // dollars to cents
+      consolidated[i].quantity = priced.quantity; // may have been adjusted by rebar validation
+      if (priced.notes && priced.notes !== consolidated[i].notes) {
+        consolidated[i].notes = priced.notes;
+      }
+    }
+  }
+
+  console.log(`[PostProcess] Cost table pricing applied to ${consolidated.length} items`);
 
   // ─── Save Results ─────────────────────────────────────────────────────────────
   // Delete all existing items and replace with consolidated ones

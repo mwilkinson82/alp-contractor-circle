@@ -1887,3 +1887,14 @@
 - [x] ACCURACY: Hard scope filter + spec note filter + fuzzy dedup all deployed
 - [ ] ACCURACY: Target ~50-80 items, within 10% of manual benchmark ($175K) — awaiting test results
 - [ ] TARGET: Total processing time under 15-20 minutes (down from 60+) — awaiting test results
+
+## Pricing Engine Rebuild — April 15, 2026
+- [x] BUILD: Hardcoded cost reference table (~80-100 items for CSI 02, 03, 31, 32) — shared/costTable.ts
+- [x] BUILD: Cost lookup engine — fuzzy keyword match + CSI division match — server/costLookup.ts
+- [x] BUILD: Smart pricing logic — materialOnly vs installed based on companion formwork/rebar items
+- [x] FIX: Rewire extraction prompt to set unitCost=1 (cost table handles pricing)
+- [x] FIX: Rewire all LLM prompts (consolidation, lump sum, formwork, rebar) to set unitCost=1
+- [x] FIX: Add cost table pricing as Step 6 in postProcessTakeoff pipeline
+- [x] FIX: Cross-division dedup — crossDivisionDedup() removes base course/vapor barrier duplicates
+- [x] FIX: Rebar quantity validation — validateRebarQuantities() caps at slab SF × 2.2
+- [ ] TEST: Verify pricing against Crystal Car Wash manual benchmark ($175,810) — awaiting re-test

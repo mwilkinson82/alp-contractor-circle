@@ -193,7 +193,7 @@ ${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${contextBlock}
 3. **Measure systematically**: Work through the drawing area by area, room by room, or system by system
 4. **Apply correct units**: Use industry-standard units (SF for area, LF for linear, CY for volume, EA for each, TON for steel, SQ for roofing, etc.)
 5. **Assign CSI codes**: Every item gets a 2-digit division code AND a full 6-digit CSI code
-6. **Estimate unit costs**: ${currencyPricingNote}
+6. **Unit costs**: Set unitCost to 1 for all items — pricing will be applied separately from a cost database. Focus ALL your effort on accurate QUANTITIES and DESCRIPTIONS, not pricing.
 7. **Score confidence**: Rate 0-100 based on how clearly the quantity can be read from the drawing
 
 ## CONFIDENCE SCORING GUIDE:
@@ -354,7 +354,7 @@ const RESPONSE_SCHEMA = {
               description: { type: "string", description: "Detailed item description including size, type, material" },
               quantity: { type: "number", description: "Numeric quantity value" },
               unit: { type: "string", description: "Unit of measure: SF, LF, CY, EA, TON, SQ, BF, LB, LS, etc." },
-              unitCost: { type: "number", description: "Unit cost in ${currencyLabel} (2024-2025 market rate)" },
+              unitCost: { type: "number", description: "Set to 1 for all items (pricing applied from cost database)" },
               confidence: { type: "integer", description: "Confidence score 0-100 in quantity accuracy" },
               notes: { type: "string", description: "Brief explanation of how quantity was measured or estimated" },
             },
