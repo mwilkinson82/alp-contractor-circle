@@ -225,6 +225,28 @@ When analyzing a PLAN VIEW (floor plan, foundation plan, site plan, structural p
 - For GRADE BEAMS: trace each beam run and measure LF
 - Show your calculation in the notes field (e.g., "110.33' × 82.17' = 9,067 SF")
 
+## SLAB EXTRACTION — HIGHEST PRIORITY:
+Slabs are the LARGEST concrete items by volume. Missing a slab is a critical error.
+- ALWAYS extract slab-on-grade items with their AREA in SF and THICKNESS
+- 4" slabs and 6" slabs are DIFFERENT items — extract them separately
+- Calculate slab area from plan dimensions: length × width = SF
+- If the plan shows color-coded areas (green for 4" slab, yellow for 6" slab), extract EACH separately
+- Include the slab thickness in the description (e.g., "4\" Concrete Slab-on-Grade" or "6\" Concrete Slab-on-Grade")
+- If you see slab callouts on the plan (e.g., "4\" CONC. SLAB" or "6\" CONC. SLAB"), these are slabs
+- Slabs are CSI 03 30 00 and measured in SF
+
+## FOOTING MEASUREMENT — AVOID DOUBLE-COUNTING:
+- Each continuous footing (WF-1, WF-2, WF-3, etc.) has ONE total length
+- Measure the footing run from the PLAN VIEW only — do NOT add lengths from detail sheets
+- Detail sheets show cross-sections and reinforcing, NOT additional footing length
+- If a footing schedule shows dimensions (width x depth), use those for the description but get the LENGTH from the plan
+- Include footing type in description (e.g., "WF-1 Continuous Footing 2'-0\" W x 1'-0\" D")
+
+## CONSTRUCTION JOINTS:
+- Construction joints are measured in LINEAR FEET (LF), not EA
+- Calculate total LF of construction joints from the plan — count the joint lines and measure their lengths
+- Typical spacing is every 15-20 feet in slabs — use this to verify your count
+
 ## ANTI-LUMP-SUM RULE — CRITICAL:
 - NEVER use "LS" (Lump Sum) as a unit if you can calculate a measured quantity
 - If you can see ANY dimension on the drawing, USE IT to calculate a real quantity

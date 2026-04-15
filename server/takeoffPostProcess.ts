@@ -160,7 +160,32 @@ IMPORTANT RULES:
 - Prefer measured quantities (SF, LF, CY, EA) over lump sums (LS)
 - If ALL instances of an item are LS, keep it as LS but note it needs plan measurement
 - Combine quantities when items are additive (e.g., slab area from room A + room B)
-- Do NOT combine quantities when items are the same element seen from different views (keep the most accurate one)`;
+- Do NOT combine quantities when items are the same element seen from different views (keep the most accurate one)
+
+## CRITICAL DEDUPLICATION RULES:
+
+### CONTINUOUS FOOTINGS (WF-1, WF-2, WF-3, etc.):
+- The SAME footing appears on multiple sheets (foundation plan, details, sections)
+- Do NOT add footing lengths from different sheets — the plan view has the most accurate total LF
+- If WF-1 appears as 175 LF on one sheet and 320 LF on another, keep the value from the FOUNDATION PLAN (the plan view measurement is most accurate)
+- Footing detail sheets show cross-sections, NOT additional length
+
+### SLABS (Slab-on-Grade, Concrete Slab):
+- NEVER drop or merge slab items unless they are truly the same slab area
+- 4" slabs and 6" slabs are DIFFERENT items — do not merge them
+- Slab areas from the PLAN VIEW are the most accurate measurements
+- If a slab appears on multiple sheets, keep the plan view quantity
+- CRITICAL: If no slab items exist in the input but the drawings show slabs, this is an extraction gap — do NOT create new items, but note it
+
+### CONSTRUCTION JOINTS:
+- Construction joints are measured in LINEAR FEET (LF), not EA
+- If an item says "construction joints" with a quantity in EA, check if the notes have LF measurements
+- Typical construction joint spacing is every 15-20 feet in slabs
+
+### BOLLARDS vs POLE FOUNDATIONS:
+- Bollard footings and gate post footings are SEPARATE items from the bollards/posts themselves
+- Do NOT merge "Concrete Filled Pipe Bollard" (2 EA) with "Bollard Footing" (2 EA) — they are different scope items
+- Count bollards and gate posts EXACTLY as shown on the plan (typically 2 bollards, 4 gate posts for a car wash)`;
 
   const responseSchema = {
     type: "json_schema" as const,

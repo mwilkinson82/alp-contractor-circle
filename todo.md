@@ -1844,3 +1844,10 @@
 - [x] BUG: Consolidate & Enhance stuck for 15+ minutes — fixed: added 5-minute timeout to both reprocessConsolidate and full analysis pipeline
 - [x] BUG: CY summary item double-counts — removed summary line items entirely, CY volumes now only annotated in individual item notes
 - [x] BUG: Rebar items at $0 cost — added RSMeans pricing benchmarks to rebar enhancement LLM prompt ($0.85-2.25/LF per bar size)
+
+## Takeoff Quantity Accuracy (Global Engine Improvements)
+- [x] BUG: 4" and 6" concrete slabs missing from extraction — added SLAB EXTRACTION — HIGHEST PRIORITY section to extraction prompt
+- [x] BUG: Continuous footing LF double-counted — added FOOTING MEASUREMENT — AVOID DOUBLE-COUNTING rules to extraction prompt + dedup rules to consolidation prompt
+- [x] BUG: Construction joints extracted as EA instead of LF — added CONSTRUCTION JOINTS rules to both extraction and consolidation prompts
+- [x] Consolidation prompt: added CRITICAL DEDUPLICATION RULES for footings, slabs, bollards
+- [ ] FEATURE: CY rollup calculation — convert LF/SF/EA members to CY using dimensions (LF x W x D / 27) [already exists in calculateConcreteVolumes, annotates notes]
