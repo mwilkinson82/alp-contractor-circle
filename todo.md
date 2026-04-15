@@ -1842,3 +1842,4 @@
 
 - [x] BUG: PDF fullscreen zoom still exits fullscreen — fixed: prevent Radix Dialog outside-click dismissal when fullscreen overlay is active + stopPropagation on overlay
 - [x] BUG: Consolidate & Enhance stuck for 15+ minutes — fixed: added 5-minute timeout to both reprocessConsolidate and full analysis pipeline
+- [x] BUG: CY summary item double-counts — removed summary line items entirely, CY volumes now only annotated in individual item notes

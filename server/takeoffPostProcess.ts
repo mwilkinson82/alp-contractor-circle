@@ -1075,51 +1075,13 @@ IMPORTANT: Show ALL math. Every CY value must have a calculation breakdown. If y
       group.items.push(concreteItems[i].description);
     }
 
-    // Add summary CY items grouped by PSI strength
+    // Log summary by PSI strength (informational only — no summary line items to avoid double-counting)
     for (const [psi, data] of Array.from(byPsi.entries())) {
-      const unitCostPerCY = psi.includes("4000") || psi.includes("4500") || psi.includes("5000")
-        ? 185 : psi.includes("3000") || psi.includes("3500") ? 165 : 175; // USD per CY
-
-      cyItems.push({
-        csiDivision: "03",
-        csiCode: "03 30 00",
-        description: `Concrete Volume Summary — ${psi} (${data.cy.toFixed(1)} CY)`,
-        quantity: Math.round(data.cy * 100) / 100,
-        unit: "CY",
-        unitCost: Math.round(unitCostPerCY * 100), // cents
-        extendedCost: Math.round(data.cy * unitCostPerCY * 100),
-        confidence: 80,
-        notes: `[Calculated] Total concrete volume for ${data.items.length} items at ${psi}. Includes 5% waste. Items: ${data.items.slice(0, 5).join("; ")}${data.items.length > 5 ? ` and ${data.items.length - 5} more` : ""}`,
-        sourceSheetIds: [],
-        sourceItemIds: [],
-        wasConsolidated: false,
-        wasEnhanced: false,
-        isGenerated: true,
-      });
+      console.log(`[PostProcess] CY by PSI: ${psi} = ${data.cy.toFixed(1)} CY (${data.items.length} items)`);
     }
 
-    // Add a grand total CY item
-    if (totalCY > 0 && byPsi.size > 1) {
-      cyItems.push({
-        csiDivision: "03",
-        csiCode: "03 30 00",
-        description: `TOTAL Concrete Volume — All Strengths (${totalCY.toFixed(1)} CY)`,
-        quantity: Math.round(totalCY * 100) / 100,
-        unit: "CY",
-        unitCost: 0, // summary line, cost is in individual items
-        extendedCost: 0,
-        confidence: 80,
-        notes: `[Calculated] Grand total concrete volume across all PSI strengths. For ordering/scheduling reference only — see individual PSI items for pricing.`,
-        sourceSheetIds: [],
-        sourceItemIds: [],
-        wasConsolidated: false,
-        wasEnhanced: false,
-        isGenerated: true,
-      });
-    }
-
-    console.log(`[PostProcess] CY volume: ${totalCY.toFixed(1)} CY total across ${byPsi.size} PSI groups, ${cyItems.length} summary items added`);
-    return [...updatedItems, ...cyItems];
+    console.log(`[PostProcess] CY volume: ${totalCY.toFixed(1)} CY total across ${byPsi.size} PSI groups (volumes annotated in item notes, no summary line items)`);
+    return updatedItems;
   } catch (error) {
     console.error("[PostProcess] CY volume calculation failed:", error);
     return items;
