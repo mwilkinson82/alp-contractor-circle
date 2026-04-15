@@ -107,7 +107,7 @@ const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
 
 // ─── Drawing Viewer with Zoom ─────────────────────────────────────────────────
 
-function DrawingViewer({ imageUrl, sheetName }: { imageUrl: string; sheetName: string }) {
+function DrawingViewer({ imageUrl, sheetName, onFullscreen }: { imageUrl: string; sheetName: string; onFullscreen?: () => void }) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -197,9 +197,9 @@ function DrawingViewer({ imageUrl, sheetName }: { imageUrl: string; sheetName: s
         </button>
         <button
           type="button"
-          onClick={() => { setZoomIndex(0); setPosition({ x: 0, y: 0 }); }}
+          onClick={onFullscreen || (() => { setZoomIndex(0); setPosition({ x: 0, y: 0 }); })}
           className="p-1 text-white/70 hover:text-white transition-colors ml-1"
-          title="Reset zoom"
+          title={onFullscreen ? "Go fullscreen" : "Reset zoom"}
         >
           <Maximize2 className="w-4 h-4" />
         </button>
@@ -272,7 +272,7 @@ function FullscreenDrawing({
         </button>
       </div>
       <div className="flex-1 min-h-0">
-        <DrawingViewer imageUrl={imageUrl} sheetName={sheetName} />
+        <DrawingViewer imageUrl={imageUrl} sheetName={sheetName} onFullscreen={onClose} />
       </div>
     </div>
   );
@@ -431,6 +431,7 @@ export default function ItemDetailModal({
                   <DrawingViewer
                     imageUrl={sourceSheet!.imageUrl!}
                     sheetName={sheetLabel}
+                    onFullscreen={() => setIsFullscreen(true)}
                   />
                 </div>
               </div>

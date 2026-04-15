@@ -1831,3 +1831,11 @@
 - [ ] Verify scope filtering (CMU grout removed, above-grade items excluded)
 - [ ] Run full test suite (396 tests passing)
 - [ ] Checkpoint and deploy
+
+
+## PDF Viewer Fullscreen/Zoom Bug Fixes — April 15, 2026
+
+- [x] Fix zoom in fullscreen exiting fullscreen — toolbar Maximize2 button now triggers fullscreen (not just reset zoom)
+- [x] Fix PDF fullscreen icon not working — Maximize2 button in drawing toolbar now has onFullscreen callback
+- [x] In fullscreen overlay, Maximize2 button now exits fullscreen (closes overlay) instead of resetting zoom
+- [x] Tests passing (396 tests, 0 TS errors)
