@@ -1784,3 +1784,14 @@
 - [x] Add Consolidate & Enhance button hover tooltip explaining all 5 post-processing steps
 - [x] Show source drawing in Item Detail Modal — clickable source link toggles inline drawing preview with full sheet image
 - [x] CY volume calculation wired as Step 5 in post-processing pipeline
+
+## Item Detail Modal Redesign — April 15, 2026
+
+- [x] Redesign modal to side-by-side layout: drawing on left, item details on right (6xl width when drawing present)
+- [x] Make source drawing the focal point — immediately visible, takes 50% of modal, amber dot indicator + sheet label
+- [x] Add click-to-zoom on drawing — 4 zoom levels (100%/150%/250%/400%), scroll wheel zoom, click to cycle
+- [x] Drawing immediately visible when modal opens — no toggle needed
+- [x] Pan support when zoomed in — click and drag to move around the drawing
+- [x] Full screen mode — "Full Screen" button opens drawing in fullscreen overlay with same zoom controls
+- [x] Zoom toolbar — zoom in/out buttons, percentage display, reset button
+- [x] Graceful fallback — when no drawing linked, shows placeholder message and uses standard 3xl modal width
