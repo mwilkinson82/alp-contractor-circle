@@ -590,14 +590,18 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
 
   await updateTakeoffProject(projectId, { status: "processing" });
 
+  // ─── TIMING INSTRUMENTATION ──────────────────────────────────────────────
+  const pipelineStart = Date.now();
+  const timings: Record<string, number> = {};
+
   // ─── PASS 1: Index All Sheets ──────────────────────────────────────────────
-  // Quick scan every sheet to build a project context with dimensions & elements.
-  // This context gets injected into Pass 2 so the AI knows building dimensions
-  // when analyzing section/detail sheets.
   let projectContextText: string | null = null;
   try {
+    const pass1Start = Date.now();
     console.log(`[Takeoff AI] === PASS 1: Indexing all sheets for project ${projectId} ===`);
     const projectContext = await indexAllSheets(projectId);
+    timings.pass1_indexing_sec = Math.round((Date.now() - pass1Start) / 1000);
+    console.log(`[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`);
     if (projectContext.contextSummary && projectContext.allElements.length > 0) {
       projectContextText = projectContext.contextSummary;
       console.log(`[Takeoff AI] Pass 1 complete: ${projectContext.sheets.length} sheets indexed, ${projectContext.allElements.length} elements found`);
@@ -608,11 +612,12 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
       console.log(`[Takeoff AI] Pass 1 complete but no significant context extracted — proceeding without context`);
     }
   } catch (indexError: any) {
+    timings.pass1_indexing_sec = Math.round((Date.now() - pipelineStart) / 1000);
     console.warn(`[Takeoff AI] Pass 1 (indexing) failed — proceeding without context:`, indexError.message);
-    // Non-fatal: if indexing fails, we still do the extraction without context
   }
 
   //  // ─── PASS 2: Extract Quantities with Context (PARALLEL) ───────────────
+  const pass2Start = Date.now();
   console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} (parallel, concurrency=3) ===`);
 
   const pendingSheets = await getPendingSheets(projectId);
@@ -658,8 +663,11 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     });
   }
 
+  timings.pass2_extraction_sec = Math.round((Date.now() - pass2Start) / 1000);
+  console.log(`[Takeoff AI] ⏱ Pass 2 (extraction): ${timings.pass2_extraction_sec}s`);
+
   // ─── Post-Processing Pipeline ─────────────────────────────────────────────
-  // Run consolidation, plan-view enhancement, scope enforcement, formwork, and rebar
+  const postProcStart = Date.now();
   const allSheets = await getDrawingSheetsByProject(projectId);
   const completedSheets = allSheets.filter((s: any) => s.status === "completed");
   const errorSheets = allSheets.filter((s: any) => s.status === "error");
@@ -674,6 +682,8 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         setTimeout(() => reject(new Error("Post-processing timed out after 5 minutes")), PP_TIMEOUT_MS)
       );
       const ppStats = await Promise.race([postProcessTakeoff(projectId), ppTimeout]);
+      timings.pass3_postprocess_sec = Math.round((Date.now() - postProcStart) / 1000);
+      console.log(`[Takeoff AI] ⏱ Pass 3 (post-processing): ${timings.pass3_postprocess_sec}s`);
       console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
     } catch (ppError: any) {
       console.error(`[Takeoff AI] Post-processing failed (items preserved from per-sheet extraction):`, ppError);
@@ -685,6 +695,17 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     // No completed sheets — just recalculate from whatever we have
     await recalculateProjectTotal(projectId);
   }
+
+  // ─── TIMING SUMMARY ──────────────────────────────────────────────────────
+  timings.total_sec = Math.round((Date.now() - pipelineStart) / 1000);
+  const totalMin = (timings.total_sec / 60).toFixed(1);
+  console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
+  console.log(`[Takeoff AI] ⏱ TIMING SUMMARY for project ${projectId}:`);
+  console.log(`[Takeoff AI]   Pass 1 (indexing):       ${timings.pass1_indexing_sec || 0}s`);
+  console.log(`[Takeoff AI]   Pass 2 (extraction):     ${timings.pass2_extraction_sec || 0}s`);
+  console.log(`[Takeoff AI]   Pass 3 (post-processing): ${timings.pass3_postprocess_sec || 0}s`);
+  console.log(`[Takeoff AI]   TOTAL:                   ${timings.total_sec}s (${totalMin} min)`);
+  console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
 
   // Update final status
   const finalStatus = completedSheets.length > 0 ? "completed" : (errorSheets.length > 0 ? "error" : "completed");

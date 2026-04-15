@@ -44,6 +44,8 @@ import {
   FileSpreadsheet,
   CheckSquare,
   Square,
+  Calculator,
+  Percent,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -111,6 +113,14 @@ export default function TakeoffDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
+  const [showMarkup, setShowMarkup] = useState(false);
+  const [markups, setMarkups] = useState({
+    labor: 0,
+    overhead: 0,
+    profit: 0,
+    bonds: 0,
+    contingency: 0,
+  });
 
   // ─── Preferred Currency ──────────────────────────────────────────────────
   const preferredCurrencyQuery = trpc.takeoff.getPreferredCurrency.useQuery();
@@ -964,8 +974,127 @@ export default function TakeoffDetail() {
                       <Download className="w-3.5 h-3.5" />
                       CSV
                     </Button>
+                    <div className="w-px h-6 bg-white/10" />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowMarkup(!showMarkup)}
+                      className={`h-8 text-xs gap-1.5 ${
+                        showMarkup
+                          ? "border-amber-500/50 text-amber-400 bg-amber-500/10"
+                          : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                      }`}
+                      title="Bid Markup Calculator"
+                    >
+                      <Calculator className="w-3.5 h-3.5" />
+                      Bid Calculator
+                    </Button>
                   </div>
                 </div>
+
+                {/* ─── Markup Calculator Panel ─────────────────────────────── */}
+                {showMarkup && (() => {
+                  const materialTotal = totalCost / 100; // cents to dollars
+                  const laborAmt = materialTotal * (markups.labor / 100);
+                  const subtotalWithLabor = materialTotal + laborAmt;
+                  const overheadAmt = subtotalWithLabor * (markups.overhead / 100);
+                  const profitAmt = subtotalWithLabor * (markups.profit / 100);
+                  const bondsAmt = subtotalWithLabor * (markups.bonds / 100);
+                  const contingencyAmt = subtotalWithLabor * (markups.contingency / 100);
+                  const grandTotal = subtotalWithLabor + overheadAmt + profitAmt + bondsAmt + contingencyAmt;
+                  const totalMarkupPct = materialTotal > 0 ? ((grandTotal - materialTotal) / materialTotal * 100) : 0;
+                  const curr = project?.currency || "USD";
+                  const fmtDollars = (v: number) => new Intl.NumberFormat(
+                    CURRENCY_LOCALE[curr] || "en-US",
+                    { style: "currency", currency: curr, minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                  ).format(v);
+
+                  return (
+                    <div className="bg-navy-medium/60 border border-purple-500/20 rounded-lg p-5 mb-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Calculator className="w-4 h-4 text-purple-400" />
+                        <h3 className="text-cream font-semibold text-sm">Bid Markup Calculator</h3>
+                        <span className="text-cream-muted text-xs ml-auto">Adjust percentages to build your full bid number</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
+                        {[
+                          { key: "labor" as const, label: "Labor", hint: "Labor cost as % of material" },
+                          { key: "overhead" as const, label: "Overhead", hint: "Office, insurance, etc." },
+                          { key: "profit" as const, label: "Profit", hint: "Your margin" },
+                          { key: "bonds" as const, label: "Bonds", hint: "Performance & payment bonds" },
+                          { key: "contingency" as const, label: "Contingency", hint: "Risk buffer" },
+                        ].map(({ key, label, hint }) => (
+                          <div key={key}>
+                            <Label className="text-cream-muted text-xs mb-1 block">{label}</Label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={500}
+                                step={1}
+                                value={markups[key] || ""}
+                                onChange={(e) => setMarkups(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+                                className="h-9 bg-navy-deep/80 border-white/10 text-cream text-sm pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="0"
+                              />
+                              <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
+                            </div>
+                            <p className="text-cream-muted/50 text-[10px] mt-0.5">{hint}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border-t border-white/10 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                          <div className="flex justify-between py-1">
+                            <span className="text-cream-muted">Material Takeoff Total</span>
+                            <span className="text-cream font-mono">{fmtDollars(materialTotal)}</span>
+                          </div>
+                          {markups.labor > 0 && (
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">+ Labor ({markups.labor}%)</span>
+                              <span className="text-cream font-mono">{fmtDollars(laborAmt)}</span>
+                            </div>
+                          )}
+                          {markups.overhead > 0 && (
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">+ Overhead ({markups.overhead}%)</span>
+                              <span className="text-cream font-mono">{fmtDollars(overheadAmt)}</span>
+                            </div>
+                          )}
+                          {markups.profit > 0 && (
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">+ Profit ({markups.profit}%)</span>
+                              <span className="text-cream font-mono">{fmtDollars(profitAmt)}</span>
+                            </div>
+                          )}
+                          {markups.bonds > 0 && (
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">+ Bonds ({markups.bonds}%)</span>
+                              <span className="text-cream font-mono">{fmtDollars(bondsAmt)}</span>
+                            </div>
+                          )}
+                          {markups.contingency > 0 && (
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">+ Contingency ({markups.contingency}%)</span>
+                              <span className="text-cream font-mono">{fmtDollars(contingencyAmt)}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-amber-500/20">
+                          <div>
+                            <span className="text-amber-400 font-bold text-lg">Bid Total</span>
+                            {totalMarkupPct > 0 && (
+                              <span className="text-cream-muted text-xs ml-2">(+{totalMarkupPct.toFixed(1)}% over material)</span>
+                            )}
+                          </div>
+                          <span className="text-amber-400 font-bold text-2xl font-mono">{fmtDollars(grandTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Items by CSI Division */}
                 {Object.entries(groupedItems)

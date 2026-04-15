@@ -1905,3 +1905,8 @@
 - [x] FIX: Remove materialOnly vs installed distinction — everything is material-only (single materialCost field)
 - [x] FIX: Update cost lookup to use single price field (findBestMatch no longer needs allItems)
 - [ ] TEST: Re-verify against Crystal Car Wash benchmark — awaiting re-test
+
+## Timing Logs + Markup Calculator — April 15, 2026
+- [x] FEATURE: Pipeline timing instrumentation — logs elapsed seconds for Pass 1 (indexing), Pass 2 (extraction), Pass 3 (post-processing), and total
+- [x] FEATURE: Markup calculator — "Bid Calculator" button in items toolbar, 5 adjustable % fields (labor, overhead, profit, bonds, contingency), real-time bid total
+- [ ] FEATURE: Show timing summary in project status/completion UI — timing is in server logs for now, can surface to UI later
