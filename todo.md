@@ -1795,3 +1795,12 @@
 - [x] Full screen mode — "Full Screen" button opens drawing in fullscreen overlay with same zoom controls
 - [x] Zoom toolbar — zoom in/out buttons, percentage display, reset button
 - [x] Graceful fallback — when no drawing linked, shows placeholder message and uses standard 3xl modal width
+
+## Consolidate & Enhance UX Fixes — April 15, 2026
+
+- [x] Auto-refresh items after Consolidate & Enhance completes — data should update without manual page refresh
+- [x] Add visible processing indicator while Consolidate is running (full ProcessingOverlay with 3-step stepper)
+- [x] Show toast notification when consolidation starts and when it completes
+- [x] Backend fix: reprocessConsolidate now sets status to post_processing (was incorrectly using processing)
+- [x] Frontend fix: completion detection handles any non-completed → completed transition with appropriate toast messages
+- [x] Tests: added reprocessConsolidate to expected procedures, added post_processing lifecycle tests (396 tests passing)

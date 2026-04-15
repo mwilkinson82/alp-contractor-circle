@@ -122,7 +122,7 @@ export default function TakeoffDetail() {
     { id: projectId },
     { enabled: projectId > 0, refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "processing" ? 3000 : false;
+      return (status === "processing" || status === "post_processing") ? 3000 : false;
     }}
   );
 
@@ -135,7 +135,7 @@ export default function TakeoffDetail() {
     { projectId },
     { enabled: projectId > 0, refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "processing" ? 2000 : false;
+      return (status === "processing" || status === "post_processing") ? 2000 : false;
     }}
   );
 
@@ -148,15 +148,19 @@ export default function TakeoffDetail() {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = currentStatus || null;
 
-    // Detect transition: was processing, now completed
-    if (prevStatus === "processing" && currentStatus === "completed") {
+    // Detect transition: was processing/post_processing, now completed
+    if (prevStatus && prevStatus !== "completed" && currentStatus === "completed") {
       // Play completion chime and send browser notification
       playCompletionChime();
       sendCompletionNotification(project?.name || "Project");
-      // Refetch items since new ones were just extracted
+      // Refetch items since they were just created/updated
       refetchItems().then(() => {
         setActiveTab("items");
-        toast.success("Analysis complete! Showing your quantity takeoff.");
+        if (prevStatus === "post_processing") {
+          toast.success("Consolidation complete! Items have been updated.");
+        } else {
+          toast.success("Analysis complete! Showing your quantity takeoff.");
+        }
       });
     }
   }, [progress?.status, project?.status, refetchItems]);
@@ -233,11 +237,17 @@ export default function TakeoffDetail() {
 
   const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
     onSuccess: () => {
-      toast.success("Post-processing started! Consolidating items, enhancing measurements, and generating formwork...");
+      toast.success("Consolidate & Enhance started! This may take a minute...");
+      // The backend sets status to post_processing, which triggers polling via refetchInterval.
+      // The prevStatusRef effect above will detect post_processing → completed and auto-refresh items.
       refetchProject();
+      refetchProgress();
     },
     onError: (err) => toast.error(`Consolidation error: ${err.message}`),
   });
+
+  // Derived: is consolidation specifically running?
+  const isConsolidating = (progress?.status === "post_processing" || project?.status === "post_processing");
 
   // ─── File Upload Handler ──────────────────────────────────────────────────
 
@@ -858,6 +868,22 @@ export default function TakeoffDetail() {
 
           {/* ─── Quantity Items Tab ──────────────────────────────────────── */}
           <TabsContent value="items">
+            {/* Consolidation Processing Overlay — full visual stepper */}
+            {isConsolidating && progress && (
+              <div className="mb-6">
+                <ProcessingOverlay
+                  totalSheets={progress.totalSheets}
+                  processedSheets={progress.processedSheets}
+                  projectStatus={progress.status}
+                  sheets={sheets.map((s: any) => ({
+                    id: s.id,
+                    sheetName: s.sheetName,
+                    pageNumber: s.pageNumber,
+                    status: s.status,
+                  }))}
+                />
+              </div>
+            )}
             {!items || items.length === 0 ? (
               <div className="text-center py-16 text-cream-muted">
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />

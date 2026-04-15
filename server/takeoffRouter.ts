@@ -711,8 +711,8 @@ export const takeoffRouter = router({
           message: "Project must be completed before running consolidation.",
         });
       }
-      // Run post-processing in background
-      await updateTakeoffProject(input.projectId, { status: "processing" as any });
+      // Run post-processing in background — use post_processing status so frontend shows consolidation overlay
+      await updateTakeoffProject(input.projectId, { status: "post_processing" as any });
       postProcessTakeoff(input.projectId)
         .then(async (stats) => {
           console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);

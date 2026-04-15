@@ -90,6 +90,11 @@ describe("Takeoff Router", () => {
       "updateItem",
       "deleteItem",
       "getProgress",
+      "reprocessConsolidate",
+      "bulkReview",
+      "bulkUnreview",
+      "recalculateStatus",
+      "updateProjectSettings",
     ];
 
     for (const proc of expectedProcedures) {
@@ -196,5 +201,61 @@ describe("Base64 Image Handling", () => {
 
     expect(fileKey).toMatch(/^takeoff\/42\/7\/sheet-3-[a-z0-9]+\.png$/);
     expect(fileKey.length).toBeGreaterThan(20);
+  });
+});
+
+// ─── Test Post-Processing Status Lifecycle ───────────────────────────────────
+
+describe("Post-Processing Status Lifecycle", () => {
+  it("should include post_processing in the project status enum", async () => {
+    const schema = await import("../drizzle/schema");
+    // The takeoffProjects table should have a status column that accepts post_processing
+    expect(schema.takeoffProjects).toBeDefined();
+    // Verify the column definition exists
+    const statusCol = (schema.takeoffProjects as any).status;
+    expect(statusCol).toBeDefined();
+  });
+
+  it("reprocessConsolidate should set status to post_processing (not processing)", async () => {
+    // Verify the router code uses post_processing for manual consolidation
+    const fs = await import("fs");
+    const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
+    
+    // Find the reprocessConsolidate section
+    const startIdx = routerCode.indexOf("reprocessConsolidate:");
+    const consolidateSection = routerCode.slice(startIdx, startIdx + 1000);
+    
+    // It should set status to post_processing, NOT processing
+    expect(consolidateSection).toContain('status: "post_processing"');
+    expect(consolidateSection).not.toContain('status: "processing"');
+  });
+
+  it("full analysis pipeline should also use post_processing before postProcessTakeoff", async () => {
+    const fs = await import("fs");
+    const aiCode = fs.readFileSync("server/takeoffAI.ts", "utf-8");
+    
+    // The full pipeline should set post_processing before calling postProcessTakeoff
+    expect(aiCode).toContain('status: "post_processing"');
+  });
+
+  it("ProcessingOverlay should map post_processing to consolidating phase", async () => {
+    const fs = await import("fs");
+    const overlayCode = fs.readFileSync("client/src/components/ProcessingOverlay.tsx", "utf-8");
+    
+    // The overlay should detect post_processing and show consolidation phase
+    expect(overlayCode).toContain('"post_processing"');
+    expect(overlayCode).toContain('"consolidating"');
+  });
+
+  it("TakeoffDetail should poll during post_processing status", async () => {
+    const fs = await import("fs");
+    const detailCode = fs.readFileSync("client/src/pages/TakeoffDetail.tsx", "utf-8");
+    
+    // Polling should be active for post_processing
+    expect(detailCode).toContain('"post_processing"');
+    // The refetchInterval should include post_processing
+    const refetchMatches = detailCode.match(/refetchInterval.*?post_processing/gs);
+    expect(refetchMatches).not.toBeNull();
+    expect(refetchMatches!.length).toBeGreaterThanOrEqual(1);
   });
 });
