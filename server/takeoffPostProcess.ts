@@ -723,6 +723,16 @@ Your job: Calculate total rebar quantities (in LF and LBS) by combining the reba
 - Add 10% for lap splices and waste
 - Convert LF to LBS using standard weights: #3=0.376, #4=0.668, #5=1.043, #6=1.502 lbs/ft
 
+## REBAR PRICING (2026 RSMeans + Regional Adjustment):
+Base unit costs per LF (includes material + labor + equipment for placement):
+- #3 Rebar: $0.85-1.10 per LF
+- #4 Rebar: $1.10-1.45 per LF
+- #5 Rebar: $1.45-1.85 per LF
+- #6 Rebar: $1.85-2.25 per LF
+- Stirrups/Ties (#3 or #4): $0.95-1.35 per LF
+- Dowels: $1.20-1.60 per LF
+For this project, apply regional multiplier: 1.00x (or adjust based on local market conditions)
+
 ## CURRENT REBAR ITEMS:
 ${JSON.stringify(rebarItems.map(item => ({
   description: item.description,
