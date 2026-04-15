@@ -885,21 +885,33 @@ export default function TakeoffDetail() {
                       </span>
                     </div>
                     <div className="w-px h-6 bg-white/10" />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => consolidateMutation.mutate({ projectId })}
-                      disabled={consolidateMutation.isPending || isProcessing}
-                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                      title="Run AI post-processing: consolidate duplicates, enhance lump sums with plan measurements, generate formwork, and enforce scope"
-                    >
-                      {consolidateMutation.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-3.5 h-3.5" />
-                      )}
-                      Consolidate & Enhance
-                    </Button>
+                    <div className="relative group">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => consolidateMutation.mutate({ projectId })}
+                        disabled={consolidateMutation.isPending || isProcessing}
+                        className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                      >
+                        {consolidateMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        Consolidate & Enhance
+                      </Button>
+                      <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <p className="text-amber-400 text-xs font-semibold mb-1.5">AI Post-Processing</p>
+                        <ul className="text-cream-muted text-[11px] space-y-1">
+                          <li>• Merges duplicate items from different sheets</li>
+                          <li>• Converts lump sums to measured quantities using plan dimensions</li>
+                          <li>• Calculates concrete volumes (CY) from dimensions</li>
+                          <li>• Generates formwork items for concrete elements</li>
+                          <li>• Removes items outside your defined scope</li>
+                        </ul>
+                        <p className="text-cream-muted/50 text-[10px] mt-2">Drawings are not re-read — only existing data is refined.</p>
+                      </div>
+                    </div>
                     <div className="w-px h-6 bg-white/10" />
                     <Button
                       size="sm"
@@ -1173,11 +1185,16 @@ export default function TakeoffDetail() {
         const selectedIdx = selectedItem
           ? allItems.findIndex((i: any) => i.id === selectedItem.id)
           : -1;
+        // Look up source sheet for the selected item
+        const sourceSheet = selectedItem?.sheetId
+          ? sheets.find((s: any) => s.id === selectedItem.sheetId) || null
+          : null;
         return (
           <ItemDetailModal
             item={selectedItem}
             projectId={projectId}
             currencyCode={project?.currency || "USD"}
+            sourceSheet={sourceSheet}
             onClose={() => setSelectedItem(null)}
             onSave={(data) => {
               updateItemMutation.mutate(data);

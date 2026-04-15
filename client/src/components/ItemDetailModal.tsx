@@ -67,8 +67,17 @@ interface TakeoffItem {
   extendedCost: number;
   confidence: number;
   reviewed?: boolean;
+  sheetId?: number;
   sheetName?: string;
   pageNumber?: number;
+}
+
+interface SourceSheet {
+  id: number;
+  sheetName?: string | null;
+  pageNumber?: number | null;
+  imageUrl?: string | null;
+  sheetType?: string | null;
 }
 
 interface ItemDetailModalProps {
@@ -85,6 +94,8 @@ interface ItemDetailModalProps {
   onNext?: () => void;
   hasPrev?: boolean;
   hasNext?: boolean;
+  /** Source drawing sheet for this item */
+  sourceSheet?: SourceSheet | null;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -102,7 +113,9 @@ export default function ItemDetailModal({
   onNext,
   hasPrev = false,
   hasNext = false,
+  sourceSheet,
 }: ItemDetailModalProps) {
+  const [showDrawing, setShowDrawing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -121,6 +134,7 @@ export default function ItemDetailModal({
       setUnitCost(((item.unitCost || 0) / 100).toFixed(2));
       setNotes(item.notes || "");
       setIsEditing(false);
+      setShowDrawing(false);
     }
   }, [item]);
 
@@ -348,15 +362,27 @@ export default function ItemDetailModal({
               </Badge>
             </div>
 
-            {/* Source Sheet */}
-            {(item.sheetName || item.pageNumber) && (
+            {/* Source Sheet — clickable */}
+            {sourceSheet ? (
+              <button
+                type="button"
+                className="flex items-center gap-2 hover:bg-white/5 rounded px-2 py-1 transition-colors"
+                onClick={() => setShowDrawing(!showDrawing)}
+              >
+                <span className="text-cream-muted text-xs">Source:</span>
+                <span className="text-amber-400 text-xs underline underline-offset-2 cursor-pointer">
+                  {sourceSheet.sheetName || `Page ${sourceSheet.pageNumber}`}
+                </span>
+                <span className="text-cream-muted/50 text-[10px]">{showDrawing ? "▲ hide" : "▼ view drawing"}</span>
+              </button>
+            ) : (item.sheetName || item.pageNumber) ? (
               <div className="flex items-center gap-2">
                 <span className="text-cream-muted text-xs">Source:</span>
                 <span className="text-cream text-xs">
                   {item.sheetName || `Page ${item.pageNumber}`}
                 </span>
               </div>
-            )}
+            ) : null}
 
             {/* Reviewed Status */}
             <div className="flex items-center gap-2">
@@ -372,6 +398,34 @@ export default function ItemDetailModal({
               )}
             </div>
           </div>
+
+          {/* Source Drawing Preview */}
+          {showDrawing && sourceSheet?.imageUrl && (
+            <div className="space-y-2 border border-amber-500/20 rounded-lg overflow-hidden">
+              <div className="bg-amber-500/5 px-3 py-2 flex items-center justify-between">
+                <span className="text-amber-400 text-xs font-medium">
+                  📐 {sourceSheet.sheetName || `Page ${sourceSheet.pageNumber}`}
+                  {sourceSheet.sheetType && sourceSheet.sheetType !== "other" && (
+                    <span className="text-cream-muted ml-2">({sourceSheet.sheetType})</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDrawing(false)}
+                  className="text-cream-muted hover:text-cream text-xs"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="max-h-[40vh] overflow-auto bg-white">
+                <img
+                  src={sourceSheet.imageUrl}
+                  alt={sourceSheet.sheetName || "Source drawing"}
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ─── Footer ───────────────────────────────────────────────── */}

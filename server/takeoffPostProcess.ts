@@ -472,13 +472,25 @@ async function generateFormwork(
 ): Promise<ConsolidatedItem[]> {
   // Only generate formwork if concrete items exist
   const concreteItems = items.filter(item =>
-    item.csiDivision === "03" && item.unit !== "LS" && item.quantity > 0
+    item.csiDivision === "03" && item.unit !== "LS" && item.quantity > 0 &&
+    !item.description.toLowerCase().includes("formwork") &&
+    !item.description.toLowerCase().includes("form ") &&
+    !item.csiCode?.startsWith("03 11")
   );
 
   if (concreteItems.length === 0) {
     console.log("[PostProcess] No measured concrete items, skipping formwork generation");
     return items;
   }
+
+  // Check for EXISTING formwork items already extracted from sheets
+  const existingFormwork = items.filter(item =>
+    item.description.toLowerCase().includes("formwork") ||
+    item.description.toLowerCase().includes("form ") ||
+    item.csiCode?.startsWith("03 11")
+  );
+  const existingFormworkDescs = existingFormwork.map(f => f.description.toLowerCase());
+  console.log(`[PostProcess] Found ${existingFormwork.length} existing formwork items — will deduplicate after generation`);
 
   // Check if scope includes formwork (CSI 03 11 00 series)
   // Formwork is always part of concrete work, so if concrete is in scope, formwork is too
@@ -578,25 +590,53 @@ Only generate formwork for items that actually need forms (not for slabs-on-grad
       }>;
     };
 
-    // Add formwork items to the consolidated list
-    const formworkConsolidated: ConsolidatedItem[] = parsed.formworkItems.map(fw => ({
-      csiDivision: "03",
-      csiCode: fw.csiCode.trim(),
-      description: fw.description,
-      quantity: fw.quantity,
-      unit: fw.unit.toUpperCase().trim(),
-      unitCost: Math.round(fw.unitCost * 100),
-      extendedCost: Math.round(fw.quantity * fw.unitCost * 100),
-      confidence: fw.confidence,
-      notes: `[Generated] ${fw.notes}. For: ${fw.forConcreteItem}`,
-      sourceSheetIds: [],
-      sourceItemIds: [],
-      wasConsolidated: false,
-      wasEnhanced: false,
-      isGenerated: true,
-    }));
+    // Add formwork items to the consolidated list, but DEDUPLICATE against existing formwork
+    let addedCount = 0;
+    let skippedCount = 0;
+    const formworkConsolidated: ConsolidatedItem[] = [];
 
-    console.log(`[PostProcess] Generated ${formworkConsolidated.length} formwork items`);
+    for (const fw of parsed.formworkItems) {
+      const newDesc = fw.description.toLowerCase();
+      // Check if a similar formwork item already exists
+      const isDuplicate = existingFormworkDescs.some(existingDesc => {
+        // Fuzzy match: check if they refer to the same concrete element
+        const newWords = newDesc.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2);
+        const existWords = existingDesc.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2);
+        // Count matching keywords (excluding common words like "for", "the", "formwork")
+        const skipWords = new Set(["for", "the", "and", "formwork", "form", "forms", "concrete"]);
+        const meaningfulNew = newWords.filter(w => !skipWords.has(w));
+        const meaningfulExist = existWords.filter(w => !skipWords.has(w));
+        const matches = meaningfulNew.filter(w => meaningfulExist.some(e => e.includes(w) || w.includes(e)));
+        const matchRatio = meaningfulNew.length > 0 ? matches.length / meaningfulNew.length : 0;
+        return matchRatio >= 0.5; // 50% keyword overlap = same element
+      });
+
+      if (isDuplicate) {
+        skippedCount++;
+        console.log(`[PostProcess] Skipping duplicate formwork: ${fw.description}`);
+        continue;
+      }
+
+      formworkConsolidated.push({
+        csiDivision: "03",
+        csiCode: fw.csiCode.trim(),
+        description: fw.description,
+        quantity: fw.quantity,
+        unit: fw.unit.toUpperCase().trim(),
+        unitCost: Math.round(fw.unitCost * 100),
+        extendedCost: Math.round(fw.quantity * fw.unitCost * 100),
+        confidence: fw.confidence,
+        notes: `[Generated] ${fw.notes}. For: ${fw.forConcreteItem}`,
+        sourceSheetIds: [],
+        sourceItemIds: [],
+        wasConsolidated: false,
+        wasEnhanced: false,
+        isGenerated: true,
+      });
+      addedCount++;
+    }
+
+    console.log(`[PostProcess] Formwork: ${parsed.formworkItems.length} generated, ${skippedCount} duplicates skipped, ${addedCount} new items added`);
     return [...items, ...formworkConsolidated];
   } catch (error) {
     console.error("[PostProcess] Formwork generation failed:", error);
@@ -799,6 +839,252 @@ Return enhanced rebar items as a JSON array. For each rebar item:
   }
 }
 
+// ─── Priority 6: Concrete Volume (CY) Calculation ───────────────────────────
+
+/**
+ * Calculates concrete volume in CY for items that have dimensions in their
+ * descriptions/notes but are measured in LF, SF, or SFCA instead of CY.
+ * Also adds a summary CY item for the total concrete pour.
+ */
+async function calculateConcreteVolumes(
+  items: ConsolidatedItem[],
+  currency: string | null,
+  scopeText: string | null
+): Promise<ConsolidatedItem[]> {
+  // Find concrete items (CSI 03) that are NOT already in CY and NOT formwork/rebar
+  const concreteItems = items.filter(item =>
+    item.csiDivision === "03" &&
+    !item.csiCode?.startsWith("03 11") && // not formwork
+    !item.csiCode?.startsWith("03 20") && // not rebar
+    !item.description.toLowerCase().includes("formwork") &&
+    !item.description.toLowerCase().includes("rebar") &&
+    !item.description.toLowerCase().includes("reinforc") &&
+    !item.description.toLowerCase().includes("vapor") &&
+    !item.description.toLowerCase().includes("curing") &&
+    !item.description.toLowerCase().includes("waterstop") &&
+    !item.description.toLowerCase().includes("admixture") &&
+    !item.description.toLowerCase().includes("sealant") &&
+    !item.description.toLowerCase().includes("epoxy")
+  );
+
+  if (concreteItems.length === 0) {
+    console.log("[PostProcess] No concrete items for CY calculation");
+    return items;
+  }
+
+  // Items already in CY
+  const alreadyCY = concreteItems.filter(i => i.unit === "CY");
+  // Items NOT in CY that might need volume calculation
+  const needsConversion = concreteItems.filter(i => 
+    i.unit !== "CY" && i.quantity > 0
+  );
+
+  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+
+  const volumePrompt = `You are a senior construction estimator. Your job is to calculate CONCRETE VOLUME in CUBIC YARDS (CY) for each concrete item in this takeoff.
+
+Many items have dimensions in their descriptions or notes but are measured in LF, SF, EA, or LS instead of CY. You must:
+
+1. **Parse dimensions** from the description and notes (e.g., "2'-0" W x 1'-0" T" means 2 ft wide x 1 ft thick)
+2. **Calculate volume** using the formula: Length × Width × Thickness / 27 = CY
+3. **For items already in CY**, verify the calculation is reasonable
+4. **For items in LF** (linear feet), you need width and depth to calculate: LF × Width(ft) × Depth(ft) / 27 = CY
+5. **For items in SF** (square feet), you need thickness to calculate: SF × Thickness(ft) / 27 = CY
+6. **For items in EA** (each), you need all three dimensions: L × W × D × count / 27 = CY
+7. **Add 5% waste factor** to all concrete volumes
+
+## COMMON DIMENSION PATTERNS:
+- Footings: width × depth × length (e.g., WF-1: 2'-0" wide × 1'-0" thick, measured in LF)
+- Slabs: area × thickness (e.g., 2,308 SF × 4" thick or 6" thick)
+- Pits: length × width × depth (dimensions in description)
+- Stem walls: height × thickness × length
+- Grade beams: width × depth × length
+
+## CONCRETE ITEMS TO CALCULATE:
+${JSON.stringify(concreteItems.map((item, idx) => ({
+  idx,
+  description: item.description,
+  quantity: item.quantity,
+  unit: item.unit,
+  unitCost: item.unitCost / 100,
+  notes: item.notes,
+})), null, 2)}
+
+${scopeText ? `SCOPE: "${scopeText}"` : ""}
+
+## OUTPUT FORMAT
+Return a JSON object with:
+- volumeItems: array of concrete volume calculations, one per item above. Each must have:
+  - originalIdx: the idx from the input
+  - description: description of the concrete element
+  - volumeCY: calculated volume in cubic yards (including 5% waste). Use 0 if volume cannot be calculated.
+  - calculation: show your math step by step (e.g., "320 LF × 2.0' W × 1.0' D / 27 = 23.7 CY + 5% waste = 24.9 CY")
+  - psiStrength: concrete strength if mentioned (e.g., "3000 PSI", "4000 PSI") or "not specified"
+  - canCalculate: boolean - true if you have enough dimensions to calculate volume
+
+IMPORTANT: Show ALL math. Every CY value must have a calculation breakdown. If you don't have enough dimensions, set canCalculate to false and volumeCY to 0.`;
+
+  const volumeSchema = {
+    type: "json_schema" as const,
+    json_schema: {
+      name: "volume_result",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          volumeItems: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                originalIdx: { type: "integer" },
+                description: { type: "string" },
+                volumeCY: { type: "number" },
+                calculation: { type: "string" },
+                psiStrength: { type: "string" },
+                canCalculate: { type: "boolean" },
+              },
+              required: ["originalIdx", "description", "volumeCY", "calculation", "psiStrength", "canCalculate"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["volumeItems"],
+        additionalProperties: false,
+      },
+    },
+  };
+
+  try {
+    console.log(`[PostProcess] Calculating CY volumes for ${concreteItems.length} concrete items...`);
+
+    const response = await invokeLLM({
+      messages: [
+        { role: "system", content: "You are a senior construction estimator. Calculate concrete volumes in cubic yards from dimensions. Show all math. Return JSON." },
+        { role: "user", content: volumePrompt },
+      ],
+      response_format: volumeSchema,
+    });
+
+    const rawContent = response.choices[0]?.message?.content;
+    if (!rawContent) throw new Error("No content in volume response");
+    const content = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
+
+    const parsed = JSON.parse(content) as {
+      volumeItems: Array<{
+        originalIdx: number;
+        description: string;
+        volumeCY: number;
+        calculation: string;
+        psiStrength: string;
+        canCalculate: boolean;
+      }>;
+    };
+
+    // Build a map of CY calculations
+    const cyMap = new Map<number, { cy: number; calc: string; psi: string }>();
+    let calculatedCount = 0;
+    for (const vol of parsed.volumeItems) {
+      if (vol.canCalculate && vol.volumeCY > 0) {
+        cyMap.set(vol.originalIdx, {
+          cy: vol.volumeCY,
+          calc: vol.calculation,
+          psi: vol.psiStrength,
+        });
+        calculatedCount++;
+      }
+    }
+
+    console.log(`[PostProcess] Calculated CY for ${calculatedCount} of ${concreteItems.length} concrete items`);
+
+    // Update items with CY volume in their notes, and add summary CY items
+    const updatedItems = [...items];
+    const cyItems: ConsolidatedItem[] = [];
+    let totalCY = 0;
+
+    // Group by PSI strength for concrete ordering
+    const byPsi = new Map<string, { cy: number; items: string[] }>();
+
+    for (let i = 0; i < concreteItems.length; i++) {
+      const volData = cyMap.get(i);
+      if (!volData) continue;
+
+      // Find this item in the main array and append CY info to notes
+      const mainIdx = updatedItems.findIndex(item => 
+        item.description === concreteItems[i].description && 
+        item.quantity === concreteItems[i].quantity
+      );
+      if (mainIdx !== -1) {
+        const existingNotes = updatedItems[mainIdx].notes || "";
+        updatedItems[mainIdx] = {
+          ...updatedItems[mainIdx],
+          notes: `${existingNotes}${existingNotes ? " | " : ""}[Volume: ${volData.cy.toFixed(2)} CY] ${volData.calc}${volData.psi !== "not specified" ? " (" + volData.psi + ")" : ""}`,
+        };
+      }
+
+      totalCY += volData.cy;
+
+      // Group by PSI
+      const psiKey = volData.psi === "not specified" ? "Unspecified" : volData.psi;
+      if (!byPsi.has(psiKey)) {
+        byPsi.set(psiKey, { cy: 0, items: [] });
+      }
+      const group = byPsi.get(psiKey)!;
+      group.cy += volData.cy;
+      group.items.push(concreteItems[i].description);
+    }
+
+    // Add summary CY items grouped by PSI strength
+    for (const [psi, data] of Array.from(byPsi.entries())) {
+      const unitCostPerCY = psi.includes("4000") || psi.includes("4500") || psi.includes("5000")
+        ? 185 : psi.includes("3000") || psi.includes("3500") ? 165 : 175; // USD per CY
+
+      cyItems.push({
+        csiDivision: "03",
+        csiCode: "03 30 00",
+        description: `Concrete Volume Summary — ${psi} (${data.cy.toFixed(1)} CY)`,
+        quantity: Math.round(data.cy * 100) / 100,
+        unit: "CY",
+        unitCost: Math.round(unitCostPerCY * 100), // cents
+        extendedCost: Math.round(data.cy * unitCostPerCY * 100),
+        confidence: 80,
+        notes: `[Calculated] Total concrete volume for ${data.items.length} items at ${psi}. Includes 5% waste. Items: ${data.items.slice(0, 5).join("; ")}${data.items.length > 5 ? ` and ${data.items.length - 5} more` : ""}`,
+        sourceSheetIds: [],
+        sourceItemIds: [],
+        wasConsolidated: false,
+        wasEnhanced: false,
+        isGenerated: true,
+      });
+    }
+
+    // Add a grand total CY item
+    if (totalCY > 0 && byPsi.size > 1) {
+      cyItems.push({
+        csiDivision: "03",
+        csiCode: "03 30 00",
+        description: `TOTAL Concrete Volume — All Strengths (${totalCY.toFixed(1)} CY)`,
+        quantity: Math.round(totalCY * 100) / 100,
+        unit: "CY",
+        unitCost: 0, // summary line, cost is in individual items
+        extendedCost: 0,
+        confidence: 80,
+        notes: `[Calculated] Grand total concrete volume across all PSI strengths. For ordering/scheduling reference only — see individual PSI items for pricing.`,
+        sourceSheetIds: [],
+        sourceItemIds: [],
+        wasConsolidated: false,
+        wasEnhanced: false,
+        isGenerated: true,
+      });
+    }
+
+    console.log(`[PostProcess] CY volume: ${totalCY.toFixed(1)} CY total across ${byPsi.size} PSI groups, ${cyItems.length} summary items added`);
+    return [...updatedItems, ...cyItems];
+  } catch (error) {
+    console.error("[PostProcess] CY volume calculation failed:", error);
+    return items;
+  }
+}
+
 // ─── Main Post-Processing Pipeline ────────────────────────────────────────────
 
 /**
@@ -863,8 +1149,14 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   ).length;
   const rebarEnhanced = Math.abs(rebarAfter - rebarBefore);
 
-  // ─── Save Results ─────────────────────────────────────────────────────────
-  // Delete all existing items and replace with consolidated ones
+  // Step 5: Calculate concrete volumes in CY
+  const cyBefore = consolidated.filter(i => i.unit === "CY" && i.csiDivision === "03").length;
+  consolidated = await calculateConcreteVolumes(consolidated, project.currency, project.scopeText);
+  const cyAfter = consolidated.filter(i => i.unit === "CY" && i.csiDivision === "03").length;
+  const cyItemsAdded = cyAfter - cyBefore;
+  console.log(`[PostProcess] CY calculation: ${cyItemsAdded} summary CY items added`);
+
+  // ─── Save Results ─────────────────────────────────────────────────────────────/ Delete all existing items and replace with consolidated ones
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 

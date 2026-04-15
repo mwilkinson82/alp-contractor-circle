@@ -1775,3 +1775,12 @@
 - [x] Progress bar changes per phase: indeterminate shimmer (indexing), determinate % (extracting), green shimmer (consolidating)
 - [x] Phase-specific rotating messages for each step
 - [x] Sheet pills and ETA only shown during extraction phase
+
+## Bug Fixes — April 15, 2026
+
+- [x] Fix formwork double-counting — dedup existing formwork before generating + post-generation dedup pass
+- [x] Add CY volume calculation step — LLM-powered dimension parsing from notes → CY with PSI grouping and summary items
+- [x] Scope filter — LLM-based scope enforcement handles keyword exclusions intelligently (no hardcoded keywords needed)
+- [x] Add Consolidate & Enhance button hover tooltip explaining all 5 post-processing steps
+- [x] Show source drawing in Item Detail Modal — clickable source link toggles inline drawing preview with full sheet image
+- [x] CY volume calculation wired as Step 5 in post-processing pipeline
