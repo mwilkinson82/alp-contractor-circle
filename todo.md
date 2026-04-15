@@ -1804,3 +1804,30 @@
 - [x] Backend fix: reprocessConsolidate now sets status to post_processing (was incorrectly using processing)
 - [x] Frontend fix: completion detection handles any non-completed → completed transition with appropriate toast messages
 - [x] Tests: added reprocessConsolidate to expected procedures, added post_processing lifecycle tests (396 tests passing)
+
+
+## ConstructLine Accuracy Engine Improvements — April 15, 2026
+
+### Phase 1: Earthwork/Concrete CY Separation ✓
+- [x] Filter excavation/backfill/fill/aggregate items from concrete CY calculation
+- [x] Prevents over-counting (928 CY → 234 CY on Crystal Car Wash)
+- [x] Applies globally to all projects with earthwork
+
+### Phase 2: Cost Recalculation After Post-Processing ✓
+- [x] Add cost recalculation step after consolidation/enhancement/CY calculation
+- [x] Reapply regional cost multiplier to all items
+- [x] Fixes $0 cost bug (affects 100% of projects)
+
+### Phase 3: CSI-Division-Aware Scope Filtering ✓
+- [x] Enhanced scope filter prompt with CSI division rules
+- [x] Detect scope patterns: "foundation up", "none of vertical", "concrete only", "structural only"
+- [x] Exclude above-grade items (CSI 04-09, 23, 26-28) based on scope
+- [x] Applies globally to all projects with scope text
+
+### Testing & Deployment
+- [ ] Test all three fixes against Crystal Car Wash project
+- [ ] Verify concrete CY accuracy (234 ± 10 CY)
+- [ ] Verify cost calculation (regional multiplier applied)
+- [ ] Verify scope filtering (CMU grout removed, above-grade items excluded)
+- [ ] Run full test suite (396 tests passing)
+- [ ] Checkpoint and deploy

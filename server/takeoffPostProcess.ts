@@ -113,9 +113,31 @@ The takeoff was extracted from ${sheets.length} drawing sheets independently. As
 4. **CONVERT LUMP SUMS**: Where possible, if one instance has a measured quantity and another has LS, use the measured quantity
 5. **FLAG REMAINING LUMP SUMS**: For items that are still LS after consolidation, note in the description that plan measurement is needed
 
-${scopeText ? `## SCOPE FILTER — CRITICAL
+${scopeText ? `## SCOPE FILTER — CRITICAL (CSI-Division-Aware)
 The scope of work is: "${scopeText}"
-REMOVE any items that clearly fall OUTSIDE this scope. For example, if scope says "foundation through SOG only, none of the vertical", remove above-grade walls, columns, beams, etc.` : ""}
+
+Use these CSI division rules:
+- CSI 03: Concrete (usually IN scope)
+- CSI 04: Masonry (exclude if foundation/none-of-vertical/concrete-only)
+- CSI 05: Metals (exclude if foundation/none-of-vertical/concrete-only)
+- CSI 06: Wood (exclude if foundation/none-of-vertical/concrete-only)
+- CSI 08: Openings/Doors/Windows (exclude if foundation/none-of-vertical)
+- CSI 09: Finishes (exclude if foundation/concrete-only)
+- CSI 23: HVAC (exclude if foundation/concrete-only)
+- CSI 26: Electrical (exclude if foundation/concrete-only)
+- CSI 27: Communications (exclude if foundation/concrete-only)
+- CSI 28: Electronic Safety (exclude if foundation/concrete-only)
+- CSI 31: Earthwork (usually IN scope for foundation)
+- CSI 32: Exterior Improvements (usually IN scope)
+
+Keyword exclusions (regardless of CSI):
+- If scope says "foundation up" or "none of vertical": exclude wall, column, roof, door, window, frame, finish, paint, flooring, hvac, electrical, plumbing
+- If scope says "concrete only": exclude everything except concrete items
+- If scope says "structural only": exclude finishes, hvac, electrical, communications, safety systems
+
+Example: If scope says "foundation through SOG only, none of the vertical":
+- REMOVE: CMU grout (masonry), finishes, paint, doors, windows, HVAC, electrical
+- KEEP: Concrete footings, slabs, excavation, backfill` : ""}
 
 ## ITEMS TO CONSOLIDATE (${items.length} items from ${sheets.length} sheets):
 ${JSON.stringify(itemSummaries, null, 2)}
@@ -851,21 +873,40 @@ async function calculateConcreteVolumes(
   currency: string | null,
   scopeText: string | null
 ): Promise<ConsolidatedItem[]> {
-  // Find concrete items (CSI 03) that are NOT already in CY and NOT formwork/rebar
-  const concreteItems = items.filter(item =>
-    item.csiDivision === "03" &&
-    !item.csiCode?.startsWith("03 11") && // not formwork
-    !item.csiCode?.startsWith("03 20") && // not rebar
-    !item.description.toLowerCase().includes("formwork") &&
-    !item.description.toLowerCase().includes("rebar") &&
-    !item.description.toLowerCase().includes("reinforc") &&
-    !item.description.toLowerCase().includes("vapor") &&
-    !item.description.toLowerCase().includes("curing") &&
-    !item.description.toLowerCase().includes("waterstop") &&
-    !item.description.toLowerCase().includes("admixture") &&
-    !item.description.toLowerCase().includes("sealant") &&
-    !item.description.toLowerCase().includes("epoxy")
-  );
+  // Find concrete items (CSI 03) that are NOT already in CY and NOT formwork/rebar/earthwork
+  const concreteItems = items.filter(item => {
+    const desc = item.description.toLowerCase();
+    const div = item.csiDivision;
+    
+    // Must be CSI 03 (Concrete)
+    if (div !== "03") return false;
+    
+    // Exclude formwork/rebar/non-concrete materials
+    if (item.csiCode?.startsWith("03 11")) return false; // formwork
+    if (item.csiCode?.startsWith("03 20")) return false; // rebar
+    if (desc.includes("formwork")) return false;
+    if (desc.includes("rebar")) return false;
+    if (desc.includes("reinforc")) return false;
+    if (desc.includes("vapor")) return false;
+    if (desc.includes("curing")) return false;
+    if (desc.includes("waterstop")) return false;
+    if (desc.includes("admixture")) return false;
+    if (desc.includes("sealant")) return false;
+    if (desc.includes("epoxy")) return false;
+    
+    // CRITICAL FIX: Exclude earthwork items (excavation, backfill, fill, aggregate)
+    // These are measured in CY but are NOT concrete volumes
+    if (desc.includes("excavation")) return false;
+    if (desc.includes("backfill")) return false;
+    if (desc.includes("fill") && !desc.includes("filler")) return false;
+    if (desc.includes("aggregate")) return false;
+    if (desc.includes("base course")) return false;
+    if (desc.includes("compacted")) return false;
+    if (desc.includes("granular")) return false;
+    if (desc.includes("gravel")) return false;
+    
+    return true;
+  });
 
   if (concreteItems.length === 0) {
     console.log("[PostProcess] No concrete items for CY calculation");
@@ -1156,7 +1197,8 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   const cyItemsAdded = cyAfter - cyBefore;
   console.log(`[PostProcess] CY calculation: ${cyItemsAdded} summary CY items added`);
 
-  // ─── Save Results ─────────────────────────────────────────────────────────────/ Delete all existing items and replace with consolidated ones
+  // ─── Save Results ─────────────────────────────────────────────────────────────
+  // Delete all existing items and replace with consolidated ones
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1188,8 +1230,17 @@ export async function postProcessTakeoff(projectId: number): Promise<{
     }
   }
 
-  // Recalculate project total
-  await recalculateProjectTotal(projectId);
+  // Step 6: Recalculate costs with regional multiplier
+  // After all post-processing, reapply the project's regional cost multiplier
+  // This ensures all newly consolidated/enhanced items have correct regional pricing
+  if (project.costMultiplier && project.costMultiplier !== 10000) {
+    console.log(`[PostProcess] Recalculating costs with regional multiplier ${(project.costMultiplier / 10000).toFixed(2)}x...`);
+    const { recalculateItemCosts } = await import('./takeoffDb');
+    await recalculateItemCosts(projectId, 10000, project.costMultiplier);
+  } else {
+    // No regional multiplier or default, just recalculate totals
+    await recalculateProjectTotal(projectId);
+  }
 
   const stats = {
     originalCount,
