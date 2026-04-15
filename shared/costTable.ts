@@ -354,11 +354,50 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
   {
     id: "pipe-sleeve",
     csiDivision: "03", csiCode: "03 15 00",
-    keywords: ["pipe sleeve", "sleeve", "penetration"],
+    keywords: ["pipe sleeve", "sleeve", "penetration", "pvc pipe", "insulation"],
     unit: "EA",
-    materialCost: 18.00,
+    materialCost: 18.00,  // PVC sleeve + insulation material
     category: "accessories",
-    description: "Pipe Sleeve Through Foundation (material)",
+    description: "Pipe Sleeve Through Foundation (PVC + insulation material)",
+  },
+  {
+    id: "pipe-sleeve-lf",
+    csiDivision: "03", csiCode: "03 15 00",
+    keywords: ["pipe sleeve", "pvc pipe", "pipe under"],
+    unit: "LF",
+    materialCost: 8.50,  // PVC pipe + insulation per LF
+    category: "accessories",
+    description: "PVC Pipe Sleeve (material per LF)",
+  },
+
+  // ── Concrete Specialty Items ──
+  {
+    id: "tire-switch-indentation",
+    csiDivision: "03", csiCode: "03 30 00",
+    keywords: ["tire switch", "tire indentation", "tire seal", "indentation"],
+    unit: "EA",
+    materialCost: 45.00,  // form material + concrete for recessed indentation
+    category: "concrete",
+    description: "Concrete Tire Switch Indentation (form + concrete material)",
+  },
+  {
+    id: "concrete-bollard-fill",
+    csiDivision: "03", csiCode: "03 30 00",
+    keywords: ["bollard", "pipe fill", "concrete fill"],
+    excludeKeywords: ["footing", "foundation", "formwork", "rebar"],
+    unit: "CY",
+    materialCost: 175.00,
+    category: "concrete",
+    description: "Concrete Fill for Bollard (ready-mix per CY)",
+  },
+  {
+    id: "non-shrink-grout",
+    csiDivision: "03", csiCode: "03 60 00",
+    keywords: ["non-shrink grout", "grout", "column grout", "anchor grout"],
+    unit: "EA",
+    materialCost: 35.00,  // bag of non-shrink grout per anchor location
+    category: "accessories",
+    description: "Non-Shrink Grout at Column Anchor (material per location)",
   },
 
   // ── Enclosure Foundations (vacuum, dumpster, etc.) ──
@@ -745,6 +784,24 @@ const EARTHWORK_ITEMS: CostTableEntry[] = [
     materialCost: 18.00,  // trucking + dump fees
     category: "earthwork",
     description: "Hauling & Disposal (trucking + dump fees per CY)",
+  },
+  {
+    id: "geotextile-fabric",
+    csiDivision: "31", csiCode: "31 05 19",
+    keywords: ["geotextile", "filter fabric", "woven fabric", "non-woven", "separation fabric"],
+    unit: "SF",
+    materialCost: 0.60,  // woven/non-woven geotextile material per SF
+    category: "earthwork",
+    description: "Geotextile Fabric (separation/filter fabric material per SF)",
+  },
+  {
+    id: "erosion-control",
+    csiDivision: "31", csiCode: "31 25 00",
+    keywords: ["erosion control", "silt fence", "hay bale", "straw wattle"],
+    unit: "LF",
+    materialCost: 2.50,
+    category: "earthwork",
+    description: "Erosion Control (silt fence material per LF)",
   },
 ];
 
