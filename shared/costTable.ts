@@ -1,37 +1,30 @@
 /**
  * ConstructLine Cost Reference Table
  * 
- * Real-world 2025 unit costs for common construction items.
- * Sources: RSMeans 2025, HomeAdvisor, Angi, HomGuide, industry standards.
+ * MATERIAL-ONLY unit costs for construction items (2025 pricing).
+ * Sources: RSMeans 2025, supplier catalogs, industry averages.
  * 
  * PRICING PHILOSOPHY:
- * - "materialOnly" = cost when formwork/rebar are SEPARATE line items (just concrete + pour + finish)
- * - "installed" = all-in cost when it's a single assembly line item (concrete + formwork + rebar + labor)
- * - The lookup engine decides which to use based on whether companion items exist
+ * - ALL costs are MATERIAL ONLY — no labor, no installation, no overhead
+ * - Concrete = ready-mix delivered to site (per CY, converted to per-unit)
+ * - Rebar = fabricated bar delivered (per LF or per LB)
+ * - Formwork = form lumber/plywood/hardware (per SFCA)
+ * - Earthwork = equipment rental rates + fuel (per CY moved)
+ * - Contractors review quantities, adjust pricing, and add their own labor/markup
  * 
  * All costs are US National Average. Regional multipliers are applied separately.
  */
 
 export interface CostTableEntry {
-  /** Unique ID for the entry */
   id: string;
-  /** CSI division (2-digit) */
   csiDivision: string;
-  /** CSI code (6-digit) */
   csiCode: string;
-  /** Keywords to match against item descriptions (lowercase) */
   keywords: string[];
-  /** Negative keywords — if present, this entry should NOT match */
   excludeKeywords?: string[];
-  /** Unit of measure */
   unit: string;
-  /** Material + labor cost (when formwork/rebar are separate line items) */
-  materialOnlyCost: number;
-  /** Fully installed cost (when this is the only line item for the element) */
-  installedCost: number;
-  /** Category for grouping: concrete, formwork, rebar, earthwork, accessories */
+  /** Material cost per unit (no labor) */
+  materialCost: number;
   category: string;
-  /** Human-readable description */
   description: string;
 }
 
@@ -39,62 +32,63 @@ export interface CostTableEntry {
 
 const CONCRETE_ITEMS: CostTableEntry[] = [
   // ── Slabs ──
+  // Ready-mix concrete: ~$175/CY delivered (2025 avg)
+  // 4" slab = 1.23 CY per 100 SF → ~$2.15/SF material
+  // + vapor barrier $0.15/SF + base course $0.75/SF + finish materials $0.25/SF
   {
     id: "slab-4in",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["slab", "4\"", "4 inch", "4-inch", "4 in"],
-    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh", "base course", "vapor", "fiber"],
     unit: "SF",
-    materialOnlyCost: 4.00,   // concrete + pour + finish only
-    installedCost: 5.50,      // all-in with mesh/basic rebar
+    materialCost: 3.25,  // concrete + vapor barrier + base course + finish materials
     category: "concrete",
-    description: "4\" Concrete Slab-on-Grade",
+    description: "4\" Concrete Slab-on-Grade (material: concrete + base + vapor barrier)",
   },
   {
     id: "slab-6in",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["slab", "6\"", "6 inch", "6-inch", "6 in"],
-    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh", "base course", "vapor", "fiber"],
     unit: "SF",
-    materialOnlyCost: 5.00,
-    installedCost: 6.50,
+    materialCost: 4.25,  // 6" = 1.85 CY/100SF → $3.24/SF + base + vapor + finish
     category: "concrete",
-    description: "6\" Concrete Slab-on-Grade",
+    description: "6\" Concrete Slab-on-Grade (material: concrete + base + vapor barrier)",
   },
   {
     id: "slab-8in",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["slab", "8\"", "8 inch", "8-inch", "8 in"],
-    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh", "base course", "vapor", "fiber"],
     unit: "SF",
-    materialOnlyCost: 6.00,
-    installedCost: 7.50,
+    materialCost: 5.50,  // 8" = 2.47 CY/100SF → $4.32/SF + base + vapor + finish
     category: "concrete",
-    description: "8\" Concrete Slab-on-Grade",
+    description: "8\" Concrete Slab-on-Grade (material: concrete + base + vapor barrier)",
   },
   {
     id: "slab-generic",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["slab", "on grade", "on-grade", "sog"],
-    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh", "4\"", "6\"", "8\""],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "mesh", "4\"", "6\"", "8\"", "base course", "vapor", "fiber"],
     unit: "SF",
-    materialOnlyCost: 4.50,
-    installedCost: 6.00,
+    materialCost: 3.75,  // assume 5" avg
     category: "concrete",
-    description: "Concrete Slab-on-Grade (generic)",
+    description: "Concrete Slab-on-Grade (generic thickness)",
   },
 
   // ── Continuous Footings ──
+  // Footing concrete: volume depends on width × depth × length
+  // 12"W × 6"D = 0.037 CY/LF → $6.50/LF concrete material
+  // 24"W × 12"D = 0.074 CY/LF → $13.00/LF concrete material
   {
     id: "footing-12x6",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["footing", "12\"", "6\""],
     excludeKeywords: ["formwork", "rebar", "reinforc", "spread", "pad"],
     unit: "LF",
-    materialOnlyCost: 6.00,
-    installedCost: 10.00,
+    materialCost: 6.50,
     category: "concrete",
-    description: "Continuous Footing 12\"W x 6\"D",
+    description: "Continuous Footing 12\"W × 6\"D (concrete material)",
   },
   {
     id: "footing-16x8",
@@ -102,21 +96,19 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["footing", "16\"", "8\""],
     excludeKeywords: ["formwork", "rebar", "reinforc", "spread", "pad"],
     unit: "LF",
-    materialOnlyCost: 8.00,
-    installedCost: 14.00,
+    materialCost: 9.50,
     category: "concrete",
-    description: "Continuous Footing 16\"W x 8\"D",
+    description: "Continuous Footing 16\"W × 8\"D (concrete material)",
   },
   {
     id: "footing-24x12",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["footing", "continuous", "wf-"],
+    keywords: ["footing", "continuous", "wf-", "2'-0", "2'", "24"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "spread", "pad"],
     unit: "LF",
-    materialOnlyCost: 12.00,
-    installedCost: 22.00,
+    materialCost: 13.00,  // 2'W × 1'D = 0.074 CY/LF × $175/CY
     category: "concrete",
-    description: "Continuous Footing 24\"W x 12\"D (typical WF)",
+    description: "Continuous Footing 24\"W × 12\"D / WF-1 (concrete material)",
   },
   {
     id: "footing-generic",
@@ -124,47 +116,46 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["footing", "continuous"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "spread", "pad", "step"],
     unit: "LF",
-    materialOnlyCost: 10.00,
-    installedCost: 18.00,
+    materialCost: 10.00,
     category: "concrete",
-    description: "Continuous Footing (generic)",
+    description: "Continuous Footing (generic, concrete material)",
   },
 
   // ── Spread/Pad Footings ──
+  // Typical 5'×5'×1' = 0.93 CY → ~$163 concrete material
   {
     id: "spread-footing",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["spread footing", "pad footing", "isolated footing", "f-1"],
+    keywords: ["spread footing", "pad footing", "isolated footing", "f-1", "f-2"],
     excludeKeywords: ["formwork", "rebar", "reinforc"],
     unit: "EA",
-    materialOnlyCost: 250.00,
-    installedCost: 450.00,
+    materialCost: 175.00,
     category: "concrete",
-    description: "Spread/Pad Footing",
+    description: "Spread/Pad Footing (concrete material each)",
   },
 
-  // ── Stem Walls ──
+  // ── Stem Walls / Foundation Walls ──
+  // 8" thick × 4' tall = 0.099 CY/LF → $17.30/LF concrete
+  // 12" thick × 4' tall = 0.148 CY/LF → $25.90/LF concrete
   {
     id: "stem-wall",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["stem wall", "stemwall", "foundation wall"],
-    excludeKeywords: ["formwork", "rebar", "reinforc"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "cmu", "block"],
     unit: "LF",
-    materialOnlyCost: 25.00,   // concrete only for stem wall
-    installedCost: 55.00,      // all-in with formwork + rebar
+    materialCost: 22.00,  // avg 10" thick × 4' tall
     category: "concrete",
-    description: "Concrete Foundation Stem Wall",
+    description: "Cast-in-Place Foundation Stem Wall (concrete material)",
   },
   {
     id: "stem-wall-cmu",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["stem wall", "cmu", "block"],
+    keywords: ["stem wall", "cmu", "block", "masonry"],
     excludeKeywords: ["formwork", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 30.00,
-    installedCost: 65.00,
+    materialCost: 32.00,  // CMU blocks + mortar + grout fill per LF
     category: "concrete",
-    description: "CMU Stem Wall with Footing",
+    description: "CMU Foundation Stem Wall (block + mortar + grout material)",
   },
 
   // ── Grade Beams ──
@@ -174,10 +165,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["grade beam"],
     excludeKeywords: ["formwork", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 18.00,
-    installedCost: 35.00,
+    materialCost: 15.00,
     category: "concrete",
-    description: "Concrete Grade Beam",
+    description: "Concrete Grade Beam (concrete material)",
   },
 
   // ── Piers/Columns ──
@@ -187,10 +177,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["pier", "column", "12\"", "14\"", "16\""],
     excludeKeywords: ["formwork", "rebar", "reinforc", "anchor"],
     unit: "EA",
-    materialOnlyCost: 150.00,
-    installedCost: 300.00,
+    materialCost: 85.00,  // ~0.5 CY concrete + sonotube
     category: "concrete",
-    description: "Concrete Pier 12\"-16\" diameter",
+    description: "Concrete Pier 12\"-16\" diameter (concrete + tube material)",
   },
   {
     id: "pier-large",
@@ -198,23 +187,31 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["pier", "column", "18\"", "20\"", "24\""],
     excludeKeywords: ["formwork", "rebar", "reinforc", "anchor"],
     unit: "EA",
-    materialOnlyCost: 250.00,
-    installedCost: 500.00,
+    materialCost: 165.00,  // ~1 CY concrete + sonotube
     category: "concrete",
-    description: "Concrete Pier 18\"-24\" diameter",
+    description: "Concrete Pier 18\"-24\" diameter (concrete + tube material)",
   },
 
   // ── Trench/Pit Concrete ──
   {
-    id: "trench-pit",
+    id: "trench-pit-lf",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["trench pit", "trench", "pit"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "drain", "excavat", "backfill"],
     unit: "LF",
-    materialOnlyCost: 45.00,   // concrete walls + base per LF of trench
-    installedCost: 85.00,
+    materialCost: 35.00,  // walls + base concrete per LF
     category: "concrete",
-    description: "Concrete Trench Pit",
+    description: "Concrete Trench Pit (concrete material per LF)",
+  },
+  {
+    id: "trench-pit-cy",
+    csiDivision: "03", csiCode: "03 30 00",
+    keywords: ["trench pit", "trench", "pit", "concrete"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "drain", "excavat", "backfill"],
+    unit: "CY",
+    materialCost: 175.00,  // ready-mix per CY
+    category: "concrete",
+    description: "Concrete for Trench/Pit (ready-mix per CY)",
   },
   {
     id: "trench-drain-foundation",
@@ -222,10 +219,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["trench drain", "drain foundation"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "pre-fab", "prefab", "excavat"],
     unit: "LF",
-    materialOnlyCost: 35.00,
-    installedCost: 65.00,
+    materialCost: 28.00,
     category: "concrete",
-    description: "Concrete Trench Drain Foundation",
+    description: "Concrete Trench Drain Foundation (concrete material)",
   },
   {
     id: "trench-drain-prefab",
@@ -233,23 +229,21 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["trench drain", "pre-fabricated", "prefab", "pre-fab"],
     excludeKeywords: ["foundation", "formwork", "rebar"],
     unit: "LF",
-    materialOnlyCost: 45.00,
-    installedCost: 75.00,
+    materialCost: 55.00,  // prefab channel + grate
     category: "concrete",
-    description: "Pre-fabricated Trench Drain (supply + install)",
+    description: "Pre-fabricated Trench Drain (channel + grate material)",
   },
 
   // ── Correlator/Drainage Pits ──
   {
-    id: "concrete-pit-sf",
+    id: "concrete-pit-cy",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["correlator", "drainage pit", "catch basin", "sump"],
+    keywords: ["correlator", "drainage pit", "catch basin", "sump", "tire seal"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "excavat", "backfill"],
-    unit: "SF",
-    materialOnlyCost: 120.00,
-    installedCost: 200.00,
+    unit: "CY",
+    materialCost: 175.00,
     category: "concrete",
-    description: "Concrete Pit (correlator/drainage) per SF",
+    description: "Concrete for Pit/Basin (ready-mix per CY)",
   },
   {
     id: "concrete-pit-ea",
@@ -257,36 +251,46 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["correlator", "drainage pit", "catch basin", "sump", "tire seal"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "excavat", "backfill"],
     unit: "EA",
-    materialOnlyCost: 1500.00,
-    installedCost: 3000.00,
+    materialCost: 850.00,  // ~5 CY concrete material
     category: "concrete",
-    description: "Concrete Pit (each)",
+    description: "Concrete Pit (material each)",
   },
 
   // ── Bollard/Gate Post Footings ──
+  // Typical 2'×2'×2.5' = 0.37 CY → ~$65 concrete material
   {
     id: "bollard-footing",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["bollard", "post footing", "gate post", "pole foundation"],
+    keywords: ["bollard", "post footing", "gate post", "pole foundation", "equipment pole"],
     excludeKeywords: ["formwork", "rebar", "reinforc", "excavat"],
     unit: "EA",
-    materialOnlyCost: 120.00,
-    installedCost: 225.00,
+    materialCost: 75.00,
     category: "concrete",
-    description: "Bollard/Post Footing (each)",
+    description: "Bollard/Post Footing (concrete material each)",
   },
 
-  // ── Concrete by CY (generic) ──
+  // ── Concrete by CY (generic fallback) ──
   {
     id: "concrete-cy",
     csiDivision: "03", csiCode: "03 30 00",
     keywords: ["concrete"],
-    excludeKeywords: ["formwork", "rebar", "reinforc", "slab", "footing", "wall", "beam", "pier", "trench", "pit", "bollard", "anchor"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "slab", "footing", "wall", "beam", "pier", "trench", "pit", "bollard", "anchor", "base course", "fiber"],
     unit: "CY",
-    materialOnlyCost: 200.00,  // ready-mix + pour
-    installedCost: 300.00,     // all-in
+    materialCost: 175.00,  // ready-mix delivered, national avg 2025
     category: "concrete",
-    description: "Concrete (generic, per CY)",
+    description: "Concrete ready-mix (per CY delivered)",
+  },
+
+  // ── Curbs ──
+  {
+    id: "concrete-curb",
+    csiDivision: "03", csiCode: "03 30 00",
+    keywords: ["curb"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "gutter"],
+    unit: "LF",
+    materialCost: 8.50,  // concrete material for typical 6"×18" curb
+    category: "concrete",
+    description: "Concrete Curb (concrete material per LF)",
   },
 
   // ── Construction Joints ──
@@ -296,10 +300,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["construction joint", "dowel", "sleeve"],
     excludeKeywords: ["expansion", "control"],
     unit: "LF",
-    materialOnlyCost: 8.00,
-    installedCost: 12.00,
-    category: "concrete",
-    description: "Construction Joint with Dowels",
+    materialCost: 4.50,  // dowels + sleeve material
+    category: "accessories",
+    description: "Construction Joint with Dowels (material)",
   },
 
   // ── Expansion Joints ──
@@ -308,10 +311,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     csiDivision: "03", csiCode: "03 15 00",
     keywords: ["expansion joint", "compressible filler"],
     unit: "LF",
-    materialOnlyCost: 3.50,
-    installedCost: 6.00,
+    materialCost: 3.00,  // filler board + sealant
     category: "accessories",
-    description: "Expansion Joint (1/2\" filler)",
+    description: "Expansion Joint (filler + sealant material)",
   },
 
   // ── Control Joints ──
@@ -320,10 +322,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     csiDivision: "03", csiCode: "03 15 00",
     keywords: ["control joint", "saw cut", "sawcut"],
     unit: "LF",
-    materialOnlyCost: 2.00,
-    installedCost: 3.50,
+    materialCost: 1.50,  // blade wear + sealant
     category: "accessories",
-    description: "Control Joint / Saw Cut",
+    description: "Control Joint / Saw Cut (material)",
   },
 
   // ── Footing Step ──
@@ -333,10 +334,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     keywords: ["footing step", "step"],
     excludeKeywords: ["formwork", "rebar"],
     unit: "EA",
-    materialOnlyCost: 50.00,
-    installedCost: 100.00,
+    materialCost: 35.00,  // additional concrete for step
     category: "concrete",
-    description: "Footing Step (each)",
+    description: "Footing Step (additional concrete material)",
   },
 
   // ── Anchor/Embed ──
@@ -345,10 +345,9 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     csiDivision: "03", csiCode: "03 15 00",
     keywords: ["anchor", "anchor rod", "anchor bolt", "embed", "column anchor"],
     unit: "EA",
-    materialOnlyCost: 75.00,
-    installedCost: 150.00,
+    materialCost: 45.00,  // anchor bolt assembly
     category: "accessories",
-    description: "Anchor Rod / Embed Detail",
+    description: "Anchor Rod / Embed (hardware material)",
   },
 
   // ── Pipe Sleeve ──
@@ -357,23 +356,21 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
     csiDivision: "03", csiCode: "03 15 00",
     keywords: ["pipe sleeve", "sleeve", "penetration"],
     unit: "EA",
-    materialOnlyCost: 25.00,
-    installedCost: 50.00,
+    materialCost: 18.00,
     category: "accessories",
-    description: "Pipe Sleeve Through Foundation",
+    description: "Pipe Sleeve Through Foundation (material)",
   },
 
-  // ── Shearwall (below SOG) ──
+  // ── Enclosure Foundations (vacuum, dumpster, etc.) ──
   {
-    id: "shearwall-below",
+    id: "enclosure-foundation-cy",
     csiDivision: "03", csiCode: "03 30 00",
-    keywords: ["shearwall", "shear wall"],
-    excludeKeywords: ["formwork", "rebar", "reinforc"],
-    unit: "LF",
-    materialOnlyCost: 20.00,
-    installedCost: 45.00,
+    keywords: ["enclosure", "vacuum", "dumpster", "foundation"],
+    excludeKeywords: ["formwork", "rebar", "reinforc", "excavat", "backfill"],
+    unit: "CY",
+    materialCost: 175.00,
     category: "concrete",
-    description: "Concrete Shearwall (below SOG)",
+    description: "Enclosure Foundation (concrete material per CY)",
   },
 ];
 
@@ -382,179 +379,191 @@ const CONCRETE_ITEMS: CostTableEntry[] = [
 const FORMWORK_ITEMS: CostTableEntry[] = [
   {
     id: "formwork-footing",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form", "footing"],
     unit: "SFCA",
-    materialOnlyCost: 4.50,
-    installedCost: 4.50,
+    materialCost: 3.50,  // plywood + lumber + hardware + ties, reusable
     category: "formwork",
-    description: "Formwork for Footings",
+    description: "Formwork for Footings (lumber/plywood material)",
   },
   {
     id: "formwork-wall",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form", "wall", "stem"],
     unit: "SFCA",
-    materialOnlyCost: 5.50,
-    installedCost: 5.50,
+    materialCost: 4.50,  // taller forms need more bracing
     category: "formwork",
-    description: "Formwork for Walls",
+    description: "Formwork for Walls (lumber/plywood material)",
   },
   {
     id: "formwork-slab-edge",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form", "slab", "edge"],
     unit: "LF",
-    materialOnlyCost: 4.00,
-    installedCost: 4.00,
+    materialCost: 2.75,  // edge form lumber
     category: "formwork",
-    description: "Formwork for Slab Edge",
+    description: "Formwork for Slab Edge (lumber material)",
   },
   {
     id: "formwork-pit",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form", "pit", "trench"],
     unit: "SFCA",
-    materialOnlyCost: 7.00,
-    installedCost: 7.00,
+    materialCost: 5.00,  // complex forming
     category: "formwork",
-    description: "Formwork for Pits/Trenches",
+    description: "Formwork for Pits/Trenches (lumber/plywood material)",
   },
   {
     id: "formwork-pier",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form", "pier", "column", "sonotube"],
     unit: "SFCA",
-    materialOnlyCost: 6.00,
-    installedCost: 6.00,
+    materialCost: 4.00,  // sonotube or round forms
     category: "formwork",
-    description: "Formwork for Piers/Columns",
+    description: "Formwork for Piers/Columns (tube/form material)",
   },
   {
     id: "formwork-generic",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form"],
     unit: "SFCA",
-    materialOnlyCost: 5.00,
-    installedCost: 5.00,
+    materialCost: 3.75,
     category: "formwork",
-    description: "Formwork (generic)",
+    description: "Formwork (generic, lumber/plywood material)",
   },
   {
     id: "formwork-lf",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form"],
     unit: "LF",
-    materialOnlyCost: 8.00,
-    installedCost: 8.00,
+    materialCost: 5.50,  // per LF of form run
     category: "formwork",
-    description: "Formwork per LF",
+    description: "Formwork per LF (material)",
   },
   {
     id: "formwork-ea",
-    csiDivision: "03", csiCode: "03 10 00",
+    csiDivision: "03", csiCode: "03 11 00",
     keywords: ["formwork", "form"],
     unit: "EA",
-    materialOnlyCost: 35.00,
-    installedCost: 35.00,
+    materialCost: 25.00,  // small footing form set
     category: "formwork",
-    description: "Formwork per EA (bollard/post)",
+    description: "Formwork per EA (bollard/post form material)",
   },
 ];
 
 // ─── CSI 03 20: Reinforcing ──────────────────────────────────────────────────
 
 const REBAR_ITEMS: CostTableEntry[] = [
+  // Rebar prices: fabricated, delivered to site (2025 avg)
+  // #3 = 0.376 lb/ft × $0.85/lb = $0.32/LF material... but with fab + delivery ~$0.85/LF
   {
     id: "rebar-3",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["#3", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 0.85,
-    installedCost: 0.85,
+    materialCost: 0.85,
     category: "rebar",
-    description: "#3 Rebar",
+    description: "#3 Rebar (fabricated, delivered)",
   },
   {
     id: "rebar-4",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["#4", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 1.15,
-    installedCost: 1.15,
+    materialCost: 1.15,
     category: "rebar",
-    description: "#4 Rebar",
+    description: "#4 Rebar (fabricated, delivered)",
   },
   {
     id: "rebar-5",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["#5", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 1.50,
-    installedCost: 1.50,
+    materialCost: 1.50,
     category: "rebar",
-    description: "#5 Rebar",
+    description: "#5 Rebar (fabricated, delivered)",
   },
   {
     id: "rebar-6",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["#6", "rebar", "reinforc"],
     unit: "LF",
-    materialOnlyCost: 1.95,
-    installedCost: 1.95,
+    materialCost: 2.00,
     category: "rebar",
-    description: "#6 Rebar",
+    description: "#6 Rebar (fabricated, delivered)",
   },
   {
     id: "rebar-generic",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["rebar", "reinforc", "steel"],
-    excludeKeywords: ["#3", "#4", "#5", "#6", "structural", "mesh"],
+    excludeKeywords: ["#3", "#4", "#5", "#6", "structural", "mesh", "fiber", "macro"],
     unit: "LF",
-    materialOnlyCost: 1.25,
-    installedCost: 1.25,
+    materialCost: 1.25,
     category: "rebar",
-    description: "Rebar (generic size)",
+    description: "Rebar (generic size, fabricated delivered)",
+  },
+  {
+    id: "rebar-lb",
+    csiDivision: "03", csiCode: "03 20 00",
+    keywords: ["rebar", "reinforc", "steel"],
+    unit: "LB",
+    materialCost: 0.85,  // per pound fabricated delivered
+    category: "rebar",
+    description: "Rebar per LB (fabricated, delivered)",
   },
   {
     id: "rebar-ea",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["rebar", "reinforc", "steel"],
     unit: "EA",
-    materialOnlyCost: 50.00,
-    installedCost: 50.00,
+    materialCost: 35.00,  // rebar cage for small footing
     category: "rebar",
-    description: "Rebar per EA (bollard/post rebar cage)",
+    description: "Rebar cage per EA (bollard/post)",
   },
   {
     id: "wwf-mesh",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["mesh", "wwf", "welded wire", "wire fabric"],
     unit: "SF",
-    materialOnlyCost: 0.35,
-    installedCost: 0.35,
+    materialCost: 0.35,
     category: "rebar",
-    description: "Welded Wire Fabric / Mesh",
+    description: "Welded Wire Fabric / Mesh (material)",
+  },
+  {
+    id: "fiber-reinforcing",
+    csiDivision: "03", csiCode: "03 20 00",
+    keywords: ["fiber", "macro-synthetic", "micro-synthetic", "polypropylene"],
+    unit: "SF",
+    materialCost: 0.45,  // fiber additive per SF of slab
+    category: "rebar",
+    description: "Fiber Reinforcing (macro/micro synthetic, per SF of slab)",
+  },
+  {
+    id: "fiber-reinforcing-lb",
+    csiDivision: "03", csiCode: "03 20 00",
+    keywords: ["fiber", "macro-synthetic", "micro-synthetic", "polypropylene"],
+    unit: "LB",
+    materialCost: 1.25,  // per pound of fiber
+    category: "rebar",
+    description: "Fiber Reinforcing (per LB)",
   },
   {
     id: "rebar-ties",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["ties", "stirrup"],
     unit: "LF",
-    materialOnlyCost: 1.00,
-    installedCost: 1.00,
+    materialCost: 0.75,
     category: "rebar",
-    description: "Rebar Ties/Stirrups",
+    description: "Rebar Ties/Stirrups (material)",
   },
   {
     id: "dowels",
     csiDivision: "03", csiCode: "03 20 00",
     keywords: ["dowel"],
     unit: "LF",
-    materialOnlyCost: 1.35,
-    installedCost: 1.35,
+    materialCost: 1.10,
     category: "rebar",
-    description: "Rebar Dowels",
+    description: "Rebar Dowels (material)",
   },
 ];
 
@@ -566,30 +575,46 @@ const CONCRETE_ACCESSORIES: CostTableEntry[] = [
     csiDivision: "03", csiCode: "03 05 00",
     keywords: ["vapor barrier", "vapor", "moisture barrier", "poly", "6 mil", "10 mil", "15 mil"],
     unit: "SF",
-    materialOnlyCost: 0.15,
-    installedCost: 0.25,
+    materialCost: 0.12,  // polyethylene sheeting
     category: "accessories",
-    description: "Vapor Barrier (6-15 mil poly)",
+    description: "Vapor Barrier (6-15 mil poly sheeting)",
   },
   {
-    id: "base-course",
+    id: "base-course-sf",
     csiDivision: "03", csiCode: "03 05 00",
     keywords: ["base course", "compacted base", "crushed stone", "aggregate base", "abc"],
+    excludeKeywords: ["trench", "pit", "drain"],
     unit: "SF",
-    materialOnlyCost: 0.75,
-    installedCost: 1.10,
+    materialCost: 0.85,  // 4-6" crushed stone material per SF
     category: "accessories",
-    description: "Compacted Base Course (4\"-6\" thick)",
+    description: "Compacted Base Course 4\"-6\" (aggregate material per SF)",
+  },
+  {
+    id: "base-course-ea",
+    csiDivision: "03", csiCode: "03 05 00",
+    keywords: ["base course", "compacted base"],
+    unit: "EA",
+    materialCost: 125.00,  // base course for a small pit/trench section
+    category: "accessories",
+    description: "Compacted Base Course (lump material for small area)",
+  },
+  {
+    id: "base-course-ls",
+    csiDivision: "03", csiCode: "03 05 00",
+    keywords: ["base course", "compacted base"],
+    unit: "LS",
+    materialCost: 500.00,  // lump sum base course for misc areas
+    category: "accessories",
+    description: "Compacted Base Course (lump sum)",
   },
   {
     id: "curing-compound",
     csiDivision: "03", csiCode: "03 05 00",
     keywords: ["curing", "cure", "compound"],
     unit: "SF",
-    materialOnlyCost: 0.15,
-    installedCost: 0.25,
+    materialCost: 0.12,
     category: "accessories",
-    description: "Curing Compound",
+    description: "Curing Compound (material)",
   },
   {
     id: "concrete-sealer",
@@ -597,26 +622,26 @@ const CONCRETE_ACCESSORIES: CostTableEntry[] = [
     keywords: ["sealer", "seal"],
     excludeKeywords: ["joint", "expansion", "tire"],
     unit: "SF",
-    materialOnlyCost: 0.30,
-    installedCost: 0.50,
+    materialCost: 0.25,
     category: "accessories",
-    description: "Concrete Sealer",
+    description: "Concrete Sealer (material)",
   },
 ];
 
 // ─── CSI 31: Earthwork ────────────────────────────────────────────────────────
 
 const EARTHWORK_ITEMS: CostTableEntry[] = [
+  // Earthwork = equipment + fuel + operator (no separate labor line)
+  // Excavation: $8-15/CY depending on depth and access
   {
     id: "excavation-footing",
     csiDivision: "31", csiCode: "31 23 00",
     keywords: ["excavation", "excavat", "dig", "trench"],
     excludeKeywords: ["backfill", "compact", "grade"],
     unit: "CY",
-    materialOnlyCost: 12.00,
-    installedCost: 12.00,
+    materialCost: 12.00,  // equipment + fuel for foundation excavation
     category: "earthwork",
-    description: "Excavation for Foundations",
+    description: "Excavation for Foundations (equipment cost per CY)",
   },
   {
     id: "excavation-pit",
@@ -624,39 +649,35 @@ const EARTHWORK_ITEMS: CostTableEntry[] = [
     keywords: ["excavation", "excavat", "pit"],
     excludeKeywords: ["backfill"],
     unit: "CY",
-    materialOnlyCost: 15.00,
-    installedCost: 15.00,
+    materialCost: 15.00,  // deeper/more complex
     category: "earthwork",
-    description: "Excavation for Pits",
+    description: "Excavation for Pits (equipment cost per CY)",
   },
   {
     id: "excavation-ea",
     csiDivision: "31", csiCode: "31 23 00",
     keywords: ["excavation", "excavat"],
     unit: "EA",
-    materialOnlyCost: 150.00,
-    installedCost: 150.00,
+    materialCost: 125.00,
     category: "earthwork",
     description: "Excavation per EA (small footing)",
   },
   {
-    id: "backfill",
+    id: "backfill-cy",
     csiDivision: "31", csiCode: "31 23 00",
     keywords: ["backfill", "fill"],
     excludeKeywords: ["excavat", "compact", "base course"],
     unit: "CY",
-    materialOnlyCost: 12.00,
-    installedCost: 12.00,
+    materialCost: 10.00,  // fill material + equipment
     category: "earthwork",
-    description: "Backfill (structural)",
+    description: "Backfill (material + equipment per CY)",
   },
   {
     id: "backfill-ea",
     csiDivision: "31", csiCode: "31 23 00",
     keywords: ["backfill"],
     unit: "EA",
-    materialOnlyCost: 40.00,
-    installedCost: 40.00,
+    materialCost: 35.00,
     category: "earthwork",
     description: "Backfill per EA (small footing)",
   },
@@ -666,10 +687,9 @@ const EARTHWORK_ITEMS: CostTableEntry[] = [
     keywords: ["compact", "compaction"],
     excludeKeywords: ["base course", "backfill"],
     unit: "CY",
-    materialOnlyCost: 5.00,
-    installedCost: 5.00,
+    materialCost: 4.00,  // equipment rental per CY
     category: "earthwork",
-    description: "Compaction",
+    description: "Compaction (equipment cost per CY)",
   },
   {
     id: "grading",
@@ -677,50 +697,54 @@ const EARTHWORK_ITEMS: CostTableEntry[] = [
     keywords: ["grading", "grade", "fine grade", "rough grade"],
     excludeKeywords: ["beam", "slab"],
     unit: "SF",
-    materialOnlyCost: 0.50,
-    installedCost: 0.50,
+    materialCost: 0.40,
     category: "earthwork",
-    description: "Grading",
+    description: "Grading (equipment cost per SF)",
   },
   {
     id: "subgrade-prep",
     csiDivision: "31", csiCode: "31 20 00",
     keywords: ["subgrade", "sub-grade", "preparation"],
     unit: "SF",
-    materialOnlyCost: 0.50,
-    installedCost: 0.50,
+    materialCost: 0.40,
     category: "earthwork",
-    description: "Subgrade Preparation",
+    description: "Subgrade Preparation (equipment cost per SF)",
   },
   {
     id: "base-course-31",
     csiDivision: "31", csiCode: "31 20 00",
     keywords: ["base course", "compacted base", "crushed stone", "aggregate base"],
     unit: "SF",
-    materialOnlyCost: 0.75,
-    installedCost: 1.10,
+    materialCost: 0.85,
     category: "earthwork",
-    description: "Compacted Base Course (under slab)",
+    description: "Compacted Base Course (aggregate material per SF)",
   },
   {
     id: "vapor-barrier-31",
     csiDivision: "31", csiCode: "31 20 00",
     keywords: ["vapor barrier", "vapor", "moisture barrier", "poly"],
     unit: "SF",
-    materialOnlyCost: 0.15,
-    installedCost: 0.25,
+    materialCost: 0.12,
     category: "earthwork",
-    description: "Vapor Barrier (under slab)",
+    description: "Vapor Barrier (poly sheeting material)",
   },
   {
     id: "dewatering",
     csiDivision: "31", csiCode: "31 23 00",
     keywords: ["dewater", "pump"],
     unit: "LS",
-    materialOnlyCost: 2500.00,
-    installedCost: 2500.00,
+    materialCost: 1500.00,
     category: "earthwork",
-    description: "Dewatering (lump sum)",
+    description: "Dewatering (equipment rental lump sum)",
+  },
+  {
+    id: "hauling-disposal",
+    csiDivision: "31", csiCode: "31 23 00",
+    keywords: ["haul", "disposal", "spoil", "waste"],
+    unit: "CY",
+    materialCost: 18.00,  // trucking + dump fees
+    category: "earthwork",
+    description: "Hauling & Disposal (trucking + dump fees per CY)",
   },
 ];
 
@@ -732,30 +756,27 @@ const EXISTING_CONDITIONS: CostTableEntry[] = [
     csiDivision: "02", csiCode: "02 41 00",
     keywords: ["demolition", "demo", "remove", "concrete"],
     unit: "SF",
-    materialOnlyCost: 3.00,
-    installedCost: 3.00,
+    materialCost: 2.50,  // equipment cost for concrete removal
     category: "demolition",
-    description: "Concrete Demolition",
+    description: "Concrete Demolition (equipment cost per SF)",
   },
   {
     id: "demolition-cy",
     csiDivision: "02", csiCode: "02 41 00",
     keywords: ["demolition", "demo", "remove"],
     unit: "CY",
-    materialOnlyCost: 50.00,
-    installedCost: 50.00,
+    materialCost: 40.00,
     category: "demolition",
-    description: "Demolition per CY",
+    description: "Demolition per CY (equipment cost)",
   },
   {
     id: "clearing",
     csiDivision: "02", csiCode: "02 41 00",
     keywords: ["clearing", "grubbing", "clear"],
     unit: "SF",
-    materialOnlyCost: 0.25,
-    installedCost: 0.25,
+    materialCost: 0.20,
     category: "demolition",
-    description: "Site Clearing",
+    description: "Site Clearing (equipment cost per SF)",
   },
 ];
 
@@ -767,40 +788,36 @@ const EXTERIOR_ITEMS: CostTableEntry[] = [
     csiDivision: "32", csiCode: "32 12 00",
     keywords: ["asphalt", "paving", "blacktop"],
     unit: "SF",
-    materialOnlyCost: 3.50,
-    installedCost: 3.50,
+    materialCost: 2.50,  // asphalt material per SF
     category: "exterior",
-    description: "Asphalt Paving",
+    description: "Asphalt Paving (material per SF)",
   },
   {
     id: "concrete-sidewalk",
     csiDivision: "32", csiCode: "32 13 00",
     keywords: ["sidewalk", "walkway"],
     unit: "SF",
-    materialOnlyCost: 7.00,
-    installedCost: 9.00,
+    materialCost: 4.50,  // concrete material for 4" sidewalk
     category: "exterior",
-    description: "Concrete Sidewalk",
+    description: "Concrete Sidewalk (material per SF)",
   },
   {
-    id: "curb",
+    id: "curb-exterior",
     csiDivision: "32", csiCode: "32 16 00",
     keywords: ["curb", "curbing"],
     unit: "LF",
-    materialOnlyCost: 15.00,
-    installedCost: 25.00,
+    materialCost: 8.50,  // concrete material for curb
     category: "exterior",
-    description: "Concrete Curb",
+    description: "Concrete Curb (material per LF)",
   },
   {
     id: "expansion-joint-ext",
     csiDivision: "32", csiCode: "32 13 00",
     keywords: ["expansion joint", "compressible filler", "joint"],
     unit: "LF",
-    materialOnlyCost: 3.00,
-    installedCost: 5.00,
+    materialCost: 2.50,
     category: "exterior",
-    description: "Expansion Joint (exterior)",
+    description: "Expansion Joint (filler material per LF)",
   },
 ];
 
@@ -816,16 +833,10 @@ export const COST_TABLE: CostTableEntry[] = [
   ...EXTERIOR_ITEMS,
 ];
 
-/**
- * Get all entries for a specific CSI division
- */
 export function getEntriesForDivision(division: string): CostTableEntry[] {
   return COST_TABLE.filter(e => e.csiDivision === division);
 }
 
-/**
- * Get all entries for a specific category
- */
 export function getEntriesForCategory(category: string): CostTableEntry[] {
   return COST_TABLE.filter(e => e.category === category);
 }

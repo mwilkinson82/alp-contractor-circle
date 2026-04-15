@@ -1898,3 +1898,10 @@
 - [x] FIX: Cross-division dedup — crossDivisionDedup() removes base course/vapor barrier duplicates
 - [x] FIX: Rebar quantity validation — validateRebarQuantities() caps at slab SF × 2.2
 - [ ] TEST: Verify pricing against Crystal Car Wash manual benchmark ($175,810) — awaiting re-test
+
+## Pricing Recalibration — Material Only (April 15, 2026)
+- [x] CLARIFICATION: ConstructLine is a MATERIAL takeoff tool — unit costs = material cost only, no labor
+- [x] FIX: Recalibrate entire cost table to material-only pricing (concrete = ready-mix $/CY, rebar = bar $/LF, etc.)
+- [x] FIX: Remove materialOnly vs installed distinction — everything is material-only (single materialCost field)
+- [x] FIX: Update cost lookup to use single price field (findBestMatch no longer needs allItems)
+- [ ] TEST: Re-verify against Crystal Car Wash benchmark — awaiting re-test

@@ -2,7 +2,10 @@
  * Cost Lookup Engine
  * 
  * Matches extracted takeoff items to the cost reference table
- * and applies the correct unit cost based on context (material-only vs installed).
+ * and applies MATERIAL-ONLY unit costs.
+ * 
+ * ConstructLine is a material takeoff tool — all costs are material only.
+ * Contractors review quantities, adjust pricing, and add their own labor/markup.
  * 
  * Also applies regional cost multipliers.
  */
@@ -25,7 +28,6 @@ export interface TakeoffItem {
 interface CostMatch {
   entry: CostTableEntry;
   score: number;
-  priceUsed: "materialOnly" | "installed";
   unitCost: number;
 }
 
@@ -110,101 +112,9 @@ function scoreMatch(item: TakeoffItem, entry: CostTableEntry): number {
 }
 
 /**
- * Determine whether to use materialOnly or installed pricing.
- * 
- * Logic: If the item is a concrete element AND there are separate formwork/rebar
- * line items for the same element, use materialOnly pricing.
- * Otherwise use installed pricing.
- */
-function determinePriceType(
-  item: TakeoffItem,
-  entry: CostTableEntry,
-  allItems: TakeoffItem[]
-): "materialOnly" | "installed" {
-  // Formwork and rebar items always use their own cost (materialOnly = installed for these)
-  if (entry.category === "formwork" || entry.category === "rebar") {
-    return "materialOnly";
-  }
-  
-  // Earthwork, accessories, demolition, exterior — always use installed
-  if (entry.category !== "concrete") {
-    return "installed";
-  }
-  
-  // For concrete items: check if there are companion formwork/rebar items
-  const desc = normalizeForMatch(item.description);
-  
-  // Extract the element name (e.g., "footing", "slab", "stem wall", "trench pit")
-  const elementPatterns = [
-    "slab", "footing", "stem wall", "stemwall", "grade beam", "pier",
-    "trench pit", "trench drain", "correlator", "drainage pit", "bollard",
-    "gate post", "pole foundation", "shearwall", "shear wall", "enclosure"
-  ];
-  
-  let elementName = "";
-  for (const pat of elementPatterns) {
-    if (desc.includes(pat)) {
-      elementName = pat;
-      break;
-    }
-  }
-  
-  if (!elementName) {
-    // Can't determine element — use installed as safe default
-    return "installed";
-  }
-  
-  // Check if there are formwork or rebar items for the same element
-  const hasCompanionFormwork = allItems.some(other => {
-    if (other === item) return false;
-    const otherDesc = normalizeForMatch(other.description);
-    return (otherDesc.includes("formwork") || otherDesc.includes("form ")) &&
-           otherDesc.includes(elementName);
-  });
-  
-  const hasCompanionRebar = allItems.some(other => {
-    if (other === item) return false;
-    const otherDesc = normalizeForMatch(other.description);
-    return (otherDesc.includes("rebar") || otherDesc.includes("reinforc")) &&
-           otherDesc.includes(elementName);
-  });
-  
-  // Also check for generic rebar items (e.g., "Reinforcing Steel #4 Rebar in Slab-on-Grade")
-  const hasAnyRebar = allItems.some(other => {
-    if (other === item) return false;
-    const otherDesc = normalizeForMatch(other.description);
-    return (otherDesc.includes("rebar") || otherDesc.includes("reinforc")) &&
-           !otherDesc.includes("formwork");
-  });
-  
-  const hasAnyFormwork = allItems.some(other => {
-    if (other === item) return false;
-    const otherDesc = normalizeForMatch(other.description);
-    return (otherDesc.includes("formwork") || otherDesc.includes("form ")) &&
-           !otherDesc.includes("rebar");
-  });
-  
-  // If there are BOTH formwork AND rebar as separate items → use materialOnly
-  if ((hasCompanionFormwork || hasAnyFormwork) && (hasCompanionRebar || hasAnyRebar)) {
-    return "materialOnly";
-  }
-  
-  // If there's either formwork OR rebar → use a middle ground (materialOnly is closer)
-  if (hasCompanionFormwork || hasCompanionRebar || hasAnyFormwork || hasAnyRebar) {
-    return "materialOnly";
-  }
-  
-  // No companions → use installed (all-in)
-  return "installed";
-}
-
-/**
  * Find the best matching cost table entry for a takeoff item.
  */
-export function findBestMatch(
-  item: TakeoffItem,
-  allItems: TakeoffItem[]
-): CostMatch | null {
+export function findBestMatch(item: TakeoffItem): CostMatch | null {
   let bestEntry: CostTableEntry | null = null;
   let bestScore = 0;
   
@@ -220,22 +130,18 @@ export function findBestMatch(
     return null; // No good match found
   }
   
-  const priceType = determinePriceType(item, bestEntry, allItems);
-  const unitCost = priceType === "materialOnly" 
-    ? bestEntry.materialOnlyCost 
-    : bestEntry.installedCost;
-  
   return {
     entry: bestEntry,
     score: bestScore,
-    priceUsed: priceType,
-    unitCost,
+    unitCost: bestEntry.materialCost,
   };
 }
 
 /**
  * Apply cost table pricing to all items in a takeoff.
  * Returns the items with updated unitCost and extendedCost.
+ * 
+ * All prices are MATERIAL ONLY — no labor.
  * 
  * @param items - The takeoff items to price
  * @param regionalMultiplier - Regional cost multiplier (e.g., 0.97 for Miami)
@@ -249,7 +155,7 @@ export function applyPricing(
   let noMatchCount = 0;
   
   for (const item of items) {
-    const match = findBestMatch(item, items);
+    const match = findBestMatch(item);
     
     if (match) {
       const adjustedCost = Math.round(match.unitCost * regionalMultiplier * 100) / 100;
@@ -261,19 +167,17 @@ export function applyPricing(
         extendedCost: extCost,
         _costMatch: match.entry.id,
         _costMatchScore: match.score,
-        _priceType: match.priceUsed,
       });
       matchCount++;
     } else {
-      // No match — keep the LLM-generated cost but flag it
-      // Apply a sanity cap: no single item should exceed $100/unit for common units
+      // No match — keep the LLM-generated cost but apply sanity caps
       let uc = item.unitCost || 0;
       const unit = (item.unit || "").toUpperCase();
       
-      // Sanity caps by unit type
+      // Sanity caps by unit type (material-only caps)
       const caps: Record<string, number> = {
-        "SF": 25, "LF": 150, "CY": 350, "EA": 2000,
-        "SFCA": 15, "SY": 100, "LS": 50000,
+        "SF": 15, "LF": 100, "CY": 250, "EA": 1500,
+        "SFCA": 10, "SY": 75, "LS": 25000, "LB": 5,
       };
       
       if (caps[unit] && uc > caps[unit]) {
@@ -289,7 +193,6 @@ export function applyPricing(
         extendedCost: extCost,
         _costMatch: "NONE",
         _costMatchScore: 0,
-        _priceType: "llm-fallback",
       });
       noMatchCount++;
     }
