@@ -735,18 +735,25 @@ async function generateFormwork(
   }
 
   // Check for EXISTING formwork items already extracted from sheets
-  const existingFormwork = items.filter(item =>
-    item.description.toLowerCase().includes("formwork") ||
-    item.description.toLowerCase().includes("form ") ||
-    item.csiCode?.startsWith("03 11")
-  );
+  // Use strict matching: must start with 'formwork' or 'form for' or have CSI 03 11
+  // Do NOT match items that merely contain 'form' as part of a word (e.g. 'information', 'platform')
+  const existingFormwork = items.filter(item => {
+    const desc = item.description.toLowerCase();
+    return (
+      desc.startsWith("formwork") ||
+      desc.startsWith("form for") ||
+      desc.startsWith("forms for") ||
+      desc.includes(" formwork") ||
+      item.csiCode?.startsWith("03 11")
+    );
+  });
   const existingFormworkDescs = existingFormwork.map(f => f.description.toLowerCase());
   console.log(`[PostProcess] Found ${existingFormwork.length} existing formwork items, ${concreteItems.length} concrete items needing formwork`);
 
-  // If extracted formwork already covers most concrete items, skip generation entirely
-  // This prevents the LLM from generating duplicate formwork that inflates item count
-  if (existingFormwork.length >= concreteItems.length * 0.6) {
-    console.log(`[PostProcess] Extracted formwork (${existingFormwork.length}) already covers ≥60% of concrete items (${concreteItems.length}) — skipping formwork generation`);
+  // Only skip formwork generation if we have a substantial number of existing formwork items
+  // (at least 5 items AND covers ≥80% of concrete items) — be conservative about skipping
+  if (existingFormwork.length >= 5 && existingFormwork.length >= concreteItems.length * 0.8) {
+    console.log(`[PostProcess] Extracted formwork (${existingFormwork.length}) already covers ≥80% of concrete items (${concreteItems.length}) — skipping formwork generation`);
     return items;
   }
 

@@ -1916,3 +1916,8 @@
 - [x] FIX: Diagnosed — regex patterns match correctly, filter logic is sound
 - [x] FIX: Apply scope filter at extraction time (in takeoffAI.ts) — items from excluded divisions now filtered BEFORE saving to DB, so pre-consolidation view is already clean
 - [x] FIX: hardScopeFilter exported from takeoffPostProcess.ts, imported in takeoffAI.ts (no circular dependency)
+
+## Gap Fixes — April 15, 2026 (Round 5 Comparison)
+- [ ] BUG: Formwork not generating — 0 formwork items in latest run despite 20+ in client manual takeoff
+- [ ] BUG: F-1 and F-2 spread footing concrete quantities missing (client has 1.67 CY and 2.11 CY)
+- [ ] BUG: Building backfill missing — client has 28.99 CY, ConstructLine has 0

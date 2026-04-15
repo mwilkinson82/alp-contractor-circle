@@ -241,6 +241,14 @@ Slabs are the LARGEST concrete items by volume. Missing a slab is a critical err
 - Detail sheets show cross-sections and reinforcing, NOT additional footing length
 - If a footing schedule shows dimensions (width x depth), use those for the description but get the LENGTH from the plan
 - Include footing type in description (e.g., "WF-1 Continuous Footing 2'-0\" W x 1'-0\" D")
+- **SPREAD FOOTINGS (F-1, F-2, etc.):** These are isolated pad footings at column locations. Extract them as EA (each) with dimensions in the description. Calculate CY if dimensions are given: length × width × depth ÷ 27 = CY. Example: "F-1 Spread Footing 5'-0\" × 9'-0\" × 1'-6\" D — 2 EA"
+
+## EARTHWORK — BACKFILL REQUIRED:
+- ALWAYS extract building backfill / structural backfill as a separate CSI 31 line item
+- Backfill = material placed back against foundation walls after concrete cures
+- Estimate backfill as: (Excavation CY) - (Concrete CY placed) = Backfill CY
+- If you extracted excavation, you MUST also extract backfill (typically 15-25% of excavation volume)
+- Description: "Building Backfill / Structural Fill" unit: CY, CSI: 31 23 00
 
 ## CONSTRUCTION JOINTS:
 - Construction joints are measured in LINEAR FEET (LF), not EA
