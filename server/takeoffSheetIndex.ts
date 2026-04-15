@@ -403,40 +403,47 @@ export async function indexAllSheets(projectId: number): Promise<ProjectContext>
 
   const indexEntries: SheetIndexEntry[] = [];
 
-  console.log(`[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId}...`);
+  console.log(`[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=4)...`);
 
-  for (const sheet of sheets) {
-    if (!sheet.imageUrl) {
-      console.log(`[Sheet Index] Skipping sheet ${sheet.id} (no image URL)`);
-      continue;
-    }
+  // Process sheets in parallel batches of 4 for speed
+  const CONCURRENCY = 4;
+  const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
+  const skipped = sheets.length - sheetsWithImages.length;
+  if (skipped > 0) console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);
 
-    try {
-      console.log(`[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`);
-      const indexResult = await indexSingleSheet(sheet.imageUrl, sheet.pageNumber);
+  for (let batchStart = 0; batchStart < sheetsWithImages.length; batchStart += CONCURRENCY) {
+    const batch = sheetsWithImages.slice(batchStart, batchStart + CONCURRENCY);
+    console.log(`[Sheet Index] Processing batch ${Math.floor(batchStart / CONCURRENCY) + 1}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`);
 
-      const entry: SheetIndexEntry = {
-        sheetId: sheet.id,
-        pageNumber: sheet.pageNumber,
-        ...indexResult,
-      };
+    const results = await Promise.allSettled(
+      batch.map(async (sheet: any) => {
+        console.log(`[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`);
+        const indexResult = await indexSingleSheet(sheet.imageUrl, sheet.pageNumber);
+        return { sheet, indexResult };
+      })
+    );
 
-      indexEntries.push(entry);
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const { sheet, indexResult } = result.value;
+        const entry: SheetIndexEntry = {
+          sheetId: sheet.id,
+          pageNumber: sheet.pageNumber,
+          ...indexResult,
+        };
+        indexEntries.push(entry);
 
-      // Update the sheet record with the detected type (if not already set from a previous run)
-      if (sheet.sheetType === "other" || !sheet.sheetName) {
-        // Map our detailed types back to the DB enum
-        const dbSheetType = mapToDbSheetType(indexResult.sheetType);
-        await updateDrawingSheet(sheet.id, {
-          sheetName: indexResult.sheetName,
-          sheetType: dbSheetType as any,
-        });
+        if (sheet.sheetType === "other" || !sheet.sheetName) {
+          const dbSheetType = mapToDbSheetType(indexResult.sheetType);
+          await updateDrawingSheet(sheet.id, {
+            sheetName: indexResult.sheetName,
+            sheetType: dbSheetType as any,
+          });
+        }
+        console.log(`[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`);
+      } else {
+        console.error(`[Sheet Index] Error indexing sheet in batch:`, result.reason?.message || result.reason);
       }
-
-      console.log(`[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`);
-    } catch (err: any) {
-      console.error(`[Sheet Index] Error indexing sheet ${sheet.id}:`, err.message);
-      // Continue indexing other sheets even if one fails
     }
   }
 

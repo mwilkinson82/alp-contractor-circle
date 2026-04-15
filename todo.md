@@ -1877,3 +1877,13 @@
 - [x] FIX: Programmatic dedup — rewritten with 2-phase approach: Phase 1 exact-match, Phase 2 fuzzy word-overlap with extractCoreElement() stripping common prefixes
 - [x] FIX: removeSpecNotes() — removes $0-$1 LS items matching spec-note regex patterns
 - [x] FIX: Consolidation prompt — added aggressive merge examples, target item count (30-60), explicit merge-same-element rules
+
+## Speed + Accuracy Optimization — April 15, 2026
+- [x] SPEED: Audit full pipeline — mapped 53 LLM calls for 15-sheet project (Pass 1: 15, Pass 2: 15, Verification: 15, PostProcess: 8)
+- [x] SPEED: Parallelize Pass 1 sheet indexing (concurrency=4) — 4 sheets at once instead of sequential
+- [x] SPEED: Eliminate verification pass entirely — saves N LLM calls per project (~33% time reduction)
+- [x] SPEED: Parallelize Pass 2 extraction (concurrency=3) — 3 sheets at once instead of sequential
+- [x] SPEED: Make CY volume calculation programmatic — removed 1 LLM call, instant calculation
+- [x] ACCURACY: Hard scope filter + spec note filter + fuzzy dedup all deployed
+- [ ] ACCURACY: Target ~50-80 items, within 10% of manual benchmark ($175K) — awaiting test results
+- [ ] TARGET: Total processing time under 15-20 minutes (down from 60+) — awaiting test results

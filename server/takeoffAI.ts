@@ -512,12 +512,13 @@ export async function processDrawingSheet(
     console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}`);
     const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext);
 
-    // Verification pass: Verify and reconcile (skip for cover sheets)
+    // Verification pass REMOVED for speed optimization.
+    // The verification was adding N extra LLM calls (~7-10 min for 15 sheets)
+    // but often returned the same or worse results. Accuracy is now handled by:
+    // - Better extraction prompts (anti-spec-note rules, scope awareness)
+    // - Hard programmatic scope filter in post-processing
+    // - 2-phase programmatic dedup + LLM consolidation
     let result = extracted;
-    if (extracted.sheetType !== "cover" && extracted.items.length > 0) {
-      console.log(`[Takeoff AI] Verifying ${extracted.items.length} items for sheet ${sheetId}`);
-      result = await verifyQuantities(extracted, imageUrl, selectedDivisions);
-    }
 
     // Delete any existing items for this sheet (for reprocessing)
     await deleteTakeoffItemsBySheet(sheetId);
@@ -611,13 +612,15 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     // Non-fatal: if indexing fails, we still do the extraction without context
   }
 
-  // ─── PASS 2: Extract Quantities with Context ───────────────────────────────
-  console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} ===`);
+  //  // ─── PASS 2: Extract Quantities with Context (PARALLEL) ───────────────
+  console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} (parallel, concurrency=3) ===`);
 
   const pendingSheets = await getPendingSheets(projectId);
   let processedCount = project.processedSheets || 0;
   let hasError = false;
 
+  // Skip sheets without images first
+  const sheetsToProcess = [];
   for (const sheet of pendingSheets) {
     if (!sheet.imageUrl) {
       await updateDrawingSheet(sheet.id, {
@@ -625,17 +628,31 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         errorMessage: "No image URL available",
       });
       processedCount++;
-      continue;
+    } else {
+      sheetsToProcess.push(sheet);
+    }
+  }
+
+  // Process sheets in parallel batches of 3
+  const EXTRACT_CONCURRENCY = 3;
+  for (let batchStart = 0; batchStart < sheetsToProcess.length; batchStart += EXTRACT_CONCURRENCY) {
+    const batch = sheetsToProcess.slice(batchStart, batchStart + EXTRACT_CONCURRENCY);
+    console.log(`[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`);
+
+    const results = await Promise.allSettled(
+      batch.map(sheet =>
+        processDrawingSheet(sheet.id, sheet.imageUrl!, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText)
+      )
+    );
+
+    for (const result of results) {
+      processedCount++;
+      if (result.status === "rejected" || (result.status === "fulfilled" && !result.value)) {
+        hasError = true;
+      }
     }
 
-    const result = await processDrawingSheet(sheet.id, sheet.imageUrl, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText);
-    processedCount++;
-
-    if (!result) {
-      hasError = true;
-    }
-
-    // Update progress
+    // Update progress after each batch
     await updateTakeoffProject(projectId, {
       processedSheets: processedCount,
     });

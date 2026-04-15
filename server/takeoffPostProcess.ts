@@ -1113,11 +1113,11 @@ Return enhanced rebar items as a JSON array. For each rebar item:
  * descriptions/notes but are measured in LF, SF, or SFCA instead of CY.
  * Also adds a summary CY item for the total concrete pour.
  */
-async function calculateConcreteVolumes(
+function calculateConcreteVolumes(
   items: ConsolidatedItem[],
-  currency: string | null,
-  scopeText: string | null
-): Promise<ConsolidatedItem[]> {
+  _currency: string | null,
+  _scopeText: string | null
+): ConsolidatedItem[] {
   // Find concrete items (CSI 03) that are NOT already in CY and NOT formwork/rebar/earthwork
   const concreteItems = items.filter(item => {
     const desc = item.description.toLowerCase();
@@ -1158,179 +1158,112 @@ async function calculateConcreteVolumes(
     return items;
   }
 
-  // Items already in CY
-  const alreadyCY = concreteItems.filter(i => i.unit === "CY");
-  // Items NOT in CY that might need volume calculation
-  const needsConversion = concreteItems.filter(i => 
-    i.unit !== "CY" && i.quantity > 0
-  );
+  // Programmatic CY calculation — no LLM call needed
+  console.log(`[PostProcess] Calculating CY volumes programmatically for ${concreteItems.length} concrete items...`);
 
-  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+  const updatedItems = [...items];
+  let totalCY = 0;
+  let calculatedCount = 0;
 
-  const volumePrompt = `You are a senior construction estimator. Your job is to calculate CONCRETE VOLUME in CUBIC YARDS (CY) for each concrete item in this takeoff.
+  for (const cItem of concreteItems) {
+    const combined = `${cItem.description} ${cItem.notes || ""}`.toLowerCase();
+    let volumeCY = 0;
+    let calculation = "";
 
-Many items have dimensions in their descriptions or notes but are measured in LF, SF, EA, or LS instead of CY. You must:
-
-1. **Parse dimensions** from the description and notes (e.g., "2'-0" W x 1'-0" T" means 2 ft wide x 1 ft thick)
-2. **Calculate volume** using the formula: Length × Width × Thickness / 27 = CY
-3. **For items already in CY**, verify the calculation is reasonable
-4. **For items in LF** (linear feet), you need width and depth to calculate: LF × Width(ft) × Depth(ft) / 27 = CY
-5. **For items in SF** (square feet), you need thickness to calculate: SF × Thickness(ft) / 27 = CY
-6. **For items in EA** (each), you need all three dimensions: L × W × D × count / 27 = CY
-7. **Add 5% waste factor** to all concrete volumes
-
-## COMMON DIMENSION PATTERNS:
-- Footings: width × depth × length (e.g., WF-1: 2'-0" wide × 1'-0" thick, measured in LF)
-- Slabs: area × thickness (e.g., 2,308 SF × 4" thick or 6" thick)
-- Pits: length × width × depth (dimensions in description)
-- Stem walls: height × thickness × length
-- Grade beams: width × depth × length
-
-## CONCRETE ITEMS TO CALCULATE:
-${JSON.stringify(concreteItems.map((item, idx) => ({
-  idx,
-  description: item.description,
-  quantity: item.quantity,
-  unit: item.unit,
-  unitCost: item.unitCost / 100,
-  notes: item.notes,
-})), null, 2)}
-
-${scopeText ? `SCOPE: "${scopeText}"` : ""}
-
-## OUTPUT FORMAT
-Return a JSON object with:
-- volumeItems: array of concrete volume calculations, one per item above. Each must have:
-  - originalIdx: the idx from the input
-  - description: description of the concrete element
-  - volumeCY: calculated volume in cubic yards (including 5% waste). Use 0 if volume cannot be calculated.
-  - calculation: show your math step by step (e.g., "320 LF × 2.0' W × 1.0' D / 27 = 23.7 CY + 5% waste = 24.9 CY")
-  - psiStrength: concrete strength if mentioned (e.g., "3000 PSI", "4000 PSI") or "not specified"
-  - canCalculate: boolean - true if you have enough dimensions to calculate volume
-
-IMPORTANT: Show ALL math. Every CY value must have a calculation breakdown. If you don't have enough dimensions, set canCalculate to false and volumeCY to 0.`;
-
-  const volumeSchema = {
-    type: "json_schema" as const,
-    json_schema: {
-      name: "volume_result",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          volumeItems: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                originalIdx: { type: "integer" },
-                description: { type: "string" },
-                volumeCY: { type: "number" },
-                calculation: { type: "string" },
-                psiStrength: { type: "string" },
-                canCalculate: { type: "boolean" },
-              },
-              required: ["originalIdx", "description", "volumeCY", "calculation", "psiStrength", "canCalculate"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["volumeItems"],
-        additionalProperties: false,
-      },
-    },
-  };
-
-  try {
-    console.log(`[PostProcess] Calculating CY volumes for ${concreteItems.length} concrete items...`);
-
-    const response = await invokeLLM({
-      messages: [
-        { role: "system", content: "You are a senior construction estimator. Calculate concrete volumes in cubic yards from dimensions. Show all math. Return JSON." },
-        { role: "user", content: volumePrompt },
-      ],
-      response_format: volumeSchema,
-    });
-
-    const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) throw new Error("No content in volume response");
-    const content = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
-
-    const parsed = JSON.parse(content) as {
-      volumeItems: Array<{
-        originalIdx: number;
-        description: string;
-        volumeCY: number;
-        calculation: string;
-        psiStrength: string;
-        canCalculate: boolean;
-      }>;
+    // Parse dimensions from description/notes
+    // Pattern: N'-N" or just N" for widths/depths
+    const parseFtIn = (s: string): number | null => {
+      // Match N'-N"
+      const ftIn = s.match(/(\d+)['’][-\s]*(\d+)["\u201D]/);
+      if (ftIn) return parseInt(ftIn[1]) + parseInt(ftIn[2]) / 12;
+      // Match N'
+      const ftOnly = s.match(/(\d+)['’]/);
+      if (ftOnly) return parseInt(ftOnly[1]);
+      // Match N"
+      const inOnly = s.match(/(\d+)["\u201D]/);
+      if (inOnly) return parseInt(inOnly[1]) / 12;
+      return null;
     };
 
-    // Build a map of CY calculations
-    const cyMap = new Map<number, { cy: number; calc: string; psi: string }>();
-    let calculatedCount = 0;
-    for (const vol of parsed.volumeItems) {
-      if (vol.canCalculate && vol.volumeCY > 0) {
-        cyMap.set(vol.originalIdx, {
-          cy: vol.volumeCY,
-          calc: vol.calculation,
-          psi: vol.psiStrength,
-        });
-        calculatedCount++;
+    const unit = cItem.unit.toUpperCase();
+    const qty = cItem.quantity;
+
+    if (unit === "CY" && qty > 0) {
+      // Already in CY
+      volumeCY = qty;
+      calculation = `Already in CY: ${qty.toFixed(2)} CY`;
+    } else if (unit === "LF" && qty > 0) {
+      // LF items: need width and depth from description
+      // Look for patterns like "24\"W x 12\"D" or "2'-0\" W x 1'-0\" D"
+      const wxd = combined.match(/(\d+)["\u201D'’]?[-\s]*(\d*)["\u201D]?\s*[wW]\s*[x××]\s*(\d+)["\u201D'’]?[-\s]*(\d*)["\u201D]?\s*[dDtT]/);
+      if (wxd) {
+        const wInches = parseInt(wxd[1]) * (wxd[1].length <= 2 && !combined.includes("'") ? 1 : 12) + parseInt(wxd[2] || "0");
+        const dInches = parseInt(wxd[3]) * (wxd[3].length <= 2 && !combined.includes("'") ? 1 : 12) + parseInt(wxd[4] || "0");
+        // Heuristic: if values > 24, likely inches; if <= 24, check context
+        let wFt = wInches <= 120 ? wInches / 12 : wInches;
+        let dFt = dInches <= 120 ? dInches / 12 : dInches;
+        // Simple heuristic: values in description are usually inches for footings
+        wFt = parseInt(wxd[1]) / 12;
+        dFt = parseInt(wxd[3]) / 12;
+        volumeCY = (qty * wFt * dFt) / 27 * 1.05;
+        calculation = `${qty.toFixed(0)} LF × ${wFt.toFixed(2)}' W × ${dFt.toFixed(2)}' D / 27 × 1.05 waste = ${volumeCY.toFixed(2)} CY`;
+      } else {
+        // Try to find any two dimension numbers
+        const dims = combined.match(/(\d+)["\u201D]\s*[x××]\s*(\d+)["\u201D]/);
+        if (dims) {
+          const wFt = parseInt(dims[1]) / 12;
+          const dFt = parseInt(dims[2]) / 12;
+          volumeCY = (qty * wFt * dFt) / 27 * 1.05;
+          calculation = `${qty.toFixed(0)} LF × ${wFt.toFixed(2)}' × ${dFt.toFixed(2)}' / 27 × 1.05 = ${volumeCY.toFixed(2)} CY`;
+        }
+      }
+    } else if (unit === "SF" && qty > 0) {
+      // SF items: need thickness
+      const thickMatch = combined.match(/(\d+)["\u201D]?\s*(thick|thk|slab|deep)/i);
+      if (thickMatch) {
+        const thickFt = parseInt(thickMatch[1]) / 12;
+        volumeCY = (qty * thickFt) / 27 * 1.05;
+        calculation = `${qty.toFixed(0)} SF × ${thickFt.toFixed(3)}' thick / 27 × 1.05 = ${volumeCY.toFixed(2)} CY`;
+      } else {
+        // Default 4" thick for slabs if no thickness specified
+        const defaultThick = 4 / 12;
+        volumeCY = (qty * defaultThick) / 27 * 1.05;
+        calculation = `${qty.toFixed(0)} SF × ${defaultThick.toFixed(3)}' thick (assumed 4\") / 27 × 1.05 = ${volumeCY.toFixed(2)} CY`;
+      }
+    } else if (unit === "EA" && qty > 0) {
+      // EA items: try to parse L x W x D
+      const lwd = combined.match(/(\d+)['’"\u201D]?\s*[x××]\s*(\d+)['’"\u201D]?\s*[x××]\s*(\d+)['’"\u201D]?/);
+      if (lwd) {
+        // Assume inches if values are reasonable
+        const l = parseInt(lwd[1]) / 12;
+        const w = parseInt(lwd[2]) / 12;
+        const d = parseInt(lwd[3]) / 12;
+        volumeCY = (qty * l * w * d) / 27 * 1.05;
+        calculation = `${qty.toFixed(0)} EA × ${l.toFixed(2)}' × ${w.toFixed(2)}' × ${d.toFixed(2)}' / 27 × 1.05 = ${volumeCY.toFixed(2)} CY`;
       }
     }
 
-    console.log(`[PostProcess] Calculated CY for ${calculatedCount} of ${concreteItems.length} concrete items`);
-
-    // Update items with CY volume in their notes, and add summary CY items
-    const updatedItems = [...items];
-    const cyItems: ConsolidatedItem[] = [];
-    let totalCY = 0;
-
-    // Group by PSI strength for concrete ordering
-    const byPsi = new Map<string, { cy: number; items: string[] }>();
-
-    for (let i = 0; i < concreteItems.length; i++) {
-      const volData = cyMap.get(i);
-      if (!volData) continue;
+    if (volumeCY > 0) {
+      calculatedCount++;
+      totalCY += volumeCY;
 
       // Find this item in the main array and append CY info to notes
-      const mainIdx = updatedItems.findIndex(item => 
-        item.description === concreteItems[i].description && 
-        item.quantity === concreteItems[i].quantity
+      const mainIdx = updatedItems.findIndex(item =>
+        item.description === cItem.description &&
+        item.quantity === cItem.quantity
       );
       if (mainIdx !== -1) {
         const existingNotes = updatedItems[mainIdx].notes || "";
         updatedItems[mainIdx] = {
           ...updatedItems[mainIdx],
-          notes: `${existingNotes}${existingNotes ? " | " : ""}[Volume: ${volData.cy.toFixed(2)} CY] ${volData.calc}${volData.psi !== "not specified" ? " (" + volData.psi + ")" : ""}`,
+          notes: `${existingNotes}${existingNotes ? " | " : ""}[Volume: ${volumeCY.toFixed(2)} CY] ${calculation}`,
         };
       }
-
-      totalCY += volData.cy;
-
-      // Group by PSI
-      const psiKey = volData.psi === "not specified" ? "Unspecified" : volData.psi;
-      if (!byPsi.has(psiKey)) {
-        byPsi.set(psiKey, { cy: 0, items: [] });
-      }
-      const group = byPsi.get(psiKey)!;
-      group.cy += volData.cy;
-      group.items.push(concreteItems[i].description);
     }
-
-    // Log summary by PSI strength (informational only — no summary line items to avoid double-counting)
-    for (const [psi, data] of Array.from(byPsi.entries())) {
-      console.log(`[PostProcess] CY by PSI: ${psi} = ${data.cy.toFixed(1)} CY (${data.items.length} items)`);
-    }
-
-    console.log(`[PostProcess] CY volume: ${totalCY.toFixed(1)} CY total across ${byPsi.size} PSI groups (volumes annotated in item notes, no summary line items)`);
-    return updatedItems;
-  } catch (error) {
-    console.error("[PostProcess] CY volume calculation failed:", error);
-    return items;
   }
+
+  console.log(`[PostProcess] CY volume: calculated ${calculatedCount} of ${concreteItems.length} items, total ${totalCY.toFixed(1)} CY`);
+  return updatedItems;
 }
 
 // ─── Hard Programmatic Filters ──────────────────────────────────────
@@ -1543,7 +1476,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 
   // Step 5: Calculate concrete volumes in CY
   const cyBefore = consolidated.filter(i => i.unit === "CY" && i.csiDivision === "03").length;
-  consolidated = await calculateConcreteVolumes(consolidated, project.currency, project.scopeText);
+  consolidated = calculateConcreteVolumes(consolidated, project.currency, project.scopeText);
   const cyAfter = consolidated.filter(i => i.unit === "CY" && i.csiDivision === "03").length;
   const cyItemsAdded = cyAfter - cyBefore;
   console.log(`[PostProcess] CY calculation: ${cyItemsAdded} summary CY items added`);
