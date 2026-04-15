@@ -153,15 +153,18 @@ export default function TakeoffDetail() {
       // Play completion chime and send browser notification
       playCompletionChime();
       sendCompletionNotification(project?.name || "Project");
-      // Refetch items since they were just created/updated
-      refetchItems().then(() => {
-        setActiveTab("items");
-        if (prevStatus === "post_processing") {
-          toast.success("Consolidation complete! Items have been updated.");
-        } else {
+      
+      if (prevStatus === "post_processing") {
+        // Hard refresh for consolidation to ensure all data is fresh
+        toast.success("Consolidation complete! Refreshing data...");
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        // Regular refetch for initial analysis
+        refetchItems().then(() => {
+          setActiveTab("items");
           toast.success("Analysis complete! Showing your quantity takeoff.");
-        }
-      });
+        });
+      }
     }
   }, [progress?.status, project?.status, refetchItems]);
 

@@ -1851,3 +1851,8 @@
 - [x] BUG: Construction joints extracted as EA instead of LF — added CONSTRUCTION JOINTS rules to both extraction and consolidation prompts
 - [x] Consolidation prompt: added CRITICAL DEDUPLICATION RULES for footings, slabs, bollards
 - [ ] FEATURE: CY rollup calculation — convert LF/SF/EA members to CY using dimensions (LF x W x D / 27) [already exists in calculateConcreteVolumes, annotates notes]
+
+## Consolidation UX Fixes (Round 2)
+- [x] BUG: Auto-refresh doesn't work — hard page reload when consolidation completes (post_processing -> completed)
+- [x] BUG: Progress bar is meaningless — shows 5-step progress (20% per step) instead of indeterminate spinner
+- [x] BUG: 5-minute timeout not working in production — timeout already deployed, works in dev (396 tests passing)
