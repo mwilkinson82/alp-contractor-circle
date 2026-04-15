@@ -260,7 +260,7 @@ function FullscreenDrawing({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
         <span className="text-white/80 text-sm font-medium">{sheetName}</span>
         <button
@@ -272,7 +272,7 @@ function FullscreenDrawing({
         </button>
       </div>
       <div className="flex-1 min-h-0">
-        <DrawingViewer imageUrl={imageUrl} sheetName={sheetName} onFullscreen={onClose} />
+        <DrawingViewer imageUrl={imageUrl} sheetName={sheetName} />
       </div>
     </div>
   );
@@ -367,9 +367,13 @@ export default function ItemDetailModal({
 
   return (
     <>
-      <Dialog open={!!item} onOpenChange={onClose}>
+      <Dialog open={!!item} onOpenChange={(open) => { if (!open && isFullscreen) return; onClose(); }}>
         {/* Wider modal when drawing is available */}
-        <DialogContent className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}>
+        <DialogContent
+          className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}
+          onPointerDownOutside={(e) => { if (isFullscreen) e.preventDefault(); }}
+          onInteractOutside={(e) => { if (isFullscreen) e.preventDefault(); }}
+        >
           <DialogHeader>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="shrink-0 font-mono text-xs border-amber-500/30 text-amber-400">

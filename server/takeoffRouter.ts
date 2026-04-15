@@ -713,7 +713,12 @@ export const takeoffRouter = router({
       }
       // Run post-processing in background — use post_processing status so frontend shows consolidation overlay
       await updateTakeoffProject(input.projectId, { status: "post_processing" as any });
-      postProcessTakeoff(input.projectId)
+      // Wrap in a 5-minute timeout to prevent infinite hangs
+      const CONSOLIDATION_TIMEOUT_MS = 5 * 60 * 1000;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Consolidation timed out after 5 minutes")), CONSOLIDATION_TIMEOUT_MS)
+      );
+      Promise.race([postProcessTakeoff(input.projectId), timeoutPromise])
         .then(async (stats) => {
           console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);
           await updateTakeoffProject(input.projectId, { status: "completed" });

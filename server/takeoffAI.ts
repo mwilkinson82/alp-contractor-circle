@@ -615,7 +615,12 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     try {
       console.log(`[Takeoff AI] Starting post-processing pipeline for project ${projectId}...`);
       await updateTakeoffProject(projectId, { status: "post_processing" as any });
-      const ppStats = await postProcessTakeoff(projectId);
+      // 5-minute timeout to prevent infinite hangs
+      const PP_TIMEOUT_MS = 5 * 60 * 1000;
+      const ppTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Post-processing timed out after 5 minutes")), PP_TIMEOUT_MS)
+      );
+      const ppStats = await Promise.race([postProcessTakeoff(projectId), ppTimeout]);
       console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
     } catch (ppError: any) {
       console.error(`[Takeoff AI] Post-processing failed (items preserved from per-sheet extraction):`, ppError);

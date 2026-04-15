@@ -1839,3 +1839,6 @@
 - [x] Fix PDF fullscreen icon not working — Maximize2 button in drawing toolbar now has onFullscreen callback
 - [x] In fullscreen overlay, Maximize2 button now exits fullscreen (closes overlay) instead of resetting zoom
 - [x] Tests passing (396 tests, 0 TS errors)
+
+- [x] BUG: PDF fullscreen zoom still exits fullscreen — fixed: prevent Radix Dialog outside-click dismissal when fullscreen overlay is active + stopPropagation on overlay
+- [x] BUG: Consolidate & Enhance stuck for 15+ minutes — fixed: added 5-minute timeout to both reprocessConsolidate and full analysis pipeline
