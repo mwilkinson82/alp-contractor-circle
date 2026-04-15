@@ -80,12 +80,44 @@ function normalizeDesc(desc: string): string {
 }
 
 /**
- * Programmatic pre-dedup: merge items with same CSI code + very similar description + same unit.
- * Keeps the item with the highest confidence; sums quantities if additive (e.g., same slab from different sheets),
- * or keeps the max quantity if non-additive (e.g., same footing measured from plan vs detail).
+ * Extract the "core element" from a description by removing common prefixes/suffixes.
+ * E.g., "Earthwork Excavation for Trench Pit" → "excavation trench pit"
+ */
+function extractCoreElement(desc: string): string {
+  const norm = normalizeDesc(desc);
+  // Remove common prefixes that don't change the element identity
+  return norm
+    .replace(/^(earthwork|concrete|reinforced|structural|cast in place|cip)\s+/g, "")
+    .replace(/\b(for|the|of|at|in|on|to|and|with|from|by)\b/g, "")
+    .replace(/\b(w|x|d|h|l|thick|deep|wide|high|long)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Calculate word overlap ratio between two normalized descriptions.
+ * Returns a value between 0 and 1.
+ */
+function wordOverlap(a: string, b: string): number {
+  const wordsA = new Set(a.split(/\s+/).filter(w => w.length > 1));
+  const wordsB = new Set(b.split(/\s+/).filter(w => w.length > 1));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let overlap = 0;
+  Array.from(wordsA).forEach(w => {
+    if (wordsB.has(w)) overlap++;
+  });
+  const unionSet = new Set(Array.from(wordsA).concat(Array.from(wordsB)));
+  const union = unionSet.size;
+  return union > 0 ? overlap / union : 0;
+}
+
+/**
+ * Programmatic pre-dedup: merge items with same CSI division + very similar description + same unit.
+ * Uses both exact-match grouping AND fuzzy word-overlap matching to catch near-duplicates.
+ * Keeps the item with the highest confidence; uses max quantity (safer than summing).
  */
 function programmaticDedup(items: RawItem[]): RawItem[] {
-  // Group by CSI code + normalized description + unit
+  // Phase 1: Exact-match grouping by CSI code + normalized description + unit
   const groups = new Map<string, RawItem[]>();
   
   for (const item of items) {
@@ -98,49 +130,89 @@ function programmaticDedup(items: RawItem[]): RawItem[] {
     groups.get(key)!.push(item);
   }
   
-  const result: RawItem[] = [];
-  let mergedCount = 0;
+  // Merge exact matches first
+  const exactMerged: RawItem[] = [];
+  let exactMergedCount = 0;
   
-  const groupEntries = Array.from(groups.entries());
-  for (const [_key, group] of groupEntries) {
+  for (const [_key, group] of Array.from(groups.entries())) {
     if (group.length === 1) {
-      result.push(group[0]);
+      exactMerged.push(group[0]);
       continue;
     }
-    
-    // Multiple items with same key — merge them
-    mergedCount += group.length - 1;
-    
-    // Sort by confidence desc, then by quantity desc
+    exactMergedCount += group.length - 1;
     group.sort((a: RawItem, b: RawItem) => {
       if (b.confidence !== a.confidence) return b.confidence - a.confidence;
       return parseFloat(b.quantity) - parseFloat(a.quantity);
     });
-    
     const best = group[0];
-    const desc = best.description;
-    const isFooting = /footing|wf-|continuous/i.test(desc);
-    const isFormwork = /formwork|form /i.test(desc);
-    
-    // For footings and formwork: keep the MAX quantity (same element from different views)
-    // For other items: also keep MAX (safer than summing, which causes over-counting)
-    let finalQty: number;
-    if (isFooting || isFormwork) {
-      finalQty = Math.max(...group.map((g: RawItem) => parseFloat(g.quantity)));
-    } else {
-      // Keep the max quantity — the plan view measurement is usually most accurate
-      finalQty = Math.max(...group.map((g: RawItem) => parseFloat(g.quantity)));
-    }
-    
-    // Keep the best item but update quantity
-    result.push({
+    const finalQty = Math.max(...group.map((g: RawItem) => parseFloat(g.quantity)));
+    exactMerged.push({
       ...best,
       quantity: finalQty.toFixed(2),
-      notes: `${best.notes || ""} [Merged ${group.length} duplicate items from different sheets]`.trim(),
+      notes: `${best.notes || ""} [Merged ${group.length} exact duplicates]`.trim(),
     });
   }
   
-  console.log(`[PreDedup] Programmatic dedup: ${items.length} → ${result.length} items (${mergedCount} duplicates merged)`);
+  console.log(`[PreDedup] Phase 1 (exact match): ${items.length} → ${exactMerged.length} items (${exactMergedCount} merged)`);
+  
+  // Phase 2: Fuzzy matching within same CSI division + same unit
+  // Group by division + unit
+  const divUnitGroups = new Map<string, RawItem[]>();
+  for (const item of exactMerged) {
+    const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "99").trim();
+    const key = `${div}|${item.unit.toUpperCase()}`;
+    if (!divUnitGroups.has(key)) divUnitGroups.set(key, []);
+    divUnitGroups.get(key)!.push(item);
+  }
+  
+  const result: RawItem[] = [];
+  let fuzzyMergedCount = 0;
+  
+  for (const [_key, divItems] of Array.from(divUnitGroups.entries())) {
+    const used = new Set<number>();
+    
+    for (let i = 0; i < divItems.length; i++) {
+      if (used.has(i)) continue;
+      
+      const cluster: RawItem[] = [divItems[i]];
+      const coreA = extractCoreElement(divItems[i].description);
+      
+      for (let j = i + 1; j < divItems.length; j++) {
+        if (used.has(j)) continue;
+        
+        const coreB = extractCoreElement(divItems[j].description);
+        const overlap = wordOverlap(coreA, coreB);
+        
+        // Merge if ≥75% word overlap on core elements
+        if (overlap >= 0.75) {
+          cluster.push(divItems[j]);
+          used.add(j);
+        }
+      }
+      
+      used.add(i);
+      
+      if (cluster.length === 1) {
+        result.push(cluster[0]);
+      } else {
+        fuzzyMergedCount += cluster.length - 1;
+        cluster.sort((a: RawItem, b: RawItem) => {
+          if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+          return parseFloat(b.quantity) - parseFloat(a.quantity);
+        });
+        const best = cluster[0];
+        const finalQty = Math.max(...cluster.map((g: RawItem) => parseFloat(g.quantity)));
+        result.push({
+          ...best,
+          quantity: finalQty.toFixed(2),
+          notes: `${best.notes || ""} [Fuzzy-merged ${cluster.length} similar items]`.trim(),
+        });
+      }
+    }
+  }
+  
+  console.log(`[PreDedup] Phase 2 (fuzzy match): ${exactMerged.length} → ${result.length} items (${fuzzyMergedCount} merged)`);
+  console.log(`[PreDedup] Total dedup: ${items.length} → ${result.length} items`);
   return result;
 }
 
@@ -278,11 +350,20 @@ Return a JSON array of consolidated items. Each item must have:
 - outOfScope: boolean — true if this item should be REMOVED because it's outside the defined scope
 
 IMPORTANT RULES:
-- Never lose a genuinely unique item — only merge true duplicates
+- AGGRESSIVELY merge duplicates — the input has already been pre-filtered, so most items in this batch refer to the same physical elements seen from different drawing sheets
 - Prefer measured quantities (SF, LF, CY, EA) over lump sums (LS)
 - If ALL instances of an item are LS, keep it as LS but note it needs plan measurement
-- Combine quantities when items are additive (e.g., slab area from room A + room B)
-- Do NOT combine quantities when items are the same element seen from different views (keep the most accurate one)
+- Do NOT sum quantities from different sheets for the same element — keep the LARGEST measured quantity (the plan view is most accurate)
+- TARGET: A typical foundation takeoff should have 30-60 consolidated items, NOT 100+. If you're outputting more than 80 items, you're not merging aggressively enough.
+
+## MERGE AGGRESSIVELY — THESE ARE THE SAME ITEM:
+- "Excavation for Trench Pit" and "Earthwork Excavation for Trench Pit" → MERGE (keep max qty)
+- "Concrete Footing for Bollard" and "Concrete Bollard Foundation" → MERGE
+- "Concrete Gate Post Foundation" and "Concrete for Gate Post Foundations" → MERGE
+- "Concrete Trench Pit" and "Concrete Carwash Trench Pit" → MERGE
+- "Excavation for Bollard Footings" appearing 3x with different quantities → MERGE (keep max qty)
+- Items with the same element name but different dimension callouts → MERGE (keep the most detailed description)
+- "Compacted Base Course below X" and "Compacted Base Course below Y" for adjacent areas → MERGE into one base course item with combined area
 
 ## CRITICAL DEDUPLICATION RULES:
 
@@ -1252,6 +1333,145 @@ IMPORTANT: Show ALL math. Every CY value must have a calculation breakdown. If y
   }
 }
 
+// ─── Hard Programmatic Filters ──────────────────────────────────────
+
+/**
+ * Hard scope filter: programmatically remove items from CSI divisions
+ * that are clearly out of scope based on the scope text.
+ * This runs BEFORE LLM consolidation to reduce item count.
+ */
+function hardScopeFilter(items: RawItem[], scopeText: string | null): RawItem[] {
+  if (!scopeText || scopeText.trim().length === 0) return items;
+
+  const scope = scopeText.toLowerCase();
+  
+  // Detect scope patterns
+  const isFoundationOnly = /foundation|footing|slab.on.grade|sog|below.grade/i.test(scope) && 
+    /only|up.through|none.of.the.vertical|no.vertical/i.test(scope);
+  const isConcreteOnly = /concrete.only/i.test(scope);
+  const isStructuralOnly = /structural.only/i.test(scope);
+  const noVertical = /none.of.the.vertical|no.vertical|not.vertical/i.test(scope);
+  
+  if (!isFoundationOnly && !isConcreteOnly && !isStructuralOnly && !noVertical) {
+    console.log(`[HardFilter] No restrictive scope pattern detected, skipping hard filter`);
+    return items;
+  }
+  
+  // Define which divisions to EXCLUDE based on scope
+  const excludeDivisions = new Set<string>();
+  
+  if (isFoundationOnly || noVertical) {
+    // Foundation/SOG scope: exclude above-grade divisions
+    excludeDivisions.add("04"); // Masonry
+    excludeDivisions.add("05"); // Metals (structural steel)
+    excludeDivisions.add("06"); // Wood/Plastics
+    excludeDivisions.add("07"); // Thermal/Moisture
+    excludeDivisions.add("08"); // Openings (doors/windows)
+    excludeDivisions.add("09"); // Finishes
+    excludeDivisions.add("10"); // Specialties
+    excludeDivisions.add("11"); // Equipment
+    excludeDivisions.add("12"); // Furnishings
+    excludeDivisions.add("13"); // Special Construction
+    excludeDivisions.add("14"); // Conveying
+    excludeDivisions.add("21"); // Fire Suppression
+    excludeDivisions.add("22"); // Plumbing
+    excludeDivisions.add("23"); // HVAC
+    excludeDivisions.add("26"); // Electrical
+    excludeDivisions.add("27"); // Communications
+    excludeDivisions.add("28"); // Electronic Safety
+    excludeDivisions.add("33"); // Utilities
+  }
+  
+  if (isConcreteOnly) {
+    // Only keep 03 and 31
+    for (const div of ["01","02","04","05","06","07","08","09","10","11","12","13","14","21","22","23","26","27","28","32","33"]) {
+      excludeDivisions.add(div);
+    }
+  }
+  
+  if (excludeDivisions.size === 0) return items;
+  
+  const before = items.length;
+  const filtered = items.filter(item => {
+    const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "").trim();
+    if (excludeDivisions.has(div)) {
+      return false;
+    }
+    return true;
+  });
+  
+  const removed = before - filtered.length;
+  console.log(`[HardFilter] Scope: "${scope.substring(0, 80)}..." → removed ${removed} items from excluded divisions: ${Array.from(excludeDivisions).join(", ")}`);
+  return filtered;
+}
+
+/**
+ * Remove specification notes that were incorrectly extracted as line items.
+ * These are items with $0-$1 cost, LS unit, and descriptions that read like spec notes.
+ */
+function removeSpecNotes(items: RawItem[]): RawItem[] {
+  const before = items.length;
+  
+  const filtered = items.filter(item => {
+    const cost = item.extendedCost; // in cents
+    const unit = item.unit.toUpperCase();
+    const desc = item.description.toLowerCase();
+    const qty = parseFloat(item.quantity);
+    
+    // Remove items that are clearly spec notes:
+    // - $0-$1 cost (0-100 cents) AND LS unit AND qty <= 1
+    if (cost <= 100 && unit === "LS" && qty <= 1) {
+      // Check if description looks like a spec note
+      const specPatterns = [
+        /shall\s+(be|conform|not|provide|exceed)/,
+        /minimum\s+(compressive|ultimate|yield|strength|prism)/,
+        /psi\s+(minimum|maximum)/,
+        /astm\s+[a-z]/,
+        /conform\s+to/,
+        /unless\s+noted/,
+        /per\s+table/,
+        /licensed\s+in/,
+        /not\s+permitted/,
+        /shall\s+be\s+(a\s+pe|licensed|designed|cambered|adequately|spaced)/,
+        /provide\s+(floor|lateral|galvanized)/,
+        /moisture\s+content/,
+        /delivery.*handling/,
+        /dimensions\s+shall/,
+        /manufacturer/,
+        /fastened\s+together/,
+        /multiple\s+lvl/,
+        /nails\s+@/,
+        /bolts\s+@/,
+        /rows\s+of/,
+        /grade\s+\d+\s+ksi/,
+        /yield\s+strength/,
+        /\bply\b.*\bmembers\b/,
+      ];
+      
+      const isSpecNote = specPatterns.some(p => p.test(desc));
+      if (isSpecNote) {
+        console.log(`[SpecFilter] Removing spec note: "${desc.substring(0, 80)}..."`);
+        return false;
+      }
+      
+      // Also remove items with very generic descriptions at $1
+      if (cost <= 100 && desc.length > 60) {
+        // Long descriptions at $1 are almost always spec notes
+        console.log(`[SpecFilter] Removing likely spec note ($${(cost/100).toFixed(0)}, ${unit}): "${desc.substring(0, 80)}..."`);
+        return false;
+      }
+    }
+    
+    return true;
+  });
+  
+  const removed = before - filtered.length;
+  if (removed > 0) {
+    console.log(`[SpecFilter] Removed ${removed} spec notes / $0-$1 items`);
+  }
+  return filtered;
+}
+
 // ─── Main Post-Processing Pipeline ────────────────────────────────────────────
 
 /**
@@ -1290,8 +1510,13 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 
   console.log(`[PostProcess] Starting post-processing pipeline for project ${projectId} (${originalCount} items, ${lsBefore} LS)...`);
 
+  // Step 0: Hard programmatic filters BEFORE LLM consolidation
+  let filteredItems = hardScopeFilter(rawItems, project.scopeText);
+  filteredItems = removeSpecNotes(filteredItems);
+  console.log(`[PostProcess] After hard filters: ${originalCount} → ${filteredItems.length} items (${originalCount - filteredItems.length} removed)`);
+
   // Step 1: Consolidate items across sheets (also handles scope enforcement)
-  let consolidated = await consolidateItems(rawItems, sheetContexts, project.currency, project.scopeText);
+  let consolidated = await consolidateItems(filteredItems, sheetContexts, project.currency, project.scopeText);
   const consolidatedCount = consolidated.length;
   const outOfScopeRemoved = originalCount - consolidatedCount; // approximate
 

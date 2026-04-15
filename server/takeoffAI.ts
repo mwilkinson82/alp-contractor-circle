@@ -258,8 +258,22 @@ Slabs are the LARGEST concrete items by volume. Missing a slab is a critical err
 - Do NOT make up items that aren't visible in the drawing
 - If a dimension is not shown, estimate from scale or typical construction
 - For cover sheets or title-only sheets, return an empty items array
-- Include ALL visible items — be thorough, not selective
+- Include ALL visible MEASURABLE items — be thorough, not selective
 - ALWAYS show your math in the notes field — this builds contractor confidence
+
+## DO NOT EXTRACT THESE — CRITICAL:
+The following are NOT takeoff items. Do NOT create line items for:
+- **Specification notes** (e.g., "Grade 60 KSI yield strength", "ASTM A36", "2000 PSI minimum")
+- **General notes** (e.g., "All dimensions shall be verified", "Provide lateral bracing")
+- **Code requirements** (e.g., "Staples not permitted", "Conform to AISC")
+- **Material specifications** (e.g., "Southern Pine No. 2 Grade", "LVL Fb=2600 PSI")
+- **Design criteria** (e.g., "Soil bearing pressure: 2,000 PSF", "f'm of 2000 PSI")
+- **Construction methods** (e.g., "Trusses shall be cambered", "Provide floor bridging")
+- **Nailing/fastening schedules** (e.g., "4 rows of 1/2" bolts @ 12" o.c.")
+- **Truss design notes** (e.g., "Truss designer shall be a PE")
+- **Any text that describes HOW to build rather than WHAT to build**
+
+A valid takeoff item MUST have a MEASURABLE physical quantity (SF, LF, CY, EA, etc.) that a contractor can order or install. If you cannot assign a real measured quantity > 0, do NOT include it.
 
 ## CSI DIVISIONS REFERENCE:
 ${divisionRef}

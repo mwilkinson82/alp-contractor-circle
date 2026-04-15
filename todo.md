@@ -1865,3 +1865,15 @@
 - [x] FIX: Pre-consolidation programmatic dedup — normalizes descriptions, groups by CSI+desc+unit, keeps highest-confidence item with max quantity
 - [x] FIX: Batch consolidation by CSI division — processes CSI 03, 31, 04 etc. separately for better LLM dedup accuracy
 - [x] FIX: Formwork dedup — skip generation if extracted formwork ≥60% of concrete items; tightened overlap threshold from 50% to 40%
+
+## Critical Regression Fix — April 15, 2026 (Round 2)
+- [x] BUG: 348 items / $1.18M instead of ~80 items / $175K — 4-part fix deployed
+- [x] BUG: 57 spec notes extracted as line items — fixed: added DO NOT EXTRACT section to extraction prompt forbidding spec notes, general notes, code requirements, material specs, design criteria, nailing schedules, truss notes
+- [x] BUG: 116 out-of-scope items (CSI 04-09, 33) not filtered — fixed: hardScopeFilter() runs BEFORE LLM consolidation, programmatically deletes all items from excluded CSI divisions based on scope text pattern matching
+- [x] BUG: 183 items in CSI 03 alone — fixed: 2-phase programmatic dedup (exact match + fuzzy word-overlap ≥75%) + aggressive LLM consolidation with target item count guidance
+- [ ] BUG: Processing takes too long — inherent to two-pass system, needs investigation
+- [x] FIX: Extraction prompt — added comprehensive anti-spec-note rules with examples
+- [x] FIX: Hard programmatic scope filter — hardScopeFilter() detects foundation-only/no-vertical/concrete-only patterns and excludes CSI 04-09, 10-14, 21-28, 33
+- [x] FIX: Programmatic dedup — rewritten with 2-phase approach: Phase 1 exact-match, Phase 2 fuzzy word-overlap with extractCoreElement() stripping common prefixes
+- [x] FIX: removeSpecNotes() — removes $0-$1 LS items matching spec-note regex patterns
+- [x] FIX: Consolidation prompt — added aggressive merge examples, target item count (30-60), explicit merge-same-element rules
