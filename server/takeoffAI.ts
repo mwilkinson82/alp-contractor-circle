@@ -21,7 +21,7 @@ import {
   getTakeoffProject,
   getDrawingSheetsByProject,
 } from "./takeoffDb";
-import { postProcessTakeoff } from "./takeoffPostProcess";
+import { postProcessTakeoff, hardScopeFilter } from "./takeoffPostProcess";
 import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { TAKEOFF_DIVISION_MAP, ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
@@ -523,9 +523,36 @@ export async function processDrawingSheet(
     // Delete any existing items for this sheet (for reprocessing)
     await deleteTakeoffItemsBySheet(sheetId);
 
+    // Apply hard scope filter at extraction time — remove out-of-scope divisions before saving to DB
+    let itemsToSave = result.items;
+    if (scopeText) {
+      const rawForFilter = result.items.map((item, idx) => ({
+        id: idx,
+        projectId,
+        sheetId,
+        csiDivision: item.csiDivision.trim(),
+        csiCode: item.csiCode.trim(),
+        description: item.description,
+        quantity: item.quantity.toFixed(2),
+        unit: item.unit,
+        unitCost: Math.round(item.unitCost * 100),
+        extendedCost: Math.round(item.quantity * item.unitCost * 100),
+        confidence: item.confidence,
+        notes: item.notes || null,
+        reviewed: false,
+      }));
+      const filtered = hardScopeFilter(rawForFilter, scopeText);
+      const filteredIds = new Set(filtered.map((r: any) => r.id));
+      const before = itemsToSave.length;
+      itemsToSave = itemsToSave.filter((_: any, idx: number) => filteredIds.has(idx));
+      if (before !== itemsToSave.length) {
+        console.log(`[Takeoff AI] Scope filter: removed ${before - itemsToSave.length} out-of-scope items from sheet ${sheetId}`);
+      }
+    }
+
     // Save extracted items to DB
-    if (result.items.length > 0) {
-      const itemsToInsert: InsertTakeoffItem[] = result.items.map((item) => ({
+    if (itemsToSave.length > 0) {
+      const itemsToInsert: InsertTakeoffItem[] = itemsToSave.map((item) => ({
         projectId,
         sheetId,
         csiDivision: item.csiDivision.trim(),

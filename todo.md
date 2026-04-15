@@ -1910,3 +1910,9 @@
 - [x] FEATURE: Pipeline timing instrumentation — logs elapsed seconds for Pass 1 (indexing), Pass 2 (extraction), Pass 3 (post-processing), and total
 - [x] FEATURE: Markup calculator — "Bid Calculator" button in items toolbar, 5 adjustable % fields (labor, overhead, profit, bonds, contingency), real-time bid total
 - [ ] FEATURE: Show timing summary in project status/completion UI — timing is in server logs for now, can surface to UI later
+
+## Scope Filter Bug Fix — April 15, 2026
+- [x] BUG: hardScopeFilter not removing CSI 04, 05, 07, 22, 26 — root cause: filter only ran during Consolidate & Enhance, not at extraction time. Pre-consolidation view showed raw extracted items before filter ran.
+- [x] FIX: Diagnosed — regex patterns match correctly, filter logic is sound
+- [x] FIX: Apply scope filter at extraction time (in takeoffAI.ts) — items from excluded divisions now filtered BEFORE saving to DB, so pre-consolidation view is already clean
+- [x] FIX: hardScopeFilter exported from takeoffPostProcess.ts, imported in takeoffAI.ts (no circular dependency)

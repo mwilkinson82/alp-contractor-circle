@@ -1274,7 +1274,7 @@ function calculateConcreteVolumes(
  * that are clearly out of scope based on the scope text.
  * This runs BEFORE LLM consolidation to reduce item count.
  */
-function hardScopeFilter(items: RawItem[], scopeText: string | null): RawItem[] {
+export function hardScopeFilter(items: RawItem[], scopeText: string | null): RawItem[] {
   if (!scopeText || scopeText.trim().length === 0) return items;
 
   const scope = scopeText.toLowerCase();
