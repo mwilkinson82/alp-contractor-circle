@@ -46,6 +46,7 @@ import {
   Square,
   Calculator,
   Percent,
+  PlusCircle,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -114,6 +115,8 @@ export default function TakeoffDetail() {
   const [uploading, setUploading] = useState(false);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
   const [showMarkup, setShowMarkup] = useState(false);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [addItemDivision, setAddItemDivision] = useState<string>("03");
   const [markups, setMarkups] = useState({
     labor: 0,
     overhead: 0,
@@ -246,6 +249,16 @@ export default function TakeoffDetail() {
       refetchProject();
     },
     onError: (err) => toast.error(`Settings error: ${err.message}`),
+  });
+
+  const addItemMutation = trpc.takeoff.addItem.useMutation({
+    onSuccess: () => {
+      toast.success("Item added");
+      setShowAddItem(false);
+      refetchItems();
+      refetchProject();
+    },
+    onError: (err) => toast.error(err.message),
   });
 
   const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
@@ -978,6 +991,16 @@ export default function TakeoffDetail() {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => setShowAddItem(true)}
+                      className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      title="Add a manual line item"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      Add Item
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => setShowMarkup(!showMarkup)}
                       className={`h-8 text-xs gap-1.5 ${
                         showMarkup
@@ -1377,12 +1400,213 @@ export default function TakeoffDetail() {
               if (selectedIdx < allItems.length - 1) setSelectedItem(allItems[selectedIdx + 1]);
             }}
           />
-        );
+         );
       })()}
+
+      {/* ─── Add Manual Item Dialog ──────────────────────────────────── */}
+      {showAddItem && (
+        <AddItemDialog
+          projectId={projectId}
+          defaultDivision={addItemDivision}
+          currency={project?.currency || "USD"}
+          onClose={() => setShowAddItem(false)}
+          onSave={(data) => addItemMutation.mutate({ projectId, ...data })}
+          isPending={addItemMutation.isPending}
+        />
+      )}
     </div>
   );
 }
+// ─── Add Item Dialog ──────────────────────────────────────────────────────────
+const CSI_DIVISIONS_LIST = [
+  { code: "01", name: "General Requirements" },
+  { code: "02", name: "Existing Conditions" },
+  { code: "03", name: "Concrete" },
+  { code: "04", name: "Masonry" },
+  { code: "05", name: "Metals" },
+  { code: "06", name: "Wood, Plastics & Composites" },
+  { code: "07", name: "Thermal & Moisture Protection" },
+  { code: "08", name: "Openings" },
+  { code: "09", name: "Finishes" },
+  { code: "10", name: "Specialties" },
+  { code: "11", name: "Equipment" },
+  { code: "12", name: "Furnishings" },
+  { code: "21", name: "Fire Suppression" },
+  { code: "22", name: "Plumbing" },
+  { code: "23", name: "HVAC" },
+  { code: "26", name: "Electrical" },
+  { code: "27", name: "Communications" },
+  { code: "28", name: "Electronic Safety" },
+  { code: "31", name: "Earthwork" },
+  { code: "32", name: "Exterior Improvements" },
+  { code: "33", name: "Utilities" },
+];
+const COMMON_UNITS = ["EA", "SF", "LF", "CY", "SY", "CF", "TON", "LB", "LS", "HR", "GAL", "BF", "MBF"];
+function AddItemDialog({
+  projectId,
+  defaultDivision,
+  currency,
+  onClose,
+  onSave,
+  isPending,
+}: {
+  projectId: number;
+  defaultDivision: string;
+  currency: string;
+  onClose: () => void;
+  onSave: (data: {
+    csiDivision: string;
+    csiCode?: string;
+    description: string;
+    quantity: string;
+    unit: string;
+    unitCost: number;
+    notes?: string;
+  }) => void;
+  isPending: boolean;
+}) {
+  const [csiDivision, setCsiDivision] = useState(defaultDivision);
+  const [csiCode, setCsiCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState("EA");
+  const [unitCostDollars, setUnitCostDollars] = useState("");
+  const [notes, setNotes] = useState("");
 
+  const extCost = (parseFloat(quantity) || 0) * (parseFloat(unitCostDollars) || 0);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!description.trim() || !quantity || !unitCostDollars) return;
+    onSave({
+      csiDivision,
+      csiCode: csiCode.trim() || undefined,
+      description: description.trim(),
+      quantity,
+      unit,
+      unitCost: Math.round(parseFloat(unitCostDollars) * 100),
+      notes: notes.trim() || undefined,
+    });
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PlusCircle className="w-5 h-5 text-emerald-400" />
+            Add Manual Line Item
+          </DialogTitle>
+          <DialogDescription>Manually enter a takeoff item under any CSI division.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-cream-muted mb-1 block">CSI Division *</Label>
+              <select
+                value={csiDivision}
+                onChange={(e) => setCsiDivision(e.target.value)}
+                className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              >
+                {CSI_DIVISIONS_LIST.map((d) => (
+                  <option key={d.code} value={d.code}>{d.code} — {d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs text-cream-muted mb-1 block">CSI Code (optional)</Label>
+              <Input
+                value={csiCode}
+                onChange={(e) => setCsiCode(e.target.value)}
+                placeholder="e.g. 03 30 00"
+                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-cream-muted mb-1 block">Description *</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. 4-inch Concrete Slab on Grade"
+              className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs text-cream-muted mb-1 block">Quantity *</Label>
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="0"
+                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-cream-muted mb-1 block">Unit</Label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              >
+                {COMMON_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs text-cream-muted mb-1 block">Unit Cost *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={unitCostDollars}
+                onChange={(e) => setUnitCostDollars(e.target.value)}
+                placeholder="0.00"
+                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+                required
+              />
+            </div>
+          </div>
+          {(parseFloat(quantity) > 0 && parseFloat(unitCostDollars) > 0) && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-2 flex items-center justify-between">
+              <span className="text-cream-muted text-sm">Extended Cost</span>
+              <span className="text-amber-400 font-semibold font-mono">
+                {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(extCost)}
+              </span>
+            </div>
+          )}
+          <div>
+            <Label className="text-xs text-cream-muted mb-1 block">Notes (optional)</Label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes..."
+              rows={2}
+              className="w-full rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-amber-500/50 resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || !description.trim() || !quantity || !unitCostDollars}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+              Add Item
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 // ─── Edit Item Dialog ─────────────────────────────────────────────────────────
 
 function EditItemDialog({

@@ -248,6 +248,40 @@ export async function recalculateItemCosts(
   return await recalculateProjectTotal(projectId);
 }
 
+// ─── Manual Item Entry ────────────────────────────────────────────────────────
+/**
+ * Get or create a "Manual Entry" pseudo-sheet for a project.
+ * Used as the sheetId for manually-added line items.
+ */
+export async function getOrCreateManualSheet(projectId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const existing = await db
+    .select()
+    .from(drawingSheets)
+    .where(and(eq(drawingSheets.projectId, projectId), eq(drawingSheets.sheetName, "__manual__")))
+    .limit(1);
+  if (existing.length > 0) return existing[0].id;
+  const [result] = await db.insert(drawingSheets).values({
+    projectId,
+    pageNumber: 0,
+    sheetName: "__manual__",
+    sheetType: "other",
+    status: "completed",
+  });
+  return (result as any).insertId;
+}
+
+/**
+ * Insert a single takeoff item and return its new id.
+ */
+export async function createTakeoffItem(data: InsertTakeoffItem): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const [result] = await db.insert(takeoffItems).values(data);
+  return (result as any).insertId;
+}
+
 /** Bulk mark all items in a division (or all items) as reviewed */
 export async function bulkReviewItems(
   projectId: number,

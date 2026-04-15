@@ -1929,3 +1929,11 @@
 - [x] FEATURE: User cost data upload — CSV/Excel with their own unit costs, matched to takeoff items per project
 - [ ] FEATURE: Drawing markup / annotation in fullscreen view (like PlanSwift)
 - [ ] FEATURE: Quick Scope templates — pre-built scope descriptions for common scopes
+
+## Drawing Markup Tool — April 15, 2026
+- [ ] FEATURE: DrawingMarkup canvas component (pen, rectangle, circle, measure, text labels, undo/redo, export)
+- [ ] FEATURE: Integrate markup toolbar into fullscreen drawing viewer in ItemDetailModal
+
+## Manual Item Entry + Measurement Tool — April 15, 2026
+- [x] FEATURE: Manual add line item under any CSI division (description, qty, unit, unit cost, notes)
+- [ ] FEATURE: Scale-calibrated measurement tool in fullscreen drawing viewer (calibrate scale, draw shapes, get real-world dimensions fed into quantity)

@@ -29,6 +29,8 @@ import {
   recalculateItemCosts,
   bulkReviewItems,
   bulkUnreviewItems,
+  getOrCreateManualSheet,
+  createTakeoffItem,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
@@ -770,6 +772,47 @@ export const takeoffRouter = router({
       const member = await requireAdminMember(ctx.req);
       await deleteCostLibraryEntry(member.id, input.entryId);
       return { success: true };
+    }),
+
+  /** Manually add a single takeoff line item under a CSI division */
+  addItem: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        csiDivision: z.string().max(8),
+        csiCode: z.string().max(16).optional(),
+        description: z.string().min(1).max(512),
+        quantity: z.string(),
+        unit: z.string().max(16).default("EA"),
+        unitCost: z.number().min(0),  // cents
+        notes: z.string().max(2000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      const sheetId = await getOrCreateManualSheet(input.projectId);
+      const qty = parseFloat(input.quantity) || 0;
+      const extendedCost = Math.round(qty * input.unitCost);
+      const id = await createTakeoffItem({
+        projectId: input.projectId,
+        sheetId,
+        csiDivision: input.csiDivision,
+        csiCode: input.csiCode || null,
+        description: input.description,
+        quantity: input.quantity,
+        unit: input.unit,
+        unitCost: input.unitCost,
+        extendedCost,
+        confidence: 100,  // manually entered = full confidence
+        notes: input.notes || null,
+        reviewed: true,  // manually entered = already reviewed
+      });
+      await recalculateProjectTotal(input.projectId);
+      return { id, success: true };
     }),
 
   /** Clear all cost library entries for the current member */
