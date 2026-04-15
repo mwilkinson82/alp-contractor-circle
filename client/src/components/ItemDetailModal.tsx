@@ -33,7 +33,15 @@ import {
   Maximize2,
   X,
   Image as ImageIcon,
+  Pencil,
+  Move,
 } from "lucide-react";
+import { MarkupCanvas } from "@/components/markup/MarkupCanvas";
+import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
+import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
+import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
+import { exportToPng } from "@/components/markup/exportToPng";
+import type { ToolType, Point } from "@/components/markup/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -251,29 +259,222 @@ function FullscreenDrawing({
   sheetName: string;
   onClose: () => void;
 }) {
+  const [markupActive, setMarkupActive] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolType>("pen");
+  const [activeColor, setActiveColor] = useState("#EF4444");
+  const [lineWidth, setLineWidth] = useState(4);
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
+  const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
+  const { elements, pushElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (textPromptPos) { setTextPromptPos(null); return; }
+        onClose();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) { e.preventDefault(); redo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); redo(); return; }
+      if (markupActive && !textPromptPos) {
+        switch (e.key.toLowerCase()) {
+          case "v": setActiveTool("select"); break;
+          case "p": setActiveTool("pen"); break;
+          case "r": setActiveTool("rectangle"); break;
+          case "c": setActiveTool("circle"); break;
+          case "l": setActiveTool("line"); break;
+          case "t": setActiveTool("text"); break;
+        }
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [onClose, undo, redo, markupActive, textPromptPos]);
+
+  const handleTextSubmit = useCallback((text: string) => {
+    if (!textPromptPos) return;
+    const shape = {
+      id: `text_${Date.now()}`,
+      type: "text" as const,
+      position: textPromptPos,
+      text,
+      fontSize: Math.max(14, lineWidth * 4),
+      color: activeColor,
+      lineWidth,
+    };
+    pushElement(shape);
+    setTextPromptPos(null);
+  }, [textPromptPos, activeColor, lineWidth, pushElement]);
+
+  const handleExport = useCallback(async () => {
+    try {
+      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`);
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+  }, [imageUrl, elements, sheetName]);
+
+  const toggleMarkup = useCallback(() => {
+    setMarkupActive((prev) => !prev);
+    setTextPromptPos(null);
+  }, []);
+
+  // Zoom controls
+  const ZOOM_STEPS = [1, 1.5, 2, 2.5, 3, 4];
+  const zoomIdx = ZOOM_STEPS.indexOf(zoom);
+  const handleZoomIn = () => { if (zoomIdx < ZOOM_STEPS.length - 1) setZoom(ZOOM_STEPS[zoomIdx + 1]); };
+  const handleZoomOut = () => {
+    if (zoomIdx > 0) {
+      setZoom(ZOOM_STEPS[zoomIdx - 1]);
+      if (zoomIdx - 1 === 0) setPanOffset({ x: 0, y: 0 });
+    }
+  };
+
+  // Pan handling (when not in markup mode)
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<Point>({ x: 0, y: 0 });
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (markupActive) return;
+    e.preventDefault();
+    if (e.deltaY < 0) handleZoomIn();
+    else handleZoomOut();
+  }, [markupActive, zoomIdx]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (markupActive) return;
+    if (zoom <= 1) { handleZoomIn(); return; }
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  }, [markupActive, zoom, panOffset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || markupActive) return;
+    setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  }, [isDragging, markupActive, dragStart]);
+
+  const handleMouseUp = useCallback(() => { setIsDragging(false); }, []);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-center justify-between px-4 py-3 bg-black/80">
-        <span className="text-white/80 text-sm font-medium">{sheetName}</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-white/80 text-sm font-medium">{sheetName}</span>
+          {markupActive && (
+            <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium border border-amber-500/30">
+              Markup Mode
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleMarkup}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              markupActive
+                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/30"
+                : "bg-white/10 text-white/70 hover:text-white hover:bg-white/20"
+            }`}
+            title={markupActive ? "Exit markup mode" : "Enter markup mode"}
+          >
+            {markupActive ? (
+              <><Move className="w-3.5 h-3.5" /><span>Pan Mode</span></>
+            ) : (
+              <><Pencil className="w-3.5 h-3.5" /><span>Markup</span></>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="Close (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Drawing area */}
+      <div className="flex-1 min-h-0 relative">
+        {/* Zoom controls */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
+          <button type="button" onClick={handleZoomOut} disabled={zoomIdx <= 0} className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors" title="Zoom out">
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-white/80 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={handleZoomIn} disabled={zoomIdx >= ZOOM_STEPS.length - 1} className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors" title="Zoom in">
+            <ZoomIn className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Image + canvas container */}
+        <div
+          className="h-full overflow-hidden bg-white relative"
+          style={{ cursor: markupActive ? undefined : zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
-          <X className="w-5 h-5" />
-        </button>
+          <img
+            src={imageUrl}
+            alt={sheetName}
+            className="w-full h-full object-contain select-none"
+            draggable={false}
+            style={{
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+              transformOrigin: "center center",
+              transition: isDragging ? "none" : "transform 0.2s ease-out",
+            }}
+          />
+          <MarkupCanvas
+            elements={elements}
+            onElementAdd={pushElement}
+            activeTool={activeTool}
+            color={activeColor}
+            lineWidth={lineWidth}
+            zoom={zoom}
+            panOffset={panOffset}
+            isActive={markupActive}
+            onTextPrompt={setTextPromptPos}
+          />
+          {textPromptPos && (
+            <TextInputOverlay
+              position={textPromptPos}
+              zoom={zoom}
+              panOffset={panOffset}
+              color={activeColor}
+              onSubmit={handleTextSubmit}
+              onCancel={() => setTextPromptPos(null)}
+            />
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-h-0">
-        <DrawingViewer imageUrl={imageUrl} sheetName={sheetName} />
-      </div>
+
+      {/* Markup toolbar (bottom) */}
+      {markupActive && (
+        <div className="flex justify-center py-2 px-4 bg-black/80 border-t border-white/5 shrink-0">
+          <MarkupToolbar
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
+            activeColor={activeColor}
+            onColorChange={setActiveColor}
+            lineWidth={lineWidth}
+            onLineWidthChange={setLineWidth}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            onClear={clearAll}
+            onExport={handleExport}
+            hasElements={elements.length > 0}
+          />
+        </div>
+      )}
     </div>
   );
 }

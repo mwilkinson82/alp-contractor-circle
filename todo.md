@@ -1927,12 +1927,12 @@
 - [x] BUG: X button in fullscreen drawing view does not close — user must refresh page
 - [x] BUG: Fullscreen exit broken — no way to escape without page refresh
 - [x] FEATURE: User cost data upload — CSV/Excel with their own unit costs, matched to takeoff items per project
-- [ ] FEATURE: Drawing markup / annotation in fullscreen view (like PlanSwift)
+- [x] FEATURE: Drawing markup / annotation in fullscreen view (like PlanSwift)
 - [ ] FEATURE: Quick Scope templates — pre-built scope descriptions for common scopes
 
 ## Drawing Markup Tool — April 15, 2026
-- [ ] FEATURE: DrawingMarkup canvas component (pen, rectangle, circle, measure, text labels, undo/redo, export)
-- [ ] FEATURE: Integrate markup toolbar into fullscreen drawing viewer in ItemDetailModal
+- [x] FEATURE: DrawingMarkup canvas component (pen, rectangle, circle, measure, text labels, undo/redo, export)
+- [x] FEATURE: Integrate markup toolbar into fullscreen drawing viewer in ItemDetailModal
 
 ## Manual Item Entry + Measurement Tool — April 15, 2026
 - [x] FEATURE: Manual add line item under any CSI division (description, qty, unit, unit cost, notes)
