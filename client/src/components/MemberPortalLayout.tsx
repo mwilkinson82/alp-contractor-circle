@@ -34,6 +34,7 @@ import {
   Mail,
   Sparkles,
   HardHat,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -112,11 +113,12 @@ function ConstructLineNav({
   onNavigate?: () => void;
 }) {
   // Auto-expand if currently on a ConstructLine sub-page
-  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff");
+  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library";
   const [expanded, setExpanded] = useState(isOnConstructLine);
 
   const isSchedulerActive = location.startsWith("/portal/scheduler");
   const isTakeoffActive = location.startsWith("/portal/takeoff");
+  const isCostLibraryActive = location === "/portal/cost-library";
   const isParentActive = isOnConstructLine;
 
   const navigate = (path: string) => {
@@ -182,6 +184,22 @@ function ConstructLineNav({
                 Soon
               </span>
             </div>
+          )}
+
+          {/* Cost Library — admin only */}
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/portal/cost-library")}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+                isCostLibraryActive
+                  ? "bg-ember/10 text-ember font-medium"
+                  : "text-cream-muted hover:text-cream hover:bg-white/5"
+              }`}
+            >
+              <BookOpen className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
+              <span>Cost Library</span>
+              {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            </button>
           )}
         </div>
       )}

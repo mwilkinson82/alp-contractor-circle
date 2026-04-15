@@ -1921,3 +1921,11 @@
 - [ ] BUG: Formwork not generating — 0 formwork items in latest run despite 20+ in client manual takeoff
 - [ ] BUG: F-1 and F-2 spread footing concrete quantities missing (client has 1.67 CY and 2.11 CY)
 - [ ] BUG: Building backfill missing — client has 28.99 CY, ConstructLine has 0
+
+## Drawing Viewer Bugs + User Cost Upload — April 15, 2026
+- [x] BUG: Zoom magnifier icon does nothing (was closing modal before, now does nothing)
+- [x] BUG: X button in fullscreen drawing view does not close — user must refresh page
+- [x] BUG: Fullscreen exit broken — no way to escape without page refresh
+- [x] FEATURE: User cost data upload — CSV/Excel with their own unit costs, matched to takeoff items per project
+- [ ] FEATURE: Drawing markup / annotation in fullscreen view (like PlanSwift)
+- [ ] FEATURE: Quick Scope templates — pre-built scope descriptions for common scopes

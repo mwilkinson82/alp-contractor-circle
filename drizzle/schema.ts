@@ -843,3 +843,29 @@ export const takeoffItems = mysqlTable("takeoff_items", {
 
 export type TakeoffItem = typeof takeoffItems.$inferSelect;
 export type InsertTakeoffItem = typeof takeoffItems.$inferInsert;
+
+/**
+ * User Cost Library — member-uploaded unit cost data that overrides the default cost table.
+ * Members can upload a CSV/Excel with their own material unit costs.
+ * When a takeoff runs, the cost lookup engine checks this library first before falling back to the built-in cost table.
+ */
+export const userCostLibrary = mysqlTable("user_cost_library", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner (member ID) */
+  memberId: int("memberId").notNull(),
+  /** CSI division code e.g. "03", "31" */
+  csiDivision: varchar("csiDivision", { length: 8 }),
+  /** Description / item name as entered by user */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Unit of measure: SF, LF, CY, EA, LS, etc. */
+  unit: varchar("unit", { length: 32 }).notNull(),
+  /** Material unit cost in cents */
+  unitCost: int("unitCost").notNull(),
+  /** Optional notes (source, date, project reference) */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserCostLibraryEntry = typeof userCostLibrary.$inferSelect;
+export type InsertUserCostLibraryEntry = typeof userCostLibrary.$inferInsert;

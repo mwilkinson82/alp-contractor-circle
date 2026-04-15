@@ -34,6 +34,7 @@ import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
+import { getCostLibraryByMember, upsertCostLibraryEntries, deleteCostLibraryEntry, clearCostLibrary } from "./costLibraryDb";
 
 /** Helper: extract member from Discord session cookie */
 async function getMemberFromRequest(req: any): Promise<Member | null> {
@@ -729,4 +730,52 @@ export const takeoffRouter = router({
         });
       return { success: true, message: "Post-processing started. Items will be consolidated shortly." };
     }),
+
+  // ─── User Cost Library ────────────────────────────────────────────────────
+
+  /** Get the current member's cost library entries */
+  getCostLibrary: publicProcedure.query(async ({ ctx }) => {
+    const member = await requireAdminMember(ctx.req);
+    return getCostLibraryByMember(member.id);
+  }),
+
+  /**
+   * Upload/replace the member's cost library from parsed CSV/Excel data.
+   * Entries are provided as dollar-denominated unit costs (converted to cents server-side).
+   */
+  uploadCostLibrary: publicProcedure
+    .input(z.object({
+      entries: z.array(z.object({
+        description: z.string().min(1).max(512),
+        unit: z.string().min(1).max(32),
+        unitCost: z.number().min(0),  // dollars — converted to cents server-side
+        csiDivision: z.string().max(8).optional(),
+        notes: z.string().max(1000).optional(),
+      })).min(1).max(2000),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const entries = input.entries.map(e => ({
+        ...e,
+        unitCost: Math.round(e.unitCost * 100),  // dollars → cents
+      }));
+      const count = await upsertCostLibraryEntries(member.id, entries);
+      return { success: true, count };
+    }),
+
+  /** Delete a single cost library entry */
+  deleteCostLibraryEntry: publicProcedure
+    .input(z.object({ entryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      await deleteCostLibraryEntry(member.id, input.entryId);
+      return { success: true };
+    }),
+
+  /** Clear all cost library entries for the current member */
+  clearCostLibrary: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await requireAdminMember(ctx.req);
+    await clearCostLibrary(member.id);
+    return { success: true };
+  }),
 });

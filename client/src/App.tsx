@@ -25,6 +25,7 @@ import EstimatingChecklist from "./pages/EstimatingChecklist";
 import EstimatingThankYou from "./pages/EstimatingThankYou";
 import TakeoffList from "./pages/TakeoffList";
 import TakeoffDetail from "./pages/TakeoffDetail";
+import CostLibrary from "./pages/CostLibrary";
 
 function Router() {
   return (
@@ -101,6 +102,13 @@ function Router() {
         </MemberPortalLayout>
       </Route>
       <Route path="/takeoff/:id" component={TakeoffDetail} />
+
+      {/* ConstructLine Cost Library */}
+      <Route path="/portal/cost-library">
+        <MemberPortalLayout>
+          <CostLibrary />
+        </MemberPortalLayout>
+      </Route>
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

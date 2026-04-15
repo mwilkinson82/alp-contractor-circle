@@ -367,12 +367,18 @@ export default function ItemDetailModal({
 
   return (
     <>
-      <Dialog open={!!item} onOpenChange={(open) => { if (!open && isFullscreen) return; onClose(); }}>
+      {/* When fullscreen is active, render ONLY the fullscreen overlay — hide the dialog entirely */}
+      {isFullscreen && hasDrawing ? (
+        <FullscreenDrawing
+          imageUrl={sourceSheet!.imageUrl!}
+          sheetName={sheetLabel}
+          onClose={() => setIsFullscreen(false)}
+        />
+      ) : (
+      <Dialog open={!!item} onOpenChange={(open) => { if (!open) onClose(); }}>
         {/* Wider modal when drawing is available */}
         <DialogContent
           className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}
-          onPointerDownOutside={(e) => { if (isFullscreen) e.preventDefault(); }}
-          onInteractOutside={(e) => { if (isFullscreen) e.preventDefault(); }}
         >
           <DialogHeader>
             <div className="flex items-center gap-3">
@@ -652,14 +658,6 @@ export default function ItemDetailModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Fullscreen drawing overlay */}
-      {isFullscreen && hasDrawing && (
-        <FullscreenDrawing
-          imageUrl={sourceSheet!.imageUrl!}
-          sheetName={sheetLabel}
-          onClose={() => setIsFullscreen(false)}
-        />
       )}
     </>
   );
