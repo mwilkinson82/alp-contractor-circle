@@ -63,13 +63,135 @@ interface SheetContext {
   imageUrl: string | null;
 }
 
+// ─── Pre-Consolidation: Programmatic Dedup ──────────────────────────────────
+
+/**
+ * Normalize a description for fuzzy matching:
+ * lowercase, strip dimensions/parentheticals, collapse whitespace
+ */
+function normalizeDesc(desc: string): string {
+  return desc
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, "")          // remove parentheticals
+    .replace(/\d+['"-]\s*\d*['"-]?/g, "") // remove dimensions like 2'-0"
+    .replace(/[^a-z0-9\s]/g, " ")        // strip special chars
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Programmatic pre-dedup: merge items with same CSI code + very similar description + same unit.
+ * Keeps the item with the highest confidence; sums quantities if additive (e.g., same slab from different sheets),
+ * or keeps the max quantity if non-additive (e.g., same footing measured from plan vs detail).
+ */
+function programmaticDedup(items: RawItem[]): RawItem[] {
+  // Group by CSI code + normalized description + unit
+  const groups = new Map<string, RawItem[]>();
+  
+  for (const item of items) {
+    const norm = normalizeDesc(item.description);
+    const key = `${item.csiCode || item.csiDivision}|${norm}|${item.unit.toUpperCase()}`;
+    
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key)!.push(item);
+  }
+  
+  const result: RawItem[] = [];
+  let mergedCount = 0;
+  
+  const groupEntries = Array.from(groups.entries());
+  for (const [_key, group] of groupEntries) {
+    if (group.length === 1) {
+      result.push(group[0]);
+      continue;
+    }
+    
+    // Multiple items with same key — merge them
+    mergedCount += group.length - 1;
+    
+    // Sort by confidence desc, then by quantity desc
+    group.sort((a: RawItem, b: RawItem) => {
+      if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+      return parseFloat(b.quantity) - parseFloat(a.quantity);
+    });
+    
+    const best = group[0];
+    const desc = best.description;
+    const isFooting = /footing|wf-|continuous/i.test(desc);
+    const isFormwork = /formwork|form /i.test(desc);
+    
+    // For footings and formwork: keep the MAX quantity (same element from different views)
+    // For other items: also keep MAX (safer than summing, which causes over-counting)
+    let finalQty: number;
+    if (isFooting || isFormwork) {
+      finalQty = Math.max(...group.map((g: RawItem) => parseFloat(g.quantity)));
+    } else {
+      // Keep the max quantity — the plan view measurement is usually most accurate
+      finalQty = Math.max(...group.map((g: RawItem) => parseFloat(g.quantity)));
+    }
+    
+    // Keep the best item but update quantity
+    result.push({
+      ...best,
+      quantity: finalQty.toFixed(2),
+      notes: `${best.notes || ""} [Merged ${group.length} duplicate items from different sheets]`.trim(),
+    });
+  }
+  
+  console.log(`[PreDedup] Programmatic dedup: ${items.length} → ${result.length} items (${mergedCount} duplicates merged)`);
+  return result;
+}
+
 // ─── Priority 1: Cross-Sheet Consolidation ────────────────────────────────────
 
 /**
  * Groups items that refer to the same physical element across multiple sheets
  * and merges them, keeping the most specific (non-LS) quantity.
+ * Now processes items in batches by CSI division for better LLM accuracy.
  */
 async function consolidateItems(
+  items: RawItem[],
+  sheets: SheetContext[],
+  currency: string | null,
+  scopeText: string | null
+): Promise<ConsolidatedItem[]> {
+  if (items.length === 0) return [];
+
+  // ─── Step 0: Programmatic pre-dedup ───────────────────────────────────────
+  const deduped = programmaticDedup(items);
+  console.log(`[PostProcess] Pre-dedup: ${items.length} → ${deduped.length} items`);
+
+  // ─── Step 0.5: Batch by CSI division for better LLM accuracy ──────────────
+  // Group items by 2-digit CSI division
+  const divisionGroups = new Map<string, RawItem[]>();
+  for (const item of deduped) {
+    const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "99").trim();
+    if (!divisionGroups.has(div)) divisionGroups.set(div, []);
+    divisionGroups.get(div)!.push(item);
+  }
+
+  console.log(`[PostProcess] Batching consolidation by ${divisionGroups.size} CSI divisions: ${Array.from(divisionGroups.keys()).join(", ")}`);
+
+  // Process each division batch separately
+  const allResults: ConsolidatedItem[] = [];
+  const divEntries = Array.from(divisionGroups.entries());
+  for (const [div, divItems] of divEntries) {
+    console.log(`[PostProcess] Consolidating CSI ${div}: ${divItems.length} items...`);
+    const batchResult = await consolidateBatch(divItems, sheets, currency, scopeText);
+    allResults.push(...batchResult);
+    console.log(`[PostProcess] CSI ${div}: ${divItems.length} → ${batchResult.length} items`);
+  }
+
+  console.log(`[PostProcess] Total after batched consolidation: ${deduped.length} → ${allResults.length} items`);
+  return allResults;
+}
+
+/**
+ * Consolidate a single batch of items (typically one CSI division).
+ */
+async function consolidateBatch(
   items: RawItem[],
   sheets: SheetContext[],
   currency: string | null,
@@ -537,7 +659,14 @@ async function generateFormwork(
     item.csiCode?.startsWith("03 11")
   );
   const existingFormworkDescs = existingFormwork.map(f => f.description.toLowerCase());
-  console.log(`[PostProcess] Found ${existingFormwork.length} existing formwork items — will deduplicate after generation`);
+  console.log(`[PostProcess] Found ${existingFormwork.length} existing formwork items, ${concreteItems.length} concrete items needing formwork`);
+
+  // If extracted formwork already covers most concrete items, skip generation entirely
+  // This prevents the LLM from generating duplicate formwork that inflates item count
+  if (existingFormwork.length >= concreteItems.length * 0.6) {
+    console.log(`[PostProcess] Extracted formwork (${existingFormwork.length}) already covers ≥60% of concrete items (${concreteItems.length}) — skipping formwork generation`);
+    return items;
+  }
 
   // Check if scope includes formwork (CSI 03 11 00 series)
   // Formwork is always part of concrete work, so if concrete is in scope, formwork is too
@@ -655,7 +784,7 @@ Only generate formwork for items that actually need forms (not for slabs-on-grad
         const meaningfulExist = existWords.filter(w => !skipWords.has(w));
         const matches = meaningfulNew.filter(w => meaningfulExist.some(e => e.includes(w) || w.includes(e)));
         const matchRatio = meaningfulNew.length > 0 ? matches.length / meaningfulNew.length : 0;
-        return matchRatio >= 0.5; // 50% keyword overlap = same element
+        return matchRatio >= 0.4; // 40% keyword overlap = same element (tightened to catch more duplicates)
       });
 
       if (isDuplicate) {

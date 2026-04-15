@@ -1856,3 +1856,12 @@
 - [x] BUG: Auto-refresh doesn't work — hard page reload when consolidation completes (post_processing -> completed)
 - [x] BUG: Progress bar is meaningless — shows 5-step progress (20% per step) instead of indeterminate spinner
 - [x] BUG: 5-minute timeout not working in production — timeout already deployed, works in dev (396 tests passing)
+
+## Critical: Item Duplication Fix — April 15, 2026
+- [x] BUG: 324 items instead of ~80-100 — fixed with 3-part dedup: programmatic pre-dedup + batch-by-CSI-division LLM consolidation + formwork dedup improvement
+- [x] BUG: Formwork duplicated 3-4x each — fixed: skip formwork generation when extracted formwork covers ≥60% of concrete items; lowered keyword overlap threshold to 40%
+- [x] BUG: Earthwork duplicated — fixed: programmatic pre-dedup merges exact/near-exact duplicates before LLM sees items (same CSI + normalized description + same unit → keep max qty)
+- [x] BUG: Masonry items despite "foundation up only" scope — fixed: batch-by-division consolidation processes each CSI division separately, giving LLM smaller focused batches for better scope filtering
+- [x] FIX: Pre-consolidation programmatic dedup — normalizes descriptions, groups by CSI+desc+unit, keeps highest-confidence item with max quantity
+- [x] FIX: Batch consolidation by CSI division — processes CSI 03, 31, 04 etc. separately for better LLM dedup accuracy
+- [x] FIX: Formwork dedup — skip generation if extracted formwork ≥60% of concrete items; tightened overlap threshold from 50% to 40%
