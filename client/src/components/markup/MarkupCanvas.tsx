@@ -7,6 +7,35 @@ function generateId(): string {
   return `shape_${Date.now()}_${++_idCounter}`;
 }
 
+/**
+ * Compute where the image actually renders inside its container
+ * when using object-fit: contain. Returns the rect in CSS pixels
+ * relative to the container's top-left, BEFORE any CSS transform.
+ */
+function computeFittedImageRect(
+  containerW: number,
+  containerH: number,
+  naturalW: number,
+  naturalH: number,
+): { x: number; y: number; w: number; h: number } {
+  if (naturalW <= 0 || naturalH <= 0) return { x: 0, y: 0, w: containerW, h: containerH };
+  const imgAspect = naturalW / naturalH;
+  const ctnAspect = containerW / containerH;
+  let w: number, h: number;
+  if (imgAspect > ctnAspect) {
+    // Image is wider than container → letterbox top/bottom
+    w = containerW;
+    h = containerW / imgAspect;
+  } else {
+    // Image is taller than container → letterbox left/right
+    h = containerH;
+    w = containerH * imgAspect;
+  }
+  const x = (containerW - w) / 2;
+  const y = (containerH - h) / 2;
+  return { x, y, w, h };
+}
+
 interface MarkupCanvasProps {
   elements: Shape[];
   onElementAdd: (shape: Shape) => void;
@@ -27,6 +56,10 @@ interface MarkupCanvasProps {
   onCalibrationComplete?: (pixelDistance: number) => void;
   /** When true, spacebar is held and user is panning — canvas should not capture pointer events */
   isPanning?: boolean;
+  /** Natural width of the source image (needed for image-space conversion) */
+  imageNaturalWidth?: number;
+  /** Natural height of the source image (needed for image-space conversion) */
+  imageNaturalHeight?: number;
 }
 
 export function MarkupCanvas({
@@ -44,6 +77,8 @@ export function MarkupCanvas({
   isCalibrating = false,
   onCalibrationComplete,
   isPanning = false,
+  imageNaturalWidth = 0,
+  imageNaturalHeight = 0,
 }: MarkupCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -57,16 +92,51 @@ export function MarkupCanvas({
   // Calibration state (two-click)
   const [calibrationStart, setCalibrationStart] = useState<Point | null>(null);
 
-  const toCanvasCoords = useCallback(
+  /**
+   * Convert screen (client) coordinates to image-space coordinates.
+   *
+   * The image element uses:
+   *   transform: translate(panOffset.x, panOffset.y) scale(zoom)
+   *   transformOrigin: center center
+   *   object-fit: contain
+   *
+   * So the pipeline is:
+   * 1. Get position relative to the container (canvas bounding rect)
+   * 2. Undo the CSS transform (center-origin scale + translate)
+   * 3. Subtract the object-fit padding to get position within the fitted image
+   * 4. Scale from fitted-image pixels to natural-image pixels
+   */
+  const toImageCoords = useCallback(
     (clientX: number, clientY: number): Point => {
       const canvas = canvasRef.current;
       if (!canvas) return { x: 0, y: 0 };
       const rect = canvas.getBoundingClientRect();
-      const x = (clientX - rect.left - panOffset.x) / zoom;
-      const y = (clientY - rect.top - panOffset.y) / zoom;
-      return { x, y };
+      const containerW = rect.width;
+      const containerH = rect.height;
+
+      // Position relative to container top-left
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+
+      // Center of the container (the transform origin)
+      const cx = containerW / 2;
+      const cy = containerH / 2;
+
+      // Undo CSS transform: translate(pan) scale(zoom) with origin at center
+      // The CSS transform applies: point_screen = center + (point_pretransform - center) * zoom + pan
+      // So: point_pretransform = center + (point_screen - pan - center) / zoom
+      const preX = cx + (sx - panOffset.x - cx) / zoom;
+      const preY = cy + (sy - panOffset.y - cy) / zoom;
+
+      // Now preX/preY is in the container's coordinate space (before transform).
+      // Subtract the object-fit padding and scale to image natural coordinates.
+      const fitted = computeFittedImageRect(containerW, containerH, imageNaturalWidth, imageNaturalHeight);
+      const imgX = ((preX - fitted.x) / fitted.w) * imageNaturalWidth;
+      const imgY = ((preY - fitted.y) / fitted.h) * imageNaturalHeight;
+
+      return { x: imgX, y: imgY };
     },
-    [zoom, panOffset],
+    [zoom, panOffset, imageNaturalWidth, imageNaturalHeight],
   );
 
   /** Format a pixel distance using calibration if available */
@@ -93,17 +163,28 @@ export function MarkupCanvas({
       case "rectangle":
         return { id: "preview", type: "rectangle", start: startPoint, end: currentPoint, color, lineWidth };
       case "circle": {
-        const cx = (startPoint.x + currentPoint.x) / 2;
-        const cy = (startPoint.y + currentPoint.y) / 2;
+        const cxp = (startPoint.x + currentPoint.x) / 2;
+        const cyp = (startPoint.y + currentPoint.y) / 2;
         const rx = Math.abs(currentPoint.x - startPoint.x) / 2;
         const ry = Math.abs(currentPoint.y - startPoint.y) / 2;
-        return { id: "preview", type: "circle", center: { x: cx, y: cy }, radiusX: rx, radiusY: ry, color, lineWidth };
+        return { id: "preview", type: "circle", center: { x: cxp, y: cyp }, radiusX: rx, radiusY: ry, color, lineWidth };
       }
       default:
         return null;
     }
   }, [startPoint, currentPoint, activeTool, color, lineWidth]);
 
+  /**
+   * Redraw all shapes on the canvas.
+   *
+   * Shapes are stored in image-space coordinates (0,0 = top-left of natural image).
+   * We need to transform them to screen-space to match the CSS-transformed image.
+   *
+   * The transform pipeline (image-space → screen-space):
+   * 1. Scale from natural image coords to fitted-image coords
+   * 2. Add the object-fit padding offset
+   * 3. Apply the CSS transform: center-origin scale(zoom) + translate(pan)
+   */
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -111,15 +192,49 @@ export function MarkupCanvas({
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+    const containerW = rect.width;
+    const containerH = rect.height;
+
+    if (canvas.width !== containerW * dpr || canvas.height !== containerH * dpr) {
+      canvas.width = containerW * dpr;
+      canvas.height = containerH * dpr;
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(dpr, dpr);
-    ctx.translate(panOffset.x, panOffset.y);
+
+    // Compute the fitted image rect (where the image sits before CSS transform)
+    const fitted = computeFittedImageRect(containerW, containerH, imageNaturalWidth, imageNaturalHeight);
+
+    // Scale factor from image-natural-pixels to fitted-display-pixels
+    const fitScale = fitted.w > 0 ? fitted.w / imageNaturalWidth : 1;
+
+    // Apply the same transform as the CSS on the image element:
+    // transformOrigin: center center → translate to center, scale, translate back
+    // then translate(panOffset) scale(zoom)
+    const cx = containerW / 2;
+    const cy = containerH / 2;
+
+    // The CSS transform is: translate(pan) scale(zoom) with origin at center.
+    // In matrix form from center:
+    //   screen = center + (pre - center) * zoom + pan
+    // Where pre = fitted.x + imgCoord * fitScale
+    //
+    // We compose the canvas transform:
+    // 1. Translate to center
+    // 2. Apply pan
+    // 3. Scale by zoom
+    // 4. Translate back from center
+    // 5. Translate to fitted image origin
+    // 6. Scale by fitScale (image-space → fitted-space)
+
+    ctx.translate(cx + panOffset.x, cy + panOffset.y);
     ctx.scale(zoom, zoom);
+    ctx.translate(-cx, -cy);
+    ctx.translate(fitted.x, fitted.y);
+    ctx.scale(fitScale, fitScale);
+
+    // Now the canvas coordinate system matches image-space coordinates
     renderAllShapes(ctx, elements, formatDistance);
 
     // Preview for drag-based shapes (rectangle, circle)
@@ -190,7 +305,7 @@ export function MarkupCanvas({
     }
 
     ctx.restore();
-  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, lineFirstClick, isCalibrating, calibrationStart]);
+  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, lineFirstClick, isCalibrating, calibrationStart, imageNaturalWidth, imageNaturalHeight]);
 
   useEffect(() => {
     redraw();
@@ -223,7 +338,7 @@ export function MarkupCanvas({
       if (!isActive || isPanning) return;
       e.preventDefault();
       e.stopPropagation();
-      const pt = toCanvasCoords(e.clientX, e.clientY);
+      const pt = toImageCoords(e.clientX, e.clientY);
 
       // Calibration mode: two-click to define reference distance
       if (isCalibrating) {
@@ -285,13 +400,13 @@ export function MarkupCanvas({
       if (activeTool === "pen") setPenPoints([pt]);
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [isActive, activeTool, toCanvasCoords, onTextPrompt, lineFirstClick, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete],
+    [isActive, activeTool, toImageCoords, onTextPrompt, lineFirstClick, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete, isPanning],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!isActive || isPanning) return;
-      const pt = toCanvasCoords(e.clientX, e.clientY);
+      const pt = toImageCoords(e.clientX, e.clientY);
 
       // Update current point for calibration preview
       if (isCalibrating && calibrationStart) {
@@ -316,7 +431,7 @@ export function MarkupCanvas({
       setCurrentPoint(pt);
       if (activeTool === "pen") setPenPoints((prev) => [...prev, pt]);
     },
-    [isActive, isDrawing, activeTool, toCanvasCoords, lineFirstClick, isCalibrating, calibrationStart],
+    [isActive, isDrawing, activeTool, toImageCoords, lineFirstClick, isCalibrating, calibrationStart, isPanning],
   );
 
   const handlePointerUp = useCallback(
@@ -327,7 +442,7 @@ export function MarkupCanvas({
       if (!isDrawing) return;
       e.preventDefault();
       e.stopPropagation();
-      const pt = toCanvasCoords(e.clientX, e.clientY);
+      const pt = toImageCoords(e.clientX, e.clientY);
       const id = generateId();
       let shape: Shape | null = null;
       switch (activeTool) {
@@ -343,12 +458,12 @@ export function MarkupCanvas({
           break;
         case "circle":
           if (startPoint) {
-            const cx = (startPoint.x + pt.x) / 2;
-            const cy = (startPoint.y + pt.y) / 2;
+            const cxp = (startPoint.x + pt.x) / 2;
+            const cyp = (startPoint.y + pt.y) / 2;
             const rx = Math.abs(pt.x - startPoint.x) / 2;
             const ry = Math.abs(pt.y - startPoint.y) / 2;
             if (rx > 2 || ry > 2) {
-              shape = { id, type: "circle", center: { x: cx, y: cy }, radiusX: rx, radiusY: ry, color, lineWidth };
+              shape = { id, type: "circle", center: { x: cxp, y: cyp }, radiusX: rx, radiusY: ry, color, lineWidth };
             }
           }
           break;
@@ -359,7 +474,7 @@ export function MarkupCanvas({
       setCurrentPoint(null);
       setPenPoints([]);
     },
-    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toCanvasCoords, onElementAdd, isCalibrating],
+    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating],
   );
 
   if (!isActive && !isCalibrating) return null;

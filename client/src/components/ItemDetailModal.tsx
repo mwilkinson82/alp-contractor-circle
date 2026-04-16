@@ -281,6 +281,28 @@ function FullscreenDrawing({
   const [hasLoaded, setHasLoaded] = useState(false);
   const [lastMeasurement, setLastMeasurement] = useState<{ pxDist: number; type: string } | null>(null);
 
+  // Image natural dimensions (needed for image-space coordinate conversion)
+  const [imageNaturalWidth, setImageNaturalWidth] = useState(0);
+  const [imageNaturalHeight, setImageNaturalHeight] = useState(0);
+
+  // Container dimensions (needed for object-fit: contain calculation)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(el);
+    // Initial measurement
+    const rect = el.getBoundingClientRect();
+    setContainerSize({ w: rect.width, h: rect.height });
+    return () => observer.disconnect();
+  }, []);
+
   // Scale calibration state (declared early for auto-save reference)
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [scaleRatio, setScaleRatio] = useState(0); // px per real-world unit
@@ -540,6 +562,7 @@ function FullscreenDrawing({
 
         {/* Image + canvas container */}
         <div
+          ref={containerRef}
           className="h-full overflow-hidden bg-white relative"
           style={{ cursor: markupActive ? (spaceHeld ? (isDragging ? "grabbing" : "grab") : undefined) : zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
           onWheel={handleWheel}
@@ -553,6 +576,11 @@ function FullscreenDrawing({
             alt={sheetName}
             className="w-full h-full object-contain select-none"
             draggable={false}
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              setImageNaturalWidth(img.naturalWidth);
+              setImageNaturalHeight(img.naturalHeight);
+            }}
             style={{
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
               transformOrigin: "center center",
@@ -591,6 +619,8 @@ function FullscreenDrawing({
             isCalibrating={isCalibrating}
             onCalibrationComplete={handleCalibrationComplete}
             isPanning={spaceHeld}
+            imageNaturalWidth={imageNaturalWidth}
+            imageNaturalHeight={imageNaturalHeight}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -600,6 +630,10 @@ function FullscreenDrawing({
               color={activeColor}
               onSubmit={handleTextSubmit}
               onCancel={() => setTextPromptPos(null)}
+              imageNaturalWidth={imageNaturalWidth}
+              imageNaturalHeight={imageNaturalHeight}
+              containerWidth={containerSize.w}
+              containerHeight={containerSize.h}
             />
           )}
         </div>

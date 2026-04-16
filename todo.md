@@ -1953,3 +1953,6 @@
 - [x] BUG: Switching from markup mode back to pan mode loses all annotations
 - [x] FEATURE: Scroll-wheel zoom works in markup mode
 - [x] FEATURE: Hold spacebar to pan while in markup mode (standard drawing tool UX)
+
+## Markup Coordinate Fix — April 15, 2026
+- [x] BUG: Drawn shapes move with zoom/pan instead of staying anchored to the drawing image — fixed by converting all shapes to image-space coordinates, matching CSS center-origin transform, and accounting for object-fit:contain padding
