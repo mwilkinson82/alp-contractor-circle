@@ -60,6 +60,10 @@ interface MarkupCanvasProps {
   imageNaturalWidth?: number;
   /** Natural height of the source image (needed for image-space conversion) */
   imageNaturalHeight?: number;
+  /** Currently selected shape ID (for highlighting) */
+  selectedShapeId?: string | null;
+  /** Called when user clicks on a shape to select it */
+  onSelectShape?: (id: string | null) => void;
 }
 
 export function MarkupCanvas({

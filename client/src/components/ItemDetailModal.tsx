@@ -271,9 +271,10 @@ function FullscreenDrawing({
   onQuantityUpdate?: (quantity: number, unit: string) => void;
 }) {
   const [markupActive, setMarkupActive] = useState(false);
-  const [activeTool, setActiveTool] = useState<ToolType>("pen");
+  const [activeTool, setActiveTool] = useState<ToolType>("select");
   const [activeColor, setActiveColor] = useState("#EF4444");
   const [lineWidth, setLineWidth] = useState(4);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
@@ -332,16 +333,16 @@ function FullscreenDrawing({
     }
   }, [savedMarkup.data, savedMarkup.isFetched, hasLoaded, replaceElements]);
 
-  // ── Load markup from DB on modal open ──
+  // ── Load markup from DB once when modal opens (not on every mode toggle) ──
   const markupQuery = trpc.takeoff.getSheetMarkup.useQuery(
     { sheetId: sheetId || 0 },
-    { enabled: !!sheetId && markupActive }
+    { enabled: !!sheetId && !hasLoaded }
   );
 
   // ── Auto-save markup to DB (debounced) ──
   const saveMarkupMutation = trpc.takeoff.saveSheetMarkup.useMutation();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Load markup from database when it arrives
+  // Load markup from database once when modal opens
   useEffect(() => {
     if (markupQuery.data && !hasLoaded && sheetId) {
       try {
@@ -349,13 +350,16 @@ function FullscreenDrawing({
         replaceElements(shapes);
         setScaleRatio(markupQuery.data.scaleRatio);
         setScaleUnit(markupQuery.data.scaleUnit);
-        setHasLoaded(true);
       } catch (err) {
         console.error("Failed to parse markup:", err);
+      } finally {
         setHasLoaded(true);
       }
+    } else if (!markupQuery.isLoading && !hasLoaded && sheetId) {
+      // No markup exists yet, mark as loaded
+      setHasLoaded(true);
     }
-  }, [markupQuery.data, hasLoaded, sheetId, replaceElements]);
+  }, [markupQuery.data, markupQuery.isLoading, hasLoaded, sheetId, replaceElements]);
 
   useEffect(() => {
     if (!sheetId || !projectId || !hasLoaded) return;
@@ -443,6 +447,13 @@ function FullscreenDrawing({
     [scaleRatio, scaleUnit],
   );
 
+  const handleDeleteSelected = useCallback(() => {
+    if (!selectedShapeId) return;
+    const filtered = elements.filter((el) => el.id !== selectedShapeId);
+    replaceElements(filtered);
+    setSelectedShapeId(null);
+  }, [selectedShapeId, elements, replaceElements]);
+
   const handleExport = useCallback(async () => {
     try {
       await exportToPng(imageUrl, elements, `${sheetName}-markup.png`, formatDistance, formatArea);
@@ -452,14 +463,7 @@ function FullscreenDrawing({
   }, [imageUrl, elements, sheetName, formatDistance, formatArea]);
 
   const toggleMarkup = useCallback(() => {
-    setMarkupActive((prev) => {
-      const newState = !prev;
-      // Reset hasLoaded when entering markup mode so we load from DB
-      if (newState) {
-        setHasLoaded(false);
-      }
-      return newState;
-    });
+    setMarkupActive((prev) => !prev);
     setTextPromptPos(null);
     setIsCalibrating(false);
   }, []);
@@ -667,6 +671,8 @@ function FullscreenDrawing({
             zoom={zoom}
             panOffset={panOffset}
             isActive={markupActive}
+            selectedShapeId={selectedShapeId}
+            onSelectShape={setSelectedShapeId}
             onTextPrompt={setTextPromptPos}
             scaleRatio={scaleRatio}
             scaleUnit={scaleUnit}
@@ -698,7 +704,10 @@ function FullscreenDrawing({
         <div className="flex justify-center py-2 px-4 bg-black/80 border-t border-white/5 shrink-0">
           <MarkupToolbar
             activeTool={activeTool}
-            onToolChange={setActiveTool}
+            onToolChange={(tool) => {
+              setActiveTool(tool);
+              if (tool !== "select") setSelectedShapeId(null);
+            }}
             activeColor={activeColor}
             onColorChange={setActiveColor}
             lineWidth={lineWidth}
@@ -710,6 +719,7 @@ function FullscreenDrawing({
             onClear={clearAll}
             onExport={handleExport}
             hasElements={elements.length > 0}
+            onDelete={selectedShapeId ? handleDeleteSelected : undefined}
             isCalibrated={scaleRatio > 0}
             scaleDisplay={scaleDisplay}
             isCalibrating={isCalibrating}
@@ -730,7 +740,7 @@ function FullscreenDrawing({
                 onQuantityUpdate(realArea, unit);
               }
             } : undefined}
-            isSaving={saveMarkupMutation.isPending || markupQuery.isLoading}
+            isSaving={saveMarkupMutation.isPending}
           />
         </div>
       )}

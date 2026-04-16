@@ -68,6 +68,8 @@ interface MarkupToolbarProps {
   onPushQuantity?: () => void;
   /** Whether auto-save is active */
   isSaving?: boolean;
+  /** Delete selected shape */
+  onDelete?: () => void;
 }
 
 export function MarkupToolbar({
@@ -91,6 +93,7 @@ export function MarkupToolbar({
   lastMeasurementLabel,
   onPushQuantity,
   isSaving = false,
+  onDelete,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -194,6 +197,15 @@ export function MarkupToolbar({
           className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 disabled:text-white/20 disabled:hover:bg-transparent transition-all duration-150"
         >
           <Redo2 className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={!onDelete}
+          title="Delete selected shape (Del)"
+          className="p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/10 disabled:text-white/20 disabled:hover:bg-transparent transition-all duration-150"
+        >
+          <Trash2 className="w-4 h-4" />
         </button>
         <button
           type="button"

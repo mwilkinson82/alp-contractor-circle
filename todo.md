@@ -1968,3 +1968,8 @@
 
 ## Annotation Persistence Bug — April 16, 2026
 - [x] BUG: Annotations disappear when exiting markup mode — fixed by loading markups from DB on modal open and auto-saving on changes
+
+## Markup Persistence & Editing Issues — April 16, 2026
+- [x] BUG: Markups disappear when toggling between markup and pan modes — fixed by loading once on modal open, not on every mode toggle
+- [x] FEATURE: Click on existing markups to select and edit them — added select tool, shape selection on click
+- [x] FEATURE: Delete selected markup — added delete button in toolbar, keyboard shortcut support
