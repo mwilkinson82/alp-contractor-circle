@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { Point, ToolType, Shape } from "./types";
-import { renderAllShapes, drawShape, type FormatAreaFn } from "./renderShapes";
+import { renderAllShapes, drawShape, hitTestShapes, type FormatAreaFn } from "./renderShapes";
 
 let _idCounter = 0;
 function generateId(): string {
@@ -36,6 +36,27 @@ function computeFittedImageRect(
   return { x, y, w, h };
 }
 
+/** Move a shape by (dx, dy) in image-space */
+function moveShape(shape: Shape, dx: number, dy: number): Shape {
+  const movePoint = (p: Point): Point => ({ x: p.x + dx, y: p.y + dy });
+  switch (shape.type) {
+    case "line":
+      return { ...shape, start: movePoint(shape.start), end: movePoint(shape.end) };
+    case "rectangle":
+      return { ...shape, start: movePoint(shape.start), end: movePoint(shape.end) };
+    case "circle":
+      return { ...shape, center: movePoint(shape.center) };
+    case "polygon":
+      return { ...shape, points: shape.points.map(movePoint) };
+    case "pen":
+      return { ...shape, points: shape.points.map(movePoint) };
+    case "text":
+      return { ...shape, position: movePoint(shape.position) };
+    default:
+      return shape;
+  }
+}
+
 interface MarkupCanvasProps {
   elements: Shape[];
   onElementAdd: (shape: Shape) => void;
@@ -64,6 +85,8 @@ interface MarkupCanvasProps {
   selectedShapeId?: string | null;
   /** Called when user clicks on a shape to select it */
   onSelectShape?: (id: string | null) => void;
+  /** Called when user drags/edits a shape (e.g. moves an endpoint) */
+  onUpdateElement?: (id: string, updater: (shape: Shape) => Shape) => void;
 }
 
 export function MarkupCanvas({
@@ -83,12 +106,19 @@ export function MarkupCanvas({
   isPanning = false,
   imageNaturalWidth = 0,
   imageNaturalHeight = 0,
+  selectedShapeId,
+  onSelectShape,
+  onUpdateElement,
 }: MarkupCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penPoints, setPenPoints] = useState<Point[]>([]);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
+
+  // Drag handle state for editing selected shapes
+  const [draggingHandle, setDraggingHandle] = useState<{ shapeId: string; handle: string } | null>(null);
+  const [dragStartPt, setDragStartPt] = useState<Point | null>(null);
 
   // Click-to-click state for line tool
   const [lineFirstClick, setLineFirstClick] = useState<Point | null>(null);
@@ -256,7 +286,7 @@ export function MarkupCanvas({
     ctx.scale(fitScale, fitScale);
 
     // Now the canvas coordinate system matches image-space coordinates
-    renderAllShapes(ctx, elements, formatDistance, formatArea);
+    renderAllShapes(ctx, elements, formatDistance, formatArea, selectedShapeId);
 
     // Preview for drag-based shapes (rectangle, circle)
     if (isDrawing && startPoint && currentPoint) {
@@ -349,7 +379,7 @@ export function MarkupCanvas({
     }
 
     ctx.restore();
-  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, formatArea, lineFirstClick, polygonPoints, isCalibrating, calibrationStart, imageNaturalWidth, imageNaturalHeight]);
+  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, formatArea, lineFirstClick, polygonPoints, isCalibrating, calibrationStart, imageNaturalWidth, imageNaturalHeight, selectedShapeId]);
 
   useEffect(() => {
     redraw();
@@ -409,7 +439,31 @@ export function MarkupCanvas({
         return;
       }
 
-      if (activeTool === "select") return;
+      if (activeTool === "select") {
+        // Hit-test for selection
+        const hitId = hitTestShapes(elements, pt, 20);
+        onSelectShape?.(hitId);
+        if (hitId) {
+          // Check if clicking near a line endpoint for dragging
+          const shape = elements.find((s) => s.id === hitId);
+          if (shape?.type === "line") {
+            const dStart = Math.sqrt((pt.x - shape.start.x) ** 2 + (pt.y - shape.start.y) ** 2);
+            const dEnd = Math.sqrt((pt.x - shape.end.x) ** 2 + (pt.y - shape.end.y) ** 2);
+            if (dStart < 25) {
+              setDraggingHandle({ shapeId: hitId, handle: "start" });
+            } else if (dEnd < 25) {
+              setDraggingHandle({ shapeId: hitId, handle: "end" });
+            } else {
+              setDraggingHandle({ shapeId: hitId, handle: "move" });
+              setDragStartPt(pt);
+            }
+          } else {
+            setDraggingHandle({ shapeId: hitId, handle: "move" });
+            setDragStartPt(pt);
+          }
+        }
+        return;
+      }
 
       if (activeTool === "text") {
         onTextPrompt?.(pt);
@@ -487,6 +541,29 @@ export function MarkupCanvas({
       if (!isActive || isPanning) return;
       const pt = toImageCoords(e.clientX, e.clientY);
 
+      // Handle dragging of selected shape handles
+      if (draggingHandle && onUpdateElement) {
+        e.preventDefault();
+        e.stopPropagation();
+        const { shapeId, handle } = draggingHandle;
+        if (handle === "start" || handle === "end") {
+          // Drag line endpoint
+          onUpdateElement(shapeId, (s) => {
+            if (s.type === "line") {
+              return handle === "start" ? { ...s, start: pt } : { ...s, end: pt };
+            }
+            return s;
+          });
+        } else if (handle === "move" && dragStartPt) {
+          // Move entire shape
+          const dx = pt.x - dragStartPt.x;
+          const dy = pt.y - dragStartPt.y;
+          setDragStartPt(pt);
+          onUpdateElement(shapeId, (s) => moveShape(s, dx, dy));
+        }
+        return;
+      }
+
       // Update current point for calibration preview
       if (isCalibrating && calibrationStart) {
         e.preventDefault();
@@ -518,11 +595,17 @@ export function MarkupCanvas({
       setCurrentPoint(pt);
       if (activeTool === "pen") setPenPoints((prev) => [...prev, pt]);
     },
-    [isActive, isDrawing, activeTool, toImageCoords, lineFirstClick, isCalibrating, calibrationStart, isPanning],
+    [isActive, isDrawing, activeTool, toImageCoords, lineFirstClick, isCalibrating, calibrationStart, isPanning, draggingHandle, dragStartPt, onUpdateElement],
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
+      // End drag handle
+      if (draggingHandle) {
+        setDraggingHandle(null);
+        setDragStartPt(null);
+        return;
+      }
       // Line and polygon tools use click-to-click, not drag — ignore pointer up for them
       if (activeTool === "line" || activeTool === "polygon") return;
       if (isCalibrating) return;
@@ -561,7 +644,7 @@ export function MarkupCanvas({
       setCurrentPoint(null);
       setPenPoints([]);
     },
-    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating],
+    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating, draggingHandle],
   );
 
   // Double-click to close polygon
@@ -589,8 +672,9 @@ export function MarkupCanvas({
   const pointerEventsStyle = (!isActive && !isCalibrating) ? "none" as const : isPanning ? "none" as const : "auto" as const;
 
   const getCursor = () => {
+    if (draggingHandle) return "grabbing";
     if (isCalibrating) return "crosshair";
-    if (activeTool === "select") return "default";
+    if (activeTool === "select") return selectedShapeId ? "grab" : "default";
     if (activeTool === "text") return "text";
     return "crosshair";
   };

@@ -40,6 +40,24 @@ export function useMarkupHistory() {
     setElements(next);
   }, [redoStack, elements]);
 
+  const updateElement = useCallback(
+    (id: string, updater: (shape: Shape) => Shape) => {
+      setUndoStack((prev) => [...prev, elements]);
+      setElements((prev) => prev.map((s) => (s.id === id ? updater(s) : s)));
+      setRedoStack([]);
+    },
+    [elements],
+  );
+
+  const removeElement = useCallback(
+    (id: string) => {
+      setUndoStack((prev) => [...prev, elements]);
+      setElements((prev) => prev.filter((s) => s.id !== id));
+      setRedoStack([]);
+    },
+    [elements],
+  );
+
   const clearAll = useCallback(() => {
     setUndoStack((prev) => [...prev, elements]);
     setElements([]);
@@ -50,6 +68,8 @@ export function useMarkupHistory() {
     elements,
     pushElement,
     replaceElements,
+    updateElement,
+    removeElement,
     undo,
     redo,
     clearAll,

@@ -278,7 +278,7 @@ function FullscreenDrawing({
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
-  const { elements, pushElement, replaceElements, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+  const { elements, pushElement, replaceElements, updateElement, removeElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [lastMeasurement, setLastMeasurement] = useState<{ pxDist: number; type: string } | null>(null);
 
@@ -432,10 +432,9 @@ function FullscreenDrawing({
 
   const handleDeleteSelected = useCallback(() => {
     if (!selectedShapeId) return;
-    const filtered = elements.filter((el) => el.id !== selectedShapeId);
-    replaceElements(filtered);
+    removeElement(selectedShapeId);
     setSelectedShapeId(null);
-  }, [selectedShapeId, elements, replaceElements]);
+  }, [selectedShapeId, removeElement]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -664,6 +663,7 @@ function FullscreenDrawing({
             isPanning={spaceHeld}
             imageNaturalWidth={imageNaturalWidth}
             imageNaturalHeight={imageNaturalHeight}
+            onUpdateElement={updateElement}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -736,9 +736,9 @@ function FullscreenDrawing({
         />
       )}
 
-      {/* Calibration hint overlay */}
+      {/* Calibration hint overlay — positioned at top so it doesn't obstruct the scale bar */}
       {isCalibrating && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 bg-green-500/90 text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-xl pointer-events-none">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 bg-green-500/90 text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-xl pointer-events-none animate-pulse">
           Click two points on a known dimension line to set the scale
         </div>
       )}

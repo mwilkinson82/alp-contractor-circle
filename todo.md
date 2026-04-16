@@ -1978,3 +1978,10 @@
 - [x] BUG: Annotations vanish when switching from markup mode to pan mode — removed `return null` gate, canvas always renders
 - [x] BUG: Annotations don't appear when opening a drawing until user clicks a tool — removed duplicate query, consolidated to single eager load
 - [x] FIX: Always render annotation overlay canvas (read-only in pan mode with pointerEvents:none), load markups eagerly on modal open
+
+## Shape Selection & Editing — April 16, 2026
+- [x] FEATURE: Visual selection highlight (glow/outline) on selected shapes — blue dashed outline + handles
+- [x] FEATURE: Hit-testing — click on shapes in select mode to select them — full hit-test for all shape types
+- [x] FEATURE: Grab and move any shape (drag from body)
+- [x] FEATURE: Grab and adjust existing line endpoints (drag from handle dots)
+- [x] UX: Move calibration instruction text from bottom to top of drawing (out of scale bar area)
