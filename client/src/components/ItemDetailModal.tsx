@@ -333,36 +333,19 @@ function FullscreenDrawing({
     }
   }, [savedMarkup.data, savedMarkup.isFetched, hasLoaded, replaceElements]);
 
-  // ── Load markup from DB once when modal opens (not on every mode toggle) ──
-  const markupQuery = trpc.takeoff.getSheetMarkup.useQuery(
-    { sheetId: sheetId || 0 },
-    { enabled: !!sheetId && !hasLoaded }
-  );
-
   // ── Auto-save markup to DB (debounced) ──
   const saveMarkupMutation = trpc.takeoff.saveSheetMarkup.useMutation();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Load markup from database once when modal opens
-  useEffect(() => {
-    if (markupQuery.data && !hasLoaded && sheetId) {
-      try {
-        const shapes = JSON.parse(markupQuery.data.shapesJson);
-        replaceElements(shapes);
-        setScaleRatio(markupQuery.data.scaleRatio);
-        setScaleUnit(markupQuery.data.scaleUnit);
-      } catch (err) {
-        console.error("Failed to parse markup:", err);
-      } finally {
-        setHasLoaded(true);
-      }
-    } else if (!markupQuery.isLoading && !hasLoaded && sheetId) {
-      // No markup exists yet, mark as loaded
-      setHasLoaded(true);
-    }
-  }, [markupQuery.data, markupQuery.isLoading, hasLoaded, sheetId, replaceElements]);
 
+  // Track whether user has made any changes (to avoid saving empty state on initial load)
+  const hasUserEdited = useRef(false);
   useEffect(() => {
     if (!sheetId || !projectId || !hasLoaded) return;
+    // Skip the first fire after load (elements may still be empty or just loaded from DB)
+    if (!hasUserEdited.current) {
+      hasUserEdited.current = true;
+      return;
+    }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveMarkupMutation.mutate({

@@ -584,10 +584,9 @@ export function MarkupCanvas({
     [activeTool, polygonPoints, color, lineWidth, onElementAdd],
   );
 
-  if (!isActive && !isCalibrating) return null;
-
-  // When panning via spacebar, make canvas transparent to pointer events
-  const pointerEventsStyle = isPanning ? "none" as const : "auto" as const;
+  // Always render the canvas so annotations are visible in both markup and pan modes.
+  // When not active (pan mode), disable pointer events so the user can pan/zoom the image.
+  const pointerEventsStyle = (!isActive && !isCalibrating) ? "none" as const : isPanning ? "none" as const : "auto" as const;
 
   const getCursor = () => {
     if (isCalibrating) return "crosshair";

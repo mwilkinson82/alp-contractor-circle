@@ -1973,3 +1973,8 @@
 - [x] BUG: Markups disappear when toggling between markup and pan modes — fixed by loading once on modal open, not on every mode toggle
 - [x] FEATURE: Click on existing markups to select and edit them — added select tool, shape selection on click
 - [x] FEATURE: Delete selected markup — added delete button in toolbar, keyboard shortcut support
+
+## Markup Visibility Bug — April 16, 2026
+- [x] BUG: Annotations vanish when switching from markup mode to pan mode — removed `return null` gate, canvas always renders
+- [x] BUG: Annotations don't appear when opening a drawing until user clicks a tool — removed duplicate query, consolidated to single eager load
+- [x] FIX: Always render annotation overlay canvas (read-only in pan mode with pointerEvents:none), load markups eagerly on modal open
