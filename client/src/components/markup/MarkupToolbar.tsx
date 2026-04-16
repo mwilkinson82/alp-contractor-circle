@@ -12,6 +12,7 @@ import {
   Ruler,
   ArrowRightToLine,
   Save,
+  Pentagon,
 } from "lucide-react";
 import type { ToolType } from "./types";
 
@@ -21,6 +22,7 @@ const TOOLS: { type: ToolType; icon: typeof MousePointer2; label: string; hint?:
   { type: "rectangle", icon: Square, label: "Rectangle (R)" },
   { type: "circle", icon: Circle, label: "Circle (C)" },
   { type: "line", icon: Minus, label: "Line / Measure (L)", hint: "Click start → click end" },
+  { type: "polygon", icon: Pentagon, label: "Area / Polygon (A)", hint: "Click vertices → close to start or double-click" },
   { type: "text", icon: Type, label: "Text Label (T)" },
 ];
 

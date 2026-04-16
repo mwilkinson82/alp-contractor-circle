@@ -1956,3 +1956,12 @@
 
 ## Markup Coordinate Fix — April 15, 2026
 - [x] BUG: Drawn shapes move with zoom/pan instead of staying anchored to the drawing image — fixed by converting all shapes to image-space coordinates, matching CSS center-origin transform, and accounting for object-fit:contain padding
+
+## Area Polygon Measurement Tool — April 15, 2026
+- [x] FEATURE: Add "polygon" shape type to markup types (array of points, closed shape)
+- [x] FEATURE: Click-to-click polygon drawing in MarkupCanvas (click to add vertices, double-click or close-to-start to finish)
+- [x] FEATURE: Render filled polygon with semi-transparent fill and stroke outline
+- [x] FEATURE: Live area calculation using Shoelace formula, displayed in calibrated units (SF, m², etc.)
+- [x] FEATURE: Add polygon tool button to MarkupToolbar
+- [x] FEATURE: Push polygon area measurement to line item quantity field
+- [x] FEATURE: Polygon rendering in renderShapes.ts for canvas and PNG export

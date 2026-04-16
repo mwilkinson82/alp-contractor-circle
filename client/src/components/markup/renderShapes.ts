@@ -78,6 +78,89 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, fmt: 
   }
 }
 
+/**
+ * Compute polygon area using the Shoelace formula.
+ * Returns area in square pixels (image-space).
+ */
+function polygonArea(points: Point[]): number {
+  let area = 0;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+  return Math.abs(area) / 2;
+}
+
+/** Compute the centroid of a polygon */
+function polygonCentroid(points: Point[]): Point {
+  let cx = 0, cy = 0;
+  for (const p of points) { cx += p.x; cy += p.y; }
+  return { x: cx / points.length, y: cy / points.length };
+}
+
+export type FormatAreaFn = (pxArea: number) => string;
+
+function drawPolygon(
+  ctx: CanvasRenderingContext2D,
+  points: Point[],
+  color: string,
+  fmtArea?: FormatAreaFn,
+) {
+  if (points.length < 3) {
+    // Not enough points for a polygon — draw as a polyline
+    if (points.length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+    }
+    return;
+  }
+  // Fill with semi-transparent color
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.closePath();
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+  // Stroke outline
+  ctx.stroke();
+  // Vertex dots
+  for (const p of points) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  // Area label at centroid
+  if (fmtArea) {
+    const area = polygonArea(points);
+    if (area > 100) {
+      const c = polygonCentroid(points);
+      const label = fmtArea(area);
+      const fontSize = 14;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const metrics = ctx.measureText(label);
+      const pad = 6;
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.beginPath();
+      ctx.roundRect(c.x - metrics.width / 2 - pad, c.y - fontSize / 2 - pad, metrics.width + pad * 2, fontSize + pad * 2, 4);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = "#fff";
+      ctx.fillText(label, c.x, c.y);
+    }
+  }
+}
+
 function drawText(
   ctx: CanvasRenderingContext2D,
   position: Point,
@@ -105,7 +188,7 @@ function drawText(
   });
 }
 
-export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: FormatDistanceFn = defaultFormat) {
+export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn) {
   ctx.save();
   ctx.strokeStyle = shape.color;
   ctx.fillStyle = shape.color;
@@ -125,6 +208,9 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: Form
     case "line":
       drawLine(ctx, shape.start, shape.end, fmt);
       break;
+    case "polygon":
+      drawPolygon(ctx, shape.points, shape.color, fmtArea);
+      break;
     case "text":
       drawText(ctx, shape.position, shape.text, shape.fontSize, shape.color);
       break;
@@ -132,8 +218,8 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: Form
   ctx.restore();
 }
 
-export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], fmt: FormatDistanceFn = defaultFormat) {
+export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn) {
   for (const shape of shapes) {
-    drawShape(ctx, shape, fmt);
+    drawShape(ctx, shape, fmt, fmtArea);
   }
 }

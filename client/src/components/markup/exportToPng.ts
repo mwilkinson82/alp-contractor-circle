@@ -1,11 +1,12 @@
 import type { Shape } from "./types";
-import { renderAllShapes, type FormatDistanceFn } from "./renderShapes";
+import { renderAllShapes, type FormatDistanceFn, type FormatAreaFn } from "./renderShapes";
 
 export async function exportToPng(
   imageUrl: string,
   shapes: Shape[],
   filename = "markup-export.png",
   formatDistance?: FormatDistanceFn,
+  formatArea?: FormatAreaFn,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -29,7 +30,7 @@ export async function exportToPng(
         // Since we don't have the display rect here, we render shapes at their
         // stored coordinates — which are already in image-space (toCanvasCoords
         // in MarkupCanvas converts screen coords to image-space coords).
-        renderAllShapes(ctx, shapes, formatDistance);
+        renderAllShapes(ctx, shapes, formatDistance, formatArea);
 
         canvas.toBlob(
           (blob) => {

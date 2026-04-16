@@ -367,6 +367,7 @@ function FullscreenDrawing({
           case "r": setActiveTool("rectangle"); break;
           case "c": setActiveTool("circle"); break;
           case "l": setActiveTool("line"); break;
+          case "a": setActiveTool("polygon"); break;
           case "t": setActiveTool("text"); break;
         }
       }
@@ -407,13 +408,26 @@ function FullscreenDrawing({
     [scaleRatio, scaleUnit],
   );
 
+  const formatArea = useCallback(
+    (pxArea: number): string => {
+      if (scaleRatio > 0) {
+        const realArea = pxArea / (scaleRatio * scaleRatio);
+        if (scaleUnit === "ft") return `${realArea.toFixed(1)} SF`;
+        if (scaleUnit === "m") return `${realArea.toFixed(1)} m\u00B2`;
+        return `${realArea.toFixed(1)} ${scaleUnit}\u00B2`;
+      }
+      return `${Math.round(pxArea)} px\u00B2`;
+    },
+    [scaleRatio, scaleUnit],
+  );
+
   const handleExport = useCallback(async () => {
     try {
-      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`, formatDistance);
+      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`, formatDistance, formatArea);
     } catch (err) {
       console.error("Export failed:", err);
     }
-  }, [imageUrl, elements, sheetName, formatDistance]);
+  }, [imageUrl, elements, sheetName, formatDistance, formatArea]);
 
   const toggleMarkup = useCallback(() => {
     setMarkupActive((prev) => !prev);
@@ -604,6 +618,17 @@ function FullscreenDrawing({
                 setLastMeasurement({ pxDist: areaPx, type: "area" });
               } else if (shape.type === "circle" && scaleRatio > 0) {
                 const areaPx = Math.PI * shape.radiusX * shape.radiusY;
+                setLastMeasurement({ pxDist: areaPx, type: "area" });
+              } else if (shape.type === "polygon" && scaleRatio > 0 && shape.points.length >= 3) {
+                // Shoelace formula for polygon area
+                let areaPx = 0;
+                const pts = shape.points;
+                for (let i = 0; i < pts.length; i++) {
+                  const j = (i + 1) % pts.length;
+                  areaPx += pts[i].x * pts[j].y;
+                  areaPx -= pts[j].x * pts[i].y;
+                }
+                areaPx = Math.abs(areaPx) / 2;
                 setLastMeasurement({ pxDist: areaPx, type: "area" });
               }
             }}

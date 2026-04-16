@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { Point, ToolType, Shape } from "./types";
-import { renderAllShapes, drawShape } from "./renderShapes";
+import { renderAllShapes, drawShape, type FormatAreaFn } from "./renderShapes";
 
 let _idCounter = 0;
 function generateId(): string {
@@ -89,6 +89,9 @@ export function MarkupCanvas({
   // Click-to-click state for line tool
   const [lineFirstClick, setLineFirstClick] = useState<Point | null>(null);
 
+  // Click-to-click state for polygon tool
+  const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
+
   // Calibration state (two-click)
   const [calibrationStart, setCalibrationStart] = useState<Point | null>(null);
 
@@ -137,6 +140,20 @@ export function MarkupCanvas({
       return { x: imgX, y: imgY };
     },
     [zoom, panOffset, imageNaturalWidth, imageNaturalHeight],
+  );
+
+  /** Format a pixel area using calibration if available */
+  const formatArea: FormatAreaFn = useCallback(
+    (pxArea: number): string => {
+      if (scaleRatio > 0) {
+        const realArea = pxArea / (scaleRatio * scaleRatio);
+        if (scaleUnit === "ft") return `${realArea.toFixed(1)} SF`;
+        if (scaleUnit === "m") return `${realArea.toFixed(1)} m\u00B2`;
+        return `${realArea.toFixed(1)} ${scaleUnit}\u00B2`;
+      }
+      return `${Math.round(pxArea)} px\u00B2`;
+    },
+    [scaleRatio, scaleUnit],
   );
 
   /** Format a pixel distance using calibration if available */
@@ -235,7 +252,7 @@ export function MarkupCanvas({
     ctx.scale(fitScale, fitScale);
 
     // Now the canvas coordinate system matches image-space coordinates
-    renderAllShapes(ctx, elements, formatDistance);
+    renderAllShapes(ctx, elements, formatDistance, formatArea);
 
     // Preview for drag-based shapes (rectangle, circle)
     if (isDrawing && startPoint && currentPoint) {
@@ -257,7 +274,30 @@ export function MarkupCanvas({
     // Preview for click-to-click line (first click placed, mouse moving)
     if (lineFirstClick && currentPoint && !isDrawing) {
       ctx.globalAlpha = 0.6;
-      drawShape(ctx, { id: "line-preview", type: "line", start: lineFirstClick, end: currentPoint, color, lineWidth } as Shape, formatDistance);
+      drawShape(ctx, { id: "line-preview", type: "line", start: lineFirstClick, end: currentPoint, color, lineWidth } as Shape, formatDistance, formatArea);
+      ctx.globalAlpha = 1;
+    }
+
+    // Preview for polygon (vertices placed so far + mouse cursor)
+    if (polygonPoints.length > 0 && currentPoint && activeTool === "polygon") {
+      const previewPts = [...polygonPoints, currentPoint];
+      ctx.globalAlpha = 0.6;
+      drawShape(ctx, { id: "poly-preview", type: "polygon", points: previewPts, color, lineWidth } as Shape, formatDistance, formatArea);
+      // Draw closing-snap indicator when cursor is near the first point
+      if (polygonPoints.length >= 2) {
+        const dx = currentPoint.x - polygonPoints[0].x;
+        const dy = currentPoint.y - polygonPoints[0].y;
+        const snapDist = Math.sqrt(dx * dx + dy * dy);
+        if (snapDist < 30) {
+          ctx.save();
+          ctx.strokeStyle = "#22C55E";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(polygonPoints[0].x, polygonPoints[0].y, 12, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -305,7 +345,7 @@ export function MarkupCanvas({
     }
 
     ctx.restore();
-  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, lineFirstClick, isCalibrating, calibrationStart, imageNaturalWidth, imageNaturalHeight]);
+  }, [elements, isDrawing, startPoint, currentPoint, penPoints, activeTool, color, lineWidth, zoom, panOffset, getPreviewShape, formatDistance, formatArea, lineFirstClick, polygonPoints, isCalibrating, calibrationStart, imageNaturalWidth, imageNaturalHeight]);
 
   useEffect(() => {
     redraw();
@@ -323,6 +363,13 @@ export function MarkupCanvas({
   useEffect(() => {
     if (activeTool !== "line") {
       setLineFirstClick(null);
+    }
+  }, [activeTool]);
+
+  // Reset polygon state when tool changes away from polygon
+  useEffect(() => {
+    if (activeTool !== "polygon") {
+      setPolygonPoints([]);
     }
   }, [activeTool]);
 
@@ -365,6 +412,34 @@ export function MarkupCanvas({
         return;
       }
 
+      // Click-to-click polygon tool
+      if (activeTool === "polygon") {
+        // Check if closing the polygon (click near first point, or double-click handled below)
+        if (polygonPoints.length >= 3) {
+          const dx = pt.x - polygonPoints[0].x;
+          const dy = pt.y - polygonPoints[0].y;
+          const snapDist = Math.sqrt(dx * dx + dy * dy);
+          if (snapDist < 30) {
+            // Close the polygon
+            const shape: Shape = {
+              id: generateId(),
+              type: "polygon",
+              points: [...polygonPoints],
+              color,
+              lineWidth,
+            };
+            onElementAdd(shape);
+            setPolygonPoints([]);
+            setCurrentPoint(null);
+            return;
+          }
+        }
+        // Add vertex
+        setPolygonPoints((prev) => [...prev, pt]);
+        setCurrentPoint(pt);
+        return;
+      }
+
       // Click-to-click line tool
       if (activeTool === "line") {
         if (!lineFirstClick) {
@@ -400,7 +475,7 @@ export function MarkupCanvas({
       if (activeTool === "pen") setPenPoints([pt]);
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [isActive, activeTool, toImageCoords, onTextPrompt, lineFirstClick, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete, isPanning],
+    [isActive, activeTool, toImageCoords, onTextPrompt, lineFirstClick, polygonPoints, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete, isPanning],
   );
 
   const handlePointerMove = useCallback(
@@ -424,6 +499,14 @@ export function MarkupCanvas({
         return;
       }
 
+      // Update current point for polygon preview
+      if (polygonPoints.length > 0 && activeTool === "polygon") {
+        e.preventDefault();
+        e.stopPropagation();
+        setCurrentPoint(pt);
+        return;
+      }
+
       // Drag-based drawing
       if (!isDrawing) return;
       e.preventDefault();
@@ -436,8 +519,8 @@ export function MarkupCanvas({
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
-      // Line tool uses click-to-click, not drag — ignore pointer up for it
-      if (activeTool === "line") return;
+      // Line and polygon tools use click-to-click, not drag — ignore pointer up for them
+      if (activeTool === "line" || activeTool === "polygon") return;
       if (isCalibrating) return;
       if (!isDrawing) return;
       e.preventDefault();
@@ -477,6 +560,26 @@ export function MarkupCanvas({
     [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating],
   );
 
+  // Double-click to close polygon
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (activeTool !== "polygon" || polygonPoints.length < 3) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const shape: Shape = {
+        id: generateId(),
+        type: "polygon",
+        points: [...polygonPoints],
+        color,
+        lineWidth,
+      };
+      onElementAdd(shape);
+      setPolygonPoints([]);
+      setCurrentPoint(null);
+    },
+    [activeTool, polygonPoints, color, lineWidth, onElementAdd],
+  );
+
   if (!isActive && !isCalibrating) return null;
 
   // When panning via spacebar, make canvas transparent to pointer events
@@ -502,6 +605,7 @@ export function MarkupCanvas({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onDoubleClick={handleDoubleClick}
     />
   );
 }

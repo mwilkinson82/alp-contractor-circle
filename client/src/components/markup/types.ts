@@ -3,7 +3,7 @@ export interface Point {
   y: number;
 }
 
-export type ToolType = "select" | "pen" | "rectangle" | "circle" | "line" | "text";
+export type ToolType = "select" | "pen" | "rectangle" | "circle" | "line" | "polygon" | "text";
 
 export interface PenShape {
   id: string;
@@ -51,4 +51,12 @@ export interface TextShape {
   lineWidth: number;
 }
 
-export type Shape = PenShape | RectangleShape | CircleShape | LineShape | TextShape;
+export interface PolygonShape {
+  id: string;
+  type: "polygon";
+  points: Point[];
+  color: string;
+  lineWidth: number;
+}
+
+export type Shape = PenShape | RectangleShape | CircleShape | LineShape | PolygonShape | TextShape;
