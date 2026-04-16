@@ -444,9 +444,9 @@ export function MarkupCanvas({
         const hitId = hitTestShapes(elements, pt, 20);
         onSelectShape?.(hitId);
         if (hitId) {
-          // Check if clicking near a line endpoint for dragging
           const shape = elements.find((s) => s.id === hitId);
           if (shape?.type === "line") {
+            // Check if clicking near a line endpoint for dragging
             const dStart = Math.sqrt((pt.x - shape.start.x) ** 2 + (pt.y - shape.start.y) ** 2);
             const dEnd = Math.sqrt((pt.x - shape.end.x) ** 2 + (pt.y - shape.end.y) ** 2);
             if (dStart < 25) {
@@ -454,6 +454,46 @@ export function MarkupCanvas({
             } else if (dEnd < 25) {
               setDraggingHandle({ shapeId: hitId, handle: "end" });
             } else {
+              setDraggingHandle({ shapeId: hitId, handle: "move" });
+              setDragStartPt(pt);
+            }
+          } else if (shape?.type === "polygon") {
+            // Check if clicking near a polygon vertex for individual vertex dragging
+            let closestVertexIdx = -1;
+            let closestDist = Infinity;
+            for (let i = 0; i < shape.points.length; i++) {
+              const d = Math.sqrt((pt.x - shape.points[i].x) ** 2 + (pt.y - shape.points[i].y) ** 2);
+              if (d < closestDist) {
+                closestDist = d;
+                closestVertexIdx = i;
+              }
+            }
+            if (closestDist < 25 && closestVertexIdx >= 0) {
+              // Drag individual vertex
+              setDraggingHandle({ shapeId: hitId, handle: `vertex_${closestVertexIdx}` });
+            } else {
+              // Move entire polygon
+              setDraggingHandle({ shapeId: hitId, handle: "move" });
+              setDragStartPt(pt);
+            }
+          } else if (shape?.type === "rectangle") {
+            // Check if clicking near a rectangle corner for resizing
+            const corners = [
+              { pt: shape.start, handle: "rect_tl" },
+              { pt: shape.end, handle: "rect_br" },
+              { pt: { x: shape.start.x, y: shape.end.y }, handle: "rect_bl" },
+              { pt: { x: shape.end.x, y: shape.start.y }, handle: "rect_tr" },
+            ];
+            let cornerHit = false;
+            for (const c of corners) {
+              const d = Math.sqrt((pt.x - c.pt.x) ** 2 + (pt.y - c.pt.y) ** 2);
+              if (d < 25) {
+                setDraggingHandle({ shapeId: hitId, handle: c.handle });
+                cornerHit = true;
+                break;
+              }
+            }
+            if (!cornerHit) {
               setDraggingHandle({ shapeId: hitId, handle: "move" });
               setDragStartPt(pt);
             }
@@ -551,6 +591,30 @@ export function MarkupCanvas({
           onUpdateElement(shapeId, (s) => {
             if (s.type === "line") {
               return handle === "start" ? { ...s, start: pt } : { ...s, end: pt };
+            }
+            return s;
+          });
+        } else if (handle.startsWith("vertex_")) {
+          // Drag individual polygon vertex
+          const vertexIdx = parseInt(handle.split("_")[1], 10);
+          onUpdateElement(shapeId, (s) => {
+            if (s.type === "polygon" && vertexIdx >= 0 && vertexIdx < s.points.length) {
+              const newPoints = [...s.points];
+              newPoints[vertexIdx] = pt;
+              return { ...s, points: newPoints };
+            }
+            return s;
+          });
+        } else if (handle.startsWith("rect_")) {
+          // Drag rectangle corner
+          onUpdateElement(shapeId, (s) => {
+            if (s.type === "rectangle") {
+              switch (handle) {
+                case "rect_tl": return { ...s, start: pt };
+                case "rect_br": return { ...s, end: pt };
+                case "rect_bl": return { ...s, start: { ...s.start, y: pt.y }, end: { ...s.end, x: pt.x } };
+                case "rect_tr": return { ...s, start: { ...s.start, x: pt.x }, end: { ...s.end, y: pt.y } };
+              }
             }
             return s;
           });

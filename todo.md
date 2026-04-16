@@ -1985,3 +1985,8 @@
 - [x] FEATURE: Grab and move any shape (drag from body)
 - [x] FEATURE: Grab and adjust existing line endpoints (drag from handle dots)
 - [x] UX: Move calibration instruction text from bottom to top of drawing (out of scale bar area)
+
+## Polygon Vertex Editing — April 16, 2026
+- [x] FEATURE: Drag individual polygon vertices to reshape area measurements after drawing
+- [x] BONUS: Rectangle corner dragging for resizing
+- [x] BONUS: Larger white/blue vertex handles for better visibility and easier grabbing

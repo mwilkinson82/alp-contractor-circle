@@ -289,13 +289,17 @@ function drawSelectionHighlight(ctx: CanvasRenderingContext2D, shape: Shape) {
         ctx.closePath();
         ctx.stroke();
       }
-      // Vertex handles
-      ctx.fillStyle = "#3B82F6";
+      // Vertex handles — larger and more visible for dragging
       ctx.setLineDash([]);
       for (const pt of shape.points) {
+        // White fill with blue border for visibility
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
         ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#3B82F6";
+        ctx.stroke();
       }
       break;
     }
