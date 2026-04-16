@@ -1937,3 +1937,8 @@
 ## Manual Item Entry + Measurement Tool — April 15, 2026
 - [x] FEATURE: Manual add line item under any CSI division (description, qty, unit, unit cost, notes)
 - [ ] FEATURE: Scale-calibrated measurement tool in fullscreen drawing viewer (calibrate scale, draw shapes, get real-world dimensions fed into quantity)
+
+## Markup Tool Improvements — April 15, 2026
+- [x] FEATURE: Click-to-click line tool (click start → preview → click end, instead of click-and-drag)
+- [x] FEATURE: Scale calibration — set reference distance on drawing, all measurements show real-world units (ft, m) instead of px
+- [x] FEATURE: Set Scale button in toolbar with unit selector

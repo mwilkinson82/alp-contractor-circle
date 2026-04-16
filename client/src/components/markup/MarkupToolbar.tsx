@@ -9,16 +9,17 @@ import {
   Redo2,
   Trash2,
   Download,
+  Ruler,
 } from "lucide-react";
 import type { ToolType } from "./types";
 
-const TOOLS: { type: ToolType; icon: typeof MousePointer2; label: string }[] = [
-  { type: "select", icon: MousePointer2, label: "Select" },
-  { type: "pen", icon: Pencil, label: "Pen" },
-  { type: "rectangle", icon: Square, label: "Rectangle" },
-  { type: "circle", icon: Circle, label: "Circle" },
-  { type: "line", icon: Minus, label: "Line / Measure" },
-  { type: "text", icon: Type, label: "Text Label" },
+const TOOLS: { type: ToolType; icon: typeof MousePointer2; label: string; hint?: string }[] = [
+  { type: "select", icon: MousePointer2, label: "Select (V)" },
+  { type: "pen", icon: Pencil, label: "Pen (P)" },
+  { type: "rectangle", icon: Square, label: "Rectangle (R)" },
+  { type: "circle", icon: Circle, label: "Circle (C)" },
+  { type: "line", icon: Minus, label: "Line / Measure (L)", hint: "Click start → click end" },
+  { type: "text", icon: Type, label: "Text Label (T)" },
 ];
 
 const COLORS = [
@@ -49,6 +50,14 @@ interface MarkupToolbarProps {
   onClear: () => void;
   onExport: () => void;
   hasElements: boolean;
+  /** Whether scale has been calibrated */
+  isCalibrated?: boolean;
+  /** Current scale display string (e.g. "1px = 0.5 ft") */
+  scaleDisplay?: string;
+  /** Whether currently in calibration mode */
+  isCalibrating?: boolean;
+  /** Toggle calibration mode */
+  onToggleCalibrate?: () => void;
 }
 
 export function MarkupToolbar({
@@ -65,6 +74,10 @@ export function MarkupToolbar({
   onClear,
   onExport,
   hasElements,
+  isCalibrated = false,
+  scaleDisplay = "",
+  isCalibrating = false,
+  onToggleCalibrate,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -85,6 +98,28 @@ export function MarkupToolbar({
             <Icon className="w-4 h-4" />
           </button>
         ))}
+      </div>
+
+      {/* Scale calibration */}
+      <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">
+        <button
+          type="button"
+          onClick={onToggleCalibrate}
+          title={isCalibrating ? "Cancel calibration" : isCalibrated ? "Re-calibrate scale" : "Set scale — click two known points"}
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-150 ${
+            isCalibrating
+              ? "bg-green-500 text-black shadow-lg shadow-green-500/30 animate-pulse"
+              : isCalibrated
+              ? "bg-green-500/20 text-green-400 border border-green-500/30"
+              : "bg-white/10 text-white/70 hover:text-white hover:bg-white/20"
+          }`}
+        >
+          <Ruler className="w-3.5 h-3.5" />
+          <span>{isCalibrating ? "Setting..." : isCalibrated ? "Scaled" : "Set Scale"}</span>
+        </button>
+        {isCalibrated && scaleDisplay && (
+          <span className="text-[10px] text-green-400/80 font-mono whitespace-nowrap">{scaleDisplay}</span>
+        )}
       </div>
 
       {/* Colors */}

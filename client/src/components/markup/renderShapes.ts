@@ -1,5 +1,9 @@
 import type { Shape, Point } from "./types";
 
+export type FormatDistanceFn = (pxDist: number) => string;
+
+const defaultFormat: FormatDistanceFn = (px) => `${Math.round(px)}px`;
+
 function drawPen(ctx: CanvasRenderingContext2D, points: Point[]) {
   if (points.length < 2) return;
   ctx.beginPath();
@@ -29,7 +33,7 @@ function drawCircle(
   ctx.stroke();
 }
 
-function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point) {
+function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, fmt: FormatDistanceFn) {
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
   ctx.lineTo(end.x, end.y);
@@ -46,7 +50,7 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point) {
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    const label = `${Math.round(dist)}px`;
+    const label = fmt(dist);
     const metrics = ctx.measureText(label);
     const pad = 4;
     ctx.save();
@@ -101,7 +105,7 @@ function drawText(
   });
 }
 
-export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
+export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: FormatDistanceFn = defaultFormat) {
   ctx.save();
   ctx.strokeStyle = shape.color;
   ctx.fillStyle = shape.color;
@@ -119,7 +123,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
       drawCircle(ctx, shape.center, shape.radiusX, shape.radiusY);
       break;
     case "line":
-      drawLine(ctx, shape.start, shape.end);
+      drawLine(ctx, shape.start, shape.end, fmt);
       break;
     case "text":
       drawText(ctx, shape.position, shape.text, shape.fontSize, shape.color);
@@ -128,8 +132,8 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
   ctx.restore();
 }
 
-export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
+export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], fmt: FormatDistanceFn = defaultFormat) {
   for (const shape of shapes) {
-    drawShape(ctx, shape);
+    drawShape(ctx, shape, fmt);
   }
 }

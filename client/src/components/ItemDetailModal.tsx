@@ -42,6 +42,7 @@ import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
 import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
 import type { ToolType, Point } from "@/components/markup/types";
+import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,13 @@ function FullscreenDrawing({
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
   const { elements, pushElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
 
+  // Scale calibration state
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [scaleRatio, setScaleRatio] = useState(0); // px per real-world unit
+  const [scaleUnit, setScaleUnit] = useState("px");
+  const [calibrationPixelDist, setCalibrationPixelDist] = useState<number | null>(null);
+  const [scaleDisplay, setScaleDisplay] = useState("");
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -319,6 +327,30 @@ function FullscreenDrawing({
   const toggleMarkup = useCallback(() => {
     setMarkupActive((prev) => !prev);
     setTextPromptPos(null);
+    setIsCalibrating(false);
+  }, []);
+
+  const handleToggleCalibrate = useCallback(() => {
+    setIsCalibrating((prev) => !prev);
+  }, []);
+
+  const handleCalibrationComplete = useCallback((pixelDist: number) => {
+    setCalibrationPixelDist(pixelDist);
+    setIsCalibrating(false);
+  }, []);
+
+  const handleScaleConfirm = useCallback((realDistance: number, unit: string) => {
+    if (calibrationPixelDist && realDistance > 0) {
+      const ratio = calibrationPixelDist / realDistance;
+      setScaleRatio(ratio);
+      setScaleUnit(unit);
+      setScaleDisplay(`1 ${unit} = ${Math.round(ratio)}px`);
+    }
+    setCalibrationPixelDist(null);
+  }, [calibrationPixelDist]);
+
+  const handleScaleCancel = useCallback(() => {
+    setCalibrationPixelDist(null);
   }, []);
 
   // Zoom controls
@@ -441,6 +473,10 @@ function FullscreenDrawing({
             panOffset={panOffset}
             isActive={markupActive}
             onTextPrompt={setTextPromptPos}
+            scaleRatio={scaleRatio}
+            scaleUnit={scaleUnit}
+            isCalibrating={isCalibrating}
+            onCalibrationComplete={handleCalibrationComplete}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -472,14 +508,33 @@ function FullscreenDrawing({
             onClear={clearAll}
             onExport={handleExport}
             hasElements={elements.length > 0}
+            isCalibrated={scaleRatio > 0}
+            scaleDisplay={scaleDisplay}
+            isCalibrating={isCalibrating}
+            onToggleCalibrate={handleToggleCalibrate}
           />
+        </div>
+      )}
+      {/* Scale calibration dialog */}
+      {calibrationPixelDist !== null && (
+        <ScaleCalibrationDialog
+          pixelDistance={calibrationPixelDist}
+          onConfirm={handleScaleConfirm}
+          onCancel={handleScaleCancel}
+        />
+      )}
+
+      {/* Calibration hint overlay */}
+      {isCalibrating && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 bg-green-500/90 text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-xl pointer-events-none">
+          Click two points on a known dimension line to set the scale
         </div>
       )}
     </div>
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Helpersnt ────────────────────────────────────────────────────────────────
 
 export default function ItemDetailModal({
   item,
