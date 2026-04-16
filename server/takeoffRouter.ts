@@ -31,6 +31,9 @@ import {
   bulkUnreviewItems,
   getOrCreateManualSheet,
   createTakeoffItem,
+  getSheetMarkup,
+  saveSheetMarkup,
+  deleteSheetMarkup,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
@@ -821,4 +824,50 @@ export const takeoffRouter = router({
     await clearCostLibrary(member.id);
     return { success: true };
   }),
+
+  // ── Sheet Markup Persistence ─────────────────────────────────────
+
+  getSheetMarkup: publicProcedure
+    .input(z.object({ sheetId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const markup = await getSheetMarkup(input.sheetId, member.id);
+      if (!markup) return null;
+      return {
+        shapesJson: markup.shapesJson,
+        scaleRatio: parseFloat(markup.scaleRatio as unknown as string) || 0,
+        scaleUnit: markup.scaleUnit,
+      };
+    }),
+
+  saveSheetMarkup: publicProcedure
+    .input(
+      z.object({
+        sheetId: z.number(),
+        projectId: z.number(),
+        shapesJson: z.string(),
+        scaleRatio: z.number(),
+        scaleUnit: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const id = await saveSheetMarkup({
+        sheetId: input.sheetId,
+        memberId: member.id,
+        projectId: input.projectId,
+        shapesJson: input.shapesJson,
+        scaleRatio: input.scaleRatio.toString(),
+        scaleUnit: input.scaleUnit,
+      });
+      return { success: true, id };
+    }),
+
+  deleteSheetMarkup: publicProcedure
+    .input(z.object({ sheetId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      await deleteSheetMarkup(input.sheetId, member.id);
+      return { success: true };
+    }),
 });

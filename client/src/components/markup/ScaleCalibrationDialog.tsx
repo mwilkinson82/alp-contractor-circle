@@ -45,7 +45,7 @@ export function ScaleCalibrationDialog({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onCancel} onKeyDown={handleKeyDown}>
       <div
-        className="bg-gray-900 border border-white/10 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4"
+        className="bg-gray-900 border border-white/10 rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-white font-semibold text-lg mb-1">Set Drawing Scale</h3>

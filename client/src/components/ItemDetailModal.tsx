@@ -41,8 +41,10 @@ import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
 import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
 import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
-import type { ToolType, Point } from "@/components/markup/types";
+import type { ToolType, Point, Shape } from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -254,11 +256,19 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen }: { imageUrl: string
 function FullscreenDrawing({
   imageUrl,
   sheetName,
+  sheetId,
+  projectId,
+  itemUnit,
   onClose,
+  onQuantityUpdate,
 }: {
   imageUrl: string;
   sheetName: string;
+  sheetId?: number;
+  projectId?: number;
+  itemUnit?: string;
   onClose: () => void;
+  onQuantityUpdate?: (quantity: number, unit: string) => void;
 }) {
   const [markupActive, setMarkupActive] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolType>("pen");
@@ -267,14 +277,56 @@ function FullscreenDrawing({
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
-  const { elements, pushElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+  const { elements, pushElement, replaceElements, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [lastMeasurement, setLastMeasurement] = useState<{ pxDist: number; type: string } | null>(null);
 
-  // Scale calibration state
+  // Scale calibration state (declared early for auto-save reference)
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [scaleRatio, setScaleRatio] = useState(0); // px per real-world unit
   const [scaleUnit, setScaleUnit] = useState("px");
   const [calibrationPixelDist, setCalibrationPixelDist] = useState<number | null>(null);
   const [scaleDisplay, setScaleDisplay] = useState("");
+
+  // ── Load saved markup from DB ──
+  const savedMarkup = trpc.takeoff.getSheetMarkup.useQuery(
+    { sheetId: sheetId! },
+    { enabled: !!sheetId && !hasLoaded }
+  );
+  useEffect(() => {
+    if (savedMarkup.data && !hasLoaded) {
+      try {
+        const shapes = JSON.parse(savedMarkup.data.shapesJson) as Shape[];
+        if (shapes.length > 0) replaceElements(shapes);
+        if (savedMarkup.data.scaleRatio > 0) {
+          setScaleRatio(savedMarkup.data.scaleRatio);
+          setScaleUnit(savedMarkup.data.scaleUnit || "px");
+          setScaleDisplay(`1 ${savedMarkup.data.scaleUnit || "px"} = ${Math.round(savedMarkup.data.scaleRatio)}px`);
+        }
+      } catch { /* ignore parse errors */ }
+      setHasLoaded(true);
+    } else if (savedMarkup.isFetched && !savedMarkup.data) {
+      setHasLoaded(true);
+    }
+  }, [savedMarkup.data, savedMarkup.isFetched, hasLoaded, replaceElements]);
+
+  // ── Auto-save markup to DB (debounced) ──
+  const saveMarkupMutation = trpc.takeoff.saveSheetMarkup.useMutation();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!sheetId || !projectId || !hasLoaded) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveMarkupMutation.mutate({
+        sheetId,
+        projectId,
+        shapesJson: JSON.stringify(elements),
+        scaleRatio,
+        scaleUnit,
+      });
+    }, 1500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [elements, scaleRatio, scaleUnit, sheetId, projectId, hasLoaded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -316,13 +368,30 @@ function FullscreenDrawing({
     setTextPromptPos(null);
   }, [textPromptPos, activeColor, lineWidth, pushElement]);
 
+  const formatDistance = useCallback(
+    (pxDist: number): string => {
+      if (scaleRatio > 0) {
+        const realDist = pxDist / scaleRatio;
+        if (scaleUnit === "ft") {
+          const feet = Math.floor(realDist);
+          const inches = Math.round((realDist - feet) * 12);
+          if (inches === 12) return `${feet + 1}'-0"`;
+          return `${feet}'-${inches}"`;
+        }
+        return `${realDist.toFixed(1)} ${scaleUnit}`;
+      }
+      return `${Math.round(pxDist)}px`;
+    },
+    [scaleRatio, scaleUnit],
+  );
+
   const handleExport = useCallback(async () => {
     try {
-      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`);
+      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`, formatDistance);
     } catch (err) {
       console.error("Export failed:", err);
     }
-  }, [imageUrl, elements, sheetName]);
+  }, [imageUrl, elements, sheetName, formatDistance]);
 
   const toggleMarkup = useCallback(() => {
     setMarkupActive((prev) => !prev);
@@ -465,7 +534,24 @@ function FullscreenDrawing({
           />
           <MarkupCanvas
             elements={elements}
-            onElementAdd={pushElement}
+            onElementAdd={(shape) => {
+              pushElement(shape);
+              // Track last measurement for push-to-quantity
+              if (shape.type === "line" && scaleRatio > 0) {
+                const dx = shape.end.x - shape.start.x;
+                const dy = shape.end.y - shape.start.y;
+                const pxDist = Math.sqrt(dx * dx + dy * dy);
+                setLastMeasurement({ pxDist, type: "line" });
+              } else if (shape.type === "rectangle" && scaleRatio > 0) {
+                const w = Math.abs(shape.end.x - shape.start.x);
+                const h = Math.abs(shape.end.y - shape.start.y);
+                const areaPx = w * h;
+                setLastMeasurement({ pxDist: areaPx, type: "area" });
+              } else if (shape.type === "circle" && scaleRatio > 0) {
+                const areaPx = Math.PI * shape.radiusX * shape.radiusY;
+                setLastMeasurement({ pxDist: areaPx, type: "area" });
+              }
+            }}
             activeTool={activeTool}
             color={activeColor}
             lineWidth={lineWidth}
@@ -512,6 +598,23 @@ function FullscreenDrawing({
             scaleDisplay={scaleDisplay}
             isCalibrating={isCalibrating}
             onToggleCalibrate={handleToggleCalibrate}
+            lastMeasurementLabel={lastMeasurement && scaleRatio > 0 ? (
+              lastMeasurement.type === "line"
+                ? formatDistance(lastMeasurement.pxDist)
+                : `${(lastMeasurement.pxDist / (scaleRatio * scaleRatio)).toFixed(1)} ${scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m\u00B2" : scaleUnit + "\u00B2"}`
+            ) : undefined}
+            onPushQuantity={lastMeasurement && scaleRatio > 0 && onQuantityUpdate ? () => {
+              if (lastMeasurement.type === "line") {
+                const realDist = lastMeasurement.pxDist / scaleRatio;
+                const unit = scaleUnit === "ft" ? "LF" : scaleUnit;
+                onQuantityUpdate(realDist, unit);
+              } else {
+                const realArea = lastMeasurement.pxDist / (scaleRatio * scaleRatio);
+                const unit = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m\u00B2" : scaleUnit + "\u00B2";
+                onQuantityUpdate(realArea, unit);
+              }
+            } : undefined}
+            isSaving={saveMarkupMutation.isPending}
           />
         </div>
       )}
@@ -628,7 +731,15 @@ export default function ItemDetailModal({
         <FullscreenDrawing
           imageUrl={sourceSheet!.imageUrl!}
           sheetName={sheetLabel}
+          sheetId={sourceSheet?.id}
+          projectId={projectId}
+          itemUnit={item.unit || "EA"}
           onClose={() => setIsFullscreen(false)}
+          onQuantityUpdate={(qty, unit) => {
+            setQuantity(qty.toString());
+            setUnit(unit);
+            toast.success(`Quantity updated to ${qty.toFixed(2)} ${unit}`);
+          }}
         />
       ) : (
       <Dialog open={!!item} onOpenChange={(open) => { if (!open) onClose(); }}>

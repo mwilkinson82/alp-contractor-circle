@@ -1,10 +1,11 @@
 import type { Shape } from "./types";
-import { renderAllShapes } from "./renderShapes";
+import { renderAllShapes, type FormatDistanceFn } from "./renderShapes";
 
 export async function exportToPng(
   imageUrl: string,
   shapes: Shape[],
   filename = "markup-export.png",
+  formatDistance?: FormatDistanceFn,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -20,7 +21,16 @@ export async function exportToPng(
           return;
         }
         ctx.drawImage(img, 0, 0);
-        renderAllShapes(ctx, shapes);
+
+        // Scale shapes from display coordinates to natural image coordinates
+        // The markup canvas captures coordinates relative to the displayed image size,
+        // but the export canvas uses the image's natural (full) resolution.
+        // We need to compute the scale factor between display and natural size.
+        // Since we don't have the display rect here, we render shapes at their
+        // stored coordinates — which are already in image-space (toCanvasCoords
+        // in MarkupCanvas converts screen coords to image-space coords).
+        renderAllShapes(ctx, shapes, formatDistance);
+
         canvas.toBlob(
           (blob) => {
             if (!blob) {

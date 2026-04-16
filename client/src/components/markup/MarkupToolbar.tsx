@@ -10,6 +10,8 @@ import {
   Trash2,
   Download,
   Ruler,
+  ArrowRightToLine,
+  Save,
 } from "lucide-react";
 import type { ToolType } from "./types";
 
@@ -58,6 +60,12 @@ interface MarkupToolbarProps {
   isCalibrating?: boolean;
   /** Toggle calibration mode */
   onToggleCalibrate?: () => void;
+  /** Last measurement label to show push-to-quantity button */
+  lastMeasurementLabel?: string;
+  /** Push the last measurement to the item quantity */
+  onPushQuantity?: () => void;
+  /** Whether auto-save is active */
+  isSaving?: boolean;
 }
 
 export function MarkupToolbar({
@@ -78,6 +86,9 @@ export function MarkupToolbar({
   scaleDisplay = "",
   isCalibrating = false,
   onToggleCalibrate,
+  lastMeasurementLabel,
+  onPushQuantity,
+  isSaving = false,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -200,7 +211,27 @@ export function MarkupToolbar({
         >
           <Download className="w-4 h-4" />
         </button>
+        {isSaving && (
+          <span className="flex items-center gap-1 text-[10px] text-green-400/70 ml-1">
+            <Save className="w-3 h-3" /> Saved
+          </span>
+        )}
       </div>
+
+      {/* Push measurement to quantity */}
+      {lastMeasurementLabel && onPushQuantity && (
+        <div className="flex items-center gap-1 border-l border-white/10 pl-2 ml-1">
+          <button
+            type="button"
+            onClick={onPushQuantity}
+            title="Push this measurement to the line item quantity"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-150"
+          >
+            <ArrowRightToLine className="w-3.5 h-3.5" />
+            <span>Use {lastMeasurementLabel}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

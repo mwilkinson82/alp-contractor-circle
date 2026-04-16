@@ -1942,3 +1942,8 @@
 - [x] FEATURE: Click-to-click line tool (click start → preview → click end, instead of click-and-drag)
 - [x] FEATURE: Scale calibration — set reference distance on drawing, all measurements show real-world units (ft, m) instead of px
 - [x] FEATURE: Set Scale button in toolbar with unit selector
+
+## Markup Persistence + Export + Quantity Push — April 15, 2026
+- [x] BUG FIX: PNG export must include annotations overlaid on drawing (currently downloads clean drawing only)
+- [x] FEATURE: Persist markup annotations per sheet to database (survive page reload)
+- [x] FEATURE: Push calibrated measurement directly into line item quantity field

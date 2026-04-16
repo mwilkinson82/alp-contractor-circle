@@ -6,6 +6,7 @@ import {
   takeoffProjects,
   drawingSheets,
   takeoffItems,
+  sheetMarkups,
   type InsertTakeoffProject,
   type InsertDrawingSheet,
   type InsertTakeoffItem,
@@ -330,4 +331,66 @@ export async function bulkUnreviewItems(
       .set({ reviewed: false })
       .where(eq(takeoffItems.projectId, projectId));
   }
+}
+
+// ── Sheet Markup Persistence ──────────────────────────────────────────
+
+export async function getSheetMarkup(sheetId: number, memberId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function saveSheetMarkup(data: {
+  sheetId: number;
+  memberId: number;
+  projectId: number;
+  shapesJson: string;
+  scaleRatio: string;
+  scaleUnit: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Upsert: check if a row exists for this sheet+member, update or insert
+  const existing = await db
+    .select({ id: sheetMarkups.id })
+    .from(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, data.sheetId), eq(sheetMarkups.memberId, data.memberId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(sheetMarkups)
+      .set({
+        shapesJson: data.shapesJson,
+        scaleRatio: data.scaleRatio,
+        scaleUnit: data.scaleUnit,
+      })
+      .where(eq(sheetMarkups.id, existing[0].id));
+    return existing[0].id;
+  } else {
+    const [result] = await db.insert(sheetMarkups).values({
+      sheetId: data.sheetId,
+      memberId: data.memberId,
+      projectId: data.projectId,
+      shapesJson: data.shapesJson,
+      scaleRatio: data.scaleRatio,
+      scaleUnit: data.scaleUnit,
+    });
+    return result.insertId;
+  }
+}
+
+export async function deleteSheetMarkup(sheetId: number, memberId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)));
 }

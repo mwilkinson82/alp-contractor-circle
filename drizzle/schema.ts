@@ -869,3 +869,29 @@ export const userCostLibrary = mysqlTable("user_cost_library", {
 
 export type UserCostLibraryEntry = typeof userCostLibrary.$inferSelect;
 export type InsertUserCostLibraryEntry = typeof userCostLibrary.$inferInsert;
+
+/**
+ * Sheet Markups — persisted drawing annotations per sheet per member.
+ * Stores the full array of Shape objects as JSON so markups survive page reloads.
+ * Also stores scale calibration data so measurements remain accurate.
+ */
+export const sheetMarkups = mysqlTable("sheet_markups", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The drawing sheet this markup belongs to */
+  sheetId: int("sheetId").notNull(),
+  /** The member who created the markup */
+  memberId: int("memberId").notNull(),
+  /** The takeoff project ID (for easy querying) */
+  projectId: int("projectId").notNull(),
+  /** JSON array of Shape objects */
+  shapesJson: text("shapesJson").notNull(),
+  /** Scale ratio: pixels per real-world unit (0 = not calibrated) */
+  scaleRatio: decimal("scaleRatio", { precision: 20, scale: 6 }).default("0").notNull(),
+  /** Scale unit: "ft", "m", "in", "cm", "mm", "px" */
+  scaleUnit: varchar("scaleUnit", { length: 8 }).default("px").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SheetMarkup = typeof sheetMarkups.$inferSelect;
+export type InsertSheetMarkup = typeof sheetMarkups.$inferInsert;
