@@ -25,6 +25,8 @@ interface MarkupCanvasProps {
   isCalibrating?: boolean;
   /** Called with pixel distance when user finishes the two-click calibration */
   onCalibrationComplete?: (pixelDistance: number) => void;
+  /** When true, spacebar is held and user is panning — canvas should not capture pointer events */
+  isPanning?: boolean;
 }
 
 export function MarkupCanvas({
@@ -41,6 +43,7 @@ export function MarkupCanvas({
   scaleUnit = "px",
   isCalibrating = false,
   onCalibrationComplete,
+  isPanning = false,
 }: MarkupCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -217,7 +220,7 @@ export function MarkupCanvas({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!isActive) return;
+      if (!isActive || isPanning) return;
       e.preventDefault();
       e.stopPropagation();
       const pt = toCanvasCoords(e.clientX, e.clientY);
@@ -287,7 +290,7 @@ export function MarkupCanvas({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isActive) return;
+      if (!isActive || isPanning) return;
       const pt = toCanvasCoords(e.clientX, e.clientY);
 
       // Update current point for calibration preview
@@ -361,6 +364,9 @@ export function MarkupCanvas({
 
   if (!isActive && !isCalibrating) return null;
 
+  // When panning via spacebar, make canvas transparent to pointer events
+  const pointerEventsStyle = isPanning ? "none" as const : "auto" as const;
+
   const getCursor = () => {
     if (isCalibrating) return "crosshair";
     if (activeTool === "select") return "default";
@@ -373,9 +379,10 @@ export function MarkupCanvas({
       ref={canvasRef}
       className="absolute inset-0 w-full h-full"
       style={{
-        cursor: getCursor(),
+        cursor: isPanning ? "grab" : getCursor(),
         touchAction: "none",
         zIndex: 20,
+        pointerEvents: pointerEventsStyle,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

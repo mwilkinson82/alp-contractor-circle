@@ -1947,3 +1947,9 @@
 - [x] BUG FIX: PNG export must include annotations overlaid on drawing (currently downloads clean drawing only)
 - [x] FEATURE: Persist markup annotations per sheet to database (survive page reload)
 - [x] FEATURE: Push calibrated measurement directly into line item quantity field
+
+## Markup Mode Zoom/Pan Fix — April 15, 2026
+- [x] BUG: Cannot zoom/pan while in markup mode — must exit to pan mode first
+- [x] BUG: Switching from markup mode back to pan mode loses all annotations
+- [x] FEATURE: Scroll-wheel zoom works in markup mode
+- [x] FEATURE: Hold spacebar to pan while in markup mode (standard drawing tool UX)

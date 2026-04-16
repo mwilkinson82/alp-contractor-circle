@@ -433,28 +433,55 @@ function FullscreenDrawing({
     }
   };
 
-  // Pan handling (when not in markup mode)
+  // Pan handling — works in BOTH pan mode and markup mode (via spacebar hold)
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Point>({ x: 0, y: 0 });
+  const [spaceHeld, setSpaceHeld] = useState(false);
 
+  // Track spacebar for pan-while-in-markup-mode
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && markupActive && !textPromptPos) {
+        e.preventDefault();
+        setSpaceHeld(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setSpaceHeld(false);
+        setIsDragging(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [markupActive, textPromptPos]);
+
+  // Scroll-wheel zoom works in ALL modes (pan + markup)
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (markupActive) return;
     e.preventDefault();
     if (e.deltaY < 0) handleZoomIn();
     else handleZoomOut();
-  }, [markupActive, zoomIdx]);
+  }, [zoomIdx]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (markupActive) return;
-    if (zoom <= 1) { handleZoomIn(); return; }
+    // In markup mode, only pan if spacebar is held
+    if (markupActive && !spaceHeld) return;
+    if (!markupActive && zoom <= 1) { handleZoomIn(); return; }
+    if (zoom <= 1) return; // don't pan at 100%
     setIsDragging(true);
     setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  }, [markupActive, zoom, panOffset]);
+  }, [markupActive, spaceHeld, zoom, panOffset]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || markupActive) return;
+    if (!isDragging) return;
+    // Allow dragging in markup mode only when spacebar is held
+    if (markupActive && !spaceHeld) { setIsDragging(false); return; }
     setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, markupActive, dragStart]);
+  }, [isDragging, markupActive, spaceHeld, dragStart]);
 
   const handleMouseUp = useCallback(() => { setIsDragging(false); }, []);
 
@@ -514,7 +541,7 @@ function FullscreenDrawing({
         {/* Image + canvas container */}
         <div
           className="h-full overflow-hidden bg-white relative"
-          style={{ cursor: markupActive ? undefined : zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
+          style={{ cursor: markupActive ? (spaceHeld ? (isDragging ? "grabbing" : "grab") : undefined) : zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -563,6 +590,7 @@ function FullscreenDrawing({
             scaleUnit={scaleUnit}
             isCalibrating={isCalibrating}
             onCalibrationComplete={handleCalibrationComplete}
+            isPanning={spaceHeld}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -631,6 +659,13 @@ function FullscreenDrawing({
       {isCalibrating && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 bg-green-500/90 text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-xl pointer-events-none">
           Click two points on a known dimension line to set the scale
+        </div>
+      )}
+
+      {/* Spacebar pan hint */}
+      {markupActive && spaceHeld && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 bg-white/90 text-black px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg pointer-events-none">
+          Hold Space + drag to pan
         </div>
       )}
     </div>
