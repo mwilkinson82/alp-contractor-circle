@@ -332,9 +332,31 @@ function FullscreenDrawing({
     }
   }, [savedMarkup.data, savedMarkup.isFetched, hasLoaded, replaceElements]);
 
+  // ── Load markup from DB on modal open ──
+  const markupQuery = trpc.takeoff.getSheetMarkup.useQuery(
+    { sheetId: sheetId || 0 },
+    { enabled: !!sheetId && markupActive }
+  );
+
   // ── Auto-save markup to DB (debounced) ──
   const saveMarkupMutation = trpc.takeoff.saveSheetMarkup.useMutation();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Load markup from database when it arrives
+  useEffect(() => {
+    if (markupQuery.data && !hasLoaded && sheetId) {
+      try {
+        const shapes = JSON.parse(markupQuery.data.shapesJson);
+        replaceElements(shapes);
+        setScaleRatio(markupQuery.data.scaleRatio);
+        setScaleUnit(markupQuery.data.scaleUnit);
+        setHasLoaded(true);
+      } catch (err) {
+        console.error("Failed to parse markup:", err);
+        setHasLoaded(true);
+      }
+    }
+  }, [markupQuery.data, hasLoaded, sheetId, replaceElements]);
+
   useEffect(() => {
     if (!sheetId || !projectId || !hasLoaded) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -430,7 +452,14 @@ function FullscreenDrawing({
   }, [imageUrl, elements, sheetName, formatDistance, formatArea]);
 
   const toggleMarkup = useCallback(() => {
-    setMarkupActive((prev) => !prev);
+    setMarkupActive((prev) => {
+      const newState = !prev;
+      // Reset hasLoaded when entering markup mode so we load from DB
+      if (newState) {
+        setHasLoaded(false);
+      }
+      return newState;
+    });
     setTextPromptPos(null);
     setIsCalibrating(false);
   }, []);
@@ -701,7 +730,7 @@ function FullscreenDrawing({
                 onQuantityUpdate(realArea, unit);
               }
             } : undefined}
-            isSaving={saveMarkupMutation.isPending}
+            isSaving={saveMarkupMutation.isPending || markupQuery.isLoading}
           />
         </div>
       )}

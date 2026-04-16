@@ -1,6 +1,7 @@
 import { eq, isNotNull, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, emailSubscribers, members, leads } from "../drizzle/schema";
+import { InsertUser, users, emailSubscribers, members, leads, sheetMarkups, InsertSheetMarkup, SheetMarkup } from "../drizzle/schema";
+import type { Shape } from "../client/src/components/markup/types";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -206,3 +207,77 @@ export async function createLead(data: { firstName: string; email: string; sourc
 
   return { id: result.insertId, alreadyExists: false };
 }
+
+// ─── Sheet Markups (Drawing Annotations) ──────────────────────────────────────
+
+export async function saveSheetMarkup(
+  sheetId: number,
+  memberId: number,
+  projectId: number,
+  shapes: Shape[],
+  scaleRatio: number,
+  scaleUnit: string,
+): Promise<SheetMarkup> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if markup already exists for this sheet+member combo
+  const existing = await db
+    .select()
+    .from(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)));
+
+  const shapesJson = JSON.stringify(shapes);
+  const data = {
+    sheetId,
+    memberId,
+    projectId,
+    shapesJson,
+    scaleRatio: scaleRatio.toString(),
+    scaleUnit,
+  };
+
+  if (existing.length > 0) {
+    // Update existing
+    await db
+      .update(sheetMarkups)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(sheetMarkups.id, existing[0].id));
+    return { ...existing[0], ...data, updatedAt: new Date() } as SheetMarkup;
+  } else {
+    // Insert new
+    const [result] = await db.insert(sheetMarkups).values(data as InsertSheetMarkup);
+    return {
+      id: result.insertId as number,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as SheetMarkup;
+  }
+}
+
+export async function getSheetMarkup(sheetId: number, memberId: number): Promise<SheetMarkup | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function deleteSheetMarkup(sheetId: number, memberId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .delete(sheetMarkups)
+    .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)));
+}
+

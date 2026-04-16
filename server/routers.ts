@@ -6,7 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { takeoffRouter } from "./takeoffRouter";
-import { subscribeEmail, getAllActiveMembers, createLead } from "./db";
+import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
 import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail } from "./email";
@@ -418,7 +418,64 @@ export const appRouter = router({
         const result = await processDripSends({ dryRun: input.dryRun });
         return result;
       }),
+   }),
+
+  // ─── Sheet Markups (Drawing Annotations) ─────────────────────────────────────
+  markup: router({
+    save: publicProcedure
+      .input(z.object({
+        sheetId: z.number(),
+        projectId: z.number(),
+        shapes: z.array(z.any()),
+        scaleRatio: z.number(),
+        scaleUnit: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) {
+          throw new Error("Not authenticated");
+        }
+        // Get member ID from user context (assuming member table has user/auth link)
+        // For now, use user.id as memberId (adjust if needed)
+        const memberId = ctx.user.id;
+        const result = await saveSheetMarkup(
+          input.sheetId,
+          memberId,
+          input.projectId,
+          input.shapes,
+          input.scaleRatio,
+          input.scaleUnit,
+        );
+        return { success: true, id: result.id };
+      }),
+
+    load: publicProcedure
+      .input(z.object({ sheetId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.id) {
+          return { shapes: [], scaleRatio: 0, scaleUnit: "px" };
+        }
+        const memberId = ctx.user.id;
+        const markup = await getSheetMarkup(input.sheetId, memberId);
+        if (!markup) {
+          return { shapes: [], scaleRatio: 0, scaleUnit: "px" };
+        }
+        return {
+          shapes: JSON.parse(markup.shapesJson),
+          scaleRatio: parseFloat(markup.scaleRatio as any),
+          scaleUnit: markup.scaleUnit,
+        };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ sheetId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) {
+          throw new Error("Not authenticated");
+        }
+        const memberId = ctx.user.id;
+        await deleteSheetMarkup(input.sheetId, memberId);
+        return { success: true };
+      }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

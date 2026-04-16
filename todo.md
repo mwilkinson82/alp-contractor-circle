@@ -1965,3 +1965,6 @@
 - [x] FEATURE: Add polygon tool button to MarkupToolbar
 - [x] FEATURE: Push polygon area measurement to line item quantity field
 - [x] FEATURE: Polygon rendering in renderShapes.ts for canvas and PNG export
+
+## Annotation Persistence Bug — April 16, 2026
+- [x] BUG: Annotations disappear when exiting markup mode — fixed by loading markups from DB on modal open and auto-saving on changes
