@@ -1508,10 +1508,11 @@ export default function Scheduler() {
           <div className="flex-1" />
 
           {/* ── Settings ── */}
-          <div className="flex items-center py-1.5 px-2">
+          <div className="flex flex-col py-1.5 px-2">
+            <div className="flex items-center gap-0.5 flex-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-white/[0.1] text-gray-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white rounded-md">
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-200 font-semibold rounded-md shadow-sm shadow-amber-500/10">
                   <Settings className="w-3.5 h-3.5" /> Settings
                 </Button>
               </DropdownMenuTrigger>
@@ -1613,6 +1614,8 @@ export default function Scheduler() {
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
+            </div>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Settings</span>
           </div>
         </div>{/* end ribbon row */}
       </div>{/* end toolbar */}

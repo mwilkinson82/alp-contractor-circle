@@ -2133,3 +2133,10 @@
 - [x] Fixed processing overlay — "ConstructLine is Working" now uses branded white+amber split
 - [x] Fixed "ConstructLine Analyze Drawings" button — branded styling on blue/amber gradient button
 - [x] Branded all text references in TakeoffList, TakeoffDetail, CostLibrary, PreAnalysisModal, ProjectSettingsPanel, FeedbackWidget, OnboardingTour
+
+## ConstructLine Splash Animation — April 17, 2026
+- [x] FEATURE: Branded splash animation on ProcessingOverlay — 3-phase intro (enter with blur/scale, hold with glow pulse + expanding rings, exit with fade) then transitions to working state
+
+## CPM Schedule Settings Button Fix — April 17, 2026
+- [x] FIX: Settings button alignment — wrapped in flex-col structure matching other toolbar groups, added Settings label underneath
+- [x] FEATURE: Settings button visual emphasis — amber border/bg/text/shadow matching Calculate button style

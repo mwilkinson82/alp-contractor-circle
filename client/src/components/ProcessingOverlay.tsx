@@ -1,6 +1,7 @@
 /**
  * ProcessingOverlay — Animated construction-themed overlay shown during
  * ConstructLine analysis. Features:
+ * - Branded splash intro animation (wordmark reveal + glow pulse)
  * - Clear 3-step phase progression: Index → Extract → Consolidate
  * - Animated blueprint/construction visual
  * - Rotating status messages that cycle through analysis phases
@@ -69,12 +70,128 @@ interface ProcessingOverlayProps {
   projectStatus?: string;
 }
 
+// ─── Splash Animation Component ──────────────────────────────────────────────
+
+function SplashIntro({ onComplete }: { onComplete: () => void }) {
+  const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
+
+  useEffect(() => {
+    // Phase 1: Enter animation (1s)
+    const holdTimer = setTimeout(() => setPhase("hold"), 1000);
+    // Phase 2: Hold with glow (1.5s)
+    const exitTimer = setTimeout(() => setPhase("exit"), 2500);
+    // Phase 3: Exit animation (0.5s), then done
+    const doneTimer = setTimeout(() => onComplete(), 3000);
+
+    return () => {
+      clearTimeout(holdTimer);
+      clearTimeout(exitTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [onComplete]);
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center py-16 relative overflow-hidden"
+      style={{
+        animation:
+          phase === "enter"
+            ? "cl-splash-fade-in 1s ease-out forwards"
+            : phase === "exit"
+              ? "cl-splash-exit 0.5s ease-in forwards"
+              : undefined,
+      }}
+    >
+      {/* Expanding ring effects */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          className="w-32 h-32 rounded-full border-2 border-amber-500/40 absolute"
+          style={{
+            animation: "cl-splash-ring-expand 2s ease-out 0.3s forwards",
+          }}
+        />
+        <div
+          className="w-32 h-32 rounded-full border border-amber-500/20 absolute"
+          style={{
+            animation: "cl-splash-ring-expand 2.5s ease-out 0.6s forwards",
+          }}
+        />
+      </div>
+
+      {/* Main wordmark */}
+      <div
+        className="relative z-10"
+        style={{
+          animation:
+            phase === "hold"
+              ? "cl-splash-glow-pulse 2s ease-in-out infinite"
+              : undefined,
+        }}
+      >
+        <span className="text-5xl sm:text-6xl font-black tracking-tight select-none">
+          <span className="text-white">Construct</span>
+          <span className="text-amber-400">Line</span>
+        </span>
+      </div>
+
+      {/* Accent line sweep */}
+      <div
+        className="h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mt-4 rounded-full"
+        style={{
+          animation: "cl-splash-line-sweep 1.2s ease-out 0.4s forwards",
+          width: 0,
+        }}
+      />
+
+      {/* Subtitle */}
+      <div
+        className="mt-4"
+        style={{
+          animation: "cl-splash-subtitle-in 0.8s ease-out 0.6s forwards",
+          opacity: 0,
+        }}
+      >
+        <span className="text-[10px] text-cream-muted/50 tracking-[0.3em] uppercase font-medium">
+          Powered by ALP
+        </span>
+      </div>
+
+      {/* Loading dots */}
+      <div className="flex items-center gap-1.5 mt-6">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-amber-400"
+            style={{
+              animation: `cl-splash-dots 1.5s ease-in-out ${i * 0.3}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Initializing text */}
+      <p
+        className="text-xs text-cream-muted/40 mt-3"
+        style={{
+          animation: "cl-splash-subtitle-in 0.6s ease-out 1s forwards",
+          opacity: 0,
+        }}
+      >
+        Initializing analysis engine...
+      </p>
+    </div>
+  );
+}
+
+// ─── Main Processing Overlay ─────────────────────────────────────────────────
+
 export default function ProcessingOverlay({
   totalSheets,
   processedSheets,
   sheets,
   projectStatus,
 }: ProcessingOverlayProps) {
+  const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -138,8 +255,23 @@ export default function ProcessingOverlay({
   const phaseOrder: AnalysisPhase[] = ["indexing", "extracting", "consolidating"];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
+  // ─── Splash Phase ────────────────────────────────────────────────────────
+  if (showSplash) {
+    return (
+      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden">
+        {/* Top accent bar */}
+        <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]" />
+        <SplashIntro onComplete={() => setShowSplash(false)} />
+      </div>
+    );
+  }
+
+  // ─── Working Phase ───────────────────────────────────────────────────────
   return (
-    <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden">
+    <div
+      className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden"
+      style={{ animation: "cl-splash-fade-in 0.6s ease-out" }}
+    >
       {/* Top accent bar — animated gradient */}
       <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]" />
 
@@ -174,7 +306,6 @@ export default function ProcessingOverlay({
             {phases.map((phase, i) => {
               const isComplete = i < currentPhaseIndex;
               const isActive = i === currentPhaseIndex;
-              const isPending = i > currentPhaseIndex;
 
               return (
                 <div key={phase.key} className="flex-1 flex flex-col items-center relative">
@@ -275,7 +406,7 @@ export default function ProcessingOverlay({
               {/* Determinate progress for extraction */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-cream-muted">
-                  Sheet {processedSheets} of {totalSheets}
+                  {processedSheets} of {totalSheets} sheets extracted
                 </span>
                 <span className="text-xs font-semibold text-amber-400">
                   {percentage}%
