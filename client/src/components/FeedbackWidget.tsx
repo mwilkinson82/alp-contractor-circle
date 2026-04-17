@@ -1,11 +1,11 @@
 /**
  * FeedbackWidget — Floating feedback button (bottom-right) with modal.
- * Captures user message, category, optional screenshot, and submits via tRPC.
+ * Captures user message, category, and optional screenshot file upload.
  * Only visible on ConstructLine / Takeoff pages.
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle } from "lucide-react";
+import { MessageSquarePlus, Upload, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
@@ -26,73 +26,43 @@ export function FeedbackWidget() {
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState<Category>("general");
   const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [screenshotFileName, setScreenshotFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const submitMutation = trpc.feedback.submit.useMutation();
 
-  const captureScreenshot = async () => {
-    setIsCapturing(true);
-    // Temporarily hide the widget so it doesn't appear in the screenshot
-    setIsOpen(false);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Screenshot must be smaller than 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
     try {
-      await new Promise((r) => setTimeout(r, 500)); // Wait for modal to close
-
-      // Dynamically import html2canvas to avoid issues if it fails to load
-      const html2canvas = (await import("html2canvas")).default;
-
-      // Clone the body to avoid modifying the actual DOM
-      const clonedBody = document.body.cloneNode(true) as HTMLElement;
-
-      // Remove problematic elements from the clone
-      const elementsToRemove = clonedBody.querySelectorAll(
-        ".feedback-widget, iframe, script, noscript, [role='tooltip'], [role='dialog'], .joyride-*"
-      );
-      elementsToRemove.forEach((el) => el.remove());
-
-      // Create a temporary container with the cloned body
-      const tempContainer = document.createElement("div");
-      tempContainer.style.position = "fixed";
-      tempContainer.style.left = "-9999px";
-      tempContainer.style.top = "-9999px";
-      tempContainer.style.width = document.body.offsetWidth + "px";
-      tempContainer.style.height = document.body.offsetHeight + "px";
-      tempContainer.appendChild(clonedBody);
-      document.body.appendChild(tempContainer);
-
-      try {
-        const canvas = await html2canvas(clonedBody, {
-          scale: 0.4, // Lower scale for faster capture and smaller payload
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: "#0a0e1a",
-          width: document.body.offsetWidth,
-          height: document.body.offsetHeight,
-          // Ignore canvas and SVG elements that cause rendering issues
-          ignoreElements: (el) => {
-            const tag = el.tagName?.toLowerCase();
-            return (
-              tag === "canvas" ||
-              tag === "svg" ||
-              tag === "iframe" ||
-              el.classList?.contains("feedback-widget") ||
-              el.classList?.contains("joyride-")
-            );
-          },
-        });
-
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.6); // JPEG for smaller file size
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
         setScreenshot(dataUrl);
-        setIsOpen(true);
-        toast.success("Screenshot captured!");
-      } finally {
-        document.body.removeChild(tempContainer);
-      }
+        setScreenshotFileName(file.name);
+        toast.success("Screenshot attached!");
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
-      console.error("[Feedback] Screenshot capture failed:", err);
-      setIsOpen(true);
-      toast.error("Screenshot capture failed — you can still submit feedback without one");
-    } finally {
-      setIsCapturing(false);
+      console.error("[Feedback] File read failed:", err);
+      toast.error("Failed to attach screenshot");
+    }
+
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -114,6 +84,7 @@ export function FeedbackWidget() {
       setMessage("");
       setCategory("general");
       setScreenshot(null);
+      setScreenshotFileName(null);
       setIsOpen(false);
     } catch (err: any) {
       console.error("[Feedback] Submit failed:", err);
@@ -211,7 +182,7 @@ export function FeedbackWidget() {
                 <span className="text-[10px] text-cream-muted/40">{message.length}/5000</span>
               </div>
 
-              {/* Screenshot */}
+              {/* Screenshot Upload */}
               {screenshot ? (
                 <div className="relative">
                   <img
@@ -220,28 +191,35 @@ export function FeedbackWidget() {
                     className="w-full h-32 object-cover rounded-lg border border-white/10"
                   />
                   <button
-                    onClick={() => setScreenshot(null)}
+                    onClick={() => {
+                      setScreenshot(null);
+                      setScreenshotFileName(null);
+                    }}
                     className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
                   <span className="absolute bottom-1 left-2 text-[10px] text-white/60 bg-black/40 px-1.5 py-0.5 rounded">
-                    Screenshot attached
+                    {screenshotFileName || "Screenshot attached"}
                   </span>
                 </div>
               ) : (
-                <button
-                  onClick={captureScreenshot}
-                  disabled={isCapturing}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-white/20 text-cream-muted/60 hover:text-cream-muted hover:border-white/30 hover:bg-white/5 transition-all text-xs w-full justify-center"
-                >
-                  {isCapturing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5" />
-                  )}
-                  {isCapturing ? "Capturing..." : "Attach Screenshot (optional)"}
-                </button>
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-white/20 text-cream-muted/60 hover:text-cream-muted hover:border-white/30 hover:bg-white/5 transition-all text-xs w-full justify-center"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload Screenshot (optional)
+                  </button>
+                </>
               )}
             </div>
 
