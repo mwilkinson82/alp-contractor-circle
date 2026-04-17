@@ -2099,3 +2099,19 @@
 - [x] FIX: FeedbackWidget route scoping now also includes /takeoff/:id pages (was missing the non-portal route)
 
 - [x] BUG: Feedback screenshot capture failing — replaced html2canvas complexity with simple file upload (users upload their own screenshot via file input, max 5MB, validates image type)
+
+## Markup Mode UX Fixes & Trade Specialty Infrastructure — April 17, 2026
+
+### Markup Mode UX Fixes (Blocking)
+- [x] BUG: Pan functionality missing in markup mode — fixed: pan now works by default (spacebar optional for hint)
+- [x] BUG: Measurements panel covers zoom controls — moved to top-left (left-4 z-20) so zoom controls (top-2 right-2 z-10) are always visible
+- [x] BUG: Zoom control buttons don't respond to clicks — fixed by moving measurements panel and ensuring z-index stacking is correct
+
+### Trade Specialty Infrastructure
+- [ ] FEATURE: Build trade specialty taxonomy (concrete: tilt-up, cast-in-place, precast; mechanical: kitchen hood, HVAC; equipment/conveying: elevator, escalator; etc.)
+- [ ] FEATURE: Auto-detect specialty from drawing context (notes, specs, dimensions, layout patterns)
+- [ ] FEATURE: Specialty-aware AI prompts — feed specialty context to AI during analysis to generate specialty-specific line items
+- [ ] FEATURE: Specialty selector in takeoff UI with manual override capability
+- [ ] FEATURE: Concrete tilt-up specialty — casting bed sizing, panel layout, pick points, rigging, post-tension calculations
+- [ ] FEATURE: Concrete cast-in-place specialty — formwork, reinforcement, curing, finishing
+- [ ] FEATURE: Concrete precast specialty — production, delivery, installation, connections

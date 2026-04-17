@@ -849,20 +849,19 @@ function FullscreenDrawing({
   }, [zoomIdx]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // In markup mode, only pan if spacebar is held
-    if (markupActive && !spaceHeld) return;
+    // Allow pan in markup mode by default (spacebar optional for convenience)
+    // In pan-only mode, pan is always available when zoomed in
     if (!markupActive && zoom <= 1) { handleZoomIn(); return; }
     if (zoom <= 1) return; // don't pan at 100%
     setIsDragging(true);
     setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  }, [markupActive, spaceHeld, zoom, panOffset]);
+  }, [markupActive, zoom, panOffset]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
-    // Allow dragging in markup mode only when spacebar is held
-    if (markupActive && !spaceHeld) { setIsDragging(false); return; }
+    // Pan works in both modes — spacebar is optional hint in markup mode
     setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, markupActive, spaceHeld, dragStart]);
+  }, [isDragging, dragStart]);
 
   const handleMouseUp = useCallback(() => { setIsDragging(false); }, []);
 
@@ -923,7 +922,7 @@ function FullscreenDrawing({
         <div
           ref={containerRef}
           className="h-full overflow-hidden bg-white relative"
-          style={{ cursor: markupActive ? (spaceHeld ? (isDragging ? "grabbing" : "grab") : undefined) : zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
+          style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : markupActive ? "crosshair" : "zoom-in" }}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -990,7 +989,7 @@ function FullscreenDrawing({
             scaleUnit={scaleUnit}
             isCalibrating={isCalibrating}
             onCalibrationComplete={handleCalibrationComplete}
-            isPanning={spaceHeld}
+            isPanning={isDragging}
             imageNaturalWidth={imageNaturalWidth}
             imageNaturalHeight={imageNaturalHeight}
             onUpdateElement={updateElementSilent}
@@ -1097,14 +1096,16 @@ function FullscreenDrawing({
         />
       )}
 
-      {/* Measurement summary panel */}
-      <MeasurementSummary
-        elements={elements}
-        formatDistance={formatDistance}
-        formatArea={formatArea}
-        isCalibrated={scaleRatio > 0}
-        sheetName={sheetName || "Sheet"}
-      />
+      {/* Measurement summary panel — positioned on left side to avoid covering zoom controls */}
+      <div className="absolute top-14 left-4 z-20">
+        <MeasurementSummary
+          elements={elements}
+          formatDistance={formatDistance}
+          formatArea={formatArea}
+          isCalibrated={scaleRatio > 0}
+          sheetName={sheetName || "Sheet"}
+        />
+      </div>
 
       {/* Calibration hint overlay — positioned at top so it doesn't obstruct the scale bar */}
       {isCalibrating && (
@@ -1113,10 +1114,10 @@ function FullscreenDrawing({
         </div>
       )}
 
-      {/* Spacebar pan hint */}
-      {markupActive && spaceHeld && (
+      {/* Pan hint */}
+      {markupActive && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 bg-white/90 text-black px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg pointer-events-none">
-          Hold Space + drag to pan
+          Drag to pan (or hold Space for convenience)
         </div>
       )}
     </div>
