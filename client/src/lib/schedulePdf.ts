@@ -641,10 +641,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       if (act.lateFinish && new Date(act.lateFinish) > maxDate) maxDate = new Date(act.lateFinish);
     }
     // Add enough right padding so labels for the last activities have room
-    // At 75% zoom on tabloid landscape, chartWidth ≈ 180mm and 6 months ≈ 180 days
-    // A typical label needs ~40mm which is ~40 days of padding
+    // Labels need substantial space — 25% of timeline or 30 days minimum
+    // This ensures late-project activity labels are never truncated
     const durationDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / 86400000);
-    const labelPaddingDays = Math.max(14, Math.round(durationDays * 0.15)); // 15% of timeline or 14 days min
+    const labelPaddingDays = Math.max(30, Math.round(durationDays * 0.25)); // 25% of timeline or 30 days min
     maxDate = new Date(maxDate.getTime() + labelPaddingDays * 86400000);
 
     const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / 86400000);
@@ -1102,7 +1102,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.setFontSize(mBaseFontSize);
             doc.setFont("helvetica", "normal");
             const mLabelStartX = cx + half + 1.5;
-            const mPageEdge = pageWidth - 2;
+            const mPageEdge = pageWidth - margin;
             const mRightSpace = mPageEdge - mLabelStartX;
             const mLeftSpace = (cx - half) - chartLeft - 1.5;
             const mFullLabel = `- ${act.name}`;
@@ -1184,8 +1184,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             doc.setFont("helvetica", "normal");
             const fullLabel = `- ${act.name}`;
             const rightStartX = x2 + 1.5;
-            // Allow labels to extend to page edge
-            const pageEdge = pageWidth - 2;
+            // Allow labels to extend beyond chart area to page edge (labels are text, not bars)
+            const pageEdge = pageWidth - margin;
             const rightSpace = pageEdge - rightStartX;
             const leftSpace = x1 - chartLeft - 1.5;
             const labelTextWidth = doc.getTextWidth(fullLabel);

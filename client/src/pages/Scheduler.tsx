@@ -655,12 +655,14 @@ export default function Scheduler() {
   const filteredActivities = useMemo(() => {
     let acts = [...activities];
 
-    // Search filter (activity ID or name)
+    // Search filter (activity ID, name, description, or WBS)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       acts = acts.filter((a) =>
         (a.activityId || `A${a.id}`).toLowerCase().includes(q) ||
-        a.name.toLowerCase().includes(q)
+        a.name.toLowerCase().includes(q) ||
+        (a.description && a.description.toLowerCase().includes(q)) ||
+        (a.wbs && a.wbs.toLowerCase().includes(q))
       );
     }
 
@@ -1324,7 +1326,7 @@ export default function Scheduler() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search ID or name..."
+                placeholder="Search ID, name, description, WBS..."
                 className="h-8 text-xs pl-8 w-52 border-white/15 bg-white/5 text-gray-100 placeholder:text-gray-500 rounded-lg"
                 autoFocus
                 onBlur={() => { if (!searchQuery) setShowSearch(false); }}
@@ -3714,7 +3716,7 @@ export default function Scheduler() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 pb-2 px-2">
             <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); setCostFontSize(9); }} className="border-white/15 text-gray-100">Reset All Fonts</Button>
             <Button onClick={() => setShowGanttSettings(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">Done</Button>
           </DialogFooter>

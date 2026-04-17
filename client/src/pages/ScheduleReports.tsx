@@ -877,16 +877,63 @@ export default function ScheduleReports() {
   const isLoading = isStdLoading || isLevelingLoading || isEvmLoading || isDelayLoading || isForecastLoading || isHealthLoading;
 
   const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${schedule?.name || "Schedule"} — ${ReportInfo.label} | ConstructLine`;
-    const restoreTitle = () => {
-      document.title = originalTitle;
-      window.removeEventListener("afterprint", restoreTitle);
+    // Open a new window with the printable content for reliable Save/Cancel behavior
+    const printTitle = `${schedule?.name || "Schedule"} \u2014 ${ReportInfo.label} | ConstructLine`;
+    const printContent = document.querySelector('.print\\:block, [data-print-content]');
+    const reportArea = document.querySelector('[data-report-printable]');
+    
+    // Collect all stylesheets
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(el => el.outerHTML).join('\n');
+    
+    // Get the printable report HTML
+    const printableEl = reportArea || document.querySelector('.max-w-\\[1600px\\]');
+    if (!printableEl) { window.print(); return; }
+    
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) { 
+      // Popup blocked — fall back to direct print
+      const originalTitle = document.title;
+      document.title = printTitle;
+      window.print();
+      setTimeout(() => { document.title = originalTitle; }, 2000);
+      return; 
+    }
+    
+    // Build the print document with all report content
+    const allPrintable = document.querySelectorAll('.print\\:block');
+    let printHtml = '';
+    allPrintable.forEach(el => { printHtml += el.outerHTML; });
+    // Also include visible report tables/charts
+    const visibleReport = document.querySelector('[data-report-area]');
+    if (visibleReport) printHtml += visibleReport.outerHTML;
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>${printTitle}</title>
+      ${styles}
+      <style>
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #0a0a0a; color: #e5e5e5; }
+        .print\\:hidden { display: none !important; }
+        .print\\:block { display: block !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        canvas { max-width: 100%; height: auto !important; }
+      </style>
+      </head><body>${printHtml}</body></html>
+    `);
+    printWindow.document.close();
+    
+    // Wait for content to load, then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.onafterprint = () => printWindow.close();
+        // Fallback close after 60s
+        setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 60000);
+      }, 500);
     };
-    window.addEventListener("afterprint", restoreTitle);
-    window.print();
-    // Fallback for browsers that don't fire afterprint
-    setTimeout(() => { document.title = originalTitle; }, 2000);
   };
 
   const handleExportEvmPdf = async () => {

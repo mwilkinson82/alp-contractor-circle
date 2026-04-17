@@ -3,9 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Trash2, Plus, Edit2 } from "lucide-react";
+import { Trash2, Plus, Edit2, ChevronDown, ChevronRight } from "lucide-react";
 
 interface ActivityCodeManagerProps {
   open: boolean;
@@ -18,13 +17,19 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
   const utils = trpc.useUtils();
   
   // Category management state
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingValueId, setEditingValueId] = useState<number | null>(null);
-  const [editingValueCategoryId, setEditingValueCategoryId] = useState<number | null>(null);
-  const [newValueText, setNewValueText] = useState("");
-  const [newValueColor, setNewValueColor] = useState("#3b82f6");
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+
+  // Per-category value input state — only active for the expanded category
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
+  const [addValueText, setAddValueText] = useState("");
+  const [addValueColor, setAddValueColor] = useState("#3b82f6");
+
+  // Editing an existing value (separate state from adding)
+  const [editingValueId, setEditingValueId] = useState<number | null>(null);
+  const [editValueText, setEditValueText] = useState("");
+  const [editValueColor, setEditValueColor] = useState("#3b82f6");
 
   // Mutations
   const createCategoryMut = trpc.schedule.addCodeCategory.useMutation({
@@ -41,7 +46,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
       utils.schedule.get.invalidate();
       toast.success("Category updated");
       setEditingCategoryId(null);
-      setNewCategoryName("");
+      setEditCategoryName("");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -58,8 +63,8 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
     onSuccess: () => {
       utils.schedule.get.invalidate();
       toast.success("Value added");
-      setNewValueText("");
-      setNewValueColor("#3b82f6");
+      setAddValueText("");
+      setAddValueColor("#3b82f6");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -69,9 +74,8 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
       utils.schedule.get.invalidate();
       toast.success("Value updated");
       setEditingValueId(null);
-      setEditingValueCategoryId(null);
-      setNewValueText("");
-      setNewValueColor("#3b82f6");
+      setEditValueText("");
+      setEditValueColor("#3b82f6");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -96,41 +100,54 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
   };
 
   const handleUpdateCategory = (id: number) => {
-    if (!newCategoryName.trim()) {
+    if (!editCategoryName.trim()) {
       toast.error("Category name required");
       return;
     }
     updateCategoryMut.mutate({
       id,
       scheduleId,
-      name: newCategoryName.trim(),
+      name: editCategoryName.trim(),
     });
   };
 
   const handleAddValue = (categoryId: number) => {
-    if (!newValueText.trim()) {
+    if (!addValueText.trim()) {
       toast.error("Value required");
       return;
     }
     addValueMut.mutate({
       categoryId,
       scheduleId,
-      value: newValueText.trim(),
-      color: newValueColor,
+      value: addValueText.trim(),
+      color: addValueColor,
     });
   };
 
   const handleUpdateValue = (valueId: number) => {
-    if (!newValueText.trim()) {
+    if (!editValueText.trim()) {
       toast.error("Value required");
       return;
     }
     updateValueMut.mutate({
       id: valueId,
       scheduleId,
-      value: newValueText.trim(),
-      color: newValueColor,
+      value: editValueText.trim(),
+      color: editValueColor,
     });
+  };
+
+  const toggleCategory = (categoryId: number) => {
+    if (expandedCategoryId === categoryId) {
+      setExpandedCategoryId(null);
+    } else {
+      setExpandedCategoryId(categoryId);
+      // Reset add-value form when switching categories
+      setAddValueText("");
+      setAddValueColor("#3b82f6");
+      // Cancel any value edit in progress
+      setEditingValueId(null);
+    }
   };
 
   return (
@@ -172,199 +189,222 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
             </div>
           ) : (
             <div className="space-y-3">
-              {codeCategories.map((category: any) => (
-                <div key={category.id} className="border border-white/10 rounded-lg p-4 bg-white/5">
-                  {/* Category Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex-1">
-                      {editingCategoryId === category.id ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="Category name"
-                            className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm"
-                          />
+              {codeCategories.map((category: any) => {
+                const isExpanded = expandedCategoryId === category.id;
+                const isEditingThisCategory = editingCategoryId === category.id;
+
+                return (
+                  <div key={category.id} className="border border-white/10 rounded-lg bg-white/5">
+                    {/* Category Header — clickable to expand/collapse */}
+                    <div
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/3 rounded-t-lg"
+                      onClick={() => {
+                        if (!isEditingThisCategory) toggleCategory(category.id);
+                      }}
+                    >
+                      <div className="flex-1">
+                        {isEditingThisCategory ? (
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={editCategoryName}
+                              onChange={(e) => setEditCategoryName(e.target.value)}
+                              placeholder="Category name"
+                              className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleUpdateCategory(category.id);
+                                if (e.key === "Escape") { setEditingCategoryId(null); setEditCategoryName(""); }
+                              }}
+                              autoFocus
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateCategory(category.id)}
+                              disabled={updateCategoryMut.isPending}
+                              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingCategoryId(null);
+                                setEditCategoryName("");
+                              }}
+                              className="border-white/15"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-500" />
+                            )}
+                            <h4 className="text-sm font-semibold text-gray-300">{category.name}</h4>
+                            <span className="text-xs text-gray-500">({category.values?.length || 0} values)</span>
+                          </div>
+                        )}
+                      </div>
+                      {!isEditingThisCategory && (
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button
                             size="sm"
-                            onClick={() => handleUpdateCategory(category.id)}
-                            disabled={updateCategoryMut.isPending}
-                            className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => {
-                              setEditingCategoryId(null);
-                              setNewCategoryName("");
+                              setEditingCategoryId(category.id);
+                              setEditCategoryName(category.name);
                             }}
-                            className="border-white/15"
+                            className="h-7 text-xs text-gray-400 hover:text-gray-200"
                           >
-                            Cancel
+                            <Edit2 className="w-3 h-3" />
                           </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-semibold text-gray-300">{category.name}</h4>
-                          <span className="text-xs text-gray-500">({category.values?.length || 0} values)</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Delete category "${category.name}" and all its values?`)) {
+                                deleteCategoryMut.mutate({ id: category.id, scheduleId });
+                              }
+                            }}
+                            disabled={deleteCategoryMut.isPending}
+                            className="h-7 text-xs text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       )}
                     </div>
-                    {editingCategoryId !== category.id && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingCategoryId(category.id);
-                            setNewCategoryName(category.name);
-                          }}
-                          className="h-7 text-xs text-gray-400 hover:text-gray-200"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm(`Delete category "${category.name}" and all its values?`)) {
-                              deleteCategoryMut.mutate({ id: category.id, scheduleId });
-                            }
-                          }}
-                          disabled={deleteCategoryMut.isPending}
-                          className="h-7 text-xs text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Values List */}
-                  {editingCategoryId !== category.id && (
-                    <div className="space-y-2 mb-3">
-                      {category.values && category.values.length > 0 ? (
-                        category.values.map((value: any) => (
-                          <div key={value.id} className="flex items-center justify-between gap-2 p-2 bg-white/3 rounded border border-white/5">
-                            <div className="flex items-center gap-2 flex-1">
-                              <div
-                                className="w-4 h-4 rounded border border-white/20"
-                                style={{ backgroundColor: value.color || "#3b82f6" }}
+                    {/* Expanded: Values List + Add Value Form */}
+                    {isExpanded && !isEditingThisCategory && (
+                      <div className="px-4 pb-4 space-y-2">
+                        {/* Existing values */}
+                        {category.values && category.values.length > 0 ? (
+                          <div className="space-y-1">
+                            {category.values.map((value: any) => (
+                              <div key={value.id} className="flex items-center justify-between gap-2 p-2 bg-white/3 rounded border border-white/5">
+                                {editingValueId === value.id ? (
+                                  /* Inline edit for this value */
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <input
+                                      type="color"
+                                      value={editValueColor}
+                                      onChange={(e) => setEditValueColor(e.target.value)}
+                                      className="w-8 h-7 rounded border border-white/15 cursor-pointer"
+                                    />
+                                    <Input
+                                      value={editValueText}
+                                      onChange={(e) => setEditValueText(e.target.value)}
+                                      placeholder="Value name"
+                                      className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm h-7"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleUpdateValue(value.id);
+                                        if (e.key === "Escape") { setEditingValueId(null); }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateValue(value.id)}
+                                      disabled={updateValueMut.isPending}
+                                      className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs"
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => { setEditingValueId(null); }}
+                                      className="h-7 border-white/15 text-xs"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  /* Display mode */
+                                  <>
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <div
+                                        className="w-4 h-4 rounded border border-white/20"
+                                        style={{ backgroundColor: value.color || "#3b82f6" }}
+                                      />
+                                      <span className="text-xs text-gray-400">{value.value}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          setEditingValueId(value.id);
+                                          setEditValueText(value.value);
+                                          setEditValueColor(value.color || "#3b82f6");
+                                        }}
+                                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          if (confirm(`Delete value "${value.value}"?`)) {
+                                            deleteValueMut.mutate({ id: value.id, scheduleId });
+                                          }
+                                        }}
+                                        disabled={deleteValueMut.isPending}
+                                        className="h-6 w-6 p-0 text-red-400 hover:text-red-300"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-600 italic py-1">No values yet — add one below</p>
+                        )}
+
+                        {/* Add Value form — only shown for THIS expanded category, not when editing a value */}
+                        {editingValueId === null && (
+                          <div className="border-t border-white/10 pt-3 mt-2">
+                            <p className="text-xs text-gray-500 font-medium mb-2">Add Value to "{category.name}"</p>
+                            <div className="flex gap-2">
+                              <input
+                                type="color"
+                                value={addValueColor}
+                                onChange={(e) => setAddValueColor(e.target.value)}
+                                className="w-10 h-8 rounded border border-white/15 cursor-pointer"
                               />
-                              <span className="text-xs text-gray-400">{value.value}</span>
-                            </div>
-                            <div className="flex gap-1">
+                              <Input
+                                value={addValueText}
+                                onChange={(e) => setAddValueText(e.target.value)}
+                                placeholder="e.g., Design, Procurement, Installation"
+                                className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleAddValue(category.id);
+                                }}
+                              />
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingValueId(value.id);
-                                  setEditingValueCategoryId(category.id);
-                                  setNewValueText(value.value);
-                                  setNewValueColor(value.color || "#3b82f6");
-                                }}
-                                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200"
+                                onClick={() => handleAddValue(category.id)}
+                                disabled={addValueMut.isPending}
+                                className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
                               >
-                                <Edit2 className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  if (confirm(`Delete value "${value.value}"?`)) {
-                                    deleteValueMut.mutate({ id: value.id, scheduleId });
-                                  }
-                                }}
-                                disabled={deleteValueMut.isPending}
-                                className="h-6 w-6 p-0 text-red-400 hover:text-red-300"
-                              >
-                                <Trash2 className="w-3 h-3" />
+                                <Plus className="w-3 h-3 mr-1" /> Add
                               </Button>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-gray-600 italic">No values yet</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Add/Edit Value */}
-                  {editingValueCategoryId === category.id && editingValueId ? (
-                    <div className="border-t border-white/10 pt-3 space-y-2">
-                      <p className="text-xs text-gray-500 font-medium">Edit Value</p>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={newValueColor}
-                          onChange={(e) => setNewValueColor(e.target.value)}
-                          className="w-10 h-8 rounded border border-white/15 cursor-pointer"
-                        />
-                        <Input
-                          value={newValueText}
-                          onChange={(e) => setNewValueText(e.target.value)}
-                          placeholder="Value name"
-                          className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateValue(editingValueId)}
-                          disabled={updateValueMut.isPending}
-                          className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingValueId(null);
-                            setEditingValueCategoryId(null);
-                            setNewValueText("");
-                            setNewValueColor("#3b82f6");
-                          }}
-                          className="border-white/15"
-                        >
-                          Cancel
-                        </Button>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    editingCategoryId !== category.id && (
-                      <div className="border-t border-white/10 pt-3 space-y-2">
-                        <p className="text-xs text-gray-500 font-medium">Add Value</p>
-                        <div className="flex gap-2">
-                          <input
-                            type="color"
-                            value={newValueColor}
-                            onChange={(e) => setNewValueColor(e.target.value)}
-                            className="w-10 h-8 rounded border border-white/15 cursor-pointer"
-                          />
-                          <Input
-                            value={newValueText}
-                            onChange={(e) => setNewValueText(e.target.value)}
-                            placeholder="e.g., Design, Procurement, Installation"
-                            className="flex-1 border-white/15 bg-white/5 text-gray-200 text-sm"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleAddValue(category.id);
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddValue(category.id)}
-                            disabled={addValueMut.isPending}
-                            className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
-                          >
-                            <Plus className="w-3 h-3 mr-1" /> Add
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

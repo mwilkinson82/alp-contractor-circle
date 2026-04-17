@@ -2187,3 +2187,11 @@
 - [x] WBS Manager — add ability to create new WBS nodes (not just edit existing)
 - [x] Reports PDF branding — show schedule name or ConstructLine instead of "ALP Contractor Circle"
 - [x] Reports print preview Cancel/X not closing — user has to refresh page to exit
+
+## Batch 7 — User-Reported Issues (Apr 17, 2026)
+- [x] Fix Gantt Display Settings modal — no padding between buttons and modal edge
+- [x] Fix Reports Print dialog — Save/Cancel buttons not working, rewrote to open new window for reliable print behavior
+- [x] Fix Activity Code Manager — values leaking across categories (rewrote with per-category state, expand/collapse UX)
+- [x] Fix PDF Export label truncation — increased timeline padding to 25%/30d min, labels extend to page edge margin
+- [x] Add advanced text-based filtering — search now covers ID, name, description, and WBS fields
+- [x] Fix Scheduler.tsx parse error at line 1031 — confirmed resolved (was stale Babel cache)
