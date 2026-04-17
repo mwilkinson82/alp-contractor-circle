@@ -28,6 +28,7 @@ import TakeoffDetail from "./pages/TakeoffDetail";
 import CostLibrary from "./pages/CostLibrary";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { OnboardingTour } from "./components/OnboardingTour";
+import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
 import AdminFeedback from "./pages/AdminFeedback";
 
 function Router() {
@@ -135,6 +136,7 @@ function App() {
           <Router />
           <FeedbackWidget />
           <OnboardingTour />
+          <TakeoffOnboardingTour />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

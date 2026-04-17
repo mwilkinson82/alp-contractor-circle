@@ -41,6 +41,7 @@ import {
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
 import { useResetTour } from "@/components/OnboardingTour";
+import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
@@ -222,7 +223,11 @@ export default function MemberPortalLayout({
   children: React.ReactNode;
 }) {
   const { member, loading, isAuthenticated, logout, getLoginUrl } = useMember();
-  const resetTour = useResetTour();
+  const portalResetTour = useResetTour();
+  const resetTour = () => {
+    resetTakeoffTours();
+    portalResetTour();
+  };
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

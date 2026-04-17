@@ -11,20 +11,6 @@ import {
 import { storagePut } from "./storage";
 import { sendFeedbackNotification } from "./email";
 
-/** Require authenticated member from session */
-async function requireMember(req: any) {
-  const user = (req as any).user;
-  if (!user) throw new TRPCError({ code: "UNAUTHORIZED" });
-  return user;
-}
-
-/** Require admin role */
-async function requireAdmin(req: any) {
-  const user = await requireMember(req);
-  if (user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
-  return user;
-}
-
 export const feedbackRouter = router({
   /** Submit feedback (any authenticated member) */
   submit: publicProcedure
@@ -38,7 +24,9 @@ export const feedbackRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await requireMember(ctx.req);
+      if (!ctx.user?.id) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in to submit feedback" });
+      }
 
       let screenshotUrl: string | undefined;
       if (input.screenshotBase64) {
@@ -46,7 +34,7 @@ export const feedbackRouter = router({
           // Strip data URL prefix if present
           const base64Data = input.screenshotBase64.replace(/^data:image\/\w+;base64,/, "");
           const buffer = Buffer.from(base64Data, "base64");
-          const key = `feedback/${member.id}-${Date.now()}.png`;
+          const key = `feedback/${ctx.user.id}-${Date.now()}.png`;
           const result = await storagePut(key, buffer, "image/png");
           screenshotUrl = result.url;
         } catch (err) {
@@ -55,10 +43,10 @@ export const feedbackRouter = router({
         }
       }
 
-      const memberName = member.name || member.discordUsername || `User ${member.id}`;
+      const memberName = ctx.user.name || `User ${ctx.user.id}`;
 
       const id = await createFeedback({
-        memberId: member.id,
+        memberId: ctx.user.id,
         memberName,
         message: input.message,
         screenshotUrl,
@@ -83,7 +71,8 @@ export const feedbackRouter = router({
 
   /** List all feedback (admin only) */
   list: publicProcedure.query(async ({ ctx }) => {
-    await requireAdmin(ctx.req);
+    if (!ctx.user?.id) throw new TRPCError({ code: "UNAUTHORIZED" });
+    if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
     return getAllFeedback();
   }),
 
@@ -91,7 +80,8 @@ export const feedbackRouter = router({
   get: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      await requireAdmin(ctx.req);
+      if (!ctx.user?.id) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const item = await getFeedbackById(input.id);
       if (!item) throw new TRPCError({ code: "NOT_FOUND" });
       return item;
@@ -107,7 +97,8 @@ export const feedbackRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.req);
+      if (!ctx.user?.id) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       await updateFeedbackStatus(input.id, input.status, input.adminNotes);
       return { success: true };
     }),
@@ -116,7 +107,8 @@ export const feedbackRouter = router({
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.req);
+      if (!ctx.user?.id) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       await deleteFeedback(input.id);
       return { success: true };
     }),

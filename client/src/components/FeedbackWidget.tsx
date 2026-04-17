@@ -1,15 +1,15 @@
 /**
  * FeedbackWidget — Floating feedback button (bottom-right) with modal.
  * Captures user message, category, optional screenshot, and submits via tRPC.
+ * Only visible on ConstructLine / Takeoff pages.
  */
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle } from "lucide-react";
+import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 
 type Category = "bug" | "feature" | "general" | "other";
 
@@ -34,21 +34,30 @@ export function FeedbackWidget() {
     // Temporarily hide the widget so it doesn't appear in the screenshot
     setIsOpen(false);
     try {
-      await new Promise((r) => setTimeout(r, 300)); // Wait for modal to close
+      await new Promise((r) => setTimeout(r, 400)); // Wait for modal to close
+
+      // Dynamically import html2canvas to avoid issues if it fails to load
+      const html2canvas = (await import("html2canvas")).default;
+
       const canvas = await html2canvas(document.body, {
-        scale: 0.5, // Lower resolution for smaller payload
+        scale: 0.5,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: "#0a0e1a",
+        // Ignore elements that cause issues
+        ignoreElements: (el) => {
+          return el.tagName === "IFRAME" || el.classList?.contains("feedback-widget");
+        },
       });
-      const dataUrl = canvas.toDataURL("image/png");
+      const dataUrl = canvas.toDataURL("image/png", 0.7); // Lower quality for smaller payload
       setScreenshot(dataUrl);
       setIsOpen(true);
       toast.success("Screenshot captured!");
     } catch (err) {
       console.error("[Feedback] Screenshot capture failed:", err);
       setIsOpen(true);
-      toast.error("Failed to capture screenshot");
+      toast.error("Screenshot capture failed — you can still submit feedback without one");
     } finally {
       setIsCapturing(false);
     }
@@ -73,13 +82,19 @@ export function FeedbackWidget() {
       setCategory("general");
       setScreenshot(null);
       setIsOpen(false);
-    } catch (err) {
-      toast.error("Failed to submit feedback. Please try again.");
+    } catch (err: any) {
+      console.error("[Feedback] Submit failed:", err);
+      const msg = err?.message || err?.data?.message || "Unknown error";
+      if (msg.includes("UNAUTHORIZED") || msg.includes("logged in")) {
+        toast.error("You need to be logged in to submit feedback");
+      } else {
+        toast.error("Failed to submit feedback. Please try again.");
+      }
     }
   };
 
   // Only show on ConstructLine / Takeoff pages
-  const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff");
+  const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff") || location.startsWith("/takeoff/") || location.startsWith("/portal/cost-library");
   if (!isConstructLinePage) return null;
 
   return (
@@ -87,7 +102,7 @@ export function FeedbackWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-navy-deep font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-200"
+        className="feedback-widget fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-navy-deep font-semibold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-200"
         title="Send us feedback"
       >
         <MessageSquarePlus className="w-4 h-4" />
@@ -96,7 +111,7 @@ export function FeedbackWidget() {
 
       {/* Modal Overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+        <div className="feedback-widget fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -120,7 +135,7 @@ export function FeedbackWidget() {
             </div>
 
             {/* Body */}
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               {/* Beta notice */}
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                 <p className="text-amber-400 text-xs">
@@ -192,7 +207,7 @@ export function FeedbackWidget() {
                   ) : (
                     <Camera className="w-3.5 h-3.5" />
                   )}
-                  {isCapturing ? "Capturing..." : "Attach Screenshot"}
+                  {isCapturing ? "Capturing..." : "Attach Screenshot (optional)"}
                 </button>
               )}
             </div>

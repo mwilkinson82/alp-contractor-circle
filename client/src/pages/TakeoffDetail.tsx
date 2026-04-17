@@ -652,6 +652,7 @@ export default function TakeoffDetail() {
                 <span className="text-emerald-400/60 text-xs">estimated</span>
               </div>
             )}
+            <div data-tour="takeoff-settings">
             <ProjectSettingsPanel
               projectId={projectId}
               currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
@@ -687,6 +688,7 @@ export default function TakeoffDetail() {
                 });
               }}
             />
+            </div>
           </div>
         </div>
       </div>
@@ -694,7 +696,7 @@ export default function TakeoffDetail() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-navy-medium/50 border border-white/10 mb-6">
+          <TabsList data-tour="takeoff-tabs" className="bg-navy-medium/50 border border-white/10 mb-6">
             <TabsTrigger value="sheets" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
               <FileStack className="w-4 h-4 mr-2" />
               Drawing Sheets ({sheets.length})
@@ -709,6 +711,7 @@ export default function TakeoffDetail() {
           <TabsContent value="sheets">
             {/* Upload Area */}
             <div
+              data-tour="takeoff-upload-area"
               className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
                 dragOver
                   ? "border-amber-500 bg-amber-500/10"
@@ -761,6 +764,7 @@ export default function TakeoffDetail() {
             {sheets.length > 0 && !isProcessing && (
               <div className="mb-6">
                 <Button
+                  data-tour="takeoff-analyze-btn"
                   onClick={() => setShowPreAnalysis(true)}
                   disabled={processMutation.isPending}
                   className={`w-full font-semibold py-6 text-lg shadow-lg ${
@@ -828,7 +832,7 @@ export default function TakeoffDetail() {
 
             {/* Sheet Grid */}
             {sheets.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div data-tour="takeoff-sheet-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {sheets.map((sheet: any) => {
                   const statusConfig = SHEET_STATUS_CONFIG[sheet.status] || SHEET_STATUS_CONFIG.pending;
                   const StatusIcon = statusConfig.icon;
@@ -938,7 +942,7 @@ export default function TakeoffDetail() {
             ) : (
               <div className="space-y-4">
                 {/* Summary Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3">
+                <div data-tour="takeoff-summary-bar" className="flex flex-wrap items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-6 text-sm text-cream-muted">
                     <span>{items.length} line items</span>
                     <span>{Object.keys(groupedItems).length} CSI divisions</span>
@@ -956,6 +960,7 @@ export default function TakeoffDetail() {
                     <div className="w-px h-6 bg-white/10" />
                     <div className="relative group">
                       <Button
+                        data-tour="takeoff-consolidate-btn"
                         size="sm"
                         variant="outline"
                         onClick={() => consolidateMutation.mutate({ projectId })}

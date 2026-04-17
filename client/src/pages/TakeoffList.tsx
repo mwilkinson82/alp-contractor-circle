@@ -109,6 +109,7 @@ export default function TakeoffList() {
           </div>
         </div>
         <Button
+          data-tour="takeoff-new-project"
           onClick={() => setShowCreate(true)}
           className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg"
         >
@@ -142,7 +143,7 @@ export default function TakeoffList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-tour="takeoff-project-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project: any) => {
             const statusConfig = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
