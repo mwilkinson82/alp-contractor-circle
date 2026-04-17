@@ -276,6 +276,7 @@ function FullscreenDrawing({
   const [activeColor, setActiveColor] = useState("#EF4444");
   const [lineWidth, setLineWidth] = useState(4);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [countLabel, setCountLabel] = useState("");
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
@@ -683,6 +684,7 @@ function FullscreenDrawing({
             onUpdateElement={updateElementSilent}
             onDragStart={beginDrag}
             onDragEnd={commitDrag}
+            countLabel={countLabel}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -743,6 +745,8 @@ function FullscreenDrawing({
               }
             } : undefined}
             isSaving={saveMarkupMutation.isPending}
+            countLabel={countLabel}
+            onCountLabelChange={setCountLabel}
           />
         </div>
       )}

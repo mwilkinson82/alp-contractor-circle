@@ -64,6 +64,7 @@ export interface CountShape {
   type: "count";
   position: Point;
   number: number;
+  label: string;
   color: string;
   lineWidth: number;
 }

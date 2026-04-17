@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Point, ToolType, Shape } from "./types";
+import type { Point, ToolType, Shape, CountShape } from "./types";
 import { renderAllShapes, drawShape, hitTestShapes, type FormatAreaFn } from "./renderShapes";
 
 let _idCounter = 0;
@@ -205,6 +205,8 @@ interface MarkupCanvasProps {
   onDragStart?: () => void;
   /** Called when a drag operation ends (for undo coalescing) */
   onDragEnd?: () => void;
+  /** Active count marker label/category (e.g. "Outlet", "Window") */
+  countLabel?: string;
 }
 
 export function MarkupCanvas({
@@ -229,6 +231,7 @@ export function MarkupCanvas({
   onUpdateElement,
   onDragStart,
   onDragEnd,
+  countLabel = "",
 }: MarkupCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -695,13 +698,17 @@ export function MarkupCanvas({
 
       // Count tool — place numbered marker
       if (activeTool === "count") {
-        const existingCounts = elements.filter((e) => e.type === "count");
-        const nextNumber = existingCounts.length + 1;
+        // Number within the same label group
+        const sameLabel = elements.filter(
+          (e) => e.type === "count" && (e as CountShape).label === countLabel,
+        );
+        const nextNumber = sameLabel.length + 1;
         const shape: Shape = {
           id: generateId(),
           type: "count",
           position: pt,
           number: nextNumber,
+          label: countLabel,
           color,
           lineWidth,
         };

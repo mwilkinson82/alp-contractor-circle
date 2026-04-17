@@ -73,6 +73,10 @@ interface MarkupToolbarProps {
   isSaving?: boolean;
   /** Delete selected shape */
   onDelete?: () => void;
+  /** Active count marker label/category */
+  countLabel?: string;
+  /** Called when user changes the count label */
+  onCountLabelChange?: (label: string) => void;
 }
 
 export function MarkupToolbar({
@@ -97,6 +101,8 @@ export function MarkupToolbar({
   onPushQuantity,
   isSaving = false,
   onDelete,
+  countLabel = "",
+  onCountLabelChange,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -118,6 +124,19 @@ export function MarkupToolbar({
           </button>
         ))}
       </div>
+
+      {/* Count label input — shown when count tool is active */}
+      {activeTool === "count" && (
+        <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">
+          <input
+            type="text"
+            value={countLabel}
+            onChange={(e) => onCountLabelChange?.(e.target.value)}
+            placeholder="Label (e.g. Outlet)"
+            className="w-28 px-2 py-1 rounded-md bg-white/10 text-white text-xs border border-white/20 focus:border-amber-400 focus:outline-none placeholder:text-white/40"
+          />
+        </div>
+      )}
 
       {/* Scale calibration */}
       <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">

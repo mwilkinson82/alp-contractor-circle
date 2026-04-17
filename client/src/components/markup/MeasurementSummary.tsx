@@ -31,6 +31,37 @@ function computePolygonArea(poly: PolygonShape): number {
   return Math.abs(area) / 2;
 }
 
+/** Friendly color name for display */
+function colorName(hex: string): string {
+  const map: Record<string, string> = {
+    "#EF4444": "Red",
+    "#ef4444": "Red",
+    "#F97316": "Orange",
+    "#f97316": "Orange",
+    "#EAB308": "Yellow",
+    "#eab308": "Yellow",
+    "#22C55E": "Green",
+    "#22c55e": "Green",
+    "#3B82F6": "Blue",
+    "#3b82f6": "Blue",
+    "#8B5CF6": "Purple",
+    "#8b5cf6": "Purple",
+    "#EC4899": "Pink",
+    "#ec4899": "Pink",
+    "#FFFFFF": "White",
+    "#ffffff": "White",
+    "#000000": "Black",
+  };
+  return map[hex] || hex;
+}
+
+interface ColorGroup {
+  color: string;
+  lines: LineShape[];
+  polygons: PolygonShape[];
+  counts: CountShape[];
+}
+
 export function MeasurementSummary({
   elements,
   formatDistance,
@@ -40,13 +71,43 @@ export function MeasurementSummary({
 }: MeasurementSummaryProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const { lines, polygons, counts, totalLinePx, totalAreaPx } = useMemo(() => {
+  const { lines, polygons, counts, totalLinePx, totalAreaPx, colorGroups, countsByLabel } = useMemo(() => {
     const lines = elements.filter((e): e is LineShape => e.type === "line");
     const polygons = elements.filter((e): e is PolygonShape => e.type === "polygon");
     const counts = elements.filter((e): e is CountShape => e.type === "count");
     const totalLinePx = lines.reduce((sum, l) => sum + computeLineLength(l), 0);
     const totalAreaPx = polygons.reduce((sum, p) => sum + computePolygonArea(p), 0);
-    return { lines, polygons, counts, totalLinePx, totalAreaPx };
+
+    // Group by color
+    const colorMap = new Map<string, ColorGroup>();
+    for (const line of lines) {
+      const g = colorMap.get(line.color) || { color: line.color, lines: [], polygons: [], counts: [] };
+      g.lines.push(line);
+      colorMap.set(line.color, g);
+    }
+    for (const poly of polygons) {
+      const g = colorMap.get(poly.color) || { color: poly.color, lines: [], polygons: [], counts: [] };
+      g.polygons.push(poly);
+      colorMap.set(poly.color, g);
+    }
+    for (const c of counts) {
+      const g = colorMap.get(c.color) || { color: c.color, lines: [], polygons: [], counts: [] };
+      g.counts.push(c);
+      colorMap.set(c.color, g);
+    }
+    const colorGroups = Array.from(colorMap.values());
+
+    // Group counts by label
+    const labelMap = new Map<string, CountShape[]>();
+    for (const c of counts) {
+      const key = c.label || "(unlabeled)";
+      const arr = labelMap.get(key) || [];
+      arr.push(c);
+      labelMap.set(key, arr);
+    }
+    const countsByLabel = Array.from(labelMap.entries()).map(([label, items]) => ({ label, count: items.length, color: items[0].color }));
+
+    return { lines, polygons, counts, totalLinePx, totalAreaPx, colorGroups, countsByLabel };
   }, [elements]);
 
   const hasAny = lines.length > 0 || polygons.length > 0 || counts.length > 0;
@@ -56,35 +117,51 @@ export function MeasurementSummary({
 
   const exportCSV = useCallback(() => {
     const rows: string[][] = [];
-    rows.push(["Type", "Label", "Value", "Unit", "Color"]);
+    rows.push(["Type", "Label", "Category", "Value", "Unit", "Color"]);
 
-    // Lines
-    lines.forEach((line, i) => {
-      const val = fmtDist(computeLineLength(line));
-      rows.push(["Line", `L${i + 1}`, val, isCalibrated ? "" : "px", line.color]);
-    });
-    if (lines.length > 0) {
-      rows.push(["Line Total", "", fmtDist(totalLinePx), "", ""]);
+    // Group by color
+    for (const group of colorGroups) {
+      const cName = colorName(group.color);
+
+      // Lines in this color
+      group.lines.forEach((line, i) => {
+        const val = fmtDist(computeLineLength(line));
+        rows.push(["Line", `L${i + 1}`, "", val, isCalibrated ? "" : "px", cName]);
+      });
+      if (group.lines.length > 0) {
+        const groupTotal = group.lines.reduce((s, l) => s + computeLineLength(l), 0);
+        rows.push(["Line Subtotal", "", "", fmtDist(groupTotal), "", cName]);
+      }
+
+      // Polygons in this color
+      group.polygons.forEach((poly, i) => {
+        const val = fmtArea(computePolygonArea(poly));
+        rows.push(["Area", `A${i + 1}`, "", val, isCalibrated ? "" : "px²", cName]);
+      });
+      if (group.polygons.length > 0) {
+        const groupTotal = group.polygons.reduce((s, p) => s + computePolygonArea(p), 0);
+        rows.push(["Area Subtotal", "", "", fmtArea(groupTotal), "", cName]);
+      }
+
+      // Counts in this color — grouped by label
+      const labelMap = new Map<string, CountShape[]>();
+      for (const c of group.counts) {
+        const key = c.label || "(unlabeled)";
+        const arr = labelMap.get(key) || [];
+        arr.push(c);
+        labelMap.set(key, arr);
+      }
+      for (const [label, items] of Array.from(labelMap.entries())) {
+        rows.push(["Count", `${items.length}x`, label, String(items.length), "items", cName]);
+      }
     }
 
-    // Polygons
-    polygons.forEach((poly, i) => {
-      const val = fmtArea(computePolygonArea(poly));
-      rows.push(["Area", `A${i + 1}`, val, isCalibrated ? "" : "px²", poly.color]);
-    });
-    if (polygons.length > 0) {
-      rows.push(["Area Total", "", fmtArea(totalAreaPx), "", ""]);
-    }
+    // Grand totals
+    rows.push([]);
+    if (lines.length > 0) rows.push(["TOTAL Lines", "", "", fmtDist(totalLinePx), "", ""]);
+    if (polygons.length > 0) rows.push(["TOTAL Areas", "", "", fmtArea(totalAreaPx), "", ""]);
+    if (counts.length > 0) rows.push(["TOTAL Count", "", "", String(counts.length), "items", ""]);
 
-    // Counts
-    counts.forEach((c) => {
-      rows.push(["Count", `#${c.number}`, String(c.number), "", c.color]);
-    });
-    if (counts.length > 0) {
-      rows.push(["Count Total", "", String(counts.length), "items", ""]);
-    }
-
-    // Build CSV string
     const csvContent = rows
       .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
       .join("\n");
@@ -98,12 +175,12 @@ export function MeasurementSummary({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [lines, polygons, counts, totalLinePx, totalAreaPx, fmtDist, fmtArea, isCalibrated, sheetName]);
+  }, [colorGroups, lines, polygons, counts, totalLinePx, totalAreaPx, fmtDist, fmtArea, isCalibrated, sheetName]);
 
   if (!hasAny) return null;
 
   return (
-    <div className="absolute top-14 right-4 z-30 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white text-xs max-w-[280px] shadow-lg">
+    <div className="absolute top-14 right-4 z-30 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white text-xs max-w-[300px] shadow-lg">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -139,68 +216,149 @@ export function MeasurementSummary({
           {counts.length > 0 && (
             <span className="flex items-center gap-1 text-purple-300">
               <Hash size={10} />
-              {counts.length} counted
+              {countsByLabel.length === 1 && countsByLabel[0].label !== "(unlabeled)"
+                ? `${counts.length} ${countsByLabel[0].label}`
+                : `${counts.length} counted`}
             </span>
           )}
         </div>
       )}
 
-      {/* Expanded detail */}
+      {/* Expanded detail — grouped by color */}
       {expanded && (
-        <div className="px-3 pb-3 max-h-[300px] overflow-y-auto">
-          {/* Lines section */}
-          {lines.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-1 text-blue-300 font-semibold mb-1 text-[10px] uppercase tracking-wider">
-                <Ruler size={10} />
-                Lines ({lines.length})
-              </div>
-              {lines.map((line, i) => (
-                <div key={line.id} className="flex justify-between py-0.5 border-b border-white/5">
-                  <span className="text-white/70">L{i + 1}</span>
-                  <span className="font-mono">{fmtDist(computeLineLength(line))}</span>
-                </div>
-              ))}
-              <div className="flex justify-between pt-1 font-semibold text-blue-300">
-                <span>Total</span>
-                <span className="font-mono">{fmtDist(totalLinePx)}</span>
-              </div>
-            </div>
-          )}
+        <div className="px-3 pb-3 max-h-[350px] overflow-y-auto">
+          {colorGroups.map((group) => {
+            const hasLines = group.lines.length > 0;
+            const hasPolygons = group.polygons.length > 0;
+            const hasCounts = group.counts.length > 0;
+            const groupLinePx = group.lines.reduce((s, l) => s + computeLineLength(l), 0);
+            const groupAreaPx = group.polygons.reduce((s, p) => s + computePolygonArea(p), 0);
 
-          {/* Polygons section */}
-          {polygons.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-1 text-green-300 font-semibold mb-1 text-[10px] uppercase tracking-wider">
-                <Pentagon size={10} />
-                Areas ({polygons.length})
-              </div>
-              {polygons.map((poly, i) => (
-                <div key={poly.id} className="flex justify-between py-0.5 border-b border-white/5">
-                  <span className="text-white/70">A{i + 1}</span>
-                  <span className="font-mono">{fmtArea(computePolygonArea(poly))}</span>
-                </div>
-              ))}
-              <div className="flex justify-between pt-1 font-semibold text-green-300">
-                <span>Total</span>
-                <span className="font-mono">{fmtArea(totalAreaPx)}</span>
-              </div>
-            </div>
-          )}
+            // Group counts by label within this color
+            const labelMap = new Map<string, number>();
+            for (const c of group.counts) {
+              const key = c.label || "(unlabeled)";
+              labelMap.set(key, (labelMap.get(key) || 0) + 1);
+            }
 
-          {/* Counts section */}
-          {counts.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-1 text-purple-300 font-semibold mb-1 text-[10px] uppercase tracking-wider">
-                <Hash size={10} />
-                Count ({counts.length})
+            return (
+              <div key={group.color} className="mb-2.5 last:mb-0">
+                {/* Color header */}
+                <div className="flex items-center gap-1.5 mb-1 pb-0.5 border-b border-white/10">
+                  <div
+                    className="w-3 h-3 rounded-full border border-white/30 shrink-0"
+                    style={{ backgroundColor: group.color }}
+                  />
+                  <span className="font-semibold text-[10px] uppercase tracking-wider text-white/80">
+                    {colorName(group.color)}
+                  </span>
+                </div>
+
+                {/* Lines in this color */}
+                {hasLines && (
+                  <div className="ml-4 mb-1">
+                    <div className="flex items-center gap-1 text-blue-300 text-[10px] font-medium mb-0.5">
+                      <Ruler size={9} />
+                      Lines ({group.lines.length})
+                    </div>
+                    {group.lines.map((line, i) => (
+                      <div key={line.id} className="flex justify-between py-0.5 text-[10px]">
+                        <span className="text-white/60">L{i + 1}</span>
+                        <span className="font-mono text-white/90">{fmtDist(computeLineLength(line))}</span>
+                      </div>
+                    ))}
+                    {group.lines.length > 1 && (
+                      <div className="flex justify-between pt-0.5 text-[10px] font-semibold text-blue-300">
+                        <span>Subtotal</span>
+                        <span className="font-mono">{fmtDist(groupLinePx)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Polygons in this color */}
+                {hasPolygons && (
+                  <div className="ml-4 mb-1">
+                    <div className="flex items-center gap-1 text-green-300 text-[10px] font-medium mb-0.5">
+                      <Pentagon size={9} />
+                      Areas ({group.polygons.length})
+                    </div>
+                    {group.polygons.map((poly, i) => (
+                      <div key={poly.id} className="flex justify-between py-0.5 text-[10px]">
+                        <span className="text-white/60">A{i + 1}</span>
+                        <span className="font-mono text-white/90">{fmtArea(computePolygonArea(poly))}</span>
+                      </div>
+                    ))}
+                    {group.polygons.length > 1 && (
+                      <div className="flex justify-between pt-0.5 text-[10px] font-semibold text-green-300">
+                        <span>Subtotal</span>
+                        <span className="font-mono">{fmtArea(groupAreaPx)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Counts in this color — grouped by label */}
+                {hasCounts && (
+                  <div className="ml-4 mb-1">
+                    <div className="flex items-center gap-1 text-purple-300 text-[10px] font-medium mb-0.5">
+                      <Hash size={9} />
+                      Count ({group.counts.length})
+                    </div>
+                    {Array.from(labelMap.entries()).map(([label, count]) => (
+                      <div key={label} className="flex justify-between py-0.5 text-[10px]">
+                        <span className="text-white/60">{label}</span>
+                        <span className="font-mono text-white/90">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between pt-1 font-semibold text-purple-300">
-                <span>Total items</span>
-                <span className="font-mono">{counts.length}</span>
+            );
+          })}
+
+          {/* Grand totals */}
+          <div className="mt-2 pt-2 border-t border-white/20">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-400 mb-1">Totals</div>
+            {lines.length > 0 && (
+              <div className="flex justify-between py-0.5 text-[11px]">
+                <span className="flex items-center gap-1 text-blue-300">
+                  <Ruler size={10} /> All Lines
+                </span>
+                <span className="font-mono font-semibold">{fmtDist(totalLinePx)}</span>
               </div>
-            </div>
-          )}
+            )}
+            {polygons.length > 0 && (
+              <div className="flex justify-between py-0.5 text-[11px]">
+                <span className="flex items-center gap-1 text-green-300">
+                  <Pentagon size={10} /> All Areas
+                </span>
+                <span className="font-mono font-semibold">{fmtArea(totalAreaPx)}</span>
+              </div>
+            )}
+            {counts.length > 0 && (
+              <div className="flex justify-between py-0.5 text-[11px]">
+                <span className="flex items-center gap-1 text-purple-300">
+                  <Hash size={10} /> All Counts
+                </span>
+                <span className="font-mono font-semibold">{counts.length}</span>
+              </div>
+            )}
+            {/* Count breakdown by label in totals */}
+            {countsByLabel.length > 1 && (
+              <div className="ml-5 mt-0.5">
+                {countsByLabel.map(({ label, count, color }) => (
+                  <div key={label} className="flex justify-between py-0.5 text-[10px] text-white/60">
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      {label}
+                    </span>
+                    <span className="font-mono">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {!isCalibrated && (
             <p className="text-amber-400/80 text-[10px] mt-1 italic">

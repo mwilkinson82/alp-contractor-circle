@@ -166,6 +166,7 @@ function drawCount(
   position: Point,
   number: number,
   color: string,
+  label?: string,
 ) {
   const radius = 16;
   // Outer circle with fill
@@ -185,6 +186,23 @@ function drawCount(
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#ffffff";
   ctx.fillText(String(number), position.x, position.y);
+  // Category label below marker
+  if (label) {
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    // Background pill
+    const textW = ctx.measureText(label).width + 8;
+    const pillX = position.x - textW / 2;
+    const pillY = position.y + radius + 4;
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.beginPath();
+    ctx.roundRect(pillX, pillY, textW, 16, 4);
+    ctx.fill();
+    // Text
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(label, position.x, pillY + 2);
+  }
 }
 
 function drawText(
@@ -241,7 +259,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: Form
       drawText(ctx, shape.position, shape.text, shape.fontSize, shape.color);
       break;
     case "count":
-      drawCount(ctx, shape.position, shape.number, shape.color);
+      drawCount(ctx, shape.position, shape.number, shape.color, shape.label);
       break;
   }
   ctx.restore();

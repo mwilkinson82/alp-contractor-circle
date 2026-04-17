@@ -2010,3 +2010,13 @@
 - [x] FEATURE: Count tally displayed in MeasurementSummary panel (purple section)
 - [x] FEATURE: Measurement export to CSV — export all line distances, polygon areas, and counts as spreadsheet
 - [x] FEATURE: CSV download button in MeasurementSummary expanded panel
+
+## Count Marker Labels & Color Grouping — April 17, 2026
+- [x] FEATURE: Add label field to CountShape (e.g., "Outlet", "Window", "Fixture")
+- [x] FEATURE: Label input in toolbar when count tool is active, reuses same label for subsequent taps
+- [x] FEATURE: Render label text below count marker circle on canvas
+- [x] FEATURE: Counts numbered within label group (Outlet #1, #2, etc.)
+- [x] FEATURE: Group counts by label in MeasurementSummary (e.g., "Outlets: 12, Windows: 8")
+- [x] FEATURE: CSV export groups counts by label with subtotals per color
+- [x] FEATURE: Group all measurements by color in summary panel with color swatches
+- [x] FEATURE: Lines, areas, and counts organized by color so different trades can use different colors
