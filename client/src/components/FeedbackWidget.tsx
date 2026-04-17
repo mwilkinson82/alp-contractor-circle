@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle, ImageOff } from "lucide-react";
+import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
@@ -34,26 +34,59 @@ export function FeedbackWidget() {
     // Temporarily hide the widget so it doesn't appear in the screenshot
     setIsOpen(false);
     try {
-      await new Promise((r) => setTimeout(r, 400)); // Wait for modal to close
+      await new Promise((r) => setTimeout(r, 500)); // Wait for modal to close
 
       // Dynamically import html2canvas to avoid issues if it fails to load
       const html2canvas = (await import("html2canvas")).default;
 
-      const canvas = await html2canvas(document.body, {
-        scale: 0.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#0a0e1a",
-        // Ignore elements that cause issues
-        ignoreElements: (el) => {
-          return el.tagName === "IFRAME" || el.classList?.contains("feedback-widget");
-        },
-      });
-      const dataUrl = canvas.toDataURL("image/png", 0.7); // Lower quality for smaller payload
-      setScreenshot(dataUrl);
-      setIsOpen(true);
-      toast.success("Screenshot captured!");
+      // Clone the body to avoid modifying the actual DOM
+      const clonedBody = document.body.cloneNode(true) as HTMLElement;
+
+      // Remove problematic elements from the clone
+      const elementsToRemove = clonedBody.querySelectorAll(
+        ".feedback-widget, iframe, script, noscript, [role='tooltip'], [role='dialog'], .joyride-*"
+      );
+      elementsToRemove.forEach((el) => el.remove());
+
+      // Create a temporary container with the cloned body
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "fixed";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.top = "-9999px";
+      tempContainer.style.width = document.body.offsetWidth + "px";
+      tempContainer.style.height = document.body.offsetHeight + "px";
+      tempContainer.appendChild(clonedBody);
+      document.body.appendChild(tempContainer);
+
+      try {
+        const canvas = await html2canvas(clonedBody, {
+          scale: 0.4, // Lower scale for faster capture and smaller payload
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: "#0a0e1a",
+          width: document.body.offsetWidth,
+          height: document.body.offsetHeight,
+          // Ignore canvas and SVG elements that cause rendering issues
+          ignoreElements: (el) => {
+            const tag = el.tagName?.toLowerCase();
+            return (
+              tag === "canvas" ||
+              tag === "svg" ||
+              tag === "iframe" ||
+              el.classList?.contains("feedback-widget") ||
+              el.classList?.contains("joyride-")
+            );
+          },
+        });
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.6); // JPEG for smaller file size
+        setScreenshot(dataUrl);
+        setIsOpen(true);
+        toast.success("Screenshot captured!");
+      } finally {
+        document.body.removeChild(tempContainer);
+      }
     } catch (err) {
       console.error("[Feedback] Screenshot capture failed:", err);
       setIsOpen(true);

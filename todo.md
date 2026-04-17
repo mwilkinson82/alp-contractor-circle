@@ -2097,3 +2097,5 @@
 - [x] BUG: Feedback email notification not being received — was blocked by the submission failure; now fixed with correct auth
 - [x] FEATURE: Takeoff-specific onboarding tour — two-part: TakeoffList tour (New Project + project grid) and TakeoffDetail tour (upload, analyze, settings, sheets, tabs, summary bar, consolidate). data-tour attributes added to all key elements. Restart Tour button resets both portal and takeoff tours.
 - [x] FIX: FeedbackWidget route scoping now also includes /takeoff/:id pages (was missing the non-portal route)
+
+- [x] BUG: Feedback screenshot capture failing — improved with DOM cloning, canvas/SVG/iframe filtering, 0.4 scale, JPEG compression, better error handling
