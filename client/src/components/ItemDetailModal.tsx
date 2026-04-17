@@ -848,22 +848,23 @@ function FullscreenDrawing({
     else handleZoomOut();
   }, [zoomIdx]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Allow pan in markup mode by default (spacebar optional for convenience)
-    // In pan-only mode, pan is always available when zoomed in
+  const handlePointerDownContainer = useCallback((e: React.PointerEvent) => {
+    // In pan-only mode (markup off): click-to-zoom at 100%, drag to pan when zoomed
     if (!markupActive && zoom <= 1) { handleZoomIn(); return; }
+    // In markup mode: only pan when spacebar is held
+    if (markupActive && !spaceHeld) return;
     if (zoom <= 1) return; // don't pan at 100%
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  }, [markupActive, zoom, panOffset]);
+  }, [markupActive, zoom, panOffset, spaceHeld]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handlePointerMoveContainer = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
-    // Pan works in both modes — spacebar is optional hint in markup mode
     setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   }, [isDragging, dragStart]);
 
-  const handleMouseUp = useCallback(() => { setIsDragging(false); }, []);
+  const handlePointerUpContainer = useCallback(() => { setIsDragging(false); }, []);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
@@ -922,12 +923,12 @@ function FullscreenDrawing({
         <div
           ref={containerRef}
           className="h-full overflow-hidden bg-white relative"
-          style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : markupActive ? "crosshair" : "zoom-in" }}
+          style={{ cursor: spaceHeld ? (isDragging ? "grabbing" : "grab") : zoom > 1 && !markupActive ? (isDragging ? "grabbing" : "grab") : markupActive ? "crosshair" : "zoom-in" }}
           onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onPointerDown={handlePointerDownContainer}
+          onPointerMove={handlePointerMoveContainer}
+          onPointerUp={handlePointerUpContainer}
+          onPointerLeave={handlePointerUpContainer}
         >
           <img
             src={imageUrl}
@@ -989,7 +990,7 @@ function FullscreenDrawing({
             scaleUnit={scaleUnit}
             isCalibrating={isCalibrating}
             onCalibrationComplete={handleCalibrationComplete}
-            isPanning={isDragging}
+            isPanning={spaceHeld || isDragging}
             imageNaturalWidth={imageNaturalWidth}
             imageNaturalHeight={imageNaturalHeight}
             onUpdateElement={updateElementSilent}

@@ -2115,3 +2115,4 @@
 - [ ] FEATURE: Concrete tilt-up specialty — casting bed sizing, panel layout, pick points, rigging, post-tension calculations
 - [ ] FEATURE: Concrete cast-in-place specialty — formwork, reinforcement, curing, finishing
 - [ ] FEATURE: Concrete precast specialty — production, delivery, installation, connections
+- [x] BUG: Drag/pan not working in markup mode — ROOT CAUSE: container used onMouseDown but MarkupCanvas (z-15) used onPointerDown, blocking events. FIX: (1) Pass spaceHeld as isPanning to MarkupCanvas so canvas disables pointer-events when space held, (2) Convert container to onPointerDown for consistency, (3) Container only starts drag when markupActive && spaceHeld, (4) Cursor shows grab when space held
