@@ -2077,3 +2077,10 @@
 - [x] Create tour steps configuration targeting dashboard, sidebar nav, and quick links (6 steps)
 - [x] Track tour completion per user (localStorage key: alp-portal-tour-completed)
 - [x] Show tour automatically on first login; useResetTour() hook exported for replay from settings
+
+## Bug Fixes — April 17, 2026 (Part 2)
+- [x] BUG: Onboarding tour overlay blocks entire UI — tour targets not found on non-dashboard pages, overlay stays dark with no tooltips
+- [x] FIX: Scope onboarding tour to only run on the portal dashboard page where targets exist
+- [x] FIX: Add graceful fallback when tour targets are missing (skip or abort tour via TARGET_NOT_FOUND handler)
+- [x] BUG: Feedback button visible on entire site — should only show on ConstructLine/Takeoff pages
+- [x] FIX: Scope FeedbackWidget to only render on /portal/constructline/* and /portal/takeoff/* routes

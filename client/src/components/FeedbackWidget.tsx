@@ -3,6 +3,7 @@
  * Captures user message, category, optional screenshot, and submits via tRPC.
  */
 import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { MessageSquarePlus, Camera, X, Send, Loader2, Bug, Lightbulb, MessageCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,7 @@ const CATEGORIES: { value: Category; label: string; icon: any; color: string }[]
 ];
 
 export function FeedbackWidget() {
+  const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState<Category>("general");
@@ -75,6 +77,10 @@ export function FeedbackWidget() {
       toast.error("Failed to submit feedback. Please try again.");
     }
   };
+
+  // Only show on ConstructLine / Takeoff pages
+  const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff");
+  if (!isConstructLinePage) return null;
 
   return (
     <>
