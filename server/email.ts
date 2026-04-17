@@ -3047,3 +3047,137 @@ export async function sendTopicSelectedEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── Feedback Notification ──────────────────────────────────────────────────
+
+export async function sendFeedbackNotification(params: {
+  memberName: string;
+  category: string;
+  message: string;
+  page: string;
+  hasScreenshot: boolean;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping feedback notification");
+    return { success: false, error: "Resend not configured" };
+  }
+  try {
+    const categoryLabels: Record<string, string> = {
+      bug: "Bug Report",
+      feature: "Feature Request",
+      general: "General Feedback",
+      other: "Other",
+    };
+    const categoryLabel = categoryLabels[params.category] || params.category;
+    const categoryColors: Record<string, string> = {
+      bug: "#ef4444",
+      feature: "#22c55e",
+      general: "#3b82f6",
+      other: "#a855f7",
+    };
+    const catColor = categoryColors[params.category] || "#3b82f6";
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: "marshall@marshallwilkinson.com",
+      subject: `[Feedback] ${categoryLabel} from ${params.memberName}`,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#08090D;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#08090D;">
+    <tr><td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F1117;border:1px solid rgba(255,255,255,0.06);border-radius:20px;">
+
+        <!-- Logo -->
+        <tr><td align="center" style="padding:28px 0 8px 0;">
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png" alt="ALP" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;" />
+        </td></tr>
+
+        <!-- Badge -->
+        <tr><td align="center" style="padding:8px 0 20px 0;">
+          <span style="display:inline-block;background:rgba(232,98,44,0.12);border:1px solid rgba(232,98,44,0.25);color:#E8622C;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 16px;border-radius:20px;">
+            NEW FEEDBACK
+          </span>
+        </td></tr>
+
+        <!-- Headline -->
+        <tr><td align="center" style="padding:0 24px 8px 24px;">
+          <h1 style="margin:0;font-size:22px;font-weight:800;color:#F5F0E8;line-height:1.3;">
+            ${params.memberName} submitted feedback
+          </h1>
+        </td></tr>
+
+        <!-- Category -->
+        <tr><td align="center" style="padding:0 24px 20px 24px;">
+          <span style="display:inline-block;background:${catColor}20;border:1px solid ${catColor}40;color:${catColor};font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:12px;">
+            ${categoryLabel}
+          </span>
+        </td></tr>
+
+        <!-- Message Card -->
+        <tr><td style="padding:0 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+            <tr><td style="padding:20px 24px;">
+              <p style="margin:0 0 6px 0;font-size:10px;font-weight:700;color:#B8A99A;letter-spacing:1.5px;text-transform:uppercase;">MESSAGE</p>
+              <p style="margin:0;font-size:14px;color:#F5F0E8;line-height:1.6;">${params.message.replace(/\n/g, '<br>')}</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Details -->
+        <tr><td style="padding:16px 24px 0 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;">
+            <tr><td style="padding:16px 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:12px;color:#B8A99A;padding:3px 0;" width="100">Page</td>
+                  <td style="font-size:12px;color:#F5F0E8;padding:3px 0;">${params.page}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:12px;color:#B8A99A;padding:3px 0;" width="100">Screenshot</td>
+                  <td style="font-size:12px;color:#F5F0E8;padding:3px 0;">${params.hasScreenshot ? 'Yes — view in admin portal' : 'None attached'}</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td align="center" style="padding:24px 24px 28px 24px;">
+          <a href="https://alpcontractorcircle.com/portal/feedback" style="display:inline-block;background:#E8622C;color:#08090D;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:700;">
+            View in Admin Portal →
+          </a>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="border-top:1px solid rgba(255,255,255,0.06);padding:16px 24px;">
+          <p style="margin:0;font-size:11px;color:#B8A99A;text-align:center;line-height:1.6;">
+            Feedback from the ALP Contractor Circle portal.<br>
+            <a href="https://alpcontractorcircle.com" style="color:#D4915C;text-decoration:none;">alpcontractorcircle.com</a>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+      `.trim(),
+      text: `New feedback from ${params.memberName}\n\nCategory: ${categoryLabel}\nPage: ${params.page}\nScreenshot: ${params.hasScreenshot ? 'Yes' : 'No'}\n\nMessage:\n${params.message}\n\nView in admin portal: https://alpcontractorcircle.com/portal/feedback`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send feedback notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Feedback notification sent — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending feedback notification:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

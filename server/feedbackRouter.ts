@@ -9,6 +9,7 @@ import {
   deleteFeedback,
 } from "./feedbackDb";
 import { storagePut } from "./storage";
+import { sendFeedbackNotification } from "./email";
 
 /** Require authenticated member from session */
 async function requireMember(req: any) {
@@ -54,14 +55,27 @@ export const feedbackRouter = router({
         }
       }
 
+      const memberName = member.name || member.discordUsername || `User ${member.id}`;
+
       const id = await createFeedback({
         memberId: member.id,
-        memberName: member.name || member.discordUsername || `User ${member.id}`,
+        memberName,
         message: input.message,
         screenshotUrl,
         page: input.page,
         userAgent: input.userAgent,
         category: input.category,
+      });
+
+      // Send email notification to Marshall (fire-and-forget)
+      sendFeedbackNotification({
+        memberName,
+        category: input.category,
+        message: input.message,
+        page: input.page || "Unknown",
+        hasScreenshot: !!screenshotUrl,
+      }).catch((err) => {
+        console.error("[Feedback] Email notification failed:", err);
       });
 
       return { id, success: true };

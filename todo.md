@@ -2084,3 +2084,9 @@
 - [x] FIX: Add graceful fallback when tour targets are missing (skip or abort tour via TARGET_NOT_FOUND handler)
 - [x] BUG: Feedback button visible on entire site — should only show on ConstructLine/Takeoff pages
 - [x] FIX: Scope FeedbackWidget to only render on /portal/constructline/* and /portal/takeoff/* routes
+
+## Fixes & Features — April 17, 2026 (Part 3)
+- [x] FIX: Verified column now shows emerald checkmark when item.reviewed is true (from checkmark/approve action), not measurement history
+- [x] BUG: Onboarding tour not showing — fixed: bumped storage key to v2 (old broken tour set completion flag), added loading guard, longer DOM wait, console logging, better TARGET_NOT_FOUND handling
+- [x] FEATURE: Add "Restart Tour" button in sidebar profile area (RotateCcw icon, above Sign Out)
+- [x] FEATURE: Email notification via Resend when feedback is submitted (to marshall@marshallwilkinson.com) — sendFeedbackNotification in email.ts, fire-and-forget in feedbackRouter submit

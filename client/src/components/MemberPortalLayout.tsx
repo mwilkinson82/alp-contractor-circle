@@ -36,9 +36,11 @@ import {
   HardHat,
   BookOpen,
   MessageSquare,
+  RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
+import { useResetTour } from "@/components/OnboardingTour";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
@@ -220,6 +222,7 @@ export default function MemberPortalLayout({
   children: React.ReactNode;
 }) {
   const { member, loading, isAuthenticated, logout, getLoginUrl } = useMember();
+  const resetTour = useResetTour();
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -359,6 +362,13 @@ export default function MemberPortalLayout({
                 <p className="text-[10px] text-ember uppercase tracking-wider">{roleLabel}</p>
               </div>
             </div>
+            <button
+              onClick={resetTour}
+              className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Restart Tour</span>
+            </button>
             <button
               onClick={logout}
               className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-red-400 hover:bg-red-500/5 transition-all"

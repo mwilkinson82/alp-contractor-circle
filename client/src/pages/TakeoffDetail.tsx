@@ -1286,9 +1286,9 @@ export default function TakeoffDetail() {
                                       </Badge>
                                     </td>
                                     <td className="px-4 py-2 text-center">
-                                      {verifiedSet.has(item.id) ? (
-                                        <div className="flex items-center justify-center" title="Verified via measurement">
-                                          <Ruler className="w-3.5 h-3.5 text-blue-400" />
+                                      {item.reviewed ? (
+                                        <div className="flex items-center justify-center" title="Reviewed & Verified">
+                                          <Check className="w-3.5 h-3.5 text-emerald-400" />
                                         </div>
                                       ) : (
                                         <span className="text-cream-muted/30">—</span>

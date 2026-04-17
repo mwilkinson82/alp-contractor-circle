@@ -4,13 +4,14 @@
  * Only runs on the portal dashboard page where the target elements exist.
  * Shows only once per user (persisted in localStorage).
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Joyride, ACTIONS, EVENTS, STATUS } from "react-joyride";
 import type { Step, EventData, Controls } from "react-joyride";
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 
-const TOUR_STORAGE_KEY = "alp-portal-tour-completed";
+// Bump version to invalidate old localStorage entries from broken tour
+const TOUR_STORAGE_KEY = "alp-portal-tour-completed-v2";
 
 /** Tour steps targeting data-tour attributes on the dashboard and sidebar */
 const TOUR_STEPS: Step[] = [
@@ -65,15 +66,18 @@ const TOUR_STEPS: Step[] = [
 ];
 
 export function OnboardingTour() {
-  const { member, isAuthenticated } = useMember();
+  const { member, isAuthenticated, loading } = useMember();
   const [location] = useLocation();
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const startedRef = useRef(false);
 
   // Only run the tour on the portal dashboard where the target elements exist
   const isOnDashboard = location === "/portal" || location === "/portal/";
 
   useEffect(() => {
+    // Don't start while still loading auth
+    if (loading) return;
     if (!isAuthenticated || !member) return;
     if (!isOnDashboard) {
       // If we navigate away from dashboard, stop the tour
@@ -83,40 +87,58 @@ export function OnboardingTour() {
       return;
     }
 
-    // Check if tour was already completed
+    // Check if tour was already completed (v2 key)
     const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
     if (tourCompleted) return;
+
+    // Prevent double-start
+    if (startedRef.current) return;
 
     // Wait for DOM elements to render, then verify targets exist before starting
     const timer = setTimeout(() => {
       const firstTarget = document.querySelector('[data-tour="welcome-header"]');
+      console.log("[OnboardingTour] Checking for targets...", {
+        firstTarget: !!firstTarget,
+        isOnDashboard,
+        isAuthenticated,
+        member: !!member,
+      });
       if (firstTarget) {
+        startedRef.current = true;
         setStepIndex(0);
         setRun(true);
+        console.log("[OnboardingTour] Starting tour!");
+      } else {
+        console.log("[OnboardingTour] Target elements not found, skipping tour");
       }
-    }, 2000);
+    }, 3000); // Longer delay to ensure layout is fully rendered
 
     return () => clearTimeout(timer);
-  }, [isAuthenticated, member, isOnDashboard]);
+  }, [loading, isAuthenticated, member, isOnDashboard]);
 
   const handleEvent = useCallback((data: EventData, controls: Controls) => {
     const { status, action, index, type } = data;
+
+    console.log("[OnboardingTour] Event:", { type, action, status, index });
 
     // Tour finished or skipped
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
       localStorage.setItem(TOUR_STORAGE_KEY, "true");
+      startedRef.current = false;
       return;
     }
 
     // Handle target not found — skip to next step or end tour
     if (type === EVENTS.TARGET_NOT_FOUND) {
+      console.log("[OnboardingTour] Target not found for step", index, "- skipping");
       const nextIndex = index + 1;
       if (nextIndex < TOUR_STEPS.length) {
         setStepIndex(nextIndex);
       } else {
         setRun(false);
         localStorage.setItem(TOUR_STORAGE_KEY, "true");
+        startedRef.current = false;
       }
       return;
     }
@@ -134,11 +156,12 @@ export function OnboardingTour() {
     if (action === ACTIONS.CLOSE || action === ACTIONS.SKIP) {
       setRun(false);
       localStorage.setItem(TOUR_STORAGE_KEY, "true");
+      startedRef.current = false;
     }
   }, []);
 
   // Don't render at all if not on dashboard or not authenticated
-  if (!isAuthenticated || !isOnDashboard) return null;
+  if (loading || !isAuthenticated || !isOnDashboard) return null;
 
   return (
     <Joyride
@@ -151,14 +174,14 @@ export function OnboardingTour() {
       options={{
         overlayColor: "rgba(0, 0, 0, 0.75)",
         primaryColor: "#E8622C",
-        backgroundColor: "oklch(0.15 0.02 260)",
+        backgroundColor: "#1a1f35",
         textColor: "#F5F0E8",
         zIndex: 10000,
         showProgress: true,
         spotlightRadius: 16,
         overlayClickAction: false,
         blockTargetInteraction: false,
-        targetWaitTimeout: 2000,
+        targetWaitTimeout: 3000,
       }}
       locale={{
         back: "Back",
@@ -203,11 +226,18 @@ export function OnboardingTour() {
 }
 
 /**
- * Hook to manually trigger the tour (e.g., from a "Restart Tour" button in settings).
+ * Reset tour so it shows again on next dashboard visit.
+ */
+export function resetTour() {
+  localStorage.removeItem(TOUR_STORAGE_KEY);
+}
+
+/**
+ * Hook to manually trigger the tour (e.g., from a "Restart Tour" button).
  */
 export function useResetTour() {
   return () => {
-    localStorage.removeItem(TOUR_STORAGE_KEY);
+    resetTour();
     window.location.reload();
   };
 }
