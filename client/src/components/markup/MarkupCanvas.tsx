@@ -57,6 +57,118 @@ function moveShape(shape: Shape, dx: number, dy: number): Shape {
   }
 }
 
+/** Snap threshold in image-space pixels */
+const SNAP_THRESHOLD = 15;
+
+interface SnapResult {
+  point: Point;
+  snapped: boolean;
+  /** The edge segment that was snapped to (for visual indicator) */
+  edge?: { a: Point; b: Point };
+}
+
+/** Extract all line segments (edges) from existing shapes */
+function extractEdges(shapes: Shape[]): { a: Point; b: Point }[] {
+  const edges: { a: Point; b: Point }[] = [];
+  for (const shape of shapes) {
+    switch (shape.type) {
+      case "line":
+        edges.push({ a: shape.start, b: shape.end });
+        break;
+      case "rectangle": {
+        const x1 = Math.min(shape.start.x, shape.end.x);
+        const y1 = Math.min(shape.start.y, shape.end.y);
+        const x2 = Math.max(shape.start.x, shape.end.x);
+        const y2 = Math.max(shape.start.y, shape.end.y);
+        edges.push(
+          { a: { x: x1, y: y1 }, b: { x: x2, y: y1 } },
+          { a: { x: x2, y: y1 }, b: { x: x2, y: y2 } },
+          { a: { x: x2, y: y2 }, b: { x: x1, y: y2 } },
+          { a: { x: x1, y: y2 }, b: { x: x1, y: y1 } },
+        );
+        break;
+      }
+      case "polygon":
+        for (let i = 0; i < shape.points.length; i++) {
+          const j = (i + 1) % shape.points.length;
+          edges.push({ a: shape.points[i], b: shape.points[j] });
+        }
+        break;
+      // pen and circle don't have clean edges to snap to
+    }
+  }
+  return edges;
+}
+
+/** Project point onto segment and return closest point + distance */
+function projectOntoSegment(p: Point, a: Point, b: Point): { closest: Point; dist: number } {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    const d = Math.sqrt((p.x - a.x) ** 2 + (p.y - a.y) ** 2);
+    return { closest: a, dist: d };
+  }
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const closest = { x: a.x + t * dx, y: a.y + t * dy };
+  const dist = Math.sqrt((p.x - closest.x) ** 2 + (p.y - closest.y) ** 2);
+  return { closest, dist };
+}
+
+/** Also snap to endpoints/vertices of existing shapes */
+function extractVertices(shapes: Shape[]): Point[] {
+  const verts: Point[] = [];
+  for (const shape of shapes) {
+    switch (shape.type) {
+      case "line":
+        verts.push(shape.start, shape.end);
+        break;
+      case "rectangle":
+        verts.push(shape.start, shape.end, { x: shape.start.x, y: shape.end.y }, { x: shape.end.x, y: shape.start.y });
+        break;
+      case "polygon":
+        verts.push(...shape.points);
+        break;
+    }
+  }
+  return verts;
+}
+
+/** Try to snap a point to the nearest edge or vertex of existing shapes */
+function snapToEdge(pt: Point, shapes: Shape[], threshold: number = SNAP_THRESHOLD): SnapResult {
+  let bestDist = threshold;
+  let bestPoint = pt;
+  let bestEdge: { a: Point; b: Point } | undefined;
+  let snapped = false;
+
+  // Check vertices first (higher priority — exact corners)
+  const verts = extractVertices(shapes);
+  for (const v of verts) {
+    const d = Math.sqrt((pt.x - v.x) ** 2 + (pt.y - v.y) ** 2);
+    if (d < bestDist) {
+      bestDist = d;
+      bestPoint = v;
+      snapped = true;
+      bestEdge = undefined; // vertex snap, no edge
+    }
+  }
+
+  // Check edges
+  const edges = extractEdges(shapes);
+  for (const edge of edges) {
+    const { closest, dist } = projectOntoSegment(pt, edge.a, edge.b);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestPoint = closest;
+      bestEdge = edge;
+      snapped = true;
+    }
+  }
+
+  return { point: bestPoint, snapped, edge: bestEdge };
+}
+
 interface MarkupCanvasProps {
   elements: Shape[];
   onElementAdd: (shape: Shape) => void;
@@ -313,14 +425,76 @@ export function MarkupCanvas({
 
     // Preview for click-to-click line (first click placed, mouse moving)
     if (lineFirstClick && currentPoint && !isDrawing) {
+      // Snap the preview endpoint
+      const lineSnap = snapToEdge(currentPoint, elements);
+      const previewEnd = lineSnap.snapped ? lineSnap.point : currentPoint;
       ctx.globalAlpha = 0.6;
-      drawShape(ctx, { id: "line-preview", type: "line", start: lineFirstClick, end: currentPoint, color, lineWidth } as Shape, formatDistance, formatArea);
+      drawShape(ctx, { id: "line-preview", type: "line", start: lineFirstClick, end: previewEnd, color, lineWidth } as Shape, formatDistance, formatArea);
       ctx.globalAlpha = 1;
+      // Draw snap indicator
+      if (lineSnap.snapped) {
+        ctx.save();
+        ctx.strokeStyle = "#F59E0B";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(previewEnd.x, previewEnd.y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        // Draw crosshair
+        const ch = 14;
+        ctx.beginPath();
+        ctx.moveTo(previewEnd.x - ch / 2, previewEnd.y);
+        ctx.lineTo(previewEnd.x + ch / 2, previewEnd.y);
+        ctx.moveTo(previewEnd.x, previewEnd.y - ch / 2);
+        ctx.lineTo(previewEnd.x, previewEnd.y + ch / 2);
+        ctx.stroke();
+        // Highlight snapped edge if applicable
+        if (lineSnap.edge) {
+          ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(lineSnap.edge.a.x, lineSnap.edge.a.y);
+          ctx.lineTo(lineSnap.edge.b.x, lineSnap.edge.b.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
 
     // Preview for polygon (vertices placed so far + mouse cursor)
     if (polygonPoints.length > 0 && currentPoint && activeTool === "polygon") {
-      const previewPts = [...polygonPoints, currentPoint];
+      // Snap the preview vertex
+      const polySnap = snapToEdge(currentPoint, elements);
+      const previewCursor = polySnap.snapped ? polySnap.point : currentPoint;
+      const previewPts = [...polygonPoints, previewCursor];
+      // Draw snap indicator for polygon
+      if (polySnap.snapped) {
+        ctx.save();
+        ctx.strokeStyle = "#F59E0B";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(previewCursor.x, previewCursor.y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        const ch = 14;
+        ctx.beginPath();
+        ctx.moveTo(previewCursor.x - ch / 2, previewCursor.y);
+        ctx.lineTo(previewCursor.x + ch / 2, previewCursor.y);
+        ctx.moveTo(previewCursor.x, previewCursor.y - ch / 2);
+        ctx.lineTo(previewCursor.x, previewCursor.y + ch / 2);
+        ctx.stroke();
+        if (polySnap.edge) {
+          ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(polySnap.edge.a.x, polySnap.edge.a.y);
+          ctx.lineTo(polySnap.edge.b.x, polySnap.edge.b.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       ctx.globalAlpha = 0.6;
       drawShape(ctx, { id: "poly-preview", type: "polygon", points: previewPts, color, lineWidth } as Shape, formatDistance, formatArea);
       // Draw closing-snap indicator when cursor is near the first point
@@ -517,12 +691,14 @@ export function MarkupCanvas({
         return;
       }
 
-      // Click-to-click polygon tool
+      // Click-to-click polygon tool with snap-to-edge
       if (activeTool === "polygon") {
+        const snap = snapToEdge(pt, elements);
+        const snappedPt = snap.snapped ? snap.point : pt;
         // Check if closing the polygon (click near first point, or double-click handled below)
         if (polygonPoints.length >= 3) {
-          const dx = pt.x - polygonPoints[0].x;
-          const dy = pt.y - polygonPoints[0].y;
+          const dx = snappedPt.x - polygonPoints[0].x;
+          const dy = snappedPt.y - polygonPoints[0].y;
           const snapDist = Math.sqrt(dx * dx + dy * dy);
           if (snapDist < 30) {
             // Close the polygon
@@ -539,29 +715,31 @@ export function MarkupCanvas({
             return;
           }
         }
-        // Add vertex
-        setPolygonPoints((prev) => [...prev, pt]);
-        setCurrentPoint(pt);
+        // Add vertex (snapped)
+        setPolygonPoints((prev) => [...prev, snappedPt]);
+        setCurrentPoint(snappedPt);
         return;
       }
 
-      // Click-to-click line tool
+      // Click-to-click line tool with snap-to-edge
       if (activeTool === "line") {
+        const snap = snapToEdge(pt, elements);
+        const snappedPt = snap.snapped ? snap.point : pt;
         if (!lineFirstClick) {
-          // First click — set start point
-          setLineFirstClick(pt);
-          setCurrentPoint(pt);
+          // First click — set start point (snapped)
+          setLineFirstClick(snappedPt);
+          setCurrentPoint(snappedPt);
         } else {
-          // Second click — finalize line
-          const dx = pt.x - lineFirstClick.x;
-          const dy = pt.y - lineFirstClick.y;
+          // Second click — finalize line (snapped)
+          const dx = snappedPt.x - lineFirstClick.x;
+          const dy = snappedPt.y - lineFirstClick.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > 3) {
             const shape: Shape = {
               id: generateId(),
               type: "line",
               start: lineFirstClick,
-              end: pt,
+              end: snappedPt,
               color,
               lineWidth,
             };

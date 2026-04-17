@@ -1995,3 +1995,10 @@
 - [x] FEATURE: Apply color/width changes to already-selected shape (not just new shapes)
 - [x] BUG: Two confusing delete/trash icons — delete selected = red Trash2 (only shows when selected), clear all = Eraser icon with confirmation dialog
 - [x] FEATURE: Coalesce drag operations into single undo entry (beginDrag/commitDrag pattern)
+
+## Snap-to-Edge & Measurement Summary — April 17, 2026
+- [x] FEATURE: Snap-to-edge for line endpoints — auto-snap to nearby shape edges (rectangles, polygons, other lines) during drawing
+- [x] FEATURE: Snap-to-edge for polygon vertices too
+- [x] FEATURE: Visual snap indicator (amber crosshair + highlighted edge) when snapping is active
+- [x] FEATURE: Measurement summary panel — collapsible panel with running totals of all line distances and polygon areas
+- [x] FEATURE: Summary panel expands to show individual measurements with labels (L1, L2, A1, A2, etc.)

@@ -43,6 +43,7 @@ import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
 import type { ToolType, Point, Shape } from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
+import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -752,6 +753,14 @@ function FullscreenDrawing({
           onCancel={handleScaleCancel}
         />
       )}
+
+      {/* Measurement summary panel */}
+      <MeasurementSummary
+        elements={elements}
+        formatDistance={formatDistance}
+        formatArea={formatArea}
+        isCalibrated={scaleRatio > 0}
+      />
 
       {/* Calibration hint overlay — positioned at top so it doesn't obstruct the scale bar */}
       {isCalibrating && (
