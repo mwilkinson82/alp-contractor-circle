@@ -192,7 +192,7 @@ export default function PreAnalysisModal({
             Configure Analysis
           </DialogTitle>
           <DialogDescription className="text-cream-muted">
-            Set your preferences before ConstructLine analyzes {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
+            Set your preferences before <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analyzes {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -348,7 +348,7 @@ export default function PreAnalysisModal({
               <div>
                 <p className="text-sm text-cream font-medium">Leave this blank to take off everything</p>
                 <p className="text-xs text-cream-muted mt-0.5">
-                  ConstructLine will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
+                  <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
                 </p>
               </div>
             </div>

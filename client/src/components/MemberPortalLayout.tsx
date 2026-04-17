@@ -7,8 +7,9 @@
  * - Replay Library
  * - Templates
  * - ConstructLine (collapsible parent — admin only)
- *   ├── Scheduler
- *   └── Takeoff (admin only; non-admins see "Coming Soon" badge)
+ *   ├── C1 — CPM Schedule
+ *   ├── C2 — Quantity Takeoff (admin only; non-admins see "Coming Soon" badge)
+ *   └── C3 — Cost Library (admin only)
  * - Account
  * - Admin Panel (admin only)
  * - Subscribers / Members / Analytics / Drip (admin only)
@@ -37,7 +38,11 @@ import {
   BookOpen,
   MessageSquare,
   RotateCcw,
+  GanttChart,
+  Ruler,
+  Database,
 } from "lucide-react";
+import { ConstructLineWordmark, ConstructLineInline } from "@/components/ConstructLineBrand";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
 import { useResetTour } from "@/components/OnboardingTour";
@@ -139,12 +144,15 @@ function ConstructLineNav({
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
           isParentActive
-            ? "bg-ember/10 text-ember font-medium"
+            ? "bg-ember/10 font-medium"
             : "text-cream-muted hover:text-cream hover:bg-white/5"
         }`}
       >
         <HardHat className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`} />
-        <span className="flex-1 text-left">ConstructLine</span>
+        <span className="flex-1 text-left font-bold tracking-tight">
+          <span className={isParentActive ? "text-white" : "text-cream-muted"}>Construct</span>
+          <span className="text-amber-400">Line</span>
+        </span>
         {expanded
           ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
           : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
@@ -154,7 +162,7 @@ function ConstructLineNav({
       {/* Children */}
       {expanded && (
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/8 pl-3">
-          {/* Scheduler */}
+          {/* C1 — CPM Schedule */}
           <button
             data-tour="nav-scheduler"
             onClick={() => navigate("/portal/scheduler")}
@@ -164,12 +172,12 @@ function ConstructLineNav({
                 : "text-cream-muted hover:text-cream hover:bg-white/5"
             }`}
           >
-            <CalendarRange className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`} />
-            <span>Scheduler</span>
+            <GanttChart className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`} />
+            <span>CPM Schedule</span>
             {isSchedulerActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
           </button>
 
-          {/* Takeoff — admin only, others see Coming Soon */}
+          {/* C2 — Quantity Takeoff — admin only, others see Coming Soon */}
           {isAdmin ? (
             <button
               data-tour="nav-takeoff"
@@ -180,21 +188,21 @@ function ConstructLineNav({
                   : "text-cream-muted hover:text-cream hover:bg-white/5"
               }`}
             >
-              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
-              <span>Takeoff</span>
+              <Ruler className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
+              <span>Quantity Takeoff</span>
               {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
             </button>
           ) : (
             <div className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-cream-muted/40 cursor-not-allowed">
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>Takeoff</span>
+              <Ruler className="w-3.5 h-3.5 shrink-0" />
+              <span>Quantity Takeoff</span>
               <span className="ml-auto text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
                 Soon
               </span>
             </div>
           )}
 
-          {/* Cost Library — admin only */}
+          {/* C3 — Cost Library — admin only */}
           {isAdmin && (
             <button
               onClick={() => navigate("/portal/cost-library")}
@@ -204,7 +212,7 @@ function ConstructLineNav({
                   : "text-cream-muted hover:text-cream hover:bg-white/5"
               }`}
             >
-              <BookOpen className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
+              <Database className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
               <span>Cost Library</span>
               {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
             </button>
@@ -321,7 +329,10 @@ export default function MemberPortalLayout({
               /* Non-admin: show ConstructLine as locked with Coming Soon */
               <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-cream-muted/50 cursor-not-allowed opacity-60">
                 <HardHat className="w-4 h-4" />
-                <span>ConstructLine</span>
+                <span className="font-bold tracking-tight">
+                  <span className="text-cream-muted/50">Construct</span>
+                  <span className="text-amber-400/50">Line</span>
+                </span>
                 <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                   Coming soon
                 </span>
@@ -439,7 +450,10 @@ export default function MemberPortalLayout({
               {isAdmin ? (
                 <>
                   <div className="px-4 pt-2 pb-1">
-                    <p className="text-[10px] text-cream-muted/40 uppercase tracking-widest font-medium">ConstructLine</p>
+                    <p className="text-[10px] tracking-widest font-bold">
+                      <span className="text-cream-muted/60">Construct</span>
+                      <span className="text-amber-400/60">Line</span>
+                    </p>
                   </div>
                   <button
                     onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
@@ -447,8 +461,8 @@ export default function MemberPortalLayout({
                       location.startsWith("/portal/scheduler") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
-                    <CalendarRange className="w-5 h-5" />
-                    <span>Scheduler</span>
+                    <GanttChart className="w-5 h-5" />
+                    <span>CPM Schedule</span>
                   </button>
                   <button
                     onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
@@ -456,14 +470,17 @@ export default function MemberPortalLayout({
                       location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
-                    <Sparkles className="w-5 h-5" />
-                    <span>Takeoff</span>
+                    <Ruler className="w-5 h-5" />
+                    <span>Quantity Takeoff</span>
                   </button>
                 </>
               ) : (
                 <div className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted/50 cursor-not-allowed opacity-60">
                   <HardHat className="w-5 h-5" />
-                  <span>ConstructLine</span>
+                  <span className="font-bold tracking-tight">
+                    <span className="text-cream-muted/50">Construct</span>
+                    <span className="text-amber-400/50">Line</span>
+                  </span>
                   <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
                     Coming soon
                   </span>

@@ -98,7 +98,7 @@ export function FeedbackWidget() {
   };
 
   // Only show on ConstructLine / Takeoff pages
-  const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff") || location.startsWith("/takeoff/") || location.startsWith("/portal/cost-library");
+  const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff") || location.startsWith("/takeoff/") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/scheduler");
   if (!isConstructLinePage) return null;
 
   return (
@@ -143,7 +143,7 @@ export function FeedbackWidget() {
               {/* Beta notice */}
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                 <p className="text-amber-400 text-xs">
-                  You're using a beta version of ConstructLine. Your feedback helps us improve — thank you!
+                  You're using a beta version of <span className="font-semibold">Construct<span className="text-amber-400">Line</span></span>. Your feedback helps us improve — thank you!
                 </p>
               </div>
 

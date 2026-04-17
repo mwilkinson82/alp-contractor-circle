@@ -335,7 +335,7 @@ export default function ProjectSettingsPanel({
               <div className="text-sm font-medium text-cream flex items-center gap-2">
                 <FileText className="w-4 h-4 text-amber-400" />
                 Scope Description
-                <span className="text-xs text-cream-muted">(optional — guides ConstructLine analysis)</span>
+                <span className="text-xs text-cream-muted">(optional — guides <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analysis)</span>
               </div>
               <Textarea
                 value={scopeText}

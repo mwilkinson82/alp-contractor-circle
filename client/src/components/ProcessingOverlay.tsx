@@ -165,7 +165,7 @@ export default function ProcessingOverlay({
 
         {/* Title */}
         <h3 className="text-lg font-semibold text-cream text-center mb-6">
-          ConstructLine is Working
+          <span className="text-white font-bold tracking-tight">Construct</span><span className="text-amber-400 font-bold tracking-tight">Line</span> is Working
         </h3>
 
         {/* ─── 3-Step Phase Progress ─────────────────────────────────────── */}

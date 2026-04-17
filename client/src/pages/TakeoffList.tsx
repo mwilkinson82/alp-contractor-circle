@@ -103,7 +103,7 @@ export default function TakeoffList() {
             <div>
               <h1 className="text-xl font-bold text-cream">Quantity Takeoff</h1>
               <p className="text-cream-muted text-sm">
-                Upload construction drawings and let ConstructLine extract quantities, costs, and a schedule of values.
+                Upload construction drawings and let <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> extract quantities, costs, and a schedule of values.
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function TakeoffList() {
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">No Takeoff Projects Yet</h3>
             <p className="text-cream-muted text-center max-w-md mb-6">
-              Create your first project, upload construction drawings, and let ConstructLine extract a complete quantity takeoff in minutes.
+              Create your first project, upload construction drawings, and let <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> extract a complete quantity takeoff in minutes.
             </p>
             <Button
               onClick={() => setShowCreate(true)}

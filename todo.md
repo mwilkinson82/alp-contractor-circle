@@ -2118,3 +2118,18 @@
 - [x] FEATURE: Concrete post-tension specialty — PT strand/cable, anchorages, stressing, grouting, pour strips
 - [x] FEATURE: Additional specialties: Masonry CMU/Brick Veneer, Structural Steel/Steel Joists, TPO/Metal Roofing, Curtain Wall, Drywall, Wet Pipe Fire Suppression, Kitchen Hood/VRF HVAC, Power Distribution/Solar PV Electrical, Paving Sitework
 - [x] BUG: Drag/pan not working in markup mode — ROOT CAUSE: container used onMouseDown but MarkupCanvas (z-15) used onPointerDown, blocking events. FIX: (1) Pass spaceHeld as isPanning to MarkupCanvas so canvas disables pointer-events when space held, (2) Convert container to onPointerDown for consistency, (3) Container only starts drag when markupActive && spaceHeld, (4) Cursor shows grab when space held
+
+## ConstructLine Branding Consistency Pass — April 17, 2026
+
+### Sidebar Navigation Renaming
+- [x] Rename "Scheduler" → "CPM Schedule" in sidebar nav
+- [x] Rename "Takeoff" → "Quantity Takeoff" in sidebar nav
+- [x] Replace generic sidebar icons — GanttChart for CPM Schedule, Ruler for Quantity Takeoff, Database for Cost Library
+- [x] C1/C2/C3 versioning reserved for CPM Schedule product versions (like Primavera P3/P6), not module labels
+
+### Branding Styling
+- [x] Created reusable ConstructLineBrand.tsx component (ConstructLineWordmark, ConstructLineInline)
+- [x] Applied branded Construct+Line styling across all 13 files (sidebar, headers, processing overlay, modals, empty states, feedback widget, onboarding tours)
+- [x] Fixed processing overlay — "ConstructLine is Working" now uses branded white+amber split
+- [x] Fixed "ConstructLine Analyze Drawings" button — branded styling on blue/amber gradient button
+- [x] Branded all text references in TakeoffList, TakeoffDetail, CostLibrary, PreAnalysisModal, ProjectSettingsPanel, FeedbackWidget, OnboardingTour

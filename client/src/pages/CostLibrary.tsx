@@ -189,7 +189,7 @@ export default function CostLibrary() {
           <div>
             <h1 className="text-xl font-bold text-cream">My Cost Library</h1>
             <p className="text-cream-muted text-sm">
-              Upload your own unit costs — ConstructLine will match them to takeoff items automatically.
+              Upload your own unit costs — <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will match them to takeoff items automatically.
             </p>
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function CostLibrary() {
             <div className="text-sm text-cream-muted space-y-0.5">
               <p className="text-amber-300 font-medium">How your cost library works</p>
               <p>
-                When ConstructLine runs a takeoff, it checks your library first. If a takeoff item's description
+                When <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> runs a takeoff, it checks your library first. If a takeoff item's description
                 matches one of your entries, your unit cost overrides the built-in cost table. Entries are matched
                 by keyword similarity — the closer the description, the higher the match priority.
               </p>
@@ -352,7 +352,7 @@ export default function CostLibrary() {
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">No Cost Library Yet</h3>
             <p className="text-cream-muted text-center max-w-md mb-6">
-              Upload a CSV or Excel file with your own material unit costs. ConstructLine will use them
+              Upload a CSV or Excel file with your own material unit costs. <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will use them
               to price your takeoffs instead of the built-in cost table.
             </p>
             <div className="flex items-center gap-3">

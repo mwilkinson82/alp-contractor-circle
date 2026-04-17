@@ -781,8 +781,8 @@ export default function TakeoffDetail() {
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   )}
                   {hasPendingSheets
-                    ? "ConstructLine Analyze Drawings"
-                    : "ConstructLine Re-Analyze Drawings"}
+                    ? <><span className="font-bold tracking-tight"><span className="text-white">Construct</span><span className="text-amber-300">Line</span></span>{" "}Analyze Drawings</>
+                    : <><span className="font-bold tracking-tight"><span className="text-white">Construct</span><span className="text-amber-300">Line</span></span>{" "}Re-Analyze Drawings</>}
                   <span className="ml-2 text-sm opacity-75">
                     ({hasPendingSheets
                       ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`
@@ -943,7 +943,7 @@ export default function TakeoffDetail() {
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">No quantity items yet.</p>
                 <p className="text-sm mt-1">
-                  Upload drawings and run ConstructLine analysis to extract quantities.
+                  Upload drawings and run <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analysis to extract quantities.
                 </p>
               </div>
             ) : (
