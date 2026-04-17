@@ -8,7 +8,7 @@
  * - Real sheet-by-sheet progress bar
  * - Sheet name display as each one is processed
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Ruler,
@@ -74,21 +74,23 @@ interface ProcessingOverlayProps {
 
 function SplashIntro({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    // Phase 1: Enter animation (1s)
-    const holdTimer = setTimeout(() => setPhase("hold"), 1000);
-    // Phase 2: Hold with glow (1.5s)
-    const exitTimer = setTimeout(() => setPhase("exit"), 2500);
-    // Phase 3: Exit animation (0.5s), then done
-    const doneTimer = setTimeout(() => onComplete(), 3000);
+    // Phase 1: Enter animation (1.2s)
+    const holdTimer = setTimeout(() => setPhase("hold"), 1200);
+    // Phase 2: Hold with glow pulse (2.3s total = 1.2 + 1.1)
+    const exitTimer = setTimeout(() => setPhase("exit"), 3500);
+    // Phase 3: Exit animation (0.6s), then done
+    const doneTimer = setTimeout(() => onCompleteRef.current(), 4100);
 
     return () => {
       clearTimeout(holdTimer);
       clearTimeout(exitTimer);
       clearTimeout(doneTimer);
     };
-  }, [onComplete]);
+  }, []); // Empty deps — run once on mount, use ref for callback
 
   return (
     <div

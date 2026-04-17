@@ -23,7 +23,7 @@ interface SpecialtySelectorProps {
   onChange: (specialtyIds: string[]) => void;
   /** Currently selected CSI division codes — only show specialties for these */
   selectedDivisions: string[];
-  /** AI-detected specialty IDs (shown with auto-detect badge) */
+  /** ConstructLine engine-detected specialty IDs (shown with auto-detect badge) */
   detectedSpecialties?: string[];
 }
 
@@ -127,9 +127,9 @@ export default function SpecialtySelector({
       <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
         <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
         <p className="text-[11px] text-cream-muted leading-relaxed">
-          Trade specialties tell the AI to generate additional line items a
-          specialty contractor would include — items that may not be explicitly
-          shown on the drawing but are essential for construction.
+          Trade specialties tell the ConstructLine engine to generate additional
+          line items a specialty contractor would include — items that may not be
+          explicitly shown on the drawing but are essential for construction.
         </p>
       </div>
 

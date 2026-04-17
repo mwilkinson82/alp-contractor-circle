@@ -48,7 +48,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-analyze-btn"]',
     content:
-      "After uploading, hit this button to run the AI analysis. You'll pick your currency, CSI divisions to include, and cost region before it starts. The AI reads every sheet and extracts line items with quantities and costs.",
+      "After uploading, hit this button to run the ConstructLine analysis. You'll pick your currency, CSI divisions to include, and cost region before it starts. The ConstructLine engine reads every sheet and extracts line items with quantities and costs.",
     title: "Step 2: Analyze Drawings",
     placement: "top",
     skipBeacon: true,
@@ -88,7 +88,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-consolidate-btn"]',
     content:
-      "After the initial analysis, click Consolidate & Enhance to let the AI merge duplicates, convert lump sums to measured quantities, calculate concrete volumes, and remove out-of-scope items. This refines your takeoff without re-reading the drawings.",
+      "After the initial analysis, click Consolidate & Enhance to let the ConstructLine engine merge duplicates, convert lump sums to measured quantities, calculate concrete volumes, and remove out-of-scope items. This refines your takeoff without re-reading the drawings.",
     title: "Consolidate & Enhance",
     placement: "bottom",
     skipBeacon: true,

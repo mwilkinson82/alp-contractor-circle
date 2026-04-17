@@ -2140,3 +2140,12 @@
 ## CPM Schedule Settings Button Fix — April 17, 2026
 - [x] FIX: Settings button alignment — wrapped in flex-col structure matching other toolbar groups, added Settings label underneath
 - [x] FEATURE: Settings button visual emphasis — amber border/bg/text/shadow matching Calculate button style
+
+## Multiple Fixes — April 17, 2026 (Batch 2)
+- [x] FIX: Specialty modal — added green callout box "You can skip this step entirely" with explanation that ConstructLine engine auto-detects
+- [x] FIX: Replaced all user-facing "AI" references with "ConstructLine engine" (OnboardingTour, TakeoffOnboardingTour, SpecialtySelector, PreAnalysisModal, TakeoffDetail)
+- [x] FIX: Splash screen timing — stabilized onComplete ref to prevent timer reset, extended hold phase to 4.1s total
+- [x] AUDIT: CPM Schedule confirmed — Resource Leveling (full implementation with calendar-aware work day counting), Cost Loading (ResourcePanel with budgeted/actual costs), Earned Value Tracking (BCWP/BCWS/ACWP/SPI/CPI/EAC/ETC/VAC + S-curve) all fully implemented
+- [x] FIX: Cost Library hidden from non-admin members — page-level guard redirects non-admins to /portal (sidebar already admin-only)
+- [x] FEATURE: What's New changelog modal — branded component with 3 changelog entries (Trade Specialty Intelligence, Measurement Tools, Consolidate & Enhance), auto-shows on first login, manual trigger in sidebar
+- [ ] ANALYSIS: Cost optimization and pricing per user

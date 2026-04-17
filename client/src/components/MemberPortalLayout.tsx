@@ -47,6 +47,7 @@ import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
 import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
+import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
@@ -236,6 +237,7 @@ export default function MemberPortalLayout({
     resetTakeoffTours();
     portalResetTour();
   };
+  const { showModal: showWhatsNew, dismiss: dismissWhatsNew, openManually: openWhatsNew } = useWhatsNew();
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -378,6 +380,13 @@ export default function MemberPortalLayout({
                 <p className="text-[10px] text-ember uppercase tracking-wider">{roleLabel}</p>
               </div>
             </div>
+            <button
+              onClick={openWhatsNew}
+              className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>What's New</span>
+            </button>
             <button
               onClick={resetTour}
               className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"
@@ -532,6 +541,9 @@ export default function MemberPortalLayout({
           {children}
         </main>
       </div>
+
+      {/* What's New Changelog Modal */}
+      <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />
     </div>
   );
 }

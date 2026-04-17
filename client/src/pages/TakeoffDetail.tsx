@@ -982,7 +982,7 @@ export default function TakeoffDetail() {
                         Consolidate & Enhance
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-amber-400 text-xs font-semibold mb-1.5">AI Post-Processing</p>
+                        <p className="text-amber-400 text-xs font-semibold mb-1.5">ConstructLine Engine Post-Processing</p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
                           <li>• Merges duplicate items from different sheets</li>
                           <li>• Converts lump sums to measured quantities using plan dimensions</li>

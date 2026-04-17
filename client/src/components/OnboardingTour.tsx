@@ -50,7 +50,7 @@ const TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="nav-constructline"]',
     content:
-      "ConstructLine is your construction management toolkit. It includes a CPM Schedule, AI-powered Quantity Takeoff, and Cost Library — tools built specifically for contractors.",
+      "ConstructLine is your construction management toolkit. It includes a CPM Schedule, Quantity Takeoff powered by the ConstructLine engine, and Cost Library — tools built specifically for contractors.",
     title: "ConstructLine Suite",
     placement: "right",
     skipBeacon: true,

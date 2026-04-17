@@ -3,7 +3,9 @@
  * Supports CSV and Excel (.xlsx) uploads. Entries are matched to takeoff items
  * by description keyword similarity during post-processing.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useMember } from "@/hooks/useMember";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -108,6 +110,17 @@ function parseFile(file: File): Promise<{ entries: ParsedEntry[]; errors: ParseE
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function CostLibrary() {
+  const { member } = useMember();
+  const [, setLocation] = useLocation();
+  const isAdmin = member?.memberRole === "admin";
+
+  // Redirect non-admins away
+  useEffect(() => {
+    if (member && !isAdmin) {
+      setLocation("/portal");
+    }
+  }, [member, isAdmin, setLocation]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
