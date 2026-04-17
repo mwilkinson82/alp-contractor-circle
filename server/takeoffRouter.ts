@@ -331,6 +331,7 @@ export const takeoffRouter = router({
       costRegion: z.string().max(64).nullable().optional(),
       selectedDivisions: z.array(z.string()).optional(),
       scopeText: z.string().max(2000).nullable().optional(),
+      selectedSpecialties: z.array(z.string()).nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
@@ -355,6 +356,12 @@ export const takeoffRouter = router({
 
       if (input.scopeText !== undefined) {
         updates.scopeText = input.scopeText;
+      }
+
+      if (input.selectedSpecialties !== undefined) {
+        updates.selectedSpecialties = input.selectedSpecialties && input.selectedSpecialties.length > 0
+          ? JSON.stringify(input.selectedSpecialties)
+          : null;
       }
 
       if (input.selectedDivisions !== undefined) {
@@ -642,6 +649,7 @@ export const takeoffRouter = router({
         selectedDivisions: z.array(z.string()).optional(),
         costRegion: z.string().max(64).nullable().optional(),
         currency: z.enum(["USD", "GBP", "AUD"]).optional(),
+        selectedSpecialties: z.array(z.string()).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -671,6 +679,13 @@ export const takeoffRouter = router({
           );
           updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
         }
+      }
+
+      // Handle specialty update (only affects future extractions)
+      if (input.selectedSpecialties !== undefined) {
+        updates.selectedSpecialties = input.selectedSpecialties && input.selectedSpecialties.length > 0
+          ? JSON.stringify(input.selectedSpecialties)
+          : null;
       }
 
       // Handle region update (recalculates all existing item costs)

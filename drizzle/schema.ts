@@ -746,6 +746,10 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   currency: varchar("currency", { length: 8 }).default("USD"),
   /** Free-text scope description for targeted extraction within a CSI division */
   scopeText: text("scopeText"),
+  /** JSON array of manually selected trade specialty IDs, e.g. ["concrete_tilt_up","metals_structural_steel"] */
+  selectedSpecialties: text("selectedSpecialties"),
+  /** JSON array of AI-detected trade specialty IDs from drawing analysis */
+  detectedSpecialties: text("detectedSpecialties"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -25,6 +25,7 @@ import { postProcessTakeoff, hardScopeFilter } from "./takeoffPostProcess";
 import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { TAKEOFF_DIVISION_MAP, ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
+import { buildSpecialtyPromptInjection, TRADE_SPECIALTIES, getSpecialtiesForDivision } from "../shared/tradeSpecialties";
 
 // ─── CSI Division Reference ────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ RULES:
 - This scope filter overrides the CSI division selection — even if a CSI division is selected, only items matching the scope text should be returned`;
 }
 
-function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null): string {
+function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null, specialtyIds?: string[] | null): string {
   const divisionRef = buildDivisionReference(selectedDivisions);
   const scopeInstruction = buildScopingInstruction(selectedDivisions);
   const currencyInstruction = buildCurrencyInstruction(currency || null);
@@ -181,11 +182,13 @@ function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string
     ? `\n\n${projectContext}`
     : "";
 
+  const specialtyInjection = buildSpecialtyPromptInjection(specialtyIds || []);
+
   return `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
 
 ## YOUR TASK
 Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
-${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${contextBlock}
+${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${specialtyInjection}${contextBlock}
 
 ## PROCESS (follow exactly):
 1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
@@ -384,9 +387,10 @@ async function extractQuantities(
   selectedDivisions: string[] | null,
   currency?: string | null,
   scopeText?: string | null,
-  projectContext?: string | null
+  projectContext?: string | null,
+  specialtyIds?: string[] | null
 ): Promise<TakeoffExtractionResult> {
-  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext);
+  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext, specialtyIds);
   const scopeNote = selectedDivisions && selectedDivisions.length > 0
     ? ` Only extract items for the specified CSI divisions: ${selectedDivisions.join(", ")}.`
     : "";
@@ -495,11 +499,52 @@ async function verifyQuantities(
   }
 }
 
-// ─── Main Processing Function ──────────────────────────────────────────────────
+// ─── Auto-Detect Trade Specialties ───────────────────────────────────────────────────────
 
 /**
- * Process a single drawing sheet through the AI vision pipeline.
- * Uses a two-pass approach: extract → verify.
+ * Auto-detect trade specialties from the project context summary.
+ * Uses keyword matching against detection signals — fast, no extra LLM call.
+ */
+async function autoDetectSpecialties(
+  contextSummary: string,
+  selectedDivisions: string[] | null
+): Promise<string[]> {
+  const contextLower = contextSummary.toLowerCase();
+  const detected: string[] = [];
+
+  // Determine which divisions to scan for specialties
+  const divisionsToScan = selectedDivisions || Object.keys(
+    Object.values(TRADE_SPECIALTIES).reduce((acc, s) => {
+      acc[s.divisionCode] = true;
+      return acc;
+    }, {} as Record<string, boolean>)
+  );
+
+  for (const divCode of divisionsToScan) {
+    const specialties = getSpecialtiesForDivision(divCode);
+    for (const spec of specialties) {
+      // Count how many detection signals match in the context
+      let matchCount = 0;
+      for (const signal of spec.detectionSignals) {
+        if (contextLower.includes(signal.toLowerCase())) {
+          matchCount++;
+        }
+      }
+      // Require at least 2 signal matches to avoid false positives
+      if (matchCount >= 2) {
+        detected.push(spec.id);
+        console.log(`[Specialty Detection] Detected "${spec.name}" (${matchCount} signal matches)`);
+      }
+    }
+  }
+
+  return detected;
+}
+
+// ─── Main Processing Function ──────────────────────────────────────────────────────────────
+
+/**
+ * Process a single drawing sheet through the AI vision pipeline. two-pass approach: extract → verify.
  * @param selectedDivisions - Array of CSI division codes to scope extraction, or null for all
  */
 export async function processDrawingSheet(
@@ -509,7 +554,8 @@ export async function processDrawingSheet(
   selectedDivisions: string[] | null = null,
   currency?: string | null,
   scopeText?: string | null,
-  projectContext?: string | null
+  projectContext?: string | null,
+  specialtyIds?: string[] | null
 ): Promise<TakeoffExtractionResult | null> {
   try {
     // Mark sheet as processing
@@ -518,7 +564,7 @@ export async function processDrawingSheet(
     // Extraction pass: Extract quantities (scoped to selected divisions, with project context)
     const hasContext = projectContext ? " [with project context]" : "";
     console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}`);
-    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext);
+    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext, specialtyIds);
 
     // Verification pass REMOVED for speed optimization.
     // The verification was adding N extra LLM calls (~7-10 min for 15 sheets)
@@ -623,6 +669,22 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     }
   }
 
+  // Parse selected trade specialties from project record
+  let specialtyIds: string[] | null = null;
+  if (project.selectedSpecialties) {
+    try {
+      const parsed = JSON.parse(project.selectedSpecialties);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        specialtyIds = parsed;
+      }
+    } catch {
+      // Invalid JSON — no specialties
+    }
+  }
+
+  // If no specialties manually selected, we'll try auto-detection after indexing
+  const shouldAutoDetect = !specialtyIds || specialtyIds.length === 0;
+
   await updateTakeoffProject(projectId, { status: "processing" });
 
   // ─── TIMING INSTRUMENTATION ──────────────────────────────────────────────
@@ -649,6 +711,25 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   } catch (indexError: any) {
     timings.pass1_indexing_sec = Math.round((Date.now() - pipelineStart) / 1000);
     console.warn(`[Takeoff AI] Pass 1 (indexing) failed — proceeding without context:`, indexError.message);
+  }
+
+  // ─── PASS 1.5: Auto-Detect Trade Specialties ───────────────────────────────
+  if (shouldAutoDetect && projectContextText) {
+    try {
+      const detected = await autoDetectSpecialties(projectContextText, selectedDivisions);
+      if (detected.length > 0) {
+        specialtyIds = detected;
+        console.log(`[Takeoff AI] Auto-detected specialties: ${detected.join(", ")}`);
+        await updateTakeoffProject(projectId, {
+          detectedSpecialties: JSON.stringify(detected),
+          selectedSpecialties: JSON.stringify(detected),
+        });
+      } else {
+        console.log(`[Takeoff AI] No specialties auto-detected from context`);
+      }
+    } catch (detectError: any) {
+      console.warn(`[Takeoff AI] Specialty auto-detection failed:`, detectError.message);
+    }
   }
 
   //  // ─── PASS 2: Extract Quantities with Context (PARALLEL) ───────────────
@@ -681,7 +762,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
 
     const results = await Promise.allSettled(
       batch.map(sheet =>
-        processDrawingSheet(sheet.id, sheet.imageUrl!, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText)
+        processDrawingSheet(sheet.id, sheet.imageUrl!, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText, specialtyIds)
       )
     );
 

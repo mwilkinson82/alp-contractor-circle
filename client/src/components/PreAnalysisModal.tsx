@@ -4,8 +4,9 @@
  * Steps:
  * 1. Currency selection (USD / GBP / AUD)
  * 2. CSI Division selection (reuses DivisionSelector)
- * 3. Regional cost factoring (reuses RegionSelector, filtered by currency)
- * 4. Scope-specific text (optional free-text to narrow extraction)
+ * 3. Trade Specialty selection (reuses SpecialtySelector)
+ * 4. Regional cost factoring (reuses RegionSelector, filtered by currency)
+ * 5. Scope-specific text (optional free-text to narrow extraction)
  *
  * Remembers last selections via localStorage.
  */
@@ -22,9 +23,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
+import SpecialtySelector from "@/components/SpecialtySelector";
 import {
   DollarSign,
   PoundSterling,
@@ -35,7 +36,9 @@ import {
   MapPin,
   Target,
   Loader2,
+  Wrench,
 } from "lucide-react";
+import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 
 const STORAGE_KEY = "alp-takeoff-preanalysis-prefs";
 
@@ -44,6 +47,7 @@ interface PreAnalysisSettings {
   selectedDivisions: string[];
   costRegion: string | null;
   scopeText: string;
+  selectedSpecialties: string[];
 }
 
 const DEFAULT_SETTINGS: PreAnalysisSettings = {
@@ -51,6 +55,7 @@ const DEFAULT_SETTINGS: PreAnalysisSettings = {
   selectedDivisions: [],
   costRegion: null,
   scopeText: "",
+  selectedSpecialties: [],
 };
 
 function loadSavedSettings(): PreAnalysisSettings {
@@ -113,6 +118,9 @@ interface PreAnalysisModalProps {
   existingRegion?: string | null;
   existingCurrency?: string | null;
   existingScopeText?: string | null;
+  existingSpecialties?: string[] | null;
+  /** AI-detected specialties from previous analysis */
+  detectedSpecialties?: string[] | null;
   /** User's preferred currency from database (auto-select for new projects) */
   preferredCurrency?: string;
 }
@@ -127,6 +135,8 @@ export default function PreAnalysisModal({
   existingRegion,
   existingCurrency,
   existingScopeText,
+  existingSpecialties,
+  detectedSpecialties,
   preferredCurrency,
 }: PreAnalysisModalProps) {
   const [step, setStep] = useState(1);
@@ -145,6 +155,9 @@ export default function PreAnalysisModal({
   const [scopeText, setScopeText] = useState<string>(
     existingScopeText || saved.scopeText || ""
   );
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(
+    existingSpecialties || saved.selectedSpecialties || []
+  );
 
   // Reset step when modal opens
   useEffect(() => {
@@ -157,12 +170,18 @@ export default function PreAnalysisModal({
       selectedDivisions,
       costRegion,
       scopeText: scopeText.trim(),
+      selectedSpecialties,
     };
     saveSettings(settings);
     onConfirm(settings);
   };
 
-  const totalSteps = 4;
+  const totalSteps = 5;
+
+  // Build specialty names for summary
+  const specialtyNames = selectedSpecialties
+    .map((id) => TRADE_SPECIALTIES[id]?.name)
+    .filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -181,7 +200,7 @@ export default function PreAnalysisModal({
         <div className="overflow-y-auto overscroll-contain min-h-0">
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-1 py-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex items-center">
               <button
                 onClick={() => setStep(s)}
@@ -195,8 +214,8 @@ export default function PreAnalysisModal({
               >
                 {s}
               </button>
-              {s < 4 && (
-                <div className={`w-8 h-0.5 ${s < step ? "bg-amber-500/30" : "bg-white/10"}`} />
+              {s < 5 && (
+                <div className={`w-6 h-0.5 ${s < step ? "bg-amber-500/30" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -268,8 +287,31 @@ export default function PreAnalysisModal({
           </div>
         )}
 
-        {/* Step 3: Regional Factoring */}
+        {/* Step 3: Trade Specialties */}
         {step === 3 && (
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Wrench className="w-4 h-4 text-amber-500" />
+              <Label className="text-sm font-semibold text-cream">Trade Specialties</Label>
+              <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-normal">
+                New
+              </Badge>
+            </div>
+            <p className="text-xs text-cream-muted -mt-2">
+              Select specialties to generate additional line items a specialty contractor would include.
+              Leave empty to let the AI auto-detect from the drawings.
+            </p>
+            <SpecialtySelector
+              value={selectedSpecialties}
+              onChange={setSelectedSpecialties}
+              selectedDivisions={selectedDivisions}
+              detectedSpecialties={detectedSpecialties || []}
+            />
+          </div>
+        )}
+
+        {/* Step 4: Regional Factoring */}
+        {step === 4 && (
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-2 mb-1">
               <MapPin className="w-4 h-4 text-amber-500" />
@@ -287,8 +329,8 @@ export default function PreAnalysisModal({
           </div>
         )}
 
-        {/* Step 4: Scope-Specific Text */}
-        {step === 4 && (
+        {/* Step 5: Scope-Specific Text */}
+        {step === 5 && (
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-amber-500" />
@@ -364,18 +406,39 @@ export default function PreAnalysisModal({
                   </span>
                 </div>
                 <div>
+                  <span className="text-cream-muted">Specialties:</span>{" "}
+                  <span className="text-cream font-medium">
+                    {selectedSpecialties.length === 0
+                      ? "Auto-detect"
+                      : `${selectedSpecialties.length} selected`}
+                  </span>
+                </div>
+                <div>
                   <span className="text-cream-muted">Region:</span>{" "}
                   <span className="text-cream font-medium">
                     {costRegion || "National Average"}
                   </span>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <span className="text-cream-muted">Scope:</span>{" "}
                   <span className="text-cream font-medium">
                     {scopeText.trim() ? "Custom" : "Full"}
                   </span>
                 </div>
               </div>
+              {specialtyNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {specialtyNames.map((name) => (
+                    <Badge
+                      key={name}
+                      className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-[9px]"
+                    >
+                      <Wrench className="w-2.5 h-2.5 mr-0.5" />
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

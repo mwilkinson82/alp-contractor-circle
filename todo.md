@@ -2108,11 +2108,13 @@
 - [x] BUG: Zoom control buttons don't respond to clicks — fixed: zoom controls now z-30 (above canvas z-15), pointer-events working correctly
 
 ### Trade Specialty Infrastructure
-- [ ] FEATURE: Build trade specialty taxonomy (concrete: tilt-up, cast-in-place, precast; mechanical: kitchen hood, HVAC; equipment/conveying: elevator, escalator; etc.)
-- [ ] FEATURE: Auto-detect specialty from drawing context (notes, specs, dimensions, layout patterns)
-- [ ] FEATURE: Specialty-aware AI prompts — feed specialty context to AI during analysis to generate specialty-specific line items
-- [ ] FEATURE: Specialty selector in takeoff UI with manual override capability
-- [ ] FEATURE: Concrete tilt-up specialty — casting bed sizing, panel layout, pick points, rigging, post-tension calculations
-- [ ] FEATURE: Concrete cast-in-place specialty — formwork, reinforcement, curing, finishing
-- [ ] FEATURE: Concrete precast specialty — production, delivery, installation, connections
+- [x] FEATURE: Build trade specialty taxonomy — 18 specialties across 8 CSI divisions (03 Concrete, 04 Masonry, 05 Metals, 07 Roofing, 08 Openings, 09 Finishes, 21 Fire Suppression, 23 HVAC, 26 Electrical, 32 Sitework) with 100+ specialty-specific line items
+- [x] FEATURE: Auto-detect specialty from drawing context — keyword matching against detection signals after Pass 1 indexing, stores detectedSpecialties on project
+- [x] FEATURE: Specialty-aware AI prompts — buildSpecialtyPromptInjection() injects construction notes + additional line items into system prompt
+- [x] FEATURE: Specialty selector in takeoff UI — new SpecialtySelector component in PreAnalysisModal (step 3 of 5) and ProjectSettingsPanel, with auto-detect badges
+- [x] FEATURE: Concrete tilt-up specialty — casting bed area, lift inserts, crane/rigging, temporary bracing, panel connections, joint sealant, curing compound
+- [x] FEATURE: Concrete cast-in-place specialty — formwork, reinforcement, curing, finishing, expansion joints, waterstops, concrete pumping
+- [x] FEATURE: Concrete precast specialty — erection/setting, grouting, welded connections, caulking, temporary bracing, crane/rigging
+- [x] FEATURE: Concrete post-tension specialty — PT strand/cable, anchorages, stressing, grouting, pour strips
+- [x] FEATURE: Additional specialties: Masonry CMU/Brick Veneer, Structural Steel/Steel Joists, TPO/Metal Roofing, Curtain Wall, Drywall, Wet Pipe Fire Suppression, Kitchen Hood/VRF HVAC, Power Distribution/Solar PV Electrical, Paving Sitework
 - [x] BUG: Drag/pan not working in markup mode — ROOT CAUSE: container used onMouseDown but MarkupCanvas (z-15) used onPointerDown, blocking events. FIX: (1) Pass spaceHeld as isPanning to MarkupCanvas so canvas disables pointer-events when space held, (2) Convert container to onPointerDown for consistency, (3) Container only starts drag when markupActive && spaceHeld, (4) Cursor shows grab when space held

@@ -1,9 +1,10 @@
 /**
- * ProjectSettingsPanel — Edit takeoff project divisions, currency, and cost region after creation.
+ * ProjectSettingsPanel — Edit takeoff project divisions, currency, specialties, and cost region after creation.
  *
  * Features:
  * - Currency toggle buttons (USD/GBP/AUD) so region list auto-filters to the correct country
  * - Edit selected divisions
+ * - Edit trade specialties (with auto-detect badges)
  * - Edit cost region (recalculates all item costs automatically)
  * - Shows current settings with badges
  * - "Re-Analyze" option when divisions change so user doesn't have to re-upload drawings
@@ -15,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
-import { Loader2, Settings, AlertCircle, RefreshCw, FileText } from "lucide-react";
+import SpecialtySelector from "@/components/SpecialtySelector";
+import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "US Dollar", flag: "\u{1F1FA}\u{1F1F8}" },
@@ -31,7 +34,15 @@ interface ProjectSettingsPanelProps {
   currentRegionName?: string;
   currentCurrency?: string | null;
   currentScopeText?: string | null;
-  onSave: (divisions: string[] | null, region: string | null, currency?: string, scopeText?: string | null) => Promise<{ regionChanged?: boolean }>;
+  currentSpecialties?: string[] | null;
+  detectedSpecialties?: string[] | null;
+  onSave: (
+    divisions: string[] | null,
+    region: string | null,
+    currency?: string,
+    scopeText?: string | null,
+    specialties?: string[] | null
+  ) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
   /** Whether sheets have been processed (to show re-analyze option) */
@@ -45,6 +56,8 @@ export default function ProjectSettingsPanel({
   currentRegionName,
   currentCurrency,
   currentScopeText,
+  currentSpecialties,
+  detectedSpecialties,
   onSave,
   onReAnalyze,
   hasProcessedSheets,
@@ -54,6 +67,7 @@ export default function ProjectSettingsPanel({
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
   const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
   const [saving, setSaving] = useState(false);
 
   // Reset state when dialog opens (in case project data changed externally)
@@ -63,14 +77,16 @@ export default function ProjectSettingsPanel({
       setSelectedRegion(currentRegion || null);
       setSelectedCurrency(currentCurrency || "USD");
       setScopeText(currentScopeText || "");
+      setSelectedSpecialties(currentSpecialties || []);
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
   const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
   const scopeChanged = scopeText !== (currentScopeText || "");
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged;
+  const specialtiesChanged = JSON.stringify([...(selectedSpecialties || [])].sort()) !== JSON.stringify([...(currentSpecialties || [])].sort());
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged;
 
   const handleSave = async () => {
     setSaving(true);
@@ -80,6 +96,7 @@ export default function ProjectSettingsPanel({
         selectedRegion,
         currencyChanged ? selectedCurrency : undefined,
         scopeChanged ? (scopeText.trim() || null) : undefined,
+        specialtiesChanged ? (selectedSpecialties.length > 0 ? selectedSpecialties : null) : undefined,
       );
 
       if (result.regionChanged) {
@@ -103,6 +120,11 @@ export default function ProjectSettingsPanel({
     }
   };
 
+  // Build specialty names for summary
+  const currentSpecialtyNames = (currentSpecialties || [])
+    .map((id) => TRADE_SPECIALTIES[id]?.name)
+    .filter(Boolean);
+
   return (
     <>
       {/* Trigger Button */}
@@ -122,7 +144,7 @@ export default function ProjectSettingsPanel({
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
-              Adjust currency, divisions, and cost region for this project.
+              Adjust currency, divisions, specialties, and cost region for this project.
             </DialogDescription>
           </DialogHeader>
 
@@ -144,6 +166,16 @@ export default function ProjectSettingsPanel({
                     All divisions
                   </Badge>
                 )}
+                {currentSpecialties && currentSpecialties.length > 0 ? (
+                  <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20">
+                    <Wrench className="w-3 h-3 mr-1" />
+                    {currentSpecialties.length} specialties
+                  </Badge>
+                ) : (
+                  <Badge className="bg-white/5 text-cream-muted border-white/10">
+                    Auto-detect specialties
+                  </Badge>
+                )}
                 {currentRegion ? (
                   <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
                     {currentRegionName || currentRegion}
@@ -154,6 +186,18 @@ export default function ProjectSettingsPanel({
                   </Badge>
                 )}
               </div>
+              {currentSpecialtyNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {currentSpecialtyNames.map((name) => (
+                    <Badge
+                      key={name}
+                      className="bg-amber-500/10 text-amber-300/70 border-amber-500/15 text-[9px]"
+                    >
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               {currentScopeText && (
                 <div className="mt-1 text-xs text-cream-muted/70 border-t border-white/5 pt-2">
                   <span className="font-medium text-cream-muted">Scope:</span>{" "}
@@ -239,6 +283,31 @@ export default function ProjectSettingsPanel({
               )}
             </div>
 
+            {/* Trade Specialties */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-amber-400" />
+                Trade Specialties
+                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-normal">
+                  New
+                </Badge>
+              </div>
+              <SpecialtySelector
+                value={selectedSpecialties}
+                onChange={setSelectedSpecialties}
+                selectedDivisions={selectedDivisions}
+                detectedSpecialties={detectedSpecialties || []}
+              />
+              {specialtiesChanged && hasProcessedSheets && (
+                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-amber-300">
+                    Specialty changes will take effect on the next re-analysis.
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Region Selector */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-cream">
@@ -300,6 +369,7 @@ export default function ProjectSettingsPanel({
                 setSelectedRegion(currentRegion || null);
                 setSelectedCurrency(currentCurrency || "USD");
                 setScopeText(currentScopeText || "");
+                setSelectedSpecialties(currentSpecialties || []);
                 setOpen(false);
               }}
               disabled={saving}

@@ -659,8 +659,10 @@ export default function TakeoffDetail() {
               currentRegion={project.costRegion}
               currentCurrency={project.currency}
               currentScopeText={project.scopeText}
+              currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
+              detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText) => {
+              onSave={async (divisions, region, currency, scopeText, specialties) => {
                 return new Promise<{ regionChanged?: boolean }>((resolve, reject) => {
                   settingsMutation.mutate(
                     {
@@ -669,6 +671,7 @@ export default function TakeoffDetail() {
                       costRegion: region,
                       currency: currency as any,
                       ...(scopeText !== undefined ? { scopeText } : {}),
+                      ...(specialties !== undefined ? { selectedSpecialties: specialties } : {}),
                     },
                     {
                       onSuccess: (result) => resolve(result),
@@ -685,6 +688,7 @@ export default function TakeoffDetail() {
                   currency: (project.currency || "USD") as "USD" | "GBP" | "AUD",
                   costRegion: project.costRegion || null,
                   scopeText: project.scopeText || null,
+                  selectedSpecialties: project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null,
                 });
               }}
             />
@@ -802,6 +806,7 @@ export default function TakeoffDetail() {
                   costRegion: settings.costRegion,
                   selectedDivisions: settings.selectedDivisions,
                   scopeText: settings.scopeText || null,
+                  selectedSpecialties: settings.selectedSpecialties.length > 0 ? settings.selectedSpecialties : null,
                 });
               }}
               pendingSheetCount={sheets.filter((s: any) => s.status === "pending").length || sheets.length}
@@ -811,6 +816,8 @@ export default function TakeoffDetail() {
               existingCurrency={project.currency}
               preferredCurrency={preferredCurrencyQuery.data?.currency}
               existingScopeText={project.scopeText}
+              existingSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
+              detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
             />
 
             {/* Processing Overlay — animated construction-themed progress */}
