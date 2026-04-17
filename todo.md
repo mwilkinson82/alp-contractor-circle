@@ -2024,3 +2024,7 @@
 ## Count Tool Bugs — April 17, 2026
 - [x] BUG: Keyboard shortcuts hijack label input — fixed by skipping shortcuts when INPUT/TEXTAREA/SELECT is focused
 - [x] BUG: Count numbering restarts at 1 — fixed by continuing from highest existing number for that label (not just count of elements)
+
+## Edit Count Marker Labels — April 17, 2026
+- [x] FEATURE: Select an existing count marker with select tool, show amber label input in toolbar to add/change its label
+- [x] FEATURE: Unlabeled counts can be retroactively labeled after placement — label updates in real-time on canvas

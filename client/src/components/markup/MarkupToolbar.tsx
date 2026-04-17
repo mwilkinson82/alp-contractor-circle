@@ -77,6 +77,10 @@ interface MarkupToolbarProps {
   countLabel?: string;
   /** Called when user changes the count label */
   onCountLabelChange?: (label: string) => void;
+  /** Label of the currently selected count shape (for editing) */
+  selectedCountLabel?: string | null;
+  /** Called when user edits the label of a selected count shape */
+  onSelectedCountLabelChange?: (label: string) => void;
 }
 
 export function MarkupToolbar({
@@ -103,6 +107,8 @@ export function MarkupToolbar({
   onDelete,
   countLabel = "",
   onCountLabelChange,
+  selectedCountLabel,
+  onSelectedCountLabelChange,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -125,7 +131,7 @@ export function MarkupToolbar({
         ))}
       </div>
 
-      {/* Count label input — shown when count tool is active */}
+      {/* Count label input — shown when count tool is active OR when a count shape is selected */}
       {activeTool === "count" && (
         <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">
           <input
@@ -134,6 +140,19 @@ export function MarkupToolbar({
             onChange={(e) => onCountLabelChange?.(e.target.value)}
             placeholder="Label (e.g. Outlet)"
             className="w-28 px-2 py-1 rounded-md bg-white/10 text-white text-xs border border-white/20 focus:border-amber-400 focus:outline-none placeholder:text-white/40"
+          />
+        </div>
+      )}
+      {activeTool === "select" && selectedCountLabel !== undefined && selectedCountLabel !== null && (
+        <div className="flex items-center gap-1.5 border-r border-white/10 pr-2 mr-1">
+          <span className="text-[10px] text-white/50 whitespace-nowrap">Label:</span>
+          <input
+            type="text"
+            value={selectedCountLabel}
+            onChange={(e) => onSelectedCountLabelChange?.(e.target.value)}
+            placeholder="Add label..."
+            className="w-28 px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 text-xs border border-amber-500/30 focus:border-amber-400 focus:outline-none placeholder:text-amber-300/40"
+            autoFocus
           />
         </div>
       )}

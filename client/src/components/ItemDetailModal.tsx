@@ -41,7 +41,7 @@ import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
 import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
 import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
-import type { ToolType, Point, Shape } from "@/components/markup/types";
+import type { ToolType, Point, Shape, CountShape } from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
 import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
 import { trpc } from "@/lib/trpc";
@@ -750,6 +750,19 @@ function FullscreenDrawing({
             isSaving={saveMarkupMutation.isPending}
             countLabel={countLabel}
             onCountLabelChange={setCountLabel}
+            selectedCountLabel={
+              selectedShapeId
+                ? (() => {
+                    const sel = elements.find((e) => e.id === selectedShapeId);
+                    return sel?.type === "count" ? ((sel as CountShape).label ?? "") : null;
+                  })()
+                : null
+            }
+            onSelectedCountLabelChange={(label: string) => {
+              if (selectedShapeId) {
+                updateElement(selectedShapeId, (s) => ({ ...s, label }));
+              }
+            }}
           />
         </div>
       )}
