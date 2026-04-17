@@ -387,6 +387,30 @@ export async function saveSheetMarkup(data: {
   }
 }
 
+/**
+ * Get all sheet markups for a project belonging to a specific member.
+ * Joins with drawingSheets to include sheet names and page numbers.
+ */
+export async function getProjectMarkups(projectId: number, memberId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: sheetMarkups.id,
+      sheetId: sheetMarkups.sheetId,
+      shapesJson: sheetMarkups.shapesJson,
+      scaleRatio: sheetMarkups.scaleRatio,
+      scaleUnit: sheetMarkups.scaleUnit,
+      sheetName: drawingSheets.sheetName,
+      pageNumber: drawingSheets.pageNumber,
+    })
+    .from(sheetMarkups)
+    .innerJoin(drawingSheets, eq(sheetMarkups.sheetId, drawingSheets.id))
+    .where(and(eq(sheetMarkups.projectId, projectId), eq(sheetMarkups.memberId, memberId)))
+    .orderBy(asc(drawingSheets.pageNumber));
+  return rows;
+}
+
 export async function deleteSheetMarkup(sheetId: number, memberId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

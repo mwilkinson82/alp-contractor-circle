@@ -2034,3 +2034,10 @@
 - [x] FEATURE: Render read-only annotation overlay on drawing in modal preview (canvas overlay with renderAllShapes, matching zoom/pan transform)
 - [x] FEATURE: Batch-label unlabeled counts — purple "Label N unlabeled" button in toolbar, window.prompt for label, replaceElements batch update with toast
 - [x] FEATURE: Count marker size scaling — markers maintain consistent screen-space size regardless of zoom (radius/fontSize divided by zoom factor)
+
+## Multi-Sheet Measurement Rollup — April 17, 2026
+- [x] FEATURE: Backend endpoint to fetch all sheet markups for a takeoff run (getProjectMarkups — joins sheetMarkups + drawingSheets)
+- [x] FEATURE: Multi-sheet rollup summary panel — aggregate lines, areas, counts across all sheets
+- [x] FEATURE: Rollup grouped by color and label, with per-sheet breakdown
+- [x] FEATURE: Rollup CSV export — single spreadsheet with all sheets' measurements, sheet name column, totals row
+- [x] FEATURE: Integrate rollup panel into takeoff results page (Measurements button in items tab toolbar)

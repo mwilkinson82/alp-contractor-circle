@@ -47,7 +47,9 @@ import {
   Calculator,
   Percent,
   PlusCircle,
+  Layers,
 } from "lucide-react";
+import { MeasurementRollup } from "@/components/MeasurementRollup";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -116,6 +118,7 @@ export default function TakeoffDetail() {
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showRollup, setShowRollup] = useState(false);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
   const [markups, setMarkups] = useState({
     labor: 0,
@@ -140,6 +143,12 @@ export default function TakeoffDetail() {
   );
 
   const { data: items, refetch: refetchItems } = trpc.takeoff.getItems.useQuery(
+    { projectId },
+    { enabled: projectId > 0 }
+  );
+
+  // ─── Measurement Rollup Query ──────────────────────────────────────────
+  const { data: projectMarkups } = trpc.takeoff.getProjectMarkups.useQuery(
     { projectId },
     { enabled: projectId > 0 }
   );
@@ -987,6 +996,17 @@ export default function TakeoffDetail() {
                       <Download className="w-3.5 h-3.5" />
                       CSV
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowRollup(true)}
+                      disabled={!projectMarkups || projectMarkups.length === 0}
+                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                      title="View measurement rollup across all sheets"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      Measurements
+                    </Button>
                     <div className="w-px h-6 bg-white/10" />
                     <Button
                       size="sm"
@@ -1414,6 +1434,14 @@ export default function TakeoffDetail() {
           isPending={addItemMutation.isPending}
         />
       )}
+
+      {/* ─── Measurement Rollup Dialog ──────────────────────────────── */}
+      <MeasurementRollup
+        open={showRollup}
+        onClose={() => setShowRollup(false)}
+        markups={projectMarkups || []}
+        projectName={project?.name || "Takeoff"}
+      />
     </div>
   );
 }

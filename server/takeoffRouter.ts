@@ -34,6 +34,7 @@ import {
   getSheetMarkup,
   saveSheetMarkup,
   deleteSheetMarkup,
+  getProjectMarkups,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
@@ -869,5 +870,22 @@ export const takeoffRouter = router({
       const member = await requireMember(ctx.req);
       await deleteSheetMarkup(input.sheetId, member.id);
       return { success: true };
+    }),
+
+  // ── Multi-Sheet Measurement Rollup ──────────────────────────────
+
+  getProjectMarkups: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const rows = await getProjectMarkups(input.projectId, member.id);
+      return rows.map((r) => ({
+        sheetId: r.sheetId,
+        sheetName: r.sheetName || `Page ${r.pageNumber}`,
+        pageNumber: r.pageNumber,
+        shapesJson: r.shapesJson,
+        scaleRatio: parseFloat(r.scaleRatio as unknown as string) || 0,
+        scaleUnit: r.scaleUnit,
+      }));
     }),
 });
