@@ -4252,6 +4252,7 @@ export default function Scheduler() {
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({
+                  id: a.id,
                   activityId: a.activityId,
                   name: a.name,
                   duration: a.duration,

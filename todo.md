@@ -2223,3 +2223,7 @@
 - [x] Remove "Activity Table" option from PDF export preview — confusing and unnecessary
 - [x] Fix logic lines (relationship arrows) not rendering in actual PDF export — implemented full arrow rendering
 - [x] Ensure logic lines option works end-to-end from preview to export
+
+## Logic Lines Still Not Rendering in PDF Export
+- [x] Debug why relationship arrows don't appear in actual PDF despite showLogicLines being enabled — missing id field in groupedActivities mapping
+- [x] Fix the rendering code and verify arrows appear in exported PDF — added id to groupedActivities mapping
