@@ -27,7 +27,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
 
   // Mutations
-  const createCategoryMut = trpc.schedule.createCodeCategory.useMutation({
+  const createCategoryMut = trpc.schedule.addCodeCategory.useMutation({
     onSuccess: () => {
       utils.schedule.get.invalidate();
       toast.success("Category created");
