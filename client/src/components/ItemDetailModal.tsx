@@ -386,6 +386,9 @@ function FullscreenDrawing({
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) { e.preventDefault(); redo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); redo(); return; }
+      // Skip tool shortcuts when user is typing in an input or textarea
+      const tag = (document.activeElement as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (markupActive && !textPromptPos) {
         switch (e.key.toLowerCase()) {
           case "v": setActiveTool("select"); break;

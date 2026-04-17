@@ -2020,3 +2020,7 @@
 - [x] FEATURE: CSV export groups counts by label with subtotals per color
 - [x] FEATURE: Group all measurements by color in summary panel with color swatches
 - [x] FEATURE: Lines, areas, and counts organized by color so different trades can use different colors
+
+## Count Tool Bugs — April 17, 2026
+- [x] BUG: Keyboard shortcuts hijack label input — fixed by skipping shortcuts when INPUT/TEXTAREA/SELECT is focused
+- [x] BUG: Count numbering restarts at 1 — fixed by continuing from highest existing number for that label (not just count of elements)

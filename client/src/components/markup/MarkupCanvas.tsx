@@ -698,11 +698,15 @@ export function MarkupCanvas({
 
       // Count tool — place numbered marker
       if (activeTool === "count") {
-        // Number within the same label group
+        // Number within the same label group — continue from highest existing number
         const sameLabel = elements.filter(
           (e) => e.type === "count" && (e as CountShape).label === countLabel,
         );
-        const nextNumber = sameLabel.length + 1;
+        const maxNumber = sameLabel.reduce(
+          (max, e) => Math.max(max, (e as CountShape).number),
+          0,
+        );
+        const nextNumber = maxNumber + 1;
         const shape: Shape = {
           id: generateId(),
           type: "count",
