@@ -35,13 +35,15 @@ import {
   Image as ImageIcon,
   Pencil,
   Move,
+  ArrowRightToLine,
+  Sigma,
 } from "lucide-react";
 import { MarkupCanvas } from "@/components/markup/MarkupCanvas";
 import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
 import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
 import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
-import type { ToolType, Point, Shape, CountShape } from "@/components/markup/types";
+import type { ToolType, Point, Shape, CountShape, LineShape, PolygonShape } from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
 import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
 import { renderAllShapes } from "@/components/markup/renderShapes";
@@ -120,7 +122,7 @@ const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
 
 // ─── Drawing Viewer with Zoom ─────────────────────────────────────────────────
 
-function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUrl: string; sheetName: string; onFullscreen?: () => void; sheetId?: number }) {
+function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUrl: string; sheetName: string; onFullscreen?: () => void; sheetId?: number; }) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -329,6 +331,164 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
           />
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Markup Measurement Strip (shown below drawing in modal) ─────────────────
+
+function computeLineLengthHelper(line: LineShape): number {
+  const dx = line.end.x - line.start.x;
+  const dy = line.end.y - line.start.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function computePolygonAreaHelper(poly: PolygonShape): number {
+  const pts = poly.points;
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    area += pts[i].x * pts[j].y;
+    area -= pts[j].x * pts[i].y;
+  }
+  return Math.abs(area) / 2;
+}
+
+function MarkupMeasurementStrip({
+  sheetId,
+  onApplyQuantity,
+  onOpenFullscreen,
+}: {
+  sheetId?: number;
+  onApplyQuantity: (qty: number, unit: string) => void;
+  onOpenFullscreen: () => void;
+}) {
+  const savedMarkup = trpc.takeoff.getSheetMarkup.useQuery(
+    { sheetId: sheetId! },
+    { enabled: !!sheetId }
+  );
+
+  if (!savedMarkup.data?.shapesJson) return null;
+
+  let shapes: Shape[] = [];
+  try {
+    shapes = JSON.parse(savedMarkup.data.shapesJson);
+  } catch {
+    return null;
+  }
+
+  const scaleRatio = parseFloat(String(savedMarkup.data.scaleRatio)) || 0;
+  const scaleUnit = savedMarkup.data.scaleUnit || "px";
+  const isCalibrated = scaleRatio > 0;
+
+  const lines = shapes.filter((s): s is LineShape => s.type === "line");
+  const polygons = shapes.filter((s): s is PolygonShape => s.type === "polygon");
+  const counts = shapes.filter((s): s is CountShape => s.type === "count");
+
+  const totalLinePx = lines.reduce((sum, l) => sum + computeLineLengthHelper(l), 0);
+  const totalAreaPx = polygons.reduce((sum, p) => sum + computePolygonAreaHelper(p), 0);
+
+  const hasAny = lines.length > 0 || polygons.length > 0 || counts.length > 0;
+  if (!hasAny) return null;
+
+  const fmtDist = (px: number) => {
+    if (!isCalibrated) return `${Math.round(px)}px`;
+    const real = px / scaleRatio;
+    return `${real.toFixed(1)} ${scaleUnit === "ft" ? "LF" : scaleUnit}`;
+  };
+
+  const fmtArea = (px: number) => {
+    if (!isCalibrated) return `${Math.round(px)}px²`;
+    const real = px / (scaleRatio * scaleRatio);
+    const unitLabel = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
+    return `${real.toFixed(1)} ${unitLabel}`;
+  };
+
+  const lineUnit = scaleUnit === "ft" ? "LF" : scaleUnit;
+  const areaUnit = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
+
+  return (
+    <div className="mt-2 bg-navy-deep/40 border border-white/10 rounded-lg p-2.5">
+      <div className="flex items-center gap-2 mb-1.5">
+        <Sigma className="w-3.5 h-3.5 text-amber-400" />
+        <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Saved Measurements</span>
+        {!isCalibrated && (
+          <span className="text-[9px] text-amber-400/60 italic ml-auto">Not calibrated</span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {/* Total lines */}
+        {lines.length > 0 && (
+          <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 rounded-md px-2 py-1">
+            <Ruler className="w-3 h-3 text-blue-400" />
+            <span className="text-[11px] text-blue-300 font-mono">
+              {fmtDist(totalLinePx)}
+            </span>
+            <span className="text-[9px] text-blue-400/60">({lines.length} lines)</span>
+            {isCalibrated && (
+              <button
+                type="button"
+                onClick={() => onApplyQuantity(totalLinePx / scaleRatio, lineUnit)}
+                className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 text-[10px] font-medium transition-colors"
+                title="Apply total line distance as item quantity"
+              >
+                <ArrowRightToLine className="w-3 h-3" />
+                Apply
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Total areas */}
+        {polygons.length > 0 && (
+          <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 rounded-md px-2 py-1">
+            <span className="text-[11px] text-green-300 font-mono">
+              {fmtArea(totalAreaPx)}
+            </span>
+            <span className="text-[9px] text-green-400/60">({polygons.length} areas)</span>
+            {isCalibrated && (
+              <button
+                type="button"
+                onClick={() => onApplyQuantity(totalAreaPx / (scaleRatio * scaleRatio), areaUnit)}
+                className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-green-500/20 text-green-300 hover:bg-green-500/30 text-[10px] font-medium transition-colors"
+                title="Apply total area as item quantity"
+              >
+                <ArrowRightToLine className="w-3 h-3" />
+                Apply
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Total counts */}
+        {counts.length > 0 && (
+          <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-md px-2 py-1">
+            <span className="text-[11px] text-purple-300 font-mono">
+              {counts.length} counted
+            </span>
+            <button
+              type="button"
+              onClick={() => onApplyQuantity(counts.length, "EA")}
+              className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 text-[10px] font-medium transition-colors"
+              title="Apply count as item quantity"
+            >
+              <ArrowRightToLine className="w-3 h-3" />
+              Apply
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Fullscreen CTA for more detailed measurement */}
+      <button
+        type="button"
+        onClick={onOpenFullscreen}
+        className="mt-2 flex items-center gap-1.5 text-[10px] text-cream-muted/60 hover:text-cream-muted transition-colors"
+      >
+        <Pencil className="w-3 h-3" />
+        Open fullscreen to add or edit measurements
+      </button>
     </div>
   );
 }
@@ -1070,6 +1230,17 @@ export default function ItemDetailModal({
                     onFullscreen={() => setIsFullscreen(true)}
                   />
                 </div>
+
+                {/* Quick-apply measurement strip from saved markups */}
+                <MarkupMeasurementStrip
+                  sheetId={sourceSheet?.id}
+                  onApplyQuantity={(qty, unitLabel) => {
+                    setQuantity(qty.toFixed(2));
+                    setUnit(unitLabel);
+                    toast.success(`Quantity updated to ${qty.toFixed(2)} ${unitLabel}`);
+                  }}
+                  onOpenFullscreen={() => setIsFullscreen(true)}
+                />
               </div>
             )}
 

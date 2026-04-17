@@ -2041,3 +2041,6 @@
 - [x] FEATURE: Rollup grouped by color and label, with per-sheet breakdown
 - [x] FEATURE: Rollup CSV export — single spreadsheet with all sheets' measurements, sheet name column, totals row
 - [x] FEATURE: Integrate rollup panel into takeoff results page (Measurements button in items tab toolbar)
+
+## Bug Fix — April 17, 2026
+- [x] BUG: Markup-to-line-item quantity update feature is missing — restored via MarkupMeasurementStrip below drawing in modal with Apply buttons for lines/areas/counts, plus fullscreen still has the toolbar push-to-quantity button
