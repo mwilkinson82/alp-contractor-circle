@@ -180,7 +180,7 @@ export function MeasurementSummary({
   if (!hasAny) return null;
 
   return (
-    <div className="absolute top-14 right-4 z-30 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white text-xs max-w-[300px] shadow-lg">
+    <div className="bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 text-white text-xs max-w-[300px] shadow-lg">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded(!expanded)}

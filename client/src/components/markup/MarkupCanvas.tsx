@@ -949,6 +949,8 @@ export function MarkupCanvas({
 
   // Always render the canvas so annotations are visible in both markup and pan modes.
   // When not active (pan mode), disable pointer events so the user can pan/zoom the image.
+  // In markup mode, only capture events when actively drawing/selecting (not panning)
+  // This allows the container's pan handler to work when spacebar is held
   const pointerEventsStyle = (!isActive && !isCalibrating) ? "none" as const : isPanning ? "none" as const : "auto" as const;
 
   const getCursor = () => {
@@ -966,7 +968,7 @@ export function MarkupCanvas({
       style={{
         cursor: isPanning ? "grab" : getCursor(),
         touchAction: "none",
-        zIndex: 20,
+        zIndex: 15,
         pointerEvents: pointerEventsStyle,
       }}
       onPointerDown={handlePointerDown}

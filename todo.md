@@ -2103,9 +2103,9 @@
 ## Markup Mode UX Fixes & Trade Specialty Infrastructure — April 17, 2026
 
 ### Markup Mode UX Fixes (Blocking)
-- [x] BUG: Pan functionality missing in markup mode — fixed: pan now works by default (spacebar optional for hint)
-- [x] BUG: Measurements panel covers zoom controls — moved to top-left (left-4 z-20) so zoom controls (top-2 right-2 z-10) are always visible
-- [x] BUG: Zoom control buttons don't respond to clicks — fixed by moving measurements panel and ensuring z-index stacking is correct
+- [x] BUG: Pan functionality missing in markup mode — fixed: MarkupCanvas z-index lowered to 15, zoom controls raised to z-30, spacebar+drag now works
+- [x] BUG: Measurements panel covers zoom controls — moved to top-left (left-4 z-30), removed hardcoded absolute positioning from MeasurementSummary component
+- [x] BUG: Zoom control buttons don't respond to clicks — fixed: zoom controls now z-30 (above canvas z-15), pointer-events working correctly
 
 ### Trade Specialty Infrastructure
 - [ ] FEATURE: Build trade specialty taxonomy (concrete: tilt-up, cast-in-place, precast; mechanical: kitchen hood, HVAC; equipment/conveying: elevator, escalator; etc.)

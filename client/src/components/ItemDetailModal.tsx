@@ -908,7 +908,7 @@ function FullscreenDrawing({
       {/* Drawing area */}
       <div className="flex-1 min-h-0 relative">
         {/* Zoom controls */}
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
+        <div className="absolute top-2 right-2 z-30 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
           <button type="button" onClick={handleZoomOut} disabled={zoomIdx <= 0} className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors" title="Zoom out">
             <ZoomOut className="w-4 h-4" />
           </button>
@@ -1097,7 +1097,7 @@ function FullscreenDrawing({
       )}
 
       {/* Measurement summary panel — positioned on left side to avoid covering zoom controls */}
-      <div className="absolute top-14 left-4 z-20">
+      <div className="absolute top-14 left-4 z-30 pointer-events-auto">
         <MeasurementSummary
           elements={elements}
           formatDistance={formatDistance}
@@ -1114,10 +1114,10 @@ function FullscreenDrawing({
         </div>
       )}
 
-      {/* Pan hint */}
-      {markupActive && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 bg-white/90 text-black px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg pointer-events-none">
-          Drag to pan (or hold Space for convenience)
+      {/* Pan hint — only show briefly */}
+      {markupActive && zoom > 1 && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 bg-white/90 text-black px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg pointer-events-none opacity-70">
+          Hold Space + drag to pan
         </div>
       )}
     </div>
