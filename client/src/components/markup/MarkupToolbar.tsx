@@ -15,6 +15,7 @@ import {
   Save,
   Pentagon,
   Hash,
+  Tags,
 } from "lucide-react";
 import type { ToolType } from "./types";
 
@@ -81,6 +82,10 @@ interface MarkupToolbarProps {
   selectedCountLabel?: string | null;
   /** Called when user edits the label of a selected count shape */
   onSelectedCountLabelChange?: (label: string) => void;
+  /** Number of unlabeled count shapes */
+  unlabeledCountCount?: number;
+  /** Batch-label all unlabeled counts */
+  onBatchLabelUnlabeled?: (label: string) => void;
 }
 
 export function MarkupToolbar({
@@ -109,6 +114,8 @@ export function MarkupToolbar({
   onCountLabelChange,
   selectedCountLabel,
   onSelectedCountLabelChange,
+  unlabeledCountCount = 0,
+  onBatchLabelUnlabeled,
 }: MarkupToolbarProps) {
   return (
     <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-xl px-2 py-1.5 shadow-2xl border border-white/10">
@@ -154,6 +161,24 @@ export function MarkupToolbar({
             className="w-28 px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 text-xs border border-amber-500/30 focus:border-amber-400 focus:outline-none placeholder:text-amber-300/40"
             autoFocus
           />
+        </div>
+      )}
+
+      {/* Batch-label unlabeled counts */}
+      {unlabeledCountCount > 0 && (
+        <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">
+          <button
+            type="button"
+            onClick={() => {
+              const label = window.prompt(`Label all ${unlabeledCountCount} unlabeled count marker(s):`, "");
+              if (label && label.trim()) onBatchLabelUnlabeled?.(label.trim());
+            }}
+            title={`Label all ${unlabeledCountCount} unlabeled counts`}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 transition-all duration-150"
+          >
+            <Tags className="w-3.5 h-3.5" />
+            <span>Label {unlabeledCountCount} unlabeled</span>
+          </button>
         </div>
       )}
 

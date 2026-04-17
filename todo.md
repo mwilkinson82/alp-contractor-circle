@@ -2028,3 +2028,9 @@
 ## Edit Count Marker Labels — April 17, 2026
 - [x] FEATURE: Select an existing count marker with select tool, show amber label input in toolbar to add/change its label
 - [x] FEATURE: Unlabeled counts can be retroactively labeled after placement — label updates in real-time on canvas
+
+## Modal Preview Annotations & Count Improvements — April 17, 2026
+- [x] BUG: Annotations not visible in modal preview — only show in fullscreen, making users think markups are lost
+- [x] FEATURE: Render read-only annotation overlay on drawing in modal preview (canvas overlay with renderAllShapes, matching zoom/pan transform)
+- [x] FEATURE: Batch-label unlabeled counts — purple "Label N unlabeled" button in toolbar, window.prompt for label, replaceElements batch update with toast
+- [x] FEATURE: Count marker size scaling — markers maintain consistent screen-space size regardless of zoom (radius/fontSize divided by zoom factor)

@@ -167,8 +167,11 @@ function drawCount(
   number: number,
   color: string,
   label?: string,
+  zoom?: number,
 ) {
-  const radius = 16;
+  // Scale marker to maintain consistent screen-space size regardless of zoom
+  const s = 1 / (zoom ?? 1);
+  const radius = 16 * s;
   // Outer circle with fill
   ctx.beginPath();
   ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
@@ -177,31 +180,33 @@ function drawCount(
   // White border
   ctx.save();
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2 * s;
   ctx.stroke();
   ctx.restore();
   // Number label
-  ctx.font = "bold 14px sans-serif";
+  ctx.font = `bold ${Math.round(14 * s)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#ffffff";
   ctx.fillText(String(number), position.x, position.y);
   // Category label below marker
   if (label) {
-    ctx.font = "bold 11px sans-serif";
+    const labelFontSize = Math.round(11 * s);
+    ctx.font = `bold ${labelFontSize}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     // Background pill
-    const textW = ctx.measureText(label).width + 8;
+    const textW = ctx.measureText(label).width + 8 * s;
+    const pillH = 16 * s;
     const pillX = position.x - textW / 2;
-    const pillY = position.y + radius + 4;
+    const pillY = position.y + radius + 4 * s;
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.beginPath();
-    ctx.roundRect(pillX, pillY, textW, 16, 4);
+    ctx.roundRect(pillX, pillY, textW, pillH, 4 * s);
     ctx.fill();
     // Text
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, position.x, pillY + 2);
+    ctx.fillText(label, position.x, pillY + 2 * s);
   }
 }
 
@@ -232,7 +237,7 @@ function drawText(
   });
 }
 
-export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn) {
+export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn, zoom?: number) {
   ctx.save();
   ctx.strokeStyle = shape.color;
   ctx.fillStyle = shape.color;
@@ -259,15 +264,15 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: Form
       drawText(ctx, shape.position, shape.text, shape.fontSize, shape.color);
       break;
     case "count":
-      drawCount(ctx, shape.position, shape.number, shape.color, shape.label);
+      drawCount(ctx, shape.position, shape.number, shape.color, shape.label, zoom);
       break;
   }
   ctx.restore();
 }
 
-export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn, selectedId?: string | null) {
+export function renderAllShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], fmt: FormatDistanceFn = defaultFormat, fmtArea?: FormatAreaFn, selectedId?: string | null, zoom?: number) {
   for (const shape of shapes) {
-    drawShape(ctx, shape, fmt, fmtArea);
+    drawShape(ctx, shape, fmt, fmtArea, zoom);
     // Draw selection highlight
     if (selectedId && shape.id === selectedId) {
       drawSelectionHighlight(ctx, shape);

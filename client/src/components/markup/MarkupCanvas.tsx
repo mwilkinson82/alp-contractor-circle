@@ -409,7 +409,8 @@ export function MarkupCanvas({
     ctx.scale(fitScale, fitScale);
 
     // Now the canvas coordinate system matches image-space coordinates
-    renderAllShapes(ctx, elements, formatDistance, formatArea, selectedShapeId);
+    // Pass zoom so count markers maintain consistent screen-space size
+    renderAllShapes(ctx, elements, formatDistance, formatArea, selectedShapeId, zoom);
 
     // Preview for drag-based shapes (rectangle, circle)
     if (isDrawing && startPoint && currentPoint) {

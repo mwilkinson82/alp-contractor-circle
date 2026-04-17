@@ -44,6 +44,7 @@ import { exportToPng } from "@/components/markup/exportToPng";
 import type { ToolType, Point, Shape, CountShape } from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
 import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
+import { renderAllShapes } from "@/components/markup/renderShapes";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -119,13 +120,77 @@ const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
 
 // ─── Drawing Viewer with Zoom ─────────────────────────────────────────────────
 
-function DrawingViewer({ imageUrl, sheetName, onFullscreen }: { imageUrl: string; sheetName: string; onFullscreen?: () => void }) {
+function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUrl: string; sheetName: string; onFullscreen?: () => void; sheetId?: number }) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const zoom = ZOOM_LEVELS[zoomIndex];
+
+  // Load saved markups for this sheet
+  const savedMarkup = trpc.takeoff.getSheetMarkup.useQuery(
+    { sheetId: sheetId! },
+    { enabled: !!sheetId }
+  );
+  const shapes: Shape[] = savedMarkup.data?.shapesJson
+    ? (() => { try { return JSON.parse(savedMarkup.data.shapesJson); } catch { return []; } })()
+    : [];
+
+  // Track container size
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      setContainerSize({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Redraw annotation overlay
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || shapes.length === 0 || imgNatural.w === 0 || containerSize.w === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Match canvas to container size
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = containerSize.w * dpr;
+    canvas.height = containerSize.h * dpr;
+    canvas.style.width = `${containerSize.w}px`;
+    canvas.style.height = `${containerSize.h}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, containerSize.w, containerSize.h);
+
+    // Compute fitted image rect (object-fit: contain)
+    const imgAspect = imgNatural.w / imgNatural.h;
+    const cAspect = containerSize.w / containerSize.h;
+    let fitW: number, fitH: number;
+    if (imgAspect > cAspect) {
+      fitW = containerSize.w;
+      fitH = containerSize.w / imgAspect;
+    } else {
+      fitH = containerSize.h;
+      fitW = containerSize.h * imgAspect;
+    }
+    const offsetX = (containerSize.w - fitW) / 2;
+    const offsetY = (containerSize.h - fitH) / 2;
+    const scaleX = fitW / imgNatural.w;
+    const scaleY = fitH / imgNatural.h;
+
+    // Map image-space shapes to screen-space
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scaleX, scaleY);
+    renderAllShapes(ctx, shapes);
+    ctx.restore();
+  }, [shapes, imgNatural, containerSize]);
 
   // Reset zoom when image changes
   useEffect(() => {
@@ -227,7 +292,7 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen }: { imageUrl: string
       {/* Drawing container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden bg-white rounded-lg"
+        className="flex-1 overflow-hidden bg-white rounded-lg relative"
         style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -241,12 +306,28 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen }: { imageUrl: string
           alt={sheetName}
           className="w-full h-full object-contain select-none"
           draggable={false}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            setImgNatural({ w: img.naturalWidth, h: img.naturalHeight });
+          }}
           style={{
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
             transformOrigin: "center center",
             transition: isDragging ? "none" : "transform 0.2s ease-out",
           }}
         />
+        {/* Annotation overlay — read-only */}
+        {shapes.length > 0 && (
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+              transformOrigin: "center center",
+              transition: isDragging ? "none" : "transform 0.2s ease-out",
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -763,6 +844,19 @@ function FullscreenDrawing({
                 updateElement(selectedShapeId, (s) => ({ ...s, label }));
               }
             }}
+            unlabeledCountCount={elements.filter((e) => e.type === "count" && !(e as CountShape).label).length}
+            onBatchLabelUnlabeled={(label: string) => {
+              const unlabeled = elements.filter((e) => e.type === "count" && !(e as CountShape).label);
+              // Use replaceElements to batch-update all unlabeled counts
+              const updated = elements.map((e) => {
+                if (e.type === "count" && !(e as CountShape).label) {
+                  return { ...e, label } as CountShape;
+                }
+                return e;
+              });
+              replaceElements(updated);
+              toast.success(`Labeled ${unlabeled.length} count marker(s) as "${label}"`);
+            }}
           />
         </div>
       )}
@@ -972,6 +1066,7 @@ export default function ItemDetailModal({
                   <DrawingViewer
                     imageUrl={sourceSheet!.imageUrl!}
                     sheetName={sheetLabel}
+                    sheetId={sourceSheet?.id}
                     onFullscreen={() => setIsFullscreen(true)}
                   />
                 </div>
