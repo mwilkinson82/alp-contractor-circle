@@ -1092,22 +1092,36 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], "F");
             }
 
-            // Label to the right of diamond — truncate to fit, no wrapping
+            // Label — try right of diamond first, then left
             doc.setFontSize(6.5);
-            doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            let milestoneLabel = `- ${act.name}`;
-            const labelStartX = cx + half + 1.5;
-            const availSpace = ganttRight - labelStartX - 1;
-            if (availSpace > 5) {
-              // Truncate label to fit available space
-              if (doc.getTextWidth(milestoneLabel) > availSpace) {
-                while (doc.getTextWidth(milestoneLabel + "...") > availSpace && milestoneLabel.length > 3) {
+            const mLabelStartX = cx + half + 1.5;
+            const mRightSpace = ganttRight - mLabelStartX - 1;
+            const mLeftSpace = (cx - half) - chartLeft - 1.5;
+            const mFullLabel = `- ${act.name}`;
+
+            if (mRightSpace >= 5 && (doc.getTextWidth(mFullLabel) <= mRightSpace || mRightSpace >= mLeftSpace)) {
+              // Place to the right
+              doc.setTextColor(...colors.text);
+              let milestoneLabel = mFullLabel;
+              if (doc.getTextWidth(milestoneLabel) > mRightSpace) {
+                while (doc.getTextWidth(milestoneLabel + "...") > mRightSpace && milestoneLabel.length > 3) {
                   milestoneLabel = milestoneLabel.slice(0, -1);
                 }
                 milestoneLabel = milestoneLabel + "...";
               }
-              doc.text(milestoneLabel, labelStartX, cy + 0.8);
+              doc.text(milestoneLabel, mLabelStartX, cy + 0.8);
+            } else if (mLeftSpace >= 10) {
+              // Place to the left
+              doc.setTextColor(...colors.text);
+              let milestoneLabel = `${act.name} -`;
+              if (doc.getTextWidth(milestoneLabel) > mLeftSpace) {
+                while (doc.getTextWidth("..." + milestoneLabel) > mLeftSpace && milestoneLabel.length > 3) {
+                  milestoneLabel = milestoneLabel.slice(1);
+                }
+                milestoneLabel = "..." + milestoneLabel;
+              }
+              doc.text(milestoneLabel, cx - half - 1.5, cy + 0.8, { align: "right" });
             }
           } else {
             // Regular bar
@@ -1134,22 +1148,49 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               }
             }
 
-            // Label to the right of bar — truncate to fit, no wrapping
+            // Label — try right of bar first, then left, then inside
             doc.setFontSize(6.5);
-            doc.setTextColor(...colors.text);
             doc.setFont("helvetica", "normal");
-            let barLabel = `- ${act.name}`;
-            const labelStartX = x2 + 1.5;
-            const availableSpace = ganttRight - labelStartX - 1;
-            if (availableSpace > 5) {
-              // Truncate label to fit available space
-              if (doc.getTextWidth(barLabel) > availableSpace) {
-                while (doc.getTextWidth(barLabel + "...") > availableSpace && barLabel.length > 3) {
+            const fullLabel = `- ${act.name}`;
+            const rightStartX = x2 + 1.5;
+            const rightSpace = ganttRight - rightStartX - 1;
+            const leftSpace = x1 - chartLeft - 1.5;
+            const labelTextWidth = doc.getTextWidth(fullLabel);
+
+            if (rightSpace >= 5 && (labelTextWidth <= rightSpace || rightSpace >= leftSpace)) {
+              // Place to the right of bar
+              doc.setTextColor(...colors.text);
+              let barLabel = fullLabel;
+              if (doc.getTextWidth(barLabel) > rightSpace) {
+                while (doc.getTextWidth(barLabel + "...") > rightSpace && barLabel.length > 3) {
                   barLabel = barLabel.slice(0, -1);
                 }
                 barLabel = barLabel + "...";
               }
-              doc.text(barLabel, labelStartX, barY + barH / 2 + 0.8);
+              doc.text(barLabel, rightStartX, barY + barH / 2 + 0.8);
+            } else if (leftSpace >= 10) {
+              // Place to the left of bar
+              doc.setTextColor(...colors.text);
+              let barLabel = `${act.name} -`;
+              if (doc.getTextWidth(barLabel) > leftSpace) {
+                while (doc.getTextWidth("..." + barLabel) > leftSpace && barLabel.length > 3) {
+                  barLabel = barLabel.slice(1);
+                }
+                barLabel = "..." + barLabel;
+              }
+              doc.text(barLabel, x1 - 1.5, barY + barH / 2 + 0.8, { align: "right" });
+            } else if (barWidth > 15) {
+              // Place inside the bar
+              doc.setTextColor(255, 255, 255);
+              let barLabel = act.name;
+              const insideSpace = barWidth - 2;
+              if (doc.getTextWidth(barLabel) > insideSpace) {
+                while (doc.getTextWidth(barLabel + "...") > insideSpace && barLabel.length > 3) {
+                  barLabel = barLabel.slice(0, -1);
+                }
+                barLabel = barLabel + "...";
+              }
+              doc.text(barLabel, x1 + 1, barY + barH / 2 + 0.8);
             }
           }
         }

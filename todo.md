@@ -2149,3 +2149,19 @@
 - [x] FIX: Cost Library hidden from non-admin members — page-level guard redirects non-admins to /portal (sidebar already admin-only)
 - [x] FEATURE: What's New changelog modal — branded component with 3 changelog entries (Trade Specialty Intelligence, Measurement Tools, Consolidate & Enhance), auto-shows on first login, manual trigger in sidebar
 - [ ] ANALYSIS: Cost optimization and pricing per user
+
+## What's New Modal UX Fixes — April 17, 2026
+- [ ] BUG: ScrollArea not working — content doesn't scroll even though there's more below
+- [ ] BUG: "Got it" button doesn't close modal — users have to click X
+- [ ] BUG: Badge overlap in highlights — "new"/"improved" tags overlapping with description text, needs better spacing
+
+## PreAnalysisModal Badge Overlap — April 17, 2026
+- [ ] BUG: Specialty selector badges overlapping with text (e.g., "47-13" overlapping "Tilt-Up Concrete")
+
+## CPM Schedule Feature Parity — April 17, 2026
+- [ ] FEATURE: Layout save override — when saving with same name as existing layout, update instead of creating duplicate
+- [ ] FEATURE: Expand All / Collapse All for WBS groups — toolbar buttons + keyboard shortcuts (Ctrl+Click like P6)
+- [ ] FEATURE: Custom Activity Codes — create code categories, assign to activities, filter/sort/group by codes
+
+## CPM Schedule PDF Print Fix — April 17, 2026
+- [ ] BUG: PDF print preview cuts off activity descriptions for activities toward end of schedule — should match on-screen compressed view at any zoom level (50%, 75%, fit-to-page)

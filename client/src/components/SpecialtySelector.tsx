@@ -169,21 +169,23 @@ export default function SpecialtySelector({
                           className="mt-0.5 border-white/20 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex flex-col gap-1">
                             <span className="text-sm font-medium text-cream">
                               {spec.name}
                             </span>
-                            {spec.csiSubCode && (
-                              <Badge className="bg-white/5 text-cream-muted/70 border-white/10 text-[9px] font-mono">
-                                {spec.csiSubCode}
-                              </Badge>
-                            )}
-                            {isDetected && (
-                              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px]">
-                                <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                                Auto-detected
-                              </Badge>
-                            )}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {spec.csiSubCode && (
+                                <Badge className="bg-white/5 text-cream-muted/70 border-white/10 text-[9px] font-mono px-1.5 py-0">
+                                  {spec.csiSubCode}
+                                </Badge>
+                              )}
+                              {isDetected && (
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] px-1.5 py-0">
+                                  <Sparkles className="w-2.5 h-2.5 mr-0.5" />
+                                  Auto-detected
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <p className="text-[11px] text-cream-muted/70 mt-0.5 leading-relaxed">
                             {spec.description}

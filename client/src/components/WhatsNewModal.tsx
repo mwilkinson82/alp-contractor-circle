@@ -192,7 +192,7 @@ export function WhatsNewModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[560px] bg-navy-deep border-amber-500/20 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[560px] bg-navy-deep border-amber-500/20 p-0 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header with branded accent */}
         <div className="relative">
           <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]" />
@@ -220,7 +220,7 @@ export function WhatsNewModal({
         </div>
 
         {/* Scrollable changelog */}
-        <ScrollArea className="max-h-[60vh] px-6 pb-2">
+        <ScrollArea className="flex-1 overflow-hidden px-6 pb-2">
           <div className="space-y-6">
             {CHANGELOG.map((entry, entryIdx) => (
               <div key={entry.version}>
@@ -258,8 +258,8 @@ export function WhatsNewModal({
                           <Icon className="w-3.5 h-3.5 text-amber-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-cream">
+                          <div className="flex items-start gap-2 mb-1.5 flex-wrap">
+                            <span className="text-sm font-medium text-cream flex-shrink-0">
                               {h.label}
                             </span>
                             {h.tag && <TagBadge tag={h.tag} />}
@@ -291,7 +291,7 @@ export function WhatsNewModal({
           </p>
           <Button
             onClick={onClose}
-            className="bg-amber-500 hover:bg-amber-600 text-navy-deep font-semibold text-sm px-5"
+            className="bg-amber-500 hover:bg-amber-600 text-navy-deep font-semibold text-sm px-5 h-10"
           >
             Got it
             <ChevronRight className="w-4 h-4 ml-1" />

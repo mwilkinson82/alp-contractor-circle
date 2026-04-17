@@ -37,6 +37,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -332,6 +333,18 @@ export default function Scheduler() {
             return currentIndex > 0 ? zoomLevels[currentIndex - 1] : prev;
           }
         });
+      }
+      // Ctrl+Shift+E = Expand All, Ctrl+Shift+C = Collapse All
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setCollapsedGroups(new Set());
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        if (groupedActivitiesRef.current) {
+          const allKeys = new Set(groupedActivitiesRef.current.map((g: any) => g.group || "all"));
+          setCollapsedGroups(allKeys);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -731,6 +744,7 @@ export default function Scheduler() {
   }, [filteredActivities, sortState, renderCtx]);
 
   /* ── Grouping ─────────────────────────────────────────────────────────── */
+  const groupedActivitiesRef = useRef<any[]>([]);
   const groupedActivities = useMemo(() => {
     if (!groupBy) return [{ group: null as string | null, activities: sortedActivities, depth: 0 as number, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined, ancestorColors: [] as string[] }];
 
@@ -840,6 +854,8 @@ export default function Scheduler() {
     }
     return Array.from(groups.entries()).map(([group, acts]) => ({ group: group as string | null, activities: acts, depth: 0, wbsColor: undefined as string | undefined, wbsTextColor: undefined as string | undefined, ancestorColors: [] as string[] }));
   }, [sortedActivities, groupBy, codeAssignments, codeCategories, wbsNodes]);
+  // Keep ref in sync for keyboard shortcuts
+  useEffect(() => { groupedActivitiesRef.current = groupedActivities; }, [groupedActivities]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
   const activeColumns = useMemo(() => {
@@ -1486,6 +1502,32 @@ export default function Scheduler() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* Expand All / Collapse All */}
+              {groupBy && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
+                    title="Expand All Groups (Ctrl+Shift+E)"
+                    onClick={() => setCollapsedGroups(new Set())}
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
+                    title="Collapse All Groups (Ctrl+Shift+C)"
+                    onClick={() => {
+                      const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
+                      setCollapsedGroups(allKeys);
+                    }}
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              )}
             </div>
             <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">View</span>
           </div>
@@ -3783,6 +3825,18 @@ export default function Scheduler() {
                 placeholder="e.g., Critical Path View, By Trade, My Default"
                 className="mt-1 border-white/15 bg-white/5 text-gray-200"
               />
+              {(() => {
+                const existing = layouts.find((l: any) => l.name !== "__autosave__" && l.name.toLowerCase() === layoutName.trim().toLowerCase());
+                if (existing && layoutName.trim()) {
+                  return (
+                    <p className="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      A layout named "{existing.name}" already exists — saving will overwrite it.
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-400">
               <Checkbox
@@ -3796,20 +3850,35 @@ export default function Scheduler() {
             <Button variant="outline" onClick={() => setShowLayoutDialog(false)} className="border-white/15">Cancel</Button>
             <Button
               className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
-              disabled={!layoutName.trim() || saveLayoutMut.isPending}
+              disabled={!layoutName.trim() || saveLayoutMut.isPending || updateLayoutMut.isPending}
               onClick={() => {
                 if (scheduleId && layoutName.trim()) {
-                  saveLayoutMut.mutate({
-                    scheduleId,
-                    name: layoutName.trim(),
-                    config: captureLayoutConfig(),
-                    isDefault: layoutIsDefault,
-                  });
+                  const existing = layouts.find((l: any) => l.name !== "__autosave__" && l.name.toLowerCase() === layoutName.trim().toLowerCase());
+                  if (existing) {
+                    // Override existing layout
+                    updateLayoutMut.mutate({
+                      id: existing.id,
+                      scheduleId,
+                      name: layoutName.trim(),
+                      config: captureLayoutConfig(),
+                      isDefault: layoutIsDefault,
+                    });
+                    setShowLayoutDialog(false);
+                    setLayoutName("");
+                  } else {
+                    // Create new layout
+                    saveLayoutMut.mutate({
+                      scheduleId,
+                      name: layoutName.trim(),
+                      config: captureLayoutConfig(),
+                      isDefault: layoutIsDefault,
+                    });
+                  }
                 }
               }}
             >
-              {saveLayoutMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-              Save Layout
+              {(saveLayoutMut.isPending || updateLayoutMut.isPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+              {layouts.find((l: any) => l.name !== "__autosave__" && l.name.toLowerCase() === layoutName.trim().toLowerCase()) ? "Update Layout" : "Save Layout"}
             </Button>
           </DialogFooter>
         </DialogContent>
