@@ -2195,3 +2195,31 @@
 - [x] Fix PDF Export label truncation — increased timeline padding to 25%/30d min, labels extend to page edge margin
 - [x] Add advanced text-based filtering — search now covers ID, name, description, and WBS fields
 - [x] Fix Scheduler.tsx parse error at line 1031 — confirmed resolved (was stale Babel cache)
+
+## Activity Code Assignment in Activity Details Dialog
+- [x] Add "Activity Codes" section to Activity Details dialog — already existed, verified working
+- [x] Show all available categories with their values as selectable options
+- [x] Wire to existing setActivityCodes tRPC procedure
+
+## Advanced Filters Enhancement (User Request)
+- [x] Add Activity ID text filter to Advanced Filters dialog
+- [x] Add Activity Name/Description text filter to Advanced Filters dialog
+- [x] Add WBS text filter to Advanced Filters dialog
+- [x] Add inline Activity Code filter (multi-select per category) to Advanced Filters dialog
+- [x] Wire all new filters into the filteredActivities useMemo
+
+## PDF Export Visual Overhaul (P6-style)
+- [x] Reduce bar height to ~38% of row height (from ~70%)
+- [x] Remove rounded corners from bars — use flat sharp rectangles
+- [x] Reduce milestone diamond size by ~50%, use solid fill
+- [x] Use subtle WBS group header backgrounds (light gray) instead of bright saturated colors
+- [x] Make grid lines lighter/thinner
+- [x] Remove "- " prefix from activity labels
+- [x] Tighter typography (6.5pt activity text, 7-7.5pt WBS headers)
+- [x] Summary bars: thin dark lines with end markers
+
+## PDF Preview Fix
+- [x] Fix PDF preview to match actual export (P6-style bars, smaller milestones, subtle WBS colors)
+- [x] Remove "Activity Table" option from PDF export preview — confusing and unnecessary
+- [x] Fix logic lines (relationship arrows) not rendering in actual PDF export — implemented full arrow rendering
+- [x] Ensure logic lines option works end-to-end from preview to export

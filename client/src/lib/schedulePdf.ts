@@ -33,6 +33,7 @@ export interface PdfExportOptions {
 
   // Activities
   activities: Array<{
+    id?: number; // DB id for relationship arrow mapping
     activityId: string;
     name: string;
     duration: number;
@@ -102,6 +103,7 @@ export interface PdfExportOptions {
   groupedActivities?: Array<{
     group: string | null;
     activities: Array<{
+      id?: number;
       activityId: string;
       name: string;
       duration: number;
@@ -344,14 +346,14 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     colHeader: [235, 238, 242] as [number, number, number],
     colHeaderText: [50, 55, 65] as [number, number, number],
   };
-  // P6-style WBS depth colors: green → yellow → red/salmon → pink/magenta
+  // P6-style WBS depth colors: subtle professional grays with slight tints
   const WBS_DEPTH_BG: [number, number, number][] = [
-    [180, 220, 140],  // Depth 0: Green
-    [255, 240, 130],  // Depth 1: Yellow
-    [240, 150, 140],  // Depth 2: Red/Salmon
-    [230, 170, 220],  // Depth 3: Pink/Magenta
-    [180, 200, 240],  // Depth 4: Light Blue
-    [255, 210, 150],  // Depth 5: Light Orange
+    [230, 235, 240],  // Depth 0: Light steel
+    [238, 240, 235],  // Depth 1: Light sage
+    [240, 238, 235],  // Depth 2: Light warm
+    [235, 238, 242],  // Depth 3: Light blue-gray
+    [240, 236, 240],  // Depth 4: Light lavender
+    [240, 240, 235],  // Depth 5: Light cream
   ];
   const hdrAccent = options.headerAccentColor ? hexToRgb(options.headerAccentColor) : colors.gold;
   const hdrText = options.headerTextColor ? hexToRgb(options.headerTextColor) : colors.white;
@@ -692,13 +694,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
-    // Variable row heights: generous spacing for readability
+    // Tighter row heights for denser P6-style layout
     const getRowH = (row: PdfRow): number => {
       if (row.type === "group") {
         const depth = row.depth;
-        return (depth === 0 ? 12 : depth === 1 ? 11 : 10) * zoomScale;
+        return (depth === 0 ? 8 : depth === 1 ? 7 : 6.5) * zoomScale;
       }
-      return 10 * zoomScale;
+      return 6.5 * zoomScale;
     };
 
     // Start Gantt on a new page (or continue on first page if no table)
@@ -908,7 +910,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       pageRows.forEach((row, i) => {
         const y = rowYOffsets[i];
         const rh = getRowH(row);
-        const barH = rh * 0.55;
+        const barH = rh * 0.38;
 
         if (row.type === "group") {
           // WBS Group Header row — P6-style depth-based colors
@@ -929,10 +931,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           }
           const leftBarsWidth = anc.length > 0 ? anc.length * (barW + barGap) + 1 : 0;
 
-          // Group label text — bold black text
-          doc.setTextColor(20, 20, 20);
+          // Group label text — bold dark text, smaller for professional density
+          doc.setTextColor(30, 35, 45);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(depth === 0 ? 9 : depth === 1 ? 8 : 7.5);
+          doc.setFontSize(depth === 0 ? 7.5 : depth === 1 ? 7 : 6.5);
           // Truncate label instead of wrapping
           let groupLabel = row.label;
           const groupMaxW = labelWidth - leftBarsWidth - 4;
@@ -1013,7 +1015,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         const actLeftBarsWidth = actAnc.length > 0 ? actAnc.length * (actBarW + actBarGap) + 0.5 : 0;
 
         // Activity columns (dynamic based on visible columns)
-        doc.setFontSize(7.5);
+        doc.setFontSize(6.5);
         const txtColor = act.isCritical ? colors.critical : colors.text;
         doc.setTextColor(txtColor[0], txtColor[1], txtColor[2]);
         doc.setFont("helvetica", act.isCritical ? "bold" : "normal");
@@ -1075,8 +1077,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           }
 
           if (act.activityType === "milestone" || act.duration === 0) {
-            // Diamond for milestone
-            const diamondSize = barH * 1.6;
+            // Diamond for milestone — smaller, professional P6-style
+            const diamondSize = barH * 0.9;
             const cx = x1;
             const cy = barY + barH / 2;
             const half = diamondSize / 2;
@@ -1105,18 +1107,18 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             const mPageEdge = pageWidth - margin;
             const mRightSpace = mPageEdge - mLabelStartX;
             const mLeftSpace = (cx - half) - chartLeft - 1.5;
-            const mFullLabel = `- ${act.name}`;
+            const mFullLabel = act.name;
             const mMinUseful = 8;
 
             const mRightFits = doc.getTextWidth(mFullLabel) <= mRightSpace;
-            const mLeftFits = doc.getTextWidth(`${act.name} -`) <= mLeftSpace;
+            const mLeftFits = doc.getTextWidth(act.name) <= mLeftSpace;
 
             if (mRightFits) {
               doc.setTextColor(...colors.text);
               doc.text(mFullLabel, mLabelStartX, cy + 0.8);
             } else if (mLeftFits) {
               doc.setTextColor(...colors.text);
-              doc.text(`${act.name} -`, cx - half - 1.5, cy + 0.8, { align: "right" });
+              doc.text(act.name, cx - half - 1.5, cy + 0.8, { align: "right" });
             } else {
               // Try smaller font
               const mSmallFont = 5;
@@ -1142,7 +1144,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
                 doc.text(milestoneLabel, mLabelStartX, cy + 0.6);
               } else if (mLeftSpace >= mMinUseful) {
                 doc.setTextColor(...colors.text);
-                let milestoneLabel = `${act.name} -`;
+                let milestoneLabel = act.name;
                 if (doc.getTextWidth(milestoneLabel) > mLeftSpace) {
                   while (doc.getTextWidth("..." + milestoneLabel) > mLeftSpace && milestoneLabel.length > 3) {
                     milestoneLabel = milestoneLabel.slice(1);
@@ -1154,16 +1156,16 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             }
             doc.setFontSize(mBaseFontSize);
           } else {
-            // Regular bar
+            // Regular bar — flat sharp rectangles (P6-style)
             doc.setFillColor(...barColor);
-            doc.roundedRect(x1, barY, barWidth, barH, 0.4, 0.4, "F");
+            doc.rect(x1, barY, barWidth, barH, "F");
 
-            // Progress fill
+            // Progress fill — darker shade inside bar
             const pct = parseFloat(act.percentComplete) / 100;
             if (pct > 0 && pct < 1) {
               const darkColor = barColor.map(c => Math.max(0, c - 60)) as [number, number, number];
               doc.setFillColor(...darkColor);
-              doc.roundedRect(x1, barY, barWidth * pct, barH, 0.4, 0.4, "F");
+              doc.rect(x1, barY, barWidth * pct, barH, "F");
             }
 
             // Float bar (dashed extension)
@@ -1182,7 +1184,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
             const baseFontSize = 6.5;
             doc.setFontSize(baseFontSize);
             doc.setFont("helvetica", "normal");
-            const fullLabel = `- ${act.name}`;
+            const fullLabel = act.name;
             const rightStartX = x2 + 1.5;
             // Allow labels to extend beyond chart area to page edge (labels are text, not bars)
             const pageEdge = pageWidth - margin;
@@ -1193,27 +1195,27 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
 
             // Try full label at normal size first
             const rightFits = labelTextWidth <= rightSpace;
-            const leftFits = doc.getTextWidth(`${act.name} -`) <= leftSpace;
+            const leftFits = doc.getTextWidth(act.name) <= leftSpace;
 
             if (rightFits) {
               doc.setTextColor(...colors.text);
               doc.text(fullLabel, rightStartX, barY + barH / 2 + 0.8);
             } else if (leftFits) {
               doc.setTextColor(...colors.text);
-              doc.text(`${act.name} -`, x1 - 1.5, barY + barH / 2 + 0.8, { align: "right" });
+              doc.text(act.name, x1 - 1.5, barY + barH / 2 + 0.8, { align: "right" });
             } else {
               // Try smaller font (5pt) to fit the full label
               const smallFont = 5;
               doc.setFontSize(smallFont);
               const smallRightFits = doc.getTextWidth(fullLabel) <= rightSpace;
-              const smallLeftFits = doc.getTextWidth(`${act.name} -`) <= leftSpace;
+              const smallLeftFits = doc.getTextWidth(act.name) <= leftSpace;
 
               if (smallRightFits) {
                 doc.setTextColor(...colors.text);
                 doc.text(fullLabel, rightStartX, barY + barH / 2 + 0.6);
               } else if (smallLeftFits) {
                 doc.setTextColor(...colors.text);
-                doc.text(`${act.name} -`, x1 - 1.5, barY + barH / 2 + 0.6, { align: "right" });
+                doc.text(act.name, x1 - 1.5, barY + barH / 2 + 0.6, { align: "right" });
               } else if (rightSpace >= leftSpace && rightSpace >= minUseful) {
                 // Truncate at small font on the side with more room
                 doc.setTextColor(...colors.text);
@@ -1227,7 +1229,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
                 doc.text(barLabel, rightStartX, barY + barH / 2 + 0.6);
               } else if (leftSpace >= minUseful) {
                 doc.setTextColor(...colors.text);
-                let barLabel = `${act.name} -`;
+                let barLabel = act.name;
                 if (doc.getTextWidth(barLabel) > leftSpace) {
                   while (doc.getTextWidth("..." + barLabel) > leftSpace && barLabel.length > 3) {
                     barLabel = barLabel.slice(1);
@@ -1254,6 +1256,80 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           }
         }
       });
+
+      // ─── Draw Logic Lines (Relationship Arrows) on this page ──────────
+      if (showLogicLines && options.relationships.length > 0) {
+        // Build a map from DB activity id to bar position on this page
+        type BarPos = { x1: number; x2: number; yMid: number };
+        const barPositions = new Map<number, BarPos>();
+
+        pageRows.forEach((row, i) => {
+          if (row.type !== "activity") return;
+          const act = row.act;
+          if (!act.earlyStart || !act.earlyFinish || !act.id) return;
+          const y = rowYOffsets[i];
+          const rh = getRowH(row);
+          const barH = rh * 0.38;
+          const x1 = dateToX(act.earlyStart);
+          const x2 = dateToX(act.earlyFinish);
+          const barWidth = Math.max(x2 - x1, 1.5);
+          const barY = y + (rh - barH) / 2;
+          const yMid = barY + barH / 2;
+          if (act.activityType === "milestone" || act.duration === 0) {
+            barPositions.set(act.id, { x1: x1, x2: x1, yMid });
+          } else {
+            barPositions.set(act.id, { x1, x2: x1 + barWidth, yMid });
+          }
+        });
+
+        if (barPositions.size > 0) {
+          doc.setDrawColor(80, 90, 110);
+          doc.setLineWidth(0.15);
+
+          for (const rel of options.relationships) {
+            const predPos = barPositions.get(rel.predecessorId);
+            const succPos = barPositions.get(rel.successorId);
+            if (!predPos || !succPos) continue; // one or both not on this page
+
+            const type = rel.relationshipType || "FS";
+            let sx: number, sy: number, ex: number, ey: number;
+
+            switch (type) {
+              case "FS": sx = predPos.x2; sy = predPos.yMid; ex = succPos.x1; ey = succPos.yMid; break;
+              case "SS": sx = predPos.x1; sy = predPos.yMid; ex = succPos.x1; ey = succPos.yMid; break;
+              case "FF": sx = predPos.x2; sy = predPos.yMid; ex = succPos.x2; ey = succPos.yMid; break;
+              case "SF": sx = predPos.x1; sy = predPos.yMid; ex = succPos.x2; ey = succPos.yMid; break;
+              default:   sx = predPos.x2; sy = predPos.yMid; ex = succPos.x1; ey = succPos.yMid;
+            }
+
+            // Draw right-angle routing
+            doc.setLineDashPattern([], 0);
+            if (Math.abs(sy - ey) < 0.5) {
+              // Same row — straight line
+              doc.line(sx, sy, ex, ey);
+            } else {
+              // Route: horizontal → vertical → horizontal
+              const midX = Math.max(sx + 2, sx + (ex - sx) / 2);
+              doc.line(sx, sy, midX, sy);
+              doc.line(midX, sy, midX, ey);
+              doc.line(midX, ey, ex, ey);
+            }
+
+            // Arrowhead at destination (small triangle)
+            const arrowSize = 0.8;
+            const isRightArrow = type === "FF" || type === "SF";
+            if (isRightArrow) {
+              // Arrow pointing right
+              doc.setFillColor(80, 90, 110);
+              doc.triangle(ex, ey, ex - arrowSize * 1.5, ey - arrowSize, ex - arrowSize * 1.5, ey + arrowSize, "F");
+            } else {
+              // Arrow pointing left (toward start of successor)
+              doc.setFillColor(80, 90, 110);
+              doc.triangle(ex, ey, ex + arrowSize * 1.5, ey - arrowSize, ex + arrowSize * 1.5, ey + arrowSize, "F");
+            }
+          }
+        }
+      }
     }
 
     // ─── Legend (on last Gantt page, below activities) ───────────────────

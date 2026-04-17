@@ -585,7 +585,7 @@ export default function Scheduler() {
   const [localCriticalBarColor, setLocalCriticalBarColor] = useState("#ef4444");
   const [localNormalBarColor, setLocalNormalBarColor] = useState("#22c55e");
 
-  /* ── Advanced Filter State ────────────────────────────────────────────── */
+    /* ── Advanced Filter State ────────────────────────────────────────── */
   const [filterCriticalOnly, setFilterCriticalOnly] = useState(false);
   const [filterLongestPath, setFilterLongestPath] = useState(false);
   const [filterLookahead, setFilterLookahead] = useState<"none" | "1week" | "2week" | "4week">("none");
@@ -594,6 +594,9 @@ export default function Scheduler() {
   const [filterDateStart, setFilterDateStart] = useState("");
   const [filterDateEnd, setFilterDateEnd] = useState("");
   const [filterOpenEnds, setFilterOpenEnds] = useState(false);
+  const [filterActivityId, setFilterActivityId] = useState("");
+  const [filterActivityName, setFilterActivityName] = useState("");
+  const [filterWbs, setFilterWbs] = useState("");
 
   /* ── WBS Manager State ────────────────────────────────────────────────── */
   const [newWbsCode, setNewWbsCode] = useState("");
@@ -719,16 +722,31 @@ export default function Scheduler() {
       });
     }
 
-    if (filterOpenEnds) {
+     if (filterOpenEnds) {
       const openIds = new Set([
         ...openEnds.openStarts.map((a) => a.id),
         ...openEnds.openFinishes.map((a) => a.id),
       ]);
       acts = acts.filter((a) => openIds.has(a.id));
     }
-
+    // Text-based advanced filters
+    if (filterActivityId.trim()) {
+      const q = filterActivityId.toLowerCase();
+      acts = acts.filter((a) => (a.activityId || `A${a.id}`).toLowerCase().includes(q));
+    }
+    if (filterActivityName.trim()) {
+      const q = filterActivityName.toLowerCase();
+      acts = acts.filter((a) =>
+        a.name.toLowerCase().includes(q) ||
+        (a.description && a.description.toLowerCase().includes(q))
+      );
+    }
+    if (filterWbs.trim()) {
+      const q = filterWbs.toLowerCase();
+      acts = acts.filter((a) => a.wbs && a.wbs.toLowerCase().includes(q));
+    }
     return acts;
-  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLongestPath, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, openEnds]);
+  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLongestPath, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, openEnds, filterActivityId, filterActivityName, filterWbs]);
 
   /* ── Sorting ──────────────────────────────────────────────────────────── */
   const sortedActivities = useMemo(() => {
@@ -1298,7 +1316,7 @@ export default function Scheduler() {
   }
   if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#0f1219] text-gray-300">Schedule not found</div>;
 
-  const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0;
+  const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0 || filterActivityId.trim() !== "" || filterActivityName.trim() !== "" || filterWbs.trim() !== "";
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
@@ -4007,6 +4025,22 @@ export default function Scheduler() {
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Text-based filters */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-gray-600">Activity ID</Label>
+                <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-600">Activity Name / Description</Label>
+                <Input value={filterActivityName} onChange={(e) => setFilterActivityName(e.target.value)} placeholder="e.g. concrete, steel" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-600">WBS Code</Label>
+                <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+              </div>
+            </div>
+
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterCriticalOnly} onCheckedChange={(c) => setFilterCriticalOnly(!!c)} />
@@ -4060,13 +4094,43 @@ export default function Scheduler() {
             {codeCategories.length > 0 && (
               <div>
                 <Label className="text-xs text-gray-600 mb-2 block">Activity Codes</Label>
-                <Button
-                  size="sm" variant="outline"
-                  className="text-xs border-white/15"
-                  onClick={() => setShowFilterPanel(!showFilterPanel)}
-                >
-                  {showFilterPanel ? "Hide" : "Show"} Code Filter Bar
-                </Button>
+                <div className="space-y-2">
+                  {codeCategories.map((cat: any) => (
+                    <div key={cat.id} className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-400 w-24 shrink-0">{cat.name}:</span>
+                      {cat.values?.map((val: any) => {
+                        const isActive = activeFilters.get(cat.id)?.has(val.id) || false;
+                        return (
+                          <button
+                            key={val.id}
+                            className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                              isActive
+                                ? "bg-amber-500/20 border-amber-500 text-amber-300"
+                                : "border-white/15 text-gray-400 hover:border-white/30"
+                            }`}
+                            onClick={() => {
+                              const newFilters = new Map(activeFilters);
+                              const current = new Set(newFilters.get(cat.id) || []);
+                              if (isActive) {
+                                current.delete(val.id);
+                              } else {
+                                current.add(val.id);
+                              }
+                              if (current.size === 0) {
+                                newFilters.delete(cat.id);
+                              } else {
+                                newFilters.set(cat.id, current);
+                              }
+                              setActiveFilters(newFilters);
+                            }}
+                          >
+                            {val.value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -4082,6 +4146,9 @@ export default function Scheduler() {
                 setFilterDateStart("");
                 setFilterDateEnd("");
                 setFilterOpenEnds(false);
+                setFilterActivityId("");
+                setFilterActivityName("");
+                setFilterWbs("");
                 setActiveFilters(new Map());
               }}
             >

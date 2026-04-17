@@ -26,7 +26,7 @@ export interface PdfHeaderFooterConfig {
   pageSize?: "letter" | "legal" | "tabloid" | "a3" | "a1" | "archD" | "archE";
   orientation?: "landscape" | "portrait";
   showGantt?: boolean;
-  showTable?: boolean;
+  showTable?: boolean; // deprecated - always false
   criticalPathOnly?: boolean;
   showLogicLines?: boolean;
   headerBgColor?: string;
@@ -592,7 +592,7 @@ export function PdfExportPreview({
       if (row.type === "group") {
         const depth = row.depth;
         // P6-style depth-based WBS colors: green → yellow → red/salmon → pink
-        const WBS_PREVIEW_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
+        const WBS_PREVIEW_BG = ["#e6ebf0", "#eef0eb", "#f0eeeb", "#ebeff2", "#f0ecf0", "#f0f0eb"];
         ctx.fillStyle = WBS_PREVIEW_BG[depth % WBS_PREVIEW_BG.length];
         ctx.fillRect(margin, ry, tableW, rh);
         // P6-style colored left bars — one per ancestor level
@@ -804,7 +804,7 @@ export function PdfExportPreview({
             const ePct = (summaryEnd - minDate) / dateRange;
             const sbx = ganttX + 4 + sPct * (ganttW - 8);
             const sbw = Math.max(4, (ePct - sPct) * (ganttW - 8));
-            const sbh = Math.max(3, rh * 0.25);
+            const sbh = Math.max(2, rh * 0.15);
             const sby = ry + rh / 2 - sbh / 2;
             // Dark summary bar
             ctx.fillStyle = "#282828";
@@ -818,7 +818,7 @@ export function PdfExportPreview({
             // Diamond at end
             const dx = sbx + sbw;
             const dy = sby + sbh / 2;
-            const ds = Math.max(2, sbh * 0.35);
+            const ds = Math.max(1.5, sbh * 0.3);
             ctx.beginPath();
             ctx.moveTo(dx, dy - ds);
             ctx.lineTo(dx + ds, dy);
@@ -837,17 +837,17 @@ export function PdfExportPreview({
         const endPct = (new Date(act.earlyFinish).getTime() - minDate) / dateRange;
         const bx = ganttX + 4 + startPct * (ganttW - 8);
         const bw = Math.max(3, (endPct - startPct) * (ganttW - 8));
-        const barPad = Math.max(2, rh * 0.12);
-        const by = ry + barPad;
-        const bh = rh - barPad * 2;
+        const bh = rh * 0.38;
+        const by = ry + (rh - bh) / 2;
 
         // Store position for logic lines
         barPositions.set(act.activityId, { x1: bx, x2: bx + bw, yMid: ry + rh / 2 });
 
         if (act.duration === 0) {
+          // Milestone diamond — smaller, professional P6-style
           const cx = bx;
           const cy = by + bh / 2;
-          const s = Math.min(4, bh / 2);
+          const s = Math.min(3, bh * 0.45);
           ctx.fillStyle = act.barColor || "#eab308";
           ctx.beginPath();
           ctx.moveTo(cx, cy - s);
@@ -856,28 +856,25 @@ export function PdfExportPreview({
           ctx.lineTo(cx - s, cy);
           ctx.closePath();
           ctx.fill();
-          // Milestone label to the right — P6-style with bullet
+          // Milestone label
           const mlFont = Math.max(5, baseFontSize * 0.95);
           ctx.font = `${mlFont}px 'DM Sans', sans-serif`;
           ctx.fillStyle = "#1e293b";
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(`- ${act.name}`, cx + s + 3, cy);
+          ctx.fillText(act.name, cx + s + 3, cy);
         } else {
+          // Flat sharp rectangle bar (P6-style, no rounded corners)
           ctx.fillStyle = act.barColor || (act.isCritical ? "#ef4444" : "#22c55e");
-          const radius = 1.5;
-          ctx.beginPath();
-          ctx.roundRect(bx, by, bw, bh, radius);
-          ctx.fill();
-          // Activity name label — P6-style: always to the right with bullet dot
+          ctx.fillRect(bx, by, bw, bh);
+          // Activity name label
           const barFont = Math.max(5, baseFontSize * 0.95);
           ctx.font = `${barFont}px 'DM Sans', sans-serif`;
           ctx.textBaseline = "middle";
           const labelY = ry + rh / 2;
-          // Always draw label to the right of bar with bullet prefix
           ctx.fillStyle = "#1e293b";
           ctx.textAlign = "left";
-          ctx.fillText(`- ${act.name}`, bx + bw + 3, labelY);
+          ctx.fillText(act.name, bx + bw + 3, labelY);
         }
       }
 
@@ -1386,10 +1383,7 @@ export function PdfExportPreview({
                   <Checkbox checked={showGantt} onCheckedChange={(c) => setShowGantt(!!c)} />
                   <span className="text-xs text-gray-400">Include Gantt Chart</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={showTable} onCheckedChange={(c) => setShowTable(!!c)} />
-                  <span className="text-xs text-gray-400">Include Activity Table</span>
-                </label>
+
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={criticalPathOnly} onCheckedChange={(c) => setCriticalPathOnly(!!c)} />
                   <span className="text-xs text-gray-400">Critical Path Only</span>
