@@ -610,7 +610,7 @@ export default function PortalDashboard() {
       {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
 
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div data-tour="welcome-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
             {greeting}, {firstName}
@@ -630,7 +630,7 @@ export default function PortalDashboard() {
       </div>
 
       {/* Subscription Status Card */}
-      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
+      <div data-tour="subscription-status" className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center">
@@ -732,7 +732,7 @@ export default function PortalDashboard() {
       )}
 
       {/* Quick Links Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div data-tour="quick-links" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {quickLinks.map(link => (
           <a
             key={link.title}

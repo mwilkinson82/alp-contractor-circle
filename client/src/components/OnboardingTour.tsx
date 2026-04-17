@@ -1,0 +1,182 @@
+/**
+ * OnboardingTour — Guided product tour for first-time portal users.
+ * Uses react-joyride v3 to walk through key portal features with spotlight callouts.
+ * Shows only once per user (persisted in localStorage).
+ */
+import { useState, useEffect, useCallback } from "react";
+import { Joyride, ACTIONS, EVENTS, STATUS } from "react-joyride";
+import type { Step, EventData, Controls } from "react-joyride";
+import { useMember } from "@/hooks/useMember";
+
+const TOUR_STORAGE_KEY = "alp-portal-tour-completed";
+
+/** Tour steps targeting data-tour attributes on the dashboard and sidebar */
+const TOUR_STEPS: Step[] = [
+  {
+    target: '[data-tour="welcome-header"]',
+    content:
+      "Welcome to The Contractor Circle portal! This is your home base. Let me walk you through the key features so you can hit the ground running.",
+    title: "Welcome to Your Portal",
+    placement: "bottom",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="subscription-status"]',
+    content:
+      "Here you can see your subscription status, plan details, and renewal date. Everything about your membership at a glance.",
+    title: "Subscription Status",
+    placement: "bottom",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="nav-replay-library"]',
+    content:
+      "Watch recordings of past Contractor Circle calls and bootcamp sessions. New replays are added after every live session.",
+    title: "Replay Library",
+    placement: "right",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="nav-templates"]',
+    content:
+      "Download ready-to-use proposal templates, contract templates, and SOPs. Request new ones if you don't see what you need.",
+    title: "Templates & SOPs",
+    placement: "right",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="nav-constructline"]',
+    content:
+      "ConstructLine is your construction management toolkit. It includes a CPM Scheduler and AI-powered Quantity Takeoff — tools built specifically for contractors.",
+    title: "ConstructLine Suite",
+    placement: "right",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="quick-links"]',
+    content:
+      "Quick links to your most-used resources: replays, templates, Discord community, and the next live call. Everything one click away.",
+    title: "Quick Access",
+    placement: "top",
+    skipBeacon: true,
+  },
+];
+
+export function OnboardingTour() {
+  const { member, isAuthenticated } = useMember();
+  const [run, setRun] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated || !member) return;
+
+    // Check if tour was already completed
+    const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
+    if (tourCompleted) return;
+
+    // Small delay so the DOM elements are rendered
+    const timer = setTimeout(() => {
+      setRun(true);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, member]);
+
+  const handleEvent = useCallback((data: EventData, controls: Controls) => {
+    const { status, action, index, type } = data;
+
+    // Tour finished or skipped
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      setRun(false);
+      localStorage.setItem(TOUR_STORAGE_KEY, "true");
+      return;
+    }
+
+    // Handle step navigation
+    if (type === EVENTS.STEP_AFTER) {
+      if (action === ACTIONS.NEXT) {
+        setStepIndex(index + 1);
+      } else if (action === ACTIONS.PREV) {
+        setStepIndex(index - 1);
+      }
+    }
+
+    // Handle close button
+    if (action === ACTIONS.CLOSE) {
+      setRun(false);
+      localStorage.setItem(TOUR_STORAGE_KEY, "true");
+    }
+  }, []);
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <Joyride
+      steps={TOUR_STEPS}
+      run={run}
+      stepIndex={stepIndex}
+      onEvent={handleEvent}
+      continuous
+      scrollToFirstStep
+      options={{
+        overlayColor: "rgba(0, 0, 0, 0.75)",
+        primaryColor: "#E8622C",
+        backgroundColor: "oklch(0.15 0.02 260)",
+        textColor: "#F5F0E8",
+        zIndex: 10000,
+        showProgress: true,
+        spotlightRadius: 16,
+        overlayClickAction: false,
+        blockTargetInteraction: true,
+      }}
+      locale={{
+        back: "Back",
+        close: "Close",
+        last: "Get Started!",
+        next: "Next",
+        skip: "Skip Tour",
+      }}
+      styles={{
+        tooltip: {
+          borderRadius: "16px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          padding: "20px 24px",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
+        },
+        tooltipTitle: {
+          fontSize: "16px",
+          fontWeight: 700,
+          marginBottom: "8px",
+        },
+        tooltipContent: {
+          fontSize: "14px",
+          lineHeight: "1.6",
+          padding: "8px 0",
+        },
+        buttonPrimary: {
+          borderRadius: "10px",
+          fontSize: "13px",
+          fontWeight: 600,
+          padding: "8px 20px",
+        },
+        buttonBack: {
+          fontSize: "13px",
+          marginRight: "8px",
+        },
+        buttonSkip: {
+          fontSize: "12px",
+        },
+      }}
+    />
+  );
+}
+
+/**
+ * Hook to manually trigger the tour (e.g., from a "Restart Tour" button in settings).
+ */
+export function useResetTour() {
+  return () => {
+    localStorage.removeItem(TOUR_STORAGE_KEY);
+    window.location.reload();
+  };
+}

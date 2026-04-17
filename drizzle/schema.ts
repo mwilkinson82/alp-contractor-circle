@@ -925,3 +925,23 @@ export const measurementHistory = mysqlTable("measurement_history", {
 
 export type MeasurementHistory = typeof measurementHistory.$inferSelect;
 export type InsertMeasurementHistory = typeof measurementHistory.$inferInsert;
+
+/**
+ * Feedback — beta user feedback submissions with optional screenshot.
+ */
+export const feedback = mysqlTable("feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  memberName: varchar("memberName", { length: 128 }),
+  message: text("message").notNull(),
+  screenshotUrl: text("screenshotUrl"),
+  page: varchar("page", { length: 512 }),
+  userAgent: text("userAgent"),
+  category: mysqlEnum("category", ["bug", "feature", "general", "other"]).default("general").notNull(),
+  status: mysqlEnum("status", ["new", "reviewed", "in_progress", "resolved", "wont_fix"]).default("new").notNull(),
+  adminNotes: text("adminNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = typeof feedback.$inferInsert;

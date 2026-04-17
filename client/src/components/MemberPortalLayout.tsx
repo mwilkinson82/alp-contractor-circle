@@ -35,6 +35,7 @@ import {
   Sparkles,
   HardHat,
   BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
@@ -54,6 +55,7 @@ const bottomMenuItems = [
   { icon: Users, label: "Members", path: "/portal/members", adminOnly: true },
   { icon: BarChart3, label: "Analytics", path: "/portal/analytics", adminOnly: true },
   { icon: Mail, label: "Drip Campaigns", path: "/portal/drip", adminOnly: true },
+  { icon: MessageSquare, label: "Feedback", path: "/portal/feedback", adminOnly: true },
 ];
 
 // ─── Skeletons & Login Prompt ─────────────────────────────────────────────────
@@ -130,6 +132,7 @@ function ConstructLineNav({
     <div>
       {/* Parent: ConstructLine */}
       <button
+        data-tour="nav-constructline"
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
           isParentActive
@@ -150,6 +153,7 @@ function ConstructLineNav({
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/8 pl-3">
           {/* Scheduler */}
           <button
+            data-tour="nav-scheduler"
             onClick={() => navigate("/portal/scheduler")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
               isSchedulerActive
@@ -165,6 +169,7 @@ function ConstructLineNav({
           {/* Takeoff — admin only, others see Coming Soon */}
           {isAdmin ? (
             <button
+              data-tour="nav-takeoff"
               onClick={() => navigate("/portal/takeoff")}
               className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
                 isTakeoffActive
@@ -282,6 +287,7 @@ export default function MemberPortalLayout({
               return (
                 <button
                   key={item.path}
+                  data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   onClick={() => setLocation(item.path)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                     isActive

@@ -225,6 +225,13 @@
       "when": 1776445181697,
       "tag": "0031_last_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1776445902637,
+      "tag": "0032_goofy_warhawk",
+      "breakpoints": true
     }
   ]
 }

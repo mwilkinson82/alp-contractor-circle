@@ -2055,3 +2055,25 @@
 - [x] FRONTEND: Log measurement applies to history when user clicks Apply (via logMeasurementApply mutation)
 - [x] FRONTEND: Show measurement history timeline in item detail modal with type icons, values, sheet names, and relative timestamps
 - [x] FRONTEND: Show "Verified via Measurement" badge (blue CheckCircle2) on items that have measurement history
+
+## Beta Launch Prep — April 17, 2026
+
+### Verified Column in Items Table
+- [x] Add "Verified" indicator column to the takeoff items table showing which items have measurement history
+- [x] Query getItemsWithMeasurements to get list of verified item IDs (verifiedSet)
+- [x] Show Ruler icon in blue for verified items, dash for unverified
+
+### Feedback Widget
+- [x] SCHEMA: Create feedback table (memberId, memberName, message, screenshotUrl, page, userAgent, category, status, adminNotes, createdAt)
+- [x] DB: Add feedback CRUD helpers (feedbackDb.ts)
+- [x] BACKEND: Add tRPC endpoints (feedbackRouter.ts — submit, list, get, updateStatus, delete)
+- [x] FRONTEND: Floating feedback button (bottom-right corner) with modal (FeedbackWidget.tsx)
+- [x] FRONTEND: Screenshot capture using html2canvas
+- [x] FRONTEND: Feedback submission form with message, category selector, optional screenshot
+- [x] ADMIN: Feedback viewer page in admin portal (AdminFeedback.tsx) with status cards, category filters, detail dialog, admin notes, screenshot viewer
+
+### Guided Onboarding Tour
+- [x] Install react-joyride v3 for product tour functionality
+- [x] Create tour steps configuration targeting dashboard, sidebar nav, and quick links (6 steps)
+- [x] Track tour completion per user (localStorage key: alp-portal-tour-completed)
+- [x] Show tour automatically on first login; useResetTour() hook exported for replay from settings

@@ -48,6 +48,7 @@ import {
   Percent,
   PlusCircle,
   Layers,
+  Ruler,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 
@@ -152,6 +153,13 @@ export default function TakeoffDetail() {
     { projectId },
     { enabled: projectId > 0 }
   );
+
+  // ─── Verified (measurement history) items ─────────────────────────────
+  const { data: verifiedItemIds } = trpc.takeoff.getItemsWithMeasurements.useQuery(
+    { projectId },
+    { enabled: projectId > 0 }
+  );
+  const verifiedSet = useMemo(() => new Set(verifiedItemIds || []), [verifiedItemIds]);
 
   const { data: progress, refetch: refetchProgress } = trpc.takeoff.getProgress.useQuery(
     { projectId },
@@ -1227,6 +1235,7 @@ export default function TakeoffDetail() {
                                   <th className="text-right px-4 py-2 w-24">Unit Cost</th>
                                   <th className="text-right px-4 py-2 w-28">Extended</th>
                                   <th className="text-center px-4 py-2 w-16">Conf.</th>
+                                  <th className="text-center px-4 py-2 w-16">Verified</th>
                                   <th className="text-center px-4 py-2 w-20">Actions</th>
                                 </tr>
                               </thead>
@@ -1275,6 +1284,15 @@ export default function TakeoffDetail() {
                                       >
                                         {item.confidence}%
                                       </Badge>
+                                    </td>
+                                    <td className="px-4 py-2 text-center">
+                                      {verifiedSet.has(item.id) ? (
+                                        <div className="flex items-center justify-center" title="Verified via measurement">
+                                          <Ruler className="w-3.5 h-3.5 text-blue-400" />
+                                        </div>
+                                      ) : (
+                                        <span className="text-cream-muted/30">—</span>
+                                      )}
                                     </td>
                                     <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                       <div className="flex items-center justify-center gap-1">

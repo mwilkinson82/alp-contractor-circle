@@ -6,6 +6,7 @@ import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { takeoffRouter } from "./takeoffRouter";
+import { feedbackRouter } from "./feedbackRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
@@ -78,6 +79,7 @@ export const appRouter = router({
   member: memberRouter,
   schedule: scheduleRouter,
   takeoff: takeoffRouter,
+  feedback: feedbackRouter,
 
   templates: router({
     /**

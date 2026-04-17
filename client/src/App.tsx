@@ -26,6 +26,9 @@ import EstimatingThankYou from "./pages/EstimatingThankYou";
 import TakeoffList from "./pages/TakeoffList";
 import TakeoffDetail from "./pages/TakeoffDetail";
 import CostLibrary from "./pages/CostLibrary";
+import { FeedbackWidget } from "./components/FeedbackWidget";
+import { OnboardingTour } from "./components/OnboardingTour";
+import AdminFeedback from "./pages/AdminFeedback";
 
 function Router() {
   return (
@@ -110,6 +113,13 @@ function Router() {
         </MemberPortalLayout>
       </Route>
 
+      {/* Admin Feedback */}
+      <Route path="/portal/feedback">
+        <MemberPortalLayout>
+          <AdminFeedback />
+        </MemberPortalLayout>
+      </Route>
+
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -123,6 +133,8 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <FeedbackWidget />
+          <OnboardingTour />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
