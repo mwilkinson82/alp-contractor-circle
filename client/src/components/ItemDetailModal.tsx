@@ -278,7 +278,22 @@ function FullscreenDrawing({
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
-  const { elements, pushElement, replaceElements, updateElement, removeElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+  const { elements, pushElement, replaceElements, updateElement, updateElementSilent, beginDrag, commitDrag, removeElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+
+  // When color or lineWidth changes and a shape is selected, apply to that shape
+  const handleColorChange = useCallback((c: string) => {
+    setActiveColor(c);
+    if (selectedShapeId) {
+      updateElement(selectedShapeId, (s) => ({ ...s, color: c }));
+    }
+  }, [selectedShapeId, updateElement]);
+
+  const handleLineWidthChange = useCallback((w: number) => {
+    setLineWidth(w);
+    if (selectedShapeId) {
+      updateElement(selectedShapeId, (s) => ({ ...s, lineWidth: w }));
+    }
+  }, [selectedShapeId, updateElement]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [lastMeasurement, setLastMeasurement] = useState<{ pxDist: number; type: string } | null>(null);
 
@@ -663,7 +678,9 @@ function FullscreenDrawing({
             isPanning={spaceHeld}
             imageNaturalWidth={imageNaturalWidth}
             imageNaturalHeight={imageNaturalHeight}
-            onUpdateElement={updateElement}
+            onUpdateElement={updateElementSilent}
+            onDragStart={beginDrag}
+            onDragEnd={commitDrag}
           />
           {textPromptPos && (
             <TextInputOverlay
@@ -692,9 +709,9 @@ function FullscreenDrawing({
               if (tool !== "select") setSelectedShapeId(null);
             }}
             activeColor={activeColor}
-            onColorChange={setActiveColor}
+            onColorChange={handleColorChange}
             lineWidth={lineWidth}
-            onLineWidthChange={setLineWidth}
+            onLineWidthChange={handleLineWidthChange}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={undo}

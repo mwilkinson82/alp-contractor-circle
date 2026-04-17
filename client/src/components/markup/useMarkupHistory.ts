@@ -1,10 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { Shape } from "./types";
 
 export function useMarkupHistory() {
   const [elements, setElements] = useState<Shape[]>([]);
   const [undoStack, setUndoStack] = useState<Shape[][]>([]);
   const [redoStack, setRedoStack] = useState<Shape[][]>([]);
+
+  // For drag coalescing: snapshot taken at drag start, committed at drag end
+  const dragSnapshotRef = useRef<Shape[] | null>(null);
 
   const pushElement = useCallback(
     (shape: Shape) => {
@@ -40,6 +43,7 @@ export function useMarkupHistory() {
     setElements(next);
   }, [redoStack, elements]);
 
+  /** Update a shape and push current state to undo stack (for discrete edits like color/width change) */
   const updateElement = useCallback(
     (id: string, updater: (shape: Shape) => Shape) => {
       setUndoStack((prev) => [...prev, elements]);
@@ -48,6 +52,32 @@ export function useMarkupHistory() {
     },
     [elements],
   );
+
+  /**
+   * Update a shape WITHOUT pushing to undo stack.
+   * Used during drag operations — call beginDrag() first, then updateElementSilent()
+   * on each pointer move, then commitDrag() when done.
+   */
+  const updateElementSilent = useCallback(
+    (id: string, updater: (shape: Shape) => Shape) => {
+      setElements((prev) => prev.map((s) => (s.id === id ? updater(s) : s)));
+    },
+    [],
+  );
+
+  /** Call at the start of a drag to snapshot current state for undo */
+  const beginDrag = useCallback(() => {
+    dragSnapshotRef.current = elements;
+  }, [elements]);
+
+  /** Call at the end of a drag to commit the snapshot to undo stack */
+  const commitDrag = useCallback(() => {
+    if (dragSnapshotRef.current) {
+      setUndoStack((prev) => [...prev, dragSnapshotRef.current!]);
+      setRedoStack([]);
+      dragSnapshotRef.current = null;
+    }
+  }, []);
 
   const removeElement = useCallback(
     (id: string) => {
@@ -69,6 +99,9 @@ export function useMarkupHistory() {
     pushElement,
     replaceElements,
     updateElement,
+    updateElementSilent,
+    beginDrag,
+    commitDrag,
     removeElement,
     undo,
     redo,

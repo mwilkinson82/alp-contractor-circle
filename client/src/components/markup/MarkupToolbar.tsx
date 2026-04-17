@@ -8,6 +8,7 @@ import {
   Undo2,
   Redo2,
   Trash2,
+  Eraser,
   Download,
   Ruler,
   ArrowRightToLine,
@@ -198,23 +199,26 @@ export function MarkupToolbar({
         >
           <Redo2 className="w-4 h-4" />
         </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            title="Delete selected shape (Del)"
+            className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-150"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
         <button
           type="button"
-          onClick={onDelete}
-          disabled={!onDelete}
-          title="Delete selected shape (Del)"
-          className="p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/10 disabled:text-white/20 disabled:hover:bg-transparent transition-all duration-150"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onClear}
+          onClick={() => {
+            if (window.confirm("Clear all markups on this sheet?")) onClear();
+          }}
           disabled={!hasElements}
           title="Clear all markups"
-          className="p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/10 disabled:text-white/20 disabled:hover:bg-transparent transition-all duration-150"
+          className="p-1.5 rounded-lg text-white/70 hover:text-orange-400 hover:bg-white/10 disabled:text-white/20 disabled:hover:bg-transparent transition-all duration-150"
         >
-          <Trash2 className="w-4 h-4" />
+          <Eraser className="w-4 h-4" />
         </button>
         <button
           type="button"

@@ -1990,3 +1990,8 @@
 - [x] FEATURE: Drag individual polygon vertices to reshape area measurements after drawing
 - [x] BONUS: Rectangle corner dragging for resizing
 - [x] BONUS: Larger white/blue vertex handles for better visibility and easier grabbing
+
+## Toolbar Polish — April 17, 2026
+- [x] FEATURE: Apply color/width changes to already-selected shape (not just new shapes)
+- [x] BUG: Two confusing delete/trash icons — delete selected = red Trash2 (only shows when selected), clear all = Eraser icon with confirmation dialog
+- [x] FEATURE: Coalesce drag operations into single undo entry (beginDrag/commitDrag pattern)

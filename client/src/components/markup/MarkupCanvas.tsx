@@ -87,6 +87,10 @@ interface MarkupCanvasProps {
   onSelectShape?: (id: string | null) => void;
   /** Called when user drags/edits a shape (e.g. moves an endpoint) */
   onUpdateElement?: (id: string, updater: (shape: Shape) => Shape) => void;
+  /** Called when a drag operation starts (for undo coalescing) */
+  onDragStart?: () => void;
+  /** Called when a drag operation ends (for undo coalescing) */
+  onDragEnd?: () => void;
 }
 
 export function MarkupCanvas({
@@ -109,6 +113,8 @@ export function MarkupCanvas({
   selectedShapeId,
   onSelectShape,
   onUpdateElement,
+  onDragStart,
+  onDragEnd,
 }: MarkupCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -444,6 +450,7 @@ export function MarkupCanvas({
         const hitId = hitTestShapes(elements, pt, 20);
         onSelectShape?.(hitId);
         if (hitId) {
+          onDragStart?.(); // Snapshot for undo coalescing
           const shape = elements.find((s) => s.id === hitId);
           if (shape?.type === "line") {
             // Check if clicking near a line endpoint for dragging
@@ -573,7 +580,7 @@ export function MarkupCanvas({
       if (activeTool === "pen") setPenPoints([pt]);
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [isActive, activeTool, toImageCoords, onTextPrompt, lineFirstClick, polygonPoints, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete, isPanning],
+    [isActive, activeTool, toImageCoords, onTextPrompt, lineFirstClick, polygonPoints, color, lineWidth, onElementAdd, isCalibrating, calibrationStart, onCalibrationComplete, isPanning, onDragStart],
   );
 
   const handlePointerMove = useCallback(
@@ -666,6 +673,7 @@ export function MarkupCanvas({
     (e: React.PointerEvent) => {
       // End drag handle
       if (draggingHandle) {
+        onDragEnd?.(); // Commit undo snapshot
         setDraggingHandle(null);
         setDragStartPt(null);
         return;
@@ -708,7 +716,7 @@ export function MarkupCanvas({
       setCurrentPoint(null);
       setPenPoints([]);
     },
-    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating, draggingHandle],
+    [isDrawing, activeTool, startPoint, penPoints, color, lineWidth, toImageCoords, onElementAdd, isCalibrating, draggingHandle, onDragEnd],
   );
 
   // Double-click to close polygon
