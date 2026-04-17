@@ -2165,3 +2165,13 @@
 
 ## CPM Schedule PDF Print Fix — April 17, 2026
 - [ ] BUG: PDF print preview cuts off activity descriptions for activities toward end of schedule — should match on-screen compressed view at any zoom level (50%, 75%, fit-to-page)
+
+## Batch 4 — User-Reported Issues (Apr 17, 2026)
+- [x] Fix "New" badge overlap on Trade Specialties step in PreAnalysisModal
+- [x] Improve Layout Save Override UX — save in place for current layout, Save As New for creating a new one
+- [x] Add text labels to Expand/Collapse All WBS buttons (not just icons)
+- [x] Fix PDF label truncation — activity descriptions still cut off on right side
+- [x] Clarify or remove Auto-Assign Submittal/Fab WBS from Group dropdown
+- [x] Wire Activity Code Manager into Scheduler toolbar (Settings menu)
+- [x] Add activity code assignment UI to activity detail panel
+- [x] Activity codes: create custom codes, assign to activities, filter/group by them

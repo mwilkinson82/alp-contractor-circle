@@ -1092,16 +1092,26 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               doc.triangle(cx, cy, p1[0], p1[1], p2[0], p2[1], "F");
             }
 
-            // Label — try right of diamond first, then left
+            // Label — pick the side that can show the most text
             doc.setFontSize(6.5);
             doc.setFont("helvetica", "normal");
             const mLabelStartX = cx + half + 1.5;
-            const mRightSpace = ganttRight - mLabelStartX - 1;
+            const mPageEdge = pageWidth - 2;
+            const mRightSpace = mPageEdge - mLabelStartX;
             const mLeftSpace = (cx - half) - chartLeft - 1.5;
             const mFullLabel = `- ${act.name}`;
+            const mMinUseful = 12;
 
-            if (mRightSpace >= 5 && (doc.getTextWidth(mFullLabel) <= mRightSpace || mRightSpace >= mLeftSpace)) {
-              // Place to the right
+            const mRightFits = doc.getTextWidth(mFullLabel) <= mRightSpace;
+            const mLeftFits = doc.getTextWidth(`${act.name} -`) <= mLeftSpace;
+
+            if (mRightFits) {
+              doc.setTextColor(...colors.text);
+              doc.text(mFullLabel, mLabelStartX, cy + 0.8);
+            } else if (mLeftFits) {
+              doc.setTextColor(...colors.text);
+              doc.text(`${act.name} -`, cx - half - 1.5, cy + 0.8, { align: "right" });
+            } else if (mRightSpace >= mLeftSpace && mRightSpace >= mMinUseful) {
               doc.setTextColor(...colors.text);
               let milestoneLabel = mFullLabel;
               if (doc.getTextWidth(milestoneLabel) > mRightSpace) {
@@ -1111,8 +1121,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
                 milestoneLabel = milestoneLabel + "...";
               }
               doc.text(milestoneLabel, mLabelStartX, cy + 0.8);
-            } else if (mLeftSpace >= 10) {
-              // Place to the left
+            } else if (mLeftSpace >= mMinUseful) {
               doc.setTextColor(...colors.text);
               let milestoneLabel = `${act.name} -`;
               if (doc.getTextWidth(milestoneLabel) > mLeftSpace) {
@@ -1148,17 +1157,32 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               }
             }
 
-            // Label — try right of bar first, then left, then inside
+            // Label — pick the side that can show the most text
             doc.setFontSize(6.5);
             doc.setFont("helvetica", "normal");
             const fullLabel = `- ${act.name}`;
             const rightStartX = x2 + 1.5;
-            const rightSpace = ganttRight - rightStartX - 1;
+            // Allow labels to extend to page edge (not just ganttRight)
+            const pageEdge = pageWidth - 2;
+            const rightSpace = pageEdge - rightStartX;
             const leftSpace = x1 - chartLeft - 1.5;
             const labelTextWidth = doc.getTextWidth(fullLabel);
+            const minUseful = 12; // minimum space to show a useful label
 
-            if (rightSpace >= 5 && (labelTextWidth <= rightSpace || rightSpace >= leftSpace)) {
-              // Place to the right of bar
+            // Decide placement: prefer whichever side can show more of the label
+            const rightFits = labelTextWidth <= rightSpace;
+            const leftFits = doc.getTextWidth(`${act.name} -`) <= leftSpace;
+
+            if (rightFits) {
+              // Full label fits to the right — best case
+              doc.setTextColor(...colors.text);
+              doc.text(fullLabel, rightStartX, barY + barH / 2 + 0.8);
+            } else if (leftFits) {
+              // Full label fits to the left
+              doc.setTextColor(...colors.text);
+              doc.text(`${act.name} -`, x1 - 1.5, barY + barH / 2 + 0.8, { align: "right" });
+            } else if (rightSpace >= leftSpace && rightSpace >= minUseful) {
+              // Right has more room — truncate to fit
               doc.setTextColor(...colors.text);
               let barLabel = fullLabel;
               if (doc.getTextWidth(barLabel) > rightSpace) {
@@ -1168,8 +1192,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
                 barLabel = barLabel + "...";
               }
               doc.text(barLabel, rightStartX, barY + barH / 2 + 0.8);
-            } else if (leftSpace >= 10) {
-              // Place to the left of bar
+            } else if (leftSpace >= minUseful) {
+              // Left has more room — truncate to fit
               doc.setTextColor(...colors.text);
               let barLabel = `${act.name} -`;
               if (doc.getTextWidth(barLabel) > leftSpace) {
@@ -1179,8 +1203,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
                 barLabel = "..." + barLabel;
               }
               doc.text(barLabel, x1 - 1.5, barY + barH / 2 + 0.8, { align: "right" });
-            } else if (barWidth > 15) {
-              // Place inside the bar
+            } else if (barWidth > 10) {
+              // Place inside the bar as last resort
               doc.setTextColor(255, 255, 255);
               let barLabel = act.name;
               const insideSpace = barWidth - 2;

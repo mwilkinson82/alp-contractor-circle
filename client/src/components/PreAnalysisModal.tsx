@@ -290,15 +290,15 @@ export default function PreAnalysisModal({
         {/* Step 3: Trade Specialties */}
         {step === 3 && (
           <div className="space-y-4 py-2">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-3">
               <Wrench className="w-4 h-4 text-amber-500" />
               <Label className="text-sm font-semibold text-cream">Trade Specialties</Label>
-              <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-normal">
+              <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-normal px-1.5 py-0 leading-4">
                 New
               </Badge>
             </div>
             {/* Clear "skip this" callout */}
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 -mt-2 mb-3">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 mb-3">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

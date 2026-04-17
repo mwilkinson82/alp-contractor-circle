@@ -8,6 +8,7 @@ import GanttChart, { BASE_ROW_HEIGHT, HEADER_HEIGHT, getWbsRowHeight, getActivit
 import GanttAnnotations, { type Annotation } from "@/components/GanttAnnotations";
 import { WBSTree } from "@/components/WBSTree";
 import { PdfExportPreview } from "@/components/PdfExportPreview";
+import { ActivityCodeManager } from "@/components/ActivityCodeManager";
 import { generateSchedulePdf } from "@/lib/schedulePdf";
 import { toast } from "sonner";
 import {
@@ -450,6 +451,7 @@ export default function Scheduler() {
   const [showScheduleInfo, setShowScheduleInfo] = useState(false);
   const [showPdfExport, setShowPdfExport] = useState(false);
   const [showWbsManager, setShowWbsManager] = useState(false);
+  const [showCodeManager, setShowCodeManager] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
   const [showResourcePanel, setShowResourcePanel] = useState(false);
@@ -605,6 +607,7 @@ export default function Scheduler() {
   const [showLayoutDialog, setShowLayoutDialog] = useState(false);
   const [layoutName, setLayoutName] = useState("");
   const [layoutIsDefault, setLayoutIsDefault] = useState(false);
+  const [activeLayoutId, setActiveLayoutId] = useState<number | null>(null);
 
   /* ── Activity Code Filter State ───────────────────────────────────────── */
   const [activeFilters, setActiveFilters] = useState<Map<number, Set<number>>>(new Map());
@@ -1016,9 +1019,15 @@ export default function Scheduler() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  /* ── Auto-Assign Submittal/Fab WBS Mutation ──────────────────────────── */
+  /* ── Auto-Assign Submittal/Fab WBS Mutation ──────────────────────── */
   const autoAssignWbsMut = trpc.schedule.autoAssignSubmittalWbs.useMutation({
     onSuccess: (data) => { utils.schedule.get.invalidate(); toast.success(data.message); setGroupBy("wbs"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /* ── Activity Code Assignment Mutation ──────────────────────────── */
+  const setActivityCodesMut = trpc.schedule.setActivityCodes.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -1072,7 +1081,7 @@ export default function Scheduler() {
     });
   }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds]);
 
-  const applyLayoutConfig = useCallback((configJson: string) => {
+  const applyLayoutConfig = useCallback((configJson: string, layoutId?: number) => {
     try {
       const cfg = JSON.parse(configJson);
       if (cfg.visibleColumns) setVisibleColumns(cfg.visibleColumns);
@@ -1093,6 +1102,7 @@ export default function Scheduler() {
       if (cfg.filterDateStart !== undefined) setFilterDateStart(cfg.filterDateStart);
       if (cfg.filterDateEnd !== undefined) setFilterDateEnd(cfg.filterDateEnd);
       if (cfg.filterOpenEnds !== undefined) setFilterOpenEnds(cfg.filterOpenEnds);
+      if (layoutId !== undefined) setActiveLayoutId(layoutId);
       toast.success("Layout applied");
     } catch { toast.error("Invalid layout config"); }
   }, []);
@@ -1131,7 +1141,7 @@ export default function Scheduler() {
     // Otherwise try the user-marked default layout
     const defaultLayout = layouts.find((l: any) => l.isDefault);
     if (defaultLayout) {
-      applyLayoutConfig(defaultLayout.config);
+      applyLayoutConfig(defaultLayout.config, defaultLayout.id);
       setDefaultLayoutApplied(true);
     } else {
       setDefaultLayoutApplied(true);
@@ -1494,12 +1504,6 @@ export default function Scheduler() {
                       <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => {
-                    autoAssignWbsMut.mutate({ scheduleId: scheduleId! });
-                  }}>
-                    <span className="text-cyan-400">Auto-Assign Submittal/Fab WBS</span>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               {/* Expand All / Collapse All */}
@@ -1513,6 +1517,7 @@ export default function Scheduler() {
                     onClick={() => setCollapsedGroups(new Set())}
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Expand All</span>
                   </Button>
                   <Button
                     size="sm"
@@ -1525,6 +1530,7 @@ export default function Scheduler() {
                     }}
                   >
                     <Minimize2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Collapse All</span>
                   </Button>
                 </>
               )}
@@ -1614,6 +1620,19 @@ export default function Scheduler() {
             <DropdownMenuItem onClick={() => setShowWbsManager(true)}>
               <FolderTree className="w-4 h-4 mr-2" /> WBS Manager
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (scheduleId) autoAssignWbsMut.mutate({ scheduleId });
+              }}
+              disabled={autoAssignWbsMut.isPending}
+              title="Automatically assigns Submittal and Fabrication activities to matching WBS groups based on their names and CSI codes"
+            >
+              <Target className="w-4 h-4 mr-2 text-cyan-400" /> Auto-Assign Submittal/Fab WBS
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowCodeManager(true)}>
+              <Palette className="w-4 h-4 mr-2" /> Activity Code Manager
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowCalendarDialog(true)}>
               <Calendar className="w-4 h-4 mr-2" /> Calendars
             </DropdownMenuItem>
@@ -1632,13 +1651,32 @@ export default function Scheduler() {
                 <LayoutGrid className="w-4 h-4 mr-2" /> Layouts
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-56">
+                {(() => {
+                  const activeLayout = activeLayoutId ? layouts.find((l: any) => l.id === activeLayoutId && l.name !== "__autosave__") : null;
+                  return activeLayout ? (
+                    <DropdownMenuItem onClick={() => {
+                      if (scheduleId) {
+                        updateLayoutMut.mutate({
+                          id: activeLayout.id,
+                          scheduleId,
+                          name: activeLayout.name,
+                          config: captureLayoutConfig(),
+                          isDefault: activeLayout.isDefault,
+                        });
+                      }
+                    }}>
+                      <Save className="w-4 h-4 mr-2" /> Save "{activeLayout.name}"
+                    </DropdownMenuItem>
+                  ) : null;
+                })()}
                 <DropdownMenuItem onClick={() => { setLayoutName(""); setLayoutIsDefault(false); setShowLayoutDialog(true); }}>
-                  <Save className="w-4 h-4 mr-2" /> Save Current Layout
+                  <Plus className="w-4 h-4 mr-2" /> Save As New Layout
                 </DropdownMenuItem>
                 {layouts.filter((l: any) => l.name !== "__autosave__").length > 0 && <DropdownMenuSeparator />}
                 {layouts.filter((l: any) => l.name !== "__autosave__").map((layout: any) => (
-                  <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config)}>
-                    {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />}
+                  <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config, layout.id)} className={activeLayoutId === layout.id ? "bg-amber-500/10" : ""}>
+                    {activeLayoutId === layout.id && <CheckCircle2 className="w-3 h-3 mr-1 text-amber-400 flex-shrink-0" />}
+                    {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500 flex-shrink-0" />}
                     <span className="flex-1 truncate">{layout.name}</span>
                     <button
                       className="ml-2 text-gray-400 hover:text-red-400"
@@ -2597,6 +2635,66 @@ export default function Scheduler() {
                   </div>
                 </div>
               </div>
+
+              {/* Activity Codes Assignment */}
+              {codeCategories.length > 0 && (
+                <div className="border border-white/10 rounded-lg p-3 bg-white/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-amber-300 font-semibold">Activity Codes</Label>
+                    <Button size="sm" variant="ghost" className="h-6 text-[10px] text-gray-500 hover:text-gray-300" onClick={() => setShowCodeManager(true)}>
+                      Manage Codes
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {codeCategories.map((cat: any) => {
+                      const currentAssignment = codeAssignments.find(
+                        (ca: any) => ca.activityId === detailAct.id && ca.categoryId === cat.id
+                      );
+                      const currentValueId = currentAssignment?.valueId;
+                      return (
+                        <div key={cat.id} className="flex items-center gap-2">
+                          <span className="text-[10px] text-gray-400 w-20 shrink-0 truncate" title={cat.name}>{cat.name}:</span>
+                          <Select
+                            value={currentValueId ? String(currentValueId) : "__none__"}
+                            onValueChange={(v) => {
+                              if (!scheduleId) return;
+                              // Get all current code value IDs for this activity
+                              const currentValueIds = codeAssignments
+                                .filter((ca: any) => ca.activityId === detailAct.id)
+                                .map((ca: any) => ca.valueId);
+                              // Remove any value from this category
+                              const otherCatValueIds = cat.values?.map((val: any) => val.id) || [];
+                              const filtered = currentValueIds.filter((vid: number) => !otherCatValueIds.includes(vid));
+                              // Add the new value if not "none"
+                              const newIds = v === "__none__" ? filtered : [...filtered, parseInt(v)];
+                              setActivityCodesMut.mutate({
+                                activityId: detailAct.id,
+                                scheduleId,
+                                codeValueIds: newIds,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-7 text-[10px] border-white/15 bg-white/5 text-gray-200 flex-1">
+                              <SelectValue placeholder="Not assigned" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__" className="text-[10px]">Not assigned</SelectItem>
+                              {cat.values?.map((val: any) => (
+                                <SelectItem key={val.id} value={String(val.id)} className="text-[10px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: val.color || "#3b82f6" }} />
+                                    {val.value}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           )}
@@ -3618,6 +3716,16 @@ export default function Scheduler() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Activity Code Manager Dialog ──────────────────────────────────── */}
+      {scheduleId && (
+        <ActivityCodeManager
+          open={showCodeManager}
+          onOpenChange={setShowCodeManager}
+          scheduleId={scheduleId}
+          codeCategories={codeCategories}
+        />
+      )}
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
