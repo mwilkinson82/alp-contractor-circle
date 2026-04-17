@@ -14,6 +14,7 @@ import {
   ArrowRightToLine,
   Save,
   Pentagon,
+  Hash,
 } from "lucide-react";
 import type { ToolType } from "./types";
 
@@ -25,6 +26,7 @@ const TOOLS: { type: ToolType; icon: typeof MousePointer2; label: string; hint?:
   { type: "line", icon: Minus, label: "Line / Measure (L)", hint: "Click start → click end" },
   { type: "polygon", icon: Pentagon, label: "Area / Polygon (A)", hint: "Click vertices → close to start or double-click" },
   { type: "text", icon: Type, label: "Text Label (T)" },
+  { type: "count", icon: Hash, label: "Count Marker (N)", hint: "Click to place numbered markers" },
 ];
 
 const COLORS = [

@@ -2002,3 +2002,11 @@
 - [x] FEATURE: Visual snap indicator (amber crosshair + highlighted edge) when snapping is active
 - [x] FEATURE: Measurement summary panel — collapsible panel with running totals of all line distances and polygon areas
 - [x] FEATURE: Summary panel expands to show individual measurements with labels (L1, L2, A1, A2, etc.)
+
+## Count Tool & CSV Export — April 17, 2026
+- [x] FEATURE: Count tool — tap-to-place numbered markers on drawings (colored circles with auto-incrementing numbers)
+- [x] FEATURE: Count markers rendered as numbered circles with sequential numbering
+- [x] FEATURE: Count tool button in MarkupToolbar with keyboard shortcut (N)
+- [x] FEATURE: Count tally displayed in MeasurementSummary panel (purple section)
+- [x] FEATURE: Measurement export to CSV — export all line distances, polygon areas, and counts as spreadsheet
+- [x] FEATURE: CSV download button in MeasurementSummary expanded panel

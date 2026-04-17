@@ -394,6 +394,7 @@ function FullscreenDrawing({
           case "l": setActiveTool("line"); break;
           case "a": setActiveTool("polygon"); break;
           case "t": setActiveTool("text"); break;
+          case "n": setActiveTool("count"); break;
         }
       }
     };
@@ -760,6 +761,7 @@ function FullscreenDrawing({
         formatDistance={formatDistance}
         formatArea={formatArea}
         isCalibrated={scaleRatio > 0}
+        sheetName={sheetName || "Sheet"}
       />
 
       {/* Calibration hint overlay — positioned at top so it doesn't obstruct the scale bar */}

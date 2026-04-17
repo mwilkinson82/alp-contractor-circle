@@ -52,6 +52,8 @@ function moveShape(shape: Shape, dx: number, dy: number): Shape {
       return { ...shape, points: shape.points.map(movePoint) };
     case "text":
       return { ...shape, position: movePoint(shape.position) };
+    case "count":
+      return { ...shape, position: movePoint(shape.position) };
     default:
       return shape;
   }
@@ -688,6 +690,22 @@ export function MarkupCanvas({
 
       if (activeTool === "text") {
         onTextPrompt?.(pt);
+        return;
+      }
+
+      // Count tool — place numbered marker
+      if (activeTool === "count") {
+        const existingCounts = elements.filter((e) => e.type === "count");
+        const nextNumber = existingCounts.length + 1;
+        const shape: Shape = {
+          id: generateId(),
+          type: "count",
+          position: pt,
+          number: nextNumber,
+          color,
+          lineWidth,
+        };
+        onElementAdd(shape);
         return;
       }
 

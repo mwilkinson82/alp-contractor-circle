@@ -1,4 +1,4 @@
-import type { Shape, Point } from "./types";
+import type { Shape, Point, CountShape } from "./types";
 
 export type FormatDistanceFn = (pxDist: number) => string;
 
@@ -161,6 +161,32 @@ function drawPolygon(
   }
 }
 
+function drawCount(
+  ctx: CanvasRenderingContext2D,
+  position: Point,
+  number: number,
+  color: string,
+) {
+  const radius = 16;
+  // Outer circle with fill
+  ctx.beginPath();
+  ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  // White border
+  ctx.save();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+  // Number label
+  ctx.font = "bold 14px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(String(number), position.x, position.y);
+}
+
 function drawText(
   ctx: CanvasRenderingContext2D,
   position: Point,
@@ -213,6 +239,9 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, fmt: Form
       break;
     case "text":
       drawText(ctx, shape.position, shape.text, shape.fontSize, shape.color);
+      break;
+    case "count":
+      drawCount(ctx, shape.position, shape.number, shape.color);
       break;
   }
   ctx.restore();
@@ -320,6 +349,12 @@ function drawSelectionHighlight(ctx: CanvasRenderingContext2D, shape: Shape) {
       ctx.strokeRect(shape.position.x - 6, shape.position.y - 6, maxW + 12, totalH + 12);
       break;
     }
+    case "count": {
+      ctx.beginPath();
+      ctx.arc(shape.position.x, shape.position.y, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
   }
   ctx.restore();
 }
@@ -389,6 +424,11 @@ function hitTestShape(shape: Shape, pt: Point, threshold: number): boolean {
         pt.y >= shape.position.y - 10 &&
         pt.y <= shape.position.y + totalH + 10
       );
+    }
+    case "count": {
+      const dx = pt.x - shape.position.x;
+      const dy = pt.y - shape.position.y;
+      return Math.sqrt(dx * dx + dy * dy) < 20;
     }
     default:
       return false;

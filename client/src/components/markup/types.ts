@@ -3,7 +3,7 @@ export interface Point {
   y: number;
 }
 
-export type ToolType = "select" | "pen" | "rectangle" | "circle" | "line" | "polygon" | "text";
+export type ToolType = "select" | "pen" | "rectangle" | "circle" | "line" | "polygon" | "text" | "count";
 
 export interface PenShape {
   id: string;
@@ -59,4 +59,13 @@ export interface PolygonShape {
   lineWidth: number;
 }
 
-export type Shape = PenShape | RectangleShape | CircleShape | LineShape | PolygonShape | TextShape;
+export interface CountShape {
+  id: string;
+  type: "count";
+  position: Point;
+  number: number;
+  color: string;
+  lineWidth: number;
+}
+
+export type Shape = PenShape | RectangleShape | CircleShape | LineShape | PolygonShape | TextShape | CountShape;
