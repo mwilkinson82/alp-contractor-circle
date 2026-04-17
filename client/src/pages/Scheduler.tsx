@@ -1499,30 +1499,35 @@ export default function Scheduler() {
                   <DropdownMenuItem onClick={() => setGroupBy("critical")}>
                     <span className={groupBy === "critical" ? "font-semibold text-amber-400" : ""}>Critical Path</span>
                   </DropdownMenuItem>
-                  {codeCategories.map((cat: any) => (
-                    <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                      <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
-                    </DropdownMenuItem>
-                  ))}
+                  {codeCategories.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase">Activity Codes</div>
+                      {codeCategories.map((cat: any) => (
+                        <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
+                          <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               {/* Expand All / Collapse All */}
               {groupBy && (
                 <>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
+                    className="h-8 w-8 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
                     title="Expand All Groups (Ctrl+Shift+E)"
                     onClick={() => setCollapsedGroups(new Set())}
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Expand All</span>
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
+                    className="h-8 w-8 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
                     title="Collapse All Groups (Ctrl+Shift+C)"
                     onClick={() => {
                       const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
@@ -1530,7 +1535,6 @@ export default function Scheduler() {
                     }}
                   >
                     <Minimize2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Collapse All</span>
                   </Button>
                 </>
               )}

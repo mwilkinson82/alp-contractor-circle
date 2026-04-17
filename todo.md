@@ -2175,3 +2175,9 @@
 - [x] Wire Activity Code Manager into Scheduler toolbar (Settings menu)
 - [x] Add activity code assignment UI to activity detail panel
 - [x] Activity codes: create custom codes, assign to activities, filter/group by them
+
+## Batch 5 — User-Reported Issues (Apr 17, 2026)
+- [x] Fix toolbar overflow — Expand All / Collapse All text labels too wide, pushing Month button off screen
+- [x] Fix PDF label truncation — activity descriptions still cut off on right side of Gantt, need fundamental approach
+- [x] Improve Activity Code Manager UX — make it clearer these are fully custom user-created codes, not pre-populated
+- [x] Add activity code categories to Group By dropdown so users can group by custom codes
