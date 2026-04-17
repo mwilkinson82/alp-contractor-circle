@@ -3543,12 +3543,12 @@ export default function Scheduler() {
           }
           setShowGanttSettings(open);
         }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Gantt Display Settings</DialogTitle>
             <DialogDescription>Customize how activity labels and bars appear on the Gantt chart.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-5">
             {/* ── Bar Colors Section ── */}
             <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
               <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Gantt Bar Colors</Label>
@@ -3654,7 +3654,7 @@ export default function Scheduler() {
             </div>
 
             {/* ── Label Font Section ── */}
-            <div>
+            <div className="p-4 bg-white/5 rounded-lg border border-white/10">
               <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">Activity Label Font</Label>
               <div className="space-y-3">
                 <div>
@@ -3739,6 +3739,50 @@ export default function Scheduler() {
             <DialogDescription>Build your project hierarchy. Drag nodes to reorder. Click color swatch to change group color. Click ▶ to expand/collapse.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
+            {/* Add new WBS node — prominent at top */}
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
+              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Add New WBS Node</Label>
+              <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-[10px] text-gray-500">WBS Code</Label>
+                  <Input value={newWbsCode} onChange={(e) => setNewWbsCode(e.target.value)} placeholder="e.g., 2.1" className="h-8 text-sm border-white/15 bg-white/5 text-gray-200" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-gray-500">Name</Label>
+                  <Input value={newWbsName} onChange={(e) => setNewWbsName(e.target.value)} placeholder="e.g., Foundation" className="h-8 text-sm border-white/15 bg-white/5 text-gray-200" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-gray-500">Parent (optional)</Label>
+                  <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
+                    <SelectTrigger className="h-8 text-sm border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="Top level" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=" ">None (top level)</SelectItem>
+                      {wbsNodes.map((w: any) => (
+                        <SelectItem key={w.id} value={String(w.id)}>{w.code} — {w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold px-4"
+                  disabled={!newWbsCode.trim() || !newWbsName.trim() || addWbsMut.isPending}
+                  onClick={() => {
+                    if (scheduleId && newWbsCode.trim() && newWbsName.trim()) {
+                      addWbsMut.mutate({
+                        scheduleId,
+                        code: newWbsCode.trim(),
+                        name: newWbsName.trim(),
+                        parentId: newWbsParentId && newWbsParentId.trim() ? parseInt(newWbsParentId) : undefined,
+                      });
+                    }
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                </Button>
+              </div>
+            </div>
+
             {/* Visual WBS Tree */}
             <WBSTree
               nodes={wbsNodes}
@@ -3766,50 +3810,7 @@ export default function Scheduler() {
               }}
             />
 
-            {/* Add new WBS node */}
-            <div className="border-t border-white/10 pt-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs text-gray-600">WBS Code</Label>
-                  <Input value={newWbsCode} onChange={(e) => setNewWbsCode(e.target.value)} placeholder="e.g., 2.1" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600">Name</Label>
-                  <Input value={newWbsName} onChange={(e) => setNewWbsName(e.target.value)} placeholder="e.g., Foundation" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
-                </div>
-              </div>
-              {wbsNodes.length > 0 && (
-                <div>
-                  <Label className="text-xs text-gray-600">Parent (optional)</Label>
-                  <Select value={newWbsParentId} onValueChange={setNewWbsParentId}>
-                    <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue placeholder="None (top level)" /></SelectTrigger>
-                    <SelectContent className="">
-                      <SelectItem value=" " className="">None</SelectItem>
-                      {wbsNodes.map((w: any) => (
-                        <SelectItem key={w.id} value={String(w.id)} className="">{w.code} — {w.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <Button
-                size="sm"
-                className="w-full bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
-                disabled={!newWbsCode.trim() || !newWbsName.trim() || addWbsMut.isPending}
-                onClick={() => {
-                  if (scheduleId && newWbsCode.trim() && newWbsName.trim()) {
-                    addWbsMut.mutate({
-                      scheduleId,
-                      code: newWbsCode.trim(),
-                      name: newWbsName.trim(),
-                      parentId: newWbsParentId && newWbsParentId.trim() ? parseInt(newWbsParentId) : undefined,
-                    });
-                  }
-                }}
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add WBS Node
-              </Button>
-            </div>
+            {/* Old add section removed — now at top of dialog */}
             {/* CSI MasterFormat Library */}
             <div className="border-t border-white/10 pt-3">
               <div className="flex items-center justify-between">

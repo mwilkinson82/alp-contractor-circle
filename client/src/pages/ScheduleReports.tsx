@@ -876,7 +876,18 @@ export default function ScheduleReports() {
 
   const isLoading = isStdLoading || isLevelingLoading || isEvmLoading || isDelayLoading || isForecastLoading || isHealthLoading;
 
-  const handlePrint = () => { window.print(); };
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = `${schedule?.name || "Schedule"} — ${ReportInfo.label} | ConstructLine`;
+    const restoreTitle = () => {
+      document.title = originalTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+    window.print();
+    // Fallback for browsers that don't fire afterprint
+    setTimeout(() => { document.title = originalTitle; }, 2000);
+  };
 
   const handleExportEvmPdf = async () => {
     if (!evmData) return;
@@ -1556,7 +1567,7 @@ export default function ScheduleReports() {
             {/* Print footer */}
             <div className="hidden print:block mt-4 pt-2 border-t border-white/15 text-xs text-gray-400">
               <div className="flex justify-between">
-                <span>ALP Contractor Circle — CPM Schedule Builder</span>
+                <span>ConstructLine — CPM Schedule Report</span>
                 <span>Page 1 of 1</span>
               </div>
             </div>

@@ -2181,3 +2181,9 @@
 - [x] Fix PDF label truncation — activity descriptions still cut off on right side of Gantt, need fundamental approach
 - [x] Improve Activity Code Manager UX — make it clearer these are fully custom user-created codes, not pre-populated
 - [x] Add activity code categories to Group By dropdown so users can group by custom codes
+
+## Batch 6 — User-Reported Issues (Apr 17, 2026)
+- [x] Fix Gantt Display Settings modal overflow — make wider not taller so all content fits
+- [x] WBS Manager — add ability to create new WBS nodes (not just edit existing)
+- [x] Reports PDF branding — show schedule name or ConstructLine instead of "ALP Contractor Circle"
+- [x] Reports print preview Cancel/X not closing — user has to refresh page to exit
