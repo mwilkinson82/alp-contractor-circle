@@ -2044,3 +2044,14 @@
 
 ## Bug Fix — April 17, 2026
 - [x] BUG: Markup-to-line-item quantity update feature is missing — restored via MarkupMeasurementStrip below drawing in modal with Apply buttons for lines/areas/counts, plus fullscreen still has the toolbar push-to-quantity button
+
+## Auto-Match Measurements & History Tracking — April 17, 2026
+- [x] SCHEMA: Create measurement_history table to log when measurements are applied to items (itemId, sheetId, measurementType, rawValue, unit, appliedBy, appliedAt)
+- [x] DB: Add measurement history CRUD helpers (logMeasurementApply, getItemMeasurementHistory, getItemsWithMeasurementHistory)
+- [x] BACKEND: Add tRPC endpoints for logging measurement applies and fetching history (logMeasurementApply, getItemMeasurementHistory, getItemsWithMeasurements)
+- [x] BACKEND: Auto-match logic implemented client-side via suggestedMeasurementType() — matches item unit to measurement type (LF→lines, SF→areas, EA→counts)
+- [x] FRONTEND: Auto-suggest matching measurement type in MarkupMeasurementStrip based on item unit
+- [x] FRONTEND: Highlight the recommended Apply button with ring/border emphasis and Sparkles icon + "Suggested" label
+- [x] FRONTEND: Log measurement applies to history when user clicks Apply (via logMeasurementApply mutation)
+- [x] FRONTEND: Show measurement history timeline in item detail modal with type icons, values, sheet names, and relative timestamps
+- [x] FRONTEND: Show "Verified via Measurement" badge (blue CheckCircle2) on items that have measurement history

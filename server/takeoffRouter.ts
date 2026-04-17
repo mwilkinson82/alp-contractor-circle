@@ -35,6 +35,9 @@ import {
   saveSheetMarkup,
   deleteSheetMarkup,
   getProjectMarkups,
+  logMeasurementApply,
+  getItemMeasurementHistory,
+  getItemsWithMeasurementHistory,
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
@@ -871,9 +874,7 @@ export const takeoffRouter = router({
       await deleteSheetMarkup(input.sheetId, member.id);
       return { success: true };
     }),
-
-  // ── Multi-Sheet Measurement Rollup ──────────────────────────────
-
+  // ── Multi-Sheet Measurement Rollup ────────────────────────────────
   getProjectMarkups: publicProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -887,5 +888,58 @@ export const takeoffRouter = router({
         scaleRatio: parseFloat(r.scaleRatio as unknown as string) || 0,
         scaleUnit: r.scaleUnit,
       }));
+    }),
+
+  // ── Measurement History ─────────────────────────────────────────
+  logMeasurementApply: publicProcedure
+    .input(z.object({
+      itemId: z.number(),
+      projectId: z.number(),
+      sheetId: z.number(),
+      measurementType: z.enum(["line", "area", "count"]),
+      rawValue: z.number(),
+      unit: z.string(),
+      sheetName: z.string().optional(),
+      itemDescription: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const id = await logMeasurementApply({
+        itemId: input.itemId,
+        projectId: input.projectId,
+        sheetId: input.sheetId,
+        measurementType: input.measurementType,
+        rawValue: input.rawValue.toFixed(4),
+        unit: input.unit,
+        memberId: member.id,
+        sheetName: input.sheetName || null,
+        itemDescription: input.itemDescription || null,
+      });
+      return { success: true, id };
+    }),
+
+  getItemMeasurementHistory: publicProcedure
+    .input(z.object({ itemId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireMember(ctx.req);
+      const rows = await getItemMeasurementHistory(input.itemId);
+      return rows.map((r) => ({
+        id: r.id,
+        itemId: r.itemId,
+        sheetId: r.sheetId,
+        measurementType: r.measurementType,
+        rawValue: parseFloat(r.rawValue as unknown as string),
+        unit: r.unit,
+        sheetName: r.sheetName,
+        itemDescription: r.itemDescription,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    }),
+
+  getItemsWithMeasurements: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireMember(ctx.req);
+      return getItemsWithMeasurementHistory(input.projectId);
     }),
 });

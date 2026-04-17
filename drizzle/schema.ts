@@ -895,3 +895,33 @@ export const sheetMarkups = mysqlTable("sheet_markups", {
 
 export type SheetMarkup = typeof sheetMarkups.$inferSelect;
 export type InsertSheetMarkup = typeof sheetMarkups.$inferInsert;
+
+/**
+ * Measurement History — logs when a measurement is applied to a line item.
+ * Tracks who applied what measurement, from which sheet, and when.
+ */
+export const measurementHistory = mysqlTable("measurement_history", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The takeoff item that received the measurement */
+  itemId: int("itemId").notNull(),
+  /** The takeoff project ID */
+  projectId: int("projectId").notNull(),
+  /** The drawing sheet the measurement came from */
+  sheetId: int("sheetId").notNull(),
+  /** Type of measurement: "line", "area", or "count" */
+  measurementType: varchar("measurementType", { length: 16 }).notNull(),
+  /** The raw numeric value applied (e.g. 125.5 for 125.5 LF) */
+  rawValue: decimal("rawValue", { precision: 20, scale: 4 }).notNull(),
+  /** The unit applied (e.g. "LF", "SF", "EA") */
+  unit: varchar("unit", { length: 16 }).notNull(),
+  /** The member who applied the measurement */
+  memberId: int("memberId").notNull(),
+  /** Sheet name at time of apply (denormalized for history readability) */
+  sheetName: varchar("sheetName", { length: 255 }),
+  /** Item description at time of apply (denormalized for history readability) */
+  itemDescription: varchar("itemDescription", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MeasurementHistory = typeof measurementHistory.$inferSelect;
+export type InsertMeasurementHistory = typeof measurementHistory.$inferInsert;

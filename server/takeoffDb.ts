@@ -7,9 +7,11 @@ import {
   drawingSheets,
   takeoffItems,
   sheetMarkups,
+  measurementHistory,
   type InsertTakeoffProject,
   type InsertDrawingSheet,
   type InsertTakeoffItem,
+  type InsertMeasurementHistory,
 } from "../drizzle/schema";
 
 import { getDb as _getDb } from "./db";
@@ -417,4 +419,44 @@ export async function deleteSheetMarkup(sheetId: number, memberId: number) {
   await db
     .delete(sheetMarkups)
     .where(and(eq(sheetMarkups.sheetId, sheetId), eq(sheetMarkups.memberId, memberId)));
+}
+
+// ─── Measurement History ───────────────────────────────────────────────────────
+
+export async function logMeasurementApply(data: InsertMeasurementHistory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(measurementHistory).values(data);
+  return result.insertId;
+}
+
+export async function getItemMeasurementHistory(itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db
+    .select()
+    .from(measurementHistory)
+    .where(eq(measurementHistory.itemId, itemId))
+    .orderBy(desc(measurementHistory.createdAt));
+}
+
+export async function getProjectMeasurementHistory(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db
+    .select()
+    .from(measurementHistory)
+    .where(eq(measurementHistory.projectId, projectId))
+    .orderBy(desc(measurementHistory.createdAt));
+}
+
+export async function getItemsWithMeasurementHistory(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select({ itemId: measurementHistory.itemId })
+    .from(measurementHistory)
+    .where(eq(measurementHistory.projectId, projectId))
+    .groupBy(measurementHistory.itemId);
+  return rows.map((r) => r.itemId);
 }

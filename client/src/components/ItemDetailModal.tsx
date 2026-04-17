@@ -37,6 +37,9 @@ import {
   Move,
   ArrowRightToLine,
   Sigma,
+  History,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { MarkupCanvas } from "@/components/markup/MarkupCanvas";
 import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
@@ -72,9 +75,20 @@ function formatCurrency(cents: number, code: string = "USD") {
     minimumFractionDigits: 2,
   }).format(cents / 100);
 }
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
+// ─── Types ──────────────────────────────────────────────────────────────────────
 interface TakeoffItem {
   id: number;
   csiCode?: string;
@@ -354,13 +368,36 @@ function computePolygonAreaHelper(poly: PolygonShape): number {
   return Math.abs(area) / 2;
 }
 
+/** Determine which measurement type best matches the item's unit */
+function suggestedMeasurementType(itemUnit: string | undefined): "line" | "area" | "count" | null {
+  if (!itemUnit) return null;
+  const u = itemUnit.toUpperCase().trim();
+  // Linear units
+  if (["LF", "FT", "M", "IN", "CM", "MM", "YD", "LINEAR FEET", "FEET", "FOOT"].includes(u)) return "line";
+  // Area units
+  if (["SF", "SQ FT", "SQFT", "SY", "SQ YD", "M2", "M²", "SQUARE FEET", "SQUARE FOOT"].includes(u)) return "area";
+  // Count units
+  if (["EA", "EACH", "PC", "PCS", "UNIT", "UNITS", "SET", "SETS", "LOT", "LS"].includes(u)) return "count";
+  return null;
+}
+
 function MarkupMeasurementStrip({
   sheetId,
+  itemId,
+  projectId,
+  itemUnit,
+  itemDescription,
+  sheetName,
   onApplyQuantity,
   onOpenFullscreen,
 }: {
   sheetId?: number;
-  onApplyQuantity: (qty: number, unit: string) => void;
+  itemId?: number;
+  projectId?: number;
+  itemUnit?: string;
+  itemDescription?: string;
+  sheetName?: string;
+  onApplyQuantity: (qty: number, unit: string, measurementType: "line" | "area" | "count") => void;
   onOpenFullscreen: () => void;
 }) {
   const savedMarkup = trpc.takeoff.getSheetMarkup.useQuery(
@@ -407,6 +444,10 @@ function MarkupMeasurementStrip({
   const lineUnit = scaleUnit === "ft" ? "LF" : scaleUnit;
   const areaUnit = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
 
+  const suggested = suggestedMeasurementType(itemUnit);
+
+  const isSuggested = (type: "line" | "area" | "count") => suggested === type;
+
   return (
     <div className="mt-2 bg-navy-deep/40 border border-white/10 rounded-lg p-2.5">
       <div className="flex items-center gap-2 mb-1.5">
@@ -420,7 +461,11 @@ function MarkupMeasurementStrip({
       <div className="flex flex-wrap gap-2">
         {/* Total lines */}
         {lines.length > 0 && (
-          <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 rounded-md px-2 py-1">
+          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+            isSuggested("line")
+              ? "bg-blue-500/20 border-2 border-blue-400/60 ring-1 ring-blue-400/30"
+              : "bg-blue-500/10 border border-blue-500/20"
+          }`}>
             <Ruler className="w-3 h-3 text-blue-400" />
             <span className="text-[11px] text-blue-300 font-mono">
               {fmtDist(totalLinePx)}
@@ -429,12 +474,17 @@ function MarkupMeasurementStrip({
             {isCalibrated && (
               <button
                 type="button"
-                onClick={() => onApplyQuantity(totalLinePx / scaleRatio, lineUnit)}
-                className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 text-[10px] font-medium transition-colors"
+                onClick={() => onApplyQuantity(totalLinePx / scaleRatio, lineUnit, "line")}
+                className={`ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  isSuggested("line")
+                    ? "bg-blue-500/40 text-blue-200 hover:bg-blue-500/50 font-bold"
+                    : "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"
+                }`}
                 title="Apply total line distance as item quantity"
               >
+                {isSuggested("line") && <Sparkles className="w-3 h-3" />}
                 <ArrowRightToLine className="w-3 h-3" />
-                Apply
+                {isSuggested("line") ? "Suggested" : "Apply"}
               </button>
             )}
           </div>
@@ -442,7 +492,11 @@ function MarkupMeasurementStrip({
 
         {/* Total areas */}
         {polygons.length > 0 && (
-          <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 rounded-md px-2 py-1">
+          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+            isSuggested("area")
+              ? "bg-green-500/20 border-2 border-green-400/60 ring-1 ring-green-400/30"
+              : "bg-green-500/10 border border-green-500/20"
+          }`}>
             <span className="text-[11px] text-green-300 font-mono">
               {fmtArea(totalAreaPx)}
             </span>
@@ -450,12 +504,17 @@ function MarkupMeasurementStrip({
             {isCalibrated && (
               <button
                 type="button"
-                onClick={() => onApplyQuantity(totalAreaPx / (scaleRatio * scaleRatio), areaUnit)}
-                className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-green-500/20 text-green-300 hover:bg-green-500/30 text-[10px] font-medium transition-colors"
+                onClick={() => onApplyQuantity(totalAreaPx / (scaleRatio * scaleRatio), areaUnit, "area")}
+                className={`ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  isSuggested("area")
+                    ? "bg-green-500/40 text-green-200 hover:bg-green-500/50 font-bold"
+                    : "bg-green-500/20 text-green-300 hover:bg-green-500/30"
+                }`}
                 title="Apply total area as item quantity"
               >
+                {isSuggested("area") && <Sparkles className="w-3 h-3" />}
                 <ArrowRightToLine className="w-3 h-3" />
-                Apply
+                {isSuggested("area") ? "Suggested" : "Apply"}
               </button>
             )}
           </div>
@@ -463,18 +522,27 @@ function MarkupMeasurementStrip({
 
         {/* Total counts */}
         {counts.length > 0 && (
-          <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-md px-2 py-1">
+          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+            isSuggested("count")
+              ? "bg-purple-500/20 border-2 border-purple-400/60 ring-1 ring-purple-400/30"
+              : "bg-purple-500/10 border border-purple-500/20"
+          }`}>
             <span className="text-[11px] text-purple-300 font-mono">
               {counts.length} counted
             </span>
             <button
               type="button"
-              onClick={() => onApplyQuantity(counts.length, "EA")}
-              className="ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 text-[10px] font-medium transition-colors"
+              onClick={() => onApplyQuantity(counts.length, "EA", "count")}
+              className={`ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                isSuggested("count")
+                  ? "bg-purple-500/40 text-purple-200 hover:bg-purple-500/50 font-bold"
+                  : "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30"
+              }`}
               title="Apply count as item quantity"
             >
+              {isSuggested("count") && <Sparkles className="w-3 h-3" />}
               <ArrowRightToLine className="w-3 h-3" />
-              Apply
+              {isSuggested("count") ? "Suggested" : "Apply"}
             </button>
           </div>
         )}
@@ -1084,6 +1152,13 @@ export default function ItemDetailModal({
   const hasDrawing = !!(sourceSheet?.imageUrl);
   const sheetLabel = sourceSheet?.sheetName || `Page ${sourceSheet?.pageNumber || "?"}`;
 
+  // Measurement history
+  const logMeasurement = trpc.takeoff.logMeasurementApply.useMutation();
+  const measurementHistory = trpc.takeoff.getItemMeasurementHistory.useQuery(
+    { itemId: item?.id! },
+    { enabled: !!item?.id }
+  );
+
   // Sync state when item changes
   useEffect(() => {
     if (item) {
@@ -1234,10 +1309,28 @@ export default function ItemDetailModal({
                 {/* Quick-apply measurement strip from saved markups */}
                 <MarkupMeasurementStrip
                   sheetId={sourceSheet?.id}
-                  onApplyQuantity={(qty, unitLabel) => {
+                  itemId={item?.id}
+                  projectId={projectId}
+                  itemUnit={unit}
+                  itemDescription={description}
+                  sheetName={sheetLabel}
+                  onApplyQuantity={(qty, unitLabel, measurementType) => {
                     setQuantity(qty.toFixed(2));
                     setUnit(unitLabel);
                     toast.success(`Quantity updated to ${qty.toFixed(2)} ${unitLabel}`);
+                    // Log to measurement history
+                    if (item?.id && sourceSheet?.id) {
+                      logMeasurement.mutate({
+                        itemId: item.id,
+                        projectId,
+                        sheetId: sourceSheet.id,
+                        measurementType,
+                        rawValue: qty,
+                        unit: unitLabel,
+                        sheetName: sheetLabel,
+                        itemDescription: description,
+                      });
+                    }
                   }}
                   onOpenFullscreen={() => setIsFullscreen(true)}
                 />
@@ -1387,7 +1480,44 @@ export default function ItemDetailModal({
                     <AlertTriangle className="w-3 h-3 mr-1" /> Pending
                   </Badge>
                 )}
+                {measurementHistory.data && measurementHistory.data.length > 0 && (
+                  <Badge className="bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">
+                    <CheckCircle2 className="w-3 h-3 mr-1" /> Verified via Measurement
+                  </Badge>
+                )}
               </div>
+
+              {/* Measurement History Timeline */}
+              {measurementHistory.data && measurementHistory.data.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <History className="w-3.5 h-3.5 text-amber-400" />
+                    <Label className="text-cream-muted text-xs uppercase tracking-wider">Measurement History</Label>
+                  </div>
+                  <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5 space-y-2 max-h-[140px] overflow-y-auto">
+                    {measurementHistory.data.map((entry) => {
+                      const typeIcon = entry.measurementType === "line" ? "📏" : entry.measurementType === "area" ? "⬛" : "🔢";
+                      const when = new Date(entry.createdAt);
+                      const timeAgo = getTimeAgo(when);
+                      return (
+                        <div key={entry.id} className="flex items-start gap-2 text-[11px]">
+                          <span className="text-sm mt-0.5 shrink-0">{typeIcon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-cream font-mono font-semibold">
+                                {entry.rawValue.toFixed(entry.measurementType === "count" ? 0 : 2)} {entry.unit}
+                              </span>
+                              <span className="text-cream-muted/40">←</span>
+                              <span className="text-cream-muted/60 truncate">{entry.sheetName || "Sheet"}</span>
+                            </div>
+                            <span className="text-cream-muted/40 text-[10px]">{timeAgo}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
