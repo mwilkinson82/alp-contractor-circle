@@ -2,16 +2,30 @@
  * Async XER Import — handles large P6 XER files without hitting proxy timeouts.
  *
  * Flow:
- * 1. POST /api/xer/upload — client sends the XER file text, server stores to S3,
- *    creates an import job row, returns jobId immediately.
- * 2. Server processes the import in the background (no request held open).
+ * 1. POST /api/xer/upload — client sends the XER file via FormData (multipart),
+ *    server creates a job record immediately and returns jobId within 1-2 seconds.
+ * 2. Server processes the import in the background (S3 upload + parsing + DB inserts).
  * 3. GET /api/xer/status/:jobId — client polls for progress.
+ *
+ * Key optimizations:
+ * - Uses FormData/multipart upload (not JSON) for efficient large file transfer
+ * - Job record is created BEFORE any heavy processing
+ * - Response is sent BEFORE S3 upload or parsing begins
+ * - XER text is held in memory temporarily during background processing
  */
 import type { Express, Request, Response } from "express";
+import multer from "multer";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { storagePut } from "./storage";
 import * as sdb from "./scheduleDb";
 import { importXerFile } from "./xerImport";
+
+// ─── Multer config for multipart file upload ───────────────────────────────
+// Store in memory (we'll pass the buffer to background processing)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+});
 
 // ─── Auth helper (same pattern as scheduleRouter) ──────────────────────────
 
@@ -27,42 +41,63 @@ async function authenticateMember(req: Request) {
 
 const activeJobs = new Map<number, { status: string; message: string }>();
 
+// ─── In-memory store for XER text during background processing ─────────────
+const pendingTexts = new Map<number, string>();
+
 // ─── Routes ────────────────────────────────────────────────────────────────
 
 export function registerXerImportRoutes(app: Express) {
-  // POST /api/xer/upload — upload XER text, start async import
-  app.post("/api/xer/upload", async (req: Request, res: Response) => {
+  // POST /api/xer/upload — accept XER file via FormData or JSON, create job, return jobId FAST
+  app.post("/api/xer/upload", upload.single("xerFile"), async (req: Request, res: Response) => {
     try {
       const member = await authenticateMember(req);
       if (!member) return res.status(401).json({ error: "Not authenticated" });
 
-      const { xerText, scheduleName } = req.body;
-      if (!xerText || typeof xerText !== "string" || xerText.length < 10) {
-        return res.status(400).json({ error: "Missing or invalid xerText" });
+      let xerText: string;
+      let scheduleName: string | undefined;
+
+      // Support both FormData (multipart) and JSON body
+      if (req.file) {
+        // FormData upload — file is in req.file.buffer
+        xerText = req.file.buffer.toString("utf-8");
+        scheduleName = req.body?.scheduleName || undefined;
+      } else if (req.body?.xerText) {
+        // Legacy JSON body (backwards compatible)
+        xerText = req.body.xerText;
+        scheduleName = req.body.scheduleName || undefined;
+      } else {
+        return res.status(400).json({ error: "Missing XER file. Upload via FormData or provide xerText in JSON body." });
       }
 
-      console.log(`[XER Async] Member ${member.id} uploading XER (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+      if (typeof xerText !== "string" || xerText.length < 10) {
+        return res.status(400).json({ error: "XER file is empty or too small" });
+      }
 
-      // 1. Upload XER text to S3
-      const fileKey = `xer-imports/${member.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xer`;
-      const { url: fileUrl } = await storagePut(fileKey, xerText, "text/plain");
-      console.log(`[XER Async] Uploaded to S3: ${fileKey}`);
+      const sizeMB = (xerText.length / 1024 / 1024).toFixed(1);
+      console.log(`[XER Async] Member ${member.id} uploading XER (${sizeMB} MB text)...`);
 
-      // 2. Create import job record
+      // 1. Create import job record FIRST (fast DB insert, no S3 yet)
       const { id: jobId } = await sdb.createXerImportJob({
         memberId: member.id,
-        fileUrl,
+        fileUrl: `pending-upload-${Date.now()}`,
         scheduleName: scheduleName || undefined,
         status: "pending",
-        progressMessage: "Upload complete — starting import...",
+        progressMessage: "Upload received — starting import...",
       });
 
-      // 3. Return jobId immediately (fast response, no timeout risk)
+      console.log(`[XER Async] Created job ${jobId} — responding to client immediately`);
+
+      // 2. Store text in memory for background processing
+      pendingTexts.set(jobId, xerText);
+
+      // 3. Return jobId IMMEDIATELY (fast response, no timeout risk)
       res.json({ jobId });
 
-      // 4. Process import in background (fire-and-forget)
-      processXerImport(jobId, xerText, member.id, scheduleName || undefined).catch((err) => {
-        console.error(`[XER Async] Background import failed for job ${jobId}:`, err);
+      // 4. Process everything in background (fire-and-forget)
+      setImmediate(() => {
+        processXerImport(jobId, member.id, scheduleName).catch((err) => {
+          console.error(`[XER Async] Background import failed for job ${jobId}:`, err);
+        });
       });
     } catch (err: any) {
       console.error("[XER Async] Upload error:", err);
@@ -105,10 +140,21 @@ export function registerXerImportRoutes(app: Express) {
 
 async function processXerImport(
   jobId: number,
-  xerText: string,
   memberId: number,
   scheduleName?: string,
 ) {
+  // Retrieve the XER text from in-memory store
+  const xerText = pendingTexts.get(jobId);
+  if (!xerText) {
+    console.error(`[XER Async] No text found in memory for job ${jobId}`);
+    await sdb.updateXerImportJob(jobId, {
+      status: "failed",
+      progressMessage: "Import failed",
+      errorMessage: "XER text was lost — please try again",
+    });
+    return;
+  }
+
   const updateProgress = async (status: string, message: string) => {
     activeJobs.set(jobId, { status, message });
     try {
@@ -122,10 +168,23 @@ async function processXerImport(
   };
 
   try {
+    // Step 1: Upload to S3 (in background, no timeout pressure)
+    await updateProgress("pending", "Uploading file to storage...");
+    const fileKey = `xer-imports/${memberId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.xer`;
+    try {
+      const { url: fileUrl } = await storagePut(fileKey, xerText, "text/plain");
+      console.log(`[XER Async] Job ${jobId}: uploaded to S3 (${fileKey})`);
+      await sdb.updateXerImportJob(jobId, { fileUrl });
+    } catch (s3Err: any) {
+      console.warn(`[XER Async] Job ${jobId}: S3 upload failed (non-fatal):`, s3Err.message);
+    }
+
+    // Step 2: Parse and import
     await updateProgress("parsing", "Parsing XER file...");
 
     const result = await importXerFile(xerText, memberId, scheduleName);
 
+    // Step 3: Mark complete
     await sdb.updateXerImportJob(jobId, {
       status: "complete",
       progressMessage: `Import complete — ${result.activitiesImported} activities, ${result.relationshipsImported} relationships, ${result.wbsNodesImported} WBS nodes`,
@@ -134,6 +193,7 @@ async function processXerImport(
     });
 
     activeJobs.delete(jobId);
+    pendingTexts.delete(jobId);
     console.log(`[XER Async] Job ${jobId} complete: schedule #${result.scheduleId}`);
   } catch (err: any) {
     console.error(`[XER Async] Job ${jobId} failed:`, err);
@@ -143,5 +203,6 @@ async function processXerImport(
       errorMessage: err.message || "Unknown error",
     });
     activeJobs.delete(jobId);
+    pendingTexts.delete(jobId);
   }
 }

@@ -107,23 +107,25 @@ export default function ScheduleList() {
     onError: (err) => toast.error(err.message),
   });
 
-  // Async XER import: upload to S3, then poll for progress
+  // Async XER import: upload file via FormData, then poll for progress
   const handleXerImport = async () => {
     if (!xerFile) return;
     setXerImporting(true);
-    setXerProgress("Reading file...");
+    setXerProgress("Preparing upload...");
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let safetyTimeout: ReturnType<typeof setTimeout> | null = null;
     try {
-      const text = await xerFile.text();
-      setXerProgress("Uploading to server...");
+      setXerProgress(`Uploading ${(xerFile.size / 1024 / 1024).toFixed(1)} MB...`);
 
-      // Step 1: Upload XER text and get a job ID (fast response)
+      // Step 1: Upload XER file via FormData (multipart — much more efficient for large files)
+      const formData = new FormData();
+      formData.append("xerFile", xerFile);
+      if (xerScheduleName) formData.append("scheduleName", xerScheduleName);
+
       const uploadRes = await fetch("/api/xer/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          xerText: text,
-          scheduleName: xerScheduleName || undefined,
-        }),
+        body: formData,
+        // No Content-Type header — browser sets multipart boundary automatically
       });
 
       if (!uploadRes.ok) {
@@ -135,7 +137,7 @@ export default function ScheduleList() {
       setXerProgress("Import started — parsing XER file...");
 
       // Step 2: Poll for progress every 2 seconds
-      const pollInterval = setInterval(async () => {
+      pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/xer/status/${jobId}`);
           if (!statusRes.ok) return;
@@ -144,7 +146,8 @@ export default function ScheduleList() {
           setXerProgress(job.progressMessage || "Processing...");
 
           if (job.status === "complete") {
-            clearInterval(pollInterval);
+            if (pollInterval) clearInterval(pollInterval);
+            if (safetyTimeout) clearTimeout(safetyTimeout);
             const result = job.result as any;
             toast.success(`Imported "${result?.scheduleName || "Schedule"}" — ${result?.activitiesImported || 0} activities, ${result?.relationshipsImported || 0} relationships, ${result?.wbsNodesImported || 0} WBS nodes`);
             setShowXerImport(false);
@@ -155,7 +158,8 @@ export default function ScheduleList() {
             if (job.scheduleId) window.open(`/scheduler/${job.scheduleId}`, "_blank");
             schedulesQuery.refetch();
           } else if (job.status === "failed") {
-            clearInterval(pollInterval);
+            if (pollInterval) clearInterval(pollInterval);
+            if (safetyTimeout) clearTimeout(safetyTimeout);
             toast.error(`XER import failed: ${job.errorMessage || "Unknown error"}`);
             setXerImporting(false);
             setXerProgress("");
@@ -166,16 +170,22 @@ export default function ScheduleList() {
       }, 2000);
 
       // Safety timeout: stop polling after 10 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (xerImporting) {
-          toast.error("Import is taking longer than expected. Check your schedule list — it may still complete.");
-          setXerImporting(false);
-          setXerProgress("");
-        }
+      safetyTimeout = setTimeout(() => {
+        if (pollInterval) clearInterval(pollInterval);
+        toast.error("Import is taking longer than expected. Check your schedule list — it may still complete.");
+        setXerImporting(false);
+        setXerProgress("");
       }, 600000);
     } catch (e: any) {
-      toast.error(`XER import failed: ${e.message}`);
+      if (pollInterval) clearInterval(pollInterval);
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+      const msg = e.message || "Unknown error";
+      // Provide helpful message for network/timeout errors
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("timeout")) {
+        toast.error("Upload failed — network error. Please check your connection and try again.");
+      } else {
+        toast.error(`XER import failed: ${msg}`);
+      }
       setXerImporting(false);
       setXerProgress("");
     }
@@ -248,14 +258,19 @@ export default function ScheduleList() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              onClick={() => setShowXerImport(true)}
-              variant="outline"
-              className="border-ember/40 text-ember hover:bg-ember/10"
-            >
-              <FileUp className="w-4 h-4 mr-2" />
-              Import P6 XER
-            </Button>
+            <div className="relative group">
+              <Button
+                disabled
+                variant="outline"
+                className="border-border/30 text-muted-foreground/50 cursor-not-allowed opacity-50"
+              >
+                <FileUp className="w-4 h-4 mr-2" />
+                Import P6 XER
+              </Button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-card border border-border rounded-md text-xs text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                Coming Soon — Under Testing
+              </div>
+            </div>
             <Button
               onClick={() => setShowCreate(true)}
               className="bg-ember text-primary-foreground hover:bg-ember-dark"

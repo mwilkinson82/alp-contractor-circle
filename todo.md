@@ -2402,3 +2402,20 @@
 ## PDF Column Width Parity
 - [x] Fix PDF Activity Name column too narrow — now uses app column proportions (1fr = 400px weight vs 80px for date cols)
 - [x] Match PDF column proportions to what user sees in the application — passes actual columnWidths from Scheduler to PDF generator
+
+## XER Import Timeout Fix (14.8MB files)
+- [ ] Restructure async XER import: return jobId BEFORE S3 upload (move S3 + processing to background)
+- [ ] Use FormData/multipart upload instead of JSON body for large XER files
+- [ ] Test with large file import flow
+
+## PDF Column Width Fix
+- [x] Debug column key mismatch between app and PDF generator
+- [x] Fix PDF column widths to match app proportions
+
+## Gray Out XER Import Until Verified
+- [x] Disable/gray out "Import Primavera P6 XER File" button for all members until Marshall verifies
+- [x] Show "Coming Soon" or similar tooltip on the disabled button
+
+## Founding Member Email — ConstructLine Tools Access
+- [x] Send email to all founding members announcing ConstructLine suite access (Quantity Takeoff + CPM Scheduler)
+- [x] Ensure all Contractor Circle members have access to both tools

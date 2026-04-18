@@ -4402,6 +4402,13 @@ export default function Scheduler() {
         groupedActivities={groupBy === "wbs" ? groupedActivities as any : undefined}
         magnificationZoom={magnificationZoom}
         visibleColumns={visibleColumns}
+        appColumnWidths={(() => {
+          const merged: Record<string, string> = {};
+          for (const col of allColumnsWithCodes) {
+            merged[col.key] = columnWidths[col.key] || col.width;
+          }
+          return merged;
+        })()}
         groupBy={groupBy}
         relationships={relationships as any}
         savedPdfConfig={savedPdfConfig}

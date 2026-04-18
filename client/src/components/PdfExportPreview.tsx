@@ -88,6 +88,8 @@ interface PdfExportPreviewProps {
   relationships?: Relationship[];
   magnificationZoom?: number; // 50-150 for PDF row height scaling
   visibleColumns?: string[]; // Column keys visible on the scheduler screen
+  /** Actual column widths from the scheduler (key → CSS width like "200px" or "1fr") */
+  appColumnWidths?: Record<string, string>;
   /** Previously saved PDF export config to restore on open */
   savedPdfConfig?: SavedPdfConfig | null;
   /** Called after export with the current config so it can be persisted */
@@ -180,6 +182,7 @@ export function PdfExportPreview({
   relationships = [],
   magnificationZoom = 100,
   visibleColumns = ["activityId", "name", "duration", "earlyStart", "earlyFinish", "totalFloat", "wbs"],
+  appColumnWidths,
   savedPdfConfig,
   onConfigChange,
 }: PdfExportPreviewProps) {
@@ -615,11 +618,6 @@ export function PdfExportPreview({
       ctx.fillText(text, tx, margin + headerH / 2);
     });
 
-    // ── Content area ──
-    const tableW = showGantt ? (w - margin * 2) * 0.42 : (w - margin * 2);
-    const ganttX = margin + tableW + 4;
-    const ganttW = w - margin * 2 - tableW - 4;
-
     // ── Column definitions for dynamic table ──
     const colDefs: Record<string, { header: string; minFrac: number; grow: boolean; getValue: (act: Activity) => string }> = {
       activityId: { header: "ID", minFrac: 0.10, grow: false, getValue: (a) => a.activityId || "" },
@@ -634,16 +632,42 @@ export function PdfExportPreview({
       freeFloat: { header: "FF", minFrac: 0.05, grow: false, getValue: (a) => (a as any).freeFloat != null ? `${(a as any).freeFloat}d` : "\u2014" },
       wbs: { header: "WBS", minFrac: 0.07, grow: false, getValue: (a) => (a as any).wbs || "\u2014" },
     };
-    const activeCols = visibleColumns.filter(k => colDefs[k]).map(k => colDefs[k]);
-    // Compute column pixel widths from fractions
-    const totalMinFrac = activeCols.reduce((s, c) => s + c.minFrac, 0);
-    const growCount = activeCols.filter(c => c.grow).length;
-    const extraFrac = Math.max(0, 1 - totalMinFrac);
-    const colWidths = activeCols.map(c => {
-      let frac = c.minFrac;
-      if (c.grow && growCount > 0 && extraFrac > 0) frac += extraFrac / growCount;
-      return frac * tableW;
-    });
+    const activeColKeys = visibleColumns.filter(k => colDefs[k]);
+    const activeCols = activeColKeys.map(k => colDefs[k]);
+
+    // ── Content area — dynamic table width based on column count ──
+    const usableW = w - margin * 2;
+    const numCols = activeColKeys.length;
+    const tableShare = !showGantt ? 1.0 : numCols <= 4 ? 0.30 : numCols <= 6 ? 0.38 : numCols <= 8 ? 0.45 : numCols <= 10 ? 0.50 : 0.55;
+    const tableW = usableW * tableShare;
+    const ganttX = margin + tableW + 4;
+    const ganttW = usableW - tableW - 4;
+
+    // Compute column pixel widths using app proportions when available
+    let colWidths: number[];
+    if (appColumnWidths && Object.keys(appColumnWidths).length > 0) {
+      // Parse app column widths to get pixel proportions
+      const appWidths = activeColKeys.map(key => {
+        const cssVal = appColumnWidths[key];
+        if (!cssVal) return 50;
+        const pxMatch = cssVal.match(/(\d+)/);
+        if (pxMatch) return parseInt(pxMatch[1]);
+        if (cssVal.includes('fr')) return 400;
+        return 50;
+      });
+      const totalAppPx = appWidths.reduce((s, w) => s + w, 0);
+      colWidths = appWidths.map(w => (w / totalAppPx) * tableW);
+    } else {
+      // Fallback: use fraction-based widths
+      const totalMinFrac = activeCols.reduce((s, c) => s + c.minFrac, 0);
+      const growCount = activeCols.filter(c => c.grow).length;
+      const extraFrac = Math.max(0, 1 - totalMinFrac);
+      colWidths = activeCols.map(c => {
+        let frac = c.minFrac;
+        if (c.grow && growCount > 0 && extraFrac > 0) frac += extraFrac / growCount;
+        return frac * tableW;
+      });
+    }
 
     // Table header
     ctx.fillStyle = "#f1f5f9";

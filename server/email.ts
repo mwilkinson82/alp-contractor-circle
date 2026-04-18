@@ -3181,3 +3181,181 @@ export async function sendFeedbackNotification(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── ConstructLine Suite Announcement Email ──────────────────────────────────
+
+export async function sendConstructLineAnnouncementEmail(params: {
+  to: string;
+  name: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping ConstructLine announcement");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  const firstName = params.name.split(" ")[0];
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "You Now Have Access to ConstructLine — Proprietary Tools for Contractors",
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Accent Bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Badge -->
+          <tr><td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+                <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">NEW TOOLS AVAILABLE</span>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Headline -->
+          <tr><td align="center" style="padding:0 20px;">
+            <h1 style="margin:0;font-size:28px;font-weight:800;color:#F5F0E8;line-height:1.3;">
+              ConstructLine Is Live
+            </h1>
+          </td></tr>
+          <tr><td style="height:8px;"></td></tr>
+          <tr><td align="center" style="padding:0 20px;">
+            <p style="margin:0;font-size:16px;color:#B8A99A;line-height:1.6;">
+              Proprietary tools built exclusively for Contractor Circle members.
+            </p>
+          </td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Personal Greeting -->
+          <tr><td style="padding:0 24px;">
+            <p style="margin:0;font-size:15px;color:#F5F0E8;line-height:1.8;">
+              ${firstName} —
+            </p>
+            <p style="margin:16px 0 0 0;font-size:15px;color:#D4C5B0;line-height:1.8;">
+              As a founding member of the Contractor Circle, you now have access to the <strong style="color:#F5F0E8;">ConstructLine</strong> suite of proprietary tools — built specifically for contractors who are serious about running their business at a higher level.
+            </p>
+          </td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Tool 1: Quantity Takeoff -->
+          <tr><td style="padding:0 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(212,145,92,0.06);border:1px solid rgba(212,145,92,0.15);border-radius:12px;">
+              <tr><td style="padding:20px 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="48" valign="top">
+                      <div style="width:40px;height:40px;background:rgba(212,145,92,0.15);border-radius:10px;text-align:center;line-height:40px;font-size:20px;">📐</div>
+                    </td>
+                    <td style="padding-left:16px;">
+                      <h3 style="margin:0;font-size:16px;font-weight:700;color:#F5F0E8;">Quantity Takeoff Application</h3>
+                      <p style="margin:8px 0 0 0;font-size:14px;color:#B8A99A;line-height:1.6;">
+                        Upload your plans, measure quantities, and generate professional takeoff reports. Built for contractors who want accuracy without the bloated software.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td></tr>
+            </table>
+          </td></tr>
+          <tr><td style="height:16px;"></td></tr>
+
+          <!-- Tool 2: CPM Scheduler -->
+          <tr><td style="padding:0 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(212,145,92,0.06);border:1px solid rgba(212,145,92,0.15);border-radius:12px;">
+              <tr><td style="padding:20px 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="48" valign="top">
+                      <div style="width:40px;height:40px;background:rgba(212,145,92,0.15);border-radius:10px;text-align:center;line-height:40px;font-size:20px;">📊</div>
+                    </td>
+                    <td style="padding-left:16px;">
+                      <h3 style="margin:0;font-size:16px;font-weight:700;color:#F5F0E8;">CPM Scheduler</h3>
+                      <p style="margin:8px 0 0 0;font-size:14px;color:#B8A99A;line-height:1.6;">
+                        Create, manage, and analyze Critical Path Method schedules. Build professional construction schedules, track progress, and export presentation-quality PDFs — all from your browser.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td></tr>
+            </table>
+          </td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- CTA -->
+          <tr><td align="center" style="padding:0 24px;">
+            <a href="${PORTAL_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:14px 40px;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:0.5px;">
+              Access ConstructLine Now →
+            </a>
+          </td></tr>
+          <tr><td style="height:16px;"></td></tr>
+          <tr><td align="center">
+            <p style="margin:0;font-size:13px;color:#B8A99A;">
+              Log in to your Contractor Circle portal to get started.
+            </p>
+          </td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Closing -->
+          <tr><td style="padding:0 24px;">
+            <p style="margin:0;font-size:15px;color:#D4C5B0;line-height:1.8;">
+              These tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.
+            </p>
+            <p style="margin:16px 0 0 0;font-size:15px;color:#D4C5B0;line-height:1.8;">
+              More tools are coming. You'll be the first to know.
+            </p>
+          </td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Signature -->
+          <tr><td style="padding:0 24px;">
+            <p style="margin:0;font-size:15px;color:#F5F0E8;line-height:1.8;">
+              Let's build,<br>
+              <strong>Marshall Wilkinson</strong><br>
+              <span style="font-size:13px;color:#B8A99A;">Founder & CEO, ALP</span>
+            </p>
+          </td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Footer -->
+          <tr><td style="border-top:1px solid rgba(255,255,255,0.06);padding:20px 24px;">
+            <p style="margin:0;font-size:11px;color:#B8A99A;text-align:center;line-height:1.6;">
+              You're receiving this because you're a member of the ALP Contractor Circle.<br>
+              <a href="https://alpcontractorcircle.com" style="color:#D4915C;text-decoration:none;">alpcontractorcircle.com</a>
+            </p>
+          </td></tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `.trim(),
+      text: `${firstName} —\n\nAs a founding member of the Contractor Circle, you now have access to the ConstructLine suite of proprietary tools — built specifically for contractors who are serious about running their business at a higher level.\n\n📐 QUANTITY TAKEOFF APPLICATION\nUpload your plans, measure quantities, and generate professional takeoff reports. Built for contractors who want accuracy without the bloated software.\n\n📊 CPM SCHEDULER\nCreate, manage, and analyze Critical Path Method schedules. Build professional construction schedules, track progress, and export presentation-quality PDFs — all from your browser.\n\nAccess ConstructLine now: ${PORTAL_URL}\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nMore tools are coming. You'll be the first to know.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send ConstructLine announcement:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] ConstructLine announcement sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending ConstructLine announcement:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

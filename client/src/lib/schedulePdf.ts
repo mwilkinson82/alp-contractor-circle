@@ -846,8 +846,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         return ganttColDefs[key].minWidth;
       });
       const totalAppPx = appWidths.reduce((s, w) => s + w, 0);
-      // Table takes proportional share, clamped between 35-55% of page
-      labelWidth = Math.min(Math.max(usableWidth * 0.35, usableWidth * 0.35), usableWidth * 0.55);
+      // Calculate table share based on number and type of visible columns.
+      // With default 7 columns (ID 80, Name 400, Dur 50, ES 80, EF 80, TF 45, WBS 70 = 805px),
+      // the table should get ~45% of page width. With fewer columns, less; with more, more.
+      // Scale: 5 cols → ~35%, 7 cols → ~45%, 10+ cols → ~55%
+      const numCols = ganttActiveKeys.length;
+      const baseShare = numCols <= 4 ? 0.30 : numCols <= 6 ? 0.38 : numCols <= 8 ? 0.45 : numCols <= 10 ? 0.50 : 0.55;
+      labelWidth = usableWidth * baseShare;
       // Distribute labelWidth proportionally based on app widths
       ganttColWidths = appWidths.map((w, idx) => {
         const proportion = w / totalAppPx;
