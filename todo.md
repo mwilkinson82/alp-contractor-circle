@@ -2295,3 +2295,10 @@
 - [x] HVAC specialty template (trade-specific WBS, activities, logic)
 - [x] Civil/Sitework specialty template (trade-specific WBS, activities, logic)
 - [x] Templates auto-loaded from code (no DB seeding needed)
+
+## Create New Schedule Modal Redesign
+- [x] Fix modal overflow — templates going outside the modal boundary
+- [x] Make modal content scrollable with proper max-height (90vh, flex layout)
+- [x] Redesign template section to visually stand out (emerald border/glow, pulsing dot)
+- [x] Templates in 2-column grid with activity count badges, hover effects
+- [x] New users see Blank + templates when clicking New Project — clear visual hierarchy

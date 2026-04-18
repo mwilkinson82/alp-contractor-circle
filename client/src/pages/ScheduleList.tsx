@@ -333,79 +333,111 @@ export default function ScheduleList() {
 
       {/* Create Schedule Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-card border-border max-w-2xl text-base">
-          <DialogHeader>
+        <DialogContent className="bg-card border-border max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="font-heading">
               Create New Schedule
             </DialogTitle>
             <DialogDescription>
-              Start from scratch or choose a construction template.
+              Name your project, then pick a starting point below.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Project Name</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., Smith Residence — New Build"
-                className="mt-1"
-              />
+
+          <div className="overflow-y-auto flex-1 pr-1 space-y-5 py-2">
+            {/* ── Project Details ── */}
+            <div className="space-y-3">
+              <div>
+                <Label>Project Name</Label>
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g., Smith Residence — New Build"
+                  className="mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Description (optional)</Label>
+                  <Input
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="Brief project description"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Project Start Date</Label>
+                  <Input
+                    type="date"
+                    value={newStartDate}
+                    onChange={(e) => setNewStartDate(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>Description (optional)</Label>
-              <Input
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="Brief project description"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Project Start Date</Label>
-              <Input
-                type="date"
-                value={newStartDate}
-                onChange={(e) => setNewStartDate(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Template</Label>
-              <div className="grid grid-cols-1 gap-2 mt-2">
+
+            {/* ── Template Picker ── */}
+            <div className="rounded-xl border-2 border-emerald-500/40 bg-emerald-500/[0.03] p-4" style={{ boxShadow: '0 0 20px rgba(16,185,129,0.08), inset 0 1px 0 rgba(16,185,129,0.1)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-sm font-semibold text-emerald-400 tracking-wide uppercase">Choose a Starting Template</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">Pick a pre-built schedule with WBS, activities, logic ties &amp; activity codes — or start blank.</p>
+
+              <div className="grid grid-cols-1 gap-2">
+                {/* Blank option */}
                 <button
                   onClick={() => setSelectedTemplate(null)}
-                  className={`text-left p-3 rounded-lg border transition-colors ${
+                  className={`text-left p-3 rounded-lg border-2 transition-all ${
                     selectedTemplate === null
-                      ? "border-ember bg-ember/10 text-foreground"
-                      : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30"
+                      ? "border-ember bg-ember/10 text-foreground shadow-[0_0_12px_rgba(217,119,6,0.15)]"
+                      : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:bg-white/[0.04]"
                   }`}
                 >
-                  <div className="font-medium text-sm">Blank Schedule</div>
-                  <div className="text-xs mt-0.5 opacity-70">
-                    Start from scratch
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                      <Plus className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Blank Schedule</div>
+                      <div className="text-xs opacity-60">Start from scratch — add your own activities</div>
+                    </div>
                   </div>
                 </button>
-                {templates.map((t: any) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTemplate(t.id)}
-                    className={`text-left p-3 rounded-lg border transition-colors ${
-                      selectedTemplate === t.id
-                        ? "border-ember bg-ember/10 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30"
-                    }`}
-                  >
-                    <div className="font-medium text-sm">{t.name}</div>
-                    <div className="text-xs mt-0.5 opacity-70">
-                      {t.description} — {t.activityCount} activities
-                    </div>
-                  </button>
-                ))}
+
+                {/* Template grid — 2 columns for better visual density */}
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {templates.map((t: any) => {
+                    const isSelected = selectedTemplate === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTemplate(t.id)}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? "border-ember bg-ember/10 text-foreground shadow-[0_0_12px_rgba(217,119,6,0.15)]"
+                            : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
+                        }`}
+                      >
+                        <div className="font-medium text-sm leading-tight">{t.name}</div>
+                        <div className="text-[11px] mt-1 opacity-60 leading-snug line-clamp-2">{t.description}</div>
+                        <div className="mt-1.5 flex items-center gap-1">
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            isSelected ? "bg-ember/20 text-ember" : "bg-emerald-500/10 text-emerald-400"
+                          }`}>
+                            {t.activityCount} activities
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="shrink-0 border-t border-border pt-4">
             <Button
               variant="outline"
               onClick={() => setShowCreate(false)}
