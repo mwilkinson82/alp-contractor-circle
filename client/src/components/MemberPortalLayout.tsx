@@ -8,7 +8,7 @@
  * - Templates
  * - ConstructLine (collapsible parent — admin only)
  *   ├── C1 — CPM Schedule
- *   ├── C2 — Quantity Takeoff (admin only; non-admins see "Coming Soon" badge)
+ *   ├── C2 — Quantity Takeoff (available to all members)
  *   └── C3 — Cost Library (admin only)
  * - Account
  * - Admin Panel (admin only)
@@ -178,30 +178,20 @@ function ConstructLineNav({
             {isSchedulerActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
           </button>
 
-          {/* C2 — Quantity Takeoff — admin only, others see Coming Soon */}
-          {isAdmin ? (
-            <button
-              data-tour="nav-takeoff"
-              onClick={() => navigate("/portal/takeoff")}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-                isTakeoffActive
-                  ? "bg-ember/10 text-ember font-medium"
-                  : "text-cream-muted hover:text-cream hover:bg-white/5"
-              }`}
-            >
-              <Ruler className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
-              <span>Quantity Takeoff</span>
-              {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
-            </button>
-          ) : (
-            <div className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-cream-muted/40 cursor-not-allowed">
-              <Ruler className="w-3.5 h-3.5 shrink-0" />
-              <span>Quantity Takeoff</span>
-              <span className="ml-auto text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
-                Soon
-              </span>
-            </div>
-          )}
+          {/* C2 — Quantity Takeoff — available to all members */}
+          <button
+            data-tour="nav-takeoff"
+            onClick={() => navigate("/portal/takeoff")}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+              isTakeoffActive
+                ? "bg-ember/10 text-ember font-medium"
+                : "text-cream-muted hover:text-cream hover:bg-white/5"
+            }`}
+          >
+            <Ruler className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
+            <span>Quantity Takeoff</span>
+            {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+          </button>
 
           {/* C3 — Cost Library — admin only */}
           {isAdmin && (
