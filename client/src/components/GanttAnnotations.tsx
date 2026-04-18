@@ -167,8 +167,13 @@ export default function GanttAnnotations({
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }, []);
+    // Account for scroll offset — annotations are positioned in content-space,
+    // but the SVG is transformed by -scrollOffset, so we need to add it back
+    return {
+      x: e.clientX - rect.left + scrollOffset.scrollLeft,
+      y: e.clientY - rect.top + scrollOffset.scrollTop,
+    };
+  }, [scrollOffset]);
 
   // ── Mouse handlers ────────────────────────────────────────────────────
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -330,7 +335,7 @@ export default function GanttAnnotations({
   }
 
   return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20, overflow: "hidden" }}>
       {/* ── Toolbar (only shown when editing) ────────────────────────────────────────── */}
       {showToolbar && (
       <div className="pointer-events-auto absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg px-2 py-1.5">
@@ -582,10 +587,15 @@ export default function GanttAnnotations({
       {/* ── SVG Overlay ────────────────────────────────────────────────────────────────── */}
       <svg
         ref={svgRef}
-        className={`absolute inset-0 ${allowInteraction ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        className={`absolute ${allowInteraction ? 'pointer-events-auto' : 'pointer-events-none'}`}
         width={width}
         height={height}
-        style={{ cursor: allowInteraction ? (tool === "select" ? "default" : "crosshair") : "default" }}
+        style={{
+          cursor: allowInteraction ? (tool === "select" ? "default" : "crosshair") : "default",
+          left: 0,
+          top: 0,
+          transform: `translate(${-scrollOffset.scrollLeft}px, ${-scrollOffset.scrollTop}px)`,
+        }}
         onMouseDown={allowInteraction ? handleMouseDown : undefined}
         onMouseMove={allowInteraction ? handleMouseMove : undefined}
         onMouseUp={allowInteraction ? handleMouseUp : undefined}

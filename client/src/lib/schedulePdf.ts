@@ -102,6 +102,41 @@ export interface PdfExportOptions {
   // Legend placement
   legendPlacement?: "footer" | "inline";
 
+  // Annotations overlay (text boxes, arrows, shading from GanttAnnotations)
+  annotations?: Array<{
+    id: string;
+    type: "text" | "arrow" | "shading";
+    // Text box fields
+    x?: number;
+    y?: number;
+    text?: string;
+    fontSize?: number;
+    color?: string;
+    bgColor?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    width?: number;
+    height?: number;
+    // Arrow fields
+    x1?: number;
+    y1?: number;
+    x2?: number;
+    y2?: number;
+    strokeWidth?: number;
+    label?: string;
+    lineStyle?: "solid" | "dashed" | "dotted";
+    startEndpoint?: "arrow" | "circle" | "diamond" | "none";
+    endEndpoint?: "arrow" | "circle" | "diamond" | "none";
+    // Shading fields
+    opacity?: number;
+    pattern?: "solid" | "hatching" | "crosshatch" | "dots";
+  }>;
+
+  // Screen-space dimensions of the Gantt chart (for annotation coordinate mapping)
+  ganttScreenWidth?: number;
+  ganttScreenHeight?: number;
+
   // Column width proportions from the app (key → CSS width like "200px" or "1fr")
   appColumnWidths?: Record<string, string>;
 

@@ -2483,7 +2483,7 @@
 - [x] Properties panel (Arrow/Text/Shading) must be draggable — user can grab and move it around
 - [x] Add height resize handle to text boxes (bottom edge drag)
 - [ ] PDF export must include all annotations (text boxes, arrows, shading) baked into the export
-- [x] Annotations must scroll with the Gantt chart — anchored to chart content, not viewport
+- [ ] Annotations must scroll with the Gantt chart — anchored to chart content, not viewport (CSS transform approach NOT working, needs render inside scroll container)
 - [x] Annotations always visible once created — Annotate button only toggles editing toolbar, not annotation display
 - [ ] Duplicate schedule feature — copy schedule with annotations, move data date, recalculate as update to baseline
 - [x] Add annotation screenshot to ConstructLine landing page to showcase the feature
@@ -2503,3 +2503,36 @@
 - [x] After form submission, redirect to /portal/scheduler (ConstructLine tools) instead of locked /portal dashboard
 - [x] Free access form = free access — no paywall, no upsell modal
 - [x] Contractor Circle price is $497/mo NOT $97/mo — all pricing references removed, replaced with Learn More links
+
+## PDF Export with Annotations (April 18)
+- [ ] Render text box annotations in PDF export (position, text, font size, bold/italic/underline, background color)
+- [ ] Render arrow annotations in PDF export (start/end points, color, width, line style, arrowheads)
+- [ ] Render shading/highlight annotations in PDF export (rect position, color, opacity)
+- [ ] Annotations must appear at correct positions relative to Gantt chart content in PDF
+
+## Duplicate Schedule for Updates (April 18)
+- [ ] Backend: tRPC procedure to duplicate a schedule (copy all activities, relationships, annotations)
+- [ ] Backend: New schedule gets a name like "Original Name - Update 1"
+- [ ] Backend: Preserve annotations in the duplicated schedule
+- [ ] Frontend: "Duplicate Schedule" button/option in scheduler
+- [ ] Frontend: After duplication, navigate to the new schedule
+- [ ] User can then move data date and recalculate on the duplicate as an update
+
+## Schedule of Values (SOV) from Takeoff Data
+- [ ] Database schema: SOV table (linked to takeoff project), SOV line items table
+- [ ] SOV line items: description, scheduled value, materials cost, labor cost, markup %, line item type (material-only, labor-inclusive, long-lead/fabrication)
+- [ ] Backend: Create SOV from takeoff data (pull verified line items as starting point)
+- [ ] Backend: CRUD for SOV line items (add labor, adjust markup, reorder, group by division)
+- [ ] Backend: SOV approval status tracking (draft, submitted, approved, revised)
+- [ ] Frontend: SOV creation page — pull from takeoff, add labor rates per line item or labor multiplier
+- [ ] Frontend: SOV detail view — editable line items with totals, subtotals by division/group
+- [ ] Frontend: SOV PDF export — professional formatted Schedule of Values document
+- [ ] Frontend: SOV status workflow (draft → submitted → approved)
+
+## Proposal Generation from SOV
+- [ ] Database schema: Proposals table (linked to SOV and takeoff project)
+- [ ] Backend: Generate proposal from SOV data
+- [ ] Frontend: Proposal builder — cover letter, description of work, scope of work, inclusions, exclusions, pricing from SOV
+- [ ] Frontend: Contractor branding — company name, logo, address, phone, email, license #
+- [ ] Frontend: Proposal PDF export — branded professional proposal document
+- [ ] Frontend: Proposal templates / saved company profiles for reuse
