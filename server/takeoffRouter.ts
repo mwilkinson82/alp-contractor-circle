@@ -71,7 +71,8 @@ async function requireMember(req: any) {
  * All members (founding_member, admin, member) have access to ConstructLine.
  */
 async function requireAdminMember(req: any) {
-  // Access opened Apr 18 2026: all Contractor Circle members have access
+  // All authenticated Contractor Circle members have access — no role restriction
+  // Access opened Apr 18 2026: founding_member, admin, member roles all allowed
   return requireMember(req);
 }
 
