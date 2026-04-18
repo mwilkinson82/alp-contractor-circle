@@ -96,11 +96,11 @@ export const BASE_ROW_HEIGHT = 44;
 export const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
 export const HEADER_HEIGHT = 48;
 
-// P6-style variable row heights: parent WBS rows are thicker than child WBS rows
-// Child rows are now significantly smaller (40-50% of parent) for dramatic visual hierarchy
+// P6-style variable row heights: parent WBS rows are slightly taller than children
+// Balanced proportions — no dramatic size jumps between levels
 export function getWbsRowHeight(depth: number, isCostOverlay: boolean): number {
-  // Parent (depth 0): 56px, Child (depth 1): 24px, Grandchild (depth 2): 20px
-  const base = isCostOverlay ? 60 : (depth <= 0 ? 56 : depth === 1 ? 24 : 20);
+  // Parent (depth 0): 34px, Child (depth 1): 28px, Grandchild (depth 2+): 24px
+  const base = isCostOverlay ? 60 : (depth <= 0 ? 34 : depth === 1 ? 28 : 24);
   return base;
 }
 export function getActivityRowHeight(isCostOverlay: boolean): number {

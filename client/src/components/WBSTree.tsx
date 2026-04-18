@@ -336,7 +336,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
             className="mr-2 mb-2 p-3 bg-[#1a1f2e] border border-white/15 rounded-lg shadow-xl"
             style={{ marginLeft: `${indent + 36}px` }}
           >
-            <div className="text-xs font-semibold text-gray-300 mb-2">Group Header Color</div>
+            <div className="text-xs font-semibold text-gray-300 mb-2">Group Header Color — Background & Font</div>
             <div className="grid grid-cols-6 gap-1.5 mb-3">
               {PRESET_COLORS.map((preset) => (
                 <button
@@ -352,7 +352,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
             </div>
             <div className="flex items-center gap-2 pt-2 border-t border-white/10">
               <div className="flex items-center gap-1.5">
-                <label className="text-[10px] text-gray-500">BG</label>
+                <label className="text-[10px] text-gray-400">Background</label>
                 <input
                   type="color"
                   value={customBg}
@@ -361,7 +361,7 @@ export function WBSTree({ nodes, onDelete, onUpdateColor, onUpdateNode, onReorde
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                <label className="text-[10px] text-gray-500">Text</label>
+                <label className="text-[10px] text-gray-400">Font</label>
                 <input
                   type="color"
                   value={customText}

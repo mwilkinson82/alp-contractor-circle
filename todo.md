@@ -2370,3 +2370,10 @@
 - [x] Ensure groupColor from WBS nodes is used when rendering WBS group headers in the schedule
 - [x] Fix Gantt chart canvas to use wbsColor for group row background + summary bar
 - [x] Fix PDF export to use bgColor from WBS Manager for both table and Gantt sides
+
+## WBS Group Header Aesthetic Improvements
+- [x] Reduce parent WBS row height (depth 0: 56px → 34px, depth 1: 24px → 28px, depth 2+: 20px → 24px)
+- [x] Increase parent WBS font size (depth 0: 0.875rem, depth 1: 0.8125rem, depth 2+: 0.75rem)
+- [x] Balance proportions between parent and child WBS rows (1.2x ratio instead of 2.3x)
+- [x] Font color customization already works — improved labels to say "Background" and "Font" instead of "BG" and "Text"
+- [x] Consistent sizing across schedule table, Gantt chart, and PDF export via shared getWbsRowHeight()

@@ -2041,8 +2041,8 @@ export default function Scheduler() {
                           {/* WBS code badge */}
                           {wbsCode && (
                             <span
-                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
-                              style={{ backgroundColor: d === 0 ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)", color: textColor }}
+                              className="font-mono font-bold px-1.5 py-0.5 rounded mr-2 flex-shrink-0"
+                              style={{ fontSize: d === 0 ? "0.6875rem" : "0.625rem", backgroundColor: d === 0 ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)", color: textColor }}
                             >
                               {wbsCode}
                             </span>
@@ -2051,7 +2051,7 @@ export default function Scheduler() {
                           <span
                             className="font-bold tracking-wide truncate"
                             style={{
-                              fontSize: d === 0 ? "0.8125rem" : "0.75rem",
+                              fontSize: d === 0 ? "0.875rem" : d === 1 ? "0.8125rem" : "0.75rem",
                               color: textColor,
                             }}
                           >
@@ -2059,7 +2059,7 @@ export default function Scheduler() {
                           </span>
                           <span
                             className="ml-2 flex-shrink-0"
-                            style={{ fontSize: "0.625rem", fontWeight: 500, color: textColor, opacity: 0.6 }}
+                            style={{ fontSize: d === 0 ? "0.6875rem" : "0.625rem", fontWeight: 500, color: textColor, opacity: 0.6 }}
                           >
                             {isCollapsed ? `(${groupActs.length} hidden)` : `(${groupActs.length})`}
                           </span>
