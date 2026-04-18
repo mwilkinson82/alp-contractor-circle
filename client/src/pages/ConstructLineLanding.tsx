@@ -46,6 +46,15 @@ const SCREENSHOTS = {
   reportsCashflow: "/manus-storage/cl-reports-cashflow_a8780773.webp",
   reportsHistogram: "/manus-storage/cl-reports-histogram_dab3be41.webp",
   scheduleHealth: "/manus-storage/cl-schedule-health_21b851b9.webp",
+  // Quantity Takeoff screenshots
+  takeoffDrawingSheets: "/manus-storage/cl-takeoff-drawing-sheets_9ec0b1b2.webp",
+  takeoffDrawingViewer: "/manus-storage/cl-takeoff-drawing-viewer_61066ed5.webp",
+  takeoffLineItems: "/manus-storage/cl-takeoff-line-items_5f13cf37.webp",
+  takeoffBidCalculator: "/manus-storage/cl-takeoff-bid-calculator_f23d2c65.webp",
+  takeoffItemDetail: "/manus-storage/cl-takeoff-item-detail_39ddf76d.webp",
+  takeoffMeasurements: "/manus-storage/cl-takeoff-measurements_7548a1df.webp",
+  takeoffItemMeasurements: "/manus-storage/cl-takeoff-item-measurements_c25f7b29.webp",
+  takeoffConsolidateWorking: "/manus-storage/cl-takeoff-consolidate-working_6325e99f.webp",
 };
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -688,82 +697,252 @@ export default function ConstructLineLanding() {
       ═══════════════════════════════════════════════════════════════ */}
       <section className="py-20 sm:py-28 px-4 sm:px-6 bg-midnight/40">
         <div className="max-w-6xl mx-auto">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, ease: easeOutCubic }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
+            className="text-center mb-16"
           >
-            {/* Text */}
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
-                  <Ruler className="w-5 h-5 text-ember" />
-                </div>
-                <span
-                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
-                  ConstructLine
-                </span>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                <Ruler className="w-5 h-5 text-ember" />
               </div>
-              <h2
-                className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
+              <span
+                className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
-                Quantity Takeoff
-              </h2>
-              <p
-                className="text-lg text-cream/60 mb-6 font-medium"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                AI-powered quantity estimating. Upload plans. Get quantities.
-              </p>
-              <p
-                className="text-cream/50 text-sm leading-relaxed mb-8"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                Upload your blueprints and let ConstructLine's AI engine analyze your drawings — automatically detecting and measuring quantities across all CSI divisions. Review, adjust, and export professional estimates in minutes, not days.
-              </p>
-              <ul className="space-y-3">
-                {[
-                  "AI-powered plan analysis across 20+ CSI divisions",
-                  "Multi-page plan support with sheet navigation",
-                  "Trade specialty detection for line item accuracy",
-                  "Regional cost adjustments (US, UK, Canada)",
-                  "Export to CSV with full line item detail",
-                  "Scope description filtering for targeted analysis",
-                ].map((feat, j) => (
-                  <li key={j} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-ember mt-0.5 shrink-0" />
-                    <span
-                      className="text-sm text-cream/70"
-                      style={{ fontFamily: "'DM Sans', sans-serif" }}
-                    >
-                      {feat}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                ConstructLine
+              </span>
             </div>
-
-            {/* Placeholder — no takeoff screenshot yet */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.8, delay: 0.2, ease: easeOutCubic }}
-              className="relative rounded-xl overflow-hidden border border-cream/10 bg-midnight-card p-12 flex flex-col items-center justify-center min-h-[400px]"
+            <h2
+              className="text-3xl sm:text-5xl font-bold text-cream mb-4 leading-tight"
+              style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              <Ruler className="w-20 h-20 text-ember/20 mb-6" />
-              <p className="text-cream/50 text-lg font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
-                Quantity Takeoff
-              </p>
-              <p className="text-cream/30 text-sm text-center max-w-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                Upload blueprints, select divisions, and let the AI engine generate your estimate.
-              </p>
+              Quantity Takeoff
+            </h2>
+            <p
+              className="text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              AI-powered quantity estimating. Upload your blueprints and get a full CSI-coded estimate with 851+ line items — in minutes, not days.
+            </p>
+          </motion.div>
+
+          {/* Hero screenshot — Drawing Sheets grid */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="relative group mb-16"
+          >
+            <div className="absolute -inset-4 rounded-2xl bg-ember/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-xl overflow-hidden border border-cream/10 shadow-2xl shadow-black/40">
+              <img
+                src={SCREENSHOTS.takeoffDrawingSheets}
+                alt="ConstructLine Quantity Takeoff — Drawing Sheets with 23 analyzed construction plans"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Upload construction drawings — ConstructLine indexes, classifies, and analyzes every sheet automatically
+            </p>
+          </motion.div>
+
+          {/* Feature grid with real screenshots */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            {/* Line Items with CSI Codes */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffLineItems}
+                  alt="851 line items across 18 CSI divisions — $1.7M estimated"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <DollarSign className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    851 Line Items, 18 CSI Divisions
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Every item coded to CSI MasterFormat with quantities, units, unit costs, extended costs, and AI confidence scores. Review and verify each one.
+                  </p>
+                </div>
+              </div>
             </motion.div>
+
+            {/* Bid Calculator */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffBidCalculator}
+                  alt="Bid Markup Calculator — Labor, Overhead, Profit, Bonds, Contingency"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Target className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Bid Markup Calculator
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Add Labor, Overhead, Profit, Bonds, and Contingency percentages on top of your material takeoff total. Build your full bid number in one click.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Item Detail with Drawing Reference */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffItemDetail}
+                  alt="Line item detail — drawing reference, notes, quantity, unit cost, confidence"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Full Item Detail & Drawing Reference
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Click any line item to see the source drawing, your notes, QTY, unit, cost, and confidence score. Mark items as reviewed or edit inline.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* On-Plan Measurements */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffMeasurements}
+                  alt="On-plan measurement tool — draw lines, areas, and counts directly on blueprints"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Ruler className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    On-Plan Measurements
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Draw lines, rectangles, and counts directly on the blueprint. Scaled measurements with color-coded layers. Export to CSV or apply to line items.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Item with Saved Measurements */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffItemMeasurements}
+                  alt="Line item with saved measurements — 39.8 LF measured, 19 counted"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Link2 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Measurements Linked to Line Items
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Your on-plan measurements save directly to each line item. Apply measured quantities or use AI-suggested values. Full audit trail.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* AI Consolidate & Enhance */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.takeoffConsolidateWorking}
+                  alt="AI Consolidate & Enhance — merging and refining results across all 23 sheets"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    AI Consolidate & Enhance
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    After initial extraction, ConstructLine's AI merges duplicate items, refines quantities, and recalculates costs across all sheets. One click to enhance your entire estimate.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Takeoff Feature bullets */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: easeOutCubic }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                "AI-powered plan analysis",
+                "20+ CSI divisions detected",
+                "On-plan measurement tools",
+                "Bid markup calculator",
+                "Regional cost adjustments",
+                "Excel & CSV export",
+                "Multi-page PDF support",
+                "Consolidate & Enhance AI",
+              ].map((feat, j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />
+                  <span className="text-sm text-cream/60" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {feat}
+                  </span>
+                </div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>

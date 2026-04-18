@@ -140,7 +140,7 @@ export default function ProjectSettingsPanel({
 
       {/* Settings Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
@@ -148,7 +148,7 @@ export default function ProjectSettingsPanel({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 space-y-6 py-2 overflow-y-auto overscroll-contain min-h-0">
+          <div className="flex-1 space-y-6 py-2 overflow-y-auto overscroll-contain min-h-0 pr-1">
             {/* Current Settings Summary */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
               <div className="text-xs font-medium text-cream-muted">Current Settings</div>

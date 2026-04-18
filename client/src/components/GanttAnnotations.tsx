@@ -43,6 +43,7 @@ export interface TextAnnotation {
   bgColor: string;
   bold: boolean;
   width: number;
+  height?: number; // auto-calculated from text content
 }
 
 export type ArrowLineStyle = "solid" | "dashed" | "dotted";
@@ -161,7 +162,7 @@ export default function GanttAnnotations({
       const newText: TextAnnotation = {
         id, type: "text", x, y, text: "Double-click to edit",
         fontSize: 13, color: "#000000", bgColor: "#fef3c7",
-        bold: false, width: 180,
+        bold: false, width: 200, height: 0,
       };
       onAnnotationsChange([...annotations, newText]);
       setSelectedId(id);
@@ -680,10 +681,15 @@ export default function GanttAnnotations({
 
           if (ann.type === "text") {
             const t = ann as TextAnnotation;
+            // Calculate text lines for word-wrap display
+            const lines = t.text.split("\n");
+            const lineHeight = t.fontSize * 1.35;
+            const padding = 10;
+            const boxHeight = t.height && t.height > 0 ? t.height : Math.max(lines.length * lineHeight + padding * 2, t.fontSize + 14);
             return (
               <g key={ann.id}>
-                {/* Background rect */}
-                <rect x={t.x} y={t.y} width={t.width} height={t.fontSize + 14}
+                {/* Background rect — auto-sized to content */}
+                <rect x={t.x} y={t.y} width={t.width} height={boxHeight}
                   rx={4} ry={4}
                   fill={t.bgColor === "transparent" ? "none" : t.bgColor}
                   stroke={isSelected ? "#3b82f6" : "#d1d5db"} strokeWidth={isSelected ? 2 : 1}
@@ -700,24 +706,40 @@ export default function GanttAnnotations({
                 />
                 {/* Text content */}
                 {editingTextId === ann.id ? (
-                  <foreignObject x={t.x + 4} y={t.y + 2} width={t.width - 8} height={t.fontSize + 10}>
-                    <input
+                  <foreignObject x={t.x + 2} y={t.y + 2} width={t.width - 4} height={Math.max(boxHeight, 60)}>
+                    <textarea
                       autoFocus
-                      className="w-full bg-transparent border-none outline-none"
-                      style={{ fontSize: t.fontSize, color: t.color, fontWeight: t.bold ? "bold" : "normal" }}
+                      className="w-full h-full bg-transparent border-none outline-none resize-none"
+                      style={{ fontSize: t.fontSize, color: t.color, fontWeight: t.bold ? "bold" : "normal", lineHeight: `${lineHeight}px`, padding: `${padding - 2}px 6px` }}
                       value={t.text}
-                      onChange={e => updateAnnotation(ann.id, { text: e.target.value })}
+                      onChange={e => {
+                        const newText = e.target.value;
+                        const newLines = newText.split("\n");
+                        const newHeight = Math.max(newLines.length * lineHeight + padding * 2, t.fontSize + 14);
+                        updateAnnotation(ann.id, { text: newText, height: newHeight });
+                      }}
                       onBlur={() => setEditingTextId(null)}
-                      onKeyDown={e => { if (e.key === "Enter") setEditingTextId(null); }}
+                      onKeyDown={e => {
+                        // Enter confirms, Shift+Enter inserts a new line
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          setEditingTextId(null);
+                        }
+                        // Shift+Enter is default textarea behavior — new line
+                      }}
                     />
                   </foreignObject>
                 ) : (
-                  <text x={t.x + 8} y={t.y + t.fontSize + 4}
-                    fontSize={t.fontSize} fill={t.color}
-                    fontWeight={t.bold ? "bold" : "normal"}
-                    style={{ pointerEvents: "none", userSelect: "none" }}>
-                    {t.text}
-                  </text>
+                  <>
+                    {lines.map((line, i) => (
+                      <text key={i} x={t.x + 8} y={t.y + padding + t.fontSize + i * lineHeight - 2}
+                        fontSize={t.fontSize} fill={t.color}
+                        fontWeight={t.bold ? "bold" : "normal"}
+                        style={{ pointerEvents: "none", userSelect: "none" }}>
+                        {line || "\u00A0"}
+                      </text>
+                    ))}
+                  </>
                 )}
               </g>
             );

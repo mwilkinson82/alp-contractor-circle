@@ -2447,3 +2447,12 @@
 
 ## Takeoff Project Settings Modal Bug
 - [x] Fix overlapping text in Project Settings modal — Cost Region, division items, and description text overlapping (added flex-1 to body div)
+
+## Takeoff Project Settings Modal Bug (Still Broken)
+- [x] Fix Cost Region dropdown and Scope Description overlapping with division items — constrained DialogContent max-h and overflow
+- [x] Add real Quantity Takeoff screenshots (8 images) to /constructline landing page — full showcase with hero, grid, and feature bullets
+
+## Annotation Text Box Bug (CPM Scheduler)
+- [x] Fix text box annotation cutting off long text — replaced input with textarea for word wrap
+- [x] Support Shift+Enter for manual line breaks in annotation text boxes
+- [x] Auto-resize text box height to fit wrapped content

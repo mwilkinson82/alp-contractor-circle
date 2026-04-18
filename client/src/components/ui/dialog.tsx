@@ -136,7 +136,7 @@ function DialogContent({
           We use CSS to target data-slot attributes so header/footer stay fixed
           while the middle content scrolls.
         */}
-        <div className="flex flex-col max-h-[calc(100vh-4rem)] pt-8 px-8 pb-8 gap-5
+        <div className="flex flex-col max-h-[calc(100vh-4rem)] overflow-hidden pt-8 px-8 pb-8 gap-5
           [&>[data-slot=dialog-header]]:shrink-0
           [&>[data-slot=dialog-footer]]:shrink-0
         ">
