@@ -1270,12 +1270,18 @@ export default function Scheduler() {
     e.stopPropagation();
     setResizingCol(colKey);
     resizeStartX.current = e.clientX;
-    const col = allColumnsWithCodes.find((c) => c.key === colKey);
-    const currentWidth = columnWidths[colKey] || col?.width || "80px";
-    // Parse current width to px
-    const match = currentWidth.match(/(\d+)/);
-    resizeStartWidth.current = match ? parseInt(match[1]) : 80;
-  }, [columnWidths]);
+    // Measure actual rendered width from the DOM element instead of parsing CSS
+    // This fixes the bug where "1fr" columns collapse to 1px on click
+    const headerEl = (e.target as HTMLElement).parentElement;
+    if (headerEl) {
+      resizeStartWidth.current = headerEl.getBoundingClientRect().width;
+    } else {
+      const col = allColumnsWithCodes.find((c) => c.key === colKey);
+      const currentWidth = columnWidths[colKey] || col?.width || "80px";
+      const match = currentWidth.match(/(\d+)/);
+      resizeStartWidth.current = match ? parseInt(match[1]) : 80;
+    }
+  }, [columnWidths, allColumnsWithCodes]);
 
   useEffect(() => {
     if (!resizingCol) return;
@@ -4485,6 +4491,7 @@ export default function Scheduler() {
               timescaleLabels: config.timescaleLabels ?? "months",
               headerHeightMm: config.headerHeightMm ?? 22,
               footerHeightMm: config.footerHeightMm ?? 14,
+              legendPlacement: config.legendPlacement ?? "footer",
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({

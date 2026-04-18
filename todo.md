@@ -2388,3 +2388,9 @@
 - [x] Fix WBS colors carrying through to PDF export (use row.bgColor with 25% tint, row.textColor for text, row.bgColor for summary bars)
 - [x] Move Critical/Non-Critical from inline to proper footer legend on every page
 - [x] Add legend symbols: Critical (red bar), Non-Critical (green bar), Milestone (diamond), Data Date (blue line), Summary (bracket bar)
+
+## Bug Fixes (Apr 18 batch)
+- [x] Fix "Cannot access 'wa' before initialization" crash — likely stale production build; redeploying with latest code
+- [x] Fix XER import async flow (S3 upload → server-side processing → polling) — needs redeploy to production
+- [x] Fix column resize snaps to zero — now measures actual rendered DOM width instead of parsing CSS '1fr' value
+- [x] Add legend placement setting in PDF export dialog (Footer every page vs Inline last page only)

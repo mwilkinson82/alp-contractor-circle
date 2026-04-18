@@ -99,6 +99,9 @@ export interface PdfExportOptions {
   gridlineInterval?: "none" | "weekly" | "monthly" | "quarterly";
   timescaleLabels?: "months" | "quarters" | "both";
 
+  // Legend placement
+  legendPlacement?: "footer" | "inline";
+
   // WBS grouping for Gantt
   groupedActivities?: Array<{
     group: string | null;
@@ -328,8 +331,9 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   // Auto-expand footer height based on rich text content
   const userFooterHeight = options.footerHeightMm || 14;
   const minFooterH = footerConfig ? calcMinSlotHeight(footerConfig) : 0;
-  // Add extra space for legend row inside footer
-  const legendRowH = 5;
+  // Add extra space for legend row inside footer (only when legend is in footer)
+  const legendInFooter = (options.legendPlacement || "footer") === "footer";
+  const legendRowH = legendInFooter ? 5 : 0;
   const footerHeight = Math.max(userFooterHeight, minFooterH) + legendRowH;
 
   // ─── Color Palette (P6-style clean white) ─────────────────────────────────
@@ -462,7 +466,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     doc.line(margin, 2 + headerHeight - 2, margin, y);
     doc.line(pageWidth - margin, 2 + headerHeight - 2, pageWidth - margin, y);
 
-    // ── Schedule Legend (top row of footer) ──
+    // ── Schedule Legend (top row of footer — only if legendPlacement is "footer") ──
+    if (!legendInFooter) {
+      // No legend in footer — skip to footer content
+    } else {
     const legendY = y + 1.5;
     const legendFontSize = Math.max(5, 6);
     doc.setFontSize(legendFontSize);
@@ -523,6 +530,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.1);
     doc.line(margin, y + legendRowH, pageWidth - margin, y + legendRowH);
+    } // end if legendInFooter
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
@@ -1411,7 +1419,61 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       }
     }
 
-    // Legend is now drawn inside drawFooter on every page (see below)
+    // Draw inline legend on the last page (below the last activity row) when legendPlacement is "inline"
+    if (!legendInFooter) {
+      const lastPageNum = doc.getNumberOfPages();
+      doc.setPage(lastPageNum);
+      // Find the Y position after the last drawn row
+      const inlineLegendY = pageHeight - footerHeight - 8;
+      const lBarW = 6;
+      const lBarH = 2;
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      let ilx = margin + 4;
+      const ilSpacing = 32;
+
+      // Critical bar (red)
+      doc.setFillColor(239, 68, 68);
+      doc.rect(ilx, inlineLegendY, lBarW, lBarH, "F");
+      doc.setTextColor(20, 20, 20);
+      doc.text("Critical", ilx + lBarW + 1.5, inlineLegendY + lBarH - 0.3);
+      ilx += ilSpacing;
+
+      // Normal bar (green)
+      doc.setFillColor(22, 130, 60);
+      doc.rect(ilx, inlineLegendY, lBarW, lBarH, "F");
+      doc.text("Non-Critical", ilx + lBarW + 1.5, inlineLegendY + lBarH - 0.3);
+      ilx += ilSpacing + 4;
+
+      // Milestone diamond
+      const mx = ilx + 1.5;
+      const my = inlineLegendY + lBarH / 2;
+      const ms = 1.2;
+      doc.setFillColor(20, 20, 20);
+      doc.triangle(mx, my - ms, mx + ms, my, mx, my + ms, "F");
+      doc.triangle(mx, my - ms, mx - ms, my, mx, my + ms, "F");
+      doc.text("Milestone", mx + ms + 2, inlineLegendY + lBarH - 0.3);
+      ilx += ilSpacing;
+
+      // Data date line
+      if (dataDate) {
+        doc.setDrawColor(74, 111, 165);
+        doc.setLineWidth(0.5);
+        doc.line(ilx, inlineLegendY, ilx, inlineLegendY + lBarH);
+        doc.setTextColor(20, 20, 20);
+        doc.text("Data Date", ilx + 2, inlineLegendY + lBarH - 0.3);
+        ilx += ilSpacing;
+      }
+
+      // Summary bar
+      doc.setFillColor(40, 40, 40);
+      doc.rect(ilx, inlineLegendY + 0.3, lBarW, lBarH * 0.6, "F");
+      const stickW = 0.4;
+      doc.rect(ilx, inlineLegendY + 0.3, stickW, lBarH, "F");
+      doc.rect(ilx + lBarW - stickW, inlineLegendY + 0.3, stickW, lBarH, "F");
+      doc.setTextColor(20, 20, 20);
+      doc.text("Summary", ilx + lBarW + 1.5, inlineLegendY + lBarH - 0.3);
+    }
   }
 
   // ─── Add Page Numbers ───────────────────────────────────────────────────────

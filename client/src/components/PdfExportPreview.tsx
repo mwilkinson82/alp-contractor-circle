@@ -38,6 +38,7 @@ export interface PdfHeaderFooterConfig {
   timescaleLabels?: "months" | "quarters" | "both";
   headerHeightMm?: number;
   footerHeightMm?: number;
+  legendPlacement?: "footer" | "inline";
 }
 
 interface Activity {
@@ -111,6 +112,7 @@ export interface SavedPdfConfig {
   timescaleLabels: string;
   headerHeightMm: number;
   footerHeightMm: number;
+  legendPlacement: "footer" | "inline";
 }
 
 const CONTENT_OPTIONS = [
@@ -215,6 +217,9 @@ export function PdfExportPreview({
   const [headerHeightMm, setHeaderHeightMm] = useState(22);
   const [footerHeightMm, setFooterHeightMm] = useState(14);
 
+  // Legend placement (footer = every page footer, inline = after last row on last page)
+  const [legendPlacement, setLegendPlacement] = useState<"footer" | "inline">("footer");
+
   // Restore saved config when dialog opens
   const configAppliedRef = useRef(false);
   useEffect(() => {
@@ -237,6 +242,7 @@ export function PdfExportPreview({
       setTimescaleLabels(savedPdfConfig.timescaleLabels as any);
       setHeaderHeightMm(savedPdfConfig.headerHeightMm);
       setFooterHeightMm(savedPdfConfig.footerHeightMm);
+      if (savedPdfConfig.legendPlacement) setLegendPlacement(savedPdfConfig.legendPlacement);
     }
     if (!open) configAppliedRef.current = false;
   }, [open, savedPdfConfig]);
@@ -1182,6 +1188,7 @@ export function PdfExportPreview({
       timescaleLabels,
       headerHeightMm,
       footerHeightMm,
+      legendPlacement,
     });
     // Persist the current config so it's restored next time
     onConfigChange?.({
@@ -1202,6 +1209,7 @@ export function PdfExportPreview({
       timescaleLabels,
       headerHeightMm,
       footerHeightMm,
+      legendPlacement,
     });
   };
 
@@ -1512,6 +1520,18 @@ export function PdfExportPreview({
                     </p>
                   </div>
                 </label>
+                <div className="pt-1">
+                  <Label className="text-[10px] text-gray-400 mb-0.5 block">Legend Placement</Label>
+                  <Select value={legendPlacement} onValueChange={(v) => setLegendPlacement(v as "footer" | "inline")}>
+                    <SelectTrigger className="border-white/15 text-xs bg-white/5 text-gray-200 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="footer" className="text-xs">Footer (every page)</SelectItem>
+                      <SelectItem value="inline" className="text-xs">Inline (last page only)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Gridline & Timescale Controls */}
