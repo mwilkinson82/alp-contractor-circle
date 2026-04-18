@@ -469,6 +469,7 @@ export default function Scheduler() {
   const [ganttAnnotations, setGanttAnnotations] = useState<Annotation[]>([]);
   const [annotationsLoaded, setAnnotationsLoaded] = useState(false);
   const [ganttScrollOffset, setGanttScrollOffset] = useState({ scrollTop: 0, scrollLeft: 0 });
+  const [ganttDimensions, setGanttDimensions] = useState({ totalWidth: 2000, totalHeight: 1000, pixelsPerDay: 4, rangeStartMs: Date.now() });
 
   // Load annotations from DB on first fetch
   useEffect(() => {
@@ -2362,6 +2363,7 @@ export default function Scheduler() {
             }}
             magnificationZoom={magnificationZoom}
             onScrollChange={setGanttScrollOffset}
+            onDimensionsChange={setGanttDimensions}
           />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}
@@ -4535,6 +4537,11 @@ export default function Scheduler() {
                 wbsTextColor: g.wbsTextColor,
                 ancestorColors: g.ancestorColors,
               })) : undefined,
+              annotations: ganttAnnotations,
+              ganttScreenWidth: ganttDimensions.totalWidth,
+              ganttScreenHeight: ganttDimensions.totalHeight,
+              ganttPixelsPerDay: ganttDimensions.pixelsPerDay,
+              ganttRangeStartMs: ganttDimensions.rangeStartMs,
             });
             toast.success("PDF exported successfully");
             setShowPdfExport(false);

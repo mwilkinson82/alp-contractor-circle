@@ -2536,3 +2536,13 @@
 - [ ] Frontend: Contractor branding — company name, logo, address, phone, email, license #
 - [ ] Frontend: Proposal PDF export — branded professional proposal document
 - [ ] Frontend: Proposal templates / saved company profiles for reuse
+
+## Bug Fix: Discord OAuth overwriting member email with null
+- [x] Caleb Morrow (id=390001) email restored to caleb@morrow-builds.com
+- [x] ConstructLine announcement email resent to caleb@morrow-builds.com (Resend ID: a8e561d8-397d-4e51-a6b6-1396feced570)
+- [x] Fix upsertMember() — only include email in updateSet when truthy (not null/undefined)
+- [x] Fix Strategy 0 merge — spread email conditionally
+- [x] Fix Strategy 1 merge — spread email conditionally
+- [x] Fix Strategy 2 merge — prefer placeholder email over null Discord email
+- [x] Fix Strategy 3 merge — prefer placeholder email over null Discord email
+- [ ] Investigate Delbuilder1 (id=180001) — active member with null email, no stripeCustomerId

@@ -92,7 +92,14 @@ export async function upsertMember(data: InsertMember): Promise<void> {
   if (data.discordUsername !== undefined) updateSet.discordUsername = data.discordUsername;
   if (data.discordDisplayName !== undefined) updateSet.discordDisplayName = data.discordDisplayName;
   if (data.discordAvatar !== undefined) updateSet.discordAvatar = data.discordAvatar;
-  if (data.email !== undefined) updateSet.email = data.email;
+  // CRITICAL: Never overwrite a non-null email with null.
+  // Discord can return email: null if the user hasn't verified their email or has it set to private.
+  // We use sql`COALESCE(?, email)` so that null values fall back to the existing email.
+  if (data.email) {
+    // Only overwrite email if we have a real value
+    updateSet.email = data.email;
+  }
+  // If data.email is null/undefined, do NOT include it in updateSet — preserves existing email
   if (data.stripeCustomerId !== undefined) updateSet.stripeCustomerId = data.stripeCustomerId;
   if (data.stripeSubscriptionId !== undefined) updateSet.stripeSubscriptionId = data.stripeSubscriptionId;
   if (data.subscriptionStatus !== undefined) updateSet.subscriptionStatus = data.subscriptionStatus;
@@ -314,7 +321,7 @@ export function registerDiscordOAuthRoutes(app: Express) {
                 discordUsername: discordUser.username,
                 discordDisplayName: discordUser.global_name || discordUser.username,
                 discordAvatar: discordUser.avatar,
-                email: discordUser.email,
+                ...(discordUser.email ? { email: discordUser.email } : {}), // Never overwrite email with null
                 lastSignedIn: new Date(),
               })
               .where(eq(members.id, bestRecord.id));
@@ -350,7 +357,7 @@ export function registerDiscordOAuthRoutes(app: Express) {
                 discordUsername: discordUser.username,
                 discordDisplayName: discordUser.global_name || discordUser.username,
                 discordAvatar: discordUser.avatar,
-                email: discordUser.email,
+                ...(discordUser.email ? { email: discordUser.email } : {}), // Never overwrite email with null
                 lastSignedIn: new Date(),
               })
               .where(eq(members.discordId, emailPlaceholder));
@@ -452,7 +459,8 @@ export function registerDiscordOAuthRoutes(app: Express) {
                       discordUsername: discordUser.username,
                       discordDisplayName: discordUser.global_name || discordUser.username,
                       discordAvatar: discordUser.avatar,
-                      email: discordUser.email || mysqlPlaceholder.email,
+                      // Prefer existing placeholder email over null Discord email
+                      email: discordUser.email || mysqlPlaceholder.email || undefined,
                       lastSignedIn: new Date(),
                     })
                     .where(eq(members.id, mysqlPlaceholder.id));
@@ -501,7 +509,8 @@ export function registerDiscordOAuthRoutes(app: Express) {
                   discordUsername: discordUser.username,
                   discordDisplayName: discordUser.global_name || discordUser.username,
                   discordAvatar: discordUser.avatar,
-                  email: discordUser.email || placeholder.email,
+                  // Prefer existing placeholder email over null Discord email
+                  email: discordUser.email || placeholder.email || undefined,
                   lastSignedIn: new Date(),
                 })
                 .where(eq(members.id, placeholder.id));

@@ -89,6 +89,7 @@ interface GanttChartProps {
   onScrollTopChange?: (scrollTop: number) => void; // scroll sync: notify parent of scroll changes
   onScrollChange?: (scroll: { scrollTop: number; scrollLeft: number }) => void; // full scroll position for annotation sync
   magnificationZoom?: number; // 50-150 for row height scaling
+  onDimensionsChange?: (dims: { totalWidth: number; totalHeight: number; pixelsPerDay: number; rangeStartMs: number }) => void; // expose canvas dimensions for PDF annotation mapping
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -251,6 +252,7 @@ export default function GanttChart({
   onScrollTopChange,
   onScrollChange,
   magnificationZoom = 100,
+  onDimensionsChange,
 }: GanttChartProps) {
   // Dynamic row height: taller when cost overlay is active to prevent clipping
   const ROW_HEIGHT = showCostOverlay ? COST_ROW_HEIGHT : BASE_ROW_HEIGHT;
@@ -360,6 +362,13 @@ export default function GanttChart({
 
   const totalWidth = totalDays * pixelsPerDay;
   const totalHeight = HEADER_HEIGHT + (flatRows.length > 0 ? flatRows[flatRows.length - 1].yOffset + flatRows[flatRows.length - 1].rowHeight : 0);
+
+  // ─── Notify parent of canvas dimensions (for PDF annotation coordinate mapping) ─
+  useEffect(() => {
+    if (onDimensionsChange) {
+      onDimensionsChange({ totalWidth, totalHeight, pixelsPerDay, rangeStartMs: rangeStart.getTime() });
+    }
+  }, [totalWidth, totalHeight, pixelsPerDay, rangeStart, onDimensionsChange]);
 
   // ─── Resize observer ─────────────────────────────────────────────────────
 

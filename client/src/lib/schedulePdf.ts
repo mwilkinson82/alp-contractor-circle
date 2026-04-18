@@ -136,6 +136,8 @@ export interface PdfExportOptions {
   // Screen-space dimensions of the Gantt chart (for annotation coordinate mapping)
   ganttScreenWidth?: number;
   ganttScreenHeight?: number;
+  ganttPixelsPerDay?: number;   // screen pixels per day (for X coordinate mapping)
+  ganttRangeStartMs?: number;  // rangeStart timestamp in ms (for X coordinate mapping)
 
   // Column width proportions from the app (key → CSS width like "200px" or "1fr")
   appColumnWidths?: Record<string, string>;
