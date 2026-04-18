@@ -849,8 +849,8 @@ export default function Scheduler() {
             (a: any) => !childCodes.has(a.wbs)
           );
 
-          // This node's color from the level palette
-          const nodeColor = LEVEL_COLORS[depth % LEVEL_COLORS.length];
+          // Use the WBS Manager color if set, otherwise fall back to level palette
+          const nodeColor = node.groupColor || LEVEL_COLORS[depth % LEVEL_COLORS.length];
           const currentAncestors = [...ancestors, nodeColor];
 
           // Always show the group header even if it has no direct activities
@@ -1953,22 +1953,16 @@ export default function Scheduler() {
                     const isCollapsed = collapsedGroups?.has(groupKey);
                     const anc = ancestorColors || [];
                     // P6-style level background colors
-                    const LEVEL_BG: Record<number, string> = {
-                      0: "#e8d44d", // Level 0: Yellow/Gold (top-level phases)
-                      1: "#4a7ec8", // Level 1: Blue (sub-phases)
-                      2: "#5ba85b", // Level 2: Green
-                      3: "#9b59b6", // Level 3: Purple
-                      4: "#e67e22", // Level 4: Orange
+                    // Fallback level colors (only used when WBS Manager color is not set)
+                    const LEVEL_BG_FALLBACK: Record<number, string> = {
+                      0: "#e8d44d", 1: "#4a7ec8", 2: "#5ba85b", 3: "#9b59b6", 4: "#e67e22",
                     };
-                    const LEVEL_TEXT: Record<number, string> = {
-                      0: "#000000", // Black on yellow
-                      1: "#ffffff", // White on blue
-                      2: "#ffffff", // White on green
-                      3: "#ffffff", // White on purple
-                      4: "#ffffff", // White on orange
+                    const LEVEL_TEXT_FALLBACK: Record<number, string> = {
+                      0: "#000000", 1: "#ffffff", 2: "#ffffff", 3: "#ffffff", 4: "#ffffff",
                     };
-                    const bgColor = LEVEL_BG[d] ?? LEVEL_BG[4] ?? "#e8d44d";
-                    const textColor = LEVEL_TEXT[d] ?? "#ffffff";
+                    // Use WBS Manager color if set, otherwise fall back to level palette
+                    const bgColor = wbsColor || LEVEL_BG_FALLBACK[d] || LEVEL_BG_FALLBACK[4] || "#e8d44d";
+                    const textColor = wbsTextColor || LEVEL_TEXT_FALLBACK[d] || "#ffffff";
                     // WBS name lookup
                     const WBS_NAME_LOOKUP: Record<string, string> = {
                       "1.0": "General Conditions", "2.0": "Submittals",

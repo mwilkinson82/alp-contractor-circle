@@ -793,9 +793,18 @@ export default function GanttChart({
 
       if (row.type === "group") {
         const depth = row.depth ?? 0;
-        // Gantt side: subtle neutral background for group rows (no color bands)
-        ctx.fillStyle = depth === 0 ? "#f5f0e0" : "#f0ede8";
-        ctx.fillRect(0, y, visibleWidth, rh);
+        // Use WBS Manager color if set, otherwise subtle neutral background
+        if (row.wbsColor) {
+          // Use the custom WBS color with slight transparency for the Gantt side
+          ctx.fillStyle = row.wbsColor + "20"; // 12% opacity tint
+          ctx.fillRect(0, y, visibleWidth, rh);
+          // Draw a colored left accent bar
+          ctx.fillStyle = row.wbsColor;
+          ctx.fillRect(0, y, 4, rh);
+        } else {
+          ctx.fillStyle = depth === 0 ? "#f5f0e0" : "#f0ede8";
+          ctx.fillRect(0, y, visibleWidth, rh);
+        }
         // Bottom border
         ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
@@ -851,8 +860,8 @@ export default function GanttChart({
           const sumBarW = Math.max(daysBetween(summaryStartDate, summaryEndDate) * pixelsPerDay, 4);
           const sumBarH = 8; // Thick summary bar
           const sumBarY = y + rh / 2 - sumBarH / 2 + 2;
-          // Draw the summary bar — dark charcoal/black
-          ctx.fillStyle = "#1a1a1a";
+          // Draw the summary bar — use WBS color if set, otherwise dark charcoal
+          ctx.fillStyle = row.wbsColor || "#1a1a1a";
           ctx.fillRect(sumBarX, sumBarY, sumBarW, sumBarH);
           // Start bracket (downward tick)
           ctx.fillRect(sumBarX, sumBarY, 3, sumBarH + 4);

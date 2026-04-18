@@ -2364,3 +2364,9 @@
 - [x] Add "Help / Tour" item to Settings dropdown
 - [x] Re-trigger onboarding overlay from Settings menu
 - [x] Reset onboarding state so it replays from step 1 (CpmOnboarding resets to step 0 on mount)
+
+## WBS Color Bug
+- [x] Fix WBS Manager color changes not reflecting in schedule/Gantt view — now uses node.groupColor for header bg, ancestor bars, Gantt summary bars
+- [x] Ensure groupColor from WBS nodes is used when rendering WBS group headers in the schedule
+- [x] Fix Gantt chart canvas to use wbsColor for group row background + summary bar
+- [x] Fix PDF export to use bgColor from WBS Manager for both table and Gantt sides

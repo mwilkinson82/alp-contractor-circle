@@ -674,10 +674,15 @@ export function PdfExportPreview({
 
       if (row.type === "group") {
         const depth = row.depth;
-        // P6-style depth-based WBS colors: green → yellow → red/salmon → pink
-        const WBS_PREVIEW_BG = ["#e6ebf0", "#eef0eb", "#f0eeeb", "#ebeff2", "#f0ecf0", "#f0f0eb"];
-        ctx.fillStyle = WBS_PREVIEW_BG[depth % WBS_PREVIEW_BG.length];
-        ctx.fillRect(margin, ry, tableW, rh);
+        // Use WBS Manager color if set, otherwise fallback to depth-based palette
+        if (row.bgColor) {
+          ctx.fillStyle = row.bgColor + "25"; // 15% opacity tint of the WBS color
+          ctx.fillRect(margin, ry, tableW, rh);
+        } else {
+          const WBS_PREVIEW_BG = ["#e6ebf0", "#eef0eb", "#f0eeeb", "#ebeff2", "#f0ecf0", "#f0f0eb"];
+          ctx.fillStyle = WBS_PREVIEW_BG[depth % WBS_PREVIEW_BG.length];
+          ctx.fillRect(margin, ry, tableW, rh);
+        }
         // P6-style colored left bars — one per ancestor level
         const anc = row.ancestorColors || [];
         const barW = 3; // px width per bar
@@ -869,10 +874,15 @@ export function PdfExportPreview({
         if (ry + rh > contentY + contentH - 4) break;
 
         if (row.type === "group") {
-          // P6-style depth-based background in Gantt area
-          const WBS_GANTT_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
-          ctx.fillStyle = WBS_GANTT_BG[row.depth % WBS_GANTT_BG.length];
-          ctx.fillRect(ganttX, ry, ganttW, rh);
+          // Use WBS Manager color if set, otherwise fallback to depth-based palette
+          if (row.bgColor) {
+            ctx.fillStyle = row.bgColor + "30"; // 19% opacity tint
+            ctx.fillRect(ganttX, ry, ganttW, rh);
+          } else {
+            const WBS_GANTT_BG = ["#b4dc8c", "#fff082", "#f0968c", "#e6aadC", "#b4c8f0", "#ffd296"];
+            ctx.fillStyle = WBS_GANTT_BG[row.depth % WBS_GANTT_BG.length];
+            ctx.fillRect(ganttX, ry, ganttW, rh);
+          }
 
           // ── WBS Summary Bar (thinner, P6-style) ──
           const childActs = row.groupActivities || [];
@@ -889,8 +899,8 @@ export function PdfExportPreview({
             const sbw = Math.max(4, (ePct - sPct) * (ganttW - 8));
             const sbh = Math.max(2, rh * 0.15);
             const sby = ry + rh / 2 - sbh / 2;
-            // Dark summary bar
-            ctx.fillStyle = "#282828";
+            // Summary bar — use WBS color if set, otherwise dark
+            ctx.fillStyle = row.bgColor || "#282828";
             ctx.fillRect(sbx, sby, sbw, sbh);
             // Start bracket (downward tick)
             const tickW = Math.max(1, sbh * 0.25);
