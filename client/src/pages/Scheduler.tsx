@@ -4492,6 +4492,14 @@ export default function Scheduler() {
               headerHeightMm: config.headerHeightMm ?? 22,
               footerHeightMm: config.footerHeightMm ?? 14,
               legendPlacement: config.legendPlacement ?? "footer",
+              appColumnWidths: (() => {
+                // Merge default column widths with user overrides
+                const merged: Record<string, string> = {};
+                for (const col of allColumnsWithCodes) {
+                  merged[col.key] = columnWidths[col.key] || col.width;
+                }
+                return merged;
+              })(),
               groupedActivities: groupBy === "wbs" ? groupedActivities.filter(g => g.group !== null).map(g => ({
                 group: g.group,
                 activities: g.activities.map((a: any) => ({

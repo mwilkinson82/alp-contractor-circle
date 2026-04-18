@@ -102,6 +102,9 @@ export interface PdfExportOptions {
   // Legend placement
   legendPlacement?: "footer" | "inline";
 
+  // Column width proportions from the app (key → CSS width like "200px" or "1fr")
+  appColumnWidths?: Record<string, string>;
+
   // WBS grouping for Gantt
   groupedActivities?: Array<{
     group: string | null;
@@ -823,17 +826,47 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       wbs: { header: "WBS", minWidth: 12, grow: false, getValue: (a) => a.wbs || "\u2014" },
     };
     const ganttActiveCols = columns.filter(k => ganttColDefs[k]).map(k => ganttColDefs[k]);
-    // Compute column widths: sum minWidths, distribute extra to grow columns
-    const totalMinW = ganttActiveCols.reduce((s, c) => s + c.minWidth, 0);
-    // Table takes ~45% of page width, clamped to fit columns
+    const ganttActiveKeys = columns.filter(k => ganttColDefs[k]);
+
+    // Compute column widths using app proportions when available
     const usableWidth = pageWidth - 2 * margin;
-    const labelWidth = Math.min(Math.max(totalMinW + 4, usableWidth * 0.35), usableWidth * 0.55);
-    const ganttGrowCount = ganttActiveCols.filter(c => c.grow).length;
-    const ganttExtraW = Math.max(0, labelWidth - totalMinW);
-    const ganttColWidths = ganttActiveCols.map(c => {
-      if (c.grow && ganttGrowCount > 0 && ganttExtraW > 0) return c.minWidth + ganttExtraW / ganttGrowCount;
-      return c.minWidth;
-    });
+
+    let ganttColWidths: number[];
+    let labelWidth: number;
+
+    if (options.appColumnWidths && Object.keys(options.appColumnWidths).length > 0) {
+      // Parse app column widths to get pixel proportions
+      const appWidths: number[] = ganttActiveKeys.map(key => {
+        const cssVal = options.appColumnWidths![key];
+        if (!cssVal) return ganttColDefs[key].minWidth;
+        const pxMatch = cssVal.match(/(\d+)/);
+        if (pxMatch) return parseInt(pxMatch[1]);
+        // 1fr or other flexible units — give it a large default (Name column)
+        if (cssVal.includes('fr')) return 400;
+        return ganttColDefs[key].minWidth;
+      });
+      const totalAppPx = appWidths.reduce((s, w) => s + w, 0);
+      // Table takes proportional share, clamped between 35-55% of page
+      labelWidth = Math.min(Math.max(usableWidth * 0.35, usableWidth * 0.35), usableWidth * 0.55);
+      // Distribute labelWidth proportionally based on app widths
+      ganttColWidths = appWidths.map((w, idx) => {
+        const proportion = w / totalAppPx;
+        const minW = ganttColDefs[ganttActiveKeys[idx]]?.minWidth || 8;
+        return Math.max(minW, labelWidth * proportion);
+      });
+      // Recalculate labelWidth as sum of actual column widths
+      labelWidth = ganttColWidths.reduce((s, w) => s + w, 0);
+    } else {
+      // Fallback: sum minWidths, distribute extra to grow columns
+      const totalMinW = ganttActiveCols.reduce((s, c) => s + c.minWidth, 0);
+      labelWidth = Math.min(Math.max(totalMinW + 4, usableWidth * 0.35), usableWidth * 0.55);
+      const ganttGrowCount = ganttActiveCols.filter(c => c.grow).length;
+      const ganttExtraW = Math.max(0, labelWidth - totalMinW);
+      ganttColWidths = ganttActiveCols.map(c => {
+        if (c.grow && ganttGrowCount > 0 && ganttExtraW > 0) return c.minWidth + ganttExtraW / ganttGrowCount;
+        return c.minWidth;
+      });
+    }
 
     const ganttLeft = margin;
     const ganttRight = pageWidth - margin;
@@ -995,13 +1028,8 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           const depth = row.depth;
           if (row.bgColor) {
             const rgb = hexToRgb(row.bgColor);
-            // Tint: blend with white at 25% opacity for subtle background
-            const tinted: [number, number, number] = [
-              Math.round(rgb[0] + (255 - rgb[0]) * 0.75),
-              Math.round(rgb[1] + (255 - rgb[1]) * 0.75),
-              Math.round(rgb[2] + (255 - rgb[2]) * 0.75),
-            ];
-            doc.setFillColor(...tinted);
+            // Use full opacity — match exactly what the user sees in the app
+            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
           } else {
             doc.setFillColor(...WBS_DEPTH_BG[depth % WBS_DEPTH_BG.length]);
           }

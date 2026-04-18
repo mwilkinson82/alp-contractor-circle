@@ -2394,3 +2394,11 @@
 - [x] Fix XER import async flow (S3 upload → server-side processing → polling) — needs redeploy to production
 - [x] Fix column resize snaps to zero — now measures actual rendered DOM width instead of parsing CSS '1fr' value
 - [x] Add legend placement setting in PDF export dialog (Footer every page vs Inline last page only)
+
+## PDF WBS Color Opacity Fix (DONE)
+- [x] Fix PDF export using 25% tint for WBS group backgrounds — now uses full opacity matching the app
+- [x] White text on light tinted backgrounds no longer illegible — full color background preserves contrast
+
+## PDF Column Width Parity
+- [x] Fix PDF Activity Name column too narrow — now uses app column proportions (1fr = 400px weight vs 80px for date cols)
+- [x] Match PDF column proportions to what user sees in the application — passes actual columnWidths from Scheduler to PDF generator
