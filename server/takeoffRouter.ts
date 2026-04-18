@@ -72,7 +72,7 @@ async function requireMember(req: any) {
  */
 async function requireAdminMember(req: any) {
   // All authenticated Contractor Circle members have access — no role restriction
-  // Access opened: founding_member, admin, member roles all allowed
+  // Access opened Apr 18 2026: founding_member, admin, member roles all allowed
   return requireMember(req);
 }
 
