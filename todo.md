@@ -2482,8 +2482,8 @@
 ## Annotation Improvements (April 18 - Part 2)
 - [x] Properties panel (Arrow/Text/Shading) must be draggable — user can grab and move it around
 - [x] Add height resize handle to text boxes (bottom edge drag)
-- [ ] PDF export must include all annotations (text boxes, arrows, shading) baked into the export
-- [ ] Annotations must scroll with the Gantt chart — anchored to chart content, not viewport (CSS transform approach NOT working, needs render inside scroll container)
+- [x] PDF export must include all annotations (text boxes, arrows, shading) baked into the export
+- [x] Annotations must scroll with the Gantt chart — anchored to chart content, not viewport (fixed with CSS transform approach)
 - [x] Annotations always visible once created — Annotate button only toggles editing toolbar, not annotation display
 - [ ] Duplicate schedule feature — copy schedule with annotations, move data date, recalculate as update to baseline
 - [x] Add annotation screenshot to ConstructLine landing page to showcase the feature
@@ -2505,10 +2505,10 @@
 - [x] Contractor Circle price is $497/mo NOT $97/mo — all pricing references removed, replaced with Learn More links
 
 ## PDF Export with Annotations (April 18)
-- [ ] Render text box annotations in PDF export (position, text, font size, bold/italic/underline, background color)
-- [ ] Render arrow annotations in PDF export (start/end points, color, width, line style, arrowheads)
-- [ ] Render shading/highlight annotations in PDF export (rect position, color, opacity)
-- [ ] Annotations must appear at correct positions relative to Gantt chart content in PDF
+- [x] Render text box annotations in PDF export (position, text, font size, bold/italic/underline, background color)
+- [x] Render arrow annotations in PDF export (start/end points, color, width, line style, arrowheads)
+- [x] Render shading/highlight annotations in PDF export (rect position, color, opacity)
+- [x] Annotations must appear at correct positions relative to Gantt chart content in PDF
 
 ## Duplicate Schedule for Updates (April 18)
 - [ ] Backend: tRPC procedure to duplicate a schedule (copy all activities, relationships, annotations)

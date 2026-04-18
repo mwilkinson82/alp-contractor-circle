@@ -4,6 +4,7 @@
  * Light/professional theme matching the scheduler UI.
  */
 import jsPDF from "jspdf";
+import { GState } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export interface PdfFooterConfig {
@@ -1483,6 +1484,318 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
               // Arrow pointing left (toward start of successor)
               doc.setFillColor(80, 90, 110);
               doc.triangle(ex, ey, ex + arrowSize * 1.5, ey - arrowSize, ex + arrowSize * 1.5, ey + arrowSize, "F");
+            }
+          }
+        }
+      }
+
+      // ─── Draw Annotations (Text Boxes, Arrows, Shading) on this page ───
+      if (options.annotations && options.annotations.length > 0 && options.ganttPixelsPerDay && options.ganttRangeStartMs) {
+        const screenPpd = options.ganttPixelsPerDay;
+        const screenRangeStart = new Date(options.ganttRangeStartMs);
+        // HEADER_HEIGHT in screen space = 48px
+        const SCREEN_HEADER_H = 48;
+
+        // Build cumulative screen Y offsets for ALL pdfRows (not just this page)
+        // so we can figure out which page an annotation falls on
+        const screenRowHeights: number[] = [];
+        const screenRowYOffsets: number[] = [];
+        let screenCumY = SCREEN_HEADER_H;
+        for (const row of pdfRows) {
+          screenRowYOffsets.push(screenCumY);
+          // Screen row heights: WBS groups use getWbsRowHeight, activities use getActivityRowHeight
+          // These match the GanttChart's flatRows computation
+          if (row.type === "group") {
+            const depth = row.depth;
+            const h = depth <= 0 ? 34 : depth === 1 ? 28 : 24;
+            screenRowHeights.push(h);
+            screenCumY += h;
+          } else {
+            screenRowHeights.push(32); // getActivityRowHeight(false)
+            screenCumY += 32;
+          }
+        }
+        // screenCumY now represents total content height in screen space
+
+        // Compute the screen Y range for each page
+        // Page i covers pdfRows from pages[0..i-1] accumulated
+        let globalRowIdx = 0;
+        const pageScreenYStart: number[] = [];
+        const pageScreenYEnd: number[] = [];
+        for (let pi = 0; pi < pages.length; pi++) {
+          const firstRowGlobalIdx = globalRowIdx;
+          pageScreenYStart.push(screenRowYOffsets[firstRowGlobalIdx] || SCREEN_HEADER_H);
+          const lastRowGlobalIdx = globalRowIdx + pages[pi].length - 1;
+          pageScreenYEnd.push((screenRowYOffsets[lastRowGlobalIdx] || SCREEN_HEADER_H) + (screenRowHeights[lastRowGlobalIdx] || 32));
+          globalRowIdx += pages[pi].length;
+        }
+
+        // Helper: convert screen X (content-space px) to PDF X (mm)
+        const screenXToPdfX = (sx: number): number => {
+          // sx is in content-space pixels where x=0 is the left edge of the canvas
+          // In screen space: date position = daysBetween(rangeStart, date) * pixelsPerDay
+          // So sx corresponds to a date: screenRangeStart + (sx / screenPpd) days
+          const dayOffset = sx / screenPpd;
+          const dateMs = screenRangeStart.getTime() + dayOffset * 86400000;
+          const date = new Date(dateMs);
+          return dateToX(date);
+        };
+
+        // Helper: convert screen Y to PDF page index and PDF Y
+        const screenYToPdf = (sy: number): { pageIndex: number; pdfY: number } | null => {
+          for (let pi = 0; pi < pages.length; pi++) {
+            if (sy >= pageScreenYStart[pi] && sy < pageScreenYEnd[pi]) {
+              // Map within this page
+              const screenPageH = pageScreenYEnd[pi] - pageScreenYStart[pi];
+              // PDF page height for content = sum of row heights on this page
+              let pdfPageH = 0;
+              for (let ri = 0; ri < pages[pi].length; ri++) {
+                pdfPageH += getRowH(pages[pi][ri]);
+              }
+              const fraction = (sy - pageScreenYStart[pi]) / screenPageH;
+              return { pageIndex: pi, pdfY: ganttTop + fraction * pdfPageH };
+            }
+          }
+          // If annotation is above all rows, put on first page at ganttTop
+          if (sy < (pageScreenYStart[0] || SCREEN_HEADER_H)) {
+            return { pageIndex: 0, pdfY: ganttTop };
+          }
+          // If below all rows, put on last page at bottom
+          return { pageIndex: pages.length - 1, pdfY: ganttBottom };
+        };
+
+        // Helper: convert screen width (px) to PDF width (mm)
+        const screenWToPdfW = (sw: number): number => {
+          // Use the ratio of chart widths
+          const screenTotalW = options.ganttScreenWidth || 2000;
+          return (sw / screenTotalW) * chartWidth;
+        };
+
+        // Helper: convert screen height (px) to PDF height (mm) for a given page
+        const screenHToPdfH = (sh: number, pi: number): number => {
+          const screenPageH = pageScreenYEnd[pi] - pageScreenYStart[pi];
+          let pdfPageH = 0;
+          for (const row of pages[pi]) pdfPageH += getRowH(row);
+          return (sh / screenPageH) * pdfPageH;
+        };
+
+        // Helper: parse hex color to RGB
+        const hexToRgbLocal = (hex: string): [number, number, number] => {
+          const h = hex.replace('#', '');
+          return [
+            parseInt(h.substring(0, 2), 16) || 0,
+            parseInt(h.substring(2, 4), 16) || 0,
+            parseInt(h.substring(4, 6), 16) || 0,
+          ];
+        };
+
+        // We need to draw annotations on the correct page
+        // The current page in the loop is pageIdx, but we need to iterate all annotations
+        // and draw them on their respective pages. Since we're inside the page loop,
+        // we only draw annotations that belong to this page.
+
+        for (const ann of options.annotations) {
+          if (ann.type === "shading" && ann.x != null && ann.y != null && ann.width && ann.height) {
+            const topLeft = screenYToPdf(ann.y);
+            if (!topLeft || topLeft.pageIndex !== pageIdx) continue;
+
+            const px1 = screenXToPdfX(ann.x);
+            const px2 = screenXToPdfX(ann.x + ann.width);
+            const pdfW = Math.abs(px2 - px1);
+            const pdfH = screenHToPdfH(ann.height, pageIdx);
+
+            // Clip to chart area
+            const clippedX = Math.max(px1, chartLeft);
+            const clippedRight = Math.min(px1 + pdfW, ganttRight);
+            const clippedW = clippedRight - clippedX;
+            if (clippedW <= 0) continue;
+
+            const rgb = hexToRgbLocal(ann.color || "#3b82f6");
+            const opacity = ann.opacity ?? 0.15;
+
+            // Draw solid fill with opacity (use alpha channel)
+            doc.setGState(new GState({ opacity }));
+            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+            doc.rect(clippedX, topLeft.pdfY, clippedW, pdfH, "F");
+
+            // Draw pattern overlay if not solid
+            if (ann.pattern && ann.pattern !== "solid") {
+              doc.setGState(new GState({ opacity: opacity * 0.6 }));
+              doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+              doc.setLineWidth(0.15);
+              if (ann.pattern === "hatching" || ann.pattern === "crosshatch") {
+                // Draw diagonal lines
+                const step = 2; // mm between lines
+                for (let lx = clippedX - pdfH; lx < clippedX + clippedW; lx += step) {
+                  const x1c = Math.max(lx, clippedX);
+                  const x2c = Math.min(lx + pdfH, clippedX + clippedW);
+                  if (x1c < x2c) {
+                    const y1c = topLeft.pdfY + (x1c - lx);
+                    const y2c = topLeft.pdfY + (x2c - lx);
+                    doc.line(x1c, y1c, x2c, y2c);
+                  }
+                }
+                if (ann.pattern === "crosshatch") {
+                  for (let lx = clippedX - pdfH; lx < clippedX + clippedW; lx += step) {
+                    const x1c = Math.max(lx, clippedX);
+                    const x2c = Math.min(lx + pdfH, clippedX + clippedW);
+                    if (x1c < x2c) {
+                      const y1c = topLeft.pdfY + pdfH - (x1c - lx);
+                      const y2c = topLeft.pdfY + pdfH - (x2c - lx);
+                      doc.line(x1c, y1c, x2c, y2c);
+                    }
+                  }
+                }
+              } else if (ann.pattern === "dots") {
+                const step = 2;
+                for (let dx = clippedX + step; dx < clippedX + clippedW; dx += step) {
+                  for (let dy = topLeft.pdfY + step; dy < topLeft.pdfY + pdfH; dy += step) {
+                    doc.circle(dx, dy, 0.2, "F");
+                  }
+                }
+              }
+            }
+
+            // Reset opacity
+            doc.setGState(new GState({ opacity: 1 }));
+
+            // Draw label if present
+            if (ann.label) {
+              doc.setFontSize(7);
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+              doc.text(ann.label, clippedX + clippedW / 2, topLeft.pdfY + pdfH / 2 + 1, { align: "center" });
+            }
+          }
+
+          if (ann.type === "arrow" && ann.x1 != null && ann.y1 != null && ann.x2 != null && ann.y2 != null) {
+            const startPos = screenYToPdf(ann.y1);
+            const endPos = screenYToPdf(ann.y2);
+            // Only draw if both endpoints are on this page
+            if (!startPos || !endPos || startPos.pageIndex !== pageIdx || endPos.pageIndex !== pageIdx) continue;
+
+            const px1 = screenXToPdfX(ann.x1);
+            const py1 = startPos.pdfY;
+            const px2 = screenXToPdfX(ann.x2);
+            const py2 = endPos.pdfY;
+
+            const rgb = hexToRgbLocal(ann.color || "#ef4444");
+            doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+            const sw = Math.max((ann.strokeWidth || 2) * 0.3, 0.3); // scale stroke to mm
+            doc.setLineWidth(sw);
+
+            // Dash pattern
+            if (ann.lineStyle === "dashed") {
+              doc.setLineDashPattern([sw * 4, sw * 2], 0);
+            } else if (ann.lineStyle === "dotted") {
+              doc.setLineDashPattern([sw, sw * 2], 0);
+            } else {
+              doc.setLineDashPattern([], 0);
+            }
+
+            doc.line(px1, py1, px2, py2);
+            doc.setLineDashPattern([], 0); // reset
+
+            // Draw arrowhead at end
+            const endEp = ann.endEndpoint || "arrow";
+            if (endEp === "arrow") {
+              const angle = Math.atan2(py2 - py1, px2 - px1);
+              const arrowLen = 1.5;
+              const arrowAngle = Math.PI / 6;
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              doc.triangle(
+                px2, py2,
+                px2 - arrowLen * Math.cos(angle - arrowAngle), py2 - arrowLen * Math.sin(angle - arrowAngle),
+                px2 - arrowLen * Math.cos(angle + arrowAngle), py2 - arrowLen * Math.sin(angle + arrowAngle),
+                "F"
+              );
+            } else if (endEp === "circle") {
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              doc.circle(px2, py2, 0.6, "F");
+            } else if (endEp === "diamond") {
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              const ds = 0.8;
+              doc.triangle(px2, py2 - ds, px2 + ds, py2, px2, py2 + ds, "F");
+              doc.triangle(px2, py2 - ds, px2 - ds, py2, px2, py2 + ds, "F");
+            }
+
+            // Draw start endpoint
+            const startEp = ann.startEndpoint || "none";
+            if (startEp === "arrow") {
+              const angle = Math.atan2(py1 - py2, px1 - px2);
+              const arrowLen = 1.5;
+              const arrowAngle = Math.PI / 6;
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              doc.triangle(
+                px1, py1,
+                px1 - arrowLen * Math.cos(angle - arrowAngle), py1 - arrowLen * Math.sin(angle - arrowAngle),
+                px1 - arrowLen * Math.cos(angle + arrowAngle), py1 - arrowLen * Math.sin(angle + arrowAngle),
+                "F"
+              );
+            } else if (startEp === "circle") {
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              doc.circle(px1, py1, 0.6, "F");
+            } else if (startEp === "diamond") {
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              const ds = 0.8;
+              doc.triangle(px1, py1 - ds, px1 + ds, py1, px1, py1 + ds, "F");
+              doc.triangle(px1, py1 - ds, px1 - ds, py1, px1, py1 + ds, "F");
+            }
+
+            // Arrow label
+            if (ann.label) {
+              doc.setFontSize(6);
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+              const midX = (px1 + px2) / 2;
+              const midY = (py1 + py2) / 2 - 1.5;
+              doc.text(ann.label, midX, midY, { align: "center" });
+            }
+          }
+
+          if (ann.type === "text" && ann.x != null && ann.y != null) {
+            const pos = screenYToPdf(ann.y);
+            if (!pos || pos.pageIndex !== pageIdx) continue;
+
+            const px = screenXToPdfX(ann.x);
+            const py = pos.pdfY;
+            const pdfW = screenWToPdfW(ann.width || 200);
+            const pdfH = screenHToPdfH(ann.height || 40, pageIdx);
+
+            // Background
+            const bgColor = ann.bgColor || "#fef08a";
+            if (bgColor !== "transparent") {
+              const bgRgb = hexToRgbLocal(bgColor);
+              doc.setFillColor(bgRgb[0], bgRgb[1], bgRgb[2]);
+              doc.roundedRect(px, py, pdfW, Math.max(pdfH, 4), 0.8, 0.8, "F");
+            }
+
+            // Border
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.15);
+            doc.roundedRect(px, py, pdfW, Math.max(pdfH, 4), 0.8, 0.8, "S");
+
+            // Text
+            if (ann.text) {
+              const textRgb = hexToRgbLocal(ann.color || "#000000");
+              doc.setTextColor(textRgb[0], textRgb[1], textRgb[2]);
+              // Scale font size: screen fontSize is in px, PDF needs reasonable mm-based size
+              const screenFs = ann.fontSize || 13;
+              const pdfFs = Math.max(5, Math.min(12, screenFs * 0.55));
+              doc.setFontSize(pdfFs);
+              doc.setFont("helvetica", ann.bold ? "bold" : "normal");
+
+              // Word-wrap text within the box
+              const textPadding = 1.5;
+              const maxTextW = pdfW - textPadding * 2;
+              const lines = doc.splitTextToSize(ann.text, maxTextW);
+              const lineH = pdfFs * 0.4; // approximate line height in mm
+              let ty = py + textPadding + lineH;
+              for (const line of lines) {
+                if (ty > py + Math.max(pdfH, 4) - 0.5) break; // don't overflow box
+                doc.text(line, px + textPadding, ty);
+                ty += lineH;
+              }
             }
           }
         }
