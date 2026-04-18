@@ -86,6 +86,30 @@ interface PdfExportPreviewProps {
   relationships?: Relationship[];
   magnificationZoom?: number; // 50-150 for PDF row height scaling
   visibleColumns?: string[]; // Column keys visible on the scheduler screen
+  /** Previously saved PDF export config to restore on open */
+  savedPdfConfig?: SavedPdfConfig | null;
+  /** Called after export with the current config so it can be persisted */
+  onConfigChange?: (config: SavedPdfConfig) => void;
+}
+
+export interface SavedPdfConfig {
+  headerColumnCount: 3 | 5;
+  footerColumnCount: 3 | 5;
+  headerColumns: ColumnData[];
+  footerColumns: ColumnData[];
+  pageSize: string;
+  orientation: string;
+  showGantt: boolean;
+  criticalPathOnly: boolean;
+  showLogicLines: boolean;
+  headerBgColor: string;
+  headerAccentColor: string;
+  headerTextColor: string;
+  pdfZoom: number;
+  gridlineInterval: string;
+  timescaleLabels: string;
+  headerHeightMm: number;
+  footerHeightMm: number;
 }
 
 const CONTENT_OPTIONS = [
@@ -152,6 +176,8 @@ export function PdfExportPreview({
   relationships = [],
   magnificationZoom = 100,
   visibleColumns = ["activityId", "name", "duration", "earlyStart", "earlyFinish", "totalFloat", "wbs"],
+  savedPdfConfig,
+  onConfigChange,
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
@@ -186,6 +212,32 @@ export function PdfExportPreview({
   // Header/footer height controls (in mm)
   const [headerHeightMm, setHeaderHeightMm] = useState(22);
   const [footerHeightMm, setFooterHeightMm] = useState(14);
+
+  // Restore saved config when dialog opens
+  const configAppliedRef = useRef(false);
+  useEffect(() => {
+    if (open && savedPdfConfig && !configAppliedRef.current) {
+      configAppliedRef.current = true;
+      setHeaderColumnCount(savedPdfConfig.headerColumnCount);
+      setFooterColumnCount(savedPdfConfig.footerColumnCount);
+      if (savedPdfConfig.headerColumns?.length) setHeaderColumns(savedPdfConfig.headerColumns);
+      if (savedPdfConfig.footerColumns?.length) setFooterColumns(savedPdfConfig.footerColumns);
+      setPageSize(savedPdfConfig.pageSize as any);
+      setOrientation(savedPdfConfig.orientation as any);
+      setShowGantt(savedPdfConfig.showGantt);
+      setCriticalPathOnly(savedPdfConfig.criticalPathOnly);
+      setShowLogicLines(savedPdfConfig.showLogicLines);
+      setHeaderBgColor(savedPdfConfig.headerBgColor);
+      setHeaderAccentColor(savedPdfConfig.headerAccentColor);
+      setHeaderTextColor(savedPdfConfig.headerTextColor);
+      setPdfZoom(savedPdfConfig.pdfZoom);
+      setGridlineInterval(savedPdfConfig.gridlineInterval as any);
+      setTimescaleLabels(savedPdfConfig.timescaleLabels as any);
+      setHeaderHeightMm(savedPdfConfig.headerHeightMm);
+      setFooterHeightMm(savedPdfConfig.footerHeightMm);
+    }
+    if (!open) configAppliedRef.current = false;
+  }, [open, savedPdfConfig]);
 
   // Multi-page state
   const [currentPage, setCurrentPage] = useState(0);
@@ -1085,6 +1137,26 @@ export function PdfExportPreview({
       headerTextColor,
       pdfZoom,
       visibleColumns,
+      gridlineInterval,
+      timescaleLabels,
+      headerHeightMm,
+      footerHeightMm,
+    });
+    // Persist the current config so it's restored next time
+    onConfigChange?.({
+      headerColumnCount,
+      footerColumnCount,
+      headerColumns,
+      footerColumns,
+      pageSize,
+      orientation,
+      showGantt,
+      criticalPathOnly,
+      showLogicLines,
+      headerBgColor,
+      headerAccentColor,
+      headerTextColor,
+      pdfZoom,
       gridlineInterval,
       timescaleLabels,
       headerHeightMm,

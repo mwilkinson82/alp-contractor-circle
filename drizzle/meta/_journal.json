@@ -239,6 +239,13 @@
       "when": 1776456786983,
       "tag": "0033_conscious_charles_xavier",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1776472877089,
+      "tag": "0034_tan_giant_man",
+      "breakpoints": true
     }
   ]
 }

@@ -2244,3 +2244,28 @@
 - [x] Add continuous border around entire page including footer (left, right, bottom borders)
 - [x] Remove dashed total float lines from Gantt bars and legend entry
 - [x] Add padding to footer text (2.5mm ftrPad)
+
+## Activity Code Column Assignment Bug
+- [x] Fix "Invalid input: expected number, received undefined" when assigning activity code from column cell dropdown
+- [x] codeValueIds is sending undefined instead of the numeric value ID — enriched server codeAssignments with categoryId, renamed codeValueId→valueId for frontend consistency
+
+## PDF Header/Footer Border & Padding (Round 2)
+- [x] Header needs full gray stroke border on all sides (left, right, top, bottom) — not just fill color
+- [x] Footer needs same continuous gray stroke border on all sides
+- [x] Header left text still touching the border — increase padding
+- [x] Footer left text still touching the border — increase padding
+
+## Persist PDF Export Settings to Layout
+- [x] Save header config (text, colors, fonts, layout) to the schedule layout when exporting
+- [x] Save footer config to the schedule layout
+- [x] Restore saved header/footer config when opening PDF export dialog
+- [x] User should only need to tweak, not rebuild from scratch each time
+- [x] Include savedPdfConfig in captureLayoutConfig for manual layout saves
+
+## Company Name Field
+- [x] Add companyName column to members table (varchar 255, migration applied)
+- [x] Add member.updateProfile tRPC mutation for updating companyName
+- [x] Return companyName in member.me query
+- [x] Add Business Info card to PortalAccount page with editable company name field
+- [x] Pre-populate pdfCompanyName from member.companyName in Scheduler.tsx
+- [x] Use saved company name as default for {company} token in PDF header/footer

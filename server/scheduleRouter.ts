@@ -438,7 +438,19 @@ export const scheduleRouter = router({
       }
 
       // Get all code assignments
-      const codeAssignments = await sdb.getCodeAssignmentsBySchedule(input.id);
+      const rawCodeAssignments = await sdb.getCodeAssignmentsBySchedule(input.id);
+      // Enrich assignments with categoryId (derived from codeValueId → activityCodeValues.categoryId)
+      const valueIdToCategoryId = new Map<number, number>();
+      for (const cat of codeCategories) {
+        for (const val of (cat as any).values || []) {
+          valueIdToCategoryId.set(val.id, cat.id);
+        }
+      }
+      const codeAssignments = rawCodeAssignments.map((a) => ({
+        ...a,
+        valueId: a.codeValueId,
+        categoryId: valueIdToCategoryId.get(a.codeValueId) ?? 0,
+      }));
 
       // Get calendar exceptions
       const calendarsWithExceptions = [];

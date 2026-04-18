@@ -51,6 +51,8 @@ export const members = mysqlTable("members", {
   memberRole: mysqlEnum("memberRole", ["member", "founding_member", "admin"]).default("member").notNull(),
   /** Preferred currency for ConstructLine takeoffs */
   preferredCurrency: varchar("preferredCurrency", { length: 8 }),
+  /** Company name — used in PDF headers/footers and profile */
+  companyName: varchar("companyName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

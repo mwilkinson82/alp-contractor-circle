@@ -363,11 +363,11 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
     if (hdrBg) {
       doc.setFillColor(...hdrBg);
       doc.rect(margin, 2, pageWidth - 2 * margin, headerHeight - 2, "F");
-    } else {
-      doc.setDrawColor(210, 210, 210);
-      doc.setLineWidth(0.3);
-      doc.rect(margin, 2, pageWidth - 2 * margin, headerHeight - 2, "S");
     }
+    // Always draw a gray stroke border around the header
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, 2, pageWidth - 2 * margin, headerHeight - 2, "S");
     // Accent line bounded within margins (aligned with content borders)
     doc.setFillColor(...hdrAccent);
     doc.rect(margin, headerHeight - 0.6, pageWidth - 2 * margin, 0.6, "F");
@@ -452,16 +452,13 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
   // ─── Draw Footer ────────────────────────────────────────────────────────────
   function drawFooter(pageNum: number, totalPages: number) {
     const y = pageHeight - footerHeight;
-    doc.setDrawColor(...colors.border);
+    // Draw full gray stroke border around the footer area
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.2);
-    // Top border of footer
-    doc.line(margin, y, pageWidth - margin, y);
-    // Left border (header bottom to footer bottom)
-    doc.line(margin, 2, margin, pageHeight - 2);
-    // Right border (header bottom to footer bottom)
-    doc.line(pageWidth - margin, 2, pageWidth - margin, pageHeight - 2);
-    // Bottom border
-    doc.line(margin, pageHeight - 2, pageWidth - margin, pageHeight - 2);
+    doc.rect(margin, y, pageWidth - 2 * margin, footerHeight, "S");
+    // Draw continuous left and right page borders from header bottom to footer top
+    doc.line(margin, 2 + headerHeight - 2, margin, y);
+    doc.line(pageWidth - margin, 2 + headerHeight - 2, pageWidth - margin, y);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);

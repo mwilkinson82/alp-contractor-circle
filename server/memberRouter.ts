@@ -55,6 +55,7 @@ export const memberRouter = router({
       email: member.email,
       subscriptionStatus: member.subscriptionStatus,
       memberRole: member.memberRole,
+      companyName: member.companyName,
       createdAt: member.createdAt,
     };
   }),
@@ -767,6 +768,33 @@ export const memberRouter = router({
             }).catch(err => console.error("[Email] Failed to send topic selected notification:", err));
           }
         }
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Update the current member's profile (company name, etc.).
+   */
+  updateProfile: publicProcedure
+    .input(
+      z.object({
+        companyName: z.string().max(255).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+
+      const updates: Record<string, any> = {};
+      if (input.companyName !== undefined) updates.companyName = input.companyName;
+
+      if (Object.keys(updates).length > 0) {
+        await db.update(members).set(updates).where(eq(members.id, member.id));
       }
 
       return { success: true };

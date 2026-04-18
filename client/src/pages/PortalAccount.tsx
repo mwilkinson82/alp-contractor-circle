@@ -1,7 +1,7 @@
 /**
  * Account Management — View profile, subscription details, and payment history.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 import {
@@ -16,6 +16,9 @@ import {
   Clock,
   Receipt,
   Shield,
+  Building2,
+  Save,
+  Check,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -67,6 +70,21 @@ export default function PortalAccount() {
       if (data.url) window.open(data.url, "_blank");
     },
   });
+
+  const [companyName, setCompanyName] = useState(member?.companyName || "");
+  const [companyNameSaved, setCompanyNameSaved] = useState(false);
+  const updateProfileMut = trpc.member.updateProfile.useMutation({
+    onSuccess: () => {
+      setCompanyNameSaved(true);
+      utils.member.me.invalidate();
+      setTimeout(() => setCompanyNameSaved(false), 2000);
+    },
+  });
+
+  // Sync companyName from member data when it loads
+  useEffect(() => {
+    if (member?.companyName && !companyName) setCompanyName(member.companyName);
+  }, [member?.companyName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
   const memberRole = member?.memberRole || "member";
@@ -136,6 +154,43 @@ export default function PortalAccount() {
                 ? new Date(member.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
                 : "—"}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Company / Business Info Card */}
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="flex items-center gap-2 mb-6">
+          <Building2 className="w-4 h-4 text-ember" />
+          <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Business Info</h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-cream-muted mb-1.5">Company Name</label>
+            <p className="text-xs text-cream-muted/60 mb-2">This will appear in your PDF exports and schedule reports.</p>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => { setCompanyName(e.target.value); setCompanyNameSaved(false); }}
+                placeholder="Enter your company name"
+                className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-cream text-sm placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40 focus:ring-1 focus:ring-ember/20 transition-all"
+              />
+              <button
+                onClick={() => updateProfileMut.mutate({ companyName })}
+                disabled={updateProfileMut.isPending || companyNameSaved}
+                className="px-4 py-2 rounded-lg bg-ember/10 border border-ember/20 text-ember hover:bg-ember/20 text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+              >
+                {companyNameSaved ? (
+                  <><Check className="w-3.5 h-3.5" /> Saved</>
+                ) : updateProfileMut.isPending ? (
+                  <>Saving...</>
+                ) : (
+                  <><Save className="w-3.5 h-3.5" /> Save</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
