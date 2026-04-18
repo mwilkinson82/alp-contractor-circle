@@ -17,7 +17,7 @@ import {
 } from "../shared/cpmEngine";
 import * as sdb from "./scheduleDb";
 import { CSI_DIVISIONS, WBS_GROUP_COLORS } from "../shared/csiDivisions";
-import { hospitalTemplate, waterTreatmentTemplate, electricalTemplate, hvacTemplate, civilTemplate } from "./scheduleTemplates";
+import { commercialTiTemplate, renovationTemplate, hospitalTemplate, waterTreatmentTemplate, electricalTemplate, hvacTemplate, civilTemplate } from "./scheduleTemplates";
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
@@ -295,119 +295,8 @@ const SCHEDULE_TEMPLATES = {
       { name: "Trade", values: ["General", "Concrete", "Framing", "Roofing", "Electrical", "Plumbing", "HVAC", "Drywall", "Paint", "Flooring", "Landscaping"] },
     ],
   },
-  commercial_ti: {
-    name: "Commercial Tenant Improvement",
-    description: "Standard commercial TI schedule for office/retail buildout",
-    activities: [
-      { activityId: "A1010", name: "Pre-Construction Meeting", duration: 1, wbs: "1.0" },
-      { activityId: "A1020", name: "Permits & Submittals", duration: 10, wbs: "1.0" },
-      { activityId: "A1030", name: "Selective Demolition", duration: 5, wbs: "2.0" },
-      { activityId: "A1040", name: "Rough Framing", duration: 8, wbs: "2.0" },
-      { activityId: "A1050", name: "Electrical Rough-In", duration: 7, wbs: "3.0" },
-      { activityId: "A1060", name: "Plumbing Rough-In", duration: 5, wbs: "3.0" },
-      { activityId: "A1070", name: "HVAC Modifications", duration: 6, wbs: "3.0" },
-      { activityId: "A1080", name: "Fire Sprinkler Modifications", duration: 4, wbs: "3.0" },
-      { activityId: "A1090", name: "Insulation", duration: 3, wbs: "4.0" },
-      { activityId: "A1100", name: "Drywall", duration: 8, wbs: "4.0" },
-      { activityId: "A1110", name: "Taping & Finishing", duration: 5, wbs: "4.0" },
-      { activityId: "A1120", name: "Prime & Paint", duration: 5, wbs: "5.0" },
-      { activityId: "A1130", name: "Ceiling Grid & Tile", duration: 4, wbs: "5.0" },
-      { activityId: "A1140", name: "Flooring", duration: 5, wbs: "5.0" },
-      { activityId: "A1150", name: "Millwork & Casework", duration: 4, wbs: "5.0" },
-      { activityId: "A1160", name: "Electrical Trim-Out", duration: 3, wbs: "6.0" },
-      { activityId: "A1170", name: "Plumbing Trim-Out", duration: 2, wbs: "6.0" },
-      { activityId: "A1180", name: "HVAC Startup & Balance", duration: 3, wbs: "6.0" },
-      { activityId: "A1190", name: "Final Clean", duration: 2, wbs: "7.0" },
-      { activityId: "A1200", name: "Punch List", duration: 3, wbs: "7.0" },
-      { activityId: "A1210", name: "Final Inspection", duration: 2, wbs: "7.0" },
-    ],
-    relationships: [
-      { pred: "A1010", succ: "A1020", type: "FS" as const, lag: 0 },
-      { pred: "A1020", succ: "A1030", type: "FS" as const, lag: 0 },
-      { pred: "A1030", succ: "A1040", type: "FS" as const, lag: 0 },
-      { pred: "A1040", succ: "A1050", type: "FS" as const, lag: 0 },
-      { pred: "A1040", succ: "A1060", type: "FS" as const, lag: 0 },
-      { pred: "A1040", succ: "A1070", type: "FS" as const, lag: 0 },
-      { pred: "A1040", succ: "A1080", type: "FS" as const, lag: 0 },
-      { pred: "A1050", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1060", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1070", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1080", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1090", succ: "A1100", type: "FS" as const, lag: 0 },
-      { pred: "A1100", succ: "A1110", type: "FS" as const, lag: 0 },
-      { pred: "A1110", succ: "A1120", type: "FS" as const, lag: 0 },
-      { pred: "A1110", succ: "A1130", type: "FS" as const, lag: 0 },
-      { pred: "A1120", succ: "A1140", type: "FS" as const, lag: 0 },
-      { pred: "A1130", succ: "A1140", type: "FS" as const, lag: 0 },
-      { pred: "A1120", succ: "A1150", type: "FS" as const, lag: 0 },
-      { pred: "A1140", succ: "A1160", type: "FS" as const, lag: 0 },
-      { pred: "A1150", succ: "A1160", type: "FS" as const, lag: 0 },
-      { pred: "A1160", succ: "A1170", type: "SS" as const, lag: 0 },
-      { pred: "A1170", succ: "A1180", type: "FS" as const, lag: 0 },
-      { pred: "A1180", succ: "A1190", type: "FS" as const, lag: 0 },
-      { pred: "A1190", succ: "A1200", type: "FS" as const, lag: 0 },
-      { pred: "A1200", succ: "A1210", type: "FS" as const, lag: 0 },
-    ],
-    codeCategories: [
-      { name: "Phase", values: ["Pre-Con", "Demo", "MEP Rough", "Drywall", "Finishes", "MEP Trim", "Closeout"] },
-      { name: "Trade", values: ["General", "Electrical", "Plumbing", "HVAC", "Fire Protection", "Drywall", "Paint", "Flooring", "Millwork"] },
-    ],
-  },
-  renovation: {
-    name: "Renovation / Remodel",
-    description: "General renovation schedule for existing structures",
-    activities: [
-      { activityId: "A1010", name: "Pre-Construction Walkthrough", duration: 1, wbs: "1.0" },
-      { activityId: "A1020", name: "Permits", duration: 7, wbs: "1.0" },
-      { activityId: "A1030", name: "Protection & Containment", duration: 2, wbs: "2.0" },
-      { activityId: "A1040", name: "Selective Demolition", duration: 5, wbs: "2.0" },
-      { activityId: "A1050", name: "Structural Modifications", duration: 7, wbs: "3.0" },
-      { activityId: "A1060", name: "Electrical Rough-In", duration: 6, wbs: "3.0" },
-      { activityId: "A1070", name: "Plumbing Rough-In", duration: 5, wbs: "3.0" },
-      { activityId: "A1080", name: "HVAC Modifications", duration: 5, wbs: "3.0" },
-      { activityId: "A1090", name: "Insulation & Vapor Barrier", duration: 3, wbs: "4.0" },
-      { activityId: "A1100", name: "Drywall & Plaster Repair", duration: 7, wbs: "4.0" },
-      { activityId: "A1110", name: "Tile Work", duration: 5, wbs: "5.0" },
-      { activityId: "A1120", name: "Cabinets & Countertops", duration: 4, wbs: "5.0" },
-      { activityId: "A1130", name: "Interior Paint", duration: 5, wbs: "5.0" },
-      { activityId: "A1140", name: "Flooring", duration: 5, wbs: "5.0" },
-      { activityId: "A1150", name: "Electrical Trim", duration: 3, wbs: "6.0" },
-      { activityId: "A1160", name: "Plumbing Trim", duration: 2, wbs: "6.0" },
-      { activityId: "A1170", name: "Hardware & Accessories", duration: 2, wbs: "6.0" },
-      { activityId: "A1180", name: "Final Clean", duration: 2, wbs: "7.0" },
-      { activityId: "A1190", name: "Punch List", duration: 3, wbs: "7.0" },
-      { activityId: "A1200", name: "Final Inspection", duration: 1, wbs: "7.0" },
-    ],
-    relationships: [
-      { pred: "A1010", succ: "A1020", type: "FS" as const, lag: 0 },
-      { pred: "A1020", succ: "A1030", type: "FS" as const, lag: 0 },
-      { pred: "A1030", succ: "A1040", type: "FS" as const, lag: 0 },
-      { pred: "A1040", succ: "A1050", type: "FS" as const, lag: 0 },
-      { pred: "A1050", succ: "A1060", type: "FS" as const, lag: 0 },
-      { pred: "A1050", succ: "A1070", type: "FS" as const, lag: 0 },
-      { pred: "A1050", succ: "A1080", type: "FS" as const, lag: 0 },
-      { pred: "A1060", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1070", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1080", succ: "A1090", type: "FS" as const, lag: 0 },
-      { pred: "A1090", succ: "A1100", type: "FS" as const, lag: 0 },
-      { pred: "A1100", succ: "A1110", type: "FS" as const, lag: 0 },
-      { pred: "A1100", succ: "A1120", type: "FS" as const, lag: 0 },
-      { pred: "A1100", succ: "A1130", type: "FS" as const, lag: 0 },
-      { pred: "A1130", succ: "A1140", type: "FS" as const, lag: 0 },
-      { pred: "A1110", succ: "A1140", type: "FS" as const, lag: 0 },
-      { pred: "A1120", succ: "A1150", type: "FS" as const, lag: 0 },
-      { pred: "A1140", succ: "A1150", type: "FS" as const, lag: 0 },
-      { pred: "A1150", succ: "A1160", type: "SS" as const, lag: 0 },
-      { pred: "A1160", succ: "A1170", type: "FS" as const, lag: 0 },
-      { pred: "A1170", succ: "A1180", type: "FS" as const, lag: 0 },
-      { pred: "A1180", succ: "A1190", type: "FS" as const, lag: 0 },
-      { pred: "A1190", succ: "A1200", type: "FS" as const, lag: 0 },
-    ],
-    codeCategories: [
-      { name: "Phase", values: ["Pre-Con", "Demo", "Rough-In", "Drywall", "Finishes", "Trim", "Closeout"] },
-      { name: "Trade", values: ["General", "Structural", "Electrical", "Plumbing", "HVAC", "Drywall", "Tile", "Paint", "Flooring"] },
-    ],
-  },
+  commercial_ti: commercialTiTemplate,
+  renovation: renovationTemplate,
   hospital: hospitalTemplate,
   water_treatment: waterTreatmentTemplate,
   electrical: electricalTemplate,
@@ -597,6 +486,16 @@ export const scheduleRouter = router({
               }
             }
           }
+          // Third pass: link activities to WBS nodes via wbsId
+          for (const a of template.activities) {
+            if (a.wbs) {
+              const wbsNodeId = wbsCodeToId.get(a.wbs);
+              const actDbId = actIdMap.get(a.activityId);
+              if (wbsNodeId && actDbId) {
+                await sdb.updateActivity(actDbId, { wbsId: wbsNodeId });
+              }
+            }
+          }
         }
 
         // Create code categories and values
@@ -617,6 +516,23 @@ export const scheduleRouter = router({
             }
           }
         }
+
+        // Create a default layout with WBS grouping for template schedules
+        const defaultLayoutConfig = JSON.stringify({
+          visibleColumns: ["activityId", "name", "duration", "earlyStart", "earlyFinish", "totalFloat"],
+          groupBy: "wbs",
+          sortState: null,
+          zoom: "month",
+          showArrows: true,
+          showDataDateLine: true,
+          showTodayLine: true,
+        });
+        await sdb.createLayout({
+          scheduleId,
+          name: "WBS View (Default)",
+          config: defaultLayoutConfig,
+          isDefault: true,
+        });
 
         // Run CPM calculation
         await recalculateAndPersist(scheduleId);
@@ -1520,11 +1436,23 @@ export const scheduleRouter = router({
   // ── Templates ────────────────────────────────────────────────────────────
 
   templates: publicProcedure.query(() => {
+    const TEMPLATE_THUMBNAILS: Record<string, string> = {
+      residential: "/manus-storage/template-residential_07e22e24.png",
+      commercial_ti: "/manus-storage/template-commercial_ti_01d2586d.png",
+      renovation: "/manus-storage/template-renovation_8b10087f.png",
+      hospital: "/manus-storage/template-hospital_801321ea.png",
+      water_treatment: "/manus-storage/template-water_treatment_e13d6d06.png",
+      electrical: "/manus-storage/template-electrical_abd64de7.png",
+      hvac: "/manus-storage/template-hvac_e8a62c16.png",
+      civil: "/manus-storage/template-civil_f0116eb6.png",
+    };
     return Object.entries(SCHEDULE_TEMPLATES).map(([id, t]) => ({
       id,
       name: t.name,
       description: t.description,
       activityCount: t.activities.length,
+      wbsNodeCount: (t as any).wbsNodes?.length ?? 0,
+      thumbnail: TEMPLATE_THUMBNAILS[id] ?? null,
     }));
   }),
 

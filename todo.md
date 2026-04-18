@@ -2302,3 +2302,18 @@
 - [x] Redesign template section to visually stand out (emerald border/glow, pulsing dot)
 - [x] Templates in 2-column grid with activity count badges, hover effects
 - [x] New users see Blank + templates when clicking New Project — clear visual hierarchy
+
+## Template Rebuild — Professional Grade
+- [x] Rebuild Residential template: 47 activities, full WBS hierarchy, $500K-$4M scope
+- [x] Rebuild Commercial TI template: 60 activities, full WBS hierarchy
+- [x] Rebuild Renovation template: 62 activities, full WBS hierarchy
+- [x] Rebuild Hospital template: 83 activities, full WBS hierarchy
+- [x] Rebuild Water Treatment template: 68 activities, full WBS hierarchy
+- [x] Rebuild Electrical template: 60 activities, full WBS hierarchy
+- [x] Rebuild HVAC template: 59 activities, full WBS hierarchy
+- [x] Rebuild Civil template: 62 activities, full WBS hierarchy
+- [x] Ensure every activity has proper WBS node assignment (3-pass linking in template creation)
+- [x] Default new template schedules to Group by WBS view (createLayout with groupBy: wbs)
+- [x] Generate template preview thumbnails for the Create modal (Gantt-style PNGs)
+- [x] Add thumbnail display in template picker with WBS node count badges
+- [x] Set up storage proxy for serving manus-storage assets

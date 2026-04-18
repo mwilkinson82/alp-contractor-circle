@@ -414,20 +414,39 @@ export default function ScheduleList() {
                       <button
                         key={t.id}
                         onClick={() => setSelectedTemplate(t.id)}
-                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                        className={`text-left rounded-lg border-2 transition-all overflow-hidden ${
                           isSelected
                             ? "border-ember bg-ember/10 text-foreground shadow-[0_0_12px_rgba(217,119,6,0.15)]"
                             : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
                         }`}
                       >
-                        <div className="font-medium text-sm leading-tight">{t.name}</div>
-                        <div className="text-[11px] mt-1 opacity-60 leading-snug line-clamp-2">{t.description}</div>
-                        <div className="mt-1.5 flex items-center gap-1">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            isSelected ? "bg-ember/20 text-ember" : "bg-emerald-500/10 text-emerald-400"
-                          }`}>
-                            {t.activityCount} activities
-                          </span>
+                        {/* Thumbnail preview */}
+                        {t.thumbnail && (
+                          <div className="w-full h-20 bg-zinc-900/50 border-b border-white/5">
+                            <img
+                              src={t.thumbnail}
+                              alt={`${t.name} preview`}
+                              className="w-full h-full object-cover opacity-80"
+                            />
+                          </div>
+                        )}
+                        <div className="p-3">
+                          <div className="font-medium text-sm leading-tight">{t.name}</div>
+                          <div className="text-[11px] mt-1 opacity-60 leading-snug line-clamp-2">{t.description}</div>
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              isSelected ? "bg-ember/20 text-ember" : "bg-emerald-500/10 text-emerald-400"
+                            }`}>
+                              {t.activityCount} activities
+                            </span>
+                            {t.wbsNodeCount > 0 && (
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                isSelected ? "bg-ember/20 text-ember" : "bg-blue-500/10 text-blue-400"
+                              }`}>
+                                {t.wbsNodeCount} WBS nodes
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
