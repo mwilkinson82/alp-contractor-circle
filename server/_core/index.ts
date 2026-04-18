@@ -80,7 +80,7 @@ async function startServer() {
   // Drip campaign unsubscribe
   registerUnsubscribeRoutes(app);
   // XER async import routes
-  registerXerImportRoutes(app);
+  try { registerXerImportRoutes(app); } catch (e) { console.error('[XerImport] Failed to register routes:', e); }
   // tRPC API
   app.use(
     "/api/trpc",
@@ -104,10 +104,10 @@ async function startServer() {
   }
 
   // Start Discord gateway bot (listens for guildMemberAdd, etc.)
-  startDiscordBot();
+  try { startDiscordBot(); } catch (e) { console.error('[DiscordBot] Failed to start:', e); }
 
   // Start drip campaign engine (checks every 15 minutes for pending sends)
-  startDripEngine();
+  try { startDripEngine(); } catch (e) { console.error('[DripEngine] Failed to start:', e); }
 
   // Increase server timeout to 5 minutes for large XER imports
   server.timeout = 300000;
