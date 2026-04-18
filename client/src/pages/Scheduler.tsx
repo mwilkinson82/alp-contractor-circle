@@ -8,6 +8,7 @@ import GanttChart, { BASE_ROW_HEIGHT, HEADER_HEIGHT, getWbsRowHeight, getActivit
 import GanttAnnotations, { type Annotation } from "@/components/GanttAnnotations";
 import { WBSTree } from "@/components/WBSTree";
 import { PdfExportPreview, type SavedPdfConfig } from "@/components/PdfExportPreview";
+import { CpmOnboarding } from "@/components/CpmOnboarding";
 import { ActivityCodeManager } from "@/components/ActivityCodeManager";
 import { generateSchedulePdf } from "@/lib/schedulePdf";
 import { toast } from "sonner";
@@ -38,7 +39,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
-  Maximize2, Minimize2, MessageSquarePlus,
+  Maximize2, Minimize2, MessageSquarePlus, Copy,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -454,6 +455,7 @@ export default function Scheduler() {
   const [schedSettingsContractNumber, setSchedSettingsContractNumber] = useState("");
   const [schedSettingsCompanyName, setSchedSettingsCompanyName] = useState("");
   const [showCpmFeedback, setShowCpmFeedback] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [cpmFeedbackMsg, setCpmFeedbackMsg] = useState("");
   const [cpmFeedbackCategory, setCpmFeedbackCategory] = useState<"bug" | "feature" | "general" | "other">("general");
   const [showPdfExport, setShowPdfExport] = useState(false);
@@ -595,6 +597,13 @@ export default function Scheduler() {
     const projName = schedule?.schedule?.projectName || "";
     if (projName && !pdfProjectName) setPdfProjectName(projName);
   }, [member?.companyName, schedule?.schedule?.companyNameOverride, schedule?.schedule?.projectName]); // eslint-disable-line react-hooks/exhaustive-depsps
+
+  /* ── CPM Onboarding trigger ──────────────────────────────────────────── */
+  useEffect(() => {
+    if (member && !member.cpmOnboardingDone && schedule) {
+      setShowOnboarding(true);
+    }
+  }, [member, schedule]);
 
   /* ── Gantt Display Settings ──────────────────────────────────────────── */
   const [ganttFontSize, setGanttFontSize] = useState(9);
@@ -1056,6 +1065,14 @@ export default function Scheduler() {
     onError: (e: any) => toast.error(e.message),
   });
   const cpmFeedbackMut = trpc.feedback.submit.useMutation();
+  const completeCpmOnboardingMut = trpc.member.completeCpmOnboarding.useMutation();
+  const duplicateMut = trpc.schedule.duplicate.useMutation({
+    onSuccess: (_data, vars) => {
+      toast.success(`Template created: ${vars.name}`);
+      utils.schedule.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const deleteRelMut = trpc.schedule.deleteRelationship.useMutation({
     onSuccess: (_data, vars) => {
       utils.schedule.get.invalidate();
@@ -1783,6 +1800,13 @@ export default function Scheduler() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
               <Download className="w-4 h-4 mr-2" /> Export PDF
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
+              const templateName = `${schedule?.schedule?.name || 'Schedule'} - Template`;
+              duplicateMut.mutate({ id: scheduleId!, name: templateName });
+            }} disabled={duplicateMut.isPending}>
+              <Copy className="w-4 h-4 mr-2" /> Duplicate as Template
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
@@ -4938,6 +4962,20 @@ export default function Scheduler() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CPM Onboarding Overlay */}
+      {showOnboarding && (
+        <CpmOnboarding
+          onComplete={() => {
+            setShowOnboarding(false);
+            completeCpmOnboardingMut.mutate();
+          }}
+          onSkip={() => {
+            setShowOnboarding(false);
+            completeCpmOnboardingMut.mutate();
+          }}
+        />
+      )}
     </div>
   );
 }

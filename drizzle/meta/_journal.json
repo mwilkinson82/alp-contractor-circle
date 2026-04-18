@@ -260,6 +260,13 @@
       "when": 1776474944345,
       "tag": "0036_worthless_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1776518880150,
+      "tag": "0037_cultured_goliath",
+      "breakpoints": true
     }
   ]
 }

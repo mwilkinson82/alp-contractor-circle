@@ -55,6 +55,8 @@ export const members = mysqlTable("members", {
   companyName: varchar("companyName", { length: 255 }),
   /** Company logo URL (S3) — used in PDF headers and profile */
   companyLogo: varchar("companyLogo", { length: 512 }),
+  /** Whether the member has completed the CPM Scheduler onboarding tour */
+  cpmOnboardingDone: boolean("cpmOnboardingDone").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

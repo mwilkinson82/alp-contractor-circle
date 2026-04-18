@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD `cpmOnboardingDone` boolean DEFAULT false NOT NULL;

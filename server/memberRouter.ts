@@ -58,6 +58,7 @@ export const memberRouter = router({
       memberRole: member.memberRole,
       companyName: member.companyName,
       companyLogo: member.companyLogo,
+      cpmOnboardingDone: member.cpmOnboardingDone,
       createdAt: member.createdAt,
     };
   }),
@@ -867,4 +868,14 @@ export const memberRouter = router({
 
       return { topics: rows };
     }),
+
+  /**
+   * Mark CPM Scheduler onboarding as completed for the current member.
+   */
+  completeCpmOnboarding: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await getMemberFromRequest(ctx.req);
+    if (!member) throw new TRPCError({ code: "UNAUTHORIZED" });
+    await getDb()!.update(members).set({ cpmOnboardingDone: true }).where(eq(members.id, member.id));
+    return { success: true };
+  }),
 });

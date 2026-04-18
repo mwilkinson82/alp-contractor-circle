@@ -2317,3 +2317,30 @@
 - [x] Generate template preview thumbnails for the Create modal (Gantt-style PNGs)
 - [x] Add thumbnail display in template picker with WBS node count badges
 - [x] Set up storage proxy for serving manus-storage assets
+
+## Quick Start Onboarding Overlay (COMPLETED)
+- [x] Create guided walkthrough overlay for first-time CPM Scheduler users (CpmOnboarding.tsx)
+- [x] Step 1: Welcome — explain what they're looking at (WBS-grouped schedule)
+- [x] Step 2: Activities — how to add/edit activities, durations
+- [x] Step 3: Relationships — how logic ties work (FS, SS, FF, SF)
+- [x] Step 4: Gantt Chart — reading the timeline, critical path
+- [x] Step 5: Toolbar — key actions (undo, columns, export, settings)
+- [x] Track onboarding completion in DB (cpmOnboardingDone field)
+- [x] Wire into Scheduler.tsx to show on first template schedule open
+
+## Duplicate as Template Feature (COMPLETED)
+- [x] Add "Duplicate as Template" button to Settings dropdown
+- [x] Reuse existing duplicate procedure with " - Template" suffix
+- [x] Show success toast with template name
+- [x] Invalidate schedule list to refresh
+- [x] Members can now save customized schedules as templates
+
+## WBS Hierarchy Rebuild — Correct Parent-Child Structure (COMPLETED)
+- [x] Fix all templates: Construction is the main parent WBS for all construction activities
+- [x] Pre-Construction stands alone with Submittals as child, Prepare/Submit and Review/Approve as grandchildren
+- [x] All trade divisions (Sitework, Concrete, Structural, etc.) are children of Construction
+- [x] Rebuilt all 8 templates with correct WBS hierarchy
+- [x] Residential template (Smith Residence) WBS already correct in scheduleRouter.ts
+
+## XER Import Error Fix
+- [ ] Fix "Service Unavailable" / "Unexpected token 'S'" error when importing XER files
