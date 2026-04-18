@@ -10,6 +10,7 @@ import { startDiscordBot } from "../discordBot";
 import { registerStripeWebhook } from "../stripeWebhook";
 import { startDripEngine } from "../dripEngine";
 import { registerUnsubscribeRoutes } from "../unsubscribe";
+import { registerXerImportRoutes } from "../xerAsyncImport";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -78,6 +79,8 @@ async function startServer() {
   registerDiscordOAuthRoutes(app);
   // Drip campaign unsubscribe
   registerUnsubscribeRoutes(app);
+  // XER async import routes
+  registerXerImportRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

@@ -2377,3 +2377,14 @@
 - [x] Balance proportions between parent and child WBS rows (1.2x ratio instead of 2.3x)
 - [x] Font color customization already works — improved labels to say "Background" and "Font" instead of "BG" and "Text"
 - [x] Consistent sizing across schedule table, Gantt chart, and PDF export via shared getWbsRowHeight()
+
+## XER Import Timeout Fix (Large Files - 14.8MB Tallman Island)
+- [ ] Rearchitect XER import to avoid production proxy timeout (30-60s limit)
+- [ ] Upload XER file to S3 first, then parse server-side asynchronously
+- [ ] Add polling/status endpoint so frontend can track import progress
+- [ ] Show progress indicator during import instead of blocking spinner
+
+## PDF Export Fixes
+- [x] Fix WBS colors carrying through to PDF export (use row.bgColor with 25% tint, row.textColor for text, row.bgColor for summary bars)
+- [x] Move Critical/Non-Critical from inline to proper footer legend on every page
+- [x] Add legend symbols: Critical (red bar), Non-Critical (green bar), Milestone (diamond), Data Date (blue line), Summary (bracket bar)

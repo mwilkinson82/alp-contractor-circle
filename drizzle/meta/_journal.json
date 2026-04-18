@@ -267,6 +267,13 @@
       "when": 1776518880150,
       "tag": "0037_cultured_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1776522867813,
+      "tag": "0038_kind_moonstone",
+      "breakpoints": true
     }
   ]
 }

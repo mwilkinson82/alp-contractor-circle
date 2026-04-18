@@ -965,3 +965,30 @@ export const feedback = mysqlTable("feedback", {
 
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = typeof feedback.$inferInsert;
+
+/**
+ * XER Import Jobs — tracks async XER file import progress.
+ * The file is uploaded to S3 first, then processed server-side.
+ */
+export const xerImportJobs = mysqlTable("xer_import_jobs", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** S3 URL of the uploaded XER file */
+  fileUrl: text("fileUrl").notNull(),
+  /** User-provided schedule name override */
+  scheduleName: varchar("scheduleName", { length: 256 }),
+  /** Current status of the import */
+  status: mysqlEnum("status", ["pending", "parsing", "importing", "complete", "failed"]).default("pending").notNull(),
+  /** Progress message for the frontend */
+  progressMessage: text("progressMessage"),
+  /** Resulting schedule ID on success */
+  scheduleId: int("scheduleId"),
+  /** Result summary JSON */
+  result: json("result"),
+  /** Error message on failure */
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type XerImportJob = typeof xerImportJobs.$inferSelect;
+export type InsertXerImportJob = typeof xerImportJobs.$inferInsert;

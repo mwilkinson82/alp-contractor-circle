@@ -57,6 +57,7 @@ export default function ScheduleList() {
   const [xerFile, setXerFile] = useState<File | null>(null);
   const [xerScheduleName, setXerScheduleName] = useState("");
   const [xerImporting, setXerImporting] = useState(false);
+  const [xerProgress, setXerProgress] = useState("");
 
   const schedulesQuery = trpc.schedule.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -106,44 +107,77 @@ export default function ScheduleList() {
     onError: (err) => toast.error(err.message),
   });
 
-  const xerImportMutation = trpc.schedule.importXer.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Imported "${data.scheduleName}" — ${data.activitiesImported} activities, ${data.relationshipsImported} relationships, ${data.wbsNodesImported} WBS nodes`);
-      setShowXerImport(false);
-      setXerFile(null);
-      setXerScheduleName("");
-      setXerImporting(false);
-      window.open(`/scheduler/${data.scheduleId}`, "_blank");
-      schedulesQuery.refetch();
-    },
-    onError: (err) => {
-      const msg = err.message || "Unknown error";
-      // Provide user-friendly error messages
-      if (msg.includes("Service Unavailable") || msg.includes("503")) {
-        toast.error("Import timed out — the file may be too large. Try splitting the XER into smaller projects in P6.");
-      } else if (msg.includes("Unexpected token")) {
-        toast.error("Server returned an error during import. The file may be corrupted or in an unsupported format.");
-      } else if (msg.includes("Failed to parse XER")) {
-        toast.error(msg);
-      } else {
-        toast.error(`XER import failed: ${msg}`);
-      }
-      setXerImporting(false);
-    },
-  });
-
+  // Async XER import: upload to S3, then poll for progress
   const handleXerImport = async () => {
     if (!xerFile) return;
     setXerImporting(true);
+    setXerProgress("Reading file...");
     try {
       const text = await xerFile.text();
-      xerImportMutation.mutate({
-        xerText: text,
-        scheduleName: xerScheduleName || undefined,
+      setXerProgress("Uploading to server...");
+
+      // Step 1: Upload XER text and get a job ID (fast response)
+      const uploadRes = await fetch("/api/xer/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          xerText: text,
+          scheduleName: xerScheduleName || undefined,
+        }),
       });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(err.error || `Upload failed (${uploadRes.status})`);
+      }
+
+      const { jobId } = await uploadRes.json();
+      setXerProgress("Import started — parsing XER file...");
+
+      // Step 2: Poll for progress every 2 seconds
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/xer/status/${jobId}`);
+          if (!statusRes.ok) return;
+          const job = await statusRes.json();
+
+          setXerProgress(job.progressMessage || "Processing...");
+
+          if (job.status === "complete") {
+            clearInterval(pollInterval);
+            const result = job.result as any;
+            toast.success(`Imported "${result?.scheduleName || "Schedule"}" — ${result?.activitiesImported || 0} activities, ${result?.relationshipsImported || 0} relationships, ${result?.wbsNodesImported || 0} WBS nodes`);
+            setShowXerImport(false);
+            setXerFile(null);
+            setXerScheduleName("");
+            setXerImporting(false);
+            setXerProgress("");
+            if (job.scheduleId) window.open(`/scheduler/${job.scheduleId}`, "_blank");
+            schedulesQuery.refetch();
+          } else if (job.status === "failed") {
+            clearInterval(pollInterval);
+            toast.error(`XER import failed: ${job.errorMessage || "Unknown error"}`);
+            setXerImporting(false);
+            setXerProgress("");
+          }
+        } catch {
+          // Polling error — keep trying
+        }
+      }, 2000);
+
+      // Safety timeout: stop polling after 10 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (xerImporting) {
+          toast.error("Import is taking longer than expected. Check your schedule list — it may still complete.");
+          setXerImporting(false);
+          setXerProgress("");
+        }
+      }, 600000);
     } catch (e: any) {
-      toast.error(`Failed to read file: ${e.message}`);
+      toast.error(`XER import failed: ${e.message}`);
       setXerImporting(false);
+      setXerProgress("");
     }
   };
 
@@ -630,7 +664,7 @@ export default function ScheduleList() {
               className="bg-ember text-primary-foreground hover:bg-ember-dark"
             >
               {xerImporting ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Importing{xerFile && xerFile.size > 5_000_000 ? " (large file — this may take a minute)" : ""}...</>
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />{xerProgress || "Importing..."}</>
               ) : (
                 <><FileUp className="w-4 h-4 mr-2" />Import Schedule</>
               )}

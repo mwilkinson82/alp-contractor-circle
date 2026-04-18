@@ -628,3 +628,25 @@ export async function bulkCreateCalendarExceptions(rows: InsertCalendarException
     await db.insert(calendarExceptions).values(batch);
   }
 }
+
+
+// ─── XER Import Jobs ────────────────────────────────────────────────────────
+
+import { xerImportJobs, type InsertXerImportJob } from "../drizzle/schema";
+
+export async function createXerImportJob(data: InsertXerImportJob) {
+  const db = requireDb();
+  const result = await db.insert(xerImportJobs).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getXerImportJob(id: number) {
+  const db = requireDb();
+  const rows = await db.select().from(xerImportJobs).where(eq(xerImportJobs.id, id)).limit(1);
+  return rows[0] || null;
+}
+
+export async function updateXerImportJob(id: number, data: Partial<InsertXerImportJob>) {
+  const db = requireDb();
+  await db.update(xerImportJobs).set(data).where(eq(xerImportJobs.id, id));
+}
