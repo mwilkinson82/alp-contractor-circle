@@ -2238,3 +2238,9 @@
 - [x] Make column cells clickable — single-click opens dropdown to pick/change activity code value
 - [x] Support bulk fill — "Assign Code" button in selection toolbar with category/value picker dialog
 - [x] Add "Assign Code" button to bottom selection toolbar (green, with Layers icon)
+
+## PDF Visual Refinements (User Feedback)
+- [x] Add padding inside header cells so text isn't touching the border lines (2.5mm hdrPad)
+- [x] Add continuous border around entire page including footer (left, right, bottom borders)
+- [x] Remove dashed total float lines from Gantt bars and legend entry
+- [x] Add padding to footer text (2.5mm ftrPad)
