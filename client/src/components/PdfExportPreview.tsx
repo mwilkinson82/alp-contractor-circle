@@ -76,6 +76,7 @@ interface PdfExportPreviewProps {
   isExporting: boolean;
   projectName: string;
   companyName: string;
+  companyLogo: string;
   activities: Activity[];
   dataDate: Date | null;
   scheduleName: string;
@@ -168,6 +169,7 @@ export function PdfExportPreview({
   isExporting,
   projectName,
   companyName,
+  companyLogo,
   activities,
   dataDate,
   scheduleName,
@@ -250,6 +252,35 @@ export function PdfExportPreview({
 
   // Image cache for loaded images
   const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+  // Auto-populate image columns with company logo if available
+  useEffect(() => {
+    if (open && companyLogo) {
+      const autoPopulate = (cols: ColumnData[], setter: React.Dispatch<React.SetStateAction<ColumnData[]>>) => {
+        let changed = false;
+        const updated = cols.map((col, idx) => {
+          if (col.content === "image" && !col.imageDataUrl) {
+            changed = true;
+            // Load the image into cache
+            const img = new window.Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              loadedImagesRef.current[`header-${idx}`] = img;
+              loadedImagesRef.current[`footer-${idx}`] = img;
+              setCanvasReady(false);
+              setTimeout(() => setCanvasReady(true), 50);
+            };
+            img.src = companyLogo;
+            return { ...col, imageDataUrl: companyLogo };
+          }
+          return col;
+        });
+        if (changed) setter(updated);
+      };
+      autoPopulate(headerColumns, setHeaderColumns);
+      autoPopulate(footerColumns, setFooterColumns);
+    }
+  }, [open, companyLogo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Force canvas re-render when dialog opens
   useEffect(() => {

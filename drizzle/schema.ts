@@ -53,6 +53,8 @@ export const members = mysqlTable("members", {
   preferredCurrency: varchar("preferredCurrency", { length: 8 }),
   /** Company name — used in PDF headers/footers and profile */
   companyName: varchar("companyName", { length: 255 }),
+  /** Company logo URL (S3) — used in PDF headers and profile */
+  companyLogo: varchar("companyLogo", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -221,6 +223,16 @@ export const schedules = mysqlTable("schedules", {
   criticalBarColor: varchar("criticalBarColor", { length: 16 }),
   /** Custom bar color for non-critical activities (hex, e.g. #22c55e). Null = global default green */
   normalBarColor: varchar("normalBarColor", { length: 16 }),
+  /** Per-schedule project name override (for PDF headers) */
+  projectName: varchar("projectName", { length: 256 }),
+  /** Client name for this schedule (for PDF headers) */
+  clientName: varchar("clientName", { length: 256 }),
+  /** Contract number for this schedule (for PDF headers) */
+  contractNumber: varchar("contractNumber", { length: 128 }),
+  /** Per-schedule company name override (null = use member.companyName) */
+  companyNameOverride: varchar("companyNameOverride", { length: 255 }),
+  /** Per-schedule company logo override URL (null = use member.companyLogo) */
+  companyLogoOverride: varchar("companyLogoOverride", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

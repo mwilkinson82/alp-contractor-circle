@@ -38,7 +38,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, MessageSquarePlus,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -449,6 +449,13 @@ export default function Scheduler() {
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [showScheduleHealth, setShowScheduleHealth] = useState(false);
   const [showScheduleInfo, setShowScheduleInfo] = useState(false);
+  const [schedSettingsProjectName, setSchedSettingsProjectName] = useState("");
+  const [schedSettingsClientName, setSchedSettingsClientName] = useState("");
+  const [schedSettingsContractNumber, setSchedSettingsContractNumber] = useState("");
+  const [schedSettingsCompanyName, setSchedSettingsCompanyName] = useState("");
+  const [showCpmFeedback, setShowCpmFeedback] = useState(false);
+  const [cpmFeedbackMsg, setCpmFeedbackMsg] = useState("");
+  const [cpmFeedbackCategory, setCpmFeedbackCategory] = useState<"bug" | "feature" | "general" | "other">("general");
   const [showPdfExport, setShowPdfExport] = useState(false);
   const [showWbsManager, setShowWbsManager] = useState(false);
   const [showCodeManager, setShowCodeManager] = useState(false);
@@ -580,12 +587,14 @@ export default function Scheduler() {
   const [pdfFooterCenter, setPdfFooterCenter] = useState("Page {page} of {total}");
   const [pdfFooterRight, setPdfFooterRight] = useState("{date}");
 
-  /* ── Pre-populate company name from member profile ──────────────────── */
+    /* ── Pre-populate PDF fields from schedule settings > member profile ──── */
   useEffect(() => {
-    if (member?.companyName && !pdfCompanyName) {
-      setPdfCompanyName(member.companyName);
-    }
-  }, [member?.companyName]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Schedule-level overrides take priority, then member defaults
+    const compName = schedule?.schedule?.companyNameOverride || member?.companyName || "";
+    if (compName && !pdfCompanyName) setPdfCompanyName(compName);
+    const projName = schedule?.schedule?.projectName || "";
+    if (projName && !pdfProjectName) setPdfProjectName(projName);
+  }, [member?.companyName, schedule?.schedule?.companyNameOverride, schedule?.schedule?.projectName]); // eslint-disable-line react-hooks/exhaustive-depsps
 
   /* ── Gantt Display Settings ──────────────────────────────────────────── */
   const [ganttFontSize, setGanttFontSize] = useState(9);
@@ -1042,6 +1051,11 @@ export default function Scheduler() {
     onSuccess: () => { utils.schedule.get.invalidate(); toast.success("Bar colors saved"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const updateSchedSettingsMut = trpc.schedule.updateScheduleSettings.useMutation({
+    onSuccess: () => { utils.schedule.get.invalidate(); setShowScheduleInfo(false); toast.success("Schedule settings saved"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const cpmFeedbackMut = trpc.feedback.submit.useMutation();
   const deleteRelMut = trpc.schedule.deleteRelationship.useMutation({
     onSuccess: (_data, vars) => {
       utils.schedule.get.invalidate();
@@ -1710,7 +1724,14 @@ export default function Scheduler() {
             <DropdownMenuItem onClick={() => setShowScheduleHealth(true)}>
               <AlertTriangle className="w-4 h-4 mr-2" /> Schedule Health
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowScheduleInfo(true)}>
+            <DropdownMenuItem onClick={() => {
+              // Initialize settings from schedule data
+              setSchedSettingsProjectName(schedule?.schedule?.projectName || "");
+              setSchedSettingsClientName(schedule?.schedule?.clientName || "");
+              setSchedSettingsContractNumber(schedule?.schedule?.contractNumber || "");
+              setSchedSettingsCompanyName(schedule?.schedule?.companyNameOverride || "");
+              setShowScheduleInfo(true);
+            }}>
               <Settings className="w-4 h-4 mr-2" /> Schedule Info
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowGanttSettings(true)}>
@@ -1762,6 +1783,10 @@ export default function Scheduler() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
               <Download className="w-4 h-4 mr-2" /> Export PDF
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
+              <MessageSquarePlus className="w-4 h-4 mr-2" /> Send Feedback
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
@@ -3634,24 +3659,95 @@ export default function Scheduler() {
 
       {/* ── Schedule Info Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showScheduleInfo} onOpenChange={setShowScheduleInfo}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-lg">Schedule Information</DialogTitle>
+            <DialogTitle className="font-semibold text-lg">Schedule Settings</DialogTitle>
+            <DialogDescription>Configure schedule details, project info for PDF exports, and view statistics.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-gray-400">Project Start</span><span className="text-gray-100 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Data Date</span><span className="text-gray-100 font-medium">{dataDate ? formatDate(dataDate) : "Not set"}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Last Calculated (Run Date)</span><span className="text-gray-100 font-medium">{lastCalculatedAt ? lastCalculatedAt.toLocaleString() : "Never"}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Total Activities</span><span className="text-gray-100 font-medium">{activities.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Critical Activities</span><span className="text-red-400 font-medium">{activities.filter((a) => a.isCritical).length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Baselines</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "baseline").length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Updates</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "update").length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Relationships</span><span className="text-gray-100 font-medium">{relationships.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Open Starts</span><span className={`font-medium ${openEnds.openStarts.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openStarts.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-400">Open Finishes</span><span className={`font-medium ${openEnds.openFinishes.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openFinishes.length}</span></div>
+          <div className="grid grid-cols-2 gap-5">
+            {/* Left: Editable Settings */}
+            <div className="space-y-4">
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
+                <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Project Details</Label>
+                <p className="text-[10px] text-gray-500">These fields auto-populate PDF header/footer tokens.</p>
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1 block">Project Name</Label>
+                  <Input
+                    value={schedSettingsProjectName}
+                    onChange={(e) => setSchedSettingsProjectName(e.target.value)}
+                    placeholder={schedule.schedule.name || "Enter project name"}
+                    className="border-white/15 bg-white/5 text-gray-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1 block">Client Name</Label>
+                  <Input
+                    value={schedSettingsClientName}
+                    onChange={(e) => setSchedSettingsClientName(e.target.value)}
+                    placeholder="Enter client name"
+                    className="border-white/15 bg-white/5 text-gray-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1 block">Contract Number</Label>
+                  <Input
+                    value={schedSettingsContractNumber}
+                    onChange={(e) => setSchedSettingsContractNumber(e.target.value)}
+                    placeholder="Enter contract number"
+                    className="border-white/15 bg-white/5 text-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
+                <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Company Override</Label>
+                <p className="text-[10px] text-gray-500">Leave blank to use your account defaults.</p>
+                <div>
+                  <Label className="text-xs text-gray-400 mb-1 block">Company Name (override)</Label>
+                  <Input
+                    value={schedSettingsCompanyName}
+                    onChange={(e) => setSchedSettingsCompanyName(e.target.value)}
+                    placeholder={member?.companyName || "Uses account company name"}
+                    className="border-white/15 bg-white/5 text-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Right: Statistics */}
+            <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
+              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Schedule Statistics</Label>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-gray-400">Project Start</span><span className="text-gray-100 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Data Date</span><span className="text-gray-100 font-medium">{dataDate ? formatDate(dataDate) : "Not set"}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Last Calculated</span><span className="text-gray-100 font-medium">{lastCalculatedAt ? lastCalculatedAt.toLocaleString() : "Never"}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Total Activities</span><span className="text-gray-100 font-medium">{activities.length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Critical Activities</span><span className="text-red-400 font-medium">{activities.filter((a) => a.isCritical).length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Baselines</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "baseline").length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Updates</span><span className="text-gray-100 font-medium">{baselines.filter((b: any) => b.snapshotType === "update").length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Relationships</span><span className="text-gray-100 font-medium">{relationships.length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Open Starts</span><span className={`font-medium ${openEnds.openStarts.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openStarts.length}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">Open Finishes</span><span className={`font-medium ${openEnds.openFinishes.length > 0 ? "text-amber-600" : "text-emerald-600"}`}>{openEnds.openFinishes.length}</span></div>
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowScheduleInfo(false)} className="border-white/15">Close</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowScheduleInfo(false)} className="border-white/15">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (scheduleId) {
+                  updateSchedSettingsMut.mutate({
+                    scheduleId,
+                    projectName: schedSettingsProjectName || null,
+                    clientName: schedSettingsClientName || null,
+                    contractNumber: schedSettingsContractNumber || null,
+                    companyNameOverride: schedSettingsCompanyName || null,
+                  });
+                }
+              }}
+              disabled={updateSchedSettingsMut.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {updateSchedSettingsMut.isPending ? "Saving..." : "Save Settings"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -4272,6 +4368,7 @@ export default function Scheduler() {
         isExporting={pdfExporting}
         projectName={pdfProjectName}
         companyName={pdfCompanyName}
+        companyLogo={member?.companyLogo || ""}
         activities={filteredActivities}
         dataDate={dataDate}
         scheduleName={schedule?.schedule?.name || ""}
@@ -4782,6 +4879,65 @@ export default function Scheduler() {
           onOpenChange={setShowResourcePanel}
         />
       )}
+
+      {/* ── CPM Feedback Dialog ──────────────────────────────────────────── */}
+      <Dialog open={showCpmFeedback} onOpenChange={setShowCpmFeedback}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-lg">Send Feedback</DialogTitle>
+            <DialogDescription>Help us improve the CPM Schedule Builder. Your feedback is valuable.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {(["bug", "feature", "general", "other"] as const).map((cat) => {
+                const labels = { bug: "Bug Report", feature: "Feature Request", general: "General", other: "Other" };
+                const colors = { bug: "border-red-500/30 bg-red-500/10 text-red-400", feature: "border-amber-500/30 bg-amber-500/10 text-amber-400", general: "border-blue-500/30 bg-blue-500/10 text-blue-400", other: "border-purple-500/30 bg-purple-500/10 text-purple-400" };
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setCpmFeedbackCategory(cat)}
+                    className={`px-3 py-2 rounded-lg border text-xs font-medium transition-all ${cpmFeedbackCategory === cat ? colors[cat] + " ring-1 ring-current" : "border-white/10 text-gray-400 hover:border-white/20"}`}
+                  >
+                    {labels[cat]}
+                  </button>
+                );
+              })}
+            </div>
+            <Textarea
+              value={cpmFeedbackMsg}
+              onChange={(e) => setCpmFeedbackMsg(e.target.value)}
+              placeholder="Describe your feedback, bug, or feature request..."
+              className="min-h-[120px] border-white/15 bg-white/5 text-gray-200 text-sm"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCpmFeedback(false)} className="border-white/15">Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!cpmFeedbackMsg.trim()) { toast.error("Please enter your feedback"); return; }
+                try {
+                  await cpmFeedbackMut.mutateAsync({
+                    message: cpmFeedbackMsg.trim(),
+                    category: cpmFeedbackCategory,
+                    page: window.location.pathname,
+                    userAgent: navigator.userAgent,
+                  });
+                  toast.success("Thank you! Your feedback has been submitted.");
+                  setCpmFeedbackMsg("");
+                  setCpmFeedbackCategory("general");
+                  setShowCpmFeedback(false);
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to submit feedback");
+                }
+              }}
+              disabled={cpmFeedbackMut.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {cpmFeedbackMut.isPending ? "Sending..." : "Send Feedback"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

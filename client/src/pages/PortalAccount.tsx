@@ -19,6 +19,9 @@ import {
   Building2,
   Save,
   Check,
+  Upload,
+  Image,
+  X,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -73,6 +76,9 @@ export default function PortalAccount() {
 
   const [companyName, setCompanyName] = useState(member?.companyName || "");
   const [companyNameSaved, setCompanyNameSaved] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(member?.companyLogo || null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoSaved, setLogoSaved] = useState(false);
   const updateProfileMut = trpc.member.updateProfile.useMutation({
     onSuccess: () => {
       setCompanyNameSaved(true);
@@ -80,11 +86,52 @@ export default function PortalAccount() {
       setTimeout(() => setCompanyNameSaved(false), 2000);
     },
   });
+  const uploadLogoMut = trpc.member.uploadLogo.useMutation({
+    onSuccess: (data) => {
+      setLogoPreview(data.url);
+      setLogoUploading(false);
+      setLogoSaved(true);
+      utils.member.me.invalidate();
+      setTimeout(() => setLogoSaved(false), 2000);
+    },
+    onError: () => setLogoUploading(false),
+  });
+  const removeLogoMut = trpc.member.updateProfile.useMutation({
+    onSuccess: () => {
+      setLogoPreview(null);
+      utils.member.me.invalidate();
+    },
+  });
 
-  // Sync companyName from member data when it loads
+  // Sync companyName and logo from member data when it loads
   useEffect(() => {
     if (member?.companyName && !companyName) setCompanyName(member.companyName);
-  }, [member?.companyName]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (member?.companyLogo && !logoPreview) setLogoPreview(member.companyLogo);
+  }, [member?.companyName, member?.companyLogo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Logo must be under 2MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+    setLogoUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      uploadLogoMut.mutate({
+        imageData: base64,
+        contentType: file.type,
+        filename: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
   const memberRole = member?.memberRole || "member";
@@ -165,10 +212,44 @@ export default function PortalAccount() {
           <h2 className="font-heading text-sm font-semibold text-ember uppercase tracking-wider">Business Info</h2>
         </div>
 
-        <div className="space-y-4">
+        <p className="text-xs text-cream-muted/60 mb-5">Your company info will automatically appear in PDF exports and schedule reports.</p>
+        <div className="space-y-5">
+          {/* Company Logo */}
+          <div>
+            <label className="block text-xs text-cream-muted mb-2">Company Logo</label>
+            <div className="flex items-center gap-4">
+              {logoPreview ? (
+                <div className="relative group">
+                  <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                    <img src={logoPreview} alt="Company logo" className="w-full h-full object-contain p-1" />
+                  </div>
+                  <button
+                    onClick={() => removeLogoMut.mutate({ companyLogo: "" })}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove logo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 border-dashed flex items-center justify-center">
+                  <Image className="w-6 h-6 text-cream-muted/30" />
+                </div>
+              )}
+              <div>
+                <label className="cursor-pointer px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-cream text-xs hover:bg-white/10 transition-all inline-flex items-center gap-2">
+                  <Upload className="w-3.5 h-3.5" />
+                  {logoUploading ? "Uploading..." : logoSaved ? "Uploaded!" : "Upload Logo"}
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={logoUploading} />
+                </label>
+                <p className="text-[10px] text-cream-muted/40 mt-1">PNG, JPG, or SVG. Max 2MB.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Company Name */}
           <div>
             <label className="block text-xs text-cream-muted mb-1.5">Company Name</label>
-            <p className="text-xs text-cream-muted/60 mb-2">This will appear in your PDF exports and schedule reports.</p>
             <div className="flex gap-3">
               <input
                 type="text"

@@ -2269,3 +2269,29 @@
 - [x] Add Business Info card to PortalAccount page with editable company name field
 - [x] Pre-populate pdfCompanyName from member.companyName in Scheduler.tsx
 - [x] Use saved company name as default for {company} token in PDF header/footer
+
+## Company Logo Upload
+- [x] Add logo upload field to Account page Business Info card
+- [x] Upload logo to S3 via storagePut, store URL in members table
+- [x] Add companyLogo column to members table
+- [x] Wire company logo into PDF export header (auto-pull from member profile)
+- [x] Show logo preview on Account page
+
+## Schedule Settings Panel (CPM Scheduler)
+- [x] Add Settings panel/dialog in CPM Scheduler for per-schedule overrides
+- [x] Fields: project name, client name, contract number
+- [x] Override company name at schedule level if desired
+- [x] Populate PDF tokens from schedule settings (with fallback to profile)
+
+## CPM Feedback Button
+- [x] Add feedback mechanism to CPM Scheduler (non-intrusive, not bottom-right corner)
+- [x] Reuse existing feedback infrastructure from takeoff
+- [x] Placed in Settings dropdown menu (not floating bottom-right)
+
+## CPM Schedule Templates
+- [x] Hospital Construction template (full WBS, activities, logic, codes)
+- [x] Water Treatment Plant template (full WBS, activities, logic, codes)
+- [x] Electrical specialty template (trade-specific WBS, activities, logic)
+- [x] HVAC specialty template (trade-specific WBS, activities, logic)
+- [x] Civil/Sitework specialty template (trade-specific WBS, activities, logic)
+- [x] Templates auto-loaded from code (no DB seeding needed)

@@ -97,9 +97,10 @@ export function FeedbackWidget() {
     }
   };
 
-  // Only show on ConstructLine / Takeoff pages
+  // Only show on ConstructLine / Takeoff pages (but NOT on scheduler — it has its own toolbar button)
+  const isSchedulerPage = location.startsWith("/portal/scheduler/");
   const isConstructLinePage = location.startsWith("/portal/constructline") || location.startsWith("/portal/takeoff") || location.startsWith("/takeoff/") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/scheduler");
-  if (!isConstructLinePage) return null;
+  if (!isConstructLinePage || isSchedulerPage) return null;
 
   return (
     <>

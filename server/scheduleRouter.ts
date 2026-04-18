@@ -17,6 +17,7 @@ import {
 } from "../shared/cpmEngine";
 import * as sdb from "./scheduleDb";
 import { CSI_DIVISIONS, WBS_GROUP_COLORS } from "../shared/csiDivisions";
+import { hospitalTemplate, waterTreatmentTemplate, electricalTemplate, hvacTemplate, civilTemplate } from "./scheduleTemplates";
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
@@ -407,6 +408,11 @@ const SCHEDULE_TEMPLATES = {
       { name: "Trade", values: ["General", "Structural", "Electrical", "Plumbing", "HVAC", "Drywall", "Tile", "Paint", "Flooring"] },
     ],
   },
+  hospital: hospitalTemplate,
+  water_treatment: waterTreatmentTemplate,
+  electrical: electricalTemplate,
+  hvac: hvacTemplate,
+  civil: civilTemplate,
 };
 
 // ─── Router ──────────────────────────────────────────────────────────────────
@@ -985,9 +991,37 @@ export const scheduleRouter = router({
       return { success: true };
     }),
 
-  // ── Relationships ────────────────────────────────────────────────────────
+  // ── Schedule Settings (per-schedule overrides) ───────────────────────────────────
 
-  addRelationship: publicProcedure
+  updateScheduleSettings: publicProcedure
+    .input(
+      z.object({
+        scheduleId: z.number(),
+        projectName: z.string().max(256).nullable().optional(),
+        clientName: z.string().max(256).nullable().optional(),
+        contractNumber: z.string().max(128).nullable().optional(),
+        companyNameOverride: z.string().max(255).nullable().optional(),
+        companyLogoOverride: z.string().max(512).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { scheduleId, ...fields } = input;
+      await requireScheduleOwner(ctx.req, scheduleId);
+      const updates: any = {};
+      if (fields.projectName !== undefined) updates.projectName = fields.projectName;
+      if (fields.clientName !== undefined) updates.clientName = fields.clientName;
+      if (fields.contractNumber !== undefined) updates.contractNumber = fields.contractNumber;
+      if (fields.companyNameOverride !== undefined) updates.companyNameOverride = fields.companyNameOverride;
+      if (fields.companyLogoOverride !== undefined) updates.companyLogoOverride = fields.companyLogoOverride;
+      if (Object.keys(updates).length > 0) {
+        await sdb.updateSchedule(scheduleId, updates);
+      }
+      return { success: true };
+    }),
+
+  // ── Relationships ────────────────────────────────────────────────────────────
+
+  addRelationship:publicProcedure
     .input(
       z.object({
         scheduleId: z.number(),

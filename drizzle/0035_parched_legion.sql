@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD `companyLogo` varchar(512);

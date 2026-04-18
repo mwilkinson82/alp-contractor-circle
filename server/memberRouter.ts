@@ -13,6 +13,7 @@ import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 import { sendQuestionNotification, sendBootcampTopicNotification, sendTopicSelectedEmail } from "./email";
 import { emailSubscribers } from "../drizzle/schema";
+import { storagePut } from "./storage";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 function getDb() {
@@ -56,6 +57,7 @@ export const memberRouter = router({
       subscriptionStatus: member.subscriptionStatus,
       memberRole: member.memberRole,
       companyName: member.companyName,
+      companyLogo: member.companyLogo,
       createdAt: member.createdAt,
     };
   }),
@@ -780,6 +782,7 @@ export const memberRouter = router({
     .input(
       z.object({
         companyName: z.string().max(255).optional(),
+        companyLogo: z.string().max(512).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -792,12 +795,48 @@ export const memberRouter = router({
 
       const updates: Record<string, any> = {};
       if (input.companyName !== undefined) updates.companyName = input.companyName;
+      if (input.companyLogo !== undefined) updates.companyLogo = input.companyLogo;
 
       if (Object.keys(updates).length > 0) {
         await db.update(members).set(updates).where(eq(members.id, member.id));
       }
 
       return { success: true };
+    }),
+
+  /**
+   * Upload company logo to S3 and save URL to member profile.
+   */
+  uploadLogo: publicProcedure
+    .input(
+      z.object({
+        imageData: z.string(), // base64
+        contentType: z.string().default("image/png"),
+        filename: z.string().default("logo.png"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+
+      const buffer = Buffer.from(input.imageData, "base64");
+      if (buffer.length > 2 * 1024 * 1024) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Logo must be under 2MB" });
+      }
+
+      const ext = input.contentType === "image/jpeg" ? "jpg" : input.contentType === "image/svg+xml" ? "svg" : "png";
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const fileKey = `logos/${member.id}/company-logo-${randomSuffix}.${ext}`;
+
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+
+      await db.update(members).set({ companyLogo: url }).where(eq(members.id, member.id));
+
+      return { url };
     }),
 
   /**

@@ -246,6 +246,20 @@
       "when": 1776472877089,
       "tag": "0034_tan_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1776474564288,
+      "tag": "0035_parched_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1776474944345,
+      "tag": "0036_worthless_ultragirl",
+      "breakpoints": true
     }
   ]
 }
