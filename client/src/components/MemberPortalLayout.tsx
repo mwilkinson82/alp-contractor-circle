@@ -15,6 +15,7 @@
  * - Subscribers / Members / Analytics / Drip (admin only)
  */
 import { useMember } from "@/hooks/useMember";
+import { useBetaUser } from "@/hooks/useBetaUser";
 import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
@@ -41,6 +42,7 @@ import {
   GanttChart,
   Ruler,
   Database,
+  Lock,
 } from "lucide-react";
 import { ConstructLineWordmark, ConstructLineInline } from "@/components/ConstructLineBrand";
 import { useState } from "react";
@@ -222,6 +224,7 @@ export default function MemberPortalLayout({
   children: React.ReactNode;
 }) {
   const { member, loading, isAuthenticated, logout, getLoginUrl } = useMember();
+  const { betaUser, loading: betaLoading } = useBetaUser();
   const portalResetTour = useResetTour();
   const resetTour = () => {
     resetTakeoffTours();
@@ -232,13 +235,13 @@ export default function MemberPortalLayout({
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (loading) return <MemberPortalSkeleton />;
-  if (!isAuthenticated) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
+  if (loading || betaLoading) return <MemberPortalSkeleton />;
+  if (!isAuthenticated && !betaUser) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
 
   const isSubscribed = member?.subscriptionStatus === 'active' || member?.subscriptionStatus === 'trialing';
 
-  const avatarUrl = member?.avatarUrl;
-  const displayName = member?.displayName || member?.discordUsername || "Member";
+  const avatarUrl = member?.avatarUrl || "";
+  const displayName = betaUser ? betaUser.name : (member?.displayName || member?.discordUsername || "Member");
   const memberRole = member?.memberRole || "member";
 
   const roleLabel =
@@ -249,6 +252,14 @@ export default function MemberPortalLayout({
         : "Member";
 
   const isAdmin = member?.memberRole === "admin";
+
+  // Beta user mode: only ConstructLine tools are unlocked
+  const isBetaUser = betaUser && !member;
+  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff");
+  const isLockedPage = !isConstructLinePage && isBetaUser;
+
+  // Stripe checkout link for upgrade CTA
+  const STRIPE_CHECKOUT = "https://checkout.stripe.com/c/pay/cs_live_b1ORSXM3hl0VYviHrsNIhh85uE2JURl6hPh0s9h50M7Xocold1u1lw1ZhZ#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0TVVJPEFPYUFEUFZTXWdLUFFOUU82bENSbmgzMTJRZkNkUlV9QjJvQEswfH1KVGdKYWpUTkh3MkByVFNhYHRkXUtPS1JxQ1ZfT1VmTH92S3VDcDJydDdHNTVDd2RQNjNdbCcpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZnZ2E1Y2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
 
   // Determine active page label for mobile header
   const allPaths = [
@@ -497,9 +508,35 @@ export default function MemberPortalLayout({
         )}
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto relative">
+          {isBetaUser && (
+            <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-sm text-amber-400 font-medium">
+                You're using ConstructLine as a beta tester. Some portal features require Contractor Circle membership.
+              </p>
+            </div>
+          )}
           <SubscriptionBanner isSubscribed={isSubscribed} />
-          {children}
+          {isLockedPage && (
+            <div className="absolute inset-0 bg-navy-deep/60 backdrop-blur-sm rounded-lg flex items-center justify-center z-40">
+              <div className="text-center">
+                <Lock className="w-12 h-12 text-cream-muted/50 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-cream mb-2">Feature Locked</h3>
+                <p className="text-cream-muted text-sm mb-6 max-w-xs">
+                  Join Contractor Circle to unlock this feature and access the full member portal.
+                </p>
+                <a
+                  href={STRIPE_CHECKOUT}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all"
+                >
+                  Join Contractor Circle
+                </a>
+              </div>
+            </div>
+          )}
+          {!isLockedPage && children}
         </main>
       </div>
 

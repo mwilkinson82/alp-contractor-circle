@@ -11,6 +11,7 @@ import { registerStripeWebhook } from "../stripeWebhook";
 import { startDripEngine } from "../dripEngine";
 import { registerUnsubscribeRoutes } from "../unsubscribe";
 import { registerXerImportRoutes } from "../xerAsyncImport";
+import { registerBetaAuthRoutes } from "../betaAuth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -79,6 +80,8 @@ async function startServer() {
   registerDiscordOAuthRoutes(app);
   // Drip campaign unsubscribe
   registerUnsubscribeRoutes(app);
+  // Beta auth routes (email + password signup/login)
+  try { registerBetaAuthRoutes(app); } catch (e) { console.error('[BetaAuth] Failed to register routes:', e); }
   // XER async import routes
   try { registerXerImportRoutes(app); } catch (e) { console.error('[XerImport] Failed to register routes:', e); }
   // tRPC API

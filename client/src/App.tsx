@@ -30,6 +30,8 @@ import { FeedbackWidget } from "./components/FeedbackWidget";
 import { OnboardingTour } from "./components/OnboardingTour";
 import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
 import AdminFeedback from "./pages/AdminFeedback";
+import BetaSignup from "./pages/BetaSignup";
+import BetaLogin from "./pages/BetaLogin";
 
 function Router() {
   return (
@@ -42,6 +44,10 @@ function Router() {
       <Route path={"/q2/thank-you"} component={Q2ThankYou} />
       <Route path={"/estimating"} component={EstimatingChecklist} />
       <Route path={"/estimating/thank-you"} component={EstimatingThankYou} />
+
+      {/* Beta user signup/login (public) */}
+      <Route path={"/try"} component={BetaSignup} />
+      <Route path={"/try/login"} component={BetaLogin} />
 
       {/* Member portal (Discord auth) */}
       <Route path="/portal">
