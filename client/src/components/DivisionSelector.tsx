@@ -224,7 +224,7 @@ export default function DivisionSelector({
           </div>
 
           {/* Division List — scrollable */}
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-[400px] overflow-y-auto overscroll-contain">
             <div className="p-2 space-y-3">
               {DIVISION_GROUPS.map((group) => (
                 <div key={group.label}>

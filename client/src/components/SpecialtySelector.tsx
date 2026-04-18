@@ -134,7 +134,7 @@ export default function SpecialtySelector({
       </div>
 
       {/* Scrollable specialty list */}
-      <ScrollArea className="max-h-[300px]">
+      <div className="max-h-[300px] overflow-y-auto overscroll-contain pr-1">
         <div className="space-y-4 pr-2">
           {Object.entries(groupedSpecialties)
             .sort(([a], [b]) => a.localeCompare(b))
@@ -202,7 +202,7 @@ export default function SpecialtySelector({
               </div>
             ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

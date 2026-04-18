@@ -2866,4 +2866,149 @@ export const scheduleRouter = router({
 
       return { assigned, message: `Auto-assigned ${assigned} activities to proper construction WBS (General Conditions / Submittals / Fabrication / Construction)` };
     }),
+
+  // ── Schedule Update Comparison ───────────────────────────────────────────
+  /**
+   * Compare two schedules side-by-side by matching activities on activityId.
+   * Returns per-activity variance rows plus summary statistics.
+   * Used for the Update Comparison View and the Schedule Variance Report.
+   */
+  compareSchedules: publicProcedure
+    .input(z.object({
+      baselineScheduleId: z.number(),
+      updateScheduleId: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // Verify ownership of both schedules
+      await requireScheduleOwner(ctx.req, input.baselineScheduleId);
+      await requireScheduleOwner(ctx.req, input.updateScheduleId);
+
+      const [baseSched, updSched] = await Promise.all([
+        sdb.getScheduleById(input.baselineScheduleId),
+        sdb.getScheduleById(input.updateScheduleId),
+      ]);
+      if (!baseSched || !updSched) throw new Error("Schedule not found");
+
+      const [baseActs, updActs] = await Promise.all([
+        sdb.getActivitiesBySchedule(input.baselineScheduleId),
+        sdb.getActivitiesBySchedule(input.updateScheduleId),
+      ]);
+
+      const baseMap = new Map(baseActs.map(a => [a.activityId, a]));
+      const updMap = new Map(updActs.map(a => [a.activityId, a]));
+
+      const daysDiff = (a: Date | null | undefined, b: Date | null | undefined): number | null => {
+        if (!a || !b) return null;
+        return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
+      };
+      const fmt = (d: Date | null | undefined) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+
+      // All unique activity IDs across both schedules
+      const allIds = Array.from(new Set([...Array.from(baseMap.keys()), ...Array.from(updMap.keys())]));
+      const rows: any[] = [];
+
+      for (const actId of allIds) {
+        const base = baseMap.get(actId);
+        const upd = updMap.get(actId);
+
+        const startVar = daysDiff(base?.earlyStart, upd?.earlyStart);
+        const finishVar = daysDiff(base?.earlyFinish, upd?.earlyFinish);
+        const floatVar = upd && base ? ((upd.totalFloat ?? 0) - (base.totalFloat ?? 0)) : null;
+        const durVar = upd && base ? upd.duration - base.duration : null;
+
+        let status: string;
+        if (!base) status = "added";
+        else if (!upd) status = "removed";
+        else if ((finishVar ?? 0) > 0) status = "delayed";
+        else if ((finishVar ?? 0) < 0) status = "ahead";
+        else status = "on-time";
+
+        // Critical path change detection
+        const wasOnCritical = base?.isCritical ?? false;
+        const isOnCritical = upd?.isCritical ?? false;
+        const criticalChange = wasOnCritical !== isOnCritical
+          ? (isOnCritical ? "became-critical" : "left-critical")
+          : null;
+
+        rows.push({
+          activityId: actId,
+          name: upd?.name ?? base?.name ?? actId,
+          // Baseline
+          baselineStart: fmt(base?.earlyStart),
+          baselineFinish: fmt(base?.earlyFinish),
+          baselineDuration: base?.duration ?? null,
+          baselineFloat: base?.totalFloat ?? null,
+          baselineIsCritical: wasOnCritical,
+          // Current (update)
+          currentStart: fmt(upd?.earlyStart),
+          currentFinish: fmt(upd?.earlyFinish),
+          currentDuration: upd?.duration ?? null,
+          currentFloat: upd?.totalFloat ?? null,
+          currentIsCritical: isOnCritical,
+          currentPercentComplete: upd ? parseFloat(String(upd.percentComplete)) : null,
+          actualStart: fmt(upd?.actualStart),
+          actualFinish: fmt(upd?.actualFinish),
+          // Variances
+          startVariance: startVar,
+          finishVariance: finishVar,
+          durationVariance: durVar,
+          floatVariance: floatVar,
+          criticalChange,
+          status,
+        });
+      }
+
+      // Sort: delayed first, then on-time, then ahead, then added/removed
+      const statusOrder: Record<string, number> = { delayed: 0, "on-time": 1, ahead: 2, added: 3, removed: 4 };
+      rows.sort((a, b) => {
+        const so = (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5);
+        if (so !== 0) return so;
+        return (b.finishVariance ?? 0) - (a.finishVariance ?? 0);
+      });
+
+      // Summary statistics
+      const matched = rows.filter(r => r.status !== "added" && r.status !== "removed");
+      const delayed = rows.filter(r => r.status === "delayed");
+      const ahead = rows.filter(r => r.status === "ahead");
+      const onTime = rows.filter(r => r.status === "on-time");
+      const added = rows.filter(r => r.status === "added");
+      const removed = rows.filter(r => r.status === "removed");
+      const becameCritical = rows.filter(r => r.criticalChange === "became-critical");
+      const leftCritical = rows.filter(r => r.criticalChange === "left-critical");
+      const maxSlippage = delayed.length > 0 ? Math.max(...delayed.map(r => r.finishVariance ?? 0)) : 0;
+      const avgSlippage = delayed.length > 0 ? Math.round(delayed.reduce((s, r) => s + (r.finishVariance ?? 0), 0) / delayed.length) : 0;
+
+      // Project-level finish variance (compare latest finish dates)
+      const baseLatestFinish = baseActs.reduce((max, a) => {
+        if (!a.earlyFinish) return max;
+        return !max || new Date(a.earlyFinish) > new Date(max) ? a.earlyFinish : max;
+      }, null as Date | null | undefined);
+      const updLatestFinish = updActs.reduce((max, a) => {
+        if (!a.earlyFinish) return max;
+        return !max || new Date(a.earlyFinish) > new Date(max) ? a.earlyFinish : max;
+      }, null as Date | null | undefined);
+      const projectSlippage = daysDiff(baseLatestFinish, updLatestFinish);
+
+      return {
+        rows,
+        summary: {
+          totalActivities: allIds.length,
+          matchedActivities: matched.length,
+          delayedCount: delayed.length,
+          aheadCount: ahead.length,
+          onTimeCount: onTime.length,
+          addedCount: added.length,
+          removedCount: removed.length,
+          becameCriticalCount: becameCritical.length,
+          leftCriticalCount: leftCritical.length,
+          maxSlippageDays: maxSlippage,
+          avgSlippageDays: avgSlippage,
+          projectSlippageDays: projectSlippage,
+          baselineScheduleName: baseSched.name,
+          updateScheduleName: updSched.name,
+          baselineDataDate: baseSched.dataDate ? fmt(baseSched.dataDate) : null,
+          updateDataDate: updSched.dataDate ? fmt(updSched.dataDate) : null,
+        },
+      };
+    }),
 });

@@ -39,7 +39,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
-  Maximize2, Minimize2, MessageSquarePlus, Copy, HelpCircle,
+  Maximize2, Minimize2, MessageSquarePlus, Copy, HelpCircle, GitCompareArrows,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -643,6 +643,7 @@ export default function Scheduler() {
   const [layoutName, setLayoutName] = useState("");
   const [layoutIsDefault, setLayoutIsDefault] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [showCompareDialog, setShowCompareDialog] = useState(false);
   const [duplicateName, setDuplicateName] = useState("");
   const [duplicateDataDate, setDuplicateDataDate] = useState("");
   const [activeLayoutId, setActiveLayoutId] = useState<number | null>(null);
@@ -1836,6 +1837,10 @@ export default function Scheduler() {
               duplicateMut.mutate({ id: scheduleId!, name: templateName });
             }} disabled={duplicateMut.isPending}>
               <Copy className="w-4 h-4 mr-2" /> Duplicate as Template
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowCompareDialog(true)}>
+              <GitCompareArrows className="w-4 h-4 mr-2" /> Compare with Another Schedule
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
@@ -3459,6 +3464,44 @@ export default function Scheduler() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Compare with Another Schedule Dialog ─────────────────────────── */}
+      {showCompareDialog && (
+        <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-semibold text-lg flex items-center gap-2">
+                <GitCompareArrows className="w-5 h-5 text-amber-400" />
+                Compare with Another Schedule
+              </DialogTitle>
+              <DialogDescription>
+                Open the Schedule Variance Report to compare this schedule against another — showing activity-level slippage, float changes, and critical path shifts.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="pt-2 pb-1">
+              <p className="text-sm text-gray-300 mb-4">
+                This will open the <strong>Schedule Variance Report</strong> for this schedule. From there, select any other schedule as the baseline to generate a full side-by-side comparison.
+              </p>
+              <div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-xs text-blue-300">
+                <strong>Report includes:</strong> Activity-level start/finish variance, duration delta, float gained/lost, critical path changes, and project-level slippage summary.
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => setShowCompareDialog(false)} className="border-white/15">Cancel</Button>
+              <Button
+                onClick={() => {
+                  setShowCompareDialog(false);
+                  window.open(`/scheduler/${scheduleId}/reports?report=comparison`, '_blank');
+                }}
+                className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              >
+                <GitCompareArrows className="w-4 h-4 mr-2" />
+                Open Variance Report
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>

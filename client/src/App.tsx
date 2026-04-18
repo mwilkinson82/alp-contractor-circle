@@ -19,6 +19,7 @@ import DripDashboard from "./pages/DripDashboard";
 import ScheduleList from "./pages/ScheduleList";
 import Scheduler from "./pages/Scheduler";
 import ScheduleReports from "./pages/ScheduleReports";
+import ScheduleComparison from "./pages/ScheduleComparison";
 import Q2LeadMagnet from "./pages/Q2LeadMagnet";
 import Q2ThankYou from "./pages/Q2ThankYou";
 import EstimatingChecklist from "./pages/EstimatingChecklist";
@@ -108,6 +109,7 @@ function Router() {
       </Route>
       <Route path="/scheduler/:id" component={Scheduler} />
       <Route path="/scheduler/:id/reports" component={ScheduleReports} />
+      <Route path="/scheduler/:id/compare" component={ScheduleComparison} />
 
       {/* ConstructLine Takeoff */}
       <Route path="/portal/takeoff">

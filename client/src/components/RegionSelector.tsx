@@ -167,7 +167,7 @@ export default function RegionSelector({
           </div>
 
           {/* Region List */}
-          <ScrollArea className="max-h-[320px]">
+          <div className="max-h-[320px] overflow-y-auto overscroll-contain">
             <div className="p-2 space-y-3">
               {filteredGroups.map((group) => (
                 <div key={group.region}>
@@ -209,7 +209,7 @@ export default function RegionSelector({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Info footer */}
           <div className="px-3 py-2 border-t border-white/5 text-[10px] text-cream-muted/50">
