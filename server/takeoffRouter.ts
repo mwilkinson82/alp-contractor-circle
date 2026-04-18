@@ -67,13 +67,19 @@ async function requireMember(req: any) {
 }
 
 /**
- * Helper: require active Contractor Circle member.
- * All members (founding_member, admin, member) have access to ConstructLine.
+ * Helper: require admin role.
+ * ConstructLine (AI Takeoff) is admin-only during the initial rollout.
+ * Non-admin members see a "Coming Soon" message in the sidebar.
  */
 async function requireAdminMember(req: any) {
-  // All authenticated Contractor Circle members have access — no role restriction
-  // Access opened Apr 18 2026: founding_member, admin, member roles all allowed
-  return requireMember(req);
+  const member = await requireMember(req);
+  if (member.memberRole !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "ConstructLine is currently in early access for admins only. Stay tuned!",
+    });
+  }
+  return member;
 }
 
 export const takeoffRouter = router({

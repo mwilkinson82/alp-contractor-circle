@@ -2419,10 +2419,3 @@
 ## Founding Member Email — ConstructLine Tools Access
 - [x] Send email to all founding members announcing ConstructLine suite access (Quantity Takeoff + CPM Scheduler)
 - [x] Ensure all Contractor Circle members have access to both tools
-
-
-## CRITICAL PROTOCOL — Email Communication
-- [x] NEVER send emails to members/prospects/clients without explicit Marshall approval
-- [x] Always show exact email content and full recipient list BEFORE sending
-- [x] Get written confirmation from Marshall before proceeding
-- [x] This is non-negotiable and applies to all future communications
