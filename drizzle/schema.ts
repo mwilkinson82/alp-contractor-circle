@@ -992,3 +992,19 @@ export const xerImportJobs = mysqlTable("xer_import_jobs", {
 });
 export type XerImportJob = typeof xerImportJobs.$inferSelect;
 export type InsertXerImportJob = typeof xerImportJobs.$inferInsert;
+
+// ─── Beta Users (email+password, non-Discord) ─────────────────────────────────
+export const betaUsers = mysqlTable("beta_users", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  companyName: varchar("companyName", { length: 255 }),
+  /** Whether this beta user has been deactivated */
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+});
+export type BetaUser = typeof betaUsers.$inferSelect;
+export type InsertBetaUser = typeof betaUsers.$inferInsert;

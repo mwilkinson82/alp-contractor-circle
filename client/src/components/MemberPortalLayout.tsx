@@ -320,26 +320,12 @@ export default function MemberPortalLayout({
               );
             })}
 
-            {/* ConstructLine — collapsible section (admin sees full, others see limited) */}
-            {isAdmin ? (
-              <ConstructLineNav
-                isAdmin={isAdmin}
-                location={location}
-                setLocation={setLocation}
-              />
-            ) : (
-              /* Non-admin: show ConstructLine as locked with Coming Soon */
-              <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-cream-muted/50 cursor-not-allowed opacity-60">
-                <HardHat className="w-4 h-4" />
-                <span className="font-bold tracking-tight">
-                  <span className="text-cream-muted/50">Construct</span>
-                  <span className="text-amber-400/50">Line</span>
-                </span>
-                <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
-                  Coming soon
-                </span>
-              </div>
-            )}
+            {/* ConstructLine — collapsible section for all members */}
+            <ConstructLineNav
+              isAdmin={isAdmin}
+              location={location}
+              setLocation={setLocation}
+            />
 
             {/* Separator before bottom items */}
             {visibleBottomItems.length > 0 && (
@@ -455,46 +441,31 @@ export default function MemberPortalLayout({
                 );
               })}
 
-              {/* ConstructLine (mobile) */}
-              {isAdmin ? (
-                <>
-                  <div className="px-4 pt-2 pb-1">
-                    <p className="text-[10px] tracking-widest font-bold">
-                      <span className="text-cream-muted/60">Construct</span>
-                      <span className="text-amber-400/60">Line</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                      location.startsWith("/portal/scheduler") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
-                    }`}
-                  >
-                    <GanttChart className="w-5 h-5" />
-                    <span>CPM Schedule</span>
-                  </button>
-                  <button
-                    onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                      location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
-                    }`}
-                  >
-                    <Ruler className="w-5 h-5" />
-                    <span>Quantity Takeoff</span>
-                  </button>
-                </>
-              ) : (
-                <div className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted/50 cursor-not-allowed opacity-60">
-                  <HardHat className="w-5 h-5" />
-                  <span className="font-bold tracking-tight">
-                    <span className="text-cream-muted/50">Construct</span>
-                    <span className="text-amber-400/50">Line</span>
-                  </span>
-                  <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-medium">
-                    Coming soon
-                  </span>
-                </div>
-              )}
+              {/* ConstructLine (mobile) — available to all members */}
+              <div className="px-4 pt-2 pb-1">
+                <p className="text-[10px] tracking-widest font-bold">
+                  <span className="text-cream-muted/60">Construct</span>
+                  <span className="text-amber-400/60">Line</span>
+                </p>
+              </div>
+              <button
+                onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                  location.startsWith("/portal/scheduler") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}
+              >
+                <GanttChart className="w-5 h-5" />
+                <span>CPM Schedule</span>
+              </button>
+              <button
+                onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                  location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}
+              >
+                <Ruler className="w-5 h-5" />
+                <span>Quantity Takeoff</span>
+              </button>
 
               {/* Bottom items */}
               {visibleBottomItems.length > 0 && (

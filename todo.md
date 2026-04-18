@@ -2426,3 +2426,13 @@
 - [x] Always show exact email content and full recipient list BEFORE sending
 - [x] Get written confirmation from Marshall before proceeding
 - [x] This is non-negotiable and applies to all future communications
+
+## Beta User Access System
+- [ ] Add "beta" member role to database schema
+- [ ] Build email + password sign-up/login for beta users (no Discord required)
+- [ ] Create /try landing page for public sign-up
+- [ ] Beta users see full portal sidebar but locked sections are grayed out
+- [ ] ConstructLine tools (Takeoff + Scheduler) fully unlocked for beta users
+- [ ] Locked sections show overlay with "Join Contractor Circle to unlock"
+- [ ] Locked section CTA leads to existing Stripe checkout link
+- [ ] Admin can manage beta users

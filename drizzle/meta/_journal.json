@@ -274,6 +274,13 @@
       "when": 1776522867813,
       "tag": "0038_kind_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "5",
+      "when": 1776539872582,
+      "tag": "0039_remarkable_rick_jones",
+      "breakpoints": true
     }
   ]
 }
