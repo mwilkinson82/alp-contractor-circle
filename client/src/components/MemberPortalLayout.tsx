@@ -255,7 +255,7 @@ export default function MemberPortalLayout({
 
   // Beta user mode: only ConstructLine tools are unlocked
   const isBetaUser = betaUser && !member;
-  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff");
+  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
 
   // Stripe checkout link for upgrade CTA
@@ -521,10 +521,11 @@ export default function MemberPortalLayout({
             <div className="absolute inset-0 bg-navy-deep/60 backdrop-blur-sm rounded-lg flex items-center justify-center z-40">
               <div className="text-center">
                 <Lock className="w-12 h-12 text-cream-muted/50 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-cream mb-2">Feature Locked</h3>
-                <p className="text-cream-muted text-sm mb-6 max-w-xs">
-                  Join Contractor Circle to unlock this feature and access the full member portal.
+                <h3 className="text-lg font-semibold text-cream mb-2">Full Portal Access Required</h3>
+                <p className="text-cream-muted text-sm mb-2 max-w-sm">
+                  This feature is exclusive to Contractor Circle members. Get live coaching, templates, replays, and the full ConstructLine suite.
                 </p>
+                <p className="text-ember font-bold text-lg mb-6">$97/month</p>
                 <a
                   href={STRIPE_CHECKOUT}
                   target="_blank"

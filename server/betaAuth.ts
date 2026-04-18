@@ -19,19 +19,24 @@ function getSessionSecret() {
   return new TextEncoder().encode(secret);
 }
 
-function getDb() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL not set");
-  const mysql2 = require("mysql2/promise");
-  const pool = mysql2.createPool(url);
-  return drizzle(pool);
+// Reuse shared drizzle connection pattern from db.ts
+let _db: ReturnType<typeof drizzle> | null = null;
+function db() {
+  if (!_db && process.env.DATABASE_URL) {
+    try {
+      _db = drizzle(process.env.DATABASE_URL);
+    } catch (error) {
+      console.warn("[BetaAuth] Failed to connect to database:", error);
+    }
+  }
+  return _db;
 }
 
-// Singleton DB instance
-let _db: ReturnType<typeof getDb> | null = null;
-function db() {
-  if (!_db) _db = getDb();
-  return _db;
+/** Throws a 503 if the DB is not available */
+function requireDb() {
+  const d = db();
+  if (!d) throw new Error("Database not available");
+  return d;
 }
 
 // ─── Session helpers ─────────────────────────────────────────────────────────
@@ -72,7 +77,9 @@ export function parseBetaCookie(req: Request): string | undefined {
 }
 
 export async function getBetaUserById(id: number): Promise<BetaUser | null> {
-  const rows = await db().select().from(betaUsers).where(eq(betaUsers.id, id)).limit(1);
+  const d = db();
+  if (!d) return null;
+  const rows = await d.select().from(betaUsers).where(eq(betaUsers.id, id)).limit(1);
   return rows[0] || null;
 }
 
@@ -112,7 +119,7 @@ export function registerBetaAuthRoutes(app: Express) {
       const normalizedEmail = email.trim().toLowerCase();
 
       // Check if email already exists
-      const existing = await db()
+      const existing = await requireDb()
         .select()
         .from(betaUsers)
         .where(eq(betaUsers.email, normalizedEmail))
@@ -124,7 +131,7 @@ export function registerBetaAuthRoutes(app: Express) {
 
       // Hash password and create user
       const passwordHash = hashSync(password, 10);
-      const result = await db().insert(betaUsers).values({
+      const result = await requireDb().insert(betaUsers).values({
         email: normalizedEmail,
         passwordHash,
         name: name.trim(),
@@ -166,7 +173,7 @@ export function registerBetaAuthRoutes(app: Express) {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const rows = await db()
+      const rows = await requireDb()
         .select()
         .from(betaUsers)
         .where(eq(betaUsers.email, normalizedEmail))
@@ -182,7 +189,7 @@ export function registerBetaAuthRoutes(app: Express) {
       }
 
       // Update last signed in
-      await db()
+      await requireDb()
         .update(betaUsers)
         .set({ lastSignedIn: new Date() })
         .where(eq(betaUsers.id, user.id));

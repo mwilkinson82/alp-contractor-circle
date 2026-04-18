@@ -32,6 +32,7 @@ import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
 import AdminFeedback from "./pages/AdminFeedback";
 import BetaSignup from "./pages/BetaSignup";
 import BetaLogin from "./pages/BetaLogin";
+import ConstructLineLanding from "./pages/ConstructLineLanding";
 
 function Router() {
   return (
@@ -45,9 +46,12 @@ function Router() {
       <Route path={"/estimating"} component={EstimatingChecklist} />
       <Route path={"/estimating/thank-you"} component={EstimatingThankYou} />
 
-      {/* Beta user signup/login (public) */}
-      <Route path={"/try"} component={BetaSignup} />
-      <Route path={"/try/login"} component={BetaLogin} />
+      {/* ConstructLine landing page + beta signup/login (public) */}
+      <Route path={"/constructline"} component={ConstructLineLanding} />
+      <Route path={"/constructline/login"} component={BetaLogin} />
+      {/* Legacy /try redirects */}
+      <Route path={"/try"}>{() => { window.location.href = "/constructline"; return null; }}</Route>
+      <Route path={"/try/login"}>{() => { window.location.href = "/constructline/login"; return null; }}</Route>
 
       {/* Member portal (Discord auth) */}
       <Route path="/portal">

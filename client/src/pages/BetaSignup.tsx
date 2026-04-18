@@ -191,7 +191,7 @@ export default function BetaSignup() {
             <p className="text-cream-muted text-sm">
               Already have an account?{" "}
               <button
-                onClick={() => setLocation("/try/login")}
+                onClick={() => setLocation("/constructline/login")}
                 className="text-amber-400 hover:text-amber-300 font-semibold transition-colors"
               >
                 Sign in

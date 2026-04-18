@@ -2428,11 +2428,19 @@
 - [x] This is non-negotiable and applies to all future communications
 
 ## Beta User Access System
-- [ ] Add "beta" member role to database schema
-- [ ] Build email + password sign-up/login for beta users (no Discord required)
-- [ ] Create /try landing page for public sign-up
-- [ ] Beta users see full portal sidebar but locked sections are grayed out
-- [ ] ConstructLine tools (Takeoff + Scheduler) fully unlocked for beta users
-- [ ] Locked sections show overlay with "Join Contractor Circle to unlock"
-- [ ] Locked section CTA leads to existing Stripe checkout link
+- [x] Add "beta" member role to database schema
+- [x] Build email + password sign-up/login for beta users (no Discord required)
+- [x] Create /try landing page for public sign-up
+- [x] Beta users see full portal sidebar but locked sections are grayed out
+- [x] ConstructLine tools (Takeoff + Scheduler + Cost Library) fully unlocked for beta users
+- [x] Locked sections show overlay with "Join Contractor Circle to unlock" + $97/mo pricing
+- [x] Locked section CTA leads to existing Stripe checkout link
 - [ ] Admin can manage beta users
+
+## ConstructLine Marketing Landing Page
+- [x] Build premium ConstructLine marketing landing page at /constructline with hero, tool showcase, screenshots, and signup form
+- [x] Capture and upload CPM Scheduler and Quantity Takeoff screenshots to CDN
+- [x] Add "Try ConstructLine Free" CTA button to homepage hero
+- [x] Add ConstructLine nav link to homepage top nav
+- [x] Redirect legacy /try to /constructline
+- [x] Contractor Circle upsell section at bottom ($97/mo)

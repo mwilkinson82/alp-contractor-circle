@@ -295,14 +295,23 @@ export function HeroSection() {
             Contractor Circle
           </span>
         </div>
-        <a
-          href="/portal"
-          className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
-          style={{ fontFamily: "'DM Sans', sans-serif" }}
-        >
-          <span>Member Login</span>
-          <ArrowRight size={13} />
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href="/constructline"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-cream/50 hover:text-ember text-sm font-medium transition-colors"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            <span>ConstructLine</span>
+          </a>
+          <a
+            href="/portal"
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            <span>Member Login</span>
+            <ArrowRight size={13} />
+          </a>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -416,11 +425,23 @@ export function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.7, duration: 0.8 }}
-          className="text-xs text-cream/30 mb-6"
+          className="text-xs text-cream/30 mb-4"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           $497/mo · Cancel anytime · Founding rate locked forever
         </motion.p>
+
+        <motion.a
+          href="/constructline"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.9, duration: 0.8 }}
+          className="inline-flex items-center gap-2 text-sm text-cream/40 hover:text-ember transition-colors mb-6"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Or try our ConstructLine tools free
+          <ArrowRight size={13} />
+        </motion.a>
 
         {/* Next Call Badge */}
         <div className="mb-14">
