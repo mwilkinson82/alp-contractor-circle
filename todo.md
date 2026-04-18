@@ -2458,13 +2458,13 @@
 - [x] Auto-resize text box height to fit wrapped content
 
 ## Annotation Text Box Rebuild (CPM Scheduler)
-- [ ] Use foreignObject in SVG for real text wrapping instead of SVG text elements
-- [ ] Text box background must properly size to wrapped text content
-- [ ] Add Bold button to text box toolbar
-- [ ] Add Italic button to text box toolbar
-- [ ] Add Underline button to text box toolbar
-- [ ] Add Font Size control to text box toolbar
-- [ ] Shift+Enter creates new lines in text box
+- [x] Use foreignObject in SVG for real text wrapping instead of SVG text elements
+- [x] Text box background must properly size to wrapped text content
+- [x] Add Bold button to text box toolbar
+- [x] Add Italic button to text box toolbar
+- [x] Add Underline button to text box toolbar
+- [x] Add Font Size control to text box toolbar
+- [x] Shift+Enter creates new lines in text box
 ## Landing Page Updates (April 18)
 - [x] Remove $97/mo pricing from Contractor Circle section — price is $497/mo but don't show it
 - [x] Replace CTA with "Learn More About Contractor Circle" linking to homepage

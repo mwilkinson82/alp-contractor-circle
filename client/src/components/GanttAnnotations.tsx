@@ -42,6 +42,8 @@ export interface TextAnnotation {
   color: string;
   bgColor: string;
   bold: boolean;
+  italic: boolean;
+  underline: boolean;
   width: number;
   height?: number; // auto-calculated from text content
 }
@@ -162,7 +164,7 @@ export default function GanttAnnotations({
       const newText: TextAnnotation = {
         id, type: "text", x, y, text: "Double-click to edit",
         fontSize: 13, color: "#000000", bgColor: "#fef3c7",
-        bold: false, width: 200, height: 0,
+        bold: false, italic: false, underline: false, width: 200, height: 0,
       };
       onAnnotationsChange([...annotations, newText]);
       setSelectedId(id);
@@ -386,13 +388,27 @@ export default function GanttAnnotations({
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Label className="text-[10px] text-gray-400">Size</Label>
                 <Input type="number" className="h-6 w-14 text-xs" value={(selected as TextAnnotation).fontSize}
                   onChange={e => updateAnnotation(selected.id, { fontSize: parseInt(e.target.value) || 13 })} />
-                <Button size="sm" variant={(selected as TextAnnotation).bold ? "default" : "outline"} className="h-6 w-6 p-0 text-xs font-bold"
-                  onClick={() => updateAnnotation(selected.id, { bold: !(selected as TextAnnotation).bold })}>
+              </div>
+              <div className="flex items-center gap-1">
+                <Label className="text-[10px] text-gray-400 mr-1">Style</Label>
+                <Button size="sm" variant={(selected as TextAnnotation).bold ? "default" : "outline"} className="h-6 w-7 p-0 text-xs font-bold"
+                  onClick={() => updateAnnotation(selected.id, { bold: !(selected as TextAnnotation).bold })}
+                  title="Bold">
                   B
+                </Button>
+                <Button size="sm" variant={(selected as TextAnnotation).italic ? "default" : "outline"} className="h-6 w-7 p-0 text-xs italic"
+                  onClick={() => updateAnnotation(selected.id, { italic: !(selected as TextAnnotation).italic })}
+                  title="Italic">
+                  I
+                </Button>
+                <Button size="sm" variant={(selected as TextAnnotation).underline ? "default" : "outline"} className="h-6 w-7 p-0 text-xs underline"
+                  onClick={() => updateAnnotation(selected.id, { underline: !(selected as TextAnnotation).underline })}
+                  title="Underline">
+                  U
                 </Button>
               </div>
             </>
@@ -681,65 +697,141 @@ export default function GanttAnnotations({
 
           if (ann.type === "text") {
             const t = ann as TextAnnotation;
-            // Calculate text lines for word-wrap display
-            const lines = t.text.split("\n");
-            const lineHeight = t.fontSize * 1.35;
             const padding = 10;
-            const boxHeight = t.height && t.height > 0 ? t.height : Math.max(lines.length * lineHeight + padding * 2, t.fontSize + 14);
+            const minHeight = t.fontSize + padding * 2 + 4;
+            // Use stored height or a reasonable default; foreignObject div will auto-expand
+            const foHeight = Math.max(t.height && t.height > 0 ? t.height : minHeight, minHeight);
+            const isEditing = editingTextId === ann.id;
+
             return (
               <g key={ann.id}>
-                {/* Background rect — auto-sized to content */}
-                <rect x={t.x} y={t.y} width={t.width} height={boxHeight}
+                {/* Background rect — sized to match foreignObject */}
+                <rect x={t.x} y={t.y} width={t.width} height={foHeight}
                   rx={4} ry={4}
                   fill={t.bgColor === "transparent" ? "none" : t.bgColor}
                   stroke={isSelected ? "#3b82f6" : "#d1d5db"} strokeWidth={isSelected ? 2 : 1}
-                  style={{ cursor: "move" }}
+                  style={{ cursor: isEditing ? "default" : "move" }}
                   onClick={(e) => { e.stopPropagation(); setSelectedId(ann.id); }}
                   onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(ann.id); }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     setSelectedId(ann.id);
-                    if (tool === "select" && editingTextId !== ann.id) {
+                    if (tool === "select" && !isEditing) {
                       setDragState({ id: ann.id, startX: e.clientX - svgRef.current!.getBoundingClientRect().left, startY: e.clientY - svgRef.current!.getBoundingClientRect().top, origX: t.x, origY: t.y });
                     }
                   }}
                 />
-                {/* Text content */}
-                {editingTextId === ann.id ? (
-                  <foreignObject x={t.x + 2} y={t.y + 2} width={t.width - 4} height={Math.max(boxHeight, 60)}>
+
+                {/* foreignObject for both editing and display — enables native word wrap */}
+                <foreignObject x={t.x} y={t.y} width={t.width} height={foHeight + 200}
+                  style={{ overflow: "visible", pointerEvents: isEditing ? "auto" : "none" }}
+                >
+                  {isEditing ? (
                     <textarea
                       autoFocus
-                      className="w-full h-full bg-transparent border-none outline-none resize-none"
-                      style={{ fontSize: t.fontSize, color: t.color, fontWeight: t.bold ? "bold" : "normal", lineHeight: `${lineHeight}px`, padding: `${padding - 2}px 6px` }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        minHeight: `${foHeight}px`,
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        resize: "none",
+                        overflow: "hidden",
+                        fontSize: `${t.fontSize}px`,
+                        color: t.color,
+                        fontWeight: t.bold ? "bold" : "normal",
+                        fontStyle: t.italic ? "italic" : "normal",
+                        textDecoration: t.underline ? "underline" : "none",
+                        lineHeight: "1.4",
+                        padding: `${padding}px 8px`,
+                        fontFamily: "inherit",
+                        boxSizing: "border-box",
+                        wordBreak: "break-word",
+                        whiteSpace: "pre-wrap",
+                      }}
                       value={t.text}
                       onChange={e => {
-                        const newText = e.target.value;
-                        const newLines = newText.split("\n");
-                        const newHeight = Math.max(newLines.length * lineHeight + padding * 2, t.fontSize + 14);
-                        updateAnnotation(ann.id, { text: newText, height: newHeight });
+                        const el = e.target as HTMLTextAreaElement;
+                        // Auto-grow: measure scrollHeight
+                        el.style.height = "auto";
+                        const newHeight = Math.max(el.scrollHeight + 4, minHeight);
+                        el.style.height = `${newHeight}px`;
+                        updateAnnotation(ann.id, { text: e.target.value, height: newHeight });
+                      }}
+                      onFocus={e => {
+                        // Sync height on focus
+                        const el = e.target as HTMLTextAreaElement;
+                        el.style.height = "auto";
+                        const newHeight = Math.max(el.scrollHeight + 4, minHeight);
+                        el.style.height = `${newHeight}px`;
+                        updateAnnotation(ann.id, { height: newHeight });
                       }}
                       onBlur={() => setEditingTextId(null)}
                       onKeyDown={e => {
-                        // Enter confirms, Shift+Enter inserts a new line
-                        if (e.key === "Enter" && !e.shiftKey) {
+                        if (e.key === "Escape") {
                           e.preventDefault();
                           setEditingTextId(null);
                         }
-                        // Shift+Enter is default textarea behavior — new line
+                        // Enter = new line (natural), Shift+Enter also = new line
                       }}
+                      onClick={e => e.stopPropagation()}
+                      onMouseDown={e => e.stopPropagation()}
                     />
-                  </foreignObject>
-                ) : (
-                  <>
-                    {lines.map((line, i) => (
-                      <text key={i} x={t.x + 8} y={t.y + padding + t.fontSize + i * lineHeight - 2}
-                        fontSize={t.fontSize} fill={t.color}
-                        fontWeight={t.bold ? "bold" : "normal"}
-                        style={{ pointerEvents: "none", userSelect: "none" }}>
-                        {line || "\u00A0"}
-                      </text>
-                    ))}
-                  </>
+                  ) : (
+                    <div
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        minHeight: `${foHeight}px`,
+                        fontSize: `${t.fontSize}px`,
+                        color: t.color,
+                        fontWeight: t.bold ? "bold" : "normal",
+                        fontStyle: t.italic ? "italic" : "normal",
+                        textDecoration: t.underline ? "underline" : "none",
+                        lineHeight: "1.4",
+                        padding: `${padding}px 8px`,
+                        fontFamily: "inherit",
+                        boxSizing: "border-box",
+                        wordBreak: "break-word",
+                        whiteSpace: "pre-wrap",
+                        userSelect: "none",
+                        cursor: "move",
+                        pointerEvents: "none",
+                      }}
+                      onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(ann.id); }}
+                    >
+                      {t.text || "\u00A0"}
+                    </div>
+                  )}
+                </foreignObject>
+
+                {/* Width resize handle on right edge */}
+                {isSelected && !isEditing && (
+                  <rect
+                    x={t.x + t.width - 6}
+                    y={t.y + foHeight / 2 - 8}
+                    width={6}
+                    height={16}
+                    rx={3}
+                    fill="#3b82f6"
+                    style={{ cursor: "ew-resize" }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      const startX = e.clientX;
+                      const startWidth = t.width;
+                      const onMove = (me: MouseEvent) => {
+                        const newWidth = Math.max(80, startWidth + (me.clientX - startX));
+                        updateAnnotation(ann.id, { width: newWidth });
+                      };
+                      const onUp = () => {
+                        window.removeEventListener("mousemove", onMove);
+                        window.removeEventListener("mouseup", onUp);
+                      };
+                      window.addEventListener("mousemove", onMove);
+                      window.addEventListener("mouseup", onUp);
+                    }}
+                  />
                 )}
               </g>
             );
