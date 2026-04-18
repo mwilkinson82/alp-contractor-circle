@@ -538,6 +538,10 @@ export default function Scheduler() {
   const [dataDateInput, setDataDateInput] = useState("");
   const [editingCell, setEditingCell] = useState<{ activityId: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editingCodeCell, setEditingCodeCell] = useState<{ activityId: number; categoryId: number } | null>(null);
+  const [showBulkCodeDialog, setShowBulkCodeDialog] = useState(false);
+  const [bulkCodeCategoryId, setBulkCodeCategoryId] = useState<number | null>(null);
+  const [bulkCodeValueId, setBulkCodeValueId] = useState<number | null>(null);
 
   /* ── Activity Detail Modal State ──────────────────────────────────────── */
   const [detailAct, setDetailAct] = useState<any>(null);
@@ -638,8 +642,8 @@ export default function Scheduler() {
   const t2Activities = useMemo(() => target2Query.data?.activities || [], [target2Query.data]);
 
   const renderCtx = useMemo(() => ({
-    target1Map, target2Map, calendars, defaultCalName,
-  }), [target1Map, target2Map, calendars, defaultCalName]);
+    target1Map, target2Map, calendars, defaultCalName, codeAssignments, codeCategories,
+  }), [target1Map, target2Map, calendars, defaultCalName, codeAssignments, codeCategories]);
 
   /* ── Open Ends Detection ──────────────────────────────────────────────── */
   const openEnds = useMemo(() => {
@@ -751,7 +755,7 @@ export default function Scheduler() {
   /* ── Sorting ──────────────────────────────────────────────────────────── */
   const sortedActivities = useMemo(() => {
     if (!sortState.dir || !sortState.key) return filteredActivities;
-    const col = ALL_COLUMNS.find((c) => c.key === sortState.key);
+    const col = allColumnsWithCodes.find((c) => c.key === sortState.key);
     if (!col?.getSortValue) return filteredActivities;
     const sorted = [...filteredActivities].sort((a, b) => {
       const va = col.getSortValue!(a, renderCtx);
@@ -881,15 +885,47 @@ export default function Scheduler() {
   useEffect(() => { groupedActivitiesRef.current = groupedActivities; }, [groupedActivities]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
+  // Dynamic activity code columns derived from codeCategories
+  const codeColumns: ColumnDef[] = useMemo(() => {
+    return codeCategories.map((cat: any) => ({
+      key: `code_${cat.id}`,
+      label: cat.name,
+      shortLabel: cat.name.length > 8 ? cat.name.slice(0, 8) + "\u2026" : cat.name,
+      align: "left" as const,
+      width: "80px",
+      editable: false,
+      sortable: true,
+      getSortValue: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        if (!assignment) return "";
+        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
+        return val?.value || "";
+      },
+      render: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        if (!assignment) return "\u2014";
+        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
+        return val?.value || "\u2014";
+      },
+      renderClass: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        return assignment ? "text-gray-900" : "text-gray-400 italic";
+      },
+    }));
+  }, [codeCategories]);
+
+  // Merge static + dynamic columns
+  const allColumnsWithCodes = useMemo(() => [...ALL_COLUMNS, ...codeColumns], [codeColumns]);
+
   const activeColumns = useMemo(() => {
-    return ALL_COLUMNS.filter((col) => {
+    return allColumnsWithCodes.filter((col) => {
       if (col.alwaysVisible) return true;
       if (!visibleColumns.includes(col.key)) return false;
       if (col.requiresTarget === 1 && !target1Id) return false;
       if (col.requiresTarget === 2 && !target2Id) return false;
       return true;
     });
-  }, [visibleColumns, target1Id, target2Id]);
+  }, [visibleColumns, target1Id, target2Id, allColumnsWithCodes]);
 
   const gridTemplate = useMemo(() => {
     // Use columnWidths overrides if available, otherwise use default col.width
@@ -1192,7 +1228,7 @@ export default function Scheduler() {
     e.stopPropagation();
     setResizingCol(colKey);
     resizeStartX.current = e.clientX;
-    const col = ALL_COLUMNS.find((c) => c.key === colKey);
+    const col = allColumnsWithCodes.find((c) => c.key === colKey);
     const currentWidth = columnWidths[colKey] || col?.width || "80px";
     // Parse current width to px
     const match = currentWidth.match(/(\d+)/);
@@ -2131,6 +2167,61 @@ export default function Scheduler() {
                             : col.key === "activityId" ? (act.activityId || "")
                             : "";
 
+                          // Activity code columns: clickable dropdown cell
+                          if (col.key.startsWith("code_")) {
+                            const catId = parseInt(col.key.replace("code_", ""));
+                            const cat = codeCategories.find((c: any) => c.id === catId);
+                            const isEditingCode = editingCodeCell?.activityId === act.id && editingCodeCell?.categoryId === catId;
+                            return (
+                              <div key={col.key} className="relative truncate" onClick={(e) => e.stopPropagation()}>
+                                {isEditingCode && cat ? (
+                                  <Select
+                                    value={(() => {
+                                      const a = codeAssignments.find((ca: any) => ca.activityId === act.id && ca.categoryId === catId);
+                                      return a ? String(a.valueId) : "__none__";
+                                    })()}
+                                    onValueChange={(v) => {
+                                      if (!scheduleId) return;
+                                      const currentValueIds = codeAssignments
+                                        .filter((ca: any) => ca.activityId === act.id)
+                                        .map((ca: any) => ca.valueId);
+                                      const catValueIds = cat.values?.map((val: any) => val.id) || [];
+                                      const filtered = currentValueIds.filter((vid: number) => !catValueIds.includes(vid));
+                                      const newIds = v === "__none__" ? filtered : [...filtered, parseInt(v)];
+                                      setActivityCodesMut.mutate({ activityId: act.id, scheduleId, codeValueIds: newIds });
+                                      setEditingCodeCell(null);
+                                    }}
+                                    open={true}
+                                    onOpenChange={(open) => { if (!open) setEditingCodeCell(null); }}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs border-amber-500/60 bg-white text-gray-900">
+                                      <SelectValue placeholder="Not assigned" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__" className="text-xs">Not assigned</SelectItem>
+                                      {cat.values?.map((val: any) => (
+                                        <SelectItem key={val.id} value={String(val.id)} className="text-xs">
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: val.color || "#3b82f6" }} />
+                                            {val.value}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <div
+                                    className={`cursor-pointer hover:bg-amber-50 px-1 py-0.5 rounded text-sm truncate ${cellClass}`}
+                                    onClick={() => setEditingCodeCell({ activityId: act.id, categoryId: catId })}
+                                    title={`Click to assign ${cat?.name || "code"}`}
+                                  >
+                                    {value}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
                           return (
                             <div
                               key={col.key}
@@ -2231,7 +2322,7 @@ export default function Scheduler() {
             <SheetTitle className="font-semibold">Configure Columns</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-1">
-            {ALL_COLUMNS.map((col) => {
+            {allColumnsWithCodes.map((col) => {
               const isTargetCol = col.requiresTarget === 1 || col.requiresTarget === 2;
               const targetActive = col.requiresTarget === 1 ? !!target1Id : col.requiresTarget === 2 ? !!target2Id : true;
               return (
@@ -4024,7 +4115,7 @@ export default function Scheduler() {
             <DialogTitle className="font-semibold text-lg">Advanced Filters</DialogTitle>
             <DialogDescription>Filter activities by various criteria.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             {/* Text-based filters */}
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -4096,8 +4187,9 @@ export default function Scheduler() {
                 <Label className="text-xs text-gray-600 mb-2 block">Activity Codes</Label>
                 <div className="space-y-2">
                   {codeCategories.map((cat: any) => (
-                    <div key={cat.id} className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-gray-400 w-24 shrink-0">{cat.name}:</span>
+                    <div key={cat.id} className="grid grid-cols-[6rem_1fr] gap-2 items-start">
+                      <span className="text-xs text-gray-400 pt-0.5">{cat.name}:</span>
+                      <div className="flex flex-wrap gap-1.5">
                       {cat.values?.map((val: any) => {
                         const isActive = activeFilters.get(cat.id)?.has(val.id) || false;
                         return (
@@ -4128,6 +4220,7 @@ export default function Scheduler() {
                           </button>
                         );
                       })}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -4316,6 +4409,16 @@ export default function Scheduler() {
           >
             Assign Successor
           </Button>
+          {codeCategories.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-green-500/40 text-green-400 hover:bg-green-500/10"
+              onClick={() => { setBulkCodeCategoryId(null); setBulkCodeValueId(null); setShowBulkCodeDialog(true); }}
+            >
+              <Layers className="w-3.5 h-3.5 mr-1.5" /> Assign Code
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -4339,6 +4442,88 @@ export default function Scheduler() {
           </Button>
         </div>
       )}
+
+      {/* ── Bulk Activity Code Assignment Dialog ──────────────────────────── */}
+      <Dialog open={showBulkCodeDialog} onOpenChange={setShowBulkCodeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Assign Activity Code to {selectedActivityIds.size} Activities</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Select a category and value to assign to all selected activities.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-sm font-medium">Category</Label>
+              <Select
+                value={bulkCodeCategoryId ? String(bulkCodeCategoryId) : ""}
+                onValueChange={(v) => { setBulkCodeCategoryId(parseInt(v)); setBulkCodeValueId(null); }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {codeCategories.map((cat: any) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {bulkCodeCategoryId && (() => {
+              const cat = codeCategories.find((c: any) => c.id === bulkCodeCategoryId);
+              if (!cat) return null;
+              return (
+                <div>
+                  <Label className="text-sm font-medium">Value</Label>
+                  <Select
+                    value={bulkCodeValueId ? String(bulkCodeValueId) : ""}
+                    onValueChange={(v) => setBulkCodeValueId(parseInt(v))}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select value" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cat.values?.map((val: any) => (
+                        <SelectItem key={val.id} value={String(val.id)}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: val.color || "#3b82f6" }} />
+                            {val.value}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkCodeDialog(false)}>Cancel</Button>
+            <Button
+              disabled={!bulkCodeCategoryId || !bulkCodeValueId || !scheduleId}
+              onClick={() => {
+                if (!bulkCodeCategoryId || !bulkCodeValueId || !scheduleId) return;
+                const cat = codeCategories.find((c: any) => c.id === bulkCodeCategoryId);
+                const catValueIds = cat?.values?.map((v: any) => v.id) || [];
+                let count = 0;
+                Array.from(selectedActivityIds).forEach((actId) => {
+                  const currentValueIds = codeAssignments
+                    .filter((ca: any) => ca.activityId === actId)
+                    .map((ca: any) => ca.valueId);
+                  const filtered = currentValueIds.filter((vid: number) => !catValueIds.includes(vid));
+                  const newIds = [...filtered, bulkCodeValueId];
+                  setActivityCodesMut.mutate({ activityId: actId, scheduleId, codeValueIds: newIds });
+                  count++;
+                });
+                toast.success(`Assigned code to ${count} activities`);
+                setShowBulkCodeDialog(false);
+              }}
+            >
+              Assign to All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
       <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>

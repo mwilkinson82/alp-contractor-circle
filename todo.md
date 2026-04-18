@@ -2227,3 +2227,14 @@
 ## Logic Lines Still Not Rendering in PDF Export
 - [x] Debug why relationship arrows don't appear in actual PDF despite showLogicLines being enabled — missing id field in groupedActivities mapping
 - [x] Fix the rendering code and verify arrows appear in exported PDF — added id to groupedActivities mapping
+
+## Advanced Filters Modal Alignment & Expansion
+- [x] Fix activity code tag alignment — changed to grid layout with fixed label column so overflow tags stay aligned
+- [x] Make modal content scrollable — added max-h-[60vh] overflow-y-auto to dialog body
+
+## P6-Style Activity Code Column Assignment
+- [x] Add activity code categories as dynamic columns in the Columns picker (auto-generated from codeCategories)
+- [x] Display assigned activity code values in the column cells with color swatches
+- [x] Make column cells clickable — single-click opens dropdown to pick/change activity code value
+- [x] Support bulk fill — "Assign Code" button in selection toolbar with category/value picker dialog
+- [x] Add "Assign Code" button to bottom selection toolbar (green, with Layers icon)
