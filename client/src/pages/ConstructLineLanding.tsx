@@ -55,6 +55,8 @@ const SCREENSHOTS = {
   takeoffMeasurements: "/manus-storage/cl-takeoff-measurements_7548a1df.webp",
   takeoffItemMeasurements: "/manus-storage/cl-takeoff-item-measurements_c25f7b29.webp",
   takeoffConsolidateWorking: "/manus-storage/cl-takeoff-consolidate-working_6325e99f.webp",
+  // Annotation screenshot
+  schedulerAnnotations: "/manus-storage/annotation-screenshot_36eb9503.webp",
 };
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -120,7 +122,8 @@ export default function ConstructLineLanding() {
         throw new Error(data.error || "Signup failed");
       }
 
-      setLocation("/portal");
+      // Beta users go directly to ConstructLine tools (scheduler)
+      setLocation("/portal/scheduler");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -478,6 +481,27 @@ export default function ConstructLineLanding() {
             </p>
           </motion.div>
 
+          {/* Annotation Screenshot */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="relative group mb-16"
+          >
+            <div className="absolute -inset-4 rounded-2xl bg-ember/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-xl overflow-hidden border border-cream/10 shadow-2xl shadow-black/40">
+              <img
+                src={SCREENSHOTS.schedulerAnnotations}
+                alt="ConstructLine CPM Scheduler — Schedule annotations with text boxes, arrows, and shading to highlight delays and critical issues"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Annotate your schedule with text boxes, arrows, and shading — highlight delays, flag issues, and export annotated PDFs for owner meetings
+            </p>
+          </motion.div>
+
           {/* Resources & Cost Loading */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
             <motion.div
@@ -688,6 +712,8 @@ export default function ConstructLineLanding() {
                 "CSV import & export",
                 "DD & Set data date",
                 "Print-ready PDF reports",
+                "Schedule annotations & markup",
+                "Excel import & re-import",
               ].map((feat, j) => (
                 <div key={j} className="flex items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />

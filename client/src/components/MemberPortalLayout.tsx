@@ -525,14 +525,11 @@ export default function MemberPortalLayout({
                 <p className="text-cream-muted text-sm mb-2 max-w-sm">
                   This feature is exclusive to Contractor Circle members. Get live coaching, templates, replays, and the full ConstructLine suite.
                 </p>
-                <p className="text-ember font-bold text-lg mb-6">$97/month</p>
                 <a
-                  href={STRIPE_CHECKOUT}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-ember hover:bg-ember/90 text-white font-semibold rounded-lg transition-all"
                 >
-                  Join Contractor Circle
+                  Learn More About Contractor Circle
                 </a>
               </div>
             </div>

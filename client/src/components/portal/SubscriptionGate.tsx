@@ -84,11 +84,11 @@ export function SubscriptionGate({ children, isSubscribed }: SubscriptionGatePro
             </div>
 
             <a
-              href="/circle#pricing"
+              href="/"
               className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50 text-sm sm:text-base"
             >
               <Crown className="w-4 h-4" />
-              Become a Member
+              Learn More About Contractor Circle
               <ChevronRight className="w-4 h-4" />
             </a>
 
@@ -130,11 +130,11 @@ export function SubscriptionBanner({ isSubscribed }: { isSubscribed: boolean }) 
         </div>
       </div>
       <a
-        href="/circle#pricing"
+        href="/"
         className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-ember hover:bg-ember/90 text-white text-xs sm:text-sm font-semibold rounded-lg transition-all duration-300 shadow-md shadow-ember/20"
       >
         <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-        <span>Subscribe Now</span>
+        <span>Learn More About Contractor Circle</span>
       </a>
     </div>
   );
@@ -149,7 +149,7 @@ export function ItemLockOverlay({ onClick }: { onClick?: () => void }) {
     <div
       className="absolute inset-0 z-10 flex items-center justify-center rounded-lg cursor-pointer group"
       style={{ background: "oklch(0.08 0.02 260 / 0.7)", backdropFilter: "blur(2px)" }}
-      onClick={onClick || (() => { window.location.href = "/circle#pricing"; })}
+      onClick={onClick || (() => { window.location.href = "/"; })}
     >
       <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-ember/20 border border-ember/30 group-hover:bg-ember/30 transition-colors">
         <Lock className="w-3.5 h-3.5 text-ember" />

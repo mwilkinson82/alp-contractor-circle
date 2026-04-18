@@ -951,4 +951,128 @@ export const takeoffRouter = router({
       await requireMember(ctx.req);
       return getItemsWithMeasurementHistory(input.projectId);
     }),
+
+  // ─── Excel Re-Import ────────────────────────────────────────────────────────
+  /**
+   * Import items from an Excel file that was previously exported.
+   * Matches rows by description + CSI code to existing items, updates changed fields,
+   * creates new items for unmatched rows, and optionally removes items not in the import.
+   */
+  importExcel: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      /** Array of row objects parsed from Excel on the client */
+      rows: z.array(z.object({
+        csiCode: z.string().optional(),
+        description: z.string(),
+        quantity: z.number(),
+        unit: z.string(),
+        unitCost: z.number(), // in dollars (will be converted to cents)
+        confidence: z.number().optional(),
+        reviewed: z.boolean().optional(),
+        notes: z.string().optional(),
+      })),
+      /** If true, items not present in the import will be deleted */
+      removeUnmatched: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+
+      // Get existing items for matching
+      const existingItems = await getTakeoffItemsByProject(input.projectId);
+      
+      // Get or create a manual sheet for new items
+      const manualSheetId = await getOrCreateManualSheet(input.projectId);
+
+      let updated = 0;
+      let created = 0;
+      let removed = 0;
+      let errors: string[] = [];
+      const matchedIds = new Set<number>();
+
+      for (const row of input.rows) {
+        try {
+          // Try to match by description (case-insensitive) + CSI code
+          const match = existingItems.find(item => {
+            const descMatch = item.description.toLowerCase().trim() === row.description.toLowerCase().trim();
+            const csiMatch = !row.csiCode || !item.csiCode || 
+              item.csiCode.replace(/\s/g, '') === row.csiCode.replace(/\s/g, '');
+            return descMatch && csiMatch && !matchedIds.has(item.id);
+          });
+
+          const unitCostCents = Math.round(row.unitCost * 100);
+          const quantityNum = row.quantity;
+          const extendedCostCents = Math.round(unitCostCents * quantityNum);
+
+          if (match) {
+            matchedIds.add(match.id);
+            // Check if anything changed
+            const hasChanges = 
+              parseFloat(String(match.quantity)) !== quantityNum ||
+              match.unitCost !== unitCostCents ||
+              match.unit !== row.unit ||
+              (row.notes !== undefined && match.notes !== row.notes) ||
+              (row.reviewed !== undefined && match.reviewed !== row.reviewed);
+
+            if (hasChanges) {
+              await updateTakeoffItem(match.id, {
+                quantity: String(quantityNum),
+                unitCost: unitCostCents,
+                extendedCost: extendedCostCents,
+                unit: row.unit,
+                ...(row.notes !== undefined ? { notes: row.notes } : {}),
+                ...(row.reviewed !== undefined ? { reviewed: row.reviewed } : {}),
+              });
+              updated++;
+            }
+          } else {
+            // Create new item
+            const csiDiv = row.csiCode ? row.csiCode.substring(0, 2) : "00";
+            await createTakeoffItem({
+              projectId: input.projectId,
+              sheetId: manualSheetId,
+              csiDivision: csiDiv,
+              csiCode: row.csiCode || null,
+              description: row.description,
+              quantity: String(quantityNum),
+              unit: row.unit,
+              unitCost: unitCostCents,
+              extendedCost: extendedCostCents,
+              confidence: row.confidence || 100,
+              notes: row.notes || "Imported from Excel",
+              reviewed: row.reviewed ?? true,
+            });
+            created++;
+          }
+        } catch (err: any) {
+          errors.push(`Row "${row.description}": ${err.message}`);
+        }
+      }
+
+      // Optionally remove items not in the import
+      if (input.removeUnmatched) {
+        for (const item of existingItems) {
+          if (!matchedIds.has(item.id)) {
+            await deleteTakeoffItem(item.id);
+            removed++;
+          }
+        }
+      }
+
+      // Recalculate project total
+      const newTotal = await recalculateProjectTotal(input.projectId);
+
+      return {
+        updated,
+        created,
+        removed,
+        errors,
+        newTotal,
+        totalRows: input.rows.length,
+      };
+    }),
 });

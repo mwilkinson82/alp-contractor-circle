@@ -468,6 +468,7 @@ export default function Scheduler() {
   const [showAnnotations, setShowAnnotations] = useState(false);
   const [ganttAnnotations, setGanttAnnotations] = useState<Annotation[]>([]);
   const [annotationsLoaded, setAnnotationsLoaded] = useState(false);
+  const [ganttScrollOffset, setGanttScrollOffset] = useState({ scrollTop: 0, scrollLeft: 0 });
 
   // Load annotations from DB on first fetch
   useEffect(() => {
@@ -2360,13 +2361,16 @@ export default function Scheduler() {
               }
             }}
             magnificationZoom={magnificationZoom}
+            onScrollChange={setGanttScrollOffset}
           />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}
             height={ganttContainerRef.current?.scrollHeight || 1000}
             annotations={ganttAnnotations}
             onAnnotationsChange={handleAnnotationsChange}
-            visible={showAnnotations}
+            visible={showAnnotations || ganttAnnotations.length > 0}
+            editing={showAnnotations}
+            scrollOffset={ganttScrollOffset}
           />
           </div>
         </ResizablePanel>

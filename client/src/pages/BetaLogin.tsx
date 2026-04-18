@@ -41,8 +41,8 @@ export default function BetaLogin() {
         throw new Error(data.error || "Login failed");
       }
 
-      // Redirect to portal on success
-      setLocation("/portal");
+      // Redirect to ConstructLine tools on success
+      setLocation("/portal/scheduler");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

@@ -120,6 +120,10 @@ export default function TakeoffDetail() {
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
+  const [showImportExcel, setShowImportExcel] = useState(false);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
+  const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
   const [markups, setMarkups] = useState({
     labor: 0,
@@ -565,6 +569,104 @@ export default function TakeoffDetail() {
     toast.success("Exported to CSV \u2014 grouped by CSI division");
   }, [items, project]);
 
+  // ─── Excel Import ──────────────────────────────────────────────────────
+  const importExcelMutation = (trpc.takeoff as any).importExcel.useMutation({
+    onSuccess: (result: { updated: number; created: number; removed: number; errors: string[] }) => {
+      refetchProject();
+      setShowImportExcel(false);
+      setImportPreview(null);
+      if (importFileRef.current) importFileRef.current.value = "";
+      const parts = [];
+      if (result.updated > 0) parts.push(`${result.updated} updated`);
+      if (result.created > 0) parts.push(`${result.created} created`);
+      if (result.removed > 0) parts.push(`${result.removed} removed`);
+      toast.success(`Import complete: ${parts.join(", ") || "no changes"}`);
+      if (result.errors.length > 0) {
+        toast.warning(`${result.errors.length} row(s) had errors`);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Import failed");
+    },
+  });
+
+  const handleImportExcel = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        if (!ws) { toast.error("No sheet found in file"); return; }
+
+        const rawRows = XLSX.utils.sheet_to_json<any>(ws, { header: 1 }) as any[][];
+
+        // Find the header row (look for "Description" or "CSI Code")
+        let headerIdx = -1;
+        for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+          const row = rawRows[i];
+          if (row && row.some((cell: any) => typeof cell === "string" && (cell.toLowerCase().includes("description") || cell.toLowerCase().includes("csi code")))) {
+            headerIdx = i;
+            break;
+          }
+        }
+        if (headerIdx === -1) { toast.error("Could not find header row with 'Description' or 'CSI Code'"); return; }
+
+        const headers = rawRows[headerIdx].map((h: any) => String(h || "").toLowerCase().trim());
+        const descCol = headers.findIndex((h: string) => h.includes("description"));
+        const csiCol = headers.findIndex((h: string) => h.includes("csi code") || h === "csi");
+        const qtyCol = headers.findIndex((h: string) => h.includes("quantity") || h === "qty");
+        const unitCol = headers.findIndex((h: string) => h.includes("unit") && !h.includes("cost"));
+        const unitCostCol = headers.findIndex((h: string) => h.includes("unit cost"));
+        const confCol = headers.findIndex((h: string) => h.includes("confidence"));
+        const reviewedCol = headers.findIndex((h: string) => h.includes("reviewed"));
+        const notesCol = headers.findIndex((h: string) => h.includes("notes"));
+
+        if (descCol === -1) { toast.error("Could not find 'Description' column"); return; }
+
+        const parsed: any[] = [];
+        for (let i = headerIdx + 1; i < rawRows.length; i++) {
+          const row = rawRows[i];
+          if (!row || !row[descCol]) continue;
+          const desc = String(row[descCol] || "").trim();
+          if (!desc || desc.toLowerCase().startsWith("subtotal") || desc === "GRAND TOTAL") continue;
+          // Skip division header rows (e.g. "03 — Concrete")
+          if (/^\d{2}\s*[\u2014—-]/.test(desc)) continue;
+
+          parsed.push({
+            csiCode: csiCol >= 0 ? String(row[csiCol] || "").trim() : "",
+            description: desc,
+            quantity: qtyCol >= 0 ? (parseFloat(row[qtyCol]) || 0) : 0,
+            unit: unitCol >= 0 ? String(row[unitCol] || "").trim() : "EA",
+            unitCost: unitCostCol >= 0 ? (parseFloat(row[unitCostCol]) || 0) : 0,
+            confidence: confCol >= 0 ? (parseFloat(row[confCol]) || 0) : 100,
+            reviewed: reviewedCol >= 0 ? (String(row[reviewedCol]).toLowerCase() === "yes" || row[reviewedCol] === true) : false,
+            notes: notesCol >= 0 ? String(row[notesCol] || "").trim() : "",
+          });
+        }
+
+        if (parsed.length === 0) { toast.error("No valid data rows found"); return; }
+        setImportPreview(parsed);
+        setShowImportExcel(true);
+      } catch (err: any) {
+        toast.error("Failed to parse Excel file: " + (err.message || "Unknown error"));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }, []);
+
+  const handleConfirmImport = useCallback(() => {
+    if (!importPreview || importPreview.length === 0) return;
+    importExcelMutation.mutate({
+      projectId,
+      rows: importPreview,
+      removeUnmatched: importRemoveUnmatched,
+    });
+  }, [importPreview, projectId, importRemoveUnmatched, importExcelMutation]);
+
   // ─── Grouped Items ──────────────────────────────────────────────────
 
   const groupedItems = useMemo(() => {
@@ -1003,8 +1105,25 @@ export default function TakeoffDetail() {
                       title="Export to Excel (.xlsx)"
                     >
                       <FileSpreadsheet className="w-3.5 h-3.5" />
-                      Excel
+                      Export
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => importFileRef.current?.click()}
+                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                      title="Import from Excel (.xlsx)"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Import
+                    </Button>
+                    <input
+                      ref={importFileRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={handleImportExcel}
+                    />
                     <Button
                       size="sm"
                       variant="outline"
@@ -1472,6 +1591,76 @@ export default function TakeoffDetail() {
         markups={projectMarkups || []}
         projectName={project?.name || "Takeoff"}
       />
+
+      {/* ─── Excel Import Preview Dialog ──────────────────────────────── */}
+      {showImportExcel && importPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Import Excel Preview</h3>
+                <p className="text-xs text-white/50 mt-1">{importPreview.length} rows found — review before importing</p>
+              </div>
+              <button onClick={() => { setShowImportExcel(false); setImportPreview(null); if (importFileRef.current) importFileRef.current.value = ''; }} className="text-white/40 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-white/50 border-b border-white/10">
+                    <th className="text-left p-2">CSI Code</th>
+                    <th className="text-left p-2">Description</th>
+                    <th className="text-right p-2">Qty</th>
+                    <th className="text-left p-2">Unit</th>
+                    <th className="text-right p-2">Unit Cost</th>
+                    <th className="text-right p-2">Extended</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.slice(0, 100).map((row, i) => (
+                    <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="p-2 text-white/60">{row.csiCode || '—'}</td>
+                      <td className="p-2 text-white">{row.description}</td>
+                      <td className="p-2 text-right text-white">{row.quantity}</td>
+                      <td className="p-2 text-white/60">{row.unit}</td>
+                      <td className="p-2 text-right text-white">${row.unitCost.toFixed(2)}</td>
+                      <td className="p-2 text-right text-emerald-400">${(row.quantity * row.unitCost).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {importPreview.length > 100 && (
+                <p className="text-xs text-white/40 mt-2 text-center">Showing first 100 of {importPreview.length} rows</p>
+              )}
+            </div>
+            <div className="p-4 border-t border-white/10 flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs text-white/60">
+                <input
+                  type="checkbox"
+                  checked={importRemoveUnmatched}
+                  onChange={(e) => setImportRemoveUnmatched(e.target.checked)}
+                  className="rounded border-white/20"
+                />
+                Remove items not in this import
+              </label>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => { setShowImportExcel(false); setImportPreview(null); if (importFileRef.current) importFileRef.current.value = ''; }}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmImport}
+                  disabled={importExcelMutation.isPending}
+                  className="bg-amber-500 hover:bg-amber-600 text-black"
+                >
+                  {importExcelMutation.isPending ? 'Importing...' : `Import ${importPreview.length} Rows`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

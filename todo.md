@@ -2478,3 +2478,28 @@
 - [x] Value props stack properly on mobile
 - [x] Signup form mobile-friendly
 - [x] All sections have proper mobile padding and spacing
+
+## Annotation Improvements (April 18 - Part 2)
+- [x] Properties panel (Arrow/Text/Shading) must be draggable — user can grab and move it around
+- [x] Add height resize handle to text boxes (bottom edge drag)
+- [ ] PDF export must include all annotations (text boxes, arrows, shading) baked into the export
+- [x] Annotations must scroll with the Gantt chart — anchored to chart content, not viewport
+- [x] Annotations always visible once created — Annotate button only toggles editing toolbar, not annotation display
+- [ ] Duplicate schedule feature — copy schedule with annotations, move data date, recalculate as update to baseline
+- [x] Add annotation screenshot to ConstructLine landing page to showcase the feature
+
+## Excel Re-Import for Quantity Takeoff (April 18)
+- [x] Backend: tRPC procedure to parse uploaded Excel and match rows to existing line items
+- [x] Backend: Handle updated quantities, unit costs, descriptions, notes from Excel
+- [x] Backend: Handle new rows added in Excel → create new line items
+- [x] Backend: Handle deleted rows → flag for removal
+- [x] Backend: Validation for formatting issues and mismatched columns
+- [x] Frontend: "Import Excel" button on Takeoff page
+- [x] Frontend: Upload dialog with file picker and preview/confirmation step
+- [x] Frontend: Show import results summary (updated, added, removed, errors)
+
+## CRITICAL: Signup Flow Fix (April 18)
+- [x] Remove $97/mo Contractor Circle purchase modal after free access form submission
+- [x] After form submission, redirect to /portal/scheduler (ConstructLine tools) instead of locked /portal dashboard
+- [x] Free access form = free access — no paywall, no upsell modal
+- [x] Contractor Circle price is $497/mo NOT $97/mo — all pricing references removed, replaced with Learn More links

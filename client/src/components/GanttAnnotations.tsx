@@ -19,6 +19,7 @@ import {
   Plus,
   MousePointer,
   Pencil,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,8 @@ interface GanttAnnotationsProps {
   annotations: Annotation[];
   onAnnotationsChange: (annotations: Annotation[]) => void;
   visible: boolean;
+  editing?: boolean; // show toolbar and enable interaction (when Annotate button is active)
+  scrollOffset?: { scrollTop: number; scrollLeft: number }; // sync with Gantt chart scroll
 }
 
 export default function GanttAnnotations({
@@ -112,6 +115,8 @@ export default function GanttAnnotations({
   annotations,
   onAnnotationsChange,
   visible,
+  editing = false,
+  scrollOffset = { scrollTop: 0, scrollLeft: 0 },
 }: GanttAnnotationsProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tool, setTool] = useState<Tool>("select");
@@ -131,10 +136,21 @@ export default function GanttAnnotations({
     currentY: number;
   } | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
+  const panelDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   const genId = () => `ann_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
   const selected = annotations.find(a => a.id === selectedId) || null;
+
+  // Reset panel position when selection changes
+  const prevSelectedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedId !== prevSelectedIdRef.current) {
+      setPanelPos(null);
+      prevSelectedIdRef.current = selectedId;
+    }
+  }, [selectedId]);
 
   // ── Update a single annotation ────────────────────────────────────────
   const updateAnnotation = useCallback((id: string, updates: Partial<Annotation>) => {
@@ -275,7 +291,12 @@ export default function GanttAnnotations({
     return () => window.removeEventListener("keydown", handler);
   }, [selectedId, editingTextId, deleteAnnotation]);
 
-  if (!visible) return null;
+  // If not visible AND no annotations, return null
+  // If visible but not editing, show annotations but no toolbar/interaction
+  if (!visible && annotations.length === 0) return null;
+
+  const showToolbar = editing;
+  const allowInteraction = editing;
 
   // ── Helper: get marker ID for an endpoint type + color ────────────────
   const getMarkerId = (endpoint: ArrowEndpoint | undefined, color: string, position: "start" | "end") => {
@@ -310,7 +331,8 @@ export default function GanttAnnotations({
 
   return (
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
-      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
+      {/* ── Toolbar (only shown when editing) ────────────────────────────────────────── */}
+      {showToolbar && (
       <div className="pointer-events-auto absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg px-2 py-1.5">
         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mr-1">Annotate</span>
         <div className="w-px h-5 bg-gray-200" />
@@ -343,15 +365,47 @@ export default function GanttAnnotations({
            tool === "arrow" ? "Drag to draw arrow" :
            "Drag to shade area"}
         </span>
-      </div>
+       </div>
+      )}
 
-      {/* ── Properties panel (when selected) ─────────────────────────────── */}
-      {selected && (
-        <div className="pointer-events-auto absolute top-12 right-2 z-30 w-64 max-h-[calc(100vh-120px)] overflow-y-auto bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-300 uppercase">
-              {selected.type === "text" ? "Text Box" : selected.type === "arrow" ? "Arrow" : "Shading"}
-            </span>
+      {/* ── Properties panel (when selected and editing) — DRAGGABLE ──────────────── */}
+      {selected && showToolbar && (
+        <div
+          className="pointer-events-auto absolute z-30 w-64 max-h-[calc(100vh-120px)] overflow-y-auto bg-[#1a1f2e]/95 backdrop-blur border border-white/15 rounded-lg shadow-lg p-3 space-y-3"
+          style={panelPos ? { top: panelPos.y, left: panelPos.x, right: "auto" } : { top: 48, right: 8 }}
+        >
+          <div
+            className="flex items-center justify-between cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const panel = e.currentTarget.parentElement!;
+              const rect = panel.getBoundingClientRect();
+              const containerRect = panel.parentElement!.getBoundingClientRect();
+              const currentX = rect.left - containerRect.left;
+              const currentY = rect.top - containerRect.top;
+              panelDragRef.current = { startX: e.clientX, startY: e.clientY, origX: currentX, origY: currentY };
+              const onMove = (me: MouseEvent) => {
+                if (!panelDragRef.current) return;
+                const dx = me.clientX - panelDragRef.current.startX;
+                const dy = me.clientY - panelDragRef.current.startY;
+                setPanelPos({ x: panelDragRef.current.origX + dx, y: panelDragRef.current.origY + dy });
+              };
+              const onUp = () => {
+                panelDragRef.current = null;
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onUp);
+              };
+              window.addEventListener("mousemove", onMove);
+              window.addEventListener("mouseup", onUp);
+            }}
+          >
+            <div className="flex items-center gap-1.5">
+              <GripVertical className="w-3.5 h-3.5 text-gray-500" />
+              <span className="text-xs font-semibold text-gray-300 uppercase">
+                {selected.type === "text" ? "Text Box" : selected.type === "arrow" ? "Arrow" : "Shading"}
+              </span>
+            </div>
             <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => setSelectedId(null)}>
               <X className="w-3 h-3" />
             </Button>
@@ -525,17 +579,17 @@ export default function GanttAnnotations({
         </div>
       )}
 
-      {/* ── SVG Overlay ──────────────────────────────────────────────────── */}
+      {/* ── SVG Overlay ────────────────────────────────────────────────────────────────── */}
       <svg
         ref={svgRef}
-        className="pointer-events-auto absolute inset-0"
+        className={`absolute inset-0 ${allowInteraction ? 'pointer-events-auto' : 'pointer-events-none'}`}
         width={width}
         height={height}
-        style={{ cursor: tool === "select" ? "default" : tool === "text" ? "crosshair" : "crosshair" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        style={{ cursor: allowInteraction ? (tool === "select" ? "default" : "crosshair") : "default" }}
+        onMouseDown={allowInteraction ? handleMouseDown : undefined}
+        onMouseMove={allowInteraction ? handleMouseMove : undefined}
+        onMouseUp={allowInteraction ? handleMouseUp : undefined}
+        onMouseLeave={allowInteraction ? handleMouseUp : undefined}
       >
         {/* Pattern and marker definitions */}
         <defs>
@@ -823,6 +877,65 @@ export default function GanttAnnotations({
                       const onMove = (me: MouseEvent) => {
                         const newWidth = Math.max(80, startWidth + (me.clientX - startX));
                         updateAnnotation(ann.id, { width: newWidth });
+                      };
+                      const onUp = () => {
+                        window.removeEventListener("mousemove", onMove);
+                        window.removeEventListener("mouseup", onUp);
+                      };
+                      window.addEventListener("mousemove", onMove);
+                      window.addEventListener("mouseup", onUp);
+                    }}
+                  />
+                )}
+
+                {/* Height resize handle on bottom edge */}
+                {isSelected && !isEditing && (
+                  <rect
+                    x={t.x + t.width / 2 - 8}
+                    y={t.y + foHeight - 6}
+                    width={16}
+                    height={6}
+                    rx={3}
+                    fill="#3b82f6"
+                    style={{ cursor: "ns-resize" }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      const startY = e.clientY;
+                      const startHeight = foHeight;
+                      const onMove = (me: MouseEvent) => {
+                        const newHeight = Math.max(minHeight, startHeight + (me.clientY - startY));
+                        updateAnnotation(ann.id, { height: newHeight });
+                      };
+                      const onUp = () => {
+                        window.removeEventListener("mousemove", onMove);
+                        window.removeEventListener("mouseup", onUp);
+                      };
+                      window.addEventListener("mousemove", onMove);
+                      window.addEventListener("mouseup", onUp);
+                    }}
+                  />
+                )}
+
+                {/* Corner resize handle (bottom-right) */}
+                {isSelected && !isEditing && (
+                  <rect
+                    x={t.x + t.width - 8}
+                    y={t.y + foHeight - 8}
+                    width={8}
+                    height={8}
+                    rx={2}
+                    fill="#3b82f6"
+                    style={{ cursor: "nwse-resize" }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      const startX = e.clientX;
+                      const startY = e.clientY;
+                      const startWidth = t.width;
+                      const startHeight = foHeight;
+                      const onMove = (me: MouseEvent) => {
+                        const newWidth = Math.max(80, startWidth + (me.clientX - startX));
+                        const newHeight = Math.max(minHeight, startHeight + (me.clientY - startY));
+                        updateAnnotation(ann.id, { width: newWidth, height: newHeight });
                       };
                       const onUp = () => {
                         window.removeEventListener("mousemove", onMove);

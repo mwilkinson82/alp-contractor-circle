@@ -87,6 +87,7 @@ interface GanttChartProps {
   normalBarColor?: string | null;   // per-schedule custom non-critical bar color (hex)
   externalScrollTop?: number;       // scroll sync: external scroll position from table
   onScrollTopChange?: (scrollTop: number) => void; // scroll sync: notify parent of scroll changes
+  onScrollChange?: (scroll: { scrollTop: number; scrollLeft: number }) => void; // full scroll position for annotation sync
   magnificationZoom?: number; // 50-150 for row height scaling
 }
 
@@ -248,6 +249,7 @@ export default function GanttChart({
   normalBarColor,
   externalScrollTop,
   onScrollTopChange,
+  onScrollChange,
   magnificationZoom = 100,
 }: GanttChartProps) {
   // Dynamic row height: taller when cost overlay is active to prevent clipping
@@ -1331,6 +1333,10 @@ export default function GanttChart({
       // Notify parent of scroll changes (for sync with table) — but only if user-initiated
       if (!isExternalScrollRef.current && onScrollTopChange) {
         onScrollTopChange(el.scrollTop);
+      }
+      // Notify parent of full scroll position (for annotation overlay sync)
+      if (onScrollChange) {
+        onScrollChange({ scrollTop: el.scrollTop, scrollLeft: el.scrollLeft });
       }
       isExternalScrollRef.current = false;
     }
