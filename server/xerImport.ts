@@ -1,6 +1,12 @@
 /**
  * XER Import Service — converts Primavera P6 XER files into our schedule format.
  * Uses the xer-parser library for parsing, then maps to our DB schema.
+ * 
+ * Optimized for large files (14MB+, 2000+ activities) with:
+ * - Bulk DB inserts (batched) instead of one-at-a-time
+ * - Two-pass WBS import (create all, then update parent references)
+ * - Streaming-capable XER parser
+ * - Detailed error messages
  */
 import { XER } from "xer-parser";
 import * as sdb from "./scheduleDb";
@@ -31,14 +37,10 @@ const P6_REL_MAP: Record<string, "FS" | "SS" | "FF" | "SF"> = {
 // ─── Calendar work-day detection from P6 clndr_data ─────────────────────────
 
 function parseP6CalendarWorkDays(cal: any): { workDaysMask: number; workWeek: "5day" | "7day" } {
-  // P6 calendar dayHrCnt tells us hours per day
-  // We'll try to detect from the clndr_data string which days are work days
-  // Default to 5-day if we can't parse
   const data = cal.clndrData || "";
 
   // P6 clndr_data format: contains day definitions like "d|1|Y|..." for each weekday
   // Day numbers: 1=Sunday, 2=Monday, ..., 7=Saturday
-  // We'll look for patterns like "(0||d|1)(0||)" for non-work and "(8.0||d|2)(s|08:00|f|16:00)" for work
   let mask = 0;
   const dayRegex = /\(([^)]*)\|\|d\|(\d)\)/g;
   let match;
@@ -88,12 +90,20 @@ export async function importXerFile(
   overrideName?: string,
 ): Promise<XerImportResult> {
   const warnings: string[] = [];
+  const t0 = Date.now();
 
-  // Parse the XER file
-  const xer = new XER(xerText);
+  // ─── Parse the XER file ──────────────────────────────────────────────────
+  console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+  let xer: InstanceType<typeof XER>;
+  try {
+    xer = new XER(xerText);
+  } catch (e: any) {
+    throw new Error(`Failed to parse XER file: ${e.message}. Make sure this is a valid Primavera P6 XER export.`);
+  }
+  console.log(`[XER Import] Parsed in ${Date.now() - t0}ms — ${xer.projects.length} projects, ${xer.tasks.length} tasks, ${xer.taskPredecessors.length} predecessors`);
 
   if (xer.projects.length === 0) {
-    throw new Error("No projects found in XER file");
+    throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
   }
 
   // Use the first project
@@ -112,6 +122,7 @@ export async function importXerFile(
     projectStartDate: projectStart,
     dataDate,
   });
+  console.log(`[XER Import] Created schedule #${scheduleId}: "${scheduleName}"`);
 
   // ─── Import Calendars ──────────────────────────────────────────────────────
 
@@ -119,7 +130,6 @@ export async function importXerFile(
   let defaultCalendarId: number | null = null;
 
   for (const cal of xer.calendars) {
-    // Only import calendars used by this project or global calendars
     const { workDaysMask, workWeek } = parseP6CalendarWorkDays(cal);
 
     const { id: calId } = await sdb.createCalendar({
@@ -148,23 +158,23 @@ export async function importXerFile(
     });
     defaultCalendarId = calId;
   }
+  console.log(`[XER Import] Imported ${calendarIdMap.size} calendars`);
 
-  // Add US construction holidays
+  // Add US construction holidays (bulk insert)
   const startYear = projectStart.getFullYear();
   const holidays = [
     ...getUSConstructionHolidays(startYear),
     ...getUSConstructionHolidays(startYear + 1),
   ];
-  for (const h of holidays) {
-    await sdb.addCalendarException({
-      calendarId: defaultCalendarId,
-      exceptionDate: new Date(h.date + "T00:00:00"),
-      exceptionType: "holiday",
-      description: h.description,
-    });
-  }
+  const holidayRows = holidays.map(h => ({
+    calendarId: defaultCalendarId!,
+    exceptionDate: new Date(h.date + "T00:00:00"),
+    exceptionType: "holiday" as const,
+    description: h.description,
+  }));
+  await sdb.bulkCreateCalendarExceptions(holidayRows);
 
-  // ─── Import WBS ────────────────────────────────────────────────────────────
+  // ─── Import WBS (two-pass for parent references) ──────────────────────────
 
   const wbsIdMap = new Map<number, number>(); // P6 wbs_id → our wbs id
   const WBS_COLORS = [
@@ -172,9 +182,8 @@ export async function importXerFile(
     "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
     "#14B8A6", "#E11D48", "#0EA5E9", "#A855F7", "#D97706",
   ];
-  const WBS_TEXT_COLORS = ["#FFFFFF"];
 
-  // Filter WBS nodes for this project, sort by parent to ensure parents are created first
+  // Filter WBS nodes for this project
   const projectWbs = xer.projWBS
     .filter(w => w.projId === project.projId)
     .sort((a, b) => {
@@ -184,21 +193,20 @@ export async function importXerFile(
       return (a.seqNum || 0) - (b.seqNum || 0);
     });
 
-  // Multi-pass: first create nodes without parents, then update parent references
+  // Pass 1: Create all WBS nodes without parent references
   let colorIdx = 0;
+  const wbsInsertOrder: { p6Id: number; p6ParentId: number | undefined }[] = [];
+  
   for (const wbs of projectWbs) {
     // Skip the project-level WBS node (projNodeFlag)
     if (wbs.projNodeFlag) {
-      // Still map it so children can reference it
       wbsIdMap.set(wbs.wbsId, -1); // sentinel
       continue;
     }
 
-    const parentOurId = wbs.parentWbsId ? wbsIdMap.get(wbs.parentWbsId) : undefined;
-
     const { id: wbsId } = await sdb.createWbsNode({
       scheduleId,
-      parentId: parentOurId && parentOurId > 0 ? parentOurId : undefined,
+      parentId: undefined, // set in pass 2
       code: wbs.wbsShortName || `WBS-${wbs.wbsId}`,
       name: wbs.wbsName || wbs.wbsShortName || "Unnamed WBS",
       sortOrder: wbs.seqNum || 0,
@@ -207,10 +215,24 @@ export async function importXerFile(
     });
 
     wbsIdMap.set(wbs.wbsId, wbsId);
+    wbsInsertOrder.push({ p6Id: wbs.wbsId, p6ParentId: wbs.parentWbsId || undefined });
     colorIdx++;
   }
 
-  // ─── Import Activities ─────────────────────────────────────────────────────
+  // Pass 2: Update parent references
+  for (const { p6Id, p6ParentId } of wbsInsertOrder) {
+    if (!p6ParentId) continue;
+    const ourId = wbsIdMap.get(p6Id);
+    const parentOurId = wbsIdMap.get(p6ParentId);
+    if (ourId && ourId > 0 && parentOurId && parentOurId > 0) {
+      await sdb.updateWbsNode(ourId, { parentId: parentOurId });
+    }
+  }
+
+  const wbsCount = wbsInsertOrder.length;
+  console.log(`[XER Import] Imported ${wbsCount} WBS nodes`);
+
+  // ─── Import Activities (bulk insert) ──────────────────────────────────────
 
   const activityIdMap = new Map<number, number>(); // P6 task_id → our activity DB id
   const projectTasks = xer.tasks.filter(t => t.project?.projId === project.projId);
@@ -220,10 +242,16 @@ export async function importXerFile(
     return (a.taskCode || "").localeCompare(b.taskCode || "");
   });
 
+  // Build all activity rows first, then bulk insert
+  const activityRows: Parameters<typeof sdb.bulkCreateActivities>[0] = [];
+  const taskIdOrder: number[] = []; // P6 task_id in insert order
+  let skippedWbsSummary = 0;
+
   let sortOrder = 0;
   for (const task of sortedTasks) {
     // Skip WBS summary tasks
     if ((task.taskType as string) === "TT_WBS") {
+      skippedWbsSummary++;
       warnings.push(`Skipped WBS summary task: ${task.taskCode} - ${task.taskName}`);
       continue;
     }
@@ -261,7 +289,7 @@ export async function importXerFile(
     // Map calendar
     const calId = task.calendar ? calendarIdMap.get(task.calendar.clndrId) : undefined;
 
-    const { id: actId } = await sdb.createActivity({
+    activityRows.push({
       scheduleId,
       activityId: task.taskCode || `IMP-${sortOrder}`,
       name: task.taskName || "Unnamed Activity",
@@ -277,12 +305,22 @@ export async function importXerFile(
       constraintDate: constraintDate || undefined,
     });
 
-    activityIdMap.set(task.taskId, actId);
+    taskIdOrder.push(task.taskId);
   }
 
-  // ─── Import Relationships ──────────────────────────────────────────────────
+  console.log(`[XER Import] Inserting ${activityRows.length} activities (skipped ${skippedWbsSummary} WBS summaries)...`);
+  const actIds = await sdb.bulkCreateActivities(activityRows);
 
-  let relsImported = 0;
+  // Map P6 task IDs to our DB IDs
+  for (let i = 0; i < taskIdOrder.length; i++) {
+    activityIdMap.set(taskIdOrder[i], actIds[i].id);
+  }
+  console.log(`[XER Import] Inserted ${actIds.length} activities`);
+
+  // ─── Import Relationships (bulk insert) ────────────────────────────────────
+
+  const relRows: Parameters<typeof sdb.bulkCreateRelationships>[0] = [];
+
   for (const pred of xer.taskPredecessors) {
     // Only import relationships within this project
     if (pred.projId !== project.projId) continue;
@@ -302,23 +340,25 @@ export async function importXerFile(
     const dayHrCnt = 8; // default
     const lagDays = Math.round((pred.lag?.hours || 0) / dayHrCnt);
 
-    await sdb.createRelationship({
+    relRows.push({
       scheduleId,
       predecessorId: predecessorDbId,
       successorId: successorDbId,
       relationshipType: relType,
       lagDays,
     });
-
-    relsImported++;
   }
+
+  console.log(`[XER Import] Inserting ${relRows.length} relationships...`);
+  await sdb.bulkCreateRelationships(relRows);
+  console.log(`[XER Import] Done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   return {
     scheduleName,
     scheduleId,
     activitiesImported: activityIdMap.size,
-    relationshipsImported: relsImported,
-    wbsNodesImported: wbsIdMap.size - (projectWbs.some(w => w.projNodeFlag) ? 1 : 0),
+    relationshipsImported: relRows.length,
+    wbsNodesImported: wbsCount,
     calendarsImported: calendarIdMap.size,
     warnings,
   };

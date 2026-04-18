@@ -2343,4 +2343,24 @@
 - [x] Residential template (Smith Residence) WBS already correct in scheduleRouter.ts
 
 ## XER Import Error Fix
-- [ ] Fix "Service Unavailable" / "Unexpected token 'S'" error when importing XER files
+- [x] Fix "Service Unavailable" / "Unexpected token 'S'" error when importing XER files
+
+## Onboarding Content Fix & Expansion
+- [x] Fix "Blue bars" → "Green bars" in Gantt Chart step
+- [x] Add step for Activity Codes (what they are, how to assign)
+- [x] Add step for Filtering & Sorting (filter by code, sort by date/float)
+- [x] Add step for Layouts (save/load different views)
+- [x] Add step for Reports & Annotations (mark up delays, add notes)
+- [x] Add messaging: "This is a professional-grade CPM scheduling application — anything you can do in P6, you can do here"
+- [x] Expand from 6 steps to 8-10 steps covering full feature set (now 10 steps)
+
+## XER Import Fix
+- [x] Fix "Service Unavailable" / "Unexpected token 'S'" error on XER import (bulk inserts + better parsing)
+- [x] Increase file upload size limit for large XER files (14MB+) — body-parser already 350MB
+- [x] Increase server timeout for XER parsing (5 min server timeout)
+- [x] Better error messaging on import failure
+
+## Help / Tour Menu Item
+- [x] Add "Help / Tour" item to Settings dropdown
+- [x] Re-trigger onboarding overlay from Settings menu
+- [x] Reset onboarding state so it replays from step 1 (CpmOnboarding resets to step 0 on mount)

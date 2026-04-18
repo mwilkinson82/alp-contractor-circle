@@ -39,7 +39,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown,
   AlertTriangle, CheckCircle2, Search, FolderTree, Palette, Eye, EyeOff,
   BookOpen, LayoutGrid, Star, Undo2, Redo2, BarChart3, DollarSign, Pencil,
-  Maximize2, Minimize2, MessageSquarePlus, Copy,
+  Maximize2, Minimize2, MessageSquarePlus, Copy, HelpCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
@@ -1812,7 +1812,10 @@ export default function Scheduler() {
             <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
               <MessageSquarePlus className="w-4 h-4 mr-2" /> Send Feedback
             </DropdownMenuItem>
-          </DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
+              <HelpCircle className="w-4 h-4 mr-2" /> Help / Tour
+            </DropdownMenuItem>
+           </DropdownMenuContent>
           </DropdownMenu>
             </div>
             <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Settings</span>

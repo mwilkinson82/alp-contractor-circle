@@ -106,6 +106,12 @@ async function startServer() {
   // Start drip campaign engine (checks every 15 minutes for pending sends)
   startDripEngine();
 
+  // Increase server timeout to 5 minutes for large XER imports
+  server.timeout = 300000;
+  server.requestTimeout = 300000;
+  server.headersTimeout = 300000;
+  server.keepAliveTimeout = 120000;
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     console.log(`[Discord] OAuth configured for guild: ${process.env.DISCORD_GUILD_ID || "927273292354711613"}`);

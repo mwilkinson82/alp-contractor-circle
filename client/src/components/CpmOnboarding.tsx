@@ -2,13 +2,15 @@
  * CPM Scheduler Quick Start Onboarding Overlay
  * 
  * A guided walkthrough that appears the first time a user opens the CPM Scheduler.
- * Walks them through the key concepts: WBS view, activities, relationships, Gantt chart, and toolbar.
+ * Walks them through ALL key features: WBS, activities, relationships, Gantt,
+ * activity codes, filtering/sorting, layouts, reports/annotations, and toolbar.
  */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  FolderTree, ListChecks, Link2, BarChart3, Settings,
-  ChevronRight, ChevronLeft, X, Rocket, Lightbulb
+  FolderTree, ListChecks, Link2, BarChart3, Settings, Tags,
+  Filter, LayoutGrid, FileText, ChevronRight, ChevronLeft,
+  X, Rocket, Lightbulb, Crown
 } from "lucide-react";
 
 interface CpmOnboardingProps {
@@ -18,13 +20,13 @@ interface CpmOnboardingProps {
 
 const STEPS = [
   {
-    icon: Rocket,
-    title: "Welcome to CPM Schedule Builder",
-    subtitle: "Your construction scheduling command center",
+    icon: Crown,
+    title: "Welcome to ConstructLine",
+    subtitle: "Professional-grade CPM scheduling — built for contractors",
     content: [
-      "This is a professional-grade Critical Path Method (CPM) scheduling tool — the same methodology used in Primavera P6 and Microsoft Project.",
-      "We've designed it to be intuitive so you can focus on building great schedules without the steep learning curve.",
-      "Let's walk through the key features in about 60 seconds."
+      "You're now using a professional-grade Critical Path Method (CPM) scheduling application — the same methodology used in Oracle Primavera P6.",
+      "Everything you can do in P6, you can do here: WBS hierarchies, activity codes, logic ties, critical path analysis, resource loading, PDF exports, and more.",
+      "We've designed it to be intuitive so you can build world-class schedules without the steep learning curve. Let's walk through the key features."
     ],
     tip: null,
   },
@@ -33,55 +35,99 @@ const STEPS = [
     title: "Work Breakdown Structure (WBS)",
     subtitle: "Organize your project into logical phases",
     content: [
-      "The left panel shows your WBS tree — a hierarchical breakdown of your project into phases like Sitework, Foundation, Structure, etc.",
-      "Each WBS node groups related activities together. Click a WBS node to expand/collapse its activities.",
-      "You can add, rename, reorder, and color-code WBS nodes to match your project's structure."
+      "Your schedule is organized by WBS — a hierarchical breakdown of your project. \"Construction\" is the main parent, with trade divisions like Sitework, Concrete, Structural, and MEP as children underneath.",
+      "Click any WBS node to expand or collapse its activities. Right-click to add child nodes, rename, reorder, or color-code them.",
+      "When grouped by WBS, you see your schedule the way you'd present it to an owner or GC — organized by phase, not just a flat list."
     ],
-    tip: "If you started from a template, your WBS is already set up. You can customize it anytime.",
+    tip: "Templates come with a pre-built WBS. Customize it to match your project's actual scope and divisions.",
   },
   {
     icon: ListChecks,
     title: "Activities & Durations",
     subtitle: "The building blocks of your schedule",
     content: [
-      "Activities are the individual tasks in your schedule — each has an ID, name, and duration (in working days).",
-      "Click any activity row to edit it. Use the + button or right-click to add new activities.",
-      "The columns panel lets you show/hide fields like Early Start, Early Finish, Total Float, and more."
+      "Activities are the individual tasks — each has an ID, name, and duration in working days. Click any row to edit it inline.",
+      "Use the + Add button to create new activities, or right-click for more options. The Columns button lets you show/hide fields like Early Start, Early Finish, Total Float, and more.",
+      "Activities with 0d Total Float are on the Critical Path — any delay to those activities pushes your project completion date."
     ],
-    tip: "Activities with 0 Total Float are on the Critical Path — any delay pushes your project end date.",
+    tip: "Use the Bulk Add button to quickly add multiple activities at once — great for building out a new phase.",
   },
   {
     icon: Link2,
     title: "Logic Ties (Relationships)",
     subtitle: "Connect activities to build your schedule logic",
     content: [
-      "Relationships define the sequence: which activities must finish before others can start.",
-      "The most common type is Finish-to-Start (FS): Activity A must finish before Activity B starts.",
-      "Select two activities and use the Link button to create a relationship, or edit them in the activity detail panel."
+      "Relationships define the sequence of work: Finish-to-Start (FS), Start-to-Start (SS), Finish-to-Finish (FF), and Start-to-Finish (SF).",
+      "Select two activities and use the Link button, or click the ··· menu on any activity to add predecessors and successors with lag.",
+      "After adding relationships, hit the Calculate button (▶) to run the forward and backward pass — this computes your critical path and all dates."
     ],
-    tip: "After adding relationships, click the Calculate (play) button to compute your critical path and dates.",
+    tip: "The most common relationship is FS (Finish-to-Start). Use SS with lag for overlapping activities like \"Start framing 5 days after drywall starts.\"",
   },
   {
     icon: BarChart3,
     title: "Gantt Chart",
     subtitle: "Visualize your schedule timeline",
     content: [
-      "The right panel shows the Gantt chart — a visual timeline of all your activities.",
-      "Blue bars show activity durations. Red bars highlight the critical path. Gray lines show relationships.",
-      "Scroll horizontally to navigate the timeline. Use the zoom controls to adjust the time scale."
+      "The right panel shows the Gantt chart — a visual timeline of all your activities. Green bars show activity durations. Red bars highlight the critical path.",
+      "Gray lines between bars show your logic ties (relationships). Scroll horizontally to navigate the timeline.",
+      "Use the zoom controls (Day, Week, Month) and percentage buttons (50%, 75%, 100%, 125%, 150%) to adjust the time scale to your liking."
     ],
-    tip: "The Gantt updates automatically when you calculate the schedule. Look for the red critical path!",
+    tip: "The Gantt updates automatically when you calculate. Look for the red critical path — that's what drives your project end date.",
+  },
+  {
+    icon: Tags,
+    title: "Activity Codes",
+    subtitle: "Categorize and organize your activities",
+    content: [
+      "Activity Codes let you tag activities with categories like Phase, Trade, Area, or Responsibility — just like P6 activity codes.",
+      "Use the Columns button to add activity code columns to your spreadsheet. Click any cell to assign a code value from the dropdown.",
+      "Once coded, you can Group By or Filter by any activity code to see exactly what you need — like \"Show me all Electrical activities\" or \"Group by Phase.\""
+    ],
+    tip: "Activity codes are powerful for reporting. Code your activities early — it pays off when you need to filter or present to different audiences.",
+  },
+  {
+    icon: Filter,
+    title: "Filtering & Sorting",
+    subtitle: "Find exactly what you need, instantly",
+    content: [
+      "The Filter button lets you create filters by any field — WBS, activity code, date range, float, or critical path status.",
+      "Sort any column by clicking its header. Sort by Total Float to see your most critical activities first.",
+      "The Group button lets you group your view by WBS, Activity Code, or other criteria — switch between views instantly without changing your data."
+    ],
+    tip: "Create a filter for \"Critical Path Only\" to focus on the activities that matter most during schedule reviews.",
+  },
+  {
+    icon: LayoutGrid,
+    title: "Layouts",
+    subtitle: "Save and switch between different views",
+    content: [
+      "Layouts save your entire view configuration — which columns are visible, how you're grouped, what filters are active, and your zoom level.",
+      "Save a layout for \"Owner Presentation\" (grouped by WBS, key columns only) and another for \"Detailed Review\" (all columns, sorted by float).",
+      "Switch between layouts instantly from the Settings dropdown. Your PDF export settings are saved with each layout too."
+    ],
+    tip: "The default layout is auto-created when you start from a template. Create additional layouts for different audiences.",
+  },
+  {
+    icon: FileText,
+    title: "Reports & Annotations",
+    subtitle: "Document, annotate, and export your schedule",
+    content: [
+      "The Annotate tool lets you mark up your Gantt chart — highlight delays, add notes to activities, and document schedule changes for owner presentations.",
+      "Export to PDF with customizable headers and footers — your company name, logo, project name, and client info are pulled automatically from your profile and schedule settings.",
+      "The Reports section gives you schedule statistics, critical path summaries, and activity breakdowns you can present to owners and GCs."
+    ],
+    tip: "Use annotations before schedule review meetings to highlight key changes, delays, or recovery plans directly on the Gantt.",
   },
   {
     icon: Settings,
-    title: "Toolbar & Settings",
-    subtitle: "Everything you need is one click away",
+    title: "You're Ready to Build",
+    subtitle: "Everything a P6 scheduler needs — without the complexity",
     content: [
-      "The toolbar at the top gives you quick access to: Calculate (play button), Save, Undo/Redo, Columns, Filters, and more.",
-      "The Settings dropdown has display options, PDF export, activity codes, and schedule settings.",
-      "Use Group By to organize your view by WBS, Activity Code, or other criteria."
+      "You now have a complete CPM scheduling toolset: WBS hierarchies, activity codes, logic ties, critical path analysis, Gantt visualization, filtering, layouts, annotations, and PDF export.",
+      "The Settings dropdown has additional options: schedule settings (project name, client, contract number), display preferences, and feedback.",
+      "This is YOUR scheduling application. Build it the way you want. Import from P6, start from a template, or build from scratch. You're in control."
     ],
-    tip: "Export to PDF anytime — your header/footer settings are saved automatically for next time.",
+    tip: "Need help? Click Settings → Help / Tour anytime to replay this walkthrough. We're building this for you — send feedback anytime.",
   },
 ];
 

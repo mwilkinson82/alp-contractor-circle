@@ -108,7 +108,7 @@ export default function ScheduleList() {
 
   const xerImportMutation = trpc.schedule.importXer.useMutation({
     onSuccess: (data) => {
-      toast.success(`Imported "${data.scheduleName}" — ${data.activitiesImported} activities, ${data.relationshipsImported} relationships`);
+      toast.success(`Imported "${data.scheduleName}" — ${data.activitiesImported} activities, ${data.relationshipsImported} relationships, ${data.wbsNodesImported} WBS nodes`);
       setShowXerImport(false);
       setXerFile(null);
       setXerScheduleName("");
@@ -117,7 +117,17 @@ export default function ScheduleList() {
       schedulesQuery.refetch();
     },
     onError: (err) => {
-      toast.error(`XER import failed: ${err.message}`);
+      const msg = err.message || "Unknown error";
+      // Provide user-friendly error messages
+      if (msg.includes("Service Unavailable") || msg.includes("503")) {
+        toast.error("Import timed out — the file may be too large. Try splitting the XER into smaller projects in P6.");
+      } else if (msg.includes("Unexpected token")) {
+        toast.error("Server returned an error during import. The file may be corrupted or in an unsupported format.");
+      } else if (msg.includes("Failed to parse XER")) {
+        toast.error(msg);
+      } else {
+        toast.error(`XER import failed: ${msg}`);
+      }
       setXerImporting(false);
     },
   });
@@ -620,7 +630,7 @@ export default function ScheduleList() {
               className="bg-ember text-primary-foreground hover:bg-ember-dark"
             >
               {xerImporting ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Importing...</>
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Importing{xerFile && xerFile.size > 5_000_000 ? " (large file — this may take a minute)" : ""}...</>
               ) : (
                 <><FileUp className="w-4 h-4 mr-2" />Import Schedule</>
               )}

@@ -559,3 +559,72 @@ export async function deleteAnnotationsBySchedule(scheduleId: number) {
   const db = requireDb();
   await db.delete(scheduleAnnotations).where(eq(scheduleAnnotations.scheduleId, scheduleId));
 }
+
+
+// ─── Bulk Insert Helpers (for XER import performance) ─────────────────────────
+
+/**
+ * Bulk insert activities in batches of 100.
+ * Returns array of { id } in the same order as input.
+ */
+export async function bulkCreateActivities(rows: InsertActivity[]): Promise<{ id: number }[]> {
+  if (rows.length === 0) return [];
+  const db = requireDb();
+  const ids: { id: number }[] = [];
+  const BATCH = 100;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const result = await db.insert(activities).values(batch);
+    const firstId = result[0].insertId;
+    for (let j = 0; j < batch.length; j++) {
+      ids.push({ id: firstId + j });
+    }
+  }
+  return ids;
+}
+
+/**
+ * Bulk insert relationships in batches of 200.
+ */
+export async function bulkCreateRelationships(rows: InsertActivityRelationship[]): Promise<void> {
+  if (rows.length === 0) return;
+  const db = requireDb();
+  const BATCH = 200;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    await db.insert(activityRelationships).values(batch);
+  }
+}
+
+/**
+ * Bulk insert WBS nodes in batches of 50.
+ * Returns array of { id } in the same order as input.
+ */
+export async function bulkCreateWbsNodes(rows: InsertScheduleWbs[]): Promise<{ id: number }[]> {
+  if (rows.length === 0) return [];
+  const db = requireDb();
+  const ids: { id: number }[] = [];
+  const BATCH = 50;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const result = await db.insert(scheduleWbs).values(batch);
+    const firstId = result[0].insertId;
+    for (let j = 0; j < batch.length; j++) {
+      ids.push({ id: firstId + j });
+    }
+  }
+  return ids;
+}
+
+/**
+ * Bulk insert calendar exceptions in batches of 50.
+ */
+export async function bulkCreateCalendarExceptions(rows: InsertCalendarException[]): Promise<void> {
+  if (rows.length === 0) return;
+  const db = requireDb();
+  const BATCH = 50;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    await db.insert(calendarExceptions).values(batch);
+  }
+}
