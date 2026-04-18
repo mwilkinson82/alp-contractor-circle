@@ -246,6 +246,15 @@ export async function assignCodeToActivity(data: InsertActivityCodeAssignment) {
   return { id: result[0].insertId };
 }
 
+export async function bulkCreateCodeAssignments(rows: InsertActivityCodeAssignment[]): Promise<void> {
+  if (rows.length === 0) return;
+  const db = requireDb();
+  const BATCH = 200;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    await db.insert(activityCodeAssignments).values(rows.slice(i, i + BATCH));
+  }
+}
+
 export async function getCodeAssignmentsByActivity(activityId: number) {
   const db = requireDb();
   return db

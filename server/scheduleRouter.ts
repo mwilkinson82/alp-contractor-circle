@@ -575,19 +575,42 @@ export const scheduleRouter = router({
     }),
 
   duplicate: publicProcedure
-    .input(z.object({ id: z.number(), name: z.string().min(1).max(256) }))
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(256),
+      /** Optional new data date (for schedule updates). If omitted, copies the source data date. */
+      dataDate: z.date().optional(),
+      /** Whether to copy annotations (default: true) */
+      copyAnnotations: z.boolean().optional().default(true),
+      /** Whether to copy layouts (default: true) */
+      copyLayouts: z.boolean().optional().default(true),
+      /** Whether to copy resources (default: true) */
+      copyResources: z.boolean().optional().default(true),
+    }))
     .mutation(async ({ ctx, input }) => {
       const { member, schedule } = await requireScheduleOwner(ctx.req, input.id);
 
-      // Create new schedule
+      // ── 1. Create new schedule (full field copy) ─────────────────────────
       const { id: newId } = await sdb.createSchedule({
         memberId: member.id,
         name: input.name,
         description: schedule.description,
         projectStartDate: schedule.projectStartDate,
+        dataDate: input.dataDate ?? schedule.dataDate ?? undefined,
+        activityIdPrefix: schedule.activityIdPrefix,
+        activityIdStart: schedule.activityIdStart,
+        activityIdInterval: schedule.activityIdInterval,
+        activityIdNext: schedule.activityIdNext,
+        criticalBarColor: schedule.criticalBarColor ?? undefined,
+        normalBarColor: schedule.normalBarColor ?? undefined,
+        projectName: schedule.projectName ?? undefined,
+        clientName: schedule.clientName ?? undefined,
+        contractNumber: schedule.contractNumber ?? undefined,
+        companyNameOverride: schedule.companyNameOverride ?? undefined,
+        companyLogoOverride: schedule.companyLogoOverride ?? undefined,
       });
 
-      // Copy calendars
+      // ── 2. Copy calendars + exceptions ───────────────────────────────────
       const cals = await sdb.getCalendarsBySchedule(input.id);
       const calIdMap = new Map<number, number>();
       for (const cal of cals) {
@@ -599,60 +622,88 @@ export const scheduleRouter = router({
           isDefault: cal.isDefault,
         });
         calIdMap.set(cal.id, newCalId);
-
-        // Copy exceptions
         const exceptions = await sdb.getCalendarExceptions(cal.id);
-        for (const ex of exceptions) {
-          await sdb.addCalendarException({
-            calendarId: newCalId,
-            exceptionDate: ex.exceptionDate,
-            exceptionType: ex.exceptionType,
-            description: ex.description,
-          });
+        if (exceptions.length > 0) {
+          await sdb.bulkCreateCalendarExceptions(
+            exceptions.map(ex => ({
+              calendarId: newCalId,
+              exceptionDate: ex.exceptionDate,
+              exceptionType: ex.exceptionType,
+              description: ex.description ?? undefined,
+            }))
+          );
         }
       }
-
-      // Update default calendar reference
       if (schedule.defaultCalendarId && calIdMap.has(schedule.defaultCalendarId)) {
         await sdb.updateSchedule(newId, { defaultCalendarId: calIdMap.get(schedule.defaultCalendarId)! });
       }
 
-      // Copy activities
-      const acts = await sdb.getActivitiesBySchedule(input.id);
-      const actIdMap = new Map<number, number>();
-      for (const act of acts) {
-        const newCalId = act.calendarId ? calIdMap.get(act.calendarId) : undefined;
-        const { id: newActId } = await sdb.createActivity({
+      // ── 3. Copy WBS nodes (preserve hierarchy via parentId remap) ────────
+      const wbsNodes = await sdb.getWbsBySchedule(input.id);
+      const wbsIdMap = new Map<number, number>();
+      // Insert in sort order so parents always come before children
+      const wbsRows = wbsNodes.map(w => ({
+        scheduleId: newId,
+        parentId: null as number | null, // will be remapped after insert
+        code: w.code,
+        name: w.name,
+        sortOrder: w.sortOrder,
+        groupColor: w.groupColor ?? undefined,
+        groupTextColor: w.groupTextColor ?? undefined,
+        _origId: w.id,
+        _origParentId: w.parentId,
+      }));
+      for (const w of wbsRows) {
+        const { id: newWbsId } = await sdb.createWbsNode({
           scheduleId: newId,
-          activityId: act.activityId,
-          name: act.name,
-          duration: act.duration,
-          wbs: act.wbs,
-          percentComplete: act.percentComplete,
-          sortOrder: act.sortOrder,
-          calendarId: newCalId || null,
-          notes: act.notes,
+          parentId: w._origParentId ? (wbsIdMap.get(w._origParentId) ?? null) : null,
+          code: w.code,
+          name: w.name,
+          sortOrder: w.sortOrder,
+          groupColor: w.groupColor,
+          groupTextColor: w.groupTextColor,
         });
-        actIdMap.set(act.id, newActId);
+        wbsIdMap.set(w._origId, newWbsId);
       }
 
-      // Copy relationships
+      // ── 4. Copy activities (all fields) ──────────────────────────────────
+      const acts = await sdb.getActivitiesBySchedule(input.id);
+      const actRows = acts.map(act => ({
+        scheduleId: newId,
+        activityId: act.activityId,
+        name: act.name,
+        duration: act.duration,
+        wbs: act.wbs ?? undefined,
+        percentComplete: act.percentComplete,
+        actualStart: act.actualStart ?? undefined,
+        actualFinish: act.actualFinish ?? undefined,
+        sortOrder: act.sortOrder,
+        calendarId: act.calendarId ? (calIdMap.get(act.calendarId) ?? null) : null,
+        barColor: act.barColor ?? undefined,
+        wbsId: act.wbsId ? (wbsIdMap.get(act.wbsId) ?? null) : null,
+        activityType: (act.activityType as "task" | "milestone") ?? "task",
+        constraintType: (act.constraintType as any) ?? "ASAP",
+        constraintDate: act.constraintDate ?? undefined,
+        notes: act.notes ?? undefined,
+      }));
+      const newActIds = await sdb.bulkCreateActivities(actRows);
+      const actIdMap = new Map<number, number>();
+      acts.forEach((act, i) => actIdMap.set(act.id, newActIds[i].id));
+
+      // ── 5. Copy relationships ─────────────────────────────────────────────
       const rels = await sdb.getRelationshipsBySchedule(input.id);
-      for (const rel of rels) {
-        const newPred = actIdMap.get(rel.predecessorId);
-        const newSucc = actIdMap.get(rel.successorId);
-        if (newPred && newSucc) {
-          await sdb.createRelationship({
-            scheduleId: newId,
-            predecessorId: newPred,
-            successorId: newSucc,
-            relationshipType: rel.relationshipType,
-            lagDays: rel.lagDays,
-          });
-        }
-      }
+      const relRows = rels
+        .map(rel => ({
+          scheduleId: newId,
+          predecessorId: actIdMap.get(rel.predecessorId)!,
+          successorId: actIdMap.get(rel.successorId)!,
+          relationshipType: rel.relationshipType,
+          lagDays: rel.lagDays,
+        }))
+        .filter(r => r.predecessorId && r.successorId);
+      await sdb.bulkCreateRelationships(relRows);
 
-      // Copy code categories, values, and assignments
+      // ── 6. Copy activity code categories, values, and assignments ─────────
       const categories = await sdb.getCodeCategoriesBySchedule(input.id);
       const codeValueIdMap = new Map<number, number>();
       for (const cat of categories) {
@@ -672,18 +723,93 @@ export const scheduleRouter = router({
           codeValueIdMap.set(val.id, newValId);
         }
       }
-
-      // Copy code assignments
       const assignments = await sdb.getCodeAssignmentsBySchedule(input.id);
-      for (const asgn of assignments) {
-        const newActId = actIdMap.get(asgn.activityId);
-        const newValId = codeValueIdMap.get(asgn.codeValueId);
-        if (newActId && newValId) {
-          await sdb.assignCodeToActivity({ activityId: newActId, codeValueId: newValId });
+      const codeAssignRows = assignments
+        .map(asgn => ({
+          activityId: actIdMap.get(asgn.activityId)!,
+          codeValueId: codeValueIdMap.get(asgn.codeValueId)!,
+        }))
+        .filter(r => r.activityId && r.codeValueId);
+      await sdb.bulkCreateCodeAssignments(codeAssignRows);
+
+      // ── 7. Copy resources + activity assignments ──────────────────────────
+      if (input.copyResources !== false) {
+        const resources = await sdb.getResourcesBySchedule(input.id);
+        const resIdMap = new Map<number, number>();
+        for (const res of resources) {
+          const { id: newResId } = await sdb.createResource({
+            scheduleId: newId,
+            name: res.name,
+            resourceType: res.resourceType,
+            unit: res.unit,
+            costRate: res.costRate,
+            maxUnitsPerDay: res.maxUnitsPerDay,
+            notes: res.notes ?? undefined,
+          });
+          resIdMap.set(res.id, newResId);
+        }
+        const resAssignments = await sdb.getResourceAssignmentsBySchedule(input.id);
+        for (const ra of resAssignments) {
+          const newActId = actIdMap.get(ra.activityId);
+          const newResId = resIdMap.get(ra.resourceId);
+          if (newActId && newResId) {
+            await sdb.assignResourceToActivity({
+              scheduleId: newId,
+              activityId: newActId,
+              resourceId: newResId,
+              unitsPerDay: ra.unitsPerDay,
+              costRateOverride: ra.costRateOverride ?? undefined,
+              budgetedCost: ra.budgetedCost,
+              actualCost: ra.actualCost,
+            });
+          }
         }
       }
 
-      // Recalculate
+      // ── 8. Copy cost accounts ─────────────────────────────────────────────
+      const costAccts = await sdb.getCostAccountsBySchedule(input.id);
+      const costAcctIdMap = new Map<number, number>();
+      for (const ca of costAccts) {
+        const { id: newCaId } = await sdb.createCostAccount({
+          scheduleId: newId,
+          code: ca.code,
+          name: ca.name,
+          parentId: ca.parentId ? (costAcctIdMap.get(ca.parentId) ?? null) : null,
+          budget: ca.budget,
+        });
+        costAcctIdMap.set(ca.id, newCaId);
+      }
+
+      // ── 9. Copy layouts ───────────────────────────────────────────────────
+      if (input.copyLayouts !== false) {
+        const layouts = await sdb.getLayoutsBySchedule(input.id);
+        for (const layout of layouts) {
+          await sdb.createLayout({
+            scheduleId: newId,
+            name: layout.name,
+            isDefault: layout.isDefault,
+            config: layout.config,
+          });
+        }
+      }
+
+      // ── 10. Copy annotations ──────────────────────────────────────────────
+      if (input.copyAnnotations !== false) {
+        const annotations = await sdb.getAnnotationsBySchedule(input.id);
+        if (annotations.length > 0) {
+          await sdb.saveAnnotations(
+            newId,
+            annotations.map((ann, i) => ({
+              scheduleId: newId,
+              annotationType: ann.annotationType,
+              data: ann.data,
+              sortOrder: i,
+            }))
+          );
+        }
+      }
+
+      // ── 11. Recalculate CPM ───────────────────────────────────────────────
       await recalculateAndPersist(newId);
 
       return { id: newId };

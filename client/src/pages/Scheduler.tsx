@@ -642,6 +642,9 @@ export default function Scheduler() {
   const [showLayoutDialog, setShowLayoutDialog] = useState(false);
   const [layoutName, setLayoutName] = useState("");
   const [layoutIsDefault, setLayoutIsDefault] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicateDataDate, setDuplicateDataDate] = useState("");
   const [activeLayoutId, setActiveLayoutId] = useState<number | null>(null);
 
   /* ── Activity Code Filter State ───────────────────────────────────────── */
@@ -1072,6 +1075,15 @@ export default function Scheduler() {
     onSuccess: (_data, vars) => {
       toast.success(`Template created: ${vars.name}`);
       utils.schedule.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const duplicateAsUpdateMut = trpc.schedule.duplicate.useMutation({
+    onSuccess: (data, vars) => {
+      toast.success(`Schedule duplicated: "${vars.name}" — opening now`);
+      utils.schedule.list.invalidate();
+      setShowDuplicateDialog(false);
+      window.open(`/scheduler/${data.id}`, "_blank");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -1810,6 +1822,15 @@ export default function Scheduler() {
               <Download className="w-4 h-4 mr-2" /> Export PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
+              const defaultName = `${schedule?.schedule?.name || 'Schedule'} - Update ${(baselines?.filter((b: any) => b.snapshotType === 'update').length ?? 0) + 1}`;
+              setDuplicateName(defaultName);
+              const today = new Date().toISOString().split('T')[0];
+              setDuplicateDataDate(dataDate ? dataDate.toISOString().split('T')[0] : today);
+              setShowDuplicateDialog(true);
+            }} disabled={duplicateAsUpdateMut.isPending}>
+              <Copy className="w-4 h-4 mr-2" /> Duplicate as Update
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               const templateName = `${schedule?.schedule?.name || 'Schedule'} - Template`;
               duplicateMut.mutate({ id: scheduleId!, name: templateName });
@@ -3380,6 +3401,60 @@ export default function Scheduler() {
             >
               {updateScheduleMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Calendar className="w-4 h-4 mr-2" />}
               Set Data Date & Calculate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Duplicate as Update Dialog ──────────────────────────────────────── */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-lg">Duplicate Schedule as Update</DialogTitle>
+            <DialogDescription>
+              Creates a full copy of this schedule — including all activities, logic ties, calendars, WBS, resources, annotations, and layouts — as a new independent schedule. Set a new data date to advance the update period.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div>
+              <Label className="text-xs text-gray-400 mb-1 block">New Schedule Name</Label>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="e.g., Project X - Update 2"
+                className="border-white/15 bg-white/5 text-gray-100"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-400 mb-1 block">New Data Date <span className="text-gray-500">(as-of date for CPM recalculation)</span></Label>
+              <Input
+                type="date"
+                value={duplicateDataDate}
+                onChange={(e) => setDuplicateDataDate(e.target.value)}
+                className="border-white/15 bg-white/5 text-gray-100"
+              />
+            </div>
+            <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-300">
+              <strong>What gets copied:</strong> All activities (with actual dates, constraints, bar colors), logic ties, calendars &amp; exceptions, WBS structure, activity codes, resources, cost accounts, layouts, and annotations. CPM will be recalculated with the new data date.
+            </div>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)} className="border-white/15">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!scheduleId || !duplicateName.trim()) return;
+                duplicateAsUpdateMut.mutate({
+                  id: scheduleId,
+                  name: duplicateName.trim(),
+                  dataDate: duplicateDataDate ? new Date(duplicateDataDate + "T00:00:00") : undefined,
+                });
+              }}
+              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              disabled={!duplicateName.trim() || duplicateAsUpdateMut.isPending}
+            >
+              {duplicateAsUpdateMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              Duplicate &amp; Open
             </Button>
           </DialogFooter>
         </DialogContent>

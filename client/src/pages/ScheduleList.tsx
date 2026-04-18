@@ -53,6 +53,7 @@ export default function ScheduleList() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showDuplicate, setShowDuplicate] = useState<number | null>(null);
   const [duplicateName, setDuplicateName] = useState("");
+  const [duplicateDataDate, setDuplicateDataDate] = useState("");
   const [showXerImport, setShowXerImport] = useState(false);
   const [xerFile, setXerFile] = useState<File | null>(null);
   const [xerScheduleName, setXerScheduleName] = useState("");
@@ -324,7 +325,8 @@ export default function ScheduleList() {
                       onOpen={() => window.open(`/scheduler/${s.id}`, "_blank")}
                       onDuplicate={() => {
                         setShowDuplicate(s.id);
-                        setDuplicateName(`${s.name} (Copy)`);
+                        setDuplicateName(`${s.name} - Update`);
+                        setDuplicateDataDate(new Date().toISOString().slice(0, 10));
                       }}
                       onArchive={() =>
                         archiveMutation.mutate({
@@ -363,7 +365,8 @@ export default function ScheduleList() {
                       }
                       onDuplicate={() => {
                         setShowDuplicate(s.id);
-                        setDuplicateName(`${s.name} (Copy)`);
+                        setDuplicateName(`${s.name} - Update`);
+                        setDuplicateDataDate(new Date().toISOString().slice(0, 10));
                       }}
                       onArchive={() =>
                         archiveMutation.mutate({
@@ -551,16 +554,31 @@ export default function ScheduleList() {
         <DialogContent className="bg-card border-border max-w-xl text-base">
           <DialogHeader>
             <DialogTitle className="font-heading">
-              Duplicate Schedule
+              Duplicate Schedule as Update
             </DialogTitle>
+            <DialogDescription>
+              Creates a full copy with all activities, logic, WBS, resources, annotations, and layouts. Set a new data date to advance the update period.
+            </DialogDescription>
           </DialogHeader>
-          <div>
-            <Label>New Name</Label>
-            <Input
-              value={duplicateName}
-              onChange={(e) => setDuplicateName(e.target.value)}
-              className="mt-1"
-            />
+          <div className="space-y-3">
+            <div>
+              <Label>New Schedule Name</Label>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                className="mt-1"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>New Data Date <span className="text-muted-foreground text-xs">(as-of date for CPM recalculation)</span></Label>
+              <Input
+                type="date"
+                value={duplicateDataDate}
+                onChange={(e) => setDuplicateDataDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -575,6 +593,7 @@ export default function ScheduleList() {
                 duplicateMutation.mutate({
                   id: showDuplicate,
                   name: duplicateName,
+                  dataDate: duplicateDataDate ? new Date(duplicateDataDate + "T00:00:00") : undefined,
                 })
               }
               disabled={!duplicateName.trim() || duplicateMutation.isPending}
@@ -583,7 +602,7 @@ export default function ScheduleList() {
               {duplicateMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              Duplicate
+              Duplicate &amp; Open
             </Button>
           </DialogFooter>
         </DialogContent>
