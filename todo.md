@@ -2444,3 +2444,6 @@
 - [x] Add ConstructLine nav link to homepage top nav
 - [x] Redirect legacy /try to /constructline
 - [x] Contractor Circle upsell section at bottom ($97/mo)
+
+## Takeoff Project Settings Modal Bug
+- [x] Fix overlapping text in Project Settings modal — Cost Region, division items, and description text overlapping (added flex-1 to body div)

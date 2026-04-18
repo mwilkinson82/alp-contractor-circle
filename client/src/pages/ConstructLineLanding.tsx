@@ -1,7 +1,7 @@
 /**
  * ConstructLine Landing Page — Professional marketing page at /constructline
- * Showcases ALP's proprietary construction tools with screenshots, feature
- * explanations, and a free signup funnel that leads into the beta portal.
+ * Showcases ALP's proprietary construction tools with REAL application screenshots,
+ * feature explanations, and a free signup funnel.
  */
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
@@ -17,6 +17,14 @@ import {
   Clock,
   Target,
   ChevronDown,
+  BarChart3,
+  FileText,
+  Filter,
+  Link2,
+  DollarSign,
+  Activity,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,57 +34,21 @@ import { ConstructLineWordmark } from "@/components/ConstructLineBrand";
 const HERO_IMAGE =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/marshall_hero.webp";
 
-const SCHEDULER_SCREENSHOT =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/constructline-cpm-scheduler-screenshot-BZ2jFoyWuGfdzJpdQVwF4i.webp";
-
-const TAKEOFF_SCREENSHOT =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/constructline-takeoff-screenshot-ZmNeNKsoHFWs9JR8RPF5iH.webp";
+/* ─── Real application screenshots ─── */
+const SCREENSHOTS = {
+  schedulerGantt: "/manus-storage/cl-scheduler-gantt_7b0f4330.webp",
+  schedulerResidence: "/manus-storage/cl-scheduler-residence_a252c7ab.webp",
+  activityDetails: "/manus-storage/cl-activity-details_6394e4aa.webp",
+  advancedFilters: "/manus-storage/cl-advanced-filters_2a29dfb1.webp",
+  resourcesCost: "/manus-storage/cl-resources-cost_7e0dea57.webp",
+  resourceAssignments: "/manus-storage/cl-resource-assignments_8acd1d08.webp",
+  reportsFloat: "/manus-storage/cl-reports-float_09aa81fe.webp",
+  reportsCashflow: "/manus-storage/cl-reports-cashflow_a8780773.webp",
+  reportsHistogram: "/manus-storage/cl-reports-histogram_dab3be41.webp",
+  scheduleHealth: "/manus-storage/cl-schedule-health_21b851b9.webp",
+};
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const TOOLS = [
-  {
-    icon: GanttChart,
-    name: "CPM Scheduler",
-    tagline: "Critical Path Method scheduling built for the field.",
-    description:
-      "Create professional CPM schedules with Gantt charts, task dependencies, and baseline tracking. The same methodology used on billion-dollar projects — now accessible to every contractor.",
-    screenshot: SCHEDULER_SCREENSHOT,
-    features: [
-      "Drag-and-drop Gantt chart with dependency arrows",
-      "Automatic critical path calculation",
-      "Baseline tracking and schedule variance reporting",
-      "Export-ready reports for owners and GCs",
-    ],
-  },
-  {
-    icon: Ruler,
-    name: "Quantity Takeoff",
-    tagline: "Measure plans. Generate quantities. Win more bids.",
-    description:
-      "Upload your blueprints and use professional-grade measurement tools — linear, area, count, and volume — to generate accurate quantity takeoffs directly from your plans.",
-    screenshot: TAKEOFF_SCREENSHOT,
-    features: [
-      "Linear, area, count, and volume measurement tools",
-      "Multi-page plan support with sheet navigation",
-      "Real-time measurement summary with export",
-      "Markup annotations and color-coded overlays",
-    ],
-  },
-  {
-    icon: Database,
-    name: "Cost Library",
-    tagline: "Your pricing database. Always current.",
-    description:
-      "Build and maintain a centralized cost library with your real-world pricing data. Reference it during takeoffs and estimates to produce accurate bids faster.",
-    features: [
-      "Organize costs by CSI division or custom categories",
-      "Unit cost tracking with material + labor breakdown",
-      "Import/export for team-wide consistency",
-      "Integrates with Quantity Takeoff for instant estimates",
-    ],
-  },
-];
 
 const VALUE_PROPS = [
   {
@@ -230,7 +202,7 @@ export default function ConstructLineLanding() {
               className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-ember"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              Proprietary Construction Tools by ALP
+              ALP Contractor Circle — Proprietary Tools
             </span>
           </motion.div>
 
@@ -351,107 +323,535 @@ export default function ConstructLineLanding() {
         </div>
       </section>
 
-      {/* ─── TOOLS SHOWCASE ─── */}
-      {TOOLS.map((tool, i) => (
-        <section
-          key={tool.name}
-          className={`py-20 sm:py-28 px-4 sm:px-6 ${i % 2 === 0 ? "" : "bg-midnight/40"}`}
-        >
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.8, ease: easeOutCubic }}
-              className={`grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center ${
-                i % 2 !== 0 ? "lg:grid-flow-dense" : ""
-              }`}
-            >
-              {/* Text */}
-              <div className={i % 2 !== 0 ? "lg:col-start-2" : ""}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
-                    <tool.icon className="w-5 h-5 text-ember" />
-                  </div>
-                  <span
-                    className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
-                    style={{ fontFamily: "'Sora', sans-serif" }}
-                  >
-                    ConstructLine
-                  </span>
-                </div>
-                <h2
-                  className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
-                  {tool.name}
-                </h2>
-                <p
-                  className="text-lg text-cream/60 mb-6 font-medium"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  {tool.tagline}
-                </p>
-                <p
-                  className="text-cream/50 text-sm leading-relaxed mb-8"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  {tool.description}
-                </p>
-                <ul className="space-y-3">
-                  {tool.features.map((feat, j) => (
-                    <li key={j} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-ember mt-0.5 shrink-0" />
-                      <span
-                        className="text-sm text-cream/70"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        {feat}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+      {/* ═══════════════════════════════════════════════════════════════
+          TOOL 1: CPM SCHEDULER — Full Showcase
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="text-center mb-16"
+          >
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                <GanttChart className="w-5 h-5 text-ember" />
               </div>
+              <span
+                className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                ConstructLine
+              </span>
+            </div>
+            <h2
+              className="text-3xl sm:text-5xl font-bold text-cream mb-4 leading-tight"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              CPM Scheduler
+            </h2>
+            <p
+              className="text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Critical Path Method scheduling built for the field. The same methodology used on billion-dollar projects — now accessible to every contractor.
+            </p>
+          </motion.div>
 
-              {/* Screenshot */}
-              <div className={i % 2 !== 0 ? "lg:col-start-1" : ""}>
-                {tool.screenshot ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-80px" }}
-                    transition={{ duration: 0.8, delay: 0.2, ease: easeOutCubic }}
-                    className="relative group"
-                  >
-                    {/* Glow */}
-                    <div className="absolute -inset-4 rounded-2xl bg-ember/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    <div className="relative rounded-xl overflow-hidden border border-cream/10 shadow-2xl shadow-black/40">
-                      <img
-                        src={tool.screenshot}
-                        alt={`${tool.name} interface`}
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-80px" }}
-                    transition={{ duration: 0.8, delay: 0.2, ease: easeOutCubic }}
-                    className="relative rounded-xl overflow-hidden border border-cream/10 bg-midnight-card p-12 flex flex-col items-center justify-center min-h-[300px]"
-                  >
-                    <tool.icon className="w-16 h-16 text-ember/30 mb-4" />
-                    <p className="text-cream/40 text-sm font-medium" style={{ fontFamily: "'Sora', sans-serif" }}>
-                      Coming Soon
-                    </p>
-                  </motion.div>
-                )}
+          {/* Main screenshot — Gantt chart */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="relative group mb-16"
+          >
+            <div className="absolute -inset-4 rounded-2xl bg-ember/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-xl overflow-hidden border border-cream/10 shadow-2xl shadow-black/40">
+              <img
+                src={SCREENSHOTS.schedulerGantt}
+                alt="ConstructLine CPM Scheduler — Water Treatment Plant Gantt Chart"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Full CPM schedule with Gantt chart, WBS hierarchy, and critical path highlighting
+            </p>
+          </motion.div>
+
+          {/* Feature grid with screenshots */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            {/* Activity Details */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.activityDetails}
+                  alt="Activity Details — edit properties, relationships, and schedule"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Link2 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Activity Details & Dependencies
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Edit every property — duration, WBS, constraints, bar color. Link predecessors and successors with FS, SS, FF, SF relationships and lag.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Advanced Filters */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.advancedFilters}
+                  alt="Advanced Filters — filter by activity ID, WBS, critical path, float, dates, and activity codes"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Filter className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Advanced Filtering
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Filter by activity ID, name, WBS, critical path, float range, date range, and activity codes. Isolate exactly what you need for any meeting.
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
-        </section>
-      ))}
+
+          {/* Second main screenshot — Residence project */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="relative group mb-16"
+          >
+            <div className="absolute -inset-4 rounded-2xl bg-ember/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-xl overflow-hidden border border-cream/10 shadow-2xl shadow-black/40">
+              <img
+                src={SCREENSHOTS.schedulerResidence}
+                alt="ConstructLine CPM Scheduler — Smith Residence with submittals, fabrication, and procurement tracking"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Residential project with submittals, fabrication, and procurement tracking — from contract signing to final completion
+            </p>
+          </motion.div>
+
+          {/* Resources & Cost Loading */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.resourcesCost}
+                  alt="Resources & Cost Loading — define labor, equipment, materials with cost rates"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <DollarSign className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Resources & Cost Loading
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Define labor, equipment, materials, and subcontractors with cost rates. Track budgeted vs. actual costs across your entire project.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.resourceAssignments}
+                  alt="Resource Assignments — assign resources to activities and track budgeted vs actual costs"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Users className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Resource Assignments
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Assign resources to activities with units/day. See budgeted costs calculated automatically. Track actual costs as work progresses.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Reports Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.7, ease: easeOutCubic }}
+            className="mb-8"
+          >
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/8 border border-ember/20 mb-4">
+                <BarChart3 className="w-3.5 h-3.5 text-ember" />
+                <span className="text-xs font-semibold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Built-In Reports
+                </span>
+              </div>
+              <h3
+                className="text-2xl sm:text-3xl font-bold text-cream mb-3"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Professional Reports — Ready to Print
+              </h3>
+              <p className="text-cream/50 text-sm max-w-xl mx-auto" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Generate the reports owners and GCs actually ask for. Export to CSV or print directly.
+              </p>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            {/* Total Float Report */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.reportsFloat}
+                  alt="Total Float Report — activity-level float analysis with critical path identification"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Total Float Report
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Activity-level float analysis. See total float, free float, critical path status, and early/late dates for every activity.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Cash Flow S-Curve */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.reportsCashflow}
+                  alt="Cash Flow S-Curve — budgeted vs actual cost tracking over project duration"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <TrendingUp className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Cash Flow S-Curve
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Visualize project cash flow over time. Track budgeted vs. actual spending with weekly detail breakdowns.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Resource Histogram */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.reportsHistogram}
+                  alt="Resource Histogram — weekly resource loading by trade across project duration"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <BarChart3 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Resource Histogram
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    See weekly resource loading by trade. Plan manpower, identify overallocation, and level resources before you hit the field.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Schedule Health Score */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.7, delay: 0.1, ease: easeOutCubic }}
+            >
+              <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
+                <img
+                  src={SCREENSHOTS.scheduleHealth}
+                  alt="Schedule Health Score — automated schedule quality assessment with grading"
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="flex items-start gap-3">
+                <Activity className="w-5 h-5 text-ember mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Schedule Health Score
+                  </h4>
+                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Automated schedule quality assessment. Grades your schedule on float distribution, critical path integrity, logic density, resource balance, and progress.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* CPM Feature bullets */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: easeOutCubic }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                "Drag-and-drop Gantt chart",
+                "Automatic critical path calculation",
+                "Baseline tracking & variance",
+                "WBS hierarchy with color coding",
+                "Day/Week/Month zoom views",
+                "CSV import & export",
+                "DD & Set data date",
+                "Print-ready PDF reports",
+              ].map((feat, j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />
+                  <span className="text-sm text-cream/60" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {feat}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TOOL 2: QUANTITY TAKEOFF
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 bg-midnight/40">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
+          >
+            {/* Text */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                  <Ruler className="w-5 h-5 text-ember" />
+                </div>
+                <span
+                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  ConstructLine
+                </span>
+              </div>
+              <h2
+                className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Quantity Takeoff
+              </h2>
+              <p
+                className="text-lg text-cream/60 mb-6 font-medium"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                AI-powered quantity estimating. Upload plans. Get quantities.
+              </p>
+              <p
+                className="text-cream/50 text-sm leading-relaxed mb-8"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Upload your blueprints and let ConstructLine's AI engine analyze your drawings — automatically detecting and measuring quantities across all CSI divisions. Review, adjust, and export professional estimates in minutes, not days.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "AI-powered plan analysis across 20+ CSI divisions",
+                  "Multi-page plan support with sheet navigation",
+                  "Trade specialty detection for line item accuracy",
+                  "Regional cost adjustments (US, UK, Canada)",
+                  "Export to CSV with full line item detail",
+                  "Scope description filtering for targeted analysis",
+                ].map((feat, j) => (
+                  <li key={j} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-ember mt-0.5 shrink-0" />
+                    <span
+                      className="text-sm text-cream/70"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {feat}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Placeholder — no takeoff screenshot yet */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.8, delay: 0.2, ease: easeOutCubic }}
+              className="relative rounded-xl overflow-hidden border border-cream/10 bg-midnight-card p-12 flex flex-col items-center justify-center min-h-[400px]"
+            >
+              <Ruler className="w-20 h-20 text-ember/20 mb-6" />
+              <p className="text-cream/50 text-lg font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
+                Quantity Takeoff
+              </p>
+              <p className="text-cream/30 text-sm text-center max-w-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Upload blueprints, select divisions, and let the AI engine generate your estimate.
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TOOL 3: COST LIBRARY
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8, ease: easeOutCubic }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center lg:grid-flow-dense"
+          >
+            {/* Text */}
+            <div className="lg:col-start-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                  <Database className="w-5 h-5 text-ember" />
+                </div>
+                <span
+                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  ConstructLine
+                </span>
+              </div>
+              <h2
+                className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Cost Library
+              </h2>
+              <p
+                className="text-lg text-cream/60 mb-6 font-medium"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Your pricing database. Always current.
+              </p>
+              <p
+                className="text-cream/50 text-sm leading-relaxed mb-8"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Build and maintain a centralized cost library with your real-world pricing data. Reference it during takeoffs and estimates to produce accurate bids faster.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Organize costs by CSI division or custom categories",
+                  "Unit cost tracking with material + labor breakdown",
+                  "Import/export for team-wide consistency",
+                  "Integrates with Quantity Takeoff for instant estimates",
+                ].map((feat, j) => (
+                  <li key={j} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-ember mt-0.5 shrink-0" />
+                    <span
+                      className="text-sm text-cream/70"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {feat}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Placeholder */}
+            <div className="lg:col-start-1">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.8, delay: 0.2, ease: easeOutCubic }}
+                className="relative rounded-xl overflow-hidden border border-cream/10 bg-midnight-card p-12 flex flex-col items-center justify-center min-h-[400px]"
+              >
+                <Database className="w-20 h-20 text-ember/20 mb-6" />
+                <p className="text-cream/50 text-lg font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Cost Library
+                </p>
+                <p className="text-cream/30 text-sm text-center max-w-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Centralized pricing database for your construction business.
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* ─── SOCIAL PROOF STRIP ─── */}
       <section className="py-12 px-4 border-y border-cream/[0.06] bg-midnight/30">
