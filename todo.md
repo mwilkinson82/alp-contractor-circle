@@ -2456,3 +2456,25 @@
 - [x] Fix text box annotation cutting off long text — replaced input with textarea for word wrap
 - [x] Support Shift+Enter for manual line breaks in annotation text boxes
 - [x] Auto-resize text box height to fit wrapped content
+
+## Annotation Text Box Rebuild (CPM Scheduler)
+- [ ] Use foreignObject in SVG for real text wrapping instead of SVG text elements
+- [ ] Text box background must properly size to wrapped text content
+- [ ] Add Bold button to text box toolbar
+- [ ] Add Italic button to text box toolbar
+- [ ] Add Underline button to text box toolbar
+- [ ] Add Font Size control to text box toolbar
+- [ ] Shift+Enter creates new lines in text box
+## Landing Page Updates (April 18)
+- [x] Remove $97/mo pricing from Contractor Circle section — price is $497/mo but don't show it
+- [x] Replace CTA with "Learn More About Contractor Circle" linking to homepage
+- [x] Update section to "Limited Release — Proprietary Contractor Circle ConstructLine"
+- [x] Add "Powered by ALP" underneath ConstructLine branding throughout page
+## Mobile Optimization — ConstructLine Landing (April 18)
+- [x] Ensure all animations work on mobile (framer-motion whileInView)
+- [x] Screenshot galleries responsive on mobile — proper sizing, no overflow
+- [x] Typography scales properly on small screens
+- [x] Hero section mobile-optimized
+- [x] Value props stack properly on mobile
+- [x] Signup form mobile-friendly
+- [x] All sections have proper mobile padding and spacing

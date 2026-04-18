@@ -135,7 +135,7 @@ export default function ConstructLineLanding() {
   return (
     <div className="min-h-screen bg-navy-deep text-cream">
       {/* ─── HERO ─── */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex flex-col overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[100svh] sm:min-h-[90vh] flex flex-col overflow-hidden">
         {/* Parallax background */}
         <motion.div className="absolute inset-0 z-0" style={{ scale: imageScale, y: imageY }}>
           <img
@@ -167,7 +167,7 @@ export default function ConstructLineLanding() {
         />
 
         {/* Top Nav */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 py-5">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 sm:px-10 py-4 sm:py-5">
           <div className="flex items-center gap-3">
             <span
               className="text-ember font-bold text-lg tracking-tight"
@@ -176,7 +176,7 @@ export default function ConstructLineLanding() {
               ALP
             </span>
             <span className="text-cream/25 text-sm hidden sm:inline">|</span>
-            <ConstructLineWordmark size="sm" showSubtitle={false} className="hidden sm:flex" />
+            <ConstructLineWordmark size="sm" showSubtitle={true} className="flex" />
           </div>
           <div className="flex items-center gap-4">
             <a
@@ -208,10 +208,10 @@ export default function ConstructLineLanding() {
           >
             <Zap size={13} className="text-ember" fill="currentColor" />
             <span
-              className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-ember"
+              className="text-[9px] sm:text-xs font-semibold tracking-[0.12em] sm:tracking-[0.15em] uppercase text-ember"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              ALP Contractor Circle — Proprietary Tools
+              Limited Release — Proprietary Construction Tools
             </span>
           </motion.div>
 
@@ -222,12 +222,18 @@ export default function ConstructLineLanding() {
             transition={{ duration: 0.9, ease: easeOutCubic, delay: 0.3 }}
           >
             <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-bold leading-[0.95] tracking-tight mb-6"
+              className="text-[3.25rem] sm:text-7xl md:text-8xl font-bold leading-[0.95] tracking-tight mb-2"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               <span className="text-cream">Construct</span>
               <span className="text-amber-400">Line</span>
             </h1>
+            <p
+              className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-gray-500 mb-4"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              Powered by ALP
+            </p>
           </motion.div>
 
           {/* Animated underline */}
@@ -247,7 +253,7 @@ export default function ConstructLineLanding() {
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: easeOutCubic, delay: 0.6 }}
-            className="text-lg sm:text-2xl text-cream/80 font-light leading-relaxed mb-3 max-w-3xl mx-auto"
+            className="text-base sm:text-2xl text-cream/80 font-light leading-relaxed mb-3 max-w-3xl mx-auto px-2 sm:px-0"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             Professional construction-grade tools developed by{" "}
@@ -258,7 +264,7 @@ export default function ConstructLineLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: easeOutCubic, delay: 0.8 }}
-            className="text-sm sm:text-base text-cream/45 max-w-xl mx-auto mb-10 leading-relaxed"
+            className="text-sm sm:text-base text-cream/45 max-w-xl mx-auto mb-10 leading-relaxed px-2 sm:px-0"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             CPM Scheduling. Quantity Takeoff. Cost Library.
@@ -281,7 +287,7 @@ export default function ConstructLineLanding() {
             />
             <button
               onClick={scrollToSignup}
-              className="relative inline-flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.04] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] cursor-pointer"
+              className="relative inline-flex items-center gap-3 px-7 sm:px-10 py-4 sm:py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 active:scale-[0.97] hover:scale-[1.04] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] cursor-pointer"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               Try ConstructLine Free
@@ -302,9 +308,9 @@ export default function ConstructLineLanding() {
       </section>
 
       {/* ─── VALUE PROPS ─── */}
-      <section className="py-20 px-4 sm:px-6 border-t border-cream/[0.06]">
+      <section className="py-14 sm:py-20 px-4 sm:px-6 border-t border-cream/[0.06]">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12">
             {VALUE_PROPS.map((prop, i) => (
               <motion.div
                 key={i}
@@ -312,9 +318,9 @@ export default function ConstructLineLanding() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.7, delay: i * 0.15, ease: easeOutCubic }}
-                className="text-center md:text-left"
+                className="text-center sm:text-left"
               >
-                <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center mb-5 mx-auto md:mx-0">
+                <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center mb-5 mx-auto sm:mx-0">
                   <prop.icon className="w-6 h-6 text-ember" />
                 </div>
                 <h3
@@ -335,7 +341,7 @@ export default function ConstructLineLanding() {
       {/* ═══════════════════════════════════════════════════════════════
           TOOL 1: CPM SCHEDULER — Full Showcase
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6">
+      <section className="py-16 sm:py-28 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <motion.div
@@ -343,27 +349,30 @@ export default function ConstructLineLanding() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, ease: easeOutCubic }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
-                <GanttChart className="w-5 h-5 text-ember" />
+            <div className="flex flex-col items-center gap-1 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                  <GanttChart className="w-5 h-5 text-ember" />
+                </div>
+                <span
+                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  ConstructLine
+                </span>
               </div>
-              <span
-                className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
-                ConstructLine
-              </span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
             </div>
             <h2
-              className="text-3xl sm:text-5xl font-bold text-cream mb-4 leading-tight"
+              className="text-3xl sm:text-5xl font-bold text-cream mb-3 sm:mb-4 leading-tight"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               CPM Scheduler
             </h2>
             <p
-              className="text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed"
+              className="text-base sm:text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed px-2 sm:px-0"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
               Critical Path Method scheduling built for the field. The same methodology used on billion-dollar projects — now accessible to every contractor.
@@ -392,7 +401,7 @@ export default function ConstructLineLanding() {
           </motion.div>
 
           {/* Feature grid with screenshots */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {/* Activity Details */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -470,7 +479,7 @@ export default function ConstructLineLanding() {
           </motion.div>
 
           {/* Resources & Cost Loading */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -551,7 +560,7 @@ export default function ConstructLineLanding() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {/* Total Float Report */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -669,7 +678,7 @@ export default function ConstructLineLanding() {
             transition={{ duration: 0.7, ease: easeOutCubic }}
             className="max-w-2xl mx-auto"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 "Drag-and-drop Gantt chart",
                 "Automatic critical path calculation",
@@ -695,7 +704,7 @@ export default function ConstructLineLanding() {
       {/* ═══════════════════════════════════════════════════════════════
           TOOL 2: QUANTITY TAKEOFF
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6 bg-midnight/40">
+      <section className="py-16 sm:py-28 px-4 sm:px-6 bg-midnight/40">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <motion.div
@@ -703,27 +712,30 @@ export default function ConstructLineLanding() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, ease: easeOutCubic }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
-                <Ruler className="w-5 h-5 text-ember" />
+            <div className="flex flex-col items-center gap-1 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                  <Ruler className="w-5 h-5 text-ember" />
+                </div>
+                <span
+                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  ConstructLine
+                </span>
               </div>
-              <span
-                className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
-                ConstructLine
-              </span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
             </div>
             <h2
-              className="text-3xl sm:text-5xl font-bold text-cream mb-4 leading-tight"
+              className="text-3xl sm:text-5xl font-bold text-cream mb-3 sm:mb-4 leading-tight"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               Quantity Takeoff
             </h2>
             <p
-              className="text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed"
+              className="text-base sm:text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed px-2 sm:px-0"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
               AI-powered quantity estimating. Upload your blueprints and get a full CSI-coded estimate with 851+ line items — in minutes, not days.
@@ -752,7 +764,7 @@ export default function ConstructLineLanding() {
           </motion.div>
 
           {/* Feature grid with real screenshots */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {/* Line Items with CSI Codes */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -924,7 +936,7 @@ export default function ConstructLineLanding() {
             transition={{ duration: 0.7, ease: easeOutCubic }}
             className="max-w-2xl mx-auto"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 "AI-powered plan analysis",
                 "20+ CSI divisions detected",
@@ -950,27 +962,30 @@ export default function ConstructLineLanding() {
       {/* ═══════════════════════════════════════════════════════════════
           TOOL 3: COST LIBRARY
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6">
+      <section className="py-16 sm:py-28 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8, ease: easeOutCubic }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center lg:grid-flow-dense"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center lg:grid-flow-dense"
           >
             {/* Text */}
             <div className="lg:col-start-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
-                  <Database className="w-5 h-5 text-ember" />
+              <div className="flex flex-col gap-1 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center">
+                    <Database className="w-5 h-5 text-ember" />
+                  </div>
+                  <span
+                    className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
+                    ConstructLine
+                  </span>
                 </div>
-                <span
-                  className="text-xs font-semibold tracking-[0.15em] uppercase text-ember/70"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
-                  ConstructLine
-                </span>
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500 ml-[52px]" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
               </div>
               <h2
                 className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
@@ -1036,12 +1051,12 @@ export default function ConstructLineLanding() {
       <section className="py-12 px-4 border-y border-cream/[0.06] bg-midnight/30">
         <div className="max-w-4xl mx-auto text-center">
           <p
-            className="text-cream/40 text-xs uppercase tracking-[0.2em] mb-6"
+            className="text-cream/40 text-xs uppercase tracking-[0.2em] mb-4 sm:mb-6"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Developed by ALP — The Contractor Circle
+            ConstructLine — Powered by ALP
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4 sm:gap-6">
             <div>
               <p className="text-3xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
                 $2.5B+
@@ -1071,7 +1086,7 @@ export default function ConstructLineLanding() {
       </section>
 
       {/* ─── SIGNUP SECTION ─── */}
-      <section ref={signupRef} id="signup" className="py-20 sm:py-28 px-4 sm:px-6">
+      <section ref={signupRef} id="signup" className="py-16 sm:py-28 px-4 sm:px-6">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/10 border border-ember/20 mb-6">
@@ -1084,11 +1099,12 @@ export default function ConstructLineLanding() {
               </span>
             </div>
             <h2
-              className="text-3xl sm:text-4xl font-bold text-cream mb-4 leading-tight"
+              className="text-2xl sm:text-4xl font-bold text-cream mb-4 leading-tight"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               Try Construct<span className="text-amber-400">Line</span> Today
             </h2>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-500 -mt-2 mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</p>
             <p
               className="text-cream/55 text-base leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
@@ -1221,46 +1237,50 @@ export default function ConstructLineLanding() {
         </div>
       </section>
 
-      {/* ─── CONTRACTOR CIRCLE UPSELL ─── */}
-      <section className="py-20 px-4 sm:px-6 bg-midnight/40 border-t border-cream/[0.06]">
+      {/* ─── CONTRACTOR CIRCLE ─── */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-midnight/40 border-t border-cream/[0.06]">
         <div className="max-w-3xl mx-auto text-center">
           <p
             className="text-xs uppercase tracking-[0.2em] text-cream/30 mb-4"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Want the Full Package?
+            Limited Release
           </p>
           <h2
-            className="text-3xl sm:text-4xl font-bold text-cream mb-4 leading-tight"
+            className="text-2xl sm:text-4xl font-bold text-cream mb-2 leading-tight"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Join The Contractor Circle
+            Proprietary Contractor Circle
+          </h2>
+          <h2
+            className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 leading-tight"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            <span className="text-cream">Construct</span>
+            <span className="text-amber-400">Line</span>
           </h2>
           <p
             className="text-cream/50 text-base leading-relaxed mb-8 max-w-xl mx-auto"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            ConstructLine is just the beginning. Contractor Circle members get live coaching calls with Marshall Wilkinson, battle-tested templates, replay library, and the full ConstructLine suite — everything you need to scale your construction business.
+            ConstructLine is part of the ALP Contractor Circle — live coaching, battle-tested templates, replay library, and the full ConstructLine suite. Everything you need to scale your construction business.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <a
               href="/"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-ember hover:bg-ember-light text-midnight font-bold rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_30px_oklch(0.72_0.12_55/0.2)]"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-ember hover:bg-ember-light text-midnight font-bold rounded-xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] shadow-[0_0_30px_oklch(0.72_0.12_55/0.2)] text-sm sm:text-base"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              Learn More — $97/mo
+              Learn More About Contractor Circle
               <ArrowRight size={16} />
             </a>
           </div>
-          <p className="text-cream/30 text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Cancel anytime. No contracts.
-          </p>
         </div>
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="py-10 px-4 border-t border-cream/[0.06]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="py-8 sm:py-10 px-4 border-t border-cream/[0.06]">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3">
             <span
               className="text-ember font-bold text-sm"
@@ -1270,7 +1290,7 @@ export default function ConstructLineLanding() {
             </span>
             <span className="text-cream/15 text-xs">|</span>
             <span className="text-cream/40 text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              ConstructLine — Proprietary Construction Tools
+              ConstructLine — Powered by ALP
             </span>
           </div>
           <p className="text-cream/25 text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
