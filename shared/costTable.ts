@@ -1334,6 +1334,23 @@ export const COST_TABLE: CostTableEntry[] = [
   ...COMMUNICATIONS_ITEMS,
   ...SECURITY_ITEMS,
   ...UTILITIES_ITEMS,
+  ...GENERAL_REQUIREMENTS_EXT,
+  ...EXISTING_CONDITIONS_EXT,
+  ...CONCRETE_ACCESSORIES_EXT,
+  ...MASONRY_EXT,
+  ...METALS_EXT,
+  ...WOOD_EXT,
+  ...THERMAL_EXT,
+  ...OPENINGS_EXT,
+  ...FINISHES_EXT,
+  ...SPECIALTIES_EXT,
+  ...EQUIPMENT_ITEMS,
+  ...PLUMBING_EXT,
+  ...HVAC_EXT,
+  ...ELECTRICAL_EXT,
+  ...EARTHWORK_EXT,
+  ...EXTERIOR_EXT,
+  ...UTILITIES_EXT,
 ];
 
 export function getEntriesForDivision(division: string): CostTableEntry[] {
