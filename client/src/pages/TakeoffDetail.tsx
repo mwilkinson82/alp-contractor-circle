@@ -125,6 +125,9 @@ export default function TakeoffDetail() {
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
+  // Elapsed timer for processing banner
+  const [processingElapsed, setProcessingElapsed] = useState(0);
+  const processingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [markups, setMarkups] = useState({
     labor: 0,
     overhead: 0,
@@ -175,6 +178,8 @@ export default function TakeoffDetail() {
 
   // Track previous processing status to detect completion transition
   const prevStatusRef = useRef<string | null>(null);
+  // Track when processing started for elapsed timer
+  const processingStartRef = useRef<number | null>(null);
 
   // Auto-switch to items tab when processing completes & refetch items
   useEffect(() => {
@@ -182,8 +187,24 @@ export default function TakeoffDetail() {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = currentStatus || null;
 
-    // Detect transition: was processing/post_processing, now completed
+    // Start elapsed timer when processing begins
+    if ((currentStatus === "processing" || currentStatus === "post_processing") && !processingTimerRef.current) {
+      processingStartRef.current = Date.now();
+      setProcessingElapsed(0);
+      processingTimerRef.current = setInterval(() => {
+        setProcessingElapsed(Math.floor((Date.now() - (processingStartRef.current || Date.now())) / 1000));
+      }, 1000);
+    }
+
+    // Stop timer and detect completion
     if (prevStatus && prevStatus !== "completed" && currentStatus === "completed") {
+      if (processingTimerRef.current) {
+        clearInterval(processingTimerRef.current);
+        processingTimerRef.current = null;
+      }
+      setProcessingElapsed(0);
+      processingStartRef.current = null;
+
       // Play completion chime and send browser notification
       playCompletionChime();
       sendCompletionNotification(project?.name || "Project");
@@ -200,7 +221,20 @@ export default function TakeoffDetail() {
         });
       }
     }
+
+    // Stop timer if status is no longer processing (e.g. error)
+    if (currentStatus !== "processing" && currentStatus !== "post_processing" && processingTimerRef.current) {
+      clearInterval(processingTimerRef.current);
+      processingTimerRef.current = null;
+    }
   }, [progress?.status, project?.status, refetchItems]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (processingTimerRef.current) clearInterval(processingTimerRef.current);
+    };
+  }, []);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 
@@ -717,14 +751,26 @@ export default function TakeoffDetail() {
 
   return (
     <div className="min-h-screen bg-navy-deep">
-      {/* Processing Status Banner — shown when AI is enhancing unit costs */}
-      {isConsolidating && (
+      {/* Processing Status Banner — shown during initial analysis or consolidation */}
+      {isProcessing && (
         <div className="sticky top-0 z-50 bg-amber-500/95 backdrop-blur text-black px-4 py-2.5 flex items-center justify-center gap-3 shadow-lg">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
-            <span className="font-semibold text-sm">AI is enhancing unit costs…</span>
+            <span className="font-semibold text-sm">
+              {isConsolidating ? "AI is enhancing unit costs…" : "AI is analyzing drawings…"}
+            </span>
           </div>
-          <span className="text-sm opacity-80">This may take 30–60 seconds. Costs will update automatically when complete.</span>
+          <span className="text-sm opacity-80">
+            {isConsolidating
+              ? "This typically takes 2–5 minutes for large projects."
+              : "Extracting quantities from all sheets. Large jobs may take several minutes."}
+          </span>
+          {processingElapsed > 0 && (
+            <span className="text-sm font-mono bg-black/20 px-2 py-0.5 rounded">
+              {Math.floor(processingElapsed / 60)}:{String(processingElapsed % 60).padStart(2, "0")}
+            </span>
+          )}
+          <span className="text-xs opacity-60">Page will refresh automatically when done.</span>
         </div>
       )}
       {/* Header Bar */}

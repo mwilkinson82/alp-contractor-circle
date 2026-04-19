@@ -761,8 +761,8 @@ export const takeoffRouter = router({
       }
       // Run post-processing in background — use post_processing status so frontend shows consolidation overlay
       await updateTakeoffProject(input.projectId, { status: "post_processing" as any });
-      // Wrap in a 5-minute timeout to prevent infinite hangs
-      const CONSOLIDATION_TIMEOUT_MS = 5 * 60 * 1000;
+      // Wrap in a 10-minute timeout to prevent infinite hangs
+      const CONSOLIDATION_TIMEOUT_MS = 10 * 60 * 1000;
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Consolidation timed out after 5 minutes")), CONSOLIDATION_TIMEOUT_MS)
       );

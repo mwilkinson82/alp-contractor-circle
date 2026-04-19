@@ -802,10 +802,10 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     try {
       console.log(`[Takeoff AI] Starting post-processing pipeline for project ${projectId}...`);
       await updateTakeoffProject(projectId, { status: "post_processing" as any });
-      // 5-minute timeout to prevent infinite hangs
-      const PP_TIMEOUT_MS = 5 * 60 * 1000;
+      // 10-minute timeout to prevent infinite hangs
+      const PP_TIMEOUT_MS = 10 * 60 * 1000;
       const ppTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Post-processing timed out after 5 minutes")), PP_TIMEOUT_MS)
+        setTimeout(() => reject(new Error("Post-processing timed out after 10 minutes")), PP_TIMEOUT_MS)
       );
       const ppStats = await Promise.race([postProcessTakeoff(projectId), ppTimeout]);
       timings.pass3_postprocess_sec = Math.round((Date.now() - postProcStart) / 1000);
