@@ -2609,3 +2609,5 @@
 - [x] Back arrow navigation to portal on Cost Library page (same as other ConstructLine pages)
 - [x] Right-align toolbar buttons in Cost Library (economy of motion for right-handed mouse users)
 - [x] Fix Cost Library color scheme to match takeoff quantity app (remove burgundy tones, match existing pages)
+- [x] Fix remaining burgundy tones in Cost Library — switch unit cost text from amber to emerald, reduce amber usage to brand mark only
+- [x] Add CSV/Excel export button to Cost Library

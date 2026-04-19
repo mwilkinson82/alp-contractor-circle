@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowLeft,
+  Download,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -325,6 +326,25 @@ export default function CostLibrary() {
               {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               Sync ConstructLine Pricing
             </Button>
+            <Button variant="outline" size="sm"
+              onClick={() => {
+                if (!entries?.length) { toast.error("No entries to export"); return; }
+                const wb = XLSX.utils.book_new();
+                const rows = entries.map((e: any) => ({
+                  Description: e.description,
+                  Unit: e.unit,
+                  "Unit Cost": (e.unitCost / 100).toFixed(2),
+                  "CSI Division": e.csiDivision || "",
+                  Notes: e.notes || "",
+                }));
+                const ws = XLSX.utils.json_to_sheet(rows);
+                XLSX.utils.book_append_sheet(wb, ws, "Cost Library");
+                XLSX.writeFile(wb, "cost-library.xlsx");
+                toast.success("Exported cost library");
+              }}
+              className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
+              <Download className="w-3.5 h-3.5" />Export
+            </Button>
             <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
           </div>
         </div>
@@ -334,10 +354,10 @@ export default function CostLibrary() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
 
         {/* How it works banner */}
-        <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/15 rounded-lg px-4 py-3">
-          <BookOpen className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+        <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/15 rounded-lg px-4 py-3">
+          <BookOpen className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div className="text-sm text-cream-muted space-y-0.5">
-            <p className="text-amber-300 font-medium">How your cost library works</p>
+            <p className="text-blue-300 font-medium">How your cost library works</p>
             <p>
               When <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> runs a takeoff, it checks your library first. If a takeoff item's description
               matches one of your entries, your unit cost overrides the built-in cost table. Entries are matched
@@ -382,9 +402,9 @@ export default function CostLibrary() {
 
         {/* Global Add Row form */}
         {addingForDivision === "__new__" && (
-          <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg overflow-hidden">
-            <div className="px-4 py-2 bg-navy-deep/50 border-b border-amber-500/20">
-              <p className="text-amber-300 font-medium text-sm">Add New Entry</p>
+          <div className="border border-white/15 bg-white/5 rounded-lg overflow-hidden">
+            <div className="px-4 py-2 bg-navy-deep/50 border-b border-white/10">
+              <p className="text-cream font-medium text-sm">Add New Entry</p>
             </div>
             <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
               <ColGroup />
@@ -398,7 +418,7 @@ export default function CostLibrary() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t border-amber-500/20">
+                <tr className="border-t border-white/10">
                   <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
                   <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
                   <td className="px-2 py-2"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
@@ -420,11 +440,11 @@ export default function CostLibrary() {
 
         {/* Library table */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-amber-500 animate-spin" /></div>
+          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-cream-muted animate-spin" /></div>
         ) : !entries?.length && !pendingEntries ? (
           <div className="flex flex-col items-center justify-center py-16 border border-white/10 rounded-lg">
-            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
-              <FileSpreadsheet className="w-8 h-8 text-amber-500" />
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+              <FileSpreadsheet className="w-8 h-8 text-cream-muted" />
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">Loading ConstructLine Pricing…</h3>
             <p className="text-cream-muted text-center max-w-md">Setting up your cost library with baseline pricing across all CSI divisions.</p>
@@ -435,7 +455,7 @@ export default function CostLibrary() {
             <div className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-cream font-semibold">Your Cost Library</h2>
-                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">{entries.length} entries</Badge>
+                <Badge className="bg-white/10 text-cream-muted border-white/20 text-xs">{entries.length} entries</Badge>
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -476,7 +496,7 @@ export default function CostLibrary() {
                       </button>
                       <button
                         onClick={(e) => startAddForDivision(div, e)}
-                        className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors"
+                        className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream px-2 py-1 rounded hover:bg-white/10 transition-colors"
                         title={`Add item to ${divName}`}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -500,7 +520,7 @@ export default function CostLibrary() {
                         <tbody>
                           {/* Inline add row for this division */}
                           {isAddingHere && (
-                            <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                            <tr className="border-t border-white/10 bg-white/5">
                               <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
                               <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
                               <td className="px-2 py-1.5"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
@@ -528,10 +548,10 @@ export default function CostLibrary() {
                               <tr key={entry.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
                                 <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
                                 <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
-                                <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
+                                <td className="px-3 py-2.5 text-emerald-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
                                 <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
                                 <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                  <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-amber-400 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-cream p-1"><Pencil className="w-3.5 h-3.5" /></button>
                                   <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                                 </div></td>
                               </tr>
