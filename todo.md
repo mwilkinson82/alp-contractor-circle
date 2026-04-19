@@ -2755,3 +2755,9 @@
 - [x] Custom roles saved via updateTradeRate mutation, displayed in division with amber "Custom Roles" section
 - [x] CrewBuilder updated: fetches custom roles from DB, merges into trade + classification dropdowns
 - [x] Custom roles now available for crew composition and flow into labor inference
+
+## Scale Calibration Prompt + Cross-Sheet Dedup (Apr 19 2026 — Release 3)
+- [ ] Scale calibration prompt fires after every sheet upload (before analysis) — modal shows each uploaded sheet, user sets scale per sheet or bulk-applies one scale to all
+- [ ] Cannot accidentally run analysis without seeing the scale prompt (prompt is mandatory, but skippable per sheet)
+- [ ] Cross-sheet deduplication context — before AI analyzes each sheet, it receives a structured summary of all items already taken off from completed sheets in the same project
+- [ ] AI instructed to not re-extract items already captured, and to flag potential overlaps in notes field

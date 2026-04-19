@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
+import ScaleCalibrationPrompt from "@/components/ScaleCalibrationPrompt";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +125,8 @@ export default function TakeoffDetail() {
   const [showRollup, setShowRollup] = useState(false);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
   const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string }>>({});
+  const [showScalePrompt, setShowScalePrompt] = useState(false);
+  const [newlyUploadedSheets, setNewlyUploadedSheets] = useState<any[]>([]);
   const [showImportExcel, setShowImportExcel] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
@@ -417,8 +420,12 @@ export default function TakeoffDetail() {
         }
       }
 
-      refetchProject();
+      // After upload, refetch sheets and show scale calibration prompt
+      await refetchProject();
       refetchProgress();
+      // Collect newly uploaded sheet IDs from the updated sheet list
+      // We'll show the prompt with the latest pending sheets
+      setShowScalePrompt(true);
     } catch (err: any) {
       toast.error(`Upload error: ${err.message}`);
     } finally {
@@ -1839,6 +1846,20 @@ export default function TakeoffDetail() {
           onSaved={(ratio, unit) => {
             setSheetScales((prev) => ({ ...prev, [calibratingSheet.id]: { ratio, unit } }));
           }}
+        />
+      )}
+
+      {/* ─── Scale Calibration Prompt (fires after every upload) ─────── */}
+      {showScalePrompt && (
+        <ScaleCalibrationPrompt
+          open={showScalePrompt}
+          sheets={(sheets as any[]).filter((s: any) => s.status === "pending")}
+          projectId={projectId}
+          onComplete={(savedScales) => {
+            setSheetScales(prev => ({ ...prev, ...savedScales }));
+            setShowScalePrompt(false);
+          }}
+          onSkipAll={() => setShowScalePrompt(false)}
         />
       )}
     </div>

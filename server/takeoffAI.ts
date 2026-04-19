@@ -21,6 +21,7 @@ import {
   getTakeoffProject,
   getDrawingSheetsByProject,
   getSheetMarkup,
+  getTakeoffItemsByProject,
 } from "./takeoffDb";
 import { postProcessTakeoff, hardScopeFilter } from "./takeoffPostProcess";
 import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
@@ -195,7 +196,7 @@ Apply these assumptions:
 - ${workType === 'union' ? 'Union labor: include all CSI Div 01 general conditions items (supervision, temp facilities, safety)' : 'Open shop: standard general conditions, no union-specific items'}`;
 }
 
-function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null, specialtyIds?: string[] | null, scaleRatio?: number | null, scaleUnit?: string | null, projectType?: string | null, workType?: string | null, region?: string | null): string {
+function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null, specialtyIds?: string[] | null, scaleRatio?: number | null, scaleUnit?: string | null, projectType?: string | null, workType?: string | null, region?: string | null, alreadyExtracted?: string | null): string {
   const divisionRef = buildDivisionReference(selectedDivisions);
   const scopeInstruction = buildScopingInstruction(selectedDivisions);
   const currencyInstruction = buildCurrencyInstruction(currency || null);
@@ -215,12 +216,15 @@ function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string
   const specialtyInjection = buildSpecialtyPromptInjection(specialtyIds || []);
   const scaleInstruction = buildScaleInstruction(scaleRatio || null, scaleUnit || null);
   const projectTypeInstruction = buildProjectTypeInstruction(projectType || null, workType || null, region || null);
+  const dedupBlock = alreadyExtracted
+    ? `\n\n## CROSS-SHEET DEDUPLICATION — CRITICAL\nThe following items have ALREADY been extracted from other sheets in this project. DO NOT re-extract these items unless you see a clearly different quantity or location. If you see something that might overlap, add a note in the \`notes\` field explaining the potential overlap but DO NOT omit it — let the post-processor decide.\n\nALREADY EXTRACTED FROM OTHER SHEETS:\n${alreadyExtracted}`
+    : "";
 
   return `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
 
 ## YOUR TASK
 Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
-${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${specialtyInjection}${scaleInstruction}${projectTypeInstruction}${contextBlock}
+${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${specialtyInjection}${scaleInstruction}${projectTypeInstruction}${contextBlock}${dedupBlock}
 
 ## PROCESS (follow exactly):
 1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
@@ -435,9 +439,10 @@ async function extractQuantities(
   scaleUnit?: string | null,
   projectType?: string | null,
   workType?: string | null,
-  region?: string | null
+  region?: string | null,
+  alreadyExtracted?: string | null
 ): Promise<TakeoffExtractionResult> {
-  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region);
+  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region, alreadyExtracted);
   const scopeNote = selectedDivisions && selectedDivisions.length > 0
     ? ` Only extract items for the specified CSI divisions: ${selectedDivisions.join(", ")}.`
     : "";
@@ -607,7 +612,8 @@ export async function processDrawingSheet(
   scaleUnit?: string | null,
   projectType?: string | null,
   workType?: string | null,
-  region?: string | null
+  region?: string | null,
+  alreadyExtracted?: string | null
 ): Promise<TakeoffExtractionResult | null> {
   try {
     // Mark sheet as processing
@@ -616,8 +622,9 @@ export async function processDrawingSheet(
     // Extraction pass: Extract quantities (scoped to selected divisions, with project context)
     const hasContext = projectContext ? " [with project context]" : "";
     const hasScale = scaleRatio ? ` [scale: ${scaleRatio.toFixed(2)}px/${scaleUnit || 'ft'}]` : "";
-    console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}${hasScale}`);
-    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region);
+    const hasDedup = alreadyExtracted ? " [with cross-sheet dedup]" : "";
+    console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}${hasScale}${hasDedup}`);
+    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region, alreadyExtracted);
 
     // Verification pass REMOVED for speed optimization.
     // The verification was adding N extra LLM calls (~7-10 min for 15 sheets)
@@ -813,6 +820,32 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     const batch = sheetsToProcess.slice(batchStart, batchStart + EXTRACT_CONCURRENCY);
     console.log(`[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`);
 
+    // Build cross-sheet dedup context from items already extracted in previous batches
+    let alreadyExtractedContext: string | null = null;
+    if (batchStart > 0) {
+      try {
+        const existingItems = await getTakeoffItemsByProject(projectId);
+        if (existingItems.length > 0) {
+          // Group by CSI division for a compact summary
+          const byDiv: Record<string, string[]> = {};
+          for (const item of existingItems.slice(0, 150)) { // cap at 150 items to keep prompt size reasonable
+            const div = (item as any).csiDivision || "00";
+            if (!byDiv[div]) byDiv[div] = [];
+            byDiv[div].push(`  - ${(item as any).csiCode || div} | ${(item as any).description} | ${(item as any).quantity} ${(item as any).unit}`);
+          }
+          const lines: string[] = [];
+          for (const [div, items] of Object.entries(byDiv).sort()) {
+            lines.push(`Division ${div}:`);
+            lines.push(...items);
+          }
+          alreadyExtractedContext = lines.join("\n");
+          console.log(`[Takeoff AI] Cross-sheet dedup context: ${existingItems.length} items from previous sheets`);
+        }
+      } catch {
+        // Non-fatal — proceed without dedup context
+      }
+    }
+
     const results = await Promise.allSettled(
       batch.map(async sheet => {
         // Fetch per-sheet scale calibration if available
@@ -834,7 +867,8 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
           sheetScaleRatio, sheetScaleUnit,
           (project as any).projectType || null,
           (project as any).workType || null,
-          (project as any).region || null
+          (project as any).region || null,
+          alreadyExtractedContext
         );
       })
     );
