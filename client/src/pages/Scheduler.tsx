@@ -359,13 +359,13 @@ export default function Scheduler() {
     { enabled: !!scheduleId }
   );
   const schedule = scheduleQuery.data;
-  const activities: any[] = schedule?.activities || [];
-  const relationships: any[] = schedule?.relationships || [];
-  const baselines: any[] = schedule?.baselines || [];
-  const calendars: any[] = schedule?.calendars || [];
-  const codeCategories: any[] = schedule?.codeCategories || [];
-  const codeAssignments: any[] = schedule?.codeAssignments || [];
-  const wbsNodes: any[] = schedule?.wbsNodes || [];
+  const activities: any[] = useMemo(() => schedule?.activities || [], [schedule?.activities]);
+  const relationships: any[] = useMemo(() => schedule?.relationships || [], [schedule?.relationships]);
+  const baselines: any[] = useMemo(() => schedule?.baselines || [], [schedule?.baselines]);
+  const calendars: any[] = useMemo(() => schedule?.calendars || [], [schedule?.calendars]);
+  const codeCategories: any[] = useMemo(() => schedule?.codeCategories || [], [schedule?.codeCategories]);
+  const codeAssignments: any[] = useMemo(() => schedule?.codeAssignments || [], [schedule?.codeAssignments]);
+  const wbsNodes: any[] = useMemo(() => schedule?.wbsNodes || [], [schedule?.wbsNodes]);
 
   /* ── View State ───────────────────────────────────────────────────────── */
   const [zoom, setZoom] = useState<"day" | "week" | "month" | "custom">("week");
@@ -1163,7 +1163,7 @@ export default function Scheduler() {
     { scheduleId: scheduleId! },
     { enabled: !!scheduleId }
   );
-  const layouts = layoutsQuery.data || [];
+  const layouts = useMemo(() => layoutsQuery.data || [], [layoutsQuery.data]);
 
   const saveLayoutMut = trpc.schedule.saveLayout.useMutation({
     onSuccess: () => { layoutsQuery.refetch(); toast.success("Layout saved"); setShowLayoutDialog(false); setLayoutName(""); },
@@ -1471,10 +1471,10 @@ export default function Scheduler() {
         </div>
 
         {/* Row 2: Professional SaaS Ribbon Toolbar */}
-        <div className="flex items-stretch px-2 gap-0 overflow-x-auto">
+        <div className="flex items-stretch px-2 gap-0 overflow-x-auto scrollbar-thin">
 
           {/* ── GROUP: Schedule ── */}
-          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06] shrink-0">
             <div className="flex items-center gap-1 flex-1">
               <Button
                 size="sm" variant="outline"
@@ -1528,7 +1528,7 @@ export default function Scheduler() {
           </div>
 
           {/* ── GROUP: Activities ── */}
-          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06] shrink-0">
             <div className="flex items-center gap-0.5 flex-1">
               <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowActivityDialog(true)} title="Add a new activity">
                 <Plus className="w-3.5 h-3.5" /> Add
@@ -1544,7 +1544,7 @@ export default function Scheduler() {
           </div>
 
           {/* ── GROUP: View ── */}
-          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06] shrink-0">
             <div className="flex items-center gap-1 flex-1">
               {/* Zoom Segmented Control */}
               <div className="flex items-center rounded-md h-8 overflow-hidden border border-white/[0.08] bg-white/[0.03]">
@@ -1683,7 +1683,7 @@ export default function Scheduler() {
           </div>
 
           {/* ── GROUP: Tools ── */}
-          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06]">
+          <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06] shrink-0">
             <div className="flex items-center gap-0.5 flex-1">
               <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowResourcePanel(true)} title="Manage resource assignments and costs">
                 <DollarSign className="w-3.5 h-3.5" /> Resources
@@ -1697,10 +1697,8 @@ export default function Scheduler() {
             <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Tools</span>
           </div>
 
-          <div className="flex-1" />
-
           {/* ── Settings ── */}
-          <div className="flex flex-col py-1.5 px-2">
+          <div className="flex flex-col py-1.5 px-2 shrink-0">
             <div className="flex items-center gap-0.5 flex-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

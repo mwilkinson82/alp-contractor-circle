@@ -2574,3 +2574,7 @@
 - [x] Baseline overlay picker dialog — select any schedule as baseline
 - [x] Baseline overlay indicator bar — shows which schedule is being compared, with Change/Close buttons
 - [x] Baseline bars render below each activity bar (indigo for non-critical, red for critical)
+
+## Scheduler Bugs (Apr 18)
+- [x] Fix React error #185 crash in CPM Scheduler (stabilized array refs with useMemo, added prevDimsRef guard)
+- [x] Fix toolbar ribbon buttons cut off / not fitting on screen (removed flex-1 spacer, added shrink-0 to all groups)

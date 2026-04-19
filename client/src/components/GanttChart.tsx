@@ -369,9 +369,15 @@ export default function GanttChart({
   const totalHeight = HEADER_HEIGHT + (flatRows.length > 0 ? flatRows[flatRows.length - 1].yOffset + flatRows[flatRows.length - 1].rowHeight : 0);
 
   // ─── Notify parent of canvas dimensions (for PDF annotation coordinate mapping) ─
+  const prevDimsRef = useRef({ totalWidth: 0, totalHeight: 0, pixelsPerDay: 0, rangeStartMs: 0 });
   useEffect(() => {
     if (onDimensionsChange) {
-      onDimensionsChange({ totalWidth, totalHeight, pixelsPerDay, rangeStartMs: rangeStart.getTime() });
+      const rangeStartMs = rangeStart.getTime();
+      const prev = prevDimsRef.current;
+      if (prev.totalWidth !== totalWidth || prev.totalHeight !== totalHeight || prev.pixelsPerDay !== pixelsPerDay || prev.rangeStartMs !== rangeStartMs) {
+        prevDimsRef.current = { totalWidth, totalHeight, pixelsPerDay, rangeStartMs };
+        onDimensionsChange({ totalWidth, totalHeight, pixelsPerDay, rangeStartMs });
+      }
     }
   }, [totalWidth, totalHeight, pixelsPerDay, rangeStart, onDimensionsChange]);
 
