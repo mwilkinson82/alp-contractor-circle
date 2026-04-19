@@ -24,6 +24,7 @@ import {
   getTakeoffItemsByProject,
 } from "./takeoffDb";
 import { postProcessTakeoff, hardScopeFilter } from "./takeoffPostProcess";
+import { getRateProfileById } from "./tradeRateDb";
 import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { TAKEOFF_DIVISION_MAP, ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
@@ -745,6 +746,27 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   // If no specialties manually selected, we'll try auto-detection after indexing
   const shouldAutoDetect = !specialtyIds || specialtyIds.length === 0;
 
+  // ─── Load Rate Profile if project has one assigned ─────────────────────────
+  let profileProjectType: string | null = (project as any).projectType || null;
+  let profileWorkType: string | null = (project as any).workType || null;
+  let profileRegion: string | null = (project as any).region || null;
+
+  if ((project as any).rateProfileId) {
+    try {
+      const profile = await getRateProfileById((project as any).rateProfileId, project.memberId);
+      if (profile) {
+        profileProjectType = profile.projectType || profileProjectType;
+        profileWorkType = profile.workType || profileWorkType;
+        profileRegion = profile.region || profileRegion;
+        console.log(`[Takeoff AI] Using rate profile "${profile.name}" — type=${profileProjectType}, work=${profileWorkType}, region=${profileRegion}`);
+      } else {
+        console.log(`[Takeoff AI] Rate profile ${(project as any).rateProfileId} not found — using project defaults`);
+      }
+    } catch (err: any) {
+      console.warn(`[Takeoff AI] Failed to load rate profile: ${err.message} — using project defaults`);
+    }
+  }
+
   await updateTakeoffProject(projectId, { status: "processing" });
 
   // ─── TIMING INSTRUMENTATION ──────────────────────────────────────────────
@@ -865,9 +887,9 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
           sheet.id, sheet.imageUrl!, projectId, selectedDivisions,
           project.currency, project.scopeText, projectContextText, specialtyIds,
           sheetScaleRatio, sheetScaleUnit,
-          (project as any).projectType || null,
-          (project as any).workType || null,
-          (project as any).region || null,
+          profileProjectType,
+          profileWorkType,
+          profileRegion,
           alreadyExtractedContext
         );
       })

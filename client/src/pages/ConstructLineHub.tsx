@@ -190,6 +190,10 @@ export default function ConstructLineHub() {
     ? new Date(Math.max(...projects.map((p) => new Date(p.updatedAt).getTime())))
     : null;
 
+  // Rate profiles for badge display
+  const { data: rateProfilesList } = trpc.tradeRates.listRateProfiles.useQuery();
+  const profileNameMap = new Map((rateProfilesList ?? []).map((p: any) => [p.id, p.name]));
+
   const configureMutation = trpc.tradeRates.configureRates.useMutation({
     onSuccess: () => {
       toast.success("ConstructLine configured — your rates are ready.");
@@ -368,6 +372,11 @@ export default function ConstructLineHub() {
                             {project.totalSheets} sheet{project.totalSheets !== 1 ? "s" : ""} · {new Date(project.createdAt).toLocaleDateString()}
                           </p>
                         </div>
+                        {(project as any).rateProfileId && profileNameMap.has((project as any).rateProfileId) && (
+                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 truncate max-w-[100px]">
+                            {profileNameMap.get((project as any).rateProfileId)}
+                          </span>
+                        )}
                         <div className={`flex items-center gap-1.5 text-xs ${status.color} shrink-0`}>
                           <StatusIcon className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin" : ""}`} />
                           <span className="hidden sm:inline">{status.label}</span>

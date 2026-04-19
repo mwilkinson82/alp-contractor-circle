@@ -1270,3 +1270,20 @@ export const rateProfiles = mysqlTable("rate_profiles", {
 });
 export type RateProfile = typeof rateProfiles.$inferSelect;
 export type InsertRateProfile = typeof rateProfiles.$inferInsert;
+
+
+// ─── User Presence / Online Tracking ──────────────────────────────────────────
+export const userPresence = mysqlTable("user_presence", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Display name for quick admin lookup */
+  displayName: varchar("displayName", { length: 256 }),
+  /** Current page path, e.g. "/portal/constructline" */
+  currentPage: varchar("currentPage", { length: 512 }),
+  /** Last heartbeat timestamp — used to determine if user is still online */
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+  /** Session start time */
+  sessionStart: timestamp("sessionStart").defaultNow().notNull(),
+});
+export type UserPresence = typeof userPresence.$inferSelect;
+export type InsertUserPresence = typeof userPresence.$inferInsert;

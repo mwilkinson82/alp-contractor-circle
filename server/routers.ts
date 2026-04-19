@@ -11,6 +11,7 @@ import { laborLibraryRouter } from "./laborLibraryRouter";
 import { estimateRouter } from "./estimateRouter";
 import { tradeRateRouter } from "./tradeRateRouter";
 import { feedbackRouter } from "./feedbackRouter";
+import { presenceRouter } from "./presenceRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
@@ -87,6 +88,7 @@ export const appRouter = router({
   estimate: estimateRouter,
   tradeRates: tradeRateRouter,
   feedback: feedbackRouter,
+  presence: presenceRouter,
 
   templates: router({
     /**

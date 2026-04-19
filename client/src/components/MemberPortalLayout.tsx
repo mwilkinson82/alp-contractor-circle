@@ -55,6 +55,7 @@ import { trpc } from "@/lib/trpc";
 import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 import { resetConstructLineTours } from "@/components/ConstructLineHubTour";
+import { OnlineUsersBadge } from "@/components/OnlineUsersWidget";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import RateSetupWizard, { loadRateConfig, saveRateConfig, type RateSetupConfig } from "@/components/RateSetupWizard";
@@ -448,6 +449,7 @@ export default function MemberPortalLayout({
                 <p className="text-[10px] text-ember uppercase tracking-wider">{roleLabel}</p>
               </div>
             </div>
+            <OnlineUsersBadge />
             <button
               onClick={openWhatsNew}
               className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"

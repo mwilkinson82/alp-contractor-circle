@@ -2768,3 +2768,14 @@
 - [ ] TakeoffDetail: Rate Profile selector per project (defaults to hub config if none selected)
 - [ ] AI inference reads project rate profile instead of global hub config when a profile is assigned
 - [ ] Scale calibration warning banner in Pre-Analysis modal when no sheets are calibrated
+
+## Wire Rate Profile + Hub Badge + Live Online Users (Apr 19 2026)
+- [x] Wire rate profile into AI inference — load profile's projectType/workType/region when project has rateProfileId
+- [x] Rate Profile badge on ConstructLine hub recent project cards
+- [x] Live online users presence system — heartbeat API, DB table, admin dashboard widget, sidebar count
+- [x] user_presence DB table created and migrated
+- [x] presenceDb.ts + presenceRouter.ts with heartbeat/getOnlineUsers/logout
+- [x] usePresenceHeartbeat hook (30s interval with current page)
+- [x] OnlineUsersBadge in sidebar footer
+- [x] OnlineUsersPanel in Admin Panel (full user list for admins, count only for members)
+- [x] TypeScript clean, production build clean

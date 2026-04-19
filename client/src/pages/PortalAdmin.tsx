@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { OnlineUsersPanel } from "@/components/OnlineUsersWidget";
 
 type Category = "weekly_calls" | "bootcamp" | "masterclass" | "q_and_a";
 
@@ -413,6 +414,9 @@ export default function PortalAdmin() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* Online Users */}
+      <OnlineUsersPanel />
+
       {/* Questions Review Section */}
       <QuestionsReviewPanel />
 
