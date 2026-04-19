@@ -205,14 +205,24 @@ export const takeoffCostRouter = router({
    */
   loadDefaults: publicProcedure.mutation(async ({ ctx }) => {
     const member = await requireMember(ctx.req);
-    const entries = COST_TABLE.map(e => ({
-      description: e.description,
-      unit: e.unit,
-      unitCost: Math.round(e.materialCost * 100),
-      csiDivision: e.csiDivision,
-      notes: `ConstructLine Pricing — ${e.category}`,
-    }));
-    const count = await upsertCostLibraryEntries(member.id, entries);
-    return { success: true, count };
+    // Get existing entries so we only ADD missing ones (don't overwrite customized prices)
+    const existing = await getCostLibraryByMember(member.id);
+    const existingDescSet = new Set(existing.map(e => e.description.toLowerCase().trim()));
+    const newEntries = COST_TABLE
+      .filter(e => !existingDescSet.has(e.description.toLowerCase().trim()))
+      .map(e => ({
+        description: e.description,
+        unit: e.unit,
+        unitCost: Math.round(e.materialCost * 100),
+        csiDivision: e.csiDivision,
+        notes: `ConstructLine Pricing — ${e.category}`,
+      }));
+    if (newEntries.length > 0) {
+      // Use addCostLibraryEntry for each new entry (don't delete existing)
+      for (const entry of newEntries) {
+        await addCostLibraryEntry(member.id, entry);
+      }
+    }
+    return { success: true, count: existing.length + newEntries.length, added: newEntries.length };
   }),
 });

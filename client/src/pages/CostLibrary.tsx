@@ -172,7 +172,7 @@ export default function CostLibrary() {
     onError: (err: any) => toast.error(err.message),
   });
   const loadDefaultsMutation = trpc.takeoff.loadDefaults.useMutation({
-    onSuccess: (result: any) => { toast.success(`Loaded ${result.count} ConstructLine baseline prices`); refetch(); },
+    onSuccess: (result: any) => { toast.success(result.added > 0 ? `Added ${result.added} new entries (${result.count} total)` : `Library is up to date (${result.count} entries)`); refetch(); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -262,15 +262,6 @@ export default function CostLibrary() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadTemplate}
-            className="border-white/20 text-cream-muted hover:text-cream hover:bg-white/5 gap-1.5"
-          >
-            <Download className="w-4 h-4" />
-            Template
-          </Button>
-          <Button
             onClick={() => fileInputRef.current?.click()}
             className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2"
           >
@@ -282,11 +273,11 @@ export default function CostLibrary() {
             <Plus className="w-3.5 h-3.5" />Add Row
           </Button>
           <Button variant="outline" size="sm"
-            onClick={() => { if (!confirm("Load ConstructLine baseline prices into your library? This will add/replace all default entries.")) return; loadDefaultsMutation.mutate(); }}
+            onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
             disabled={loadDefaultsMutation.isPending}
             className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
             {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Load ConstructLine Pricing Defaults
+            Sync ConstructLine Pricing
           </Button>
           <input
             ref={fileInputRef}
