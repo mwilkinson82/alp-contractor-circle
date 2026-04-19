@@ -253,10 +253,20 @@ Slabs are the LARGEST concrete items by volume. Missing a slab is a critical err
 - If you extracted excavation, you MUST also extract backfill (typically 15-25% of excavation volume)
 - Description: "Building Backfill / Structural Fill" unit: CY, CSI: 31 23 00
 
-## CONSTRUCTION JOINTS:
-- Construction joints are measured in LINEAR FEET (LF), not EA
-- Calculate total LF of construction joints from the plan — count the joint lines and measure their lengths
-- Typical spacing is every 15-20 feet in slabs — use this to verify your count
+## CONSTRUCTION JOINTS & EXPANSION JOINTS — CRITICAL:
+- Construction joints AND expansion joints are measured in LINEAR FEET (LF), not EA
+- Calculate total LF from the PLAN VIEW only — count the joint lines and measure their lengths
+- Detail sheets (sections, enlargements) show the joint PROFILE/CROSS-SECTION — do NOT use cross-section dimensions as joint length
+- Typical construction joint spacing is every 15-20 feet in slabs — use this to verify your count
+- Expansion joints (CSI 03 15 00 or 07 95 00) follow the same rule: LF from plan, NOT from detail sheets
+
+## WIRE MESH / WELDED WIRE REINFORCEMENT — CRITICAL:
+- Wire mesh / WWR / WWF specifications MUST be read from the SAME sheet you are analyzing
+- Do NOT use rebar or mesh callouts from the project context block — those may belong to different elements or sheets
+- For slab reinforcement, read the wire mesh spec directly from the slab callout or general notes ON THIS SHEET
+- Common specs: 6x6-W1.4xW1.4, 6x6-W2.9xW2.9, 6x6-W4.0xW4.0 — verify against what is actually written on the drawing
+- If the project context mentions a different mesh spec than what you see on this sheet, ALWAYS use what is on THIS sheet
+- Wire mesh is measured in SF (same area as the slab it reinforces)
 
 ## ANTI-LUMP-SUM RULE — CRITICAL:
 - NEVER use "LS" (Lump Sum) as a unit if you can calculate a measured quantity

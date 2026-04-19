@@ -382,7 +382,9 @@ function buildContextSummaryText(
   lines.push("- When calculating slab-on-grade, use the BUILDING FOOTPRINT area above");
   lines.push("- When calculating formwork, use the dimensions above to compute contact area (SFCA)");
   lines.push("- NEVER use Lump Sum when you can calculate from these dimensions");
-  lines.push("- SHOW YOUR MATH: reference which dimension you used (e.g., 'Building perimeter 384.5 LF × 2' footing depth = 769 SFCA')");
+  lines.push("- SHOW YOUR MATH: reference which dimension you used (e.g., 'Building perimeter 384.5 LF x 2 footing depth = 769 SFCA')");
+  lines.push("- WARNING: WIRE MESH / WWR: Do NOT use mesh specs from this context block. Always read wire mesh specs from the SHEET you are currently analyzing. Context rebar callouts are for structural elements only.");
+  lines.push("- WARNING: EXPANSION JOINTS: Measure expansion joint LF from PLAN VIEWS only. Detail sheets show joint profiles/cross-sections, NOT lengths.");
 
   return lines.join("\n");
 }

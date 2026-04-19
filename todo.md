@@ -2556,3 +2556,7 @@
 - [ ] Show slippage visually: baseline bar extends past current bar when delayed
 - [ ] Add legend: baseline bar color vs current bar color
 - [ ] Deploy with public visibility
+
+## AI Takeoff Prompt Fixes (Darian's Issue)
+- [x] Fix wire mesh/WWR cross-sheet contamination — specs must be read from same sheet, not project context
+- [x] Fix expansion joint LF inflation — measured from plan views only, not detail sheet cross-sections
