@@ -18,7 +18,7 @@ import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendNewMemberSignupNotification } from "./email";
 import { seedSmithResidenceForMember } from "./seedSmithResidence";
-import { seedDefaultCrewsForMember } from "./seedDefaultCrews";
+import { seedDefaultCrewsForMember, seedDefaultTradeRatesForMember } from "./seedDefaultCrews";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 // Production domain — must be registered in Discord Developer Portal
@@ -606,6 +606,10 @@ export function registerDiscordOAuthRoutes(app: Express) {
       // Auto-seed default crews for new members (fire-and-forget, idempotent)
       seedDefaultCrewsForMember(member.id).catch((e: any) =>
         console.warn("[Discord] Default crew seed failed:", e?.message)
+      );
+      // Auto-seed default trade rates for new members (fire-and-forget, idempotent)
+      seedDefaultTradeRatesForMember(member.id).catch((e: any) =>
+        console.warn("[Discord] Default trade rate seed failed:", e?.message)
       );
 
       // Send new member signup notification to Marshall (fire-and-forget)
