@@ -2587,3 +2587,12 @@
 - [x] Fix beta/ConstructLine cookie not clearing on logout — prevents signing back in as Discord admin
 - [x] Fix PDF preview to show annotations (final PDF export works, but preview does not)
 - [x] Add "Hide Annotations" toggle button next to Annotate button — hides annotation layer entirely from view (annotations still saved), separate from the editing toolbar toggle
+
+## Next Deploy
+- [x] Fix takeoff unit cost loading state — show skeleton/spinner while AI consolidation/enhancement is processing, not $1 placeholder
+- [x] Add Smith Residence as default template card on CPM schedule dashboard with green TEMPLATE badge (always visible, improved card design)
+- [x] Redesign CPM toolbar: Activities group → Add dropdown; View group → consolidated View dropdown (Columns, Filter, Group By, Expand/Collapse)
+- [x] Fix beta cookie not clearing on logout — Discord logout now clears both member + beta_session cookies
+- [x] Fix PDF preview to show annotations (coordinate mapping from screen px to preview canvas)
+- [x] Add Hide Annotations toggle (Eye/EyeOff) to completely hide annotation layer from view
+- [ ] Redesign CPM scheduler toolbar with dropdown menus — eliminate horizontal scroll on smaller screens

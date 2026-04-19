@@ -1532,15 +1532,25 @@ export default function Scheduler() {
           {/* ── GROUP: Activities ── */}
           <div className="flex flex-col py-1.5 px-2 border-r border-white/[0.06] shrink-0">
             <div className="flex items-center gap-0.5 flex-1">
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowActivityDialog(true)} title="Add a new activity">
-                <Plus className="w-3.5 h-3.5" /> Add
-              </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300 rounded-md" onClick={() => setShowBulkAddDialog(true)} title="Bulk add multiple activities">
-                <Plus className="w-3.5 h-3.5" /> Bulk
-              </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md" onClick={() => setShowCsvImportDialog(true)} title="Import activities from CSV file">
-                <Upload className="w-3.5 h-3.5" /> CSV
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-md">
+                    <Plus className="w-3.5 h-3.5" /> Add <ChevronDown className="w-3 h-3 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuItem onClick={() => setShowActivityDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2 text-emerald-400" /> New Activity
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBulkAddDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2 text-sky-400" /> Bulk Add
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowCsvImportDialog(true)}>
+                    <Upload className="w-4 h-4 mr-2" /> Import CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Activities</span>
           </div>
@@ -1611,6 +1621,7 @@ export default function Scheduler() {
                   <DollarSign className="w-3.5 h-3.5" />
                 </Button>
               </div>
+              {/* Annotate + Hide toggle */}
               <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-8 text-xs gap-1 rounded-md ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400 shadow-sm shadow-amber-500/20" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
                 onClick={() => { setShowAnnotations(!showAnnotations); if (hideAnnotations) setHideAnnotations(false); }} title="Annotation overlay for delay analysis">
                 <Pencil className="w-3.5 h-3.5" /> Annotate
@@ -1622,30 +1633,39 @@ export default function Scheduler() {
                 </Button>
               )}
               <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowColumnPicker(true)} title="Choose visible table columns">
-                <Columns3 className="w-3.5 h-3.5" /> Columns
-              </Button>
-              <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1 rounded-md ${hasActiveFilters ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06]"} hover:text-gray-200`}
-                onClick={() => setShowAdvancedFilter(true)} title="Filter activities by critical path, float, dates, and more">
-                <Filter className="w-3.5 h-3.5" /> Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-              </Button>
-
+              {/* Columns, Filter, Group — consolidated into View Options dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" title="Group activities by WBS, Critical Path, or Activity Codes">
-                    <Layers className="w-3.5 h-3.5" /> Group
+                  <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1.5 rounded-md ${hasActiveFilters || groupBy ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}>
+                    <Layers className="w-3.5 h-3.5" /> View <ChevronDown className="w-3 h-3 opacity-60" />
+                    {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="text-[10px] tracking-wider uppercase text-gray-500">Columns &amp; Filters</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setShowColumnPicker(true)}>
+                    <Columns3 className="w-4 h-4 mr-2" /> Column Picker
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAdvancedFilter(true)} className={hasActiveFilters ? "text-amber-400" : ""}>
+                    <Filter className="w-4 h-4 mr-2" /> Filter Activities
+                    {hasActiveFilters && <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Active</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] tracking-wider uppercase text-gray-500">Group By</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => setGroupBy(null)}>
-                    <span className={!groupBy ? "font-semibold text-amber-400" : ""}>None</span>
+                    {!groupBy && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {groupBy && <span className="w-3.5 h-3.5 mr-2" />}
+                    None
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
-                    <span className={groupBy === "wbs" ? "font-semibold text-amber-400" : ""}>WBS</span>
+                    {groupBy === "wbs" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {groupBy !== "wbs" && <span className="w-3.5 h-3.5 mr-2" />}
+                    WBS
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setGroupBy("critical")}>
-                    <span className={groupBy === "critical" ? "font-semibold text-amber-400" : ""}>Critical Path</span>
+                    {groupBy === "critical" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {groupBy !== "critical" && <span className="w-3.5 h-3.5 mr-2" />}
+                    Critical Path
                   </DropdownMenuItem>
                   {codeCategories.length > 0 && (
                     <>
@@ -1653,39 +1673,29 @@ export default function Scheduler() {
                       <div className="px-2 py-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase">Activity Codes</div>
                       {codeCategories.map((cat: any) => (
                         <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                          <span className={groupBy === String(cat.id) ? "font-semibold text-amber-400" : ""}>{cat.name}</span>
+                          {groupBy === String(cat.id) && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                          {groupBy !== String(cat.id) && <span className="w-3.5 h-3.5 mr-2" />}
+                          {cat.name}
                         </DropdownMenuItem>
                       ))}
                     </>
                   )}
+                  {groupBy && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setCollapsedGroups(new Set())}>
+                        <Maximize2 className="w-4 h-4 mr-2" /> Expand All Groups
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
+                        setCollapsedGroups(allKeys);
+                      }}>
+                        <Minimize2 className="w-4 h-4 mr-2" /> Collapse All Groups
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {/* Expand All / Collapse All */}
-              {groupBy && (
-                <>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
-                    title="Expand All Groups (Ctrl+Shift+E)"
-                    onClick={() => setCollapsedGroups(new Set())}
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md"
-                    title="Collapse All Groups (Ctrl+Shift+C)"
-                    onClick={() => {
-                      const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
-                      setCollapsedGroups(allKeys);
-                    }}
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                  </Button>
-                </>
-              )}
             </div>
             <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">View</span>
           </div>

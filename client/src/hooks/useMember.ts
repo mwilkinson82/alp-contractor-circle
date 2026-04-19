@@ -12,8 +12,13 @@ export function useMember() {
   });
 
   const logout = useCallback(async () => {
+    // Clear BOTH session types — Discord member cookie AND ConstructLine beta cookie.
+    // This ensures that no matter which account type is active, Sign Out is a full wipe.
     try {
-      await fetch("/api/discord/logout", { method: "POST", credentials: "include" });
+      await Promise.allSettled([
+        fetch("/api/discord/logout", { method: "POST", credentials: "include" }),
+        fetch("/api/beta/logout", { method: "POST", credentials: "include" }),
+      ]);
     } catch {
       // ignore
     }

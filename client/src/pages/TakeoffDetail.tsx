@@ -1398,10 +1398,18 @@ export default function TakeoffDetail() {
                                     </td>
                                     <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
                                     <td className="px-4 py-2 text-right text-cream font-mono">
-                                      {formatCurrency(item.unitCost, project?.currency || "USD")}
+                                      {isConsolidating ? (
+                                        <span className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse" title="Pricing being applied..." />
+                                      ) : (
+                                        formatCurrency(item.unitCost, project?.currency || "USD")
+                                      )}
                                     </td>
                                     <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
-                                      {formatCurrency(item.extendedCost, project?.currency || "USD")}
+                                      {isConsolidating ? (
+                                        <span className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse" title="Pricing being applied..." />
+                                      ) : (
+                                        formatCurrency(item.extendedCost, project?.currency || "USD")
+                                      )}
                                     </td>
                                     <td className="px-4 py-2 text-center">
                                       <Badge

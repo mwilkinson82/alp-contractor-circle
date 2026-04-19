@@ -659,7 +659,10 @@ export function registerDiscordOAuthRoutes(app: Express) {
    */
   app.post("/api/discord/logout", (req: Request, res: Response) => {
     const cookieOptions = getMemberCookieOptions(req);
+    // Clear Discord member session
     res.clearCookie(MEMBER_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+    // Also clear ConstructLine beta session — Sign Out must be a full wipe of both account types
+    res.clearCookie("beta_session", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: -1 });
     res.json({ success: true });
   });
 }
