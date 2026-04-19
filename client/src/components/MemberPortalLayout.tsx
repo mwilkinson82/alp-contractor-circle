@@ -56,7 +56,7 @@ import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
 import { SetupChecklist } from "@/components/SetupChecklist";
-import { loadRateConfig } from "@/components/RateSetupWizard";
+import RateSetupWizard, { loadRateConfig, saveRateConfig, type RateSetupConfig } from "@/components/RateSetupWizard";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
@@ -263,6 +263,38 @@ export default function MemberPortalLayout({
     },
   });
 
+  // Setup checklist state — hooks must be called before any early returns
+  const isBetaUser = betaUser && !member;
+  const [hasRateConfig, setHasRateConfig] = useState(!!loadRateConfig());
+  const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, { enabled: !!isBetaUser });
+  const hasTakeoffProject = (takeoffProjects.data?.length ?? 0) > 0;
+
+  // Portal-wide Rate Setup Wizard — mandatory for ALL users on first visit
+  const [showPortalWizard, setShowPortalWizard] = useState(!hasRateConfig);
+  const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(loadRateConfig());
+  const configureMutation = trpc.tradeRates.configureRates.useMutation({
+    onSuccess: () => {
+      // Wizard complete — allow portal access
+      setShowPortalWizard(false);
+      setHasRateConfig(true);
+    },
+    onError: () => {
+      // Still close wizard on error — config is saved locally
+      setShowPortalWizard(false);
+      setHasRateConfig(true);
+    },
+  });
+  const handlePortalWizardComplete = (config: RateSetupConfig) => {
+    setRateConfig(config);
+    saveRateConfig(config);
+    configureMutation.mutate({
+      laborType: config.laborType,
+      regionCode: config.regionCode ?? null,
+      regionMultiplier: config.regionMultiplier ?? 10000,
+      specialtyMultiplier: config.specialtyMultiplier ?? 10000,
+    });
+  };
+
   if (loading || betaLoading) return <MemberPortalSkeleton />;
   if (!isAuthenticated && !betaUser) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
 
@@ -282,14 +314,8 @@ export default function MemberPortalLayout({
   const isAdmin = member?.memberRole === "admin";
 
   // Beta user mode: only ConstructLine tools are unlocked
-  const isBetaUser = betaUser && !member;
   const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
-
-  // Setup checklist state for beta users
-  const hasRateConfig = !!loadRateConfig();
-  const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, { enabled: !!isBetaUser });
-  const hasTakeoffProject = (takeoffProjects.data?.length ?? 0) > 0;
 
   // Stripe checkout link for upgrade CTA
   const STRIPE_CHECKOUT = "https://checkout.stripe.com/c/pay/cs_live_b1ORSXM3hl0VYviHrsNIhh85uE2JURl6hPh0s9h50M7Xocold1u1lw1ZhZ#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0TVVJPEFPYUFEUFZTXWdLUFFOUU82bENSbmgzMTJRZkNkUlV9QjJvQEswfH1KVGdKYWpUTkh3MkByVFNhYHRkXUtPS1JxQ1ZfT1VmTH92S3VDcDJydDdHNTVDd2RQNjNdbCcpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZnZ2E1Y2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
@@ -737,6 +763,15 @@ export default function MemberPortalLayout({
 
       {/* What's New Changelog Modal */}
       <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />
+
+      {/* Portal-wide Rate Setup Wizard — mandatory for all users */}
+      <RateSetupWizard
+        open={showPortalWizard}
+        onClose={() => setShowPortalWizard(false)}
+        onComplete={handlePortalWizardComplete}
+        isApplying={configureMutation.isPending}
+        existingConfig={rateConfig}
+      />
     </div>
   );
 }

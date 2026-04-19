@@ -2694,3 +2694,10 @@
 - [x] SetupChecklist: 4-step progress tracker (Configure Rates, Review Crews, Upload Project, Connect Discord)
 - [x] SetupChecklist integrated into desktop + mobile sidebar
 - [x] LaborLibrary supports ?tab=crews URL param for direct crew builder access from checklist
+
+## Portal-Wide Mandatory Rate Setup Wizard
+- [x] Bump CONFIG_VERSION to 2 to force all users through wizard on next login
+- [x] Add RateSetupWizard to MemberPortalLayout.tsx (portal shell) so it gates ALL portal pages
+- [x] Wire wizard state, configureMutation, and handlePortalWizardComplete in MemberPortalLayout
+- [x] Verify TypeScript compilation clean (0 errors)
+- [x] Verify production build clean

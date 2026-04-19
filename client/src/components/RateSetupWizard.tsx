@@ -40,6 +40,7 @@ import type { LaborType } from "../../../shared/tradeRates";
 import { getRegion } from "../../../shared/costRegions";
 
 const STORAGE_KEY = "alp-rate-setup-config";
+const CONFIG_VERSION = 2; // Bump to force all users through wizard again
 
 export interface RateSetupConfig {
   workType: "residential" | "commercial";
@@ -68,14 +69,19 @@ const DEFAULT_CONFIG: RateSetupConfig = {
 export function loadRateConfig(): RateSetupConfig | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // If config doesn't have the current version, treat as unconfigured
+      if (parsed._version !== CONFIG_VERSION) return null;
+      return parsed;
+    }
   } catch {}
   return null;
 }
 
 export function saveRateConfig(config: RateSetupConfig) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...config, _version: CONFIG_VERSION }));
   } catch {}
 }
 
