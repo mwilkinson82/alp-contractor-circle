@@ -5,7 +5,7 @@
  * Structure: Trades × Classifications × Labor Types × Regional Factors
  * Burden: User enters actual burden rates → system calculates fully burdened rate
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -14,27 +14,22 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  ArrowLeft, MapPin, ChevronDown, ChevronRight, Search, X,
-  Loader2, Settings2, Plus, Download, RefreshCw,
-  Pencil, Check, Info, HardHat, Users,
+  ArrowLeft, ChevronDown, ChevronRight, Search, X,
+  Loader2, Settings2, Download,
+  Pencil, Check, Info, HardHat, Users, Sparkles,
 } from "lucide-react";
 import CrewBuilder from "@/components/CrewBuilder";
-import { COST_REGION_GROUPS, type CostRegionGroup } from "../../../shared/costRegions";
 import {
   TRADES, getBaseWage,
   LABOR_TYPE_LABELS, DEFAULT_BURDENS, calculateBurdenedRate,
   type LaborType, type BurdenDefaults,
 } from "../../../shared/tradeRates";
+import RateSetupWizard, {
+  loadRateConfig, saveRateConfig,
+  type RateSetupConfig,
+} from "@/components/RateSetupWizard";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const LABOR_TYPES: LaborType[] = ["res_open", "res_union", "com_open", "com_union"];
-const LABOR_TYPE_SHORT: Record<LaborType, string> = {
-  res_open: "Res Open",
-  res_union: "Res Union",
-  com_open: "Com Open",
-  com_union: "Com Union",
-};
-
 function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -58,19 +53,30 @@ const CSI_DIV_NAMES: Record<string, string> = {
   "32": "Exterior Improvements", "33": "Utilities",
 };
 
+const LABOR_TYPE_DISPLAY: Record<LaborType, string> = {
+  res_open: "Residential · Open Shop",
+  res_union: "Residential · Union",
+  com_open: "Commercial · Open Shop",
+  com_union: "Commercial · Union",
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LaborLibrary() {
   const { member } = useMember();
-  const betaUser = false; // non-members handled by route guard
   const [, setLocation] = useLocation();
 
-  const [laborType, setLaborType] = useState<LaborType>("com_open");
+  // Wizard state
+  const [showWizard, setShowWizard] = useState(false);
+  const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(null);
+
+  // Derived from config or defaults
+  const laborType: LaborType = rateConfig?.laborType || "com_open";
+  const regionMultiplier = 1; // Region is already baked into rates by wizard; display multiplier is 1x
+
   const [activeView, setActiveView] = useState<"rates" | "crews">("rates");
   const [search, setSearch] = useState("");
   const [expandedTrades, setExpandedTrades] = useState<Set<string>>(new Set());
   const [showBurdenPanel, setShowBurdenPanel] = useState(false);
-  const [showRegionModal, setShowRegionModal] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<{ code: string; name: string; multiplier: number } | null>(null);
   const [editingRate, setEditingRate] = useState<{ tradeName: string; classification: string } | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -78,12 +84,12 @@ export default function LaborLibrary() {
   const burdenQuery = trpc.tradeRates.getBurdenForType.useQuery({ laborType });
   const utils = trpc.useUtils();
 
-  const seedMutation = trpc.tradeRates.seedFromBaseline.useMutation({
+  const configureMutation = trpc.tradeRates.configureRates.useMutation({
     onSuccess: (data) => {
-      toast.success(`Loaded ${data.count} baseline rates`);
+      toast.success(`Calibrated ${data.count} trade rates`);
       utils.tradeRates.getTradeRates.invalidate();
     },
-    onError: () => toast.error("Failed to load baseline rates"),
+    onError: () => toast.error("Failed to configure rates"),
   });
 
   const updateRateMutation = trpc.tradeRates.updateTradeRate.useMutation({
@@ -103,7 +109,32 @@ export default function LaborLibrary() {
     onError: () => toast.error("Failed to save burden config"),
   });
 
-  if (!member && !betaUser) {
+  // Load saved config on mount
+  useEffect(() => {
+    const saved = loadRateConfig();
+    if (saved) {
+      setRateConfig(saved);
+    } else {
+      // First visit — show wizard automatically
+      setShowWizard(true);
+    }
+  }, []);
+
+  // Handle wizard completion
+  const handleWizardComplete = (config: RateSetupConfig) => {
+    setRateConfig(config);
+    saveRateConfig(config);
+    setShowWizard(false);
+    // Fire the backend mutation to recalculate all rates
+    configureMutation.mutate({
+      laborType: config.laborType,
+      regionCode: config.regionCode ?? null,
+      regionMultiplier: config.regionMultiplier ?? 10000,
+      specialtyMultiplier: config.specialtyMultiplier ?? 10000,
+    });
+  };
+
+  if (!member) {
     return (
       <div className="min-h-screen bg-navy-deep flex items-center justify-center">
         <div className="text-center">
@@ -118,49 +149,67 @@ export default function LaborLibrary() {
     ? burdenQuery.data as unknown as BurdenDefaults
     : DEFAULT_BURDENS[laborType];
 
-  const regionMultiplier = selectedRegion ? selectedRegion.multiplier / 10000 : 1;
+  const totalBurdenPct = burden.ficaPct + burden.futaPct + burden.sutaPct +
+    burden.workersCompPct + burden.generalLiabilityPct +
+    burden.pensionPct + burden.vacationPct + burden.trainingPct;
+  const fixedBurdenCents = burden.healthInsuranceCentsPerHr +
+    burden.unionFringeCentsPerHr + burden.otherCentsPerHr;
 
-  const userRates = tradeRatesQuery.data || [];
-  const userRateMap = new Map<string, number>();
-  for (const r of userRates) {
-    userRateMap.set(`${r.tradeName}|${r.classification}`, r.baseWageCents);
-  }
-  const hasUserRates = userRates.length > 0;
+  // Build user rate map for quick lookups
+  const userRateMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (tradeRatesQuery.data) {
+      for (const r of tradeRatesQuery.data as any[]) {
+        map.set(`${r.tradeName}::${r.classification}`, r.baseWageCents);
+      }
+    }
+    return map;
+  }, [tradeRatesQuery.data]);
 
-  const filteredTrades = useMemo(() => {
-    if (!search.trim()) return TRADES;
-    const q = search.toLowerCase();
-    return TRADES.filter(t => t.tradeName.toLowerCase().includes(q));
-  }, [search]);
+  const hasUserRates = userRateMap.size > 0;
 
-  const filteredDivisions = useMemo(() => {
-    const divs = new Set(filteredTrades.map(t => t.csiDivision));
-    return Array.from(divs).sort();
-  }, [filteredTrades]);
+  const getRate = (tradeName: string, classification: string): number => {
+    return userRateMap.get(`${tradeName}::${classification}`) || getBaseWage(tradeName, classification, laborType) || 0;
+  };
 
-  const toggleTrade = (tradeName: string) => {
+  const getBurdenedRate = (baseCents: number): number => {
+    const adjusted = Math.round(baseCents * regionMultiplier);
+    return calculateBurdenedRate(adjusted, burden);
+  };
+
+  const toggleTrade = (name: string) => {
     setExpandedTrades(prev => {
       const next = new Set(prev);
-      if (next.has(tradeName)) next.delete(tradeName);
-      else next.add(tradeName);
+      next.has(name) ? next.delete(name) : next.add(name);
       return next;
     });
   };
 
-  const getRate = (tradeName: string, cls: string): number => {
-    const userRate = userRateMap.get(`${tradeName}|${cls}`);
-    if (userRate !== undefined) return userRate;
-    return getBaseWage(tradeName, cls, laborType) ?? 0;
-  };
+  const filteredTrades = useMemo(() => {
+    if (!search.trim()) return TRADES;
+    const q = search.toLowerCase();
+    return TRADES.filter(t =>
+      t.tradeName.toLowerCase().includes(q) ||
+      t.csiDivision.includes(q) ||
+      t.roles.some(r => r.roleLabel.toLowerCase().includes(q))
+    );
+  }, [search]);
 
-  const getBurdenedRate = (baseWageCents: number): number => {
-    return Math.round(calculateBurdenedRate(baseWageCents, burden) * regionMultiplier);
-  };
+  const filteredDivisions = useMemo(() => {
+    const divs = Array.from(new Set(filteredTrades.map(t => t.csiDivision)));
+    divs.sort();
+    return divs;
+  }, [filteredTrades]);
 
-  const totalBurdenPct = burden.ficaPct + burden.futaPct + burden.sutaPct +
-    burden.workersCompPct + burden.generalLiabilityPct + burden.pensionPct +
-    burden.vacationPct + burden.trainingPct;
-  const fixedBurdenCents = burden.healthInsuranceCentsPerHr + burden.unionFringeCentsPerHr + burden.otherCentsPerHr;
+  // ─── Config summary values ──────────────────────────────────────────────
+  const configLabel = rateConfig ? LABOR_TYPE_DISPLAY[rateConfig.laborType] : "Commercial · Open Shop";
+  const regionLabel = rateConfig?.regionName || "National Average";
+  const specialtyLabel = rateConfig?.specialty
+    ? rateConfig.specialty.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()).replace(/^Standard.*$/, "")
+    : null;
+  const combinedFactor = rateConfig
+    ? ((rateConfig.regionMultiplier / 10000) * (rateConfig.specialtyMultiplier / 10000)).toFixed(2)
+    : "1.00";
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -190,15 +239,6 @@ export default function LaborLibrary() {
               className={`gap-1.5 ${showBurdenPanel ? "border-amber-500/50 text-amber-300 bg-amber-500/10" : "border-white/20 text-cream hover:bg-white/5"}`}>
               <Settings2 className="w-3.5 h-3.5" />Burden Config
             </Button>
-            {!hasUserRates && (
-              <Button
-                onClick={() => seedMutation.mutate({ laborType })}
-                disabled={seedMutation.isPending}
-                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2">
-                {seedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Load Baseline Rates
-              </Button>
-            )}
             <Button variant="outline" size="sm"
               onClick={() => {
                 const rows: string[] = ["Trade,Classification,Base Wage ($/hr),Burdened Rate ($/hr)"];
@@ -222,46 +262,60 @@ export default function LaborLibrary() {
         </div>
       </div>
 
-      {/* Labor Type Toggle + Region Selector */}
-      <div className="bg-navy-deep/80 border-b border-white/5 px-3 sm:px-6 py-3">
+      {/* Rate Configuration Summary Card */}
+      <div className="bg-gradient-to-r from-amber-500/5 via-navy-deep to-amber-500/5 border-b border-amber-500/10 px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1">
-            {LABOR_TYPES.map(lt => (
-              <button key={lt}
-                onClick={() => setLaborType(lt)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  laborType === lt ? "bg-amber-500/20 text-amber-300 shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
-                }`}>
-                {LABOR_TYPE_SHORT[lt]}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 bg-navy-medium/50 rounded-lg p-1 mr-4">
-            <button onClick={() => setActiveView("rates")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                activeView === "rates" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
-              }`}>
-              <HardHat className="w-3 h-3" />Trade Rates
-            </button>
-            <button onClick={() => setActiveView("crews")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                activeView === "crews" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
-              }`}>
-              <Users className="w-3 h-3" />Crew Builder
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowRegionModal(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-navy-medium/50 border border-white/10 hover:border-white/20 transition-all text-sm">
-              <MapPin className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-cream">{selectedRegion ? selectedRegion.name : "National Average"}</span>
-              {selectedRegion && <Badge variant="outline" className="text-[10px] border-blue-400/30 text-blue-300">{(selectedRegion.multiplier / 10000).toFixed(2)}x</Badge>}
-              <ChevronDown className="w-3 h-3 text-cream-muted" />
-            </button>
-            <div className="text-xs text-cream-muted">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Config badges */}
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-semibold text-cream">Rate Configuration</span>
+            </div>
+            <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 px-2.5 py-0.5 text-xs font-medium">
+              {configLabel}
+            </Badge>
+            <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 px-2.5 py-0.5 text-xs font-medium">
+              {regionLabel}
+            </Badge>
+            {specialtyLabel && (
+              <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 px-2.5 py-0.5 text-xs font-medium">
+                {specialtyLabel}
+              </Badge>
+            )}
+            {combinedFactor !== "1.00" && (
+              <span className="text-xs text-cream-muted">
+                Combined: <span className="text-amber-400 font-bold">{combinedFactor}x</span>
+              </span>
+            )}
+            <span className="text-xs text-cream-muted">
               Burden: <span className="text-amber-300 font-medium">{formatPct(totalBurdenPct)}</span>
               {fixedBurdenCents > 0 && <> + <span className="text-amber-300 font-medium">{formatCents(fixedBurdenCents)}/hr</span></>}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1 mr-2">
+              <button onClick={() => setActiveView("rates")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  activeView === "rates" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}>
+                <HardHat className="w-3 h-3" />Trade Rates
+              </button>
+              <button onClick={() => setActiveView("crews")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  activeView === "crews" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}>
+                <Users className="w-3 h-3" />Crew Builder
+              </button>
             </div>
+            <Button
+              onClick={() => setShowWizard(true)}
+              className="bg-gradient-to-r from-amber-500/20 to-orange-600/20 border border-amber-500/30 text-amber-300 hover:from-amber-500/30 hover:to-orange-600/30 gap-1.5 text-xs font-semibold"
+              size="sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Reconfigure Rates
+            </Button>
           </div>
         </div>
       </div>
@@ -290,9 +344,9 @@ export default function LaborLibrary() {
         <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3 mb-4 flex items-start gap-3">
           <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div className="text-sm text-blue-200/80">
-            <strong className="text-blue-300">How trade rates work:</strong> Enter your base wages (before burden) for each trade and classification.
-            Configure your actual burden rates (FICA, WC, health, etc.) in the Burden Config panel.
-            The system calculates the fully burdened rate automatically. These feed into your project estimates.
+            <strong className="text-blue-300">How trade rates work:</strong> Your rates are calibrated based on your configuration above.
+            You can edit any individual rate by clicking the pencil icon. Configure your burden rates (FICA, WC, health, etc.) in the Burden Config panel.
+            The system calculates the fully burdened rate automatically.
           </div>
         </div>
 
@@ -327,12 +381,11 @@ export default function LaborLibrary() {
                   <div className="divide-y divide-white/5">
                     {divTrades.map(trade => {
                       const isExpanded = expandedTrades.has(trade.tradeName);
-                      // Find the best representative rate: prefer journeyman, then first role with a nonzero rate, then first role
+                      // Find the best representative rate
                       const journeymanRole = trade.roles.find(r => r.roleKey === "journeyman");
                       let repLabel = "Journeyman";
                       let repBase = journeymanRole ? getRate(trade.tradeName, "journeyman") : 0;
                       if (!repBase) {
-                        // No journeyman or $0 — pick the highest-paid classification as representative
                         let bestRate = 0;
                         let bestRole = trade.roles[0];
                         for (const role of trade.roles) {
@@ -388,7 +441,7 @@ export default function LaborLibrary() {
                                             <div className="flex items-center justify-end gap-1">
                                               <span className="text-cream-muted text-xs">$</span>
                                               <Input value={editValue} onChange={e => setEditValue(e.target.value)}
-                                                className="w-20 h-7 text-right text-sm bg-navy-deep border-amber-500/30 text-cream" autoFocus
+                                                className="w-20 h-7 text-right text-sm bg-navy-deep border-white/20 text-cream" autoFocus
                                                 onKeyDown={e => {
                                                   if (e.key === "Enter") {
                                                     const cents = parseDollarsToCents(editValue);
@@ -441,18 +494,14 @@ export default function LaborLibrary() {
         </div>)}
       </div>
 
-      {/* Region Selection Modal */}
-      {showRegionModal && (
-        <RegionModal
-          selectedCode={selectedRegion?.code || null}
-          onSelect={(region) => {
-            if (region.code === "national") setSelectedRegion(null);
-            else setSelectedRegion(region);
-            setShowRegionModal(false);
-          }}
-          onClose={() => setShowRegionModal(false)}
-        />
-      )}
+      {/* Rate Setup Wizard Modal */}
+      <RateSetupWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onComplete={handleWizardComplete}
+        isApplying={configureMutation.isPending}
+        existingConfig={rateConfig}
+      />
     </div>
   );
 }
@@ -567,54 +616,6 @@ function BurdenPanel({ laborType, burden, onSave, saving, onClose }: {
           {dollarField("Health Insurance", "healthInsuranceCentsPerHr", "Medical/dental/vision")}
           {dollarField("Union Fringe", "unionFringeCentsPerHr", "Union dues & benefits")}
           {dollarField("Other", "otherCentsPerHr", "Any additional burden")}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Region Selection Modal ───────────────────────────────────────────────────
-function RegionModal({ selectedCode, onSelect, onClose }: {
-  selectedCode: string | null;
-  onSelect: (region: { code: string; name: string; multiplier: number }) => void;
-  onClose: () => void;
-}) {
-  const [search, setSearch] = useState("");
-  const filtered = useMemo(() => {
-    if (!search.trim()) return COST_REGION_GROUPS;
-    const q = search.toLowerCase();
-    return COST_REGION_GROUPS
-      .map((g: CostRegionGroup) => ({ ...g, metros: g.metros.filter(m => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)) }))
-      .filter(g => g.metros.length > 0);
-  }, [search]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-navy-medium border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-cream font-semibold flex items-center gap-2"><MapPin className="w-4 h-4 text-blue-400" />Select Region</h3>
-            <button onClick={onClose}><X className="w-4 h-4 text-cream-muted hover:text-cream" /></button>
-          </div>
-          <Input placeholder="Search cities..." value={search} onChange={e => setSearch(e.target.value)}
-            className="bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/50" autoFocus />
-        </div>
-        <div className="overflow-y-auto max-h-[60vh] p-2">
-          {filtered.map((group: CostRegionGroup) => (
-            <div key={group.region} className="mb-2">
-              <div className="text-[10px] text-cream-muted uppercase tracking-wider px-2 py-1 font-semibold">{group.region}</div>
-              {group.metros.map(metro => (
-                <button key={metro.code}
-                  onClick={() => onSelect({ code: metro.code, name: metro.name, multiplier: metro.multiplier })}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${
-                    selectedCode === metro.code ? "bg-blue-500/15 text-blue-300" : "text-cream hover:bg-white/5"
-                  }`}>
-                  <span>{metro.name}</span>
-                  <span className="text-xs text-cream-muted font-mono">{metro.displayMultiplier}</span>
-                </button>
-              ))}
-            </div>
-          ))}
         </div>
       </div>
     </div>

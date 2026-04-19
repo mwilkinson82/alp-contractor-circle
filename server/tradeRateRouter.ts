@@ -159,6 +159,50 @@ export const tradeRateRouter = router({
       return { success: ok };
     }),
 
+  /** Configure all trade rates from wizard: applies labor type + region + specialty multipliers */
+  configureRates: publicProcedure
+    .input(z.object({
+      laborType: z.string(),
+      regionCode: z.string().nullable(),
+      regionMultiplier: z.number().default(10000), // basis points, 10000 = 1.00x
+      specialtyMultiplier: z.number().default(10000), // basis points, 10000 = 1.00x
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const lt = input.laborType as LaborType;
+      const regionMult = input.regionMultiplier;
+      const specMult = input.specialtyMultiplier;
+      const rates: Array<{
+        tradeName: string;
+        csiDivision: string;
+        classification: string;
+        laborType: string;
+        baseWageCents: number;
+        regionCode?: string;
+        notes: string;
+      }> = [];
+
+      for (const trade of TRADES) {
+        for (const role of trade.roles) {
+          const baseline = role.rates[lt] || 0;
+          // Apply region and specialty multipliers
+          const adjusted = Math.round((baseline * regionMult * specMult) / (10000 * 10000));
+          rates.push({
+            tradeName: trade.tradeName,
+            csiDivision: trade.csiDivision,
+            classification: role.roleKey,
+            laborType: lt,
+            baseWageCents: adjusted > 0 ? adjusted : baseline,
+            regionCode: input.regionCode || undefined,
+            notes: `Wizard: ${lt}${input.regionCode ? ` · ${input.regionCode}` : ''} · region ${(regionMult/10000).toFixed(2)}x · specialty ${(specMult/10000).toFixed(2)}x`,
+          });
+        }
+      }
+
+      const count = await bulkUpsertTradeRates(member.id, rates);
+      return { success: true, count };
+    }),
+
   // ─── Burden Configuration ─────────────────────────────────────────────
 
   /** Get all burden configs for the current member */

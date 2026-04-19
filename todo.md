@@ -2676,3 +2676,11 @@
 - [x] Auto-seed default trade rates on new member first login
 - [x] Fix crew member trade names to match canonical TRADES constant (231 crew definitions corrected)
 - [x] Fix trade rate roll-up: show best available classification instead of always looking for 'journeyman'
+
+## Session — Labor Rate Setup Wizard (Wow Factor)
+- [x] Remove confusing toolbar tabs (Res Open, Res Union, Com Open, Com Union) and "Load Baseline Rates" button
+- [x] Build 5-step Labor Rate Setup Wizard modal: work type → shop type → region → specialty → processing animation
+- [x] Replace toolbar with Rate Configuration summary card showing current setup + Reconfigure button
+- [x] Wire wizard output to recalculate all trade rates with selected labor type, region multiplier, and specialty factor
+- [x] Add processing animation ("Calibrating your rates...") with visual factor display
+- [x] Auto-trigger wizard on first visit to Trade Rate Library (if no config saved)
