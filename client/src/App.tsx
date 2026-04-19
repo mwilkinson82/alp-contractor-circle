@@ -121,7 +121,7 @@ function Router() {
 
       {/* ConstructLine Cost Library */}
       <Route path="/portal/cost-library">
-        <MemberPortalLayout>
+        <MemberPortalLayout hideSidebar>
           <CostLibrary />
         </MemberPortalLayout>
       </Route>

@@ -225,8 +225,10 @@ function ConstructLineNav({
 
 export default function MemberPortalLayout({
   children,
+  hideSidebar,
 }: {
   children: React.ReactNode;
+  hideSidebar?: boolean;
 }) {
   const { member, loading, isAuthenticated, logout, getLoginUrl } = useMember();
   const { betaUser, loading: betaLoading } = useBetaUser();
@@ -290,7 +292,7 @@ export default function MemberPortalLayout({
   return (
     <div className="min-h-screen bg-navy-deep flex">
       {/* Desktop Sidebar */}
-      {!isMobile && (
+      {!isMobile && !hideSidebar && (
         <aside className="w-64 bg-navy border-r border-white/5 flex flex-col shrink-0 sticky top-0 h-screen">
           {/* Logo / Brand */}
           <div className="p-5 border-b border-white/5">
@@ -432,7 +434,7 @@ export default function MemberPortalLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Mobile Header */}
-        {isMobile && (
+        {isMobile && !hideSidebar && (
           <header className="sticky top-0 z-50 bg-navy/95 backdrop-blur-lg border-b border-white/5 px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
@@ -454,7 +456,7 @@ export default function MemberPortalLayout({
         )}
 
         {/* Mobile Menu Overlay */}
-        {isMobile && mobileMenuOpen && (
+        {isMobile && !hideSidebar && mobileMenuOpen && (
           <div className="fixed inset-0 z-40 bg-navy-deep/95 backdrop-blur-lg pt-14 overflow-y-auto">
             <nav className="p-4 space-y-2">
               {/* Top items */}
