@@ -132,8 +132,8 @@ function ConstructLineNav({
   setLocation: (path: string) => void;
   onNavigate?: () => void;
 }) {
-  // Auto-expand if currently on a ConstructLine sub-page
-  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library" || location === "/portal/labor-library";
+  // Auto-expand if currently on a ConstructLine sub-page or hub
+  const isOnConstructLine = location === "/portal/constructline" || location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library" || location === "/portal/labor-library";
   const [expanded, setExpanded] = useState(isOnConstructLine);
 
   const isSchedulerActive = location.startsWith("/portal/scheduler");
@@ -147,12 +147,17 @@ function ConstructLineNav({
     onNavigate?.();
   };
 
+  const isHubActive = location === "/portal/constructline";
+
   return (
     <div>
-      {/* Parent: ConstructLine */}
+      {/* Parent: ConstructLine — navigates to hub, also toggles sub-nav */}
       <button
         data-tour="nav-constructline"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          navigate("/portal/constructline");
+          setExpanded(true);
+        }}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
           isParentActive
             ? "bg-ember/10 font-medium"
@@ -164,10 +169,15 @@ function ConstructLineNav({
           <span className={isParentActive ? "text-white" : "text-cream-muted"}>Construct</span>
           <span className="text-amber-400">Line</span>
         </span>
-        {expanded
-          ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-          : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-        }
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          className="p-0.5 hover:bg-white/10 rounded"
+        >
+          {expanded
+            ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+            : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+          }
+        </button>
       </button>
 
       {/* Children */}
@@ -265,35 +275,9 @@ export default function MemberPortalLayout({
 
   // Setup checklist state — hooks must be called before any early returns
   const isBetaUser = betaUser && !member;
-  const [hasRateConfig, setHasRateConfig] = useState(!!loadRateConfig());
+  const hasRateConfig = !!loadRateConfig();
   const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, { enabled: !!isBetaUser });
   const hasTakeoffProject = (takeoffProjects.data?.length ?? 0) > 0;
-
-  // Portal-wide Rate Setup Wizard — mandatory for ALL users on first visit
-  const [showPortalWizard, setShowPortalWizard] = useState(!hasRateConfig);
-  const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(loadRateConfig());
-  const configureMutation = trpc.tradeRates.configureRates.useMutation({
-    onSuccess: () => {
-      // Wizard complete — allow portal access
-      setShowPortalWizard(false);
-      setHasRateConfig(true);
-    },
-    onError: () => {
-      // Still close wizard on error — config is saved locally
-      setShowPortalWizard(false);
-      setHasRateConfig(true);
-    },
-  });
-  const handlePortalWizardComplete = (config: RateSetupConfig) => {
-    setRateConfig(config);
-    saveRateConfig(config);
-    configureMutation.mutate({
-      laborType: config.laborType,
-      regionCode: config.regionCode ?? null,
-      regionMultiplier: config.regionMultiplier ?? 10000,
-      specialtyMultiplier: config.specialtyMultiplier ?? 10000,
-    });
-  };
 
   if (loading || betaLoading) return <MemberPortalSkeleton />;
   if (!isAuthenticated && !betaUser) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
@@ -314,7 +298,7 @@ export default function MemberPortalLayout({
   const isAdmin = member?.memberRole === "admin";
 
   // Beta user mode: only ConstructLine tools are unlocked
-  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
+  const isConstructLinePage = location === "/portal/constructline" || location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
 
   // Stripe checkout link for upgrade CTA
@@ -323,6 +307,7 @@ export default function MemberPortalLayout({
   // Determine active page label for mobile header
   const allPaths = [
     ...topMenuItems,
+    { label: "ConstructLine", path: "/portal/constructline" },
     { label: "Scheduler", path: "/portal/scheduler" },
     { label: "Takeoff", path: "/portal/takeoff" },
     ...bottomMenuItems,
@@ -764,14 +749,6 @@ export default function MemberPortalLayout({
       {/* What's New Changelog Modal */}
       <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />
 
-      {/* Portal-wide Rate Setup Wizard — mandatory for all users */}
-      <RateSetupWizard
-        open={showPortalWizard}
-        onClose={() => setShowPortalWizard(false)}
-        onComplete={handlePortalWizardComplete}
-        isApplying={configureMutation.isPending}
-        existingConfig={rateConfig}
-      />
     </div>
   );
 }

@@ -35,6 +35,7 @@ import AdminFeedback from "./pages/AdminFeedback";
 import BetaSignup from "./pages/BetaSignup";
 import BetaLogin from "./pages/BetaLogin";
 import ConstructLineLanding from "./pages/ConstructLineLanding";
+import ConstructLineHub from "./pages/ConstructLineHub";
 
 function Router() {
   return (
@@ -111,6 +112,13 @@ function Router() {
       <Route path="/scheduler/:id" component={Scheduler} />
       <Route path="/scheduler/:id/reports" component={ScheduleReports} />
       <Route path="/scheduler/:id/compare" component={ScheduleComparison} />
+
+      {/* ConstructLine Hub */}
+      <Route path="/portal/constructline">
+        <MemberPortalLayout>
+          <ConstructLineHub />
+        </MemberPortalLayout>
+      </Route>
 
       {/* ConstructLine Takeoff */}
       <Route path="/portal/takeoff">

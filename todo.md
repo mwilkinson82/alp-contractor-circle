@@ -2701,3 +2701,10 @@
 - [x] Wire wizard state, configureMutation, and handlePortalWizardComplete in MemberPortalLayout
 - [x] Verify TypeScript compilation clean (0 errors)
 - [x] Verify production build clean
+
+## ConstructLine Sidebar Restructure
+- [x] Remove portal-wide wizard gate from MemberPortalLayout (wizard should NOT fire on portal login)
+- [x] Create dedicated ConstructLine hub page at /portal/constructline
+- [x] Rate Setup Wizard gates only ConstructLine hub — fires on first visit, not on portal login
+- [x] ConstructLine sidebar button navigates to hub; sub-items still visible for quick nav
+- [x] TypeScript clean, production build clean
