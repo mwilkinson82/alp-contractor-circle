@@ -768,6 +768,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   selectedSpecialties: text("selectedSpecialties"),
   /** JSON array of AI-detected trade specialty IDs from drawing analysis */
   detectedSpecialties: text("detectedSpecialties"),
+  /** Set to true if post-processing timed out — project completed with partial results */
+  processingTimedOut: boolean("processingTimedOut").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

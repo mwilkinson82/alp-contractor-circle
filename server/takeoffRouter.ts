@@ -769,11 +769,15 @@ export const takeoffRouter = router({
       Promise.race([postProcessTakeoff(input.projectId), timeoutPromise])
         .then(async (stats) => {
           console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);
-          await updateTakeoffProject(input.projectId, { status: "completed" });
+          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: false } as any);
         })
         .catch(async (err) => {
-          console.error(`[Takeoff Router] Consolidation failed for project ${input.projectId}:`, err);
-          await updateTakeoffProject(input.projectId, { status: "completed" });
+          const isTimeout = err?.message?.includes("timed out");
+          console.error(`[Takeoff Router] Consolidation ${isTimeout ? "timed out" : "failed"} for project ${input.projectId}:`, err.message);
+          // Recover gracefully — set completed with whatever items were already extracted
+          // processingTimedOut flag lets the frontend show a partial-results warning
+          await recalculateProjectTotal(input.projectId);
+          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: isTimeout } as any);
         });
       return { success: true, message: "Post-processing started. Items will be consolidated shortly." };
     }),

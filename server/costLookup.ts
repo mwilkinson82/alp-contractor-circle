@@ -170,28 +170,55 @@ export function applyPricing(
       });
       matchCount++;
     } else {
-      // No match — keep the LLM-generated cost but apply sanity caps
-      let uc = item.unitCost || 0;
+      // No match in cost table — use sensible defaults by unit type
+      // The LLM consolidation sets unitCost=1 (1 cent) as a placeholder,
+      // so we MUST NOT fall back to that. Instead use reasonable material-only defaults.
       const unit = (item.unit || "").toUpperCase();
-      
-      // Sanity caps by unit type (material-only caps)
-      const caps: Record<string, number> = {
-        "SF": 15, "LF": 100, "CY": 250, "EA": 1500,
-        "SFCA": 10, "SY": 75, "LS": 25000, "LB": 5,
+      const llmCost = item.unitCost || 0;
+      const isPlaceholder = llmCost <= 1; // 1 cent = LLM placeholder
+
+      // Sensible material-only defaults when no cost table match exists
+      const defaults: Record<string, number> = {
+        "SF":   3.50,   // generic surface material
+        "LF":   8.00,   // generic linear material
+        "CY":  150.00,  // generic volumetric (concrete-range)
+        "EA":  25.00,   // generic each item
+        "SFCA": 4.50,   // formwork material
+        "SY":  12.00,   // surface yard
+        "LS":  500.00,  // lump sum
+        "LB":   1.50,   // per pound
+        "GAL": 18.00,   // per gallon (form release, sealers, etc.)
+        "TON": 85.00,   // per ton
+        "CWT":  8.50,   // per hundredweight
+        "MSF": 45.00,   // per thousand square feet
+        "SQ":  75.00,   // per square (100 SF)
       };
-      
-      if (caps[unit] && uc > caps[unit]) {
-        uc = caps[unit];
+
+      // Sanity caps by unit type (material-only max)
+      const caps: Record<string, number> = {
+        "SF": 25, "LF": 150, "CY": 400, "EA": 2500,
+        "SFCA": 15, "SY": 100, "LS": 50000, "LB": 10,
+        "GAL": 80, "TON": 300,
+      };
+
+      let uc: number;
+      if (isPlaceholder) {
+        // Use default cost for this unit type, or a generic $10 fallback
+        uc = defaults[unit] ?? 10.00;
+      } else {
+        // Use LLM cost but apply sanity cap
+        uc = llmCost;
+        if (caps[unit] && uc > caps[unit]) uc = caps[unit];
       }
-      
+
       uc = Math.round(uc * regionalMultiplier * 100) / 100;
       const extCost = Math.round(uc * item.quantity * 100) / 100;
-      
+
       results.push({
         ...item,
         unitCost: uc,
         extendedCost: extCost,
-        _costMatch: "NONE",
+        _costMatch: "DEFAULT",
         _costMatchScore: 0,
       });
       noMatchCount++;

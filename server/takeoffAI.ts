@@ -812,10 +812,14 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
       console.log(`[Takeoff AI] ⏱ Pass 3 (post-processing): ${timings.pass3_postprocess_sec}s`);
       console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
     } catch (ppError: any) {
-      console.error(`[Takeoff AI] Post-processing failed (items preserved from per-sheet extraction):`, ppError);
-      // If post-processing fails, items from per-sheet extraction are still in DB
-      // Just recalculate totals from what we have
+      const isTimeout = ppError?.message?.includes("timed out");
+      console.error(`[Takeoff AI] Post-processing ${isTimeout ? "timed out" : "failed"} (items preserved from per-sheet extraction):`, ppError.message);
+      // If post-processing fails/times out, items from per-sheet extraction are still in DB
+      // Recalculate totals and mark timedOut so the frontend can show a warning
       await recalculateProjectTotal(projectId);
+      if (isTimeout) {
+        await updateTakeoffProject(projectId, { processingTimedOut: true } as any);
+      }
     }
   } else {
     // No completed sheets — just recalculate from whatever we have

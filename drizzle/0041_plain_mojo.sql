@@ -1,0 +1,1 @@
+ALTER TABLE `takeoff_projects` ADD `processingTimedOut` boolean DEFAULT false NOT NULL;
