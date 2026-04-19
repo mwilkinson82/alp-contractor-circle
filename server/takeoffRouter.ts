@@ -42,10 +42,11 @@ import {
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
-import { applyPricing, type TakeoffItem as CostTakeoffItem } from "./costLookup";
+import { applyPricing, applyPricingWithLibrary, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
+import { COST_TABLE } from "../shared/costTable";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
-import { getCostLibraryByMember, upsertCostLibraryEntries, deleteCostLibraryEntry, clearCostLibrary } from "./costLibraryDb";
+import { getCostLibraryByMember, upsertCostLibraryEntries, addCostLibraryEntry, updateCostLibraryEntry, deleteCostLibraryEntry, clearCostLibrary } from "./costLibraryDb";
 
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
@@ -825,7 +826,17 @@ export const takeoffRouter = router({
         ? project.costMultiplier / 10000
         : 1.0;
 
-      const pricedItems = applyPricing(costItems, multiplier);
+      // Load member's personal cost library overrides
+      const memberLibraryRaw = await getCostLibraryByMember(member.id).catch(() => []);
+      const memberOverrides: UserLibraryEntry[] = memberLibraryRaw.map((e: any) => ({
+        description: e.description,
+        unit: e.unit,
+        unitCost: e.unitCost / 100, // cents → dollars
+        csiDivision: e.csiDivision || "",
+      }));
+      const pricedItems = memberOverrides.length > 0
+        ? applyPricingWithLibrary(costItems, memberOverrides, multiplier)
+        : applyPricing(costItems, multiplier);
 
       // Write updated costs back to DB
       let updated = 0;
@@ -896,6 +907,44 @@ export const takeoffRouter = router({
       return { success: true };
     }),
 
+  /** Add a single cost library entry manually */
+  addCostLibraryEntry: publicProcedure
+    .input(z.object({
+      description: z.string().min(1).max(512),
+      unit: z.string().min(1).max(32),
+      unitCost: z.number().min(0),  // dollars
+      csiDivision: z.string().max(8).optional(),
+      notes: z.string().max(1000).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const id = await addCostLibraryEntry(member.id, {
+        ...input,
+        unitCost: Math.round(input.unitCost * 100),  // dollars → cents
+      });
+      return { success: true, id };
+    }),
+
+  /** Update a single cost library entry (inline edit) */
+  updateCostLibraryEntry: publicProcedure
+    .input(z.object({
+      entryId: z.number(),
+      description: z.string().min(1).max(512).optional(),
+      unit: z.string().min(1).max(32).optional(),
+      unitCost: z.number().min(0).optional(),  // dollars
+      csiDivision: z.string().max(8).optional(),
+      notes: z.string().max(1000).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const { entryId, unitCost, ...rest } = input;
+      await updateCostLibraryEntry(member.id, entryId, {
+        ...rest,
+        ...(unitCost !== undefined ? { unitCost: Math.round(unitCost * 100) } : {}),
+      });
+      return { success: true };
+    }),
+
   /** Manually add a single takeoff line item under a CSI division */
   addItem: publicProcedure
     .input(
@@ -942,6 +991,24 @@ export const takeoffRouter = router({
     const member = await requireAdminMember(ctx.req);
     await clearCostLibrary(member.id);
     return { success: true };
+  }),
+
+  /**
+   * Load RSMeans defaults into the member's cost library.
+   * Converts the global COST_TABLE into personal library entries so members
+   * can see and edit all baseline prices.
+   */
+  loadRSMeansDefaults: publicProcedure.mutation(async ({ ctx }) => {
+    const member = await requireAdminMember(ctx.req);
+    const entries = COST_TABLE.map(e => ({
+      description: e.description,
+      unit: e.unit,
+      unitCost: Math.round(e.materialCost * 100), // dollars → cents
+      csiDivision: e.csiDivision,
+      notes: `RSMeans 2025 — ${e.category}`,
+    }));
+    const count = await upsertCostLibraryEntries(member.id, entries);
+    return { success: true, count };
   }),
 
   // ── Sheet Markup Persistence ─────────────────────────────────────

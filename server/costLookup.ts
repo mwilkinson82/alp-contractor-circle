@@ -230,6 +230,110 @@ export function applyPricing(
   return results;
 }
 
+/** A single entry from the member's personal cost library */
+export interface UserLibraryEntry {
+  description: string;
+  unit: string;
+  unitCost: number;  // dollars
+  csiDivision?: string;
+}
+
+/**
+ * Match a takeoff item against the member's personal cost library.
+ * Uses simple keyword overlap — member library entries are exact user-entered descriptions.
+ */
+function findLibraryMatch(item: TakeoffItem, library: UserLibraryEntry[]): UserLibraryEntry | null {
+  const desc = normalizeForMatch(item.description);
+  const unit = (item.unit || "").toUpperCase().trim();
+  let bestMatch: UserLibraryEntry | null = null;
+  let bestScore = 0;
+  for (const entry of library) {
+    // Unit must match
+    if (entry.unit.toUpperCase().trim() !== unit) continue;
+    const entryDesc = normalizeForMatch(entry.description);
+    // Score by word overlap
+    const wordsItem = new Set(desc.split(/\s+/).filter(w => w.length > 2));
+    const wordsEntry = new Set(entryDesc.split(/\s+/).filter(w => w.length > 2));
+    if (wordsItem.size === 0 || wordsEntry.size === 0) continue;
+    let overlap = 0;
+    wordsItem.forEach(w => { if (wordsEntry.has(w)) overlap++; });
+    const union = new Set([...Array.from(wordsItem), ...Array.from(wordsEntry)]).size;
+    const score = union > 0 ? overlap / union : 0;
+    if (score >= 0.5 && score > bestScore) {
+      bestScore = score;
+      bestMatch = entry;
+    }
+  }
+  return bestMatch;
+}
+
+/**
+ * Apply pricing using member's personal library first, falling back to RSMeans cost table.
+ * Member library entries always take priority over the global cost table.
+ */
+export function applyPricingWithLibrary(
+  items: TakeoffItem[],
+  library: UserLibraryEntry[],
+  regionalMultiplier: number = 1.0
+): TakeoffItem[] {
+  if (!library || library.length === 0) return applyPricing(items, regionalMultiplier);
+  const results: TakeoffItem[] = [];
+  let libraryHits = 0;
+  let tableHits = 0;
+  let defaultHits = 0;
+  for (const item of items) {
+    // 1. Try member's personal library first
+    const libMatch = findLibraryMatch(item, library);
+    if (libMatch) {
+      const uc = Math.round(libMatch.unitCost * regionalMultiplier * 100) / 100;
+      results.push({
+        ...item,
+        unitCost: uc,
+        extendedCost: Math.round(uc * item.quantity * 100) / 100,
+        _costMatch: "LIBRARY",
+        _costMatchScore: 100,
+      });
+      libraryHits++;
+      continue;
+    }
+    // 2. Fall back to RSMeans cost table
+    const tableMatch = findBestMatch(item);
+    if (tableMatch) {
+      const uc = Math.round(tableMatch.unitCost * regionalMultiplier * 100) / 100;
+      results.push({
+        ...item,
+        unitCost: uc,
+        extendedCost: Math.round(uc * item.quantity * 100) / 100,
+        _costMatch: tableMatch.entry.id,
+        _costMatchScore: tableMatch.score,
+      });
+      tableHits++;
+      continue;
+    }
+    // 3. Default fallback by unit type
+    const unit = (item.unit || "").toUpperCase();
+    const defaults: Record<string, number> = {
+      "SF": 3.50, "LF": 8.00, "CY": 150.00, "EA": 25.00, "SFCA": 4.50,
+      "SY": 12.00, "LS": 500.00, "LB": 1.50, "GAL": 18.00, "TON": 85.00,
+      "CWT": 8.50, "MSF": 45.00, "SQ": 75.00,
+    };
+    const llmCost = item.unitCost || 0;
+    const isPlaceholder = llmCost <= 1;
+    let uc = isPlaceholder ? (defaults[unit] ?? 10.00) : llmCost;
+    uc = Math.round(uc * regionalMultiplier * 100) / 100;
+    results.push({
+      ...item,
+      unitCost: uc,
+      extendedCost: Math.round(uc * item.quantity * 100) / 100,
+      _costMatch: "DEFAULT",
+      _costMatchScore: 0,
+    });
+    defaultHits++;
+  }
+  console.log(`[CostLookup+Library] ${libraryHits} library, ${tableHits} table, ${defaultHits} default out of ${items.length} items`);
+  return results;
+}
+
 /**
  * Validate and fix rebar quantities based on the associated concrete area.
  * 

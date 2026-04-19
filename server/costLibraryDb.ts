@@ -36,6 +36,33 @@ export async function upsertCostLibraryEntries(
   return rows.length;
 }
 
+export async function addCostLibraryEntry(
+  memberId: number,
+  entry: { description: string; unit: string; unitCost: number; csiDivision?: string; notes?: string }
+): Promise<number> {
+  const d = await db();
+  const result = await d.insert(userCostLibrary).values({
+    memberId,
+    description: entry.description.slice(0, 512),
+    unit: entry.unit.slice(0, 32),
+    unitCost: Math.round(entry.unitCost),
+    csiDivision: entry.csiDivision?.slice(0, 8),
+    notes: entry.notes,
+  });
+  return (result as any).insertId;
+}
+
+export async function updateCostLibraryEntry(
+  memberId: number,
+  entryId: number,
+  updates: { description?: string; unit?: string; unitCost?: number; csiDivision?: string; notes?: string }
+): Promise<void> {
+  const d = await db();
+  await d.update(userCostLibrary)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(and(eq(userCostLibrary.id, entryId), eq(userCostLibrary.memberId, memberId)));
+}
+
 export async function deleteCostLibraryEntry(memberId: number, entryId: number): Promise<void> {
   const d = await db();
   await d.delete(userCostLibrary).where(

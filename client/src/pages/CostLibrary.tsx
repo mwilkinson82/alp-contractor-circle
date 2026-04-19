@@ -24,6 +24,10 @@ import {
   CheckCircle2,
   Search,
   X,
+  Plus,
+  Pencil,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +42,13 @@ interface ParsedEntry {
 interface ParseError {
   row: number;
   message: string;
+}
+interface EditState {
+  description: string;
+  unit: string;
+  unitCost: string;
+  csiDivision: string;
+  notes: string;
 }
 
 // ─── CSV Template Download ────────────────────────────────────────────────────
@@ -126,6 +137,10 @@ export default function CostLibrary() {
   const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
   const [pendingEntries, setPendingEntries] = useState<ParsedEntry[] | null>(null);
   const [pendingFilename, setPendingFilename] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editState, setEditState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+  const [showAddRow, setShowAddRow] = useState(false);
+  const [addState, setAddState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
 
   const { data: entries, isLoading, refetch } = trpc.takeoff.getCostLibrary.useQuery();
 
@@ -147,6 +162,18 @@ export default function CostLibrary() {
   const clearMutation = trpc.takeoff.clearCostLibrary.useMutation({
     onSuccess: () => { toast.success("Cost library cleared"); refetch(); },
     onError: (err) => toast.error(err.message),
+  });
+  const updateMutation = trpc.takeoff.updateCostLibraryEntry.useMutation({
+    onSuccess: () => { toast.success("Entry updated"); setEditingId(null); refetch(); },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const addMutation = trpc.takeoff.addCostLibraryEntry.useMutation({
+    onSuccess: () => { toast.success("Entry added"); setShowAddRow(false); setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" }); refetch(); },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const loadDefaultsMutation = trpc.takeoff.loadRSMeansDefaults.useMutation({
+    onSuccess: (result) => { toast.success(`Loaded ${result.count} RSMeans 2025 baseline prices`); refetch(); },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,6 +205,24 @@ export default function CostLibrary() {
     if (!pendingEntries) return;
     uploadMutation.mutate({ entries: pendingEntries });
   };
+  const startEdit = (entry: any) => {
+    setEditingId(entry.id);
+    setEditState({ description: entry.description, unit: entry.unit, unitCost: (entry.unitCost / 100).toFixed(2), csiDivision: entry.csiDivision || "", notes: entry.notes || "" });
+  };
+  const saveEdit = () => {
+    if (!editingId) return;
+    const uc = parseFloat(editState.unitCost);
+    if (isNaN(uc) || uc < 0) { toast.error("Invalid unit cost"); return; }
+    updateMutation.mutate({ entryId: editingId, description: editState.description, unit: editState.unit.toUpperCase(), unitCost: uc, csiDivision: editState.csiDivision || undefined, notes: editState.notes || undefined });
+  };
+  const saveAdd = () => {
+    const uc = parseFloat(addState.unitCost);
+    if (!addState.description.trim()) { toast.error("Description required"); return; }
+    if (!addState.unit.trim()) { toast.error("Unit required"); return; }
+    if (isNaN(uc) || uc < 0) { toast.error("Invalid unit cost"); return; }
+    addMutation.mutate({ description: addState.description, unit: addState.unit.toUpperCase(), unitCost: uc, csiDivision: addState.csiDivision || undefined, notes: addState.notes || undefined });
+  };
+  const inputCls = "h-7 text-xs bg-navy-deep/70 border-white/20 text-cream placeholder:text-cream-muted/40 px-2";
 
   const filtered = (entries || []).filter((e: any) =>
     !search || e.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -222,6 +267,17 @@ export default function CostLibrary() {
           >
             <Upload className="w-4 h-4" />
             Upload CSV / Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setShowAddRow(true); setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" }); }}
+            className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
+            <Plus className="w-3.5 h-3.5" />Add Row
+          </Button>
+          <Button variant="outline" size="sm"
+            onClick={() => { if (!confirm("Load RSMeans 2025 baseline prices into your library? This will add/replace all default entries.")) return; loadDefaultsMutation.mutate(); }}
+            disabled={loadDefaultsMutation.isPending}
+            className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
+            {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Load RSMeans Defaults
           </Button>
           <input
             ref={fileInputRef}
@@ -448,34 +504,48 @@ export default function CostLibrary() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((entry: any) => (
-                      <tr key={entry.id} className="border-t border-white/5 hover:bg-white/3 group">
-                        <td className="px-4 py-2.5 text-cream">{entry.description}</td>
-                        <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
-                        <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">
-                          {formatCost(entry.unitCost)}
-                        </td>
-                        <td className="px-3 py-2.5 text-cream-muted text-xs">
-                          {entry.csiDivision ? (
-                            <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">
-                              Div {entry.csiDivision}
-                            </Badge>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate max-w-xs">
-                          {entry.notes || "—"}
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <button
-                            onClick={() => deleteMutation.mutate({ entryId: entry.id })}
-                            disabled={deleteMutation.isPending}
-                            className="opacity-0 group-hover:opacity-100 text-cream-muted/50 hover:text-red-400 transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
+                    {/* Add Row inline form */}
+                    {showAddRow && (
+                      <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                        <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
+                        <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls + " w-14"} /></td>
+                        <td className="px-2 py-2"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " w-24 text-right"} /></td>
+                        <td className="px-2 py-2"><Input value={addState.csiDivision} onChange={e => setAddState(s => ({ ...s, csiDivision: e.target.value }))} placeholder="03" className={inputCls + " w-14"} /></td>
+                        <td className="px-2 py-2"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
+                        <td className="px-2 py-2"><div className="flex gap-1">
+                          <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                          <button onClick={() => setShowAddRow(false)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                        </div></td>
                       </tr>
-                    ))}
+                    )}
+                    {filtered.map((entry: any) => {
+                      const isEditing = editingId === entry.id;
+                      return isEditing ? (
+                        <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
+                          <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
+                          <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls + " w-14"} /></td>
+                          <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " w-24 text-right"} /></td>
+                          <td className="px-2 py-1.5"><Input value={editState.csiDivision} onChange={e => setEditState(s => ({ ...s, csiDivision: e.target.value }))} className={inputCls + " w-14"} /></td>
+                          <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
+                          <td className="px-2 py-1.5"><div className="flex gap-1">
+                            <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                            <button onClick={() => setEditingId(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                          </div></td>
+                        </tr>
+                      ) : (
+                        <tr key={entry.id} className="border-t border-white/5 hover:bg-white/3 group">
+                          <td className="px-4 py-2.5 text-cream cursor-pointer" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
+                          <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
+                          <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
+                          <td className="px-3 py-2.5 text-cream-muted text-xs">{entry.csiDivision ? (<Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">Div {entry.csiDivision}</Badge>) : "—"}</td>
+                          <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate max-w-xs">{entry.notes || "—"}</td>
+                          <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-amber-400 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div></td>
+                        </tr>
+                      );
+                    })}
                     {filtered.length === 0 && (
                       <tr>
                         <td colSpan={6} className="px-4 py-8 text-center text-cream-muted/50 text-sm">

@@ -9,7 +9,8 @@
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
 import { invokeLLM, type Message } from "./_core/llm";
-import { applyPricing, validateRebarQuantities, type TakeoffItem as CostTakeoffItem } from "./costLookup.js";
+import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup.js";
+import { getCostLibraryByMember } from "./costLibraryDb";
 import {
   getTakeoffItemsByProject,
   getTakeoffProject,
@@ -1562,8 +1563,18 @@ export async function postProcessTakeoff(projectId: number): Promise<{
     notes: item.notes,
   }));
 
-  // Apply cost table (returns items with dollar-denominated costs)
-  let pricedItems = applyPricing(costTableItems, 1.0); // national average first
+  // Load member's personal cost library overrides (cents → dollars)
+  const memberLibraryRaw = await getCostLibraryByMember(project.memberId).catch(() => []);
+  const memberOverrides: UserLibraryEntry[] = memberLibraryRaw.map((e: any) => ({
+    description: e.description,
+    unit: e.unit,
+    unitCost: e.unitCost / 100,
+    csiDivision: e.csiDivision || "",
+  }));
+  // Apply cost table with member overrides taking priority over RSMeans defaults
+  let pricedItems = memberOverrides.length > 0
+    ? applyPricingWithLibrary(costTableItems, memberOverrides, 1.0)
+    : applyPricing(costTableItems, 1.0); // national average first
   
   // Validate rebar quantities
   pricedItems = validateRebarQuantities(pricedItems);
