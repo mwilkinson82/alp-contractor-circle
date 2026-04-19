@@ -795,7 +795,7 @@ export default function TakeoffDetail() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
             <span className="font-semibold text-sm">
-              {isConsolidating ? "AI is enhancing unit costs…" : "AI is analyzing drawings…"}
+              {isConsolidating ? "ConstructLine is enhancing unit costs…" : "ConstructLine is analyzing drawings…"}
             </span>
           </div>
           <span className="text-sm opacity-80">

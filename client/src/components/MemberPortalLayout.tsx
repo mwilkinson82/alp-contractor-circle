@@ -55,6 +55,8 @@ import { trpc } from "@/lib/trpc";
 import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
+import { SetupChecklist } from "@/components/SetupChecklist";
+import { loadRateConfig } from "@/components/RateSetupWizard";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
@@ -284,6 +286,11 @@ export default function MemberPortalLayout({
   const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
 
+  // Setup checklist state for beta users
+  const hasRateConfig = !!loadRateConfig();
+  const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, { enabled: !!isBetaUser });
+  const hasTakeoffProject = (takeoffProjects.data?.length ?? 0) > 0;
+
   // Stripe checkout link for upgrade CTA
   const STRIPE_CHECKOUT = "https://checkout.stripe.com/c/pay/cs_live_b1ORSXM3hl0VYviHrsNIhh85uE2JURl6hPh0s9h50M7Xocold1u1lw1ZhZ#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0TVVJPEFPYUFEUFZTXWdLUFFOUU82bENSbmgzMTJRZkNkUlV9QjJvQEswfH1KVGdKYWpUTkh3MkByVFNhYHRkXUtPS1JxQ1ZfT1VmTH92S3VDcDJydDdHNTVDd2RQNjNdbCcpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZnZ2E1Y2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
 
@@ -366,6 +373,15 @@ export default function MemberPortalLayout({
               location={location}
               setLocation={setLocation}
             />
+
+            {/* Setup Checklist for beta users */}
+            {isBetaUser && (
+              <SetupChecklist
+                discordConnected={betaUser?.discordConnected}
+                hasRateConfig={hasRateConfig}
+                hasTakeoffProject={hasTakeoffProject}
+              />
+            )}
 
             {/* Separator before bottom items */}
             {visibleBottomItems.length > 0 && (
@@ -546,6 +562,18 @@ export default function MemberPortalLayout({
                 <HardHat className="w-5 h-5" />
                 <span>Trade Rate Library</span>
               </button>
+
+              {/* Setup Checklist for beta users (mobile) */}
+              {isBetaUser && (
+                <div className="mt-2">
+                  <SetupChecklist
+                    discordConnected={betaUser?.discordConnected}
+                    hasRateConfig={hasRateConfig}
+                    hasTakeoffProject={hasTakeoffProject}
+                  />
+                </div>
+              )}
+
               {/* Bottom items */}
               {visibleBottomItems.length > 0 && (
                 <div className="border-t border-white/5 pt-2 mt-2 space-y-2">

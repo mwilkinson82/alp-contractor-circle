@@ -2684,3 +2684,13 @@
 - [x] Wire wizard output to recalculate all trade rates with selected labor type, region multiplier, and specialty factor
 - [x] Add processing animation ("Calibrating your rates...") with visual factor display
 - [x] Auto-trigger wizard on first visit to Trade Rate Library (if no config saved)
+
+## Session — Streamline UX + Branding + Proposal Fix
+- [x] Fix proposal PDF signature cutoff — proper page break so signatures don't get clipped
+- [ ] Add project description section to proposal PDF
+- [x] Replace all "AI" branding with "ConstructLine" (AI reasoning → ConstructLine reasoning, Calculate Labor with AI → ConstructLine Labor Analysis, etc.)
+- [x] Fix "units per hour" labeling in labor estimate — relabel to intuitive crew-based language (Output per Crew-Hour)
+- [x] Design and build guided onboarding flow: SetupChecklist component in sidebar for beta users
+- [x] SetupChecklist: 4-step progress tracker (Configure Rates, Review Crews, Upload Project, Connect Discord)
+- [x] SetupChecklist integrated into desktop + mobile sidebar
+- [x] LaborLibrary supports ?tab=crews URL param for direct crew builder access from checklist

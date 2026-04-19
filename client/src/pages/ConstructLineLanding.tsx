@@ -812,7 +812,7 @@ export default function ConstructLineLanding() {
                     851 Line Items, 18 CSI Divisions
                   </h4>
                   <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Every item coded to CSI MasterFormat with quantities, units, unit costs, extended costs, and AI confidence scores. Review and verify each one.
+                    Every item coded to CSI MasterFormat with quantities, units, unit costs, extended costs, and confidence scores. Review and verify each one.
                   </p>
                 </div>
               </div>
@@ -920,13 +920,13 @@ export default function ConstructLineLanding() {
                     Measurements Linked to Line Items
                   </h4>
                   <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Your on-plan measurements save directly to each line item. Apply measured quantities or use AI-suggested values. Full audit trail.
+                    Your on-plan measurements save directly to each line item. Apply measured quantities or use ConstructLine-suggested values. Full audit trail.
                   </p>
                 </div>
               </div>
             </motion.div>
 
-            {/* AI Consolidate & Enhance */}
+            {/* Consolidate & Enhance */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -936,7 +936,7 @@ export default function ConstructLineLanding() {
               <div className="rounded-xl overflow-hidden border border-cream/10 shadow-xl shadow-black/30 mb-4">
                 <img
                   src={SCREENSHOTS.takeoffConsolidateWorking}
-                  alt="AI Consolidate & Enhance — merging and refining results across all 23 sheets"
+                  alt="ConstructLine Consolidate & Enhance — merging and refining results across all 23 sheets"
                   className="w-full h-auto"
                 />
               </div>
@@ -944,10 +944,10 @@ export default function ConstructLineLanding() {
                 <Zap className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
                   <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
-                    AI Consolidate & Enhance
+                    Consolidate & Enhance
                   </h4>
                   <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    After initial extraction, ConstructLine's AI merges duplicate items, refines quantities, and recalculates costs across all sheets. One click to enhance your entire estimate.
+                    After initial extraction, ConstructLine merges duplicate items, refines quantities, and recalculates costs across all sheets. One click to enhance your entire estimate.
                   </p>
                 </div>
               </div>

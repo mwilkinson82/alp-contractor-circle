@@ -73,7 +73,9 @@ export default function LaborLibrary() {
   const laborType: LaborType = rateConfig?.laborType || "com_open";
   const regionMultiplier = 1; // Region is already baked into rates by wizard; display multiplier is 1x
 
-  const [activeView, setActiveView] = useState<"rates" | "crews">("rates");
+  // Support ?tab=crews URL param from the setup checklist
+  const urlTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+  const [activeView, setActiveView] = useState<"rates" | "crews">(urlTab === 'crews' ? 'crews' : 'rates');
   const [search, setSearch] = useState("");
   const [expandedTrades, setExpandedTrades] = useState<Set<string>>(new Set());
   const [showBurdenPanel, setShowBurdenPanel] = useState(false);

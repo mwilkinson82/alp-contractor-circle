@@ -87,12 +87,12 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         // Show review panel instead of auto-saving
         setReviewAssignments(result.assignments);
         setShowReviewPanel(true);
-        toast.success(`AI analyzed ${result.assignments.length} items — review assignments below before confirming.`);
+        toast.success(`ConstructLine analyzed ${result.assignments.length} items — review assignments below before confirming.`);
       } else {
         toast.error(result.message);
       }
     },
-    onError: (err: any) => toast.error("AI labor inference failed: " + err.message),
+    onError: (err: any) => toast.error("ConstructLine labor analysis failed: " + err.message),
   });
 
   const handleCalculateLabor = () => {
@@ -390,7 +390,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Info className="w-4 h-4 text-blue-400 shrink-0" />
           <div className="flex-1">
             <p className="text-blue-200/80 text-xs">
-              <strong className="text-blue-300">Labor costs not yet configured.</strong> Use AI to automatically match
+              <strong className="text-blue-300">Labor costs not yet configured.</strong> Use ConstructLine to automatically match
               your takeoff items to crews and estimate productivity rates, or manually set them in Trade Rate Library.
             </p>
           </div>
@@ -403,7 +403,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             {inferLaborMutation.isPending ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing{items.length > 20 ? ` ${items.length} items` : ''}...</>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5" />Calculate Labor with AI</>
+              <><Sparkles className="w-3.5 h-3.5" />ConstructLine Labor Analysis</>
             )}
           </Button>
         </div>
@@ -415,7 +415,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <div className="px-4 py-3 border-b border-indigo-500/20 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-cream">AI Labor Assignment Review</h3>
+              <h3 className="text-sm font-semibold text-cream">ConstructLine Labor Assignment Review</h3>
               <span className="text-xs text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full">
                 {reviewAssignments.filter(a => a.crewId !== null && !a._excluded).length} of {reviewAssignments.length} matched
               </span>
@@ -450,8 +450,8 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                   <th className="text-left text-cream-muted font-medium px-3 py-2">Item Description</th>
                   <th className="text-left text-cream-muted font-medium px-3 py-2 w-16">Unit</th>
                   <th className="text-left text-cream-muted font-medium px-3 py-2 w-40">Assigned Crew</th>
-                  <th className="text-right text-cream-muted font-medium px-3 py-2 w-32">Productivity (units/hr)</th>
-                  <th className="text-left text-cream-muted font-medium px-3 py-2">AI Reasoning</th>
+                  <th className="text-right text-cream-muted font-medium px-3 py-2 w-32">Output / Crew-Hour</th>
+                  <th className="text-left text-cream-muted font-medium px-3 py-2">ConstructLine Reasoning</th>
                 </tr>
               </thead>
               <tbody>
