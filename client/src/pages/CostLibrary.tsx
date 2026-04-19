@@ -593,7 +593,7 @@ export default function CostLibrary() {
                           {divEntries.map((entry: any) => {
                             const isEditing = editingId === entry.id;
                             return isEditing ? (
-                              <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
+                              <tr key={entry.id} className="border-t border-white/15 bg-white/5">
                                 <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
                                 <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
                                 <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>

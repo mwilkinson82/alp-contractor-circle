@@ -55,7 +55,7 @@ function Input({
       data-slot="input"
       className={cn(
         "file:text-foreground placeholder:text-gray-400 selection:bg-amber-500/30 selection:text-white border-white/15 bg-white/5 text-gray-100 h-9 w-full min-w-0 rounded-lg border px-3 py-1 text-base font-medium shadow-sm transition-all outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20 focus-visible:ring-[3px]",
+        "focus-visible:border-white/40 focus-visible:ring-white/10 focus-visible:ring-[3px]",
         "hover:bg-white/8 hover:border-white/20",
         "aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
         className

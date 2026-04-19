@@ -145,10 +145,15 @@ export default function TakeoffDetail() {
 
   const { data: project, isLoading, refetch: refetchProject } = trpc.takeoff.getProject.useQuery(
     { id: projectId },
-    { enabled: projectId > 0, refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return (status === "processing" || status === "post_processing") ? 3000 : false;
-    }}
+    {
+      enabled: projectId > 0,
+      // Keep polling even when tab is in background (user walks away from computer)
+      refetchIntervalInBackground: true,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return (status === "processing" || status === "post_processing") ? 3000 : false;
+      },
+    }
   );
 
   const { data: items, refetch: refetchItems } = trpc.takeoff.getItems.useQuery(
@@ -171,10 +176,15 @@ export default function TakeoffDetail() {
 
   const { data: progress, refetch: refetchProgress } = trpc.takeoff.getProgress.useQuery(
     { projectId },
-    { enabled: projectId > 0, refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return (status === "processing" || status === "post_processing") ? 2000 : false;
-    }}
+    {
+      enabled: projectId > 0,
+      // Keep polling even when tab is in background — critical for long-running takeoffs
+      refetchIntervalInBackground: true,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return (status === "processing" || status === "post_processing") ? 2000 : false;
+      },
+    }
   );
 
   // Track previous processing status to detect completion transition
@@ -236,6 +246,24 @@ export default function TakeoffDetail() {
       if (processingTimerRef.current) clearInterval(processingTimerRef.current);
     };
   }, []);
+
+  // Force-refetch when user returns to the tab during processing
+  // This ensures completion is detected immediately even if the background poll
+  // was throttled by the browser or the user was away for a long time.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const currentStatus = progress?.status || project?.status;
+        if (currentStatus === "processing" || currentStatus === "post_processing") {
+          // Immediately check for completion when user comes back
+          refetchProgress();
+          refetchProject();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [progress?.status, project?.status, refetchProgress, refetchProject]);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 

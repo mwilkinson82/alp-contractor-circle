@@ -4,10 +4,10 @@
 import { router, publicProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getEstimateMarkup, upsertEstimateMarkup } from "./estimateDb";
-import { inferLaborForItems } from "./laborInference";
+import { inferLaborForItemsPreview } from "./laborInference";
 import { getDb as _getDb } from "./db";
-import { crewDefinitions } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { crewDefinitions, activityProductivity } from "../drizzle/schema";
+import { eq, inArray, and } from "drizzle-orm";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
@@ -84,6 +84,10 @@ export const estimateRouter = router({
       return { success: true, id };
     }),
 
+  /**
+   * inferLabor — calls LLM to analyze items and returns assignments for REVIEW.
+   * Does NOT save to database. User reviews, overrides if needed, then calls confirmLaborAssignments.
+   */
   inferLabor: publicProcedure
     .input(z.object({
       projectId: z.number(),
@@ -100,13 +104,80 @@ export const estimateRouter = router({
       if (!db) throw new Error("Database not available");
       const crews = await db.select().from(crewDefinitions).where(eq(crewDefinitions.memberId, member.id));
       if (crews.length === 0) {
-        return { success: false, message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.", assignments: [] };
+        return {
+          success: false,
+          message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
+          assignments: [] as Array<{
+            description: string; unit: string; csiDivision: string;
+            crewId: number | null; crewName: string;
+            productivityPerCrewHr: number; reasoning: string;
+          }>,
+        };
       }
-      const assignments = await inferLaborForItems(member.id, input.items, crews);
+      // Returns assignments WITHOUT saving — user reviews first
+      const assignments = await inferLaborForItemsPreview(input.items, crews);
       return {
         success: true,
-        message: `AI matched ${assignments.filter(a => a.crewId !== null).length} of ${assignments.length} items to crews`,
+        message: `AI analyzed ${assignments.length} items`,
         assignments,
+      };
+    }),
+
+  /**
+   * confirmLaborAssignments — saves user-approved AI assignments to activity_productivity.
+   * Called after user reviews and optionally overrides the AI suggestions.
+   */
+  confirmLaborAssignments: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      assignments: z.array(z.object({
+        description: z.string(),
+        unit: z.string(),
+        csiDivision: z.string(),
+        crewId: z.number(),
+        productivityPerCrewHr: z.number(),
+        notes: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const db = await _getDb();
+      if (!db) throw new Error("Database not available");
+
+      // Delete existing AI-inferred entries for these descriptions
+      const descs = input.assignments.map(a => a.description);
+      if (descs.length > 0) {
+        for (let i = 0; i < descs.length; i += 50) {
+          const batch = descs.slice(i, i + 50);
+          await db.delete(activityProductivity).where(
+            and(
+              eq(activityProductivity.memberId, member.id),
+              eq(activityProductivity.source, "ai_inferred"),
+              inArray(activityProductivity.description, batch)
+            )
+          );
+        }
+      }
+
+      // Insert confirmed assignments
+      const toInsert = input.assignments.map(a => ({
+        memberId: member.id,
+        csiDivision: a.csiDivision,
+        description: a.description,
+        unit: a.unit,
+        crewId: a.crewId,
+        productivityPerCrewHr: String(a.productivityPerCrewHr),
+        source: "ai_inferred" as const,
+        notes: a.notes || null,
+      }));
+
+      for (let i = 0; i < toInsert.length; i += 50) {
+        await db.insert(activityProductivity).values(toInsert.slice(i, i + 50));
+      }
+
+      return {
+        success: true,
+        message: `Saved ${toInsert.length} labor assignments`,
       };
     }),
 });

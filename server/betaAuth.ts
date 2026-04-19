@@ -2,6 +2,10 @@
  * Beta user authentication — email + password sign-up/login for non-Discord users.
  * Beta users get access to ConstructLine tools (Takeoff + Scheduler) only.
  * All other portal features are locked behind Contractor Circle membership.
+ *
+ * Discord Connect flow (added Apr 2026):
+ *   GET /api/beta/discord/connect  → redirects to Discord OAuth
+ *   GET /api/beta/discord/callback → exchanges code, adds user to guild, assigns ConstructLine role
  */
 import type { Express, Request, Response } from "express";
 import { hashSync, compareSync } from "bcryptjs";
@@ -9,11 +13,67 @@ import { SignJWT, jwtVerify } from "jose";
 import { parse as parseCookieHeader } from "cookie";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import axios from "axios";
 import { betaUsers, type BetaUser } from "../drizzle/schema";
 import { sendConstructLineWelcomeEmail } from "./email";
 
 const BETA_COOKIE_NAME = "beta_session";
 const BETA_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+// ─── Discord constants ────────────────────────────────────────────────────────
+const DISCORD_API_BASE = "https://discord.com/api/v10";
+const DISCORD_OAUTH_AUTHORIZE = "https://discord.com/oauth2/authorize";
+const DISCORD_OAUTH_TOKEN = `${DISCORD_API_BASE}/oauth2/token`;
+const DISCORD_USER_ME = `${DISCORD_API_BASE}/users/@me`;
+
+// Guild / role IDs for ALP Discord server
+const GUILD_ID = process.env.DISCORD_GUILD_ID || "927273292354711613";
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
+
+// ConstructLine role — created automatically on first run if it doesn't exist
+// We store the resolved role ID here after first lookup/creation
+let CONSTRUCTLINE_ROLE_ID: string | null = null;
+
+/** Ensure the ConstructLine role exists in the guild. Returns the role ID. */
+async function ensureConstructLineRole(): Promise<string | null> {
+  if (CONSTRUCTLINE_ROLE_ID) return CONSTRUCTLINE_ROLE_ID;
+  if (!BOT_TOKEN || !GUILD_ID) return null;
+
+  try {
+    // Fetch existing roles
+    const rolesRes = await axios.get(`${DISCORD_API_BASE}/guilds/${GUILD_ID}/roles`, {
+      headers: { Authorization: `Bot ${BOT_TOKEN}` },
+    });
+    const roles: Array<{ id: string; name: string }> = rolesRes.data;
+    const existing = roles.find(r => r.name === "ConstructLine");
+    if (existing) {
+      CONSTRUCTLINE_ROLE_ID = existing.id;
+      console.log(`[BetaDiscord] Found existing ConstructLine role: ${existing.id}`);
+      return existing.id;
+    }
+
+    // Create the role
+    const createRes = await axios.post(
+      `${DISCORD_API_BASE}/guilds/${GUILD_ID}/roles`,
+      {
+        name: "ConstructLine",
+        color: 0xd95f2b, // ember orange — matches brand
+        hoist: false,
+        mentionable: false,
+      },
+      { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+    );
+    CONSTRUCTLINE_ROLE_ID = createRes.data.id;
+    console.log(`[BetaDiscord] Created ConstructLine role: ${CONSTRUCTLINE_ROLE_ID}`);
+    return CONSTRUCTLINE_ROLE_ID;
+  } catch (err: any) {
+    console.warn("[BetaDiscord] Failed to ensure ConstructLine role:", err?.message);
+    return null;
+  }
+}
+
+// Kick off role lookup at startup (non-blocking)
+ensureConstructLineRole().catch(() => {});
 
 function getSessionSecret() {
   const secret = process.env.JWT_SECRET || "dev-secret-change-me";
@@ -93,6 +153,54 @@ export async function getBetaUserFromRequest(req: Request): Promise<BetaUser | n
   return user;
 }
 
+// ─── Discord OAuth helpers ────────────────────────────────────────────────────
+
+function getDiscordClientId(): string {
+  return process.env.DISCORD_CLIENT_ID || "";
+}
+function getDiscordClientSecret(): string {
+  return process.env.DISCORD_CLIENT_SECRET || "";
+}
+
+/** Allowed production origins for redirect_uri */
+const ALLOWED_ORIGINS = new Set([
+  "https://alpcontractorcircle.com",
+  "https://www.alpcontractorcircle.com",
+]);
+const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
+
+/** Add a Discord user to the guild and assign ConstructLine role */
+async function addToGuildAndAssignRole(
+  discordUserId: string,
+  accessToken: string
+): Promise<void> {
+  if (!BOT_TOKEN || !GUILD_ID) return;
+
+  const roleId = await ensureConstructLineRole();
+
+  // Add to guild (PUT /guilds/:id/members/:userId — requires guilds.join scope)
+  await axios.put(
+    `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUserId}`,
+    { access_token: accessToken },
+    { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+  ).catch((e: any) => {
+    // 204 = already a member, that's fine
+    if (e?.response?.status !== 204) {
+      console.warn("[BetaDiscord] addToGuild warning:", e?.message);
+    }
+  });
+
+  // Assign ConstructLine role
+  if (roleId) {
+    await axios.put(
+      `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUserId}/roles/${roleId}`,
+      {},
+      { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
+    );
+    console.log(`[BetaDiscord] Assigned ConstructLine role to Discord user ${discordUserId}`);
+  }
+}
+
 // ─── Express routes ──────────────────────────────────────────────────────────
 
 export function registerBetaAuthRoutes(app: Express) {
@@ -164,6 +272,7 @@ export function registerBetaAuthRoutes(app: Express) {
           email: newUser.email,
           name: newUser.name,
           companyName: newUser.companyName,
+          discordConnected: false,
         },
       });
     } catch (err: any) {
@@ -214,6 +323,7 @@ export function registerBetaAuthRoutes(app: Express) {
           email: user.email,
           name: user.name,
           companyName: user.companyName,
+          discordConnected: !!user.discordId,
         },
       });
     } catch (err: any) {
@@ -239,9 +349,126 @@ export function registerBetaAuthRoutes(app: Express) {
       email: user.email,
       name: user.name,
       companyName: user.companyName,
+      discordConnected: !!user.discordId,
+      discordUsername: user.discordUsername || null,
       isConstructLineUser: true,
     });
   });
 
-  console.log("[Beta Auth] Routes registered: /api/beta/signup, /api/beta/login, /api/beta/logout, /api/beta/me");
+  // ─── Discord Connect ────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/beta/discord/connect
+   * Initiates Discord OAuth for an already-logged-in beta user.
+   * Requires an active beta session cookie.
+   */
+  app.get("/api/beta/discord/connect", async (req: Request, res: Response) => {
+    const user = await getBetaUserFromRequest(req);
+    if (!user) {
+      return res.status(401).json({ error: "You must be logged in to connect Discord." });
+    }
+
+    const rawOrigin = (req.query.origin as string) || req.headers.origin || "";
+    const origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+    const returnPath = (req.query.returnPath as string) || "/portal";
+
+    const redirectUri = `${origin}/api/beta/discord/callback`;
+
+    // Encode state: origin + returnPath + betaUserId (so we know who to update on callback)
+    const state = Buffer.from(
+      JSON.stringify({ origin, returnPath, betaUserId: user.id })
+    ).toString("base64url");
+
+    const url = new URL(DISCORD_OAUTH_AUTHORIZE);
+    url.searchParams.set("client_id", getDiscordClientId());
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("response_type", "code");
+    // guilds.join scope allows the bot to add the user to the guild
+    url.searchParams.set("scope", "identify email guilds.join");
+    url.searchParams.set("state", state);
+    url.searchParams.set("prompt", "consent");
+
+    res.redirect(302, url.toString());
+  });
+
+  /**
+   * GET /api/beta/discord/callback
+   * Discord redirects here after user authorizes.
+   * Exchanges code for token, fetches Discord user, updates beta_users, adds to guild.
+   */
+  app.get("/api/beta/discord/callback", async (req: Request, res: Response) => {
+    const code = req.query.code as string;
+    const stateParam = req.query.state as string;
+
+    if (!code || !stateParam) {
+      return res.status(400).send("Missing code or state. Please try connecting Discord again.");
+    }
+
+    let origin = PRODUCTION_ORIGIN;
+    let returnPath = "/portal";
+    let betaUserId: number | null = null;
+
+    try {
+      const stateData = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+      const rawOrigin = stateData.origin || "";
+      origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+      returnPath = stateData.returnPath || "/portal";
+      betaUserId = Number(stateData.betaUserId) || null;
+    } catch {
+      return res.status(400).send("Invalid state parameter.");
+    }
+
+    if (!betaUserId) {
+      return res.redirect(`${origin}${returnPath}?discord_error=invalid_state`);
+    }
+
+    const redirectUri = `${origin}/api/beta/discord/callback`;
+
+    try {
+      // Exchange code for access token
+      const tokenRes = await axios.post(
+        DISCORD_OAUTH_TOKEN,
+        new URLSearchParams({
+          client_id: getDiscordClientId(),
+          client_secret: getDiscordClientSecret(),
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+        }),
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      );
+      const tokenData = tokenRes.data;
+
+      // Fetch Discord user info
+      const userRes = await axios.get(DISCORD_USER_ME, {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const discordUser = userRes.data;
+
+      // Update beta user record with Discord info
+      await requireDb()
+        .update(betaUsers)
+        .set({
+          discordId: discordUser.id,
+          discordUsername: discordUser.global_name || discordUser.username,
+          discordConnectedAt: new Date(),
+        })
+        .where(eq(betaUsers.id, betaUserId));
+
+      // Add to guild and assign ConstructLine role (fire and forget — non-blocking)
+      addToGuildAndAssignRole(discordUser.id, tokenData.access_token).catch((e: any) =>
+        console.warn("[BetaDiscord] Guild/role assignment failed:", e?.message)
+      );
+
+      console.log(`[BetaDiscord] Beta user ${betaUserId} connected Discord: ${discordUser.username}`);
+
+      // Redirect back to portal with success flag
+      res.redirect(`${origin}${returnPath}?discord_connected=1`);
+    } catch (err: any) {
+      console.error("[BetaDiscord] Callback error:", err?.response?.data || err?.message);
+      res.redirect(`${origin}${returnPath}?discord_error=oauth_failed`);
+    }
+  });
+
+  console.log("[Beta Auth] Routes registered: /api/beta/signup, /api/beta/login, /api/beta/logout, /api/beta/me, /api/beta/discord/connect, /api/beta/discord/callback");
 }

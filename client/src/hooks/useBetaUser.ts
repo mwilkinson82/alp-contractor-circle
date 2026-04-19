@@ -9,6 +9,10 @@ export interface BetaUser {
   email: string;
   name: string;
   companyName: string | null;
+  /** Whether the user has connected their Discord account */
+  discordConnected: boolean;
+  /** Discord username if connected */
+  discordUsername: string | null;
   /** @deprecated kept for backward compat — prefer isConstructLineUser */
   isBeta?: true;
   isConstructLineUser: true;
@@ -29,6 +33,8 @@ export function useBetaUser() {
           if (data && data.id) {
             setBetaUser({
               ...data,
+              discordConnected: !!data.discordConnected,
+              discordUsername: data.discordUsername || null,
               isBeta: true,
               isConstructLineUser: true,
             });

@@ -1,13 +1,9 @@
 /**
  * laborInference.ts — AI-powered auto-matching of takeoff items to crews + productivity.
- * 
- * Given a list of takeoff items (description, unit, quantity, CSI division) and
- * the user's available crew definitions, the LLM infers:
- *   - Which crew should install each item
- *   - Estimated productivity (units per crew-hour)
- * 
- * Results are saved to the activity_productivity table so they persist and
- * the user can tweak them.
+ *
+ * Two entry points:
+ *   inferLaborForItemsPreview  — runs LLM, returns assignments WITHOUT saving (for review panel)
+ *   inferLaborForItems         — legacy: runs LLM AND saves to DB immediately
  */
 import { invokeLLM } from "./_core/llm";
 import { getDb as _getDb } from "./db";
@@ -28,7 +24,7 @@ interface CrewDef {
   crewMembers: string; // JSON array of { tradeName, classification, count }
 }
 
-interface LaborAssignment {
+export interface LaborAssignment {
   description: string;
   unit: string;
   csiDivision: string;
@@ -38,12 +34,13 @@ interface LaborAssignment {
   reasoning: string;
 }
 
+// ─── Core LLM inference (no DB writes) ───────────────────────────────────────
+
 /**
- * Infer labor assignments for takeoff items using LLM.
- * Processes in batches of 30 items to stay within token limits.
+ * Run LLM inference and return assignments WITHOUT saving to DB.
+ * The caller (review panel) is responsible for calling confirmLaborAssignments.
  */
-export async function inferLaborForItems(
-  memberId: number,
+export async function inferLaborForItemsPreview(
   items: TakeoffItem[],
   crews: CrewDef[],
 ): Promise<LaborAssignment[]> {
@@ -52,7 +49,6 @@ export async function inferLaborForItems(
   const crewSummaries = crews.map(c => {
     const members = JSON.parse(c.crewMembers || "[]");
     const memberDesc = members.map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`).join(", ");
-    // Derive primary trade from crew members
     const primaryTrade = members.length > 0 ? members[0].tradeName : c.crewName;
     return {
       id: c.id,
@@ -140,7 +136,6 @@ Return a JSON array with one object per item, in the same order as the input.`;
           const item = batch[a.index];
           if (!item) continue;
 
-          // Validate crewId exists in the user's crews
           const validCrewId = a.crewId && crews.some(c => c.id === a.crewId) ? a.crewId : null;
 
           allAssignments.push({
@@ -156,7 +151,6 @@ Return a JSON array with one object per item, in the same order as the input.`;
       }
     } catch (err) {
       console.error("[LaborInference] Batch error:", err);
-      // For failed batches, add unassigned entries
       for (const item of batch) {
         allAssignments.push({
           description: item.description,
@@ -171,14 +165,27 @@ Return a JSON array with one object per item, in the same order as the input.`;
     }
   }
 
-  // ─── Save to activity_productivity table ────────────────────────────
+  return allAssignments;
+}
+
+// ─── Legacy: infer + save immediately ────────────────────────────────────────
+
+/**
+ * @deprecated Use inferLaborForItemsPreview + confirmLaborAssignments instead.
+ * Kept for any callers that still use the old auto-save pattern.
+ */
+export async function inferLaborForItems(
+  memberId: number,
+  items: TakeoffItem[],
+  crews: CrewDef[],
+): Promise<LaborAssignment[]> {
+  const allAssignments = await inferLaborForItemsPreview(items, crews);
+
   const db = await _getDb();
   if (!db) throw new Error("Database not available");
 
-  // Delete existing AI-inferred entries for this member (to avoid duplicates)
   const existingDescs = allAssignments.map(a => a.description);
   if (existingDescs.length > 0) {
-    // Delete in batches to avoid query size limits
     for (let i = 0; i < existingDescs.length; i += 50) {
       const batchDescs = existingDescs.slice(i, i + 50);
       await db.delete(activityProductivity).where(
@@ -191,7 +198,6 @@ Return a JSON array with one object per item, in the same order as the input.`;
     }
   }
 
-  // Insert new assignments
   const toInsert = allAssignments
     .filter(a => a.crewId !== null && a.productivityPerCrewHr > 0)
     .map(a => ({
@@ -206,7 +212,6 @@ Return a JSON array with one object per item, in the same order as the input.`;
     }));
 
   if (toInsert.length > 0) {
-    // Insert in batches
     for (let i = 0; i < toInsert.length; i += 50) {
       await db.insert(activityProductivity).values(toInsert.slice(i, i + 50));
     }

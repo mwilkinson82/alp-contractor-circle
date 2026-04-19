@@ -2647,3 +2647,15 @@
 - [x] AI auto-labor inference — match material takeoff items to labor requirements automatically
 - [x] "Calculate Labor with AI" button in EstimateSummary — sends takeoff items to LLM, matches to crews + productivity, saves to activity_productivity table
 - [x] Add seedDefaultCrews procedure to pre-populate 30 default crews for all CSI divisions
+
+## Session — Takeoff Completion, Color Fixes, Beta Discord, Labor Review Panel
+- [x] Fix takeoff auto-completion: reliable server-side polling that auto-navigates to detailed takeoff tab without user interaction
+- [x] Fix Cost Library burgundy color on add-item inline form (input borders, labels, buttons)
+- [x] Fix Cost Library table header row (Description, Unit, Unit Cost, Notes, Actions) — still showing burgundy/amber tones instead of navy
+- [x] Grant beta users Discord access with ConstructLine bot role label
+- [x] Build Labor Inference Review Panel — after AI assigns crews, show review table where user can see/override each assignment before locking in
+- [ ] Design recommendation: task-based labor grouping (multiple material items → one installation task → labor applied to task)
+- [x] Create ConstructLine Discord role via bot on startup (if not exists)
+- [x] Add Discord OAuth connect step to beta signup flow (after email/password, before portal access)
+- [x] Auto-add beta users to ALP Discord guild and assign ConstructLine role on Discord connect
+- [x] Show Discord connect prompt in beta portal dashboard if not yet connected

@@ -1006,6 +1006,12 @@ export const betaUsers = mysqlTable("beta_users", {
   companyName: varchar("companyName", { length: 255 }),
   /** Whether this beta user has been deactivated */
   active: boolean("active").default(true).notNull(),
+  /** Discord user ID (snowflake) — set when beta user connects their Discord account */
+  discordId: varchar("discordId", { length: 32 }),
+  /** Discord username (e.g. marshallw) */
+  discordUsername: varchar("discordUsername", { length: 128 }),
+  /** When the beta user connected their Discord account */
+  discordConnectedAt: timestamp("discordConnectedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

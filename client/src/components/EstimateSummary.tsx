@@ -67,12 +67,27 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     onError: (err: any) => toast.error(err.message),
   });
 
+  // ─── Labor Inference Review Panel ──────────────────────────────────
+  const [reviewAssignments, setReviewAssignments] = useState<any[] | null>(null);
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+
+  const confirmLaborMutation = trpc.estimate.confirmLaborAssignments.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.message);
+      utils.tradeRates.getActivityProductivity.invalidate();
+      setShowReviewPanel(false);
+      setReviewAssignments(null);
+    },
+    onError: (err: any) => toast.error("Failed to save assignments: " + err.message),
+  });
+
   const inferLaborMutation = trpc.estimate.inferLabor.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        toast.success(result.message);
-        // Invalidate activity productivity so labor costs recalculate
-        utils.tradeRates.getActivityProductivity.invalidate();
+        // Show review panel instead of auto-saving
+        setReviewAssignments(result.assignments);
+        setShowReviewPanel(true);
+        toast.success(`AI analyzed ${result.assignments.length} items — review assignments below before confirming.`);
       } else {
         toast.error(result.message);
       }
@@ -93,6 +108,23 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         quantity: parseFloat(i.quantity) || 0,
         csiDivision: i.csiDivision || "00",
       })),
+    });
+  };
+
+  const handleConfirmAssignments = () => {
+    if (!reviewAssignments) return;
+    confirmLaborMutation.mutate({
+      projectId,
+      assignments: reviewAssignments
+        .filter(a => a.crewId !== null && !a._excluded)
+        .map(a => ({
+          description: a.description,
+          unit: a.unit,
+          csiDivision: a.csiDivision,
+          crewId: a.crewId,
+          productivityPerCrewHr: a.productivityPerCrewHr,
+          notes: a.reasoning,
+        })),
     });
   };
 
@@ -374,6 +406,137 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
               <><Sparkles className="w-3.5 h-3.5" />Calculate Labor with AI</>
             )}
           </Button>
+        </div>
+      )}
+
+      {/* ─── Labor Inference Review Panel ──────────────────────────────── */}
+      {showReviewPanel && reviewAssignments && (
+        <div className="border border-indigo-500/30 rounded-xl bg-indigo-500/5 overflow-hidden">
+          <div className="px-4 py-3 border-b border-indigo-500/20 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-semibold text-cream">AI Labor Assignment Review</h3>
+              <span className="text-xs text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full">
+                {reviewAssignments.filter(a => a.crewId !== null && !a._excluded).length} of {reviewAssignments.length} matched
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { setShowReviewPanel(false); setReviewAssignments(null); }}
+                className="border-white/10 text-cream-muted hover:text-cream text-xs"
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmAssignments}
+                disabled={confirmLaborMutation.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+              >
+                {confirmLaborMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" />Saving...</>
+                ) : (
+                  <>Confirm & Apply {reviewAssignments.filter(a => a.crewId !== null && !a._excluded).length} Assignments</>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-navy-medium/60 border-b border-white/8">
+                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-8"></th>
+                  <th className="text-left text-cream-muted font-medium px-3 py-2">Item Description</th>
+                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-16">Unit</th>
+                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-40">Assigned Crew</th>
+                  <th className="text-right text-cream-muted font-medium px-3 py-2 w-32">Productivity (units/hr)</th>
+                  <th className="text-left text-cream-muted font-medium px-3 py-2">AI Reasoning</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewAssignments.map((a, idx) => (
+                  <tr
+                    key={idx}
+                    className={`border-b border-white/5 transition-colors ${
+                      a._excluded ? "opacity-40 bg-red-500/5" : a.crewId ? "hover:bg-white/3" : "bg-amber-500/5"
+                    }`}
+                  >
+                    {/* Include / exclude toggle */}
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => {
+                          setReviewAssignments(prev =>
+                            prev ? prev.map((item, i) =>
+                              i === idx ? { ...item, _excluded: !item._excluded } : item
+                            ) : prev
+                          );
+                        }}
+                        title={a._excluded ? "Click to include" : "Click to exclude"}
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                          a._excluded
+                            ? "border-red-400/40 bg-red-500/10 text-red-400"
+                            : "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
+                        }`}
+                      >
+                        {a._excluded ? "✕" : "✓"}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-cream/80 max-w-xs">
+                      <span className="line-clamp-2">{a.description}</span>
+                    </td>
+                    <td className="px-3 py-2 text-cream-muted">{a.unit}</td>
+                    <td className="px-3 py-2">
+                      {a.crewId ? (
+                        <span className="text-indigo-300 font-medium">{a.crewName}</span>
+                      ) : (
+                        <span className="text-amber-400/70 italic">unassigned</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.01"
+                        value={a.productivityPerCrewHr}
+                        onChange={e => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val > 0) {
+                            setReviewAssignments(prev =>
+                              prev ? prev.map((item, i) =>
+                                i === idx ? { ...item, productivityPerCrewHr: val } : item
+                              ) : prev
+                            );
+                          }
+                        }}
+                        className="w-24 bg-navy-medium border border-white/10 rounded px-2 py-1 text-right text-cream focus:border-indigo-400/50 focus:outline-none text-xs"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-cream-muted/60 max-w-xs">
+                      <span className="line-clamp-2 italic">{a.reasoning}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2.5 border-t border-indigo-500/20 flex items-center justify-between">
+            <p className="text-xs text-cream-muted/60">
+              Toggle ✓/✕ to include or exclude items. Edit productivity values inline. Click <strong className="text-cream-muted">Confirm & Apply</strong> to save.
+            </p>
+            <Button
+              size="sm"
+              onClick={handleConfirmAssignments}
+              disabled={confirmLaborMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+            >
+              {confirmLaborMutation.isPending ? (
+                <><Loader2 className="w-3 h-3 animate-spin" />Saving...</>
+              ) : (
+                <>Confirm & Apply</>
+              )}
+            </Button>
+          </div>
         </div>
       )}
 
