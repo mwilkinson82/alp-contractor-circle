@@ -1096,3 +1096,141 @@ export const companyEstimateDefaults = mysqlTable("company_estimate_defaults", {
 });
 export type CompanyEstimateDefault = typeof companyEstimateDefaults.$inferSelect;
 export type InsertCompanyEstimateDefault = typeof companyEstimateDefaults.$inferInsert;
+
+// ─── Trade Rate Library ───────────────────────────────────────────────────────
+/**
+ * Trade Rates — per-member base wage rates by trade, classification, and labor type.
+ * The base wage is BEFORE burden. The system calculates fully burdened rate using
+ * the member's burden configuration.
+ *
+ * Classifications: Foreman, Journeyman, 4th Year Apprentice, 3rd Year, 2nd Year, 1st Year
+ * Labor types: res_open, res_union, com_open, com_union
+ */
+export const tradeRates = mysqlTable("trade_rates", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Trade name: Carpenter, Electrician, Plumber, Iron Worker, Laborer, etc. */
+  tradeName: varchar("tradeName", { length: 128 }).notNull(),
+  /** CSI division this trade primarily works in (e.g. "06" for Carpenter) */
+  csiDivision: varchar("csiDivision", { length: 8 }),
+  /** Classification: foreman, journeyman, apprentice_4, apprentice_3, apprentice_2, apprentice_1 */
+  classification: varchar("classification", { length: 32 }).notNull(),
+  /** Labor type: res_open, res_union, com_open, com_union */
+  laborType: varchar("laborType", { length: 16 }).notNull(),
+  /** Base wage in cents per hour (BEFORE burden) */
+  baseWageCents: int("baseWageCents").notNull(),
+  /** Regional code from costRegions (e.g. "national", "nyc", "la") — null means national avg */
+  regionCode: varchar("regionCode", { length: 32 }),
+  /** Notes (e.g. "2025 CBA rate", "per last project") */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TradeRate = typeof tradeRates.$inferSelect;
+export type InsertTradeRate = typeof tradeRates.$inferInsert;
+
+// ─── Burden Configuration ─────────────────────────────────────────────────────
+/**
+ * Burden Config — per-member, per-labor-type burden rates.
+ * Each burden line item is stored as basis points (e.g. 765 = 7.65%).
+ * Fixed-dollar items (health, pension) stored in cents per hour.
+ *
+ * The system uses these to calculate the fully burdened rate:
+ *   Burdened Rate = Base Wage × (1 + sum of % burdens) + sum of fixed $/hr burdens
+ *
+ * Users can optionally override burden per trade (e.g. different WC rate for electricians).
+ */
+export const burdenConfigs = mysqlTable("burden_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Labor type this config applies to: res_open, res_union, com_open, com_union */
+  laborType: varchar("laborType", { length: 16 }).notNull(),
+  /** Optional: specific trade name override. Null = default for this labor type */
+  tradeName: varchar("tradeName", { length: 128 }),
+  /** FICA (Social Security + Medicare) — basis points, e.g. 765 = 7.65% */
+  ficaPct: int("ficaPct").default(765).notNull(),
+  /** FUTA (Federal Unemployment) — basis points, e.g. 60 = 0.60% */
+  futaPct: int("futaPct").default(60).notNull(),
+  /** SUTA (State Unemployment) — basis points, varies by state */
+  sutaPct: int("sutaPct").default(270).notNull(),
+  /** Workers Compensation — basis points, varies by trade and state */
+  workersCompPct: int("workersCompPct").default(800).notNull(),
+  /** General Liability Insurance — basis points */
+  generalLiabilityPct: int("generalLiabilityPct").default(200).notNull(),
+  /** Health Insurance — cents per hour (fixed cost, not percentage) */
+  healthInsuranceCentsPerHr: int("healthInsuranceCentsPerHr").default(850).notNull(),
+  /** Pension / 401k — basis points of base wage */
+  pensionPct: int("pensionPct").default(300).notNull(),
+  /** Vacation / Holiday Pay — basis points of base wage */
+  vacationPct: int("vacationPct").default(400).notNull(),
+  /** Training Fund — basis points (common in union) */
+  trainingPct: int("trainingPct").default(0).notNull(),
+  /** Union Dues / Fringe — cents per hour (union shops only) */
+  unionFringeCentsPerHr: int("unionFringeCentsPerHr").default(0).notNull(),
+  /** Other burden — cents per hour (catch-all) */
+  otherCentsPerHr: int("otherCentsPerHr").default(0).notNull(),
+  /** Other burden description */
+  otherDescription: varchar("otherDescription", { length: 256 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BurdenConfig = typeof burdenConfigs.$inferSelect;
+export type InsertBurdenConfig = typeof burdenConfigs.$inferInsert;
+
+// ─── Crew Definitions ─────────────────────────────────────────────────────────
+/**
+ * Crew Definitions — user-defined crews composed of trade/classification combos.
+ * Each crew has a name and a JSON array of members with their trade, classification, and count.
+ * The system calculates the blended hourly rate from the Trade Rate Library + Burden Config.
+ */
+export const crewDefinitions = mysqlTable("crew_definitions", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Crew name, e.g. "Concrete Crew A", "Framing Crew" */
+  crewName: varchar("crewName", { length: 128 }).notNull(),
+  /** Labor type this crew uses: res_open, res_union, com_open, com_union */
+  laborType: varchar("laborType", { length: 16 }).notNull(),
+  /** JSON array of crew members:
+   * [{ tradeName: "Carpenter", classification: "journeyman", count: 3 },
+   *  { tradeName: "Carpenter", classification: "foreman", count: 1 }]
+   */
+  crewMembers: text("crewMembers").notNull(),
+  /** Optional notes */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CrewDefinition = typeof crewDefinitions.$inferSelect;
+export type InsertCrewDefinition = typeof crewDefinitions.$inferInsert;
+
+// ─── Activity Productivity Factors ────────────────────────────────────────────
+/**
+ * Activity Productivity — maps CSI work activities to crew types and productivity rates.
+ * Used to auto-calculate labor cost on takeoff items:
+ *   Labor Cost = Quantity / Productivity × Crew Hourly Rate
+ *
+ * Productivity = units of output per crew-hour (e.g. 50 SF/crew-hr for slab forming).
+ * Users can override with their own historical production rates.
+ */
+export const activityProductivity = mysqlTable("activity_productivity", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** CSI division code */
+  csiDivision: varchar("csiDivision", { length: 8 }),
+  /** Activity description (matches takeoff item descriptions) */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Unit of measure (SF, LF, CY, EA, etc.) */
+  unit: varchar("unit", { length: 32 }).notNull(),
+  /** Crew definition ID (links to crewDefinitions) */
+  crewId: int("crewId"),
+  /** Productivity: units of output per crew-hour (stored as decimal) */
+  productivityPerCrewHr: decimal("productivityPerCrewHr", { precision: 10, scale: 2 }).notNull(),
+  /** Source: "rs_means", "user_historical", "subcontractor_quote" */
+  source: varchar("source", { length: 32 }).default("rs_means"),
+  /** Notes */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ActivityProductivity = typeof activityProductivity.$inferSelect;
+export type InsertActivityProductivity = typeof activityProductivity.$inferInsert;

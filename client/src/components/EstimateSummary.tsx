@@ -1,6 +1,6 @@
 /**
- * EstimateSummary — Full project estimate with material costs, labor costs,
- * and configurable markups (OH&P, contingency, bond, taxes).
+ * EstimateSummary — Full project estimate with material costs, labor costs
+ * (computed from crews + activity productivity), and configurable markups.
  * Renders as a tab inside TakeoffDetail.
  */
 import { useState, useMemo, useEffect } from "react";
@@ -11,17 +11,17 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
-  Calculator,
-  Save,
-  Download,
-  ChevronDown,
-  ChevronRight,
-  DollarSign,
-  HardHat,
-  Percent,
-  TrendingUp,
-  FileSpreadsheet,
+  Calculator, Save, Download, ChevronDown, ChevronRight,
+  DollarSign, HardHat, Percent, TrendingUp, FileSpreadsheet,
+  Users, Info,
 } from "lucide-react";
+import {
+  TRADES, CLASSIFICATION_ORDER, CLASSIFICATION_MULTIPLIERS,
+  DEFAULT_BURDENS, calculateBurdenedRate,
+  type LaborType, type Classification,
+} from "../../../shared/tradeRates";
+import { COST_REGION_GROUPS } from "../../../shared/costRegions";
+import EstimateOutputs from "./EstimateOutputs";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
   "01": "General Requirements", "02": "Existing Conditions", "03": "Concrete",
@@ -36,64 +36,130 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
 
 function formatCurrency(cents: number, currencyCode: string = "USD"): string {
   return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    style: "currency", currency: currencyCode, minimumFractionDigits: 2,
   }).format(cents / 100);
 }
 
-function pctToDisplay(basisPts: number): string {
-  return (basisPts / 100).toFixed(2);
-}
-
-function displayToPct(display: string): number {
-  return Math.round(parseFloat(display || "0") * 100);
-}
+function pctToDisplay(bps: number): string { return (bps / 100).toFixed(2); }
+function displayToPct(str: string): number { return Math.round(parseFloat(str || "0") * 100); }
 
 interface EstimateSummaryProps {
   projectId: number;
+  projectName?: string;
+  projectDescription?: string;
   items: any[];
   currency: string;
   costRegion?: string | null;
 }
 
-export default function EstimateSummary({ projectId, items, currency, costRegion }: EstimateSummaryProps) {
+export default function EstimateSummary({ projectId, projectName, projectDescription, items, currency, costRegion }: EstimateSummaryProps) {
+  // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } = trpc.estimate.getMarkups.useQuery({ projectId });
+  const { data: crewsData } = trpc.tradeRates.getCrews.useQuery();
+  const { data: activityData } = trpc.tradeRates.getActivityProductivity.useQuery();
+  const { data: burdenData } = trpc.tradeRates.getBurdenConfigs.useQuery();
+  const { data: userRatesData } = trpc.tradeRates.getTradeRates.useQuery();
+
   const saveMutation = trpc.estimate.saveMarkups.useMutation({
     onSuccess: () => toast.success("Markup configuration saved"),
     onError: (err: any) => toast.error(err.message),
   });
 
-  // Markup state (basis points: 1000 = 10.00%)
+  // ─── Markup state ────────────────────────────────────────────────────
   const [overheadPct, setOverheadPct] = useState(1000);
   const [profitPct, setProfitPct] = useState(1000);
   const [contingencyPct, setContingencyPct] = useState(500);
-  const [bondPct, setBondPct] = useState(150);
-  const [taxPct, setTaxPct] = useState(0);
-  const [generalConditionsPct, setGeneralConditionsPct] = useState(0);
+  const [bondPct, setBondPct] = useState(200);
+  const [taxPct, setTaxPct] = useState(800);
+  const [generalConditionsPct, setGeneralConditionsPct] = useState(1000);
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
 
-  // Load saved markups
   useEffect(() => {
     if (markupData) {
-      setOverheadPct(markupData.overheadPct);
-      setProfitPct(markupData.profitPct);
-      setContingencyPct(markupData.contingencyPct);
-      setBondPct(markupData.bondPct);
-      setTaxPct(markupData.taxPct);
-      setGeneralConditionsPct(markupData.generalConditionsPct);
+      setOverheadPct(markupData.overheadPct ?? 1000);
+      setProfitPct(markupData.profitPct ?? 1000);
+      setContingencyPct(markupData.contingencyPct ?? 500);
+      setBondPct(markupData.bondPct ?? 200);
+      setTaxPct(markupData.taxPct ?? 800);
+      setGeneralConditionsPct(markupData.generalConditionsPct ?? 1000);
     }
   }, [markupData]);
 
-  // Compute totals
+  // ─── Regional multiplier ────────────────────────────────────────────
+  const regionMultiplier = useMemo(() => {
+    if (!costRegion) return 1.0;
+    for (const group of COST_REGION_GROUPS) {
+      for (const metro of group.metros) {
+        if (metro.code === costRegion) return metro.multiplier / 10000;
+      }
+    }
+    return 1.0;
+  }, [costRegion]);
+
+  // ─── Build crew cost map ────────────────────────────────────────────
+  const crewCostMap = useMemo(() => {
+    const map = new Map<number, { name: string; costPerHr: number }>();
+    if (!crewsData) return map;
+
+    // Build user rate overrides map
+    const userRateMap = new Map<string, number>();
+    if (userRatesData) {
+      for (const r of userRatesData) {
+        userRateMap.set(`${r.tradeName}|${r.classification}`, r.baseWageCents);
+      }
+    }
+
+    for (const crew of crewsData) {
+      const lt = (crew.laborType || "com_open") as LaborType;
+      // Get burden for this labor type
+      const burdenConfig = burdenData?.find((b: any) => b.laborType === lt);
+      const burden = burdenConfig ? {
+        ficaPct: burdenConfig.ficaPct, futaPct: burdenConfig.futaPct, sutaPct: burdenConfig.sutaPct,
+        workersCompPct: burdenConfig.workersCompPct, generalLiabilityPct: burdenConfig.generalLiabilityPct,
+        healthInsuranceCentsPerHr: burdenConfig.healthInsuranceCentsPerHr,
+        pensionPct: burdenConfig.pensionPct, vacationPct: burdenConfig.vacationPct,
+        trainingPct: burdenConfig.trainingPct,
+        unionFringeCentsPerHr: burdenConfig.unionFringeCentsPerHr, otherCentsPerHr: burdenConfig.otherCentsPerHr,
+      } : DEFAULT_BURDENS[lt];
+
+      let totalPerHr = 0;
+      const members = JSON.parse(crew.crewMembers || "[]");
+      for (const m of members) {
+        const userRate = userRateMap.get(`${m.tradeName}|${m.classification}`);
+        const trade = TRADES.find(t => t.tradeName === m.tradeName);
+        const baseWage = userRate ?? (trade ? Math.round(trade.journeymanRates[lt] * CLASSIFICATION_MULTIPLIERS[m.classification as Classification]) : 0);
+        const burdened = Math.round(calculateBurdenedRate(baseWage, burden) * regionMultiplier);
+        totalPerHr += burdened * (m.count || 1);
+      }
+      map.set(crew.id, { name: crew.crewName, costPerHr: totalPerHr });
+    }
+    return map;
+  }, [crewsData, burdenData, userRatesData, regionMultiplier]);
+
+  // ─── Build activity productivity lookup ─────────────────────────────
+  const activityMap = useMemo(() => {
+    const map = new Map<string, { crewId: number | null; productivityPerCrewHr: number; source: string }>();
+    if (!activityData) return map;
+    for (const a of activityData) {
+      // Key by description+unit (lowercase for fuzzy matching)
+      const key = `${(a.description || "").toLowerCase()}|${(a.unit || "").toLowerCase()}`;
+      map.set(key, {
+        crewId: a.crewId,
+        productivityPerCrewHr: parseFloat(a.productivityPerCrewHr) || 0,
+        source: a.source || "rs_means",
+      });
+    }
+    return map;
+  }, [activityData]);
+
+  // ─── Compute totals ─────────────────────────────────────────────────
   const calculations = useMemo(() => {
     if (!items || items.length === 0) return null;
 
-    // Group by division
     const byDivision: Record<string, { items: any[]; materialTotal: number; laborTotal: number }> = {};
     let totalMaterial = 0;
     let totalLabor = 0;
+    let laborItemsMatched = 0;
 
     for (const item of items) {
       const div = item.csiDivision || "00";
@@ -101,14 +167,26 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
       byDivision[div].items.push(item);
 
       const qty = parseFloat(item.quantity) || 0;
-      const unitCost = parseFloat(item.unitCost) || 0; // in cents
+      const unitCost = parseFloat(item.unitCost) || 0;
       const itemMaterial = qty * unitCost;
       byDivision[div].materialTotal += itemMaterial;
       totalMaterial += itemMaterial;
 
-      // Labor estimate: use laborCost if available, otherwise estimate as 40% of material
-      const laborCost = item.laborCost ? parseFloat(item.laborCost) : 0;
-      const itemLabor = laborCost > 0 ? qty * laborCost : 0;
+      // Labor: look up activity productivity for this item
+      const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
+      const activity = activityMap.get(descKey);
+      let itemLabor = 0;
+
+      if (activity && activity.crewId && activity.productivityPerCrewHr > 0) {
+        const crewInfo = crewCostMap.get(activity.crewId);
+        if (crewInfo) {
+          // Labor = (qty / productivity_per_crew_hr) × crew_cost_per_hr
+          const crewHours = qty / activity.productivityPerCrewHr;
+          itemLabor = Math.round(crewHours * crewInfo.costPerHr);
+          laborItemsMatched++;
+        }
+      }
+
       byDivision[div].laborTotal += itemLabor;
       totalLabor += itemLabor;
     }
@@ -122,42 +200,25 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
     const contingency = Math.round(subtotalWithOHP * contingencyPct / 10000);
     const subtotalWithContingency = subtotalWithOHP + contingency;
     const bond = Math.round(subtotalWithContingency * bondPct / 10000);
-    const tax = Math.round(totalMaterial * taxPct / 10000); // tax on materials only
+    const tax = Math.round(totalMaterial * taxPct / 10000);
     const grandTotal = subtotalWithContingency + bond + tax;
 
     return {
-      byDivision,
-      totalMaterial,
-      totalLabor,
-      directCost,
-      generalConditions,
-      overhead,
-      profit,
-      contingency,
-      bond,
-      tax,
-      grandTotal,
+      byDivision, totalMaterial, totalLabor, directCost,
+      generalConditions, overhead, profit, contingency, bond, tax, grandTotal,
       divisionOrder: Object.keys(byDivision).sort(),
+      laborItemsMatched,
+      totalItems: items.length,
     };
-  }, [items, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct]);
+  }, [items, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap]);
 
   const handleSave = () => {
-    saveMutation.mutate({
-      projectId,
-      overheadPct,
-      profitPct,
-      contingencyPct,
-      bondPct,
-      taxPct,
-      generalConditionsPct,
-    });
+    saveMutation.mutate({ projectId, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct });
   };
 
   const handleExportEstimate = () => {
     if (!calculations) return;
     const rows: any[] = [];
-
-    // Division breakdown
     for (const div of calculations.divisionOrder) {
       const data = calculations.byDivision[div];
       const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
@@ -168,8 +229,6 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
         "Subtotal": ((data.materialTotal + data.laborTotal) / 100).toFixed(2),
       });
     }
-
-    // Totals
     rows.push({});
     rows.push({ "CSI Division": "DIRECT COSTS", "Material Cost": (calculations.totalMaterial / 100).toFixed(2), "Labor Cost": (calculations.totalLabor / 100).toFixed(2), "Subtotal": (calculations.directCost / 100).toFixed(2) });
     rows.push({ "CSI Division": `General Conditions (${pctToDisplay(generalConditionsPct)}%)`, "Subtotal": (calculations.generalConditions / 100).toFixed(2) });
@@ -180,7 +239,6 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
     rows.push({ "CSI Division": `Sales Tax on Materials (${pctToDisplay(taxPct)}%)`, "Subtotal": (calculations.tax / 100).toFixed(2) });
     rows.push({});
     rows.push({ "CSI Division": "GRAND TOTAL", "Subtotal": (calculations.grandTotal / 100).toFixed(2) });
-
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Estimate Summary");
@@ -227,7 +285,7 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
             Estimate Summary
           </h2>
           <p className="text-cream-muted text-xs mt-1">
-            Material costs from takeoff + labor + configurable markups
+            Material costs from takeoff + labor from crews/productivity + configurable markups
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -242,6 +300,26 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
         </div>
       </div>
 
+      {/* Labor coverage info */}
+      {calculations.laborItemsMatched > 0 ? (
+        <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <Users className="w-4 h-4 text-emerald-400 shrink-0" />
+          <p className="text-emerald-200/80 text-xs">
+            <strong className="text-emerald-300">Labor calculated</strong> for {calculations.laborItemsMatched} of {calculations.totalItems} items
+            using your crew definitions and activity productivity factors.
+            Items without matching productivity data show "—" in the labor column.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <Info className="w-4 h-4 text-blue-400 shrink-0" />
+          <p className="text-blue-200/80 text-xs">
+            <strong className="text-blue-300">Labor costs not yet configured.</strong> To see labor in your estimate:
+            go to Trade Rate Library → set up your crews → then add activity productivity factors matching your takeoff items.
+          </p>
+        </div>
+      )}
+
       {/* Two-column layout: Division breakdown + Markup config */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -252,7 +330,6 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
             Direct Cost Breakdown by Division
           </h3>
 
-          {/* Division table */}
           <div className="border border-white/10 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -268,7 +345,6 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
                   const data = calculations.byDivision[div];
                   const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
                   const divTotal = data.materialTotal + data.laborTotal;
-                  const isCollapsed = collapsedDivisions.has(div);
 
                   return (
                     <tr key={div}
@@ -277,7 +353,7 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
                     >
                       <td className="px-4 py-2.5 text-cream">
                         <div className="flex items-center gap-2">
-                          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />}
+                          {collapsedDivisions.has(div) ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />}
                           <span className="font-mono text-amber-400/80 text-xs">{div}</span>
                           <span>{divName}</span>
                           <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px] ml-1">{data.items.length}</Badge>
@@ -289,7 +365,6 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
                     </tr>
                   );
                 })}
-                {/* Direct cost total row */}
                 <tr className="bg-navy-medium/50 border-t border-white/15">
                   <td className="px-4 py-3 text-cream font-semibold">Direct Costs Total</td>
                   <td className="px-4 py-3 text-right text-emerald-400 font-mono text-sm font-semibold">{formatCurrency(calculations.totalMaterial, currency)}</td>
@@ -336,6 +411,15 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
           </div>
         </div>
       </div>
+      {/* Export Documents */}
+      <EstimateOutputs
+        projectName={projectName || `Project ${projectId}`}
+        projectDescription={projectDescription}
+        calculations={calculations}
+        markups={{ generalConditionsPct, overheadPct, profitPct, contingencyPct, bondPct, taxPct }}
+        currency={currency}
+        costRegion={costRegion}
+      />
     </div>
   );
 }
@@ -343,16 +427,10 @@ export default function EstimateSummary({ projectId, items, currency, costRegion
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function MarkupInput({ label, value, onChange, hint }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  hint: string;
+  label: string; value: number; onChange: (v: number) => void; hint: string;
 }) {
   const [display, setDisplay] = useState(pctToDisplay(value));
-
-  useEffect(() => {
-    setDisplay(pctToDisplay(value));
-  }, [value]);
+  useEffect(() => { setDisplay(pctToDisplay(value)); }, [value]);
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -362,15 +440,9 @@ function MarkupInput({ label, value, onChange, hint }: {
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <Input
-          type="number"
-          step="0.01"
-          min="0"
-          max="100"
+          type="number" step="0.01" min="0" max="100"
           value={display}
-          onChange={(e) => {
-            setDisplay(e.target.value);
-            onChange(displayToPct(e.target.value));
-          }}
+          onChange={(e) => { setDisplay(e.target.value); onChange(displayToPct(e.target.value)); }}
           className="w-20 h-7 text-xs text-right bg-navy-deep/80 border-white/10 text-cream px-2"
         />
         <span className="text-cream-muted text-xs">%</span>
@@ -380,11 +452,7 @@ function MarkupInput({ label, value, onChange, hint }: {
 }
 
 function WaterfallRow({ label, value, currency, bold, accent }: {
-  label: string;
-  value: number;
-  currency: string;
-  bold?: boolean;
-  accent?: boolean;
+  label: string; value: number; currency: string; bold?: boolean; accent?: boolean;
 }) {
   return (
     <div className={`flex items-center justify-between py-1 ${bold ? "font-semibold" : ""}`}>

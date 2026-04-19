@@ -1588,6 +1588,8 @@ export default function TakeoffDetail() {
           <TabsContent value="estimate">
             <EstimateSummary
               projectId={project.id}
+              projectName={project.name}
+              projectDescription={project.description || undefined}
               items={items || []}
               currency={project.currency || "USD"}
               costRegion={project.costRegion}

@@ -302,6 +302,13 @@
       "when": 1776596269098,
       "tag": "0042_complex_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1776598417733,
+      "tag": "0043_misty_maddog",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ import { takeoffRouter } from "./takeoffRouter";
 import { takeoffCostRouter } from "./takeoffCostRouter";
 import { laborLibraryRouter } from "./laborLibraryRouter";
 import { estimateRouter } from "./estimateRouter";
+import { tradeRateRouter } from "./tradeRateRouter";
 import { feedbackRouter } from "./feedbackRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
@@ -84,6 +85,7 @@ export const appRouter = router({
   takeoff: router({ ...takeoffRouter._def.procedures, ...takeoffCostRouter._def.procedures }),
   labor: laborLibraryRouter,
   estimate: estimateRouter,
+  tradeRates: tradeRateRouter,
   feedback: feedbackRouter,
 
   templates: router({

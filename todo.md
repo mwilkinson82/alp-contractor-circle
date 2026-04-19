@@ -2622,3 +2622,15 @@
 - [x] Regional selector modal on both Cost Library and Labor Library pages
 - [x] Labor Library backend router with CRUD + seed data
 - [x] Labor Library frontend page with labor type toggle
+
+## Labor Estimating Engine
+- [x] Trade Rate Library schema (trades × classifications × 4 labor types × regional factors)
+- [x] Trade Rate Library DB migration and seed data
+- [x] Trade Rate Library backend router (CRUD)
+- [x] Trade Rate Library frontend page (regional selector, labor type toggle, editable rates)
+- [x] Crew Builder — define crews from trade rates, auto-calculate blended hourly rate
+- [x] Activity productivity factors wired to takeoff items (auto labor cost calculation)
+- [x] Bid Summary PDF export (project info, division breakdown, markup waterfall, grand total)
+- [x] Proposal generator (cover letter + scope narrative + pricing summary)
+- [x] Schedule of Values (SOV) — AIA G703-style line-item breakdown
+- [x] Burden configuration — user enters actual burden rates (FICA, FUTA, SUTA, WC, GL, health, pension, vacation, training, union fringe, other) per labor type; system auto-calculates fully burdened rate

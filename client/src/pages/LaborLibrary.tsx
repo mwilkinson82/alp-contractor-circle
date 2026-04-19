@@ -1,8 +1,11 @@
 /**
- * LaborLibrary — Upload and manage labor rates for ConstructLine.
- * Supports 4 labor types (Res/Com × Union/Open Shop) and regional cost factors.
+ * LaborLibrary (Trade Rate Library) — Manage trade rates, burden configuration,
+ * and crew definitions for ConstructLine estimating.
+ *
+ * Structure: Trades × Classifications × Labor Types × Regional Factors
+ * Burden: User enters actual burden rates → system calculates fully burdened rate
  */
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -10,293 +13,156 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import {
-  Upload, Trash2, BookOpen, Loader2, FileSpreadsheet, AlertCircle, CheckCircle2,
-  Search, X, Plus, Pencil, Check, RefreshCw, ChevronDown, ChevronRight,
-  ArrowLeft, Download, Users, MapPin, HardHat,
+  ArrowLeft, MapPin, ChevronDown, ChevronRight, Search, X,
+  Loader2, Settings2, Plus, Download, RefreshCw,
+  Pencil, Check, Info, HardHat, Users,
 } from "lucide-react";
+import CrewBuilder from "@/components/CrewBuilder";
 import { COST_REGION_GROUPS, type CostRegionGroup } from "../../../shared/costRegions";
-import { LABOR_TYPE_LABELS, LABOR_TYPE_SHORT, LABOR_TYPE_MULTIPLIERS, type LaborType } from "../../../shared/laborTable";
+import {
+  TRADES, CLASSIFICATION_ORDER, CLASSIFICATION_LABELS, CLASSIFICATION_MULTIPLIERS,
+  LABOR_TYPE_LABELS, DEFAULT_BURDENS, calculateBurdenedRate,
+  type LaborType, type Classification, type BurdenDefaults,
+} from "../../../shared/tradeRates";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface ParsedEntry {
-  description: string;
-  unit: string;
-  laborRate: number;
-  crewSize?: string;
-  productivity?: string;
-  csiDivision?: string;
-  notes?: string;
-}
-interface ParseError { row: number; message: string; }
-interface EditState {
-  description: string; unit: string; laborRate: string;
-  crewSize: string; productivity: string; csiDivision: string; notes: string;
-}
-
-const CSI_DIVISION_NAMES: Record<string, string> = {
-  "01": "Div 01 — General Requirements", "02": "Div 02 — Existing Conditions",
-  "03": "Div 03 — Concrete", "04": "Div 04 — Masonry", "05": "Div 05 — Metals",
-  "06": "Div 06 — Wood, Plastics & Composites", "07": "Div 07 — Thermal & Moisture Protection",
-  "08": "Div 08 — Openings", "09": "Div 09 — Finishes", "10": "Div 10 — Specialties",
-  "11": "Div 11 — Equipment", "12": "Div 12 — Furnishings", "13": "Div 13 — Special Construction",
-  "14": "Div 14 — Conveying Equipment", "21": "Div 21 — Fire Suppression",
-  "22": "Div 22 — Plumbing", "23": "Div 23 — HVAC", "26": "Div 26 — Electrical",
-  "27": "Div 27 — Communications", "28": "Div 28 — Electronic Safety & Security",
-  "31": "Div 31 — Earthwork", "32": "Div 32 — Exterior Improvements", "33": "Div 33 — Utilities",
+// ─── Constants ────────────────────────────────────────────────────────────────
+const LABOR_TYPES: LaborType[] = ["res_open", "res_union", "com_open", "com_union"];
+const LABOR_TYPE_SHORT: Record<LaborType, string> = {
+  res_open: "Res Open",
+  res_union: "Res Union",
+  com_open: "Com Open",
+  com_union: "Com Union",
 };
 
-const LABOR_TYPES: LaborType[] = ["res_open", "res_union", "com_open", "com_union"];
-
-function ColGroup() {
-  return (
-    <colgroup>
-      <col style={{ width: "40%" }} />
-      <col style={{ width: "60px" }} />
-      <col style={{ width: "100px" }} />
-      <col style={{ width: "70px" }} />
-      <col style={{ width: "80px" }} />
-      <col />
-      <col style={{ width: "72px" }} />
-    </colgroup>
-  );
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+function formatPct(basisPoints: number): string {
+  return `${(basisPoints / 100).toFixed(2)}%`;
+}
+function parsePctToBasisPoints(val: string): number {
+  const n = parseFloat(val);
+  return isNaN(n) ? 0 : Math.round(n * 100);
+}
+function parseDollarsToCents(val: string): number {
+  const n = parseFloat(val);
+  return isNaN(n) ? 0 : Math.round(n * 100);
 }
 
-// ─── Parse CSV/Excel ──────────────────────────────────────────────────────────
-function parseFile(file: File): Promise<{ entries: ParsedEntry[]; errors: ParseError[] }> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        const entries: ParsedEntry[] = [];
-        const errors: ParseError[] = [];
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.every((c: any) => !c)) continue;
-          const description = String(row[0] || "").trim();
-          const unit = String(row[1] || "").trim().toUpperCase();
-          const rawRate = row[2];
-          const crewSize = String(row[3] || "").trim() || undefined;
-          const productivity = String(row[4] || "").trim() || undefined;
-          const csiDivision = String(row[5] || "").trim().replace(/\D/g, "").slice(0, 2) || undefined;
-          const notes = String(row[6] || "").trim() || undefined;
-          if (!description) { errors.push({ row: i + 1, message: "Missing description" }); continue; }
-          if (!unit) { errors.push({ row: i + 1, message: `Row ${i + 1}: Missing unit` }); continue; }
-          const laborRate = parseFloat(String(rawRate).replace(/[$,]/g, ""));
-          if (isNaN(laborRate) || laborRate < 0) { errors.push({ row: i + 1, message: `Row ${i + 1}: Invalid labor rate "${rawRate}"` }); continue; }
-          entries.push({ description, unit, laborRate, crewSize, productivity, csiDivision, notes });
-        }
-        resolve({ entries, errors });
-      } catch (err) {
-        resolve({ entries: [], errors: [{ row: 0, message: `Failed to parse file: ${String(err)}` }] });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
+const CSI_DIV_NAMES: Record<string, string> = {
+  "02": "Existing Conditions", "03": "Concrete", "04": "Masonry", "05": "Metals",
+  "06": "Wood/Plastics/Composites", "07": "Thermal & Moisture", "08": "Openings",
+  "09": "Finishes", "10": "Specialties", "21": "Fire Suppression", "22": "Plumbing",
+  "23": "HVAC", "26": "Electrical", "27": "Communications", "31": "Earthwork",
+  "32": "Exterior Improvements", "33": "Utilities",
+};
 
-// ─── Regional Selector Modal ─────────────────────────────────────────────────
-function RegionSelector({ selectedCode, onSelect, onClose }: {
-  selectedCode: string; onSelect: (code: string, name: string, multiplier: number) => void; onClose: () => void;
-}) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const usGroups = COST_REGION_GROUPS.filter(g => g.country === "US");
-  const filtered = usGroups.map(g => ({
-    ...g,
-    metros: g.metros.filter(m =>
-      !searchTerm || m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.description.toLowerCase().includes(searchTerm.toLowerCase())
-    ),
-  })).filter(g => g.metros.length > 0);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-navy-medium border border-white/15 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-white/10">
-          <h3 className="text-cream font-semibold text-lg flex items-center gap-2"><MapPin className="w-5 h-5 text-blue-400" />Select Your Region</h3>
-          <p className="text-cream-muted text-xs mt-1">Regional factors adjust labor rates based on local market conditions (RS Means City Cost Index).</p>
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
-            <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search cities…"
-              className="pl-8 h-8 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40" />
-          </div>
-        </div>
-        <div className="overflow-y-auto max-h-[55vh] p-3 space-y-2">
-          {filtered.map(group => (
-            <div key={group.region}>
-              <p className="text-cream-muted text-xs font-semibold uppercase tracking-wider px-2 py-1">{group.region}</p>
-              <div className="space-y-0.5">
-                {group.metros.map(metro => (
-                  <button key={metro.code}
-                    onClick={() => onSelect(metro.code, metro.name, metro.multiplier)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedCode === metro.code ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-cream hover:bg-white/5"
-                    }`}>
-                    <div className="text-left">
-                      <span className="font-medium">{metro.name}</span>
-                      <span className="text-cream-muted text-xs ml-2">{metro.description}</span>
-                    </div>
-                    <span className="font-mono text-xs shrink-0 ml-2">{metro.displayMultiplier}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function LaborLibrary() {
   const { member } = useMember();
+  const betaUser = false; // non-members handled by route guard
   const [, setLocation] = useLocation();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [search, setSearch] = useState("");
-  const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
-  const [pendingEntries, setPendingEntries] = useState<ParsedEntry[] | null>(null);
-  const [pendingFilename, setPendingFilename] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const emptyEdit = { description: "", unit: "", laborRate: "", crewSize: "", productivity: "", csiDivision: "", notes: "" };
-  const [editState, setEditState] = useState<EditState>(emptyEdit);
-  const [addingForDivision, setAddingForDivision] = useState<string | null>(null);
-  const [addState, setAddState] = useState<EditState>(emptyEdit);
-  const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
-
-  // Labor type & region state
   const [laborType, setLaborType] = useState<LaborType>("com_open");
-  const [regionCode, setRegionCode] = useState("national");
-  const [regionName, setRegionName] = useState("National Average");
-  const [regionMultiplier, setRegionMultiplier] = useState(10000);
+  const [activeView, setActiveView] = useState<"rates" | "crews">("rates");
+  const [search, setSearch] = useState("");
+  const [expandedTrades, setExpandedTrades] = useState<Set<string>>(new Set());
+  const [showBurdenPanel, setShowBurdenPanel] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<{ code: string; name: string; multiplier: number } | null>(null);
+  const [editingRate, setEditingRate] = useState<{ tradeName: string; classification: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
-  const { data: entries, isLoading, refetch } = trpc.labor.getLaborLibrary.useQuery();
+  const tradeRatesQuery = trpc.tradeRates.getTradeRates.useQuery({ laborType });
+  const burdenQuery = trpc.tradeRates.getBurdenForType.useQuery({ laborType });
+  const utils = trpc.useUtils();
 
-  const uploadMutation = trpc.labor.uploadLaborLibrary.useMutation({
-    onSuccess: (result: any) => { toast.success(`${result.count} labor entries saved`); setPendingEntries(null); setParseErrors([]); refetch(); },
-    onError: (err: any) => toast.error(err.message),
+  const seedMutation = trpc.tradeRates.seedFromBaseline.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Loaded ${data.count} baseline rates`);
+      utils.tradeRates.getTradeRates.invalidate();
+    },
+    onError: () => toast.error("Failed to load baseline rates"),
   });
-  const deleteMutation = trpc.labor.deleteLaborLibraryEntry.useMutation({
-    onSuccess: () => { toast.success("Entry deleted"); refetch(); },
-    onError: (err: any) => toast.error(err.message),
-  });
-  const clearMutation = trpc.labor.clearLaborLibrary.useMutation({
-    onSuccess: () => { toast.success("Labor library cleared"); refetch(); },
-    onError: (err: any) => toast.error(err.message),
-  });
-  const updateMutation = trpc.labor.updateLaborLibraryEntry.useMutation({
-    onSuccess: () => { toast.success("Entry updated"); setEditingId(null); refetch(); },
-    onError: (err: any) => toast.error(err.message),
-  });
-  const addMutation = trpc.labor.addLaborLibraryEntry.useMutation({
+
+  const updateRateMutation = trpc.tradeRates.updateTradeRate.useMutation({
     onSuccess: () => {
-      toast.success("Entry added");
-      setAddingForDivision(null);
-      setAddState(emptyEdit);
-      refetch();
+      utils.tradeRates.getTradeRates.invalidate();
+      setEditingRate(null);
     },
-    onError: (err: any) => toast.error(err.message),
-  });
-  const loadDefaultsMutation = trpc.labor.loadDefaults.useMutation({
-    onSuccess: (result: any) => {
-      toast.success(result.added > 0 ? `Added ${result.added} new entries (${result.count} total)` : `Library is up to date (${result.count} entries)`);
-      refetch();
-    },
-    onError: (err: any) => toast.error(err.message),
+    onError: () => toast.error("Failed to update rate"),
   });
 
-  // Auto-load on first visit if empty
-  const hasAutoLoaded = useRef(false);
-  useEffect(() => {
-    if (!isLoading && entries && entries.length === 0 && !loadDefaultsMutation.isPending && !hasAutoLoaded.current) {
-      hasAutoLoaded.current = true;
-      loadDefaultsMutation.mutate({ laborType });
-    }
-  }, [isLoading, entries]);
+  const saveBurdenMutation = trpc.tradeRates.saveBurdenConfig.useMutation({
+    onSuccess: () => {
+      toast.success("Burden configuration saved");
+      utils.tradeRates.getBurdenForType.invalidate();
+      utils.tradeRates.getTradeRates.invalidate();
+    },
+    onError: () => toast.error("Failed to save burden config"),
+  });
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
-    const isCsv = file.name.endsWith(".csv");
-    if (!isExcel && !isCsv) { toast.error("Please upload a CSV or Excel (.xlsx) file"); return; }
-    toast.info(`Parsing ${file.name}…`);
-    const { entries: parsed, errors } = await parseFile(file);
-    setParseErrors(errors);
-    if (parsed.length === 0) { toast.error("No valid rows found."); return; }
-    setPendingEntries(parsed);
-    setPendingFilename(file.name);
-  };
-
-  const startEdit = (entry: any) => {
-    setEditingId(entry.id);
-    setEditState({
-      description: entry.description, unit: entry.unit,
-      laborRate: (entry.laborRate / 100).toFixed(2),
-      crewSize: entry.crewSize || "", productivity: entry.productivity || "",
-      csiDivision: entry.csiDivision || "", notes: entry.notes || "",
-    });
-  };
-  const saveEdit = () => {
-    if (!editingId) return;
-    const rate = parseFloat(editState.laborRate);
-    if (isNaN(rate) || rate < 0) { toast.error("Invalid labor rate"); return; }
-    updateMutation.mutate({
-      entryId: editingId, description: editState.description,
-      unit: editState.unit.toUpperCase(), laborRate: rate,
-      crewSize: editState.crewSize || undefined, productivity: editState.productivity || undefined,
-      csiDivision: editState.csiDivision || undefined, notes: editState.notes || undefined,
-    });
-  };
-  const saveAdd = () => {
-    const rate = parseFloat(addState.laborRate);
-    if (!addState.description.trim()) { toast.error("Description required"); return; }
-    if (!addState.unit.trim()) { toast.error("Unit required"); return; }
-    if (isNaN(rate) || rate < 0) { toast.error("Invalid labor rate"); return; }
-    addMutation.mutate({
-      description: addState.description, unit: addState.unit.toUpperCase(), laborRate: rate,
-      crewSize: addState.crewSize || undefined, productivity: addState.productivity || undefined,
-      csiDivision: addState.csiDivision || undefined, notes: addState.notes || undefined,
-    });
-  };
-
-  const startAddForDivision = (div: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCollapsedDivisions(prev => { const next = new Set(prev); next.delete(div); return next; });
-    setAddingForDivision(div);
-    setAddState({ ...emptyEdit, csiDivision: div });
-  };
-
-  const toggleDivision = (div: string) => {
-    setCollapsedDivisions(prev => { const next = new Set(prev); if (next.has(div)) next.delete(div); else next.add(div); return next; });
-  };
-
-  const inputCls = "h-7 text-xs bg-navy-deep/80 border-white/10 text-cream placeholder:text-cream-muted/40 px-2";
-
-  // Apply regional multiplier to display rates
-  const applyRegion = (cents: number) => Math.round((cents * regionMultiplier) / 10000);
-  const formatRate = (cents: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(applyRegion(cents) / 100);
-
-  const filtered = (entries || []).filter((e: any) =>
-    !search || e.description.toLowerCase().includes(search.toLowerCase()) ||
-    (e.unit || "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const grouped: Record<string, any[]> = {};
-  for (const entry of filtered) {
-    const div = entry.csiDivision || "00";
-    if (!grouped[div]) grouped[div] = [];
-    grouped[div].push(entry);
+  if (!member && !betaUser) {
+    return (
+      <div className="min-h-screen bg-navy-deep flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-4" />
+          <p className="text-cream-muted">Loading...</p>
+        </div>
+      </div>
+    );
   }
-  const sortedDivisions = Object.keys(grouped).sort();
+
+  const burden: BurdenDefaults = (burdenQuery.data && 'ficaPct' in burdenQuery.data)
+    ? burdenQuery.data as unknown as BurdenDefaults
+    : DEFAULT_BURDENS[laborType];
+
+  const regionMultiplier = selectedRegion ? selectedRegion.multiplier / 10000 : 1;
+
+  const userRates = tradeRatesQuery.data || [];
+  const userRateMap = new Map<string, number>();
+  for (const r of userRates) {
+    userRateMap.set(`${r.tradeName}|${r.classification}`, r.baseWageCents);
+  }
+  const hasUserRates = userRates.length > 0;
+
+  const filteredTrades = useMemo(() => {
+    if (!search.trim()) return TRADES;
+    const q = search.toLowerCase();
+    return TRADES.filter(t => t.tradeName.toLowerCase().includes(q));
+  }, [search]);
+
+  const filteredDivisions = useMemo(() => {
+    const divs = new Set(filteredTrades.map(t => t.csiDivision));
+    return Array.from(divs).sort();
+  }, [filteredTrades]);
+
+  const toggleTrade = (tradeName: string) => {
+    setExpandedTrades(prev => {
+      const next = new Set(prev);
+      if (next.has(tradeName)) next.delete(tradeName);
+      else next.add(tradeName);
+      return next;
+    });
+  };
+
+  const getRate = (tradeName: string, cls: Classification): number => {
+    const userRate = userRateMap.get(`${tradeName}|${cls}`);
+    if (userRate !== undefined) return userRate;
+    const trade = TRADES.find(t => t.tradeName === tradeName);
+    if (!trade) return 0;
+    return Math.round(trade.journeymanRates[laborType] * CLASSIFICATION_MULTIPLIERS[cls]);
+  };
+
+  const getBurdenedRate = (baseWageCents: number): number => {
+    return Math.round(calculateBurdenedRate(baseWageCents, burden) * regionMultiplier);
+  };
+
+  const totalBurdenPct = burden.ficaPct + burden.futaPct + burden.sutaPct +
+    burden.workersCompPct + burden.generalLiabilityPct + burden.pensionPct +
+    burden.vacationPct + burden.trainingPct;
+  const fixedBurdenCents = burden.healthInsuranceCentsPerHr + burden.unionFringeCentsPerHr + burden.otherCentsPerHr;
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -314,327 +180,427 @@ export default function LaborLibrary() {
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div>
-              <h1 className="text-lg font-bold text-cream flex items-center gap-2"><HardHat className="w-5 h-5 text-amber-400" />Labor Library</h1>
-              <p className="text-cream-muted text-xs hidden sm:block">Labor rates by trade — adjusted for project type, shop type, and region.</p>
+              <h1 className="text-lg font-bold text-cream">Trade Rate Library</h1>
+              <p className="text-cream-muted text-xs hidden sm:block">
+                Base wages + your burden = fully burdened rates for estimating.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button onClick={() => fileInputRef.current?.click()}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2">
-              <Upload className="w-4 h-4" />Upload CSV / Excel
-            </Button>
             <Button variant="outline" size="sm"
-              onClick={() => { setAddingForDivision("__new__"); setAddState(emptyEdit); }}
-              className="border-white/20 text-cream hover:bg-white/5 gap-1.5"><Plus className="w-3.5 h-3.5" />Add Row</Button>
+              onClick={() => setShowBurdenPanel(!showBurdenPanel)}
+              className={`gap-1.5 ${showBurdenPanel ? "border-amber-500/50 text-amber-300 bg-amber-500/10" : "border-white/20 text-cream hover:bg-white/5"}`}>
+              <Settings2 className="w-3.5 h-3.5" />Burden Config
+            </Button>
+            {!hasUserRates && (
+              <Button
+                onClick={() => seedMutation.mutate({ laborType })}
+                disabled={seedMutation.isPending}
+                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2">
+                {seedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Load Baseline Rates
+              </Button>
+            )}
             <Button variant="outline" size="sm"
               onClick={() => {
-                if (!confirm(`Sync with ConstructLine Labor Rates (${LABOR_TYPE_SHORT[laborType]})? This adds missing entries without overwriting your customized rates.`)) return;
-                loadDefaultsMutation.mutate({ laborType });
+                const rows: string[] = ["Trade,Classification,Base Wage ($/hr),Burdened Rate ($/hr)"];
+                for (const trade of TRADES) {
+                  for (const cls of CLASSIFICATION_ORDER) {
+                    const base = getRate(trade.tradeName, cls);
+                    const burdened = getBurdenedRate(base);
+                    rows.push(`"${trade.tradeName}",${CLASSIFICATION_LABELS[cls]},${(base/100).toFixed(2)},${(burdened/100).toFixed(2)}`);
+                  }
+                }
+                const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `trade-rates-${laborType}.csv`; a.click();
+                URL.revokeObjectURL(url);
+                toast.success("Exported trade rates");
               }}
-              disabled={loadDefaultsMutation.isPending}
-              className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
-              {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              Sync ConstructLine Labor
+              className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
+              <Download className="w-3.5 h-3.5" />Export
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => {
-                if (!entries?.length) { toast.error("No entries to export"); return; }
-                const wb = XLSX.utils.book_new();
-                const rows = entries.map((e: any) => ({
-                  Description: e.description, Unit: e.unit,
-                  "Labor Rate": (applyRegion(e.laborRate) / 100).toFixed(2),
-                  "Crew Size": e.crewSize || "", Productivity: e.productivity || "",
-                  "CSI Division": e.csiDivision || "", Notes: e.notes || "",
-                }));
-                const ws = XLSX.utils.json_to_sheet(rows);
-                XLSX.utils.book_append_sheet(wb, ws, "Labor Library");
-                XLSX.writeFile(wb, "labor-library.xlsx");
-                toast.success("Exported labor library");
-              }}
-              className="border-white/20 text-cream hover:bg-white/5 gap-1.5"><Download className="w-3.5 h-3.5" />Export</Button>
-            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
           </div>
         </div>
       </div>
 
-      {/* Labor Type & Region Selector Bar */}
-      <div className="bg-navy-medium/40 border-b border-white/5 px-3 sm:px-6 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Labor Type Toggle */}
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-cream-muted" />
-            <span className="text-cream-muted text-xs font-medium">Labor Type:</span>
-            <div className="flex rounded-lg border border-white/10 overflow-hidden">
-              {LABOR_TYPES.map(lt => (
-                <button key={lt}
-                  onClick={() => setLaborType(lt)}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                    laborType === lt
-                      ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                      : "text-cream-muted hover:bg-white/5 hover:text-cream"
-                  }`}>
-                  {LABOR_TYPE_SHORT[lt]}
-                </button>
-              ))}
+      {/* Labor Type Toggle + Region Selector */}
+      <div className="bg-navy-deep/80 border-b border-white/5 px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1">
+            {LABOR_TYPES.map(lt => (
+              <button key={lt}
+                onClick={() => setLaborType(lt)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  laborType === lt ? "bg-amber-500/20 text-amber-300 shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}>
+                {LABOR_TYPE_SHORT[lt]}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 bg-navy-medium/50 rounded-lg p-1 mr-4">
+            <button onClick={() => setActiveView("rates")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                activeView === "rates" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+              }`}>
+              <HardHat className="w-3 h-3" />Trade Rates
+            </button>
+            <button onClick={() => setActiveView("crews")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                activeView === "crews" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+              }`}>
+              <Users className="w-3 h-3" />Crew Builder
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowRegionModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-navy-medium/50 border border-white/10 hover:border-white/20 transition-all text-sm">
+              <MapPin className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-cream">{selectedRegion ? selectedRegion.name : "National Average"}</span>
+              {selectedRegion && <Badge variant="outline" className="text-[10px] border-blue-400/30 text-blue-300">{(selectedRegion.multiplier / 10000).toFixed(2)}x</Badge>}
+              <ChevronDown className="w-3 h-3 text-cream-muted" />
+            </button>
+            <div className="text-xs text-cream-muted">
+              Burden: <span className="text-amber-300 font-medium">{formatPct(totalBurdenPct)}</span>
+              {fixedBurdenCents > 0 && <> + <span className="text-amber-300 font-medium">{formatCents(fixedBurdenCents)}/hr</span></>}
             </div>
-            <span className="text-cream-muted/50 text-xs ml-1">({LABOR_TYPE_MULTIPLIERS[laborType].toFixed(2)}x base)</span>
           </div>
-
-          {/* Region Selector */}
-          <button
-            onClick={() => setShowRegionModal(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
-          >
-            <MapPin className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-cream text-xs font-medium">{regionName}</span>
-            <span className="text-cream-muted text-xs font-mono">({(regionMultiplier / 10000).toFixed(2)}x)</span>
-            <ChevronDown className="w-3 h-3 text-cream-muted" />
-          </button>
         </div>
       </div>
 
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {/* Burden Configuration Panel */}
+        {showBurdenPanel && (
+          <BurdenPanel
+            laborType={laborType}
+            burden={burden}
+            onSave={(data) => saveBurdenMutation.mutate({ laborType, ...data })}
+            saving={saveBurdenMutation.isPending}
+            onClose={() => setShowBurdenPanel(false)}
+          />
+        )}
+
+        {activeView === "crews" ? (
+          <CrewBuilder
+            laborType={laborType}
+            burden={burden}
+            regionMultiplier={regionMultiplier}
+            userRateMap={userRateMap}
+          />
+        ) : (<div className="space-y-3">
+        {/* Info Banner */}
+        <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3 mb-4 flex items-start gap-3">
+          <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-blue-200/80">
+            <strong className="text-blue-300">How trade rates work:</strong> Enter your base wages (before burden) for each trade and classification.
+            Configure your actual burden rates (FICA, WC, health, etc.) in the Burden Config panel.
+            The system calculates the fully burdened rate automatically. These feed into your project estimates.
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream-muted" />
+          <Input placeholder="Search trades..." value={search} onChange={e => setSearch(e.target.value)}
+            className="pl-10 bg-navy-medium/40 border-white/10 text-cream placeholder:text-cream-muted/50" />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-cream-muted hover:text-cream" />
+            </button>
+          )}
+        </div>
+
+        {tradeRatesQuery.isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredDivisions.map(div => {
+              const divTrades = filteredTrades.filter(t => t.csiDivision === div);
+              return (
+                <div key={div} className="bg-navy-medium/30 border border-white/5 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-navy-medium/50 border-b border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-cream font-semibold text-sm">Div {div} — {CSI_DIV_NAMES[div] || "Other"}</span>
+                      <Badge variant="outline" className="text-[10px] border-white/20 text-cream-muted">{divTrades.length} trades</Badge>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {divTrades.map(trade => {
+                      const isExpanded = expandedTrades.has(trade.tradeName);
+                      const journeymanBase = getRate(trade.tradeName, "journeyman");
+                      const journeymanBurdened = getBurdenedRate(journeymanBase);
+                      return (
+                        <div key={trade.tradeName}>
+                          <button onClick={() => toggleTrade(trade.tradeName)}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/3 transition-colors">
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? <ChevronDown className="w-4 h-4 text-cream-muted" /> : <ChevronRight className="w-4 h-4 text-cream-muted" />}
+                              <HardHat className="w-4 h-4 text-amber-400/60" />
+                              <span className="text-cream font-medium text-sm">{trade.tradeName}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-cream-muted">Journeyman:</span>
+                              <span className="text-cream font-mono">{formatCents(journeymanBase)}/hr</span>
+                              <span className="text-cream-muted">→</span>
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCents(journeymanBurdened)}/hr burdened</span>
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="bg-navy-deep/30 border-t border-white/5">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="text-[11px] text-cream-muted uppercase tracking-wider">
+                                    <th className="text-left px-4 py-2 pl-14">Classification</th>
+                                    <th className="text-right px-4 py-2">Base Wage</th>
+                                    <th className="text-right px-4 py-2">Burden</th>
+                                    <th className="text-right px-4 py-2">Burdened Rate</th>
+                                    <th className="text-right px-4 py-2 w-16"></th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/3">
+                                  {CLASSIFICATION_ORDER.map(cls => {
+                                    const base = getRate(trade.tradeName, cls);
+                                    const burdened = getBurdenedRate(base);
+                                    const burdenAmount = burdened - Math.round(base * regionMultiplier);
+                                    const isEditing = editingRate?.tradeName === trade.tradeName && editingRate?.classification === cls;
+                                    return (
+                                      <tr key={cls} className="hover:bg-white/3 transition-colors">
+                                        <td className="px-4 py-2.5 pl-14 text-sm text-cream">{CLASSIFICATION_LABELS[cls]}</td>
+                                        <td className="px-4 py-2.5 text-right">
+                                          {isEditing ? (
+                                            <div className="flex items-center justify-end gap-1">
+                                              <span className="text-cream-muted text-xs">$</span>
+                                              <Input value={editValue} onChange={e => setEditValue(e.target.value)}
+                                                className="w-20 h-7 text-right text-sm bg-navy-deep border-amber-500/30 text-cream" autoFocus
+                                                onKeyDown={e => {
+                                                  if (e.key === "Enter") {
+                                                    const cents = parseDollarsToCents(editValue);
+                                                    if (cents > 0) updateRateMutation.mutate({ tradeName: trade.tradeName, classification: cls, laborType, baseWageCents: cents, csiDivision: trade.csiDivision });
+                                                  }
+                                                  if (e.key === "Escape") setEditingRate(null);
+                                                }} />
+                                              <span className="text-cream-muted text-xs">/hr</span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-cream font-mono text-sm">{formatCents(base)}/hr</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-right text-cream-muted font-mono text-xs">+{formatCents(burdenAmount)}</td>
+                                        <td className="px-4 py-2.5 text-right">
+                                          <span className="text-emerald-400 font-mono font-semibold text-sm">{formatCents(burdened)}/hr</span>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-right">
+                                          {isEditing ? (
+                                            <div className="flex items-center justify-end gap-1">
+                                              <button onClick={() => {
+                                                const cents = parseDollarsToCents(editValue);
+                                                if (cents > 0) updateRateMutation.mutate({ tradeName: trade.tradeName, classification: cls, laborType, baseWageCents: cents, csiDivision: trade.csiDivision });
+                                              }} className="p-1 hover:bg-emerald-500/20 rounded"><Check className="w-3.5 h-3.5 text-emerald-400" /></button>
+                                              <button onClick={() => setEditingRate(null)} className="p-1 hover:bg-red-500/20 rounded"><X className="w-3.5 h-3.5 text-red-400" /></button>
+                                            </div>
+                                          ) : (
+                                            <button onClick={() => { setEditingRate({ tradeName: trade.tradeName, classification: cls }); setEditValue((base / 100).toFixed(2)); }}
+                                              className="p-1 hover:bg-white/10 rounded opacity-50 hover:opacity-100 transition-opacity">
+                                              <Pencil className="w-3.5 h-3.5 text-cream-muted" />
+                                            </button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        </div>)}
+      </div>
+
+      {/* Region Selection Modal */}
       {showRegionModal && (
-        <RegionSelector
-          selectedCode={regionCode}
-          onSelect={(code, name, multiplier) => {
-            setRegionCode(code); setRegionName(name); setRegionMultiplier(multiplier);
+        <RegionModal
+          selectedCode={selectedRegion?.code || null}
+          onSelect={(region) => {
+            if (region.code === "national") setSelectedRegion(null);
+            else setSelectedRegion(region);
             setShowRegionModal(false);
           }}
           onClose={() => setShowRegionModal(false)}
         />
       )}
+    </div>
+  );
+}
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+// ─── Burden Configuration Panel ───────────────────────────────────────────────
+function BurdenPanel({ laborType, burden, onSave, saving, onClose }: {
+  laborType: LaborType; burden: BurdenDefaults; onSave: (data: BurdenDefaults) => void; saving: boolean; onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    ficaPct: (burden.ficaPct / 100).toFixed(2),
+    futaPct: (burden.futaPct / 100).toFixed(2),
+    sutaPct: (burden.sutaPct / 100).toFixed(2),
+    workersCompPct: (burden.workersCompPct / 100).toFixed(2),
+    generalLiabilityPct: (burden.generalLiabilityPct / 100).toFixed(2),
+    healthInsuranceCentsPerHr: (burden.healthInsuranceCentsPerHr / 100).toFixed(2),
+    pensionPct: (burden.pensionPct / 100).toFixed(2),
+    vacationPct: (burden.vacationPct / 100).toFixed(2),
+    trainingPct: (burden.trainingPct / 100).toFixed(2),
+    unionFringeCentsPerHr: (burden.unionFringeCentsPerHr / 100).toFixed(2),
+    otherCentsPerHr: (burden.otherCentsPerHr / 100).toFixed(2),
+  });
 
-        {/* How it works banner */}
-        <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/15 rounded-lg px-4 py-3">
-          <BookOpen className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-cream-muted space-y-0.5">
-            <p className="text-blue-300 font-medium">How your labor library works</p>
-            <p>
-              Labor rates represent <strong className="text-cream">all-in crew cost per unit of output</strong> (wages + burden: FICA, workers comp, health insurance, pension).
-              Select your <strong className="text-cream">labor type</strong> (Residential/Commercial, Union/Open Shop) and <strong className="text-cream">region</strong> to see adjusted rates.
-              These rates feed into the Estimate Summary alongside material costs.
-            </p>
-          </div>
+  const handleSave = () => {
+    onSave({
+      ficaPct: parsePctToBasisPoints(form.ficaPct),
+      futaPct: parsePctToBasisPoints(form.futaPct),
+      sutaPct: parsePctToBasisPoints(form.sutaPct),
+      workersCompPct: parsePctToBasisPoints(form.workersCompPct),
+      generalLiabilityPct: parsePctToBasisPoints(form.generalLiabilityPct),
+      healthInsuranceCentsPerHr: parseDollarsToCents(form.healthInsuranceCentsPerHr),
+      pensionPct: parsePctToBasisPoints(form.pensionPct),
+      vacationPct: parsePctToBasisPoints(form.vacationPct),
+      trainingPct: parsePctToBasisPoints(form.trainingPct),
+      unionFringeCentsPerHr: parseDollarsToCents(form.unionFringeCentsPerHr),
+      otherCentsPerHr: parseDollarsToCents(form.otherCentsPerHr),
+    });
+  };
+
+  const pctField = (label: string, key: keyof typeof form, hint: string) => (
+    <div className="flex items-center justify-between py-2 border-b border-white/5">
+      <div>
+        <span className="text-sm text-cream">{label}</span>
+        <span className="text-[10px] text-cream-muted ml-2">{hint}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <Input value={form[key]} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
+          className="w-20 h-7 text-right text-sm bg-navy-deep border-white/10 text-cream" />
+        <span className="text-cream-muted text-xs w-4">%</span>
+      </div>
+    </div>
+  );
+
+  const dollarField = (label: string, key: keyof typeof form, hint: string) => (
+    <div className="flex items-center justify-between py-2 border-b border-white/5">
+      <div>
+        <span className="text-sm text-cream">{label}</span>
+        <span className="text-[10px] text-cream-muted ml-2">{hint}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-cream-muted text-xs">$</span>
+        <Input value={form[key]} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
+          className="w-20 h-7 text-right text-sm bg-navy-deep border-white/10 text-cream" />
+        <span className="text-cream-muted text-xs w-4">/hr</span>
+      </div>
+    </div>
+  );
+
+  const exampleBase = 3000;
+  const exampleBurdened = calculateBurdenedRate(exampleBase, {
+    ficaPct: parsePctToBasisPoints(form.ficaPct), futaPct: parsePctToBasisPoints(form.futaPct),
+    sutaPct: parsePctToBasisPoints(form.sutaPct), workersCompPct: parsePctToBasisPoints(form.workersCompPct),
+    generalLiabilityPct: parsePctToBasisPoints(form.generalLiabilityPct),
+    healthInsuranceCentsPerHr: parseDollarsToCents(form.healthInsuranceCentsPerHr),
+    pensionPct: parsePctToBasisPoints(form.pensionPct), vacationPct: parsePctToBasisPoints(form.vacationPct),
+    trainingPct: parsePctToBasisPoints(form.trainingPct),
+    unionFringeCentsPerHr: parseDollarsToCents(form.unionFringeCentsPerHr),
+    otherCentsPerHr: parseDollarsToCents(form.otherCentsPerHr),
+  });
+
+  return (
+    <div className="bg-navy-medium/50 border border-amber-500/20 rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-amber-400" />
+          <h3 className="text-cream font-semibold text-sm">Burden Configuration — {LABOR_TYPE_LABELS[laborType]}</h3>
         </div>
-
-        {/* Parse errors */}
-        {parseErrors.length > 0 && (
-          <div className="flex items-start gap-3 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-3">
-            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-red-300 font-medium text-sm mb-1">{parseErrors.length} row{parseErrors.length !== 1 ? "s" : ""} skipped</p>
-              <ul className="text-red-300/80 text-xs space-y-0.5">
-                {parseErrors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.message}</li>)}
-                {parseErrors.length > 5 && <li>…and {parseErrors.length - 5} more</li>}
-              </ul>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-cream-muted">
+            Example: $30.00/hr base → <span className="text-emerald-400 font-semibold">{formatCents(exampleBurdened)}/hr burdened</span>
           </div>
-        )}
+          <Button size="sm" onClick={handleSave} disabled={saving}
+            className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 gap-1.5">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}Save
+          </Button>
+          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded"><X className="w-4 h-4 text-cream-muted" /></button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+        <div>
+          <h4 className="text-xs text-cream-muted uppercase tracking-wider mb-2 font-semibold">Percentage-Based (% of base wage)</h4>
+          {pctField("FICA", "ficaPct", "Social Security + Medicare")}
+          {pctField("FUTA", "futaPct", "Federal Unemployment")}
+          {pctField("SUTA", "sutaPct", "State Unemployment")}
+          {pctField("Workers Comp", "workersCompPct", "Varies by trade & state")}
+          {pctField("General Liability", "generalLiabilityPct", "GL Insurance")}
+          {pctField("Pension / 401k", "pensionPct", "Retirement contribution")}
+          {pctField("Vacation / Holiday", "vacationPct", "Paid time off")}
+          {pctField("Training Fund", "trainingPct", "Apprenticeship / training")}
+        </div>
+        <div>
+          <h4 className="text-xs text-cream-muted uppercase tracking-wider mb-2 font-semibold">Fixed Dollar ($/hr per employee)</h4>
+          {dollarField("Health Insurance", "healthInsuranceCentsPerHr", "Medical/dental/vision")}
+          {dollarField("Union Fringe", "unionFringeCentsPerHr", "Union dues & benefits")}
+          {dollarField("Other", "otherCentsPerHr", "Any additional burden")}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Pending upload confirmation */}
-        {pendingEntries && (
-          <div className="flex items-center justify-between gap-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-emerald-300 font-semibold text-sm">Ready to import {pendingEntries.length} entries from <span className="font-mono">{pendingFilename}</span></p>
-                <p className="text-cream-muted text-xs mt-0.5">This will <strong className="text-cream">replace</strong> your existing labor library.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => { setPendingEntries(null); setParseErrors([]); }} className="border-white/20 text-cream-muted hover:text-cream"><X className="w-3.5 h-3.5 mr-1" />Cancel</Button>
-              <Button size="sm" onClick={() => uploadMutation.mutate({ entries: pendingEntries })} disabled={uploadMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
-                {uploadMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                Confirm Import
-              </Button>
-            </div>
+// ─── Region Selection Modal ───────────────────────────────────────────────────
+function RegionModal({ selectedCode, onSelect, onClose }: {
+  selectedCode: string | null;
+  onSelect: (region: { code: string; name: string; multiplier: number }) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return COST_REGION_GROUPS;
+    const q = search.toLowerCase();
+    return COST_REGION_GROUPS
+      .map((g: CostRegionGroup) => ({ ...g, metros: g.metros.filter(m => m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)) }))
+      .filter(g => g.metros.length > 0);
+  }, [search]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-navy-medium border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-cream font-semibold flex items-center gap-2"><MapPin className="w-4 h-4 text-blue-400" />Select Region</h3>
+            <button onClick={onClose}><X className="w-4 h-4 text-cream-muted hover:text-cream" /></button>
           </div>
-        )}
-
-        {/* Global Add Row form */}
-        {addingForDivision === "__new__" && (
-          <div className="border border-white/15 bg-white/5 rounded-lg overflow-hidden">
-            <div className="px-4 py-2 bg-navy-deep/50 border-b border-white/10">
-              <p className="text-cream font-medium text-sm">Add New Entry</p>
+          <Input placeholder="Search cities..." value={search} onChange={e => setSearch(e.target.value)}
+            className="bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/50" autoFocus />
+        </div>
+        <div className="overflow-y-auto max-h-[60vh] p-2">
+          {filtered.map((group: CostRegionGroup) => (
+            <div key={group.region} className="mb-2">
+              <div className="text-[10px] text-cream-muted uppercase tracking-wider px-2 py-1 font-semibold">{group.region}</div>
+              {group.metros.map(metro => (
+                <button key={metro.code}
+                  onClick={() => onSelect({ code: metro.code, name: metro.name, multiplier: metro.multiplier })}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${
+                    selectedCode === metro.code ? "bg-blue-500/15 text-blue-300" : "text-cream hover:bg-white/5"
+                  }`}>
+                  <span>{metro.name}</span>
+                  <span className="text-xs text-cream-muted font-mono">{metro.displayMultiplier}</span>
+                </button>
+              ))}
             </div>
-            <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-              <ColGroup />
-              <thead>
-                <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                  <th className="text-left px-4 py-2">Description</th>
-                  <th className="text-left px-3 py-2">Unit</th>
-                  <th className="text-right px-3 py-2">Labor Rate</th>
-                  <th className="text-center px-2 py-2">Crew</th>
-                  <th className="text-center px-2 py-2">Prod.</th>
-                  <th className="text-left px-3 py-2">Notes (CSI Div)</th>
-                  <th className="px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t border-white/10">
-                  <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                  <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="SF" className={inputCls} /></td>
-                  <td className="px-2 py-2"><Input value={addState.laborRate} onChange={e => setAddState(s => ({ ...s, laborRate: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                  <td className="px-2 py-2"><Input value={addState.crewSize} onChange={e => setAddState(s => ({ ...s, crewSize: e.target.value }))} placeholder="3" className={inputCls + " text-center"} /></td>
-                  <td className="px-2 py-2"><Input value={addState.productivity} onChange={e => setAddState(s => ({ ...s, productivity: e.target.value }))} placeholder="200" className={inputCls + " text-center"} /></td>
-                  <td className="px-2 py-2">
-                    <div className="flex gap-1">
-                      <Input value={addState.csiDivision} onChange={e => setAddState(s => ({ ...s, csiDivision: e.target.value }))} placeholder="03" className={inputCls + " w-12 shrink-0"} />
-                      <Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2"><div className="flex gap-1">
-                    <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                    <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                  </div></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Library table */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-cream-muted animate-spin" /></div>
-        ) : !entries?.length && !pendingEntries ? (
-          <div className="flex flex-col items-center justify-center py-16 border border-white/10 rounded-lg">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <FileSpreadsheet className="w-8 h-8 text-cream-muted" />
-            </div>
-            <h3 className="text-lg font-semibold text-cream mb-2">Loading ConstructLine Labor Rates…</h3>
-            <p className="text-cream-muted text-center max-w-md">Setting up your labor library with baseline rates ({LABOR_TYPE_LABELS[laborType]}).</p>
-          </div>
-        ) : entries && entries.length > 0 ? (
-          <div>
-            {/* Summary bar */}
-            <div className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-cream font-semibold">Your Labor Library</h2>
-                <Badge className="bg-white/10 text-cream-muted border-white/20 text-xs">{entries.length} entries</Badge>
-                {regionCode !== "national" && (
-                  <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-xs">
-                    <MapPin className="w-3 h-3 mr-1" />{regionName} ({(regionMultiplier / 10000).toFixed(2)}x)
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…"
-                    className="pl-8 h-8 w-56 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40" />
-                  {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted/50 hover:text-cream"><X className="w-3.5 h-3.5" /></button>}
-                </div>
-                <div className="w-px h-6 bg-white/10" />
-                <Button variant="outline" size="sm"
-                  onClick={() => { if (confirm("Clear all entries from your labor library? This cannot be undone.")) clearMutation.mutate(); }}
-                  disabled={clearMutation.isPending}
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5 h-8 text-xs">
-                  {clearMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                  Clear All
-                </Button>
-              </div>
-            </div>
-
-            {/* Grouped by CSI division */}
-            <div className="space-y-2">
-              {sortedDivisions.map(div => {
-                const divEntries = grouped[div];
-                const isCollapsed = collapsedDivisions.has(div);
-                const divName = CSI_DIVISION_NAMES[div] || `Div ${div}`;
-                const isAddingHere = addingForDivision === div;
-                return (
-                  <div key={div} className="border border-white/10 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
-                      <button className="flex items-center gap-3 hover:opacity-80 transition-opacity" onClick={() => toggleDivision(div)}>
-                        {isCollapsed ? <ChevronRight className="w-4 h-4 text-cream-muted" /> : <ChevronDown className="w-4 h-4 text-cream-muted" />}
-                        <span className="text-cream font-semibold text-sm">{divName}</span>
-                        <span className="text-cream-muted text-sm">({divEntries.length})</span>
-                      </button>
-                      <button onClick={(e) => startAddForDivision(div, e)}
-                        className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream px-2 py-1 rounded hover:bg-white/10 transition-colors">
-                        <Plus className="w-3.5 h-3.5" /><span>Add Item</span>
-                      </button>
-                    </div>
-
-                    {!isCollapsed && (
-                      <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-                        <ColGroup />
-                        <thead>
-                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                            <th className="text-left px-4 py-2">Description</th>
-                            <th className="text-left px-3 py-2">Unit</th>
-                            <th className="text-right px-3 py-2">Labor Rate</th>
-                            <th className="text-center px-2 py-2">Crew</th>
-                            <th className="text-center px-2 py-2">Prod.</th>
-                            <th className="text-left px-3 py-2">Notes</th>
-                            <th className="px-2 py-2" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {isAddingHere && (
-                            <tr className="border-t border-white/10 bg-white/5">
-                              <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="SF" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.laborRate} onChange={e => setAddState(s => ({ ...s, laborRate: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.crewSize} onChange={e => setAddState(s => ({ ...s, crewSize: e.target.value }))} placeholder="3" className={inputCls + " text-center"} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.productivity} onChange={e => setAddState(s => ({ ...s, productivity: e.target.value }))} placeholder="200" className={inputCls + " text-center"} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><div className="flex gap-1">
-                                <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                                <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                              </div></td>
-                            </tr>
-                          )}
-                          {divEntries.map((entry: any) => {
-                            const isEditing = editingId === entry.id;
-                            return isEditing ? (
-                              <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
-                                <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.laborRate} onChange={e => setEditState(s => ({ ...s, laborRate: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.crewSize} onChange={e => setEditState(s => ({ ...s, crewSize: e.target.value }))} className={inputCls + " text-center"} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.productivity} onChange={e => setEditState(s => ({ ...s, productivity: e.target.value }))} className={inputCls + " text-center"} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><div className="flex gap-1">
-                                  <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                                  <button onClick={() => setEditingId(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                                </div></td>
-                              </tr>
-                            ) : (
-                              <tr key={entry.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
-                                <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
-                                <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
-                                <td className="px-3 py-2.5 text-emerald-400 font-mono text-right text-xs">{formatRate(entry.laborRate)}</td>
-                                <td className="px-2 py-2.5 text-cream-muted text-center text-xs">{entry.crewSize || "—"}</td>
-                                <td className="px-2 py-2.5 text-cream-muted text-center text-xs">{entry.productivity || "—"}</td>
-                                <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
-                                <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                  <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-cream p-1"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                );
-              })}
-
-              {filtered.length === 0 && (
-                <div className="py-8 text-center text-cream-muted/50 text-sm">No entries match your search.</div>
-              )}
-
-              {search && filtered.length < entries.length && (
-                <p className="text-cream-muted/50 text-xs mt-2 text-right">Showing {filtered.length} of {entries.length} entries</p>
-              )}
-            </div>
-          </div>
-        ) : null}
+          ))}
+        </div>
       </div>
     </div>
   );
