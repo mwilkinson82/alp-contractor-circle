@@ -37,6 +37,8 @@ import {
   Target,
   Loader2,
   Wrench,
+  AlertTriangle,
+  Ruler,
 } from "lucide-react";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 
@@ -123,6 +125,10 @@ interface PreAnalysisModalProps {
   detectedSpecialties?: string[] | null;
   /** User's preferred currency from database (auto-select for new projects) */
   preferredCurrency?: string;
+  /** Number of sheets that have NOT been scale-calibrated — shows warning banner if > 0 */
+  uncalibratedSheetCount?: number;
+  /** Called when user clicks 'Set Scale' in the warning banner */
+  onSetScale?: () => void;
 }
 
 export default function PreAnalysisModal({
@@ -138,6 +144,8 @@ export default function PreAnalysisModal({
   existingSpecialties,
   detectedSpecialties,
   preferredCurrency,
+  uncalibratedSheetCount = 0,
+  onSetScale,
 }: PreAnalysisModalProps) {
   const [step, setStep] = useState(1);
   const saved = useMemo(() => loadSavedSettings(), []);
@@ -198,6 +206,31 @@ export default function PreAnalysisModal({
 
         {/* Scrollable body area */}
         <div className="overflow-y-auto overscroll-contain min-h-0">
+
+        {/* Scale Calibration Warning Banner */}
+        {uncalibratedSheetCount > 0 && (
+          <div className="mx-1 mb-3 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-300">
+                {uncalibratedSheetCount} sheet{uncalibratedSheetCount !== 1 ? "s" : ""} not scale-calibrated
+              </p>
+              <p className="text-xs text-amber-300/70 mt-0.5">
+                Without scale calibration, AI measurements are estimated from the drawing. Set scale on each sheet for accurate real-world quantities.
+              </p>
+            </div>
+            {onSetScale && (
+              <button
+                onClick={() => { onClose(); onSetScale(); }}
+                className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 border border-amber-500/30 rounded-md px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+              >
+                <Ruler className="w-3.5 h-3.5" />
+                Set Scale
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-1 py-2">
           {[1, 2, 3, 4, 5].map((s) => (

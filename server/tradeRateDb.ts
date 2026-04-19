@@ -242,3 +242,40 @@ export async function deleteActivityProductivity(id: number, memberId: number): 
   );
   return (result as any).affectedRows > 0;
 }
+
+// ─── Rate Profiles ────────────────────────────────────────────────────────────
+
+import { rateProfiles, type RateProfile, type InsertRateProfile } from "../drizzle/schema";
+
+export async function getRateProfilesByMember(memberId: number): Promise<RateProfile[]> {
+  const d = await db();
+  return d.select().from(rateProfiles).where(eq(rateProfiles.memberId, memberId));
+}
+
+export async function getRateProfileById(id: number, memberId: number): Promise<RateProfile | null> {
+  const d = await db();
+  const rows = await d.select().from(rateProfiles).where(
+    and(eq(rateProfiles.id, id), eq(rateProfiles.memberId, memberId))
+  );
+  return rows[0] ?? null;
+}
+
+export async function createRateProfile(data: Omit<InsertRateProfile, "id" | "createdAt" | "updatedAt">): Promise<number> {
+  const d = await db();
+  const result = await d.insert(rateProfiles).values(data);
+  return (result as any)[0]?.insertId ?? 0;
+}
+
+export async function updateRateProfile(id: number, memberId: number, data: Partial<Omit<InsertRateProfile, "id" | "memberId" | "createdAt" | "updatedAt">>): Promise<void> {
+  const d = await db();
+  await d.update(rateProfiles).set(data).where(
+    and(eq(rateProfiles.id, id), eq(rateProfiles.memberId, memberId))
+  );
+}
+
+export async function deleteRateProfile(id: number, memberId: number): Promise<void> {
+  const d = await db();
+  await d.delete(rateProfiles).where(
+    and(eq(rateProfiles.id, id), eq(rateProfiles.memberId, memberId))
+  );
+}

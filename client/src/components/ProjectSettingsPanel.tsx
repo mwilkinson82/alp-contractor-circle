@@ -17,9 +17,10 @@ import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
 import SpecialtySelector from "@/components/SpecialtySelector";
-import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench } from "lucide-react";
+import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
+import { trpc } from "@/lib/trpc";
 
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "US Dollar", flag: "\u{1F1FA}\u{1F1F8}" },
@@ -36,12 +37,14 @@ interface ProjectSettingsPanelProps {
   currentScopeText?: string | null;
   currentSpecialties?: string[] | null;
   detectedSpecialties?: string[] | null;
+  currentRateProfileId?: number | null;
   onSave: (
     divisions: string[] | null,
     region: string | null,
     currency?: string,
     scopeText?: string | null,
-    specialties?: string[] | null
+    specialties?: string[] | null,
+    rateProfileId?: number | null
   ) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
@@ -58,6 +61,7 @@ export default function ProjectSettingsPanel({
   currentScopeText,
   currentSpecialties,
   detectedSpecialties,
+  currentRateProfileId,
   onSave,
   onReAnalyze,
   hasProcessedSheets,
@@ -68,7 +72,10 @@ export default function ProjectSettingsPanel({
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
   const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
+  const [selectedRateProfileId, setSelectedRateProfileId] = useState<number | null>(currentRateProfileId ?? null);
   const [saving, setSaving] = useState(false);
+
+  const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
 
   // Reset state when dialog opens (in case project data changed externally)
   useEffect(() => {
@@ -78,15 +85,17 @@ export default function ProjectSettingsPanel({
       setSelectedCurrency(currentCurrency || "USD");
       setScopeText(currentScopeText || "");
       setSelectedSpecialties(currentSpecialties || []);
+      setSelectedRateProfileId(currentRateProfileId ?? null);
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties, currentRateProfileId]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
   const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
   const scopeChanged = scopeText !== (currentScopeText || "");
   const specialtiesChanged = JSON.stringify([...(selectedSpecialties || [])].sort()) !== JSON.stringify([...(currentSpecialties || [])].sort());
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged;
+  const rateProfileChanged = selectedRateProfileId !== (currentRateProfileId ?? null);
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged || rateProfileChanged;
 
   const handleSave = async () => {
     setSaving(true);
@@ -97,6 +106,7 @@ export default function ProjectSettingsPanel({
         currencyChanged ? selectedCurrency : undefined,
         scopeChanged ? (scopeText.trim() || null) : undefined,
         specialtiesChanged ? (selectedSpecialties.length > 0 ? selectedSpecialties : null) : undefined,
+        rateProfileChanged ? selectedRateProfileId : undefined,
       );
 
       if (result.regionChanged) {
@@ -326,6 +336,70 @@ export default function ProjectSettingsPanel({
                   <span className="text-xs text-amber-300">
                     Region change will automatically recalculate all item costs based on the new regional multiplier.
                   </span>
+                </div>
+              )}
+            </div>
+
+            {/* Rate Profile Selector */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-amber-400" />
+                Rate Profile
+                <span className="text-xs text-cream-muted">(overrides global hub configuration for this project)</span>
+              </div>
+              {profilesQuery.isLoading ? (
+                <div className="flex items-center gap-2 text-xs text-cream-muted py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading profiles...
+                </div>
+              ) : (profilesQuery.data ?? []).length === 0 ? (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs text-cream-muted">
+                  No rate profiles saved yet. Go to Trade Rate Library → Rate Profiles to create one.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-1.5">
+                    <button
+                      onClick={() => setSelectedRateProfileId(null)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
+                        selectedRateProfileId === null
+                          ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                          : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/8 hover:text-cream"
+                      }`}
+                    >
+                      <Bookmark className="w-3.5 h-3.5 shrink-0" />
+                      <span className="font-medium">Use Hub Default</span>
+                      <span className="text-cream-muted/60 ml-1">— global configuration from Trade Rate Library</span>
+                    </button>
+                    {(profilesQuery.data ?? []).map(profile => (
+                      <button
+                        key={profile.id}
+                        onClick={() => setSelectedRateProfileId(profile.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
+                          selectedRateProfileId === profile.id
+                            ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                            : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/8 hover:text-cream"
+                        }`}
+                      >
+                        <Bookmark className="w-3.5 h-3.5 shrink-0" />
+                        <span className="font-medium">{profile.name}</span>
+                        {profile.projectType && (
+                          <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-[9px] ml-auto">
+                            {profile.projectType.charAt(0).toUpperCase() + profile.projectType.slice(1)}
+                          </Badge>
+                        )}
+                        {profile.workType && (
+                          <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 text-[9px]">
+                            {profile.workType === "open_shop" ? "Open Shop" : "Union"}
+                          </Badge>
+                        )}
+                        {profile.region && (
+                          <Badge className="bg-green-500/15 text-green-300 border-green-500/25 text-[9px]">
+                            {profile.region}
+                          </Badge>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

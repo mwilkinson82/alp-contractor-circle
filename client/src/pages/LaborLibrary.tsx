@@ -16,7 +16,8 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ChevronDown, ChevronRight, Search, X,
   Loader2, Settings2, Download,
-  Pencil, Check, Info, HardHat, Users, Sparkles, Plus, UserPlus,
+  Pencil, Check, Info, HardHat, Users, Sparkles, Plus, UserPlus, Bookmark,
+  Trash2, Save, FolderOpen, Copy,
 } from "lucide-react";
 import CrewBuilder from "@/components/CrewBuilder";
 import {
@@ -75,7 +76,7 @@ export default function LaborLibrary() {
 
   // Support ?tab=crews URL param from the setup checklist
   const urlTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-  const [activeView, setActiveView] = useState<"rates" | "crews">(urlTab === 'crews' ? 'crews' : 'rates');
+  const [activeView, setActiveView] = useState<"rates" | "crews" | "profiles">(urlTab === 'crews' ? 'crews' : 'rates');
   const [search, setSearch] = useState("");
   const [expandedTrades, setExpandedTrades] = useState<Set<string>>(new Set());
   const [showBurdenPanel, setShowBurdenPanel] = useState(false);
@@ -344,6 +345,12 @@ export default function LaborLibrary() {
                 }`}>
                 <Users className="w-3 h-3" />Crew Builder
               </button>
+              <button onClick={() => setActiveView("profiles")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  activeView === "profiles" ? "bg-white/10 text-cream shadow-sm" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}>
+                <Bookmark className="w-3 h-3" />Rate Profiles
+              </button>
             </div>
             <Button
               onClick={() => setShowWizard(true)}
@@ -369,7 +376,9 @@ export default function LaborLibrary() {
           />
         )}
 
-        {activeView === "crews" ? (
+        {activeView === "profiles" ? (
+          <RateProfilesPanel laborType={laborType} currentRates={tradeRatesQuery.data ?? []} currentCrews={[]} />
+        ) : activeView === "crews" ? (
           <CrewBuilder
             laborType={laborType}
             burden={burden}
@@ -823,6 +832,231 @@ function BurdenPanel({ laborType, burden, onSave, saving, onClose }: {
           {dollarField("Other", "otherCentsPerHr", "Any additional burden")}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Rate Profiles Panel ──────────────────────────────────────────────────────
+
+interface RateProfilesPanelProps {
+  laborType: string;
+  currentRates: any[];
+  currentCrews: any[];
+}
+
+function RateProfilesPanel({ laborType, currentRates, currentCrews }: RateProfilesPanelProps) {
+  const utils = trpc.useUtils();
+  const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
+  const createMutation = trpc.tradeRates.createRateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Rate profile saved");
+      utils.tradeRates.listRateProfiles.invalidate();
+      setShowSaveDialog(false);
+      setNewProfileName("");
+      setNewProfileDesc("");
+    },
+    onError: () => toast.error("Failed to save profile"),
+  });
+  const deleteMutation = trpc.tradeRates.deleteRateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Profile deleted");
+      utils.tradeRates.listRateProfiles.invalidate();
+    },
+    onError: () => toast.error("Failed to delete profile"),
+  });
+
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newProfileDesc, setNewProfileDesc] = useState("");
+
+  const rateConfig = loadRateConfig();
+
+  const LABOR_TYPE_DISPLAY_MAP: Record<string, string> = {
+    com_open: "Commercial · Open Shop",
+    com_union: "Commercial · Union",
+    res_open: "Residential · Open Shop",
+    res_union: "Residential · Union",
+  };
+
+  function handleSaveCurrentAsProfile() {
+    if (!newProfileName.trim()) {
+      toast.error("Please enter a profile name");
+      return;
+    }
+    // Derive projectType from laborType
+    const lt = rateConfig?.laborType ?? laborType;
+    const projectType = lt?.startsWith("res") ? "residential" : "commercial";
+    const workType = lt?.includes("union") ? "union" : "open_shop";
+    createMutation.mutate({
+      name: newProfileName.trim(),
+      projectType,
+      workType,
+      region: rateConfig?.regionName ?? rateConfig?.regionCode ?? undefined,
+      ratesSnapshot: JSON.stringify(currentRates),
+      crewsSnapshot: JSON.stringify(currentCrews),
+      description: newProfileDesc.trim() || undefined,
+    });
+  }
+
+  const profiles = profilesQuery.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-cream">Rate Profiles</h3>
+          <p className="text-xs text-cream-muted mt-0.5">
+            Save named snapshots of your rate configuration for different job types.
+            Assign a profile to any project to override your global hub settings.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => setShowSaveDialog(true)}
+          className="bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 gap-1.5 text-xs"
+        >
+          <Save className="w-3.5 h-3.5" />
+          Save Current as Profile
+        </Button>
+      </div>
+
+      {/* Current Config Summary */}
+      {rateConfig && (
+        <div className="bg-navy-medium/40 border border-white/8 rounded-xl p-4">
+          <p className="text-xs text-cream-muted uppercase tracking-wider font-semibold mb-2">Current Hub Configuration</p>
+          <div className="flex flex-wrap gap-2">
+            {rateConfig.laborType && (
+              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                {LABOR_TYPE_DISPLAY_MAP[rateConfig.laborType] ?? rateConfig.laborType}
+              </Badge>
+            )}
+            {rateConfig.regionName && (
+              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
+                {rateConfig.regionName}
+              </Badge>
+            )}
+            {rateConfig.specialty && (
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                {rateConfig.specialty}
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Profiles List */}
+      {profilesQuery.isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+        </div>
+      ) : profiles.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
+          <Bookmark className="w-8 h-8 text-cream-muted mx-auto mb-3 opacity-40" />
+          <p className="text-sm text-cream-muted">No rate profiles saved yet.</p>
+          <p className="text-xs text-cream-muted/60 mt-1">
+            Save your current configuration as a named profile — e.g., "Commercial Union NYC" or "Residential Open Shop FL".
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {profiles.map(profile => (
+            <div key={profile.id} className="bg-navy-medium/40 border border-white/8 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-cream truncate">{profile.name}</p>
+                  {profile.description && (
+                    <p className="text-xs text-cream-muted mt-0.5 line-clamp-2">{profile.description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete profile "${profile.name}"?`)) {
+                      deleteMutation.mutate({ id: profile.id });
+                    }
+                  }}
+                  className="text-red-400/60 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  title="Delete profile"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.projectType && (
+                  <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-xs">
+                    {profile.projectType.charAt(0).toUpperCase() + profile.projectType.slice(1)}
+                  </Badge>
+                )}
+                {profile.workType && (
+                  <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 text-xs">
+                    {profile.workType === "open_shop" ? "Open Shop" : profile.workType.charAt(0).toUpperCase() + profile.workType.slice(1)}
+                  </Badge>
+                )}
+                {profile.region && (
+                  <Badge className="bg-green-500/15 text-green-300 border-green-500/25 text-xs">
+                    {profile.region.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-cream-muted/50">
+                Saved {new Date(profile.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-navy-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-base font-semibold text-cream mb-1">Save Rate Profile</h3>
+            <p className="text-xs text-cream-muted mb-4">
+              Snapshot your current rates and configuration as a named profile.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-cream-muted font-medium mb-1 block">Profile Name *</label>
+                <Input
+                  value={newProfileName}
+                  onChange={e => setNewProfileName(e.target.value)}
+                  placeholder="e.g. Commercial Union — New York City"
+                  className="bg-white/5 border-white/10 text-cream text-sm"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-cream-muted font-medium mb-1 block">Notes (optional)</label>
+                <Input
+                  value={newProfileDesc}
+                  onChange={e => setNewProfileDesc(e.target.value)}
+                  placeholder="e.g. For NYC commercial bids, prevailing wage"
+                  className="bg-white/5 border-white/10 text-cream text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSaveDialog(false)}
+                className="flex-1 border-white/10 text-cream-muted"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveCurrentAsProfile}
+                disabled={createMutation.isPending || !newProfileName.trim()}
+                className="flex-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30"
+              >
+                {createMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

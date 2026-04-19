@@ -770,6 +770,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   detectedSpecialties: text("detectedSpecialties"),
   /** Set to true if post-processing timed out — project completed with partial results */
   processingTimedOut: boolean("processingTimedOut").default(false).notNull(),
+  /** Optional rate profile ID — overrides global hub config for this project */
+  rateProfileId: int("rateProfileId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1240,3 +1242,31 @@ export const activityProductivity = mysqlTable("activity_productivity", {
 });
 export type ActivityProductivity = typeof activityProductivity.$inferSelect;
 export type InsertActivityProductivity = typeof activityProductivity.$inferInsert;
+
+/**
+ * Rate Profiles — named snapshots of labor rate configurations.
+ * Members can save multiple profiles (e.g., "Commercial Union NYC",
+ * "Residential Open Shop FL") and assign them to individual projects.
+ */
+export const rateProfiles = mysqlTable("rate_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Display name, e.g. "Commercial Union — New York City" */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Project type: commercial, residential, industrial */
+  projectType: varchar("projectType", { length: 64 }),
+  /** Work type: union, open_shop */
+  workType: varchar("workType", { length: 64 }),
+  /** Region code, e.g. "new_york_city" */
+  region: varchar("region", { length: 128 }),
+  /** Full snapshot of trade rates as JSON (array of {csiDivision, trade, classification, hourlyRate}) */
+  ratesSnapshot: text("ratesSnapshot"),
+  /** Full snapshot of crew definitions as JSON */
+  crewsSnapshot: text("crewsSnapshot"),
+  /** Optional description / notes */
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RateProfile = typeof rateProfiles.$inferSelect;
+export type InsertRateProfile = typeof rateProfiles.$inferInsert;

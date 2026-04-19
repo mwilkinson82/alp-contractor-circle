@@ -341,6 +341,11 @@ export default function TakeoffDetail() {
     onError: (err) => toast.error(`Settings error: ${err.message}`),
   });
 
+  const updateProjectMutation = trpc.takeoff.updateProject.useMutation({
+    onSuccess: () => { refetchProject(); },
+    onError: (err) => toast.error(`Update error: ${err.message}`),
+  });
+
   const addItemMutation = (trpc.takeoff as any).addItem.useMutation({
     onSuccess: () => {
       toast.success("Item added");
@@ -867,8 +872,18 @@ export default function TakeoffDetail() {
               currentScopeText={project.scopeText}
               currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
               detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
+              currentRateProfileId={project.rateProfileId ?? null}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText, specialties) => {
+              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId) => {
+                // Save rateProfileId separately via updateProject if it changed
+                if (rateProfileId !== undefined) {
+                  await new Promise<void>((resolve, reject) => {
+                    updateProjectMutation.mutate(
+                      { id: projectId, rateProfileId },
+                      { onSuccess: () => resolve(), onError: (err) => reject(err) }
+                    );
+                  });
+                }
                 return new Promise<{ regionChanged?: boolean }>((resolve, reject) => {
                   settingsMutation.mutate(
                     {
@@ -1028,6 +1043,12 @@ export default function TakeoffDetail() {
               existingScopeText={project.scopeText}
               existingSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
               detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
+              uncalibratedSheetCount={sheets.filter((s: any) => s.status !== "pending" && !sheetScales[s.id]).length}
+              onSetScale={() => {
+                // Close pre-analysis modal and scroll to sheets tab
+                setShowPreAnalysis(false);
+                setActiveTab("sheets");
+              }}
             />
 
             {/* Processing Overlay — animated construction-themed progress */}

@@ -2761,3 +2761,10 @@
 - [ ] Cannot accidentally run analysis without seeing the scale prompt (prompt is mandatory, but skippable per sheet)
 - [ ] Cross-sheet deduplication context — before AI analyzes each sheet, it receives a structured summary of all items already taken off from completed sheets in the same project
 - [ ] AI instructed to not re-extract items already captured, and to flag potential overlaps in notes field
+
+## Rate Profiles + Project-Level Override (Apr 19 2026 — Release 4)
+- [ ] DB schema: rate_profiles table (id, memberId, name, projectType, workType, region, ratesSnapshot JSON, createdAt)
+- [ ] Trade Rate Library: Save current config as a named profile, load/switch profiles, delete profiles
+- [ ] TakeoffDetail: Rate Profile selector per project (defaults to hub config if none selected)
+- [ ] AI inference reads project rate profile instead of global hub config when a profile is assigned
+- [ ] Scale calibration warning banner in Pre-Analysis modal when no sheets are calibrated

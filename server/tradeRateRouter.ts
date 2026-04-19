@@ -23,6 +23,11 @@ import {
   getActivityProductivityByMember,
   upsertActivityProductivity,
   deleteActivityProductivity,
+  getRateProfilesByMember,
+  getRateProfileById,
+  createRateProfile,
+  updateRateProfile,
+  deleteRateProfile,
 } from "./tradeRateDb";
 import {
   TRADES,
@@ -365,5 +370,69 @@ export const tradeRateRouter = router({
       const member = await requireMember(ctx);
       const ok = await deleteActivityProductivity(input.id, member.id);
       return { success: ok };
+    }),
+
+  // ─── Rate Profiles ───────────────────────────────────────────────────────────
+
+  /** List all rate profiles for the current member */
+  listRateProfiles: publicProcedure
+    .query(async ({ ctx }) => {
+      const member = await requireMember(ctx);
+      return getRateProfilesByMember(member.id);
+    }),
+
+  /** Get a single rate profile by ID */
+  getRateProfile: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const profile = await getRateProfileById(input.id, member.id);
+      if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Rate profile not found" });
+      return profile;
+    }),
+
+  /** Create a new rate profile (snapshot of current rates + config) */
+  createRateProfile: publicProcedure
+    .input(z.object({
+      name: z.string().min(1).max(256),
+      projectType: z.string().optional(),
+      workType: z.string().optional(),
+      region: z.string().optional(),
+      ratesSnapshot: z.string().optional(),  // JSON string
+      crewsSnapshot: z.string().optional(),  // JSON string
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const id = await createRateProfile({ memberId: member.id, ...input });
+      return { success: true, id };
+    }),
+
+  /** Update an existing rate profile */
+  updateRateProfile: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(256).optional(),
+      projectType: z.string().optional(),
+      workType: z.string().optional(),
+      region: z.string().optional(),
+      ratesSnapshot: z.string().optional(),
+      crewsSnapshot: z.string().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const { id, ...data } = input;
+      await updateRateProfile(id, member.id, data);
+      return { success: true };
+    }),
+
+  /** Delete a rate profile */
+  deleteRateProfile: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      await deleteRateProfile(input.id, member.id);
+      return { success: true };
     }),
 });

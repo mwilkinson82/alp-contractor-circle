@@ -187,6 +187,7 @@ export const takeoffRouter = router({
         description: z.string().max(2000).optional(),
         selectedDivisions: z.array(z.string()).optional(),
         costRegion: z.string().max(64).nullable().optional(),
+        rateProfileId: z.number().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -198,6 +199,7 @@ export const takeoffRouter = router({
       const updates: any = {};
       if (input.name !== undefined) updates.name = input.name;
       if (input.description !== undefined) updates.description = input.description;
+      if (input.rateProfileId !== undefined) updates.rateProfileId = input.rateProfileId;
 
       // Handle division update
       if (input.selectedDivisions !== undefined) {
