@@ -2606,3 +2606,6 @@
 ## Cost Library UI Fixes
 - [x] Add Item button on each CSI division header in Cost Library
 - [x] Consistent column widths across all CSI division tables in Cost Library
+- [x] Back arrow navigation to portal on Cost Library page (same as other ConstructLine pages)
+- [x] Right-align toolbar buttons in Cost Library (economy of motion for right-handed mouse users)
+- [x] Fix Cost Library color scheme to match takeoff quantity app (remove burgundy tones, match existing pages)

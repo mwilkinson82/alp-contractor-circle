@@ -19,7 +19,6 @@ import {
   BookOpen,
   Loader2,
   FileSpreadsheet,
-  Download,
   AlertCircle,
   CheckCircle2,
   Search,
@@ -30,6 +29,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -78,23 +78,15 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
   "33": "Div 33 — Utilities",
 };
 
-// ─── Consistent column widths (shared across all division tables) ────────────
-const COL_WIDTHS = {
-  description: "50%",  // Description takes the most space
-  unit: "70px",
-  unitCost: "110px",
-  notes: "auto",       // Notes fills remaining space
-  actions: "72px",
-};
-
+// Consistent column widths across all division tables
 function ColGroup() {
   return (
     <colgroup>
-      <col style={{ width: COL_WIDTHS.description }} />
-      <col style={{ width: COL_WIDTHS.unit }} />
-      <col style={{ width: COL_WIDTHS.unitCost }} />
-      <col style={{ width: COL_WIDTHS.notes }} />
-      <col style={{ width: COL_WIDTHS.actions }} />
+      <col style={{ width: "50%" }} />
+      <col style={{ width: "70px" }} />
+      <col style={{ width: "110px" }} />
+      <col />
+      <col style={{ width: "72px" }} />
     </colgroup>
   );
 }
@@ -245,8 +237,7 @@ export default function CostLibrary() {
   };
 
   const startAddForDivision = (div: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Don't toggle collapse
-    // Make sure the division is expanded
+    e.stopPropagation();
     setCollapsedDivisions(prev => {
       const next = new Set(prev);
       next.delete(div);
@@ -264,7 +255,7 @@ export default function CostLibrary() {
     });
   };
 
-  const inputCls = "h-7 text-xs bg-navy-deep/70 border-white/20 text-cream placeholder:text-cream-muted/40 px-2";
+  const inputCls = "h-7 text-xs bg-navy-deep/80 border-white/10 text-cream placeholder:text-cream-muted/40 px-2";
   const formatCost = (cents: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(cents / 100);
 
@@ -283,125 +274,126 @@ export default function CostLibrary() {
   const sortedDivisions = Object.keys(grouped).sort();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white leading-tight">
-              Construct<span className="text-amber-400">Line</span>
-            </span>
-            <span className="text-[9px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+    <div className="min-h-screen bg-navy-deep">
+      {/* Header Bar — matches TakeoffDetail pattern */}
+      <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/portal")}
+              className="text-cream-muted hover:text-cream"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <div className="w-px h-6 bg-white/10" />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
+              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+            </div>
+            <div className="w-px h-6 bg-white/10" />
+            <div>
+              <h1 className="text-lg font-bold text-cream">Cost Library</h1>
+              <p className="text-cream-muted text-xs hidden sm:block">
+                Your unit costs override the built-in cost table during takeoff processing.
+              </p>
+            </div>
           </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div>
-            <h1 className="text-xl font-bold text-cream">Cost Library</h1>
-            <p className="text-cream-muted text-sm">
-              Upload your own unit costs — <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will match them to takeoff items automatically.
-            </p>
+          {/* Right-aligned action buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload CSV / Excel
+            </Button>
+            <Button variant="outline" size="sm"
+              onClick={() => {
+                setAddingForDivision("__new__");
+                setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+              }}
+              className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
+              <Plus className="w-3.5 h-3.5" />Add Row
+            </Button>
+            <Button variant="outline" size="sm"
+              onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
+              disabled={loadDefaultsMutation.isPending}
+              className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
+              {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Sync ConstructLine Pricing
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
           </div>
         </div>
       </div>
 
-      {/* How it works banner */}
-      <Card className="bg-amber-500/5 border-amber-500/20">
-        <CardContent className="py-3 px-4">
-          <div className="flex items-start gap-3">
-            <BookOpen className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-            <div className="text-sm text-cream-muted space-y-0.5">
-              <p className="text-amber-300 font-medium">How your cost library works</p>
-              <p>
-                When <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> runs a takeoff, it checks your library first. If a takeoff item's description
-                matches one of your entries, your unit cost overrides the built-in cost table. Entries are matched
-                by keyword similarity — the closer the description, the higher the match priority.
-              </p>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+
+        {/* How it works banner */}
+        <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/15 rounded-lg px-4 py-3">
+          <BookOpen className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-cream-muted space-y-0.5">
+            <p className="text-amber-300 font-medium">How your cost library works</p>
+            <p>
+              When <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> runs a takeoff, it checks your library first. If a takeoff item's description
+              matches one of your entries, your unit cost overrides the built-in cost table. Entries are matched
+              by keyword similarity — the closer the description, the higher the match priority.
+            </p>
+          </div>
+        </div>
+
+        {/* Parse errors */}
+        {parseErrors.length > 0 && (
+          <div className="flex items-start gap-3 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-red-300 font-medium text-sm mb-1">{parseErrors.length} row{parseErrors.length !== 1 ? "s" : ""} skipped</p>
+              <ul className="text-red-300/80 text-xs space-y-0.5">
+                {parseErrors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.message}</li>)}
+                {parseErrors.length > 5 && <li>…and {parseErrors.length - 5} more</li>}
+              </ul>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {/* Toolbar buttons — below the info banner */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2"
-        >
-          <Upload className="w-4 h-4" />
-          Upload CSV / Excel
-        </Button>
-        <Button variant="outline" size="sm"
-          onClick={() => {
-            setAddingForDivision("__new__");
-            setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
-          }}
-          className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
-          <Plus className="w-3.5 h-3.5" />Add Row
-        </Button>
-        <Button variant="outline" size="sm"
-          onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
-          disabled={loadDefaultsMutation.isPending}
-          className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
-          {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          Sync ConstructLine Pricing
-        </Button>
-        <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
-      </div>
-
-      {/* Parse errors */}
-      {parseErrors.length > 0 && (
-        <Card className="bg-red-500/5 border-red-500/20">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+        {/* Pending upload confirmation */}
+        {pendingEntries && (
+          <div className="flex items-center justify-between gap-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-red-300 font-medium text-sm mb-1">{parseErrors.length} row{parseErrors.length !== 1 ? "s" : ""} skipped</p>
-                <ul className="text-red-300/80 text-xs space-y-0.5">
-                  {parseErrors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.message}</li>)}
-                  {parseErrors.length > 5 && <li>…and {parseErrors.length - 5} more</li>}
-                </ul>
+                <p className="text-emerald-300 font-semibold text-sm">Ready to import {pendingEntries.length} entries from <span className="font-mono">{pendingFilename}</span></p>
+                <p className="text-cream-muted text-xs mt-0.5">This will <strong className="text-cream">replace</strong> your existing cost library.</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pending upload confirmation */}
-      {pendingEntries && (
-        <Card className="bg-emerald-500/5 border-emerald-500/30">
-          <CardContent className="py-4 px-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div>
-                  <p className="text-emerald-300 font-semibold text-sm">Ready to import {pendingEntries.length} entries from <span className="font-mono">{pendingFilename}</span></p>
-                  <p className="text-cream-muted text-xs mt-0.5">This will <strong className="text-cream">replace</strong> your existing cost library.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button variant="outline" size="sm" onClick={() => { setPendingEntries(null); setParseErrors([]); }} className="border-white/20 text-cream-muted hover:text-cream"><X className="w-3.5 h-3.5 mr-1" />Cancel</Button>
-                <Button size="sm" onClick={() => uploadMutation.mutate({ entries: pendingEntries })} disabled={uploadMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
-                  {uploadMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  Confirm Import
-                </Button>
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => { setPendingEntries(null); setParseErrors([]); }} className="border-white/20 text-cream-muted hover:text-cream"><X className="w-3.5 h-3.5 mr-1" />Cancel</Button>
+              <Button size="sm" onClick={() => uploadMutation.mutate({ entries: pendingEntries })} disabled={uploadMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+                {uploadMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Confirm Import
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Global Add Row form (when clicking top-level Add Row button) */}
-      {addingForDivision === "__new__" && (
-        <Card className="bg-amber-500/5 border-amber-500/30">
-          <CardContent className="py-3 px-4">
-            <p className="text-amber-300 font-medium text-sm mb-2">Add New Entry</p>
+        {/* Global Add Row form */}
+        {addingForDivision === "__new__" && (
+          <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg overflow-hidden">
+            <div className="px-4 py-2 bg-navy-deep/50 border-b border-amber-500/20">
+              <p className="text-amber-300 font-medium text-sm">Add New Entry</p>
+            </div>
             <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
               <ColGroup />
               <thead>
-                <tr className="bg-navy-deep/60 text-cream-muted text-xs">
-                  <th className="text-left px-4 py-2 font-semibold">Description</th>
-                  <th className="text-left px-3 py-2 font-semibold">Unit</th>
-                  <th className="text-right px-3 py-2 font-semibold">Unit Cost</th>
-                  <th className="text-left px-3 py-2 font-semibold">Notes (CSI Div)</th>
+                <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                  <th className="text-left px-4 py-2">Description</th>
+                  <th className="text-left px-3 py-2">Unit</th>
+                  <th className="text-right px-3 py-2">Unit Cost</th>
+                  <th className="text-left px-3 py-2">Notes (CSI Div)</th>
                   <th className="px-2 py-2" />
                 </tr>
               </thead>
@@ -423,150 +415,146 @@ export default function CostLibrary() {
                 </tr>
               </tbody>
             </table>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Library table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-amber-500 animate-spin" /></div>
-      ) : !entries?.length && !pendingEntries ? (
-        <Card className="bg-navy-medium/50 border-white/10">
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        {/* Library table */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-amber-500 animate-spin" /></div>
+        ) : !entries?.length && !pendingEntries ? (
+          <div className="flex flex-col items-center justify-center py-16 border border-white/10 rounded-lg">
             <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
               <FileSpreadsheet className="w-8 h-8 text-amber-500" />
             </div>
             <h3 className="text-lg font-semibold text-cream mb-2">Loading ConstructLine Pricing…</h3>
-            <p className="text-cream-muted text-center max-w-md mb-6">Setting up your cost library with baseline pricing across all CSI divisions.</p>
-          </CardContent>
-        </Card>
-      ) : entries && entries.length > 0 ? (
-        <Card className="bg-navy-medium/50 border-white/10">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-cream text-base">
-                  Your Cost Library
-                  <Badge className="ml-2 bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">{entries.length} entries</Badge>
-                </CardTitle>
-                <CardDescription className="text-cream-muted text-xs mt-0.5">
-                  These unit costs will override the built-in cost table during takeoff processing.
-                </CardDescription>
+            <p className="text-cream-muted text-center max-w-md">Setting up your cost library with baseline pricing across all CSI divisions.</p>
+          </div>
+        ) : entries && entries.length > 0 ? (
+          <div>
+            {/* Summary bar — matches TakeoffDetail pattern */}
+            <div className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-cream font-semibold">Your Cost Library</h2>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">{entries.length} entries</Badge>
               </div>
-              <Button variant="outline" size="sm"
-                onClick={() => { if (confirm("Clear all entries from your cost library? This cannot be undone.")) clearMutation.mutate(); }}
-                disabled={clearMutation.isPending}
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5">
-                {clearMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Clear All
-              </Button>
-            </div>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search descriptions or units…"
-                className="pl-8 h-8 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40" />
-              {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted/50 hover:text-cream"><X className="w-3.5 h-3.5" /></button>}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-2">
-            {/* Grouped by CSI division */}
-            {sortedDivisions.map(div => {
-              const divEntries = grouped[div];
-              const isCollapsed = collapsedDivisions.has(div);
-              const divName = CSI_DIVISION_NAMES[div] || `Div ${div}`;
-              const isAddingHere = addingForDivision === div;
-              return (
-                <div key={div} className="rounded-lg border border-white/10 overflow-hidden">
-                  {/* Division header — clickable to collapse, with Add Item button */}
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-navy-deep/60 hover:bg-navy-deep/80 transition-colors">
-                    <button
-                      className="flex items-center gap-2 flex-1 text-left"
-                      onClick={() => toggleDivision(div)}
-                    >
-                      {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted/50" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted/50" />}
-                      <span className="text-sm font-semibold text-cream">{divName}</span>
-                      <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">{divEntries.length}</Badge>
-                    </button>
-                    <button
-                      onClick={(e) => startAddForDivision(div, e)}
-                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors"
-                      title={`Add item to ${divName}`}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Item</span>
-                    </button>
-                  </div>
-
-                  {/* Rows */}
-                  {!isCollapsed && (
-                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-                      <ColGroup />
-                      <thead>
-                        <tr className="bg-navy-deep/40 text-cream-muted text-xs border-t border-white/5">
-                          <th className="text-left px-4 py-2 font-semibold">Description</th>
-                          <th className="text-left px-3 py-2 font-semibold">Unit</th>
-                          <th className="text-right px-3 py-2 font-semibold">Unit Cost</th>
-                          <th className="text-left px-3 py-2 font-semibold">Notes</th>
-                          <th className="px-2 py-2" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Inline add row for this division */}
-                        {isAddingHere && (
-                          <tr className="border-t border-amber-500/30 bg-amber-500/5">
-                            <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                            <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
-                            <td className="px-2 py-1.5"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                            <td className="px-2 py-1.5"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
-                            <td className="px-2 py-1.5"><div className="flex gap-1">
-                              <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                              <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                            </div></td>
-                          </tr>
-                        )}
-                        {divEntries.map((entry: any) => {
-                          const isEditing = editingId === entry.id;
-                          return isEditing ? (
-                            <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
-                              <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                              <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><div className="flex gap-1">
-                                <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                                <button onClick={() => setEditingId(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                              </div></td>
-                            </tr>
-                          ) : (
-                            <tr key={entry.id} className="border-t border-white/5 hover:bg-white/3 group">
-                              <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
-                              <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
-                              <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
-                              <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
-                              <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-amber-400 p-1"><Pencil className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                              </div></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…"
+                    className="pl-8 h-8 w-56 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40" />
+                  {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted/50 hover:text-cream"><X className="w-3.5 h-3.5" /></button>}
                 </div>
-              );
-            })}
+                <div className="w-px h-6 bg-white/10" />
+                <Button variant="outline" size="sm"
+                  onClick={() => { if (confirm("Clear all entries from your cost library? This cannot be undone.")) clearMutation.mutate(); }}
+                  disabled={clearMutation.isPending}
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5 h-8 text-xs">
+                  {clearMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Clear All
+                </Button>
+              </div>
+            </div>
 
-            {filtered.length === 0 && (
-              <div className="py-8 text-center text-cream-muted/50 text-sm">No entries match your search.</div>
-            )}
+            {/* Grouped by CSI division */}
+            <div className="space-y-2">
+              {sortedDivisions.map(div => {
+                const divEntries = grouped[div];
+                const isCollapsed = collapsedDivisions.has(div);
+                const divName = CSI_DIVISION_NAMES[div] || `Div ${div}`;
+                const isAddingHere = addingForDivision === div;
+                return (
+                  <div key={div} className="border border-white/10 rounded-lg overflow-hidden">
+                    {/* Division header — matches TakeoffDetail style */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
+                      <button
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        onClick={() => toggleDivision(div)}
+                      >
+                        {isCollapsed ? <ChevronRight className="w-4 h-4 text-cream-muted" /> : <ChevronDown className="w-4 h-4 text-cream-muted" />}
+                        <span className="text-cream font-semibold text-sm">{divName}</span>
+                        <span className="text-cream-muted text-sm">({divEntries.length})</span>
+                      </button>
+                      <button
+                        onClick={(e) => startAddForDivision(div, e)}
+                        className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors"
+                        title={`Add item to ${divName}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Item</span>
+                      </button>
+                    </div>
 
-            {search && filtered.length < entries.length && (
-              <p className="text-cream-muted/50 text-xs mt-2 text-right">Showing {filtered.length} of {entries.length} entries</p>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
+                    {/* Rows */}
+                    {!isCollapsed && (
+                      <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                        <ColGroup />
+                        <thead>
+                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <th className="text-left px-4 py-2">Description</th>
+                            <th className="text-left px-3 py-2">Unit</th>
+                            <th className="text-right px-3 py-2">Unit Cost</th>
+                            <th className="text-left px-3 py-2">Notes</th>
+                            <th className="px-2 py-2" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Inline add row for this division */}
+                          {isAddingHere && (
+                            <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                              <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
+                              <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
+                              <td className="px-2 py-1.5"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
+                              <td className="px-2 py-1.5"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
+                              <td className="px-2 py-1.5"><div className="flex gap-1">
+                                <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                                <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                              </div></td>
+                            </tr>
+                          )}
+                          {divEntries.map((entry: any) => {
+                            const isEditing = editingId === entry.id;
+                            return isEditing ? (
+                              <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
+                                <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
+                                <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
+                                <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
+                                <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
+                                <td className="px-2 py-1.5"><div className="flex gap-1">
+                                  <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                                  <button onClick={() => setEditingId(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                                </div></td>
+                              </tr>
+                            ) : (
+                              <tr key={entry.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
+                                <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
+                                <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
+                                <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
+                                <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
+                                <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                  <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-amber-400 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </div></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                );
+              })}
+
+              {filtered.length === 0 && (
+                <div className="py-8 text-center text-cream-muted/50 text-sm">No entries match your search.</div>
+              )}
+
+              {search && filtered.length < entries.length && (
+                <p className="text-cream-muted/50 text-xs mt-2 text-right">Showing {filtered.length} of {entries.length} entries</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
