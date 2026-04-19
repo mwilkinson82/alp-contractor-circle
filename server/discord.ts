@@ -18,6 +18,7 @@ import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendNewMemberSignupNotification } from "./email";
 import { seedSmithResidenceForMember } from "./seedSmithResidence";
+import { seedDefaultCrewsForMember } from "./seedDefaultCrews";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 // Production domain — must be registered in Discord Developer Portal
@@ -601,6 +602,10 @@ export function registerDiscordOAuthRoutes(app: Express) {
       // Auto-seed Smith Residence template for new members (fire-and-forget, idempotent)
       seedSmithResidenceForMember(member.id).catch((e: any) =>
         console.warn("[Discord] Smith Residence seed failed:", e?.message)
+      );
+      // Auto-seed default crews for new members (fire-and-forget, idempotent)
+      seedDefaultCrewsForMember(member.id).catch((e: any) =>
+        console.warn("[Discord] Default crew seed failed:", e?.message)
       );
 
       // Send new member signup notification to Marshall (fire-and-forget)

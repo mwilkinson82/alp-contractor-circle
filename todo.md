@@ -2659,3 +2659,14 @@
 - [x] Add Discord OAuth connect step to beta signup flow (after email/password, before portal access)
 - [x] Auto-add beta users to ALP Discord guild and assign ConstructLine role on Discord connect
 - [x] Show Discord connect prompt in beta portal dashboard if not yet connected
+
+## Session — Task-Based Labor, Inline Crew Editing, Scaling Tool
+- [x] Seed 30 default crews for all existing members (backfill) — 667 crews inserted across 23 members
+- [x] Auto-seed default crews on new member first login
+- [ ] Task-based labor grouping: schema (installation_tasks table linking multiple takeoff items to one task)
+- [ ] AI clustering: group takeoff items into installation tasks by CSI division + description similarity
+- [ ] Assign one crew per task (not per item) with productivity rate
+- [ ] Labor review panel shows tasks (not individual items) with crew assignments
+- [ ] Inline crew editing during estimate: add new crews, edit crew composition (man counts/roles), remove crews
+- [ ] Inline productivity override: edit productivity rates per task directly in the review panel
+- [ ] Takeoff drawing scaling/calibration tool: user sets a known dimension on the drawing, system recalculates all measurements
