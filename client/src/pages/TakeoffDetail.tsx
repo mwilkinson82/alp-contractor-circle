@@ -18,6 +18,7 @@ import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
 import ProcessingOverlay from "@/components/ProcessingOverlay";
 import ItemDetailModal from "@/components/ItemDetailModal";
+import EstimateSummary from "@/components/EstimateSummary";
 import { playCompletionChime, sendCompletionNotification } from "@/lib/completionChime";
 import {
   ArrowLeft,
@@ -306,14 +307,14 @@ export default function TakeoffDetail() {
     onError: (err) => toast.error(`Settings error: ${err.message}`),
   });
 
-  const addItemMutation = trpc.takeoff.addItem.useMutation({
+  const addItemMutation = (trpc.takeoff as any).addItem.useMutation({
     onSuccess: () => {
       toast.success("Item added");
       setShowAddItem(false);
       refetchItems();
       refetchProject();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
@@ -875,6 +876,10 @@ export default function TakeoffDetail() {
             <TabsTrigger value="items" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
               <DollarSign className="w-4 h-4 mr-2" />
               Quantity Takeoff ({items?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="estimate" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+              <Calculator className="w-4 h-4 mr-2" />
+              Estimate
             </TabsTrigger>
           </TabsList>
 
@@ -1577,6 +1582,16 @@ export default function TakeoffDetail() {
                   })}
               </div>
             )}
+          </TabsContent>
+
+          {/* ─── Estimate Tab ──────────────────────────────────────────── */}
+          <TabsContent value="estimate">
+            <EstimateSummary
+              projectId={project.id}
+              items={items || []}
+              currency={project.currency || "USD"}
+              costRegion={project.costRegion}
+            />
           </TabsContent>
         </Tabs>
       </div>

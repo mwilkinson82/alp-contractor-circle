@@ -27,6 +27,7 @@ import EstimatingThankYou from "./pages/EstimatingThankYou";
 import TakeoffList from "./pages/TakeoffList";
 import TakeoffDetail from "./pages/TakeoffDetail";
 import CostLibrary from "./pages/CostLibrary";
+import LaborLibrary from "./pages/LaborLibrary";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { OnboardingTour } from "./components/OnboardingTour";
 import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
@@ -123,6 +124,13 @@ function Router() {
       <Route path="/portal/cost-library">
         <MemberPortalLayout hideSidebar>
           <CostLibrary />
+        </MemberPortalLayout>
+      </Route>
+
+      {/* ConstructLine Labor Library */}
+      <Route path="/portal/labor-library">
+        <MemberPortalLayout hideSidebar>
+          <LaborLibrary />
         </MemberPortalLayout>
       </Route>
 

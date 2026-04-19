@@ -1012,3 +1012,87 @@ export const betaUsers = mysqlTable("beta_users", {
 });
 export type BetaUser = typeof betaUsers.$inferSelect;
 export type InsertBetaUser = typeof betaUsers.$inferInsert;
+
+
+// ─── Labor Library ────────────────────────────────────────────────────────────
+/**
+ * User Labor Library — per-member labor rate data by CSI code.
+ * Mirrors the Cost Library structure but tracks labor-specific fields:
+ * laborRate (cents/unit), crewSize, productivity (units/hr).
+ */
+export const userLaborLibrary = mysqlTable("user_labor_library", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner (member ID) */
+  memberId: int("memberId").notNull(),
+  /** CSI division code e.g. "03", "31" */
+  csiDivision: varchar("csiDivision", { length: 8 }),
+  /** Description / trade or task name */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Unit of measure: SF, LF, CY, EA, HR, etc. */
+  unit: varchar("unit", { length: 32 }).notNull(),
+  /** Labor rate in cents per unit (all-in crew cost per unit of output) */
+  laborRate: int("laborRate").notNull(),
+  /** Optional: crew size (number of workers) */
+  crewSize: decimal("crewSize", { precision: 5, scale: 1 }),
+  /** Optional: productivity in units per hour */
+  productivity: decimal("productivity", { precision: 10, scale: 2 }),
+  /** Optional notes (source, date, project reference) */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type UserLaborLibraryEntry = typeof userLaborLibrary.$inferSelect;
+export type InsertUserLaborLibraryEntry = typeof userLaborLibrary.$inferInsert;
+
+// ─── Estimate Markups ─────────────────────────────────────────────────────────
+/**
+ * Estimate Markups — per-project markup configuration for full estimates.
+ * Stores OH&P, contingency, bond, tax, and other percentage-based markups.
+ * One row per project; if missing, system defaults apply.
+ */
+export const estimateMarkups = mysqlTable("estimate_markups", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Takeoff project ID */
+  projectId: int("projectId").notNull(),
+  /** Member who owns this config */
+  memberId: int("memberId").notNull(),
+  /** Overhead percentage (e.g. 1000 = 10.00%) — stored as basis points */
+  overheadPct: int("overheadPct").default(1000).notNull(),
+  /** Profit percentage */
+  profitPct: int("profitPct").default(1000).notNull(),
+  /** Contingency percentage */
+  contingencyPct: int("contingencyPct").default(500).notNull(),
+  /** Bond cost percentage (of total) */
+  bondPct: int("bondPct").default(150).notNull(),
+  /** Sales tax percentage (on materials only) */
+  taxPct: int("taxPct").default(0).notNull(),
+  /** General conditions percentage */
+  generalConditionsPct: int("generalConditionsPct").default(0).notNull(),
+  /** Custom JSON for additional line-item markups */
+  customMarkups: text("customMarkups"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type EstimateMarkup = typeof estimateMarkups.$inferSelect;
+export type InsertEstimateMarkup = typeof estimateMarkups.$inferInsert;
+
+// ─── Company Defaults ─────────────────────────────────────────────────────────
+/**
+ * Company Estimate Defaults — per-member default markup percentages.
+ * Applied to new projects when no project-specific markups exist.
+ */
+export const companyEstimateDefaults = mysqlTable("company_estimate_defaults", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull().unique(),
+  overheadPct: int("overheadPct").default(1000).notNull(),
+  profitPct: int("profitPct").default(1000).notNull(),
+  contingencyPct: int("contingencyPct").default(500).notNull(),
+  bondPct: int("bondPct").default(150).notNull(),
+  taxPct: int("taxPct").default(0).notNull(),
+  generalConditionsPct: int("generalConditionsPct").default(0).notNull(),
+  customMarkups: text("customMarkups"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CompanyEstimateDefault = typeof companyEstimateDefaults.$inferSelect;
+export type InsertCompanyEstimateDefault = typeof companyEstimateDefaults.$inferInsert;

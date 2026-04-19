@@ -7,6 +7,8 @@ import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
 import { takeoffRouter } from "./takeoffRouter";
 import { takeoffCostRouter } from "./takeoffCostRouter";
+import { laborLibraryRouter } from "./laborLibraryRouter";
+import { estimateRouter } from "./estimateRouter";
 import { feedbackRouter } from "./feedbackRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
@@ -80,6 +82,8 @@ export const appRouter = router({
   member: memberRouter,
   schedule: scheduleRouter,
   takeoff: router({ ...takeoffRouter._def.procedures, ...takeoffCostRouter._def.procedures }),
+  labor: laborLibraryRouter,
+  estimate: estimateRouter,
   feedback: feedbackRouter,
 
   templates: router({

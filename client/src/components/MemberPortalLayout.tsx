@@ -9,7 +9,7 @@
  * - ConstructLine (collapsible parent — admin only)
  *   ├── C1 — CPM Schedule
  *   ├── C2 — Quantity Takeoff (available to all members)
- *   └── C3 — Cost Library (admin only)
+ *   └── C3 — Cost Library (available to all members)
  * - Account
  * - Admin Panel (admin only)
  * - Subscribers / Members / Analytics / Drip (admin only)
@@ -131,12 +131,13 @@ function ConstructLineNav({
   onNavigate?: () => void;
 }) {
   // Auto-expand if currently on a ConstructLine sub-page
-  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library";
+  const isOnConstructLine = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library" || location === "/portal/labor-library";
   const [expanded, setExpanded] = useState(isOnConstructLine);
 
   const isSchedulerActive = location.startsWith("/portal/scheduler");
   const isTakeoffActive = location.startsWith("/portal/takeoff");
   const isCostLibraryActive = location === "/portal/cost-library";
+  const isLaborLibraryActive = location === "/portal/labor-library";
   const isParentActive = isOnConstructLine;
 
   const navigate = (path: string) => {
@@ -200,21 +201,33 @@ function ConstructLineNav({
             {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
           </button>
 
-          {/* C3 — Cost Library — admin only */}
-          {isAdmin && (
-            <button
-              onClick={() => navigate("/portal/cost-library")}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-                isCostLibraryActive
-                  ? "bg-ember/10 text-ember font-medium"
-                  : "text-cream-muted hover:text-cream hover:bg-white/5"
-              }`}
-            >
-              <Database className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
-              <span>Cost Library</span>
-              {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
-            </button>
-          )}
+          {/* C3 — Cost Library — available to all members */}
+          <button
+            onClick={() => navigate("/portal/cost-library")}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+              isCostLibraryActive
+                ? "bg-ember/10 text-ember font-medium"
+                : "text-cream-muted hover:text-cream hover:bg-white/5"
+            }`}
+          >
+            <Database className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
+            <span>Cost Library</span>
+            {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+          </button>
+
+          {/* C4 — Labor Library — available to all members */}
+          <button
+            onClick={() => navigate("/portal/labor-library")}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+              isLaborLibraryActive
+                ? "bg-ember/10 text-ember font-medium"
+                : "text-cream-muted hover:text-cream hover:bg-white/5"
+            }`}
+          >
+            <HardHat className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-ember" : ""}`} />
+            <span>Labor Library</span>
+            {isLaborLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+          </button>
         </div>
       )}
     </div>
@@ -268,7 +281,7 @@ export default function MemberPortalLayout({
 
   // Beta user mode: only ConstructLine tools are unlocked
   const isBetaUser = betaUser && !member;
-  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library");
+  const isConstructLinePage = location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
 
   // Stripe checkout link for upgrade CTA
@@ -506,7 +519,7 @@ export default function MemberPortalLayout({
                 <GanttChart className="w-5 h-5" />
                 <span>CPM Schedule</span>
               </button>
-              <button
+               <button
                 onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
@@ -515,7 +528,24 @@ export default function MemberPortalLayout({
                 <Ruler className="w-5 h-5" />
                 <span>Quantity Takeoff</span>
               </button>
-
+              <button
+                onClick={() => { setLocation("/portal/cost-library"); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                  location.startsWith("/portal/cost-library") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}
+              >
+                <Database className="w-5 h-5" />
+                <span>Cost Library</span>
+              </button>
+              <button
+                onClick={() => { setLocation("/portal/labor-library"); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                  location.startsWith("/portal/labor-library") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}
+              >
+                <HardHat className="w-5 h-5" />
+                <span>Labor Library</span>
+              </button>
               {/* Bottom items */}
               {visibleBottomItems.length > 0 && (
                 <div className="border-t border-white/5 pt-2 mt-2 space-y-2">

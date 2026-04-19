@@ -2611,3 +2611,14 @@
 - [x] Fix Cost Library color scheme to match takeoff quantity app (remove burgundy tones, match existing pages)
 - [x] Fix remaining burgundy tones in Cost Library — switch unit cost text from amber to emerald, reduce amber usage to brand mark only
 - [x] Add CSV/Excel export button to Cost Library
+
+## Cost Library Access & Full Estimating Platform
+- [x] Add Cost Library to sidebar for all users (not just admin)
+- [x] Remove admin-only gate from Cost Library page
+- [x] Labor Library — RS Means-style labor rates by CSI code with regional factoring
+- [x] Estimate Summary tab on takeoff projects (material + labor + markups)
+- [x] Markup Configuration — OH&P, contingency, bond costs, taxes (per-project + company defaults)
+- [x] Labor type differentials (Residential/Commercial, Union/Open Shop) in Labor Library
+- [x] Regional selector modal on both Cost Library and Labor Library pages
+- [x] Labor Library backend router with CRUD + seed data
+- [x] Labor Library frontend page with labor type toggle
