@@ -327,6 +327,15 @@ export default function TakeoffDetail() {
     onError: (err) => toast.error(`Consolidation error: ${err.message}`),
   });
 
+  const repriceMutation = trpc.takeoff.repriceItems.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Re-priced ${result.updated} items with updated cost data.`);
+      refetchItems();
+      refetchProject();
+    },
+    onError: (err) => toast.error(`Re-price error: ${err.message}`),
+  });
+
   // Derived: is consolidation specifically running?
   const isConsolidating = (progress?.status === "post_processing" || project?.status === "post_processing");
 
@@ -1149,6 +1158,32 @@ export default function TakeoffDetail() {
                           <li>• Removes items outside your defined scope</li>
                         </ul>
                         <p className="text-cream-muted/50 text-[10px] mt-2">Drawings are not re-read — only existing data is refined.</p>
+                      </div>
+                    </div>
+                    <div className="relative group">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => repriceMutation.mutate({ projectId })}
+                        disabled={repriceMutation.isPending || isProcessing}
+                        className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                      >
+                        {repriceMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <DollarSign className="w-3.5 h-3.5" />
+                        )}
+                        Re-price Items
+                      </Button>
+                      <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-navy-deep border border-blue-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <p className="text-blue-400 text-xs font-semibold mb-1.5">Re-run Cost Lookup</p>
+                        <ul className="text-cream-muted text-[11px] space-y-1">
+                          <li>• Re-matches items against the cost database</li>
+                          <li>• Fixes $1.00 placeholder costs</li>
+                          <li>• Applies your regional cost multiplier</li>
+                          <li>• No re-upload or re-extraction needed</li>
+                        </ul>
+                        <p className="text-cream-muted/50 text-[10px] mt-2">Quantities are not changed — only unit costs are updated.</p>
                       </div>
                     </div>
                     <div className="w-px h-6 bg-white/10" />

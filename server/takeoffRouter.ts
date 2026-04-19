@@ -42,6 +42,7 @@ import {
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
+import { applyPricing, type TakeoffItem as CostTakeoffItem } from "./costLookup";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 import { getCostLibraryByMember, upsertCostLibraryEntries, deleteCostLibraryEntry, clearCostLibrary } from "./costLibraryDb";
@@ -780,6 +781,78 @@ export const takeoffRouter = router({
           await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: isTimeout } as any);
         });
       return { success: true, message: "Post-processing started. Items will be consolidated shortly." };
+    }),
+
+  /**
+   * Re-price existing items using the cost lookup table without re-running AI extraction.
+   * Fixes projects where items have $1 placeholder costs due to no cost-table match.
+   */
+  repriceItems: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+      if (project.status !== "completed") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Project must be in completed state to re-price items.",
+        });
+      }
+
+      // Load all existing items
+      const items = await getTakeoffItemsByProject(input.projectId);
+      if (!items || items.length === 0) {
+        return { success: true, updated: 0, message: "No items to re-price." };
+      }
+
+      // Convert DB items to cost lookup format (cents → dollars)
+      const costItems: CostTakeoffItem[] = items.map((item: any) => ({
+        description: item.description,
+        csiCode: item.csiCode || "",
+        csiDivision: item.csiDivision || "",
+        quantity: parseFloat(item.quantity) || 0,
+        unit: item.unit || "",
+        unitCost: (item.unitCost || 0) / 100, // cents to dollars
+        confidence: item.confidence || 0,
+        notes: item.notes || "",
+      }));
+
+      // Apply regional multiplier
+      const multiplier = project.costMultiplier
+        ? project.costMultiplier / 10000
+        : 1.0;
+
+      const pricedItems = applyPricing(costItems, multiplier);
+
+      // Write updated costs back to DB
+      let updated = 0;
+      for (let i = 0; i < items.length; i++) {
+        const priced = pricedItems[i];
+        const dbItem = items[i] as any;
+        if (!priced) continue;
+        const uc = priced.unitCost ?? 0;
+        const newUnitCost = Math.round(uc * 100);    // dollars → cents
+        const newExtCost  = Math.round(uc * (parseFloat(dbItem.quantity) || 0) * 100);
+        // Only update if cost actually changed (avoids unnecessary writes)
+        if (newUnitCost !== dbItem.unitCost || newExtCost !== dbItem.extendedCost) {
+          await updateTakeoffItem(dbItem.id, {
+            unitCost: newUnitCost,
+            extendedCost: newExtCost,
+          });
+          updated++;
+        }
+      }
+
+      // Recalculate project total
+      await recalculateProjectTotal(input.projectId);
+      // Clear timed-out flag if set
+      await updateTakeoffProject(input.projectId, { processingTimedOut: false } as any);
+
+      console.log(`[Takeoff Router] Re-priced ${updated}/${items.length} items for project ${input.projectId}`);
+      return { success: true, updated, message: `Re-priced ${updated} items successfully.` };
     }),
 
   // ─── User Cost Library ────────────────────────────────────────────────────
