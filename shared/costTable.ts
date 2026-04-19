@@ -878,6 +878,185 @@ const EXTERIOR_ITEMS: CostTableEntry[] = [
   },
 ];
 
+// ─── CSI 01: General Requirements ────────────────────────────────────────────
+const GENERAL_REQUIREMENTS: CostTableEntry[] = [
+  { id: "temp-fence", csiDivision: "01", csiCode: "01 50 00", keywords: ["temporary fence", "temp fence", "chain link fence temp"], unit: "LF", materialCost: 4.50, category: "general", description: "Temporary Chain Link Fence (material per LF)" },
+  { id: "temp-toilet", csiDivision: "01", csiCode: "01 50 00", keywords: ["portable toilet", "porta potty", "temporary toilet", "sanitary facility"], unit: "MO", materialCost: 185.00, category: "general", description: "Portable Toilet Rental (per month)" },
+  { id: "temp-power", csiDivision: "01", csiCode: "01 50 00", keywords: ["temporary power", "temp power", "construction power"], unit: "MO", materialCost: 350.00, category: "general", description: "Temporary Power Service (per month)" },
+  { id: "temp-water", csiDivision: "01", csiCode: "01 50 00", keywords: ["temporary water", "temp water", "construction water"], unit: "MO", materialCost: 120.00, category: "general", description: "Temporary Water Service (per month)" },
+  { id: "dumpster", csiDivision: "01", csiCode: "01 74 00", keywords: ["dumpster", "debris box", "waste container", "trash haul"], unit: "EA", materialCost: 450.00, category: "general", description: "Dumpster Rental/Haul (per pull)" },
+  { id: "construction-sign", csiDivision: "01", csiCode: "01 50 00", keywords: ["construction sign", "project sign", "job sign"], unit: "EA", materialCost: 275.00, category: "general", description: "Construction Sign (material per EA)" },
+  { id: "safety-netting", csiDivision: "01", csiCode: "01 50 00", keywords: ["safety net", "debris net", "fall protection net"], unit: "SF", materialCost: 0.85, category: "general", description: "Safety/Debris Netting (material per SF)" },
+  { id: "barricade", csiDivision: "01", csiCode: "01 50 00", keywords: ["barricade", "jersey barrier", "concrete barrier", "k-rail"], unit: "LF", materialCost: 18.00, category: "general", description: "Concrete Barricade/K-Rail (material per LF)" },
+];
+
+// ─── CSI 04: Masonry ──────────────────────────────────────────────────────────
+const MASONRY_ITEMS: CostTableEntry[] = [
+  { id: "cmu-8in", csiDivision: "04", csiCode: "04 22 00", keywords: ["cmu", "concrete masonry", "block wall", "8\" block", "8 inch block", "concrete block"], unit: "SF", materialCost: 3.85, category: "masonry", description: "8\" CMU Block Wall (material per SF)" },
+  { id: "cmu-12in", csiDivision: "04", csiCode: "04 22 00", keywords: ["12\" cmu", "12 inch block", "12\" block"], unit: "SF", materialCost: 5.25, category: "masonry", description: "12\" CMU Block Wall (material per SF)" },
+  { id: "cmu-6in", csiDivision: "04", csiCode: "04 22 00", keywords: ["6\" cmu", "6 inch block", "6\" block"], unit: "SF", materialCost: 3.10, category: "masonry", description: "6\" CMU Block Wall (material per SF)" },
+  { id: "brick-veneer", csiDivision: "04", csiCode: "04 21 00", keywords: ["brick veneer", "face brick", "brick wall", "brick facade"], unit: "SF", materialCost: 8.50, category: "masonry", description: "Brick Veneer (material per SF)" },
+  { id: "mortar", csiDivision: "04", csiCode: "04 05 00", keywords: ["mortar", "grout", "masonry grout"], unit: "CF", materialCost: 12.00, category: "masonry", description: "Mortar/Grout (material per CF)" },
+  { id: "masonry-reinforcing", csiDivision: "04", csiCode: "04 05 00", keywords: ["masonry reinforc", "horizontal rebar", "joint reinforc", "ladder wire"], unit: "LF", materialCost: 0.65, category: "masonry", description: "Masonry Joint Reinforcing (material per LF)" },
+  { id: "cmu-fill-grout", csiDivision: "04", csiCode: "04 22 00", keywords: ["cmu fill", "grout fill", "solid grout", "fill cells"], unit: "CF", materialCost: 14.50, category: "masonry", description: "CMU Cell Grout Fill (material per CF)" },
+  { id: "stone-veneer", csiDivision: "04", csiCode: "04 43 00", keywords: ["stone veneer", "natural stone", "cultured stone", "stone cladding"], unit: "SF", materialCost: 22.00, category: "masonry", description: "Stone Veneer (material per SF)" },
+  { id: "lintel", csiDivision: "04", csiCode: "04 05 00", keywords: ["lintel", "masonry lintel", "steel lintel"], unit: "LF", materialCost: 18.50, category: "masonry", description: "Steel Lintel for Masonry (material per LF)" },
+];
+
+// ─── CSI 05: Metals ───────────────────────────────────────────────────────────
+const METALS_ITEMS: CostTableEntry[] = [
+  { id: "structural-steel", csiDivision: "05", csiCode: "05 12 00", keywords: ["structural steel", "wide flange", "w-beam", "steel beam", "steel column", "hss"], unit: "LB", materialCost: 1.45, category: "metals", description: "Structural Steel (material per LB)" },
+  { id: "steel-joist", csiDivision: "05", csiCode: "05 21 00", keywords: ["steel joist", "open web joist", "bar joist", "lh joist", "dlh joist"], unit: "LB", materialCost: 1.65, category: "metals", description: "Steel Joist (material per LB)" },
+  { id: "metal-deck", csiDivision: "05", csiCode: "05 31 00", keywords: ["metal deck", "steel deck", "roof deck", "floor deck", "composite deck"], unit: "SF", materialCost: 3.85, category: "metals", description: "Metal Deck (material per SF)" },
+  { id: "steel-stud-framing", csiDivision: "05", csiCode: "05 41 00", keywords: ["steel stud", "metal stud", "light gauge", "cold formed"], unit: "SF", materialCost: 2.25, category: "metals", description: "Light Gauge Steel Stud Framing (material per SF)" },
+  { id: "anchor-bolt", csiDivision: "05", csiCode: "05 05 00", keywords: ["anchor bolt", "anchor rod", "embed", "cast-in anchor"], unit: "EA", materialCost: 8.50, category: "metals", description: "Anchor Bolt (material per EA)" },
+  { id: "steel-angle", csiDivision: "05", csiCode: "05 12 00", keywords: ["steel angle", "angle iron", "angle support"], unit: "LB", materialCost: 1.35, category: "metals", description: "Steel Angle (material per LB)" },
+  { id: "steel-plate", csiDivision: "05", csiCode: "05 12 00", keywords: ["steel plate", "base plate", "bearing plate", "gusset plate"], unit: "LB", materialCost: 1.55, category: "metals", description: "Steel Plate (material per LB)" },
+  { id: "metal-railing", csiDivision: "05", csiCode: "05 52 00", keywords: ["metal railing", "steel railing", "pipe railing", "handrail", "guardrail"], unit: "LF", materialCost: 38.00, category: "metals", description: "Metal Pipe Railing (material per LF)" },
+  { id: "metal-stair", csiDivision: "05", csiCode: "05 51 00", keywords: ["metal stair", "steel stair", "prefab stair"], unit: "RISER", materialCost: 185.00, category: "metals", description: "Metal Stair (material per riser)" },
+  { id: "grating", csiDivision: "05", csiCode: "05 53 00", keywords: ["grating", "bar grating", "steel grating", "floor grating"], unit: "SF", materialCost: 28.00, category: "metals", description: "Steel Bar Grating (material per SF)" },
+];
+
+// ─── CSI 06: Wood, Plastics & Composites ─────────────────────────────────────
+const WOOD_ITEMS: CostTableEntry[] = [
+  { id: "lumber-framing", csiDivision: "06", csiCode: "06 11 00", keywords: ["lumber", "wood framing", "stud framing", "2x4", "2x6", "2x8", "dimensional lumber"], unit: "BF", materialCost: 1.15, category: "wood", description: "Framing Lumber (material per BF)" },
+  { id: "plywood-sheathing", csiDivision: "06", csiCode: "06 16 00", keywords: ["plywood", "sheathing", "osb", "oriented strand board"], unit: "SF", materialCost: 1.45, category: "wood", description: "Plywood/OSB Sheathing (material per SF)" },
+  { id: "engineered-lumber", csiDivision: "06", csiCode: "06 17 00", keywords: ["lvl", "lsl", "psl", "engineered lumber", "laminated veneer", "glulam", "glued laminated"], unit: "LF", materialCost: 18.50, category: "wood", description: "Engineered Lumber/LVL (material per LF)" },
+  { id: "wood-blocking", csiDivision: "06", csiCode: "06 11 00", keywords: ["blocking", "wood blocking", "nailer", "wood nailer"], unit: "LF", materialCost: 1.85, category: "wood", description: "Wood Blocking/Nailer (material per LF)" },
+  { id: "wood-trusses", csiDivision: "06", csiCode: "06 17 53", keywords: ["wood truss", "roof truss", "floor truss", "pre-engineered truss"], unit: "SF", materialCost: 4.25, category: "wood", description: "Wood Roof/Floor Truss (material per SF)" },
+  { id: "wood-decking", csiDivision: "06", csiCode: "06 15 00", keywords: ["wood decking", "timber decking", "heavy timber deck"], unit: "SF", materialCost: 6.50, category: "wood", description: "Wood Decking (material per SF)" },
+  { id: "finish-carpentry", csiDivision: "06", csiCode: "06 22 00", keywords: ["finish carpentry", "trim", "millwork", "casing", "base molding"], unit: "LF", materialCost: 3.50, category: "wood", description: "Finish Carpentry/Trim (material per LF)" },
+  { id: "wood-door-frame", csiDivision: "06", csiCode: "06 22 00", keywords: ["door frame", "door buck", "wood door frame"], unit: "EA", materialCost: 85.00, category: "wood", description: "Wood Door Frame (material per EA)" },
+];
+
+// ─── CSI 07: Thermal & Moisture Protection ────────────────────────────────────
+const THERMAL_ITEMS: CostTableEntry[] = [
+  { id: "batt-insulation", csiDivision: "07", csiCode: "07 21 00", keywords: ["batt insulation", "fiberglass batt", "r-13", "r-19", "r-21", "r-30", "r-38", "wall insulation"], unit: "SF", materialCost: 0.85, category: "thermal", description: "Batt Insulation (material per SF)" },
+  { id: "rigid-insulation", csiDivision: "07", csiCode: "07 21 00", keywords: ["rigid insulation", "foam board", "xps", "eps", "polyiso", "rigid foam"], unit: "SF", materialCost: 1.25, category: "thermal", description: "Rigid Foam Insulation (material per SF)" },
+  { id: "spray-foam", csiDivision: "07", csiCode: "07 21 29", keywords: ["spray foam", "spray polyurethane", "spf", "closed cell", "open cell foam"], unit: "SF", materialCost: 2.85, category: "thermal", description: "Spray Foam Insulation (material per SF)" },
+  { id: "waterproofing-membrane", csiDivision: "07", csiCode: "07 13 00", keywords: ["waterproofing", "waterproof membrane", "below grade waterproof", "foundation waterproof"], unit: "SF", materialCost: 1.85, category: "thermal", description: "Waterproofing Membrane (material per SF)" },
+  { id: "roofing-tpo", csiDivision: "07", csiCode: "07 54 00", keywords: ["tpo", "tpo roofing", "thermoplastic roofing", "single ply roof"], unit: "SF", materialCost: 2.25, category: "thermal", description: "TPO Roofing Membrane (material per SF)" },
+  { id: "roofing-epdm", csiDivision: "07", csiCode: "07 53 00", keywords: ["epdm", "epdm roofing", "rubber roofing"], unit: "SF", materialCost: 1.95, category: "thermal", description: "EPDM Roofing Membrane (material per SF)" },
+  { id: "roofing-asphalt-shingle", csiDivision: "07", csiCode: "07 31 13", keywords: ["asphalt shingle", "composition shingle", "shingle roofing", "architectural shingle"], unit: "SQ", materialCost: 145.00, category: "thermal", description: "Asphalt Shingles (material per SQ = 100 SF)" },
+  { id: "roofing-metal", csiDivision: "07", csiCode: "07 41 00", keywords: ["metal roofing", "standing seam", "metal roof panel", "corrugated metal roof"], unit: "SF", materialCost: 4.50, category: "thermal", description: "Metal Roofing (material per SF)" },
+  { id: "flashing", csiDivision: "07", csiCode: "07 62 00", keywords: ["flashing", "sheet metal flashing", "counterflashing", "base flashing"], unit: "LF", materialCost: 8.50, category: "thermal", description: "Sheet Metal Flashing (material per LF)" },
+  { id: "vapor-retarder", csiDivision: "07", csiCode: "07 26 00", keywords: ["vapor barrier", "vapor retarder", "poly sheeting", "6 mil poly"], unit: "SF", materialCost: 0.18, category: "thermal", description: "Vapor Retarder/Poly Sheeting (material per SF)" },
+  { id: "building-wrap", csiDivision: "07", csiCode: "07 25 00", keywords: ["building wrap", "house wrap", "weather barrier", "tyvek"], unit: "SF", materialCost: 0.22, category: "thermal", description: "Building Wrap/House Wrap (material per SF)" },
+  { id: "sealant-caulk", csiDivision: "07", csiCode: "07 92 00", keywords: ["sealant", "caulk", "joint sealant", "silicone sealant", "urethane sealant"], unit: "LF", materialCost: 1.85, category: "thermal", description: "Joint Sealant/Caulk (material per LF)" },
+  { id: "roof-drain", csiDivision: "07", csiCode: "07 72 00", keywords: ["roof drain", "overflow drain", "area drain"], unit: "EA", materialCost: 185.00, category: "thermal", description: "Roof Drain (material per EA)" },
+];
+
+// ─── CSI 08: Openings ─────────────────────────────────────────────────────────
+const OPENINGS_ITEMS: CostTableEntry[] = [
+  { id: "hollow-metal-door", csiDivision: "08", csiCode: "08 11 13", keywords: ["hollow metal door", "hm door", "steel door", "metal door"], unit: "EA", materialCost: 485.00, category: "openings", description: "Hollow Metal Door (material per EA)" },
+  { id: "wood-door", csiDivision: "08", csiCode: "08 14 00", keywords: ["wood door", "solid core door", "flush door", "interior door"], unit: "EA", materialCost: 285.00, category: "openings", description: "Wood Flush Door (material per EA)" },
+  { id: "storefront", csiDivision: "08", csiCode: "08 44 00", keywords: ["storefront", "curtain wall", "aluminum storefront", "glass storefront"], unit: "SF", materialCost: 85.00, category: "openings", description: "Aluminum Storefront System (material per SF)" },
+  { id: "aluminum-window", csiDivision: "08", csiCode: "08 51 13", keywords: ["aluminum window", "window", "casement window", "double hung", "fixed window"], unit: "SF", materialCost: 45.00, category: "openings", description: "Aluminum Window (material per SF)" },
+  { id: "overhead-door", csiDivision: "08", csiCode: "08 36 13", keywords: ["overhead door", "garage door", "roll-up door", "sectional door"], unit: "EA", materialCost: 1850.00, category: "openings", description: "Overhead Sectional Door (material per EA)" },
+  { id: "door-hardware", csiDivision: "08", csiCode: "08 71 00", keywords: ["door hardware", "lockset", "door knob", "lever handle", "panic bar", "exit device"], unit: "EA", materialCost: 185.00, category: "openings", description: "Door Hardware Set (material per EA)" },
+  { id: "door-frame-hm", csiDivision: "08", csiCode: "08 11 13", keywords: ["hollow metal frame", "hm frame", "steel door frame", "metal door frame"], unit: "EA", materialCost: 225.00, category: "openings", description: "Hollow Metal Door Frame (material per EA)" },
+  { id: "glass-glazing", csiDivision: "08", csiCode: "08 81 00", keywords: ["glass", "glazing", "insulated glass", "igi", "tempered glass", "laminated glass"], unit: "SF", materialCost: 18.50, category: "openings", description: "Insulated Glass Unit (material per SF)" },
+  { id: "skylight", csiDivision: "08", csiCode: "08 62 00", keywords: ["skylight", "roof window", "roof light"], unit: "EA", materialCost: 850.00, category: "openings", description: "Skylight Unit (material per EA)" },
+];
+
+// ─── CSI 09: Finishes ─────────────────────────────────────────────────────────
+const FINISHES_ITEMS: CostTableEntry[] = [
+  { id: "drywall-5-8", csiDivision: "09", csiCode: "09 29 00", keywords: ["drywall", "gypsum board", "gypsum wallboard", "gwb", "sheetrock", "5/8"], unit: "SF", materialCost: 0.65, category: "finishes", description: "5/8\" Gypsum Wallboard (material per SF)" },
+  { id: "drywall-1-2", csiDivision: "09", csiCode: "09 29 00", keywords: ["1/2\" drywall", "1/2 inch drywall", "half inch drywall"], unit: "SF", materialCost: 0.52, category: "finishes", description: "1/2\" Gypsum Wallboard (material per SF)" },
+  { id: "ceramic-tile", csiDivision: "09", csiCode: "09 30 00", keywords: ["ceramic tile", "floor tile", "wall tile", "tile"], unit: "SF", materialCost: 4.50, category: "finishes", description: "Ceramic Tile (material per SF)" },
+  { id: "porcelain-tile", csiDivision: "09", csiCode: "09 30 00", keywords: ["porcelain tile", "porcelain floor", "large format tile"], unit: "SF", materialCost: 7.50, category: "finishes", description: "Porcelain Tile (material per SF)" },
+  { id: "carpet", csiDivision: "09", csiCode: "09 68 00", keywords: ["carpet", "broadloom", "carpet tile", "carpet flooring"], unit: "SY", materialCost: 28.00, category: "finishes", description: "Carpet (material per SY)" },
+  { id: "vct", csiDivision: "09", csiCode: "09 65 13", keywords: ["vct", "vinyl composition tile", "vinyl tile"], unit: "SF", materialCost: 1.85, category: "finishes", description: "VCT Flooring (material per SF)" },
+  { id: "lvp-flooring", csiDivision: "09", csiCode: "09 65 00", keywords: ["lvp", "luxury vinyl plank", "vinyl plank", "lvt", "luxury vinyl tile"], unit: "SF", materialCost: 3.50, category: "finishes", description: "Luxury Vinyl Plank (material per SF)" },
+  { id: "epoxy-floor", csiDivision: "09", csiCode: "09 67 23", keywords: ["epoxy floor", "epoxy coating", "floor coating", "epoxy topping"], unit: "SF", materialCost: 2.85, category: "finishes", description: "Epoxy Floor Coating (material per SF)" },
+  { id: "paint", csiDivision: "09", csiCode: "09 91 00", keywords: ["paint", "painting", "interior paint", "exterior paint", "primer"], unit: "SF", materialCost: 0.35, category: "finishes", description: "Paint (material per SF)" },
+  { id: "acoustical-ceiling", csiDivision: "09", csiCode: "09 51 00", keywords: ["acoustical ceiling", "acoustic tile", "ceiling tile", "suspended ceiling", "drop ceiling", "act"], unit: "SF", materialCost: 2.25, category: "finishes", description: "Acoustical Ceiling Tile (material per SF)" },
+  { id: "gypsum-plaster", csiDivision: "09", csiCode: "09 22 00", keywords: ["plaster", "gypsum plaster", "stucco", "exterior stucco"], unit: "SF", materialCost: 1.85, category: "finishes", description: "Gypsum Plaster/Stucco (material per SF)" },
+  { id: "tile-setting", csiDivision: "09", csiCode: "09 30 00", keywords: ["tile setting", "tile adhesive", "thinset", "mortar bed", "grout"], unit: "SF", materialCost: 1.25, category: "finishes", description: "Tile Setting Materials/Thinset (material per SF)" },
+];
+
+// ─── CSI 10: Specialties ──────────────────────────────────────────────────────
+const SPECIALTIES_ITEMS: CostTableEntry[] = [
+  { id: "toilet-partition", csiDivision: "10", csiCode: "10 21 13", keywords: ["toilet partition", "bathroom partition", "restroom partition", "toilet stall"], unit: "EA", materialCost: 650.00, category: "specialties", description: "Toilet Partition (material per stall)" },
+  { id: "fire-extinguisher", csiDivision: "10", csiCode: "10 44 13", keywords: ["fire extinguisher", "extinguisher cabinet", "fire cabinet"], unit: "EA", materialCost: 85.00, category: "specialties", description: "Fire Extinguisher & Cabinet (material per EA)" },
+  { id: "signage", csiDivision: "10", csiCode: "10 14 00", keywords: ["signage", "sign", "building sign", "room sign", "exit sign"], unit: "EA", materialCost: 125.00, category: "specialties", description: "Signage (material per EA)" },
+  { id: "flagpole", csiDivision: "10", csiCode: "10 75 00", keywords: ["flagpole", "flag pole"], unit: "EA", materialCost: 1850.00, category: "specialties", description: "Flagpole (material per EA)" },
+  { id: "louver", csiDivision: "10", csiCode: "10 71 00", keywords: ["louver", "wall louver", "ventilation louver", "aluminum louver"], unit: "SF", materialCost: 28.00, category: "specialties", description: "Aluminum Louver (material per SF)" },
+];
+
+// ─── CSI 12: Furnishings ──────────────────────────────────────────────────────
+const FURNISHINGS_ITEMS: CostTableEntry[] = [
+  { id: "window-blind", csiDivision: "12", csiCode: "12 21 13", keywords: ["blind", "window blind", "roller shade", "window shade"], unit: "SF", materialCost: 8.50, category: "furnishings", description: "Window Blind/Shade (material per SF)" },
+  { id: "casework", csiDivision: "12", csiCode: "12 32 00", keywords: ["casework", "cabinet", "millwork cabinet", "base cabinet", "upper cabinet"], unit: "LF", materialCost: 185.00, category: "furnishings", description: "Casework/Cabinets (material per LF)" },
+  { id: "countertop", csiDivision: "12", csiCode: "12 36 00", keywords: ["countertop", "counter top", "laminate counter", "granite counter", "quartz counter"], unit: "SF", materialCost: 45.00, category: "furnishings", description: "Countertop (material per SF)" },
+];
+
+// ─── CSI 21: Fire Suppression ─────────────────────────────────────────────────
+const FIRE_SUPPRESSION_ITEMS: CostTableEntry[] = [
+  { id: "sprinkler-head", csiDivision: "21", csiCode: "21 13 13", keywords: ["sprinkler head", "fire sprinkler", "sprinkler"], unit: "EA", materialCost: 18.50, category: "fire", description: "Sprinkler Head (material per EA)" },
+  { id: "sprinkler-pipe", csiDivision: "21", csiCode: "21 13 13", keywords: ["sprinkler pipe", "fire pipe", "schedule 40 pipe fire"], unit: "LF", materialCost: 8.50, category: "fire", description: "Sprinkler Pipe (material per LF)" },
+  { id: "fire-riser", csiDivision: "21", csiCode: "21 13 00", keywords: ["fire riser", "sprinkler riser", "fire main"], unit: "EA", materialCost: 2850.00, category: "fire", description: "Fire Sprinkler Riser Assembly (material per EA)" },
+];
+
+// ─── CSI 22: Plumbing ─────────────────────────────────────────────────────────
+const PLUMBING_ITEMS: CostTableEntry[] = [
+  { id: "pvc-pipe-4in", csiDivision: "22", csiCode: "22 11 16", keywords: ["pvc pipe", "4\" pvc", "4 inch pvc", "drain pipe", "sanitary pipe"], unit: "LF", materialCost: 8.50, category: "plumbing", description: "4\" PVC Drain Pipe (material per LF)" },
+  { id: "copper-pipe", csiDivision: "22", csiCode: "22 11 16", keywords: ["copper pipe", "copper tubing", "type l copper", "type k copper"], unit: "LF", materialCost: 12.50, category: "plumbing", description: "Copper Pipe (material per LF)" },
+  { id: "water-closet", csiDivision: "22", csiCode: "22 42 13", keywords: ["water closet", "toilet", "wc", "flush valve toilet"], unit: "EA", materialCost: 485.00, category: "plumbing", description: "Water Closet/Toilet (material per EA)" },
+  { id: "lavatory", csiDivision: "22", csiCode: "22 42 16", keywords: ["lavatory", "sink", "hand sink", "wash basin"], unit: "EA", materialCost: 285.00, category: "plumbing", description: "Lavatory/Sink (material per EA)" },
+  { id: "floor-drain", csiDivision: "22", csiCode: "22 42 00", keywords: ["floor drain", "area drain", "trench drain"], unit: "EA", materialCost: 125.00, category: "plumbing", description: "Floor Drain (material per EA)" },
+  { id: "water-heater", csiDivision: "22", csiCode: "22 33 00", keywords: ["water heater", "hot water heater", "tankless water heater"], unit: "EA", materialCost: 850.00, category: "plumbing", description: "Water Heater (material per EA)" },
+  { id: "backflow-preventer", csiDivision: "22", csiCode: "22 11 00", keywords: ["backflow preventer", "backflow", "rpz", "double check valve"], unit: "EA", materialCost: 485.00, category: "plumbing", description: "Backflow Preventer (material per EA)" },
+];
+
+// ─── CSI 23: HVAC ─────────────────────────────────────────────────────────────
+const HVAC_ITEMS: CostTableEntry[] = [
+  { id: "ductwork", csiDivision: "23", csiCode: "23 31 00", keywords: ["ductwork", "duct", "sheet metal duct", "hvac duct", "supply duct", "return duct"], unit: "LB", materialCost: 3.85, category: "hvac", description: "Sheet Metal Ductwork (material per LB)" },
+  { id: "rooftop-unit", csiDivision: "23", csiCode: "23 74 00", keywords: ["rooftop unit", "rtu", "packaged unit", "hvac unit"], unit: "TON", materialCost: 1850.00, category: "hvac", description: "Rooftop HVAC Unit (material per TON)" },
+  { id: "split-system", csiDivision: "23", csiCode: "23 81 26", keywords: ["split system", "mini split", "ductless", "heat pump"], unit: "TON", materialCost: 1450.00, category: "hvac", description: "Split System/Mini-Split (material per TON)" },
+  { id: "diffuser", csiDivision: "23", csiCode: "23 37 00", keywords: ["diffuser", "supply diffuser", "air diffuser", "ceiling diffuser", "grille", "register"], unit: "EA", materialCost: 45.00, category: "hvac", description: "Supply Diffuser/Register (material per EA)" },
+  { id: "exhaust-fan", csiDivision: "23", csiCode: "23 34 00", keywords: ["exhaust fan", "bathroom fan", "kitchen exhaust", "ventilation fan"], unit: "EA", materialCost: 185.00, category: "hvac", description: "Exhaust Fan (material per EA)" },
+  { id: "insulated-duct", csiDivision: "23", csiCode: "23 07 00", keywords: ["insulated duct", "duct insulation", "duct wrap", "duct liner"], unit: "SF", materialCost: 1.85, category: "hvac", description: "Duct Insulation (material per SF)" },
+];
+
+// ─── CSI 26: Electrical ───────────────────────────────────────────────────────
+const ELECTRICAL_ITEMS: CostTableEntry[] = [
+  { id: "conduit-emt", csiDivision: "26", csiCode: "26 05 33", keywords: ["emt", "conduit", "electrical conduit", "emt conduit", "rigid conduit"], unit: "LF", materialCost: 3.85, category: "electrical", description: "EMT Conduit (material per LF)" },
+  { id: "wire-12awg", csiDivision: "26", csiCode: "26 05 19", keywords: ["12 awg", "12 gauge wire", "thhn wire", "electrical wire", "branch circuit wire"], unit: "LF", materialCost: 0.55, category: "electrical", description: "12 AWG THHN Wire (material per LF)" },
+  { id: "panel-board", csiDivision: "26", csiCode: "26 24 16", keywords: ["panel board", "electrical panel", "distribution panel", "load center", "breaker panel"], unit: "EA", materialCost: 1850.00, category: "electrical", description: "Electrical Panel Board (material per EA)" },
+  { id: "light-fixture", csiDivision: "26", csiCode: "26 51 00", keywords: ["light fixture", "lighting", "led fixture", "troffer", "downlight", "recessed light"], unit: "EA", materialCost: 125.00, category: "electrical", description: "Light Fixture (material per EA)" },
+  { id: "receptacle", csiDivision: "26", csiCode: "26 27 26", keywords: ["receptacle", "outlet", "duplex outlet", "gfci outlet", "electrical outlet"], unit: "EA", materialCost: 18.50, category: "electrical", description: "Electrical Receptacle/Outlet (material per EA)" },
+  { id: "switch", csiDivision: "26", csiCode: "26 27 26", keywords: ["switch", "light switch", "toggle switch", "dimmer switch"], unit: "EA", materialCost: 12.50, category: "electrical", description: "Electrical Switch (material per EA)" },
+  { id: "transformer", csiDivision: "26", csiCode: "26 22 00", keywords: ["transformer", "dry type transformer", "step down transformer"], unit: "KVA", materialCost: 85.00, category: "electrical", description: "Dry-Type Transformer (material per KVA)" },
+  { id: "generator", csiDivision: "26", csiCode: "26 32 00", keywords: ["generator", "standby generator", "emergency generator", "diesel generator"], unit: "KW", materialCost: 850.00, category: "electrical", description: "Standby Generator (material per KW)" },
+];
+
+// ─── CSI 27: Communications ───────────────────────────────────────────────────
+const COMMUNICATIONS_ITEMS: CostTableEntry[] = [
+  { id: "data-cable", csiDivision: "27", csiCode: "27 15 00", keywords: ["data cable", "cat6", "cat 6", "network cable", "ethernet cable", "low voltage"], unit: "LF", materialCost: 0.45, category: "communications", description: "Cat6 Data Cable (material per LF)" },
+  { id: "data-outlet", csiDivision: "27", csiCode: "27 15 00", keywords: ["data outlet", "network outlet", "data port", "rj45 outlet"], unit: "EA", materialCost: 28.00, category: "communications", description: "Data Outlet (material per EA)" },
+  { id: "telecom-conduit", csiDivision: "27", csiCode: "27 05 28", keywords: ["telecom conduit", "low voltage conduit", "communications conduit"], unit: "LF", materialCost: 2.85, category: "communications", description: "Telecom/Low Voltage Conduit (material per LF)" },
+];
+
+// ─── CSI 28: Electronic Safety & Security ────────────────────────────────────
+const SECURITY_ITEMS: CostTableEntry[] = [
+  { id: "fire-alarm-device", csiDivision: "28", csiCode: "28 31 00", keywords: ["fire alarm", "smoke detector", "heat detector", "pull station", "horn strobe"], unit: "EA", materialCost: 85.00, category: "security", description: "Fire Alarm Device (material per EA)" },
+  { id: "security-camera", csiDivision: "28", csiCode: "28 23 00", keywords: ["security camera", "cctv", "surveillance camera", "ip camera"], unit: "EA", materialCost: 285.00, category: "security", description: "Security Camera (material per EA)" },
+  { id: "access-control", csiDivision: "28", csiCode: "28 13 00", keywords: ["access control", "card reader", "keypad entry", "door access"], unit: "EA", materialCost: 485.00, category: "security", description: "Access Control Device (material per EA)" },
+];
+
+// ─── CSI 33: Utilities ────────────────────────────────────────────────────────
+const UTILITIES_ITEMS: CostTableEntry[] = [
+  { id: "storm-drain-pipe", csiDivision: "33", csiCode: "33 41 00", keywords: ["storm drain", "storm pipe", "rcp", "reinforced concrete pipe", "hdpe storm", "corrugated metal pipe"], unit: "LF", materialCost: 28.00, category: "utilities", description: "Storm Drain Pipe (material per LF)" },
+  { id: "sanitary-sewer-pipe", csiDivision: "33", csiCode: "33 31 00", keywords: ["sanitary sewer", "sewer pipe", "pvc sewer", "8\" sewer", "gravity sewer"], unit: "LF", materialCost: 18.50, category: "utilities", description: "Sanitary Sewer Pipe (material per LF)" },
+  { id: "water-main", csiDivision: "33", csiCode: "33 11 00", keywords: ["water main", "water line", "water pipe", "ductile iron pipe", "pvc water main"], unit: "LF", materialCost: 22.00, category: "utilities", description: "Water Main Pipe (material per LF)" },
+  { id: "manhole", csiDivision: "33", csiCode: "33 44 00", keywords: ["manhole", "catch basin", "storm manhole", "sewer manhole"], unit: "EA", materialCost: 2850.00, category: "utilities", description: "Manhole/Catch Basin (material per EA)" },
+  { id: "fire-hydrant", csiDivision: "33", csiCode: "33 11 00", keywords: ["fire hydrant", "hydrant"], unit: "EA", materialCost: 2250.00, category: "utilities", description: "Fire Hydrant (material per EA)" },
+  { id: "underground-conduit", csiDivision: "33", csiCode: "33 71 00", keywords: ["underground conduit", "duct bank", "underground electric", "buried conduit"], unit: "LF", materialCost: 4.50, category: "utilities", description: "Underground Electrical Conduit (material per LF)" },
+  { id: "cleanout", csiDivision: "33", csiCode: "33 31 00", keywords: ["cleanout", "sewer cleanout", "co", "clean out"], unit: "EA", materialCost: 85.00, category: "utilities", description: "Sewer Cleanout (material per EA)" },
+  { id: "gate-valve", csiDivision: "33", csiCode: "33 11 00", keywords: ["gate valve", "valve box", "water valve", "curb stop"], unit: "EA", materialCost: 285.00, category: "utilities", description: "Gate Valve (material per EA)" },
+];
+
 // ─── Combined Export ──────────────────────────────────────────────────────────
 
 export const COST_TABLE: CostTableEntry[] = [
@@ -888,6 +1067,22 @@ export const COST_TABLE: CostTableEntry[] = [
   ...EARTHWORK_ITEMS,
   ...EXISTING_CONDITIONS,
   ...EXTERIOR_ITEMS,
+  ...GENERAL_REQUIREMENTS,
+  ...MASONRY_ITEMS,
+  ...METALS_ITEMS,
+  ...WOOD_ITEMS,
+  ...THERMAL_ITEMS,
+  ...OPENINGS_ITEMS,
+  ...FINISHES_ITEMS,
+  ...SPECIALTIES_ITEMS,
+  ...FURNISHINGS_ITEMS,
+  ...FIRE_SUPPRESSION_ITEMS,
+  ...PLUMBING_ITEMS,
+  ...HVAC_ITEMS,
+  ...ELECTRICAL_ITEMS,
+  ...COMMUNICATIONS_ITEMS,
+  ...SECURITY_ITEMS,
+  ...UTILITIES_ITEMS,
 ];
 
 export function getEntriesForDivision(division: string): CostTableEntry[] {

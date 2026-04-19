@@ -295,8 +295,8 @@ export default function MemberPortalLayout({
           {/* Logo / Brand */}
           <div className="p-5 border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-ember/15 flex items-center justify-center">
-                <Crown className="w-5 h-5 text-ember" />
+              <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center">
+                <img src="/manus-storage/contractor_circle_icon_v5_7747cde6.webp" alt="Contractor Circle" className="w-9 h-9 object-contain" />
               </div>
               <div>
                 <h2 className="font-heading text-sm font-semibold text-cream tracking-tight">
