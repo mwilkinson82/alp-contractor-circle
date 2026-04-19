@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
+import { logActivity } from "./activityLogDb";
 import {
   getTradeRatesByMember,
   getTradeRatesByMemberAndType,
@@ -205,6 +206,9 @@ export const tradeRateRouter = router({
       }
 
       const count = await bulkUpsertTradeRates(member.id, rates);
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "rate_configured", `configured rates: ${lt}${input.regionCode ? ` · ${input.regionCode}` : ""}`);
       return { success: true, count };
     }),
 
@@ -405,6 +409,9 @@ export const tradeRateRouter = router({
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const id = await createRateProfile({ memberId: member.id, ...input });
+      // Log activity
+      const displayName3 = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName3, "profile_saved", `saved rate profile "${input.name}"`);
       return { success: true, id };
     }),
 

@@ -50,10 +50,12 @@ import {
   PlusCircle,
   Layers,
   Ruler,
+  Bookmark,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
 import ScaleCalibrationPrompt from "@/components/ScaleCalibrationPrompt";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -146,6 +148,9 @@ export default function TakeoffDetail() {
   // ─── Preferred Currency ──────────────────────────────────────────────────
   const preferredCurrencyQuery = trpc.takeoff.getPreferredCurrency.useQuery();
   const savePreferredCurrency = trpc.takeoff.savePreferredCurrency.useMutation();
+
+  // ─── Rate Profiles for quick-switch ─────────────────────────────────────────
+  const { data: rateProfiles } = trpc.tradeRates.listRateProfiles.useQuery();
 
   // ─── Data Queries ─────────────────────────────────────────────────────────
 
@@ -852,6 +857,42 @@ export default function TakeoffDetail() {
                 <p className="text-xs text-cream-muted">{project.description}</p>
               )}
             </div>
+            {/* Rate Profile Quick-Switch */}
+            {rateProfiles && rateProfiles.length > 0 && (
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+                <Bookmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <Select
+                  value={project.rateProfileId ? String(project.rateProfileId) : "default"}
+                  onValueChange={(val) => {
+                    const profileId = val === "default" ? null : Number(val);
+                    updateProjectMutation.mutate(
+                      { id: projectId, rateProfileId: profileId },
+                      {
+                        onSuccess: () => {
+                          refetchProject();
+                          const profileName = profileId
+                            ? rateProfiles.find((p: any) => p.id === profileId)?.name
+                            : "Hub Default";
+                          toast.success(`Rate profile switched to ${profileName}`);
+                        },
+                      }
+                    );
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[180px] bg-white/5 border-white/10 text-cream text-xs">
+                    <SelectValue placeholder="Rate Profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Hub Default</SelectItem>
+                    {rateProfiles.map((p: any) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {totalCost > 0 && (

@@ -2757,17 +2757,17 @@
 - [x] Custom roles now available for crew composition and flow into labor inference
 
 ## Scale Calibration Prompt + Cross-Sheet Dedup (Apr 19 2026 — Release 3)
-- [ ] Scale calibration prompt fires after every sheet upload (before analysis) — modal shows each uploaded sheet, user sets scale per sheet or bulk-applies one scale to all
-- [ ] Cannot accidentally run analysis without seeing the scale prompt (prompt is mandatory, but skippable per sheet)
-- [ ] Cross-sheet deduplication context — before AI analyzes each sheet, it receives a structured summary of all items already taken off from completed sheets in the same project
-- [ ] AI instructed to not re-extract items already captured, and to flag potential overlaps in notes field
+- [x] Scale calibration prompt fires after every sheet upload (before analysis) — modal shows each uploaded sheet, user sets scale per sheet or bulk-applies one scale to all
+- [x] Cannot accidentally run analysis without seeing the scale prompt (prompt is mandatory, but skippable per sheet)
+- [x] Cross-sheet deduplication context — before AI analyzes each sheet, it receives a structured summary of all items already taken off from completed sheets in the same project
+- [x] AI instructed to not re-extract items already captured, and to flag potential overlaps in notes field
 
 ## Rate Profiles + Project-Level Override (Apr 19 2026 — Release 4)
-- [ ] DB schema: rate_profiles table (id, memberId, name, projectType, workType, region, ratesSnapshot JSON, createdAt)
-- [ ] Trade Rate Library: Save current config as a named profile, load/switch profiles, delete profiles
-- [ ] TakeoffDetail: Rate Profile selector per project (defaults to hub config if none selected)
-- [ ] AI inference reads project rate profile instead of global hub config when a profile is assigned
-- [ ] Scale calibration warning banner in Pre-Analysis modal when no sheets are calibrated
+- [x] DB schema: rate_profiles table (id, memberId, name, projectType, workType, region, ratesSnapshot JSON, createdAt)
+- [x] Trade Rate Library: Save current config as a named profile, load/switch profiles, delete profiles
+- [x] TakeoffDetail: Rate Profile selector per project (defaults to hub config if none selected)
+- [x] AI inference reads project rate profile instead of global hub config when a profile is assigned
+- [x] Scale calibration warning banner in Pre-Analysis modal when no sheets are calibrated
 
 ## Wire Rate Profile + Hub Badge + Live Online Users (Apr 19 2026)
 - [x] Wire rate profile into AI inference — load profile's projectType/workType/region when project has rateProfileId
@@ -2779,3 +2779,14 @@
 - [x] OnlineUsersBadge in sidebar footer
 - [x] OnlineUsersPanel in Admin Panel (full user list for admins, count only for members)
 - [x] TypeScript clean, production build clean
+
+## Rate Profile Quick-Switch + Scale Auto-Detect + Activity Feed (Apr 19 2026)
+- [x] Rate profile quick-switch dropdown in TakeoffDetail header bar (not buried in Project Settings)
+- [x] Scale calibration auto-detect — AI finds dimension lines/scale notations and logs detected scale
+- [x] Presence activity feed — live stream of user actions in admin panel (e.g., "Marshall opened Takeoff 2m ago")
+- [x] user_activity_log DB table created and migrated
+- [x] activityLogDb.ts — logActivity, getRecentActivity, pruneOldActivity helpers
+- [x] Activity logging wired into: takeoff creation, sheet upload, AI analysis start, labor inference, estimate confirmation, rate configuration, rate profile save, page navigation
+- [x] ActivityFeedPanel in Admin Panel (side-by-side with OnlineUsersPanel)
+- [x] useActivityLog hook for frontend activity logging
+- [x] Heartbeat tracks page changes and logs navigation events

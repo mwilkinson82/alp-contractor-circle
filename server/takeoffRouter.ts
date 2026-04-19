@@ -42,6 +42,7 @@ import {
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
+import { logActivity } from "./activityLogDb";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 
@@ -175,6 +176,9 @@ export const takeoffRouter = router({
         costRegion,
         costMultiplier,
       });
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "takeoff_created", `created takeoff "${input.name}"`, `/portal/takeoff/${id}`);
       return { id };
     }),
 
@@ -289,6 +293,9 @@ export const takeoffRouter = router({
         status: "uploading",
       });
 
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "sheet_uploaded", `uploaded sheet "${input.filename}"`, `/portal/takeoff/${input.projectId}`);
       return { sheetId, imageUrl: url };
     }),
 
@@ -341,6 +348,9 @@ export const takeoffRouter = router({
         status: "uploading",
       });
 
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "sheet_uploaded", `uploaded ${input.sheets.length} sheet${input.sheets.length > 1 ? "s" : ""}`, `/portal/takeoff/${input.projectId}`);
       return { sheets: results };
     }),
 
@@ -415,6 +425,10 @@ export const takeoffRouter = router({
       if (Object.keys(updates).length > 0) {
         await updateTakeoffProject(input.projectId, updates);
       }
+
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "analysis_started", `started AI analysis on "${project.name}"`, `/portal/takeoff/${input.projectId}`);
 
       // Start processing in background (don't await)
       processAllPendingSheets(input.projectId).catch((err) => {

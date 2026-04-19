@@ -1287,3 +1287,20 @@ export const userPresence = mysqlTable("user_presence", {
 });
 export type UserPresence = typeof userPresence.$inferSelect;
 export type InsertUserPresence = typeof userPresence.$inferInsert;
+
+// ─── User Activity Log (Presence Activity Feed) ──────────────────────────────
+export const userActivityLog = mysqlTable("user_activity_log", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  displayName: varchar("displayName", { length: 256 }),
+  /** Action type: page_visit, takeoff_created, sheet_uploaded, estimate_confirmed, etc. */
+  action: varchar("action", { length: 128 }).notNull(),
+  /** Human-readable description, e.g. "opened Quantity Takeoff" */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Optional reference path, e.g. "/portal/takeoff/5" */
+  refPath: varchar("refPath", { length: 512 }),
+  /** Timestamp */
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UserActivityLog = typeof userActivityLog.$inferSelect;
+export type InsertUserActivityLog = typeof userActivityLog.$inferInsert;

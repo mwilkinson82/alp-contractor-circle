@@ -11,6 +11,7 @@ import { eq, inArray, and } from "drizzle-orm";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
+import { logActivity } from "./activityLogDb";
 
 const BETA_MEMBER_OFFSET = 10_000_000;
 async function getMemberFromReq(req: any): Promise<Member | null> {
@@ -150,6 +151,9 @@ export const estimateRouter = router({
         };
       }
       const tasks = await inferLaborByTasks(input.items, crews);
+      // Log activity
+      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName, "labor_inferred", `ran labor AI on ${input.items.length} items`, `/portal/takeoff/${input.projectId}`);
       return {
         success: true,
         message: `ConstructLine grouped ${input.items.length} items into ${tasks.length} installation tasks`,
@@ -212,6 +216,9 @@ export const estimateRouter = router({
         await db.insert(activityProductivity).values(assignments.slice(i, i + 50));
       }
 
+      // Log activity
+      const displayName2 = member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(member.id, displayName2, "estimate_confirmed", `confirmed ${assignments.length} labor assignments`, `/portal/takeoff/${input.projectId}`);
       return {
         success: true,
         message: `Saved ${assignments.length} labor assignments from ${input.tasks.filter(t => t.crewId !== null).length} tasks`,

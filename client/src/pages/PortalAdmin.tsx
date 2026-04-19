@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { OnlineUsersPanel } from "@/components/OnlineUsersWidget";
+import { ActivityFeedPanel } from "@/components/ActivityFeed";
 
 type Category = "weekly_calls" | "bootcamp" | "masterclass" | "q_and_a";
 
@@ -414,8 +415,11 @@ export default function PortalAdmin() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Online Users */}
-      <OnlineUsersPanel />
+      {/* Online Users + Activity Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OnlineUsersPanel />
+        <ActivityFeedPanel />
+      </div>
 
       {/* Questions Review Section */}
       <QuestionsReviewPanel />
