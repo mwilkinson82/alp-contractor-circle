@@ -4,6 +4,10 @@
 import { router, publicProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getEstimateMarkup, upsertEstimateMarkup } from "./estimateDb";
+import { inferLaborForItems } from "./laborInference";
+import { getDb as _getDb } from "./db";
+import { crewDefinitions } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
@@ -78,5 +82,31 @@ export const estimateRouter = router({
       const { projectId, ...markups } = input;
       const id = await upsertEstimateMarkup(projectId, member.id, markups);
       return { success: true, id };
+    }),
+
+  inferLabor: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      items: z.array(z.object({
+        description: z.string(),
+        unit: z.string(),
+        quantity: z.number(),
+        csiDivision: z.string(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const db = await _getDb();
+      if (!db) throw new Error("Database not available");
+      const crews = await db.select().from(crewDefinitions).where(eq(crewDefinitions.memberId, member.id));
+      if (crews.length === 0) {
+        return { success: false, message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.", assignments: [] };
+      }
+      const assignments = await inferLaborForItems(member.id, input.items, crews);
+      return {
+        success: true,
+        message: `AI matched ${assignments.filter(a => a.crewId !== null).length} of ${assignments.length} items to crews`,
+        assignments,
+      };
     }),
 });

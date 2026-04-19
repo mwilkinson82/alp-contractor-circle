@@ -13,12 +13,12 @@ import * as XLSX from "xlsx";
 import {
   Calculator, Save, Download, ChevronDown, ChevronRight,
   DollarSign, HardHat, Percent, TrendingUp, FileSpreadsheet,
-  Users, Info,
+  Users, Info, Sparkles, Loader2,
 } from "lucide-react";
 import {
-  TRADES, CLASSIFICATION_ORDER, CLASSIFICATION_MULTIPLIERS,
+  TRADES, getBaseWage,
   DEFAULT_BURDENS, calculateBurdenedRate,
-  type LaborType, type Classification,
+  type LaborType,
 } from "../../../shared/tradeRates";
 import { COST_REGION_GROUPS } from "../../../shared/costRegions";
 import EstimateOutputs from "./EstimateOutputs";
@@ -60,10 +60,41 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
   const { data: burdenData } = trpc.tradeRates.getBurdenConfigs.useQuery();
   const { data: userRatesData } = trpc.tradeRates.getTradeRates.useQuery();
 
+  const utils = trpc.useUtils();
+
   const saveMutation = trpc.estimate.saveMarkups.useMutation({
     onSuccess: () => toast.success("Markup configuration saved"),
     onError: (err: any) => toast.error(err.message),
   });
+
+  const inferLaborMutation = trpc.estimate.inferLabor.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(result.message);
+        // Invalidate activity productivity so labor costs recalculate
+        utils.tradeRates.getActivityProductivity.invalidate();
+      } else {
+        toast.error(result.message);
+      }
+    },
+    onError: (err: any) => toast.error("AI labor inference failed: " + err.message),
+  });
+
+  const handleCalculateLabor = () => {
+    if (!crewsData || crewsData.length === 0) {
+      toast.error("No crews defined yet. Go to Trade Rate Library → Crew Builder to set up your crews first.");
+      return;
+    }
+    inferLaborMutation.mutate({
+      projectId,
+      items: items.map(i => ({
+        description: i.description || "",
+        unit: i.unit || "",
+        quantity: parseFloat(i.quantity) || 0,
+        csiDivision: i.csiDivision || "00",
+      })),
+    });
+  };
 
   // ─── Markup state ────────────────────────────────────────────────────
   const [overheadPct, setOverheadPct] = useState(1000);
@@ -127,7 +158,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       for (const m of members) {
         const userRate = userRateMap.get(`${m.tradeName}|${m.classification}`);
         const trade = TRADES.find(t => t.tradeName === m.tradeName);
-        const baseWage = userRate ?? (trade ? Math.round(trade.journeymanRates[lt] * CLASSIFICATION_MULTIPLIERS[m.classification as Classification]) : 0);
+        const baseWage = userRate ?? (getBaseWage(m.tradeName, m.classification, lt) ?? 0);
         const burdened = Math.round(calculateBurdenedRate(baseWage, burden) * regionMultiplier);
         totalPerHr += burdened * (m.count || 1);
       }
@@ -300,23 +331,49 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         </div>
       </div>
 
-      {/* Labor coverage info */}
+      {/* Labor coverage info + Calculate Labor button */}
       {calculations.laborItemsMatched > 0 ? (
         <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
           <Users className="w-4 h-4 text-emerald-400 shrink-0" />
-          <p className="text-emerald-200/80 text-xs">
+          <p className="text-emerald-200/80 text-xs flex-1">
             <strong className="text-emerald-300">Labor calculated</strong> for {calculations.laborItemsMatched} of {calculations.totalItems} items
             using your crew definitions and activity productivity factors.
             Items without matching productivity data show "—" in the labor column.
           </p>
+          <Button
+            variant="outline" size="sm"
+            onClick={handleCalculateLabor}
+            disabled={inferLaborMutation.isPending}
+            className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5 shrink-0"
+          >
+            {inferLaborMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing...</>
+            ) : (
+              <><Sparkles className="w-3.5 h-3.5" />Re-calculate Labor</>
+            )}
+          </Button>
         </div>
       ) : (
         <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
           <Info className="w-4 h-4 text-blue-400 shrink-0" />
-          <p className="text-blue-200/80 text-xs">
-            <strong className="text-blue-300">Labor costs not yet configured.</strong> To see labor in your estimate:
-            go to Trade Rate Library → set up your crews → then add activity productivity factors matching your takeoff items.
-          </p>
+          <div className="flex-1">
+            <p className="text-blue-200/80 text-xs">
+              <strong className="text-blue-300">Labor costs not yet configured.</strong> Use AI to automatically match
+              your takeoff items to crews and estimate productivity rates, or manually set them in Trade Rate Library.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleCalculateLabor}
+            disabled={inferLaborMutation.isPending}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white gap-1.5 shrink-0"
+          >
+            {inferLaborMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing{items.length > 20 ? ` ${items.length} items` : ''}...</>
+            ) : (
+              <><Sparkles className="w-3.5 h-3.5" />Calculate Labor with AI</>
+            )}
+          </Button>
         </div>
       )}
 

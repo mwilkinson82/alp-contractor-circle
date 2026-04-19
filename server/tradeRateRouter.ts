@@ -26,9 +26,8 @@ import {
 } from "./tradeRateDb";
 import {
   TRADES,
-  CLASSIFICATION_ORDER,
-  CLASSIFICATION_MULTIPLIERS,
   DEFAULT_BURDENS,
+  DEFAULT_CREWS,
   calculateBurdenedRate,
   type LaborType,
   type BurdenDefaults,
@@ -94,9 +93,10 @@ export const tradeRateRouter = router({
       return TRADES.map((trade) => ({
         tradeName: trade.tradeName,
         csiDivision: trade.csiDivision,
-        classifications: CLASSIFICATION_ORDER.map((cls) => ({
-          classification: cls,
-          baseWageCents: Math.round(trade.journeymanRates[lt] * CLASSIFICATION_MULTIPLIERS[cls]),
+        roles: trade.roles.map((role) => ({
+          roleKey: role.roleKey,
+          roleLabel: role.roleLabel,
+          baseWageCents: role.rates[lt],
         })),
       }));
     }),
@@ -117,13 +117,13 @@ export const tradeRateRouter = router({
       }> = [];
 
       for (const trade of TRADES) {
-        for (const cls of CLASSIFICATION_ORDER) {
+        for (const role of trade.roles) {
           rates.push({
             tradeName: trade.tradeName,
             csiDivision: trade.csiDivision,
-            classification: cls,
+            classification: role.roleKey,
             laborType: lt,
-            baseWageCents: Math.round(trade.journeymanRates[lt] * CLASSIFICATION_MULTIPLIERS[cls]),
+            baseWageCents: role.rates[lt],
             notes: "RS Means baseline",
           });
         }
@@ -263,6 +263,30 @@ export const tradeRateRouter = router({
       const member = await requireMember(ctx);
       const ok = await deleteCrew(input.id, member.id);
       return { success: ok };
+    }),
+
+  /** Seed default crews for all CSI divisions */
+  seedDefaultCrews: publicProcedure
+    .input(z.object({ laborType: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const lt = input.laborType as LaborType;
+      let created = 0;
+      for (const dc of DEFAULT_CREWS) {
+        await createCrew({
+          memberId: member.id,
+          crewName: dc.crewName,
+          laborType: lt,
+          crewMembers: JSON.stringify(dc.members.map(m => ({
+            tradeName: m.tradeName,
+            classification: m.roleKey,
+            count: m.count,
+          }))),
+          notes: dc.description,
+        });
+        created++;
+      }
+      return { success: true, count: created };
     }),
 
   // ─── Activity Productivity ────────────────────────────────────────────

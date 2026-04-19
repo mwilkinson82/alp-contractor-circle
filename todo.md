@@ -2634,3 +2634,16 @@
 - [x] Proposal generator (cover letter + scope narrative + pricing summary)
 - [x] Schedule of Values (SOV) — AIA G703-style line-item breakdown
 - [x] Burden configuration — user enters actual burden rates (FICA, FUTA, SUTA, WC, GL, health, pension, vacation, training, union fringe, other) per labor type; system auto-calculates fully burdened rate
+
+## Trade Rate Library Improvements
+- [x] Rename sidebar from "Labor Library" to "Trade Rate Library" to match in-app references
+- [x] Update seed data with trade-specific classifications (not just Foreman/Journeyman/Apprentice for all trades)
+- [x] Pre-build default crews for all CSI divisions with typical compositions
+- [ ] Make classifications editable per trade (add/rename with hourly rate)
+- [ ] Remove CSV upload for crew rates (pre-built crews + inline editing is better UX)
+- [x] Fix TS errors: CrewBuilder, EstimateSummary, LaborLibrary — migrate from journeymanRates to trade.roles
+- [x] SOV export as AIA G702/G703 Excel format (2 sheets) matching user's template
+- [x] Company branding inputs for Bid Summary and Proposal (logo, company name, header, etc.)
+- [x] AI auto-labor inference — match material takeoff items to labor requirements automatically
+- [x] "Calculate Labor with AI" button in EstimateSummary — sends takeoff items to LLM, matches to crews + productivity, saves to activity_productivity table
+- [x] Add seedDefaultCrews procedure to pre-populate 30 default crews for all CSI divisions

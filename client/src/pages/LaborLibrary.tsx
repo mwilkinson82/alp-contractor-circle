@@ -21,9 +21,9 @@ import {
 import CrewBuilder from "@/components/CrewBuilder";
 import { COST_REGION_GROUPS, type CostRegionGroup } from "../../../shared/costRegions";
 import {
-  TRADES, CLASSIFICATION_ORDER, CLASSIFICATION_LABELS, CLASSIFICATION_MULTIPLIERS,
+  TRADES, getBaseWage,
   LABOR_TYPE_LABELS, DEFAULT_BURDENS, calculateBurdenedRate,
-  type LaborType, type Classification, type BurdenDefaults,
+  type LaborType, type BurdenDefaults,
 } from "../../../shared/tradeRates";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -147,12 +147,10 @@ export default function LaborLibrary() {
     });
   };
 
-  const getRate = (tradeName: string, cls: Classification): number => {
+  const getRate = (tradeName: string, cls: string): number => {
     const userRate = userRateMap.get(`${tradeName}|${cls}`);
     if (userRate !== undefined) return userRate;
-    const trade = TRADES.find(t => t.tradeName === tradeName);
-    if (!trade) return 0;
-    return Math.round(trade.journeymanRates[laborType] * CLASSIFICATION_MULTIPLIERS[cls]);
+    return getBaseWage(tradeName, cls, laborType) ?? 0;
   };
 
   const getBurdenedRate = (baseWageCents: number): number => {
@@ -205,10 +203,10 @@ export default function LaborLibrary() {
               onClick={() => {
                 const rows: string[] = ["Trade,Classification,Base Wage ($/hr),Burdened Rate ($/hr)"];
                 for (const trade of TRADES) {
-                  for (const cls of CLASSIFICATION_ORDER) {
-                    const base = getRate(trade.tradeName, cls);
+                  for (const role of trade.roles) {
+                    const base = getRate(trade.tradeName, role.roleKey);
                     const burdened = getBurdenedRate(base);
-                    rows.push(`"${trade.tradeName}",${CLASSIFICATION_LABELS[cls]},${(base/100).toFixed(2)},${(burdened/100).toFixed(2)}`);
+                    rows.push(`"${trade.tradeName}",${role.roleLabel},${(base/100).toFixed(2)},${(burdened/100).toFixed(2)}`);
                   }
                 }
                 const blob = new Blob([rows.join("\n")], { type: "text/csv" });
@@ -360,14 +358,15 @@ export default function LaborLibrary() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/3">
-                                  {CLASSIFICATION_ORDER.map(cls => {
+                                  {trade.roles.map(role => {
+                                    const cls = role.roleKey;
                                     const base = getRate(trade.tradeName, cls);
                                     const burdened = getBurdenedRate(base);
                                     const burdenAmount = burdened - Math.round(base * regionMultiplier);
                                     const isEditing = editingRate?.tradeName === trade.tradeName && editingRate?.classification === cls;
                                     return (
                                       <tr key={cls} className="hover:bg-white/3 transition-colors">
-                                        <td className="px-4 py-2.5 pl-14 text-sm text-cream">{CLASSIFICATION_LABELS[cls]}</td>
+                                        <td className="px-4 py-2.5 pl-14 text-sm text-cream">{role.roleLabel}</td>
                                         <td className="px-4 py-2.5 text-right">
                                           {isEditing ? (
                                             <div className="flex items-center justify-end gap-1">

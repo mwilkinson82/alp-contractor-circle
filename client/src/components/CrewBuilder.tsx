@@ -13,14 +13,14 @@ import {
   Pencil, DollarSign, HardHat, Save,
 } from "lucide-react";
 import {
-  TRADES, CLASSIFICATION_ORDER, CLASSIFICATION_LABELS, CLASSIFICATION_MULTIPLIERS,
+  TRADES, getBaseWage,
   LABOR_TYPE_LABELS, DEFAULT_BURDENS, calculateBurdenedRate,
-  type LaborType, type Classification, type BurdenDefaults,
+  type LaborType, type BurdenDefaults,
 } from "../../../shared/tradeRates";
 
 interface CrewMember {
   tradeName: string;
-  classification: Classification;
+  classification: string;
   count: number;
 }
 
@@ -48,6 +48,14 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
   const crewsQuery = trpc.tradeRates.getCrews.useQuery();
   const utils = trpc.useUtils();
 
+  const seedDefaultCrewsMutation = trpc.tradeRates.seedDefaultCrews.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Loaded ${data.count} default crews`);
+      utils.tradeRates.getCrews.invalidate();
+    },
+    onError: () => toast.error("Failed to load default crews"),
+  });
+
   const createCrewMutation = trpc.tradeRates.createCrew.useMutation({
     onSuccess: () => {
       toast.success("Crew created");
@@ -68,12 +76,11 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
     onError: () => toast.error("Failed to delete crew"),
   });
 
-  const getBaseRate = (tradeName: string, cls: Classification): number => {
+  const getBaseRate = (tradeName: string, cls: string): number => {
     const userRate = userRateMap.get(`${tradeName}|${cls}`);
     if (userRate !== undefined) return userRate;
-    const trade = TRADES.find(t => t.tradeName === tradeName);
-    if (!trade) return 0;
-    return Math.round(trade.journeymanRates[laborType] * CLASSIFICATION_MULTIPLIERS[cls]);
+    const baseWage = getBaseWage(tradeName, cls, laborType);
+    return baseWage ?? 0;
   };
 
   const getBurdenedRate = (baseWageCents: number): number => {
@@ -175,7 +182,10 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
                     onChange={e => updateMember(idx, "classification", e.target.value)}
                     className="h-8 rounded-md border border-white/10 bg-navy-deep text-cream text-sm px-2"
                   >
-                    {CLASSIFICATION_ORDER.map(cls => <option key={cls} value={cls}>{CLASSIFICATION_LABELS[cls]}</option>)}
+                    {(() => {
+                      const trade = TRADES.find(t => t.tradeName === m.tradeName);
+                      return (trade?.roles || []).map(r => <option key={r.roleKey} value={r.roleKey}>{r.roleLabel}</option>);
+                    })()}
                   </select>
                   <Input
                     type="number" min={1} max={50}
@@ -227,7 +237,14 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
       {crews.length === 0 && !showCreateForm ? (
         <div className="text-center py-12 text-cream-muted">
           <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No crews defined yet. Create your first crew to calculate blended labor rates.</p>
+          <p className="text-sm mb-4">No crews defined yet. Load 30 pre-built crews for all CSI divisions, or create your own.</p>
+          <Button
+            onClick={() => seedDefaultCrewsMutation.mutate({ laborType })}
+            disabled={seedDefaultCrewsMutation.isPending}
+            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold gap-2">
+            {seedDefaultCrewsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardHat className="w-4 h-4" />}
+            Load Default Crews (30 crews)
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">
@@ -276,7 +293,11 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
                           return (
                             <tr key={idx} className="text-sm">
                               <td className="py-2 pl-2 text-cream">{m.tradeName}</td>
-                              <td className="py-2 text-cream-muted">{CLASSIFICATION_LABELS[m.classification]}</td>
+                              <td className="py-2 text-cream-muted">{(() => {
+                                const trade = TRADES.find(t => t.tradeName === m.tradeName);
+                                const role = trade?.roles.find(r => r.roleKey === m.classification);
+                                return role?.roleLabel || m.classification;
+                              })()}</td>
                               <td className="py-2 text-center text-cream">{m.count}</td>
                               <td className="py-2 text-right text-cream font-mono">{formatCents(base)}</td>
                               <td className="py-2 text-right text-cream font-mono">{formatCents(burdened)}</td>

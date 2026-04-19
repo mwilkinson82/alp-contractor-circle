@@ -215,7 +215,7 @@ function ConstructLineNav({
             {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
           </button>
 
-          {/* C4 — Labor Library — available to all members */}
+          {/* C4 — Trade Rate Library — available to all members */}
           <button
             onClick={() => navigate("/portal/labor-library")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
@@ -225,7 +225,7 @@ function ConstructLineNav({
             }`}
           >
             <HardHat className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-ember" : ""}`} />
-            <span>Labor Library</span>
+            <span>Trade Rate Library</span>
             {isLaborLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
           </button>
         </div>
@@ -544,7 +544,7 @@ export default function MemberPortalLayout({
                 }`}
               >
                 <HardHat className="w-5 h-5" />
-                <span>Labor Library</span>
+                <span>Trade Rate Library</span>
               </button>
               {/* Bottom items */}
               {visibleBottomItems.length > 0 && (
