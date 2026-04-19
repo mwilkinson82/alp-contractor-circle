@@ -2602,3 +2602,7 @@
 - [ ] Add takeoff processing status banner while AI consolidation/enhancement is running
 - [ ] Fix annotation duplicating on page 2 in PDF preview — clip annotations to page 1 only
 - [ ] Improve logic line endpoint accuracy in PDF export — arrows should connect precisely to bar endpoints
+
+## Cost Library UI Fixes
+- [x] Add Item button on each CSI division header in Cost Library
+- [x] Consistent column widths across all CSI division tables in Cost Library

@@ -78,6 +78,27 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
   "33": "Div 33 — Utilities",
 };
 
+// ─── Consistent column widths (shared across all division tables) ────────────
+const COL_WIDTHS = {
+  description: "50%",  // Description takes the most space
+  unit: "70px",
+  unitCost: "110px",
+  notes: "auto",       // Notes fills remaining space
+  actions: "72px",
+};
+
+function ColGroup() {
+  return (
+    <colgroup>
+      <col style={{ width: COL_WIDTHS.description }} />
+      <col style={{ width: COL_WIDTHS.unit }} />
+      <col style={{ width: COL_WIDTHS.unitCost }} />
+      <col style={{ width: COL_WIDTHS.notes }} />
+      <col style={{ width: COL_WIDTHS.actions }} />
+    </colgroup>
+  );
+}
+
 // ─── Parse CSV/Excel ──────────────────────────────────────────────────────────
 function parseFile(file: File): Promise<{ entries: ParsedEntry[]; errors: ParseError[] }> {
   return new Promise((resolve) => {
@@ -136,7 +157,7 @@ export default function CostLibrary() {
   const [pendingFilename, setPendingFilename] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editState, setEditState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
-  const [showAddRow, setShowAddRow] = useState(false);
+  const [addingForDivision, setAddingForDivision] = useState<string | null>(null);
   const [addState, setAddState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
 
@@ -159,7 +180,12 @@ export default function CostLibrary() {
     onError: (err: any) => toast.error(err.message),
   });
   const addMutation = trpc.takeoff.addCostLibraryEntry.useMutation({
-    onSuccess: () => { toast.success("Entry added"); setShowAddRow(false); setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" }); refetch(); },
+    onSuccess: () => {
+      toast.success("Entry added");
+      setAddingForDivision(null);
+      setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+      refetch();
+    },
     onError: (err: any) => toast.error(err.message),
   });
   const loadDefaultsMutation = trpc.takeoff.loadDefaults.useMutation({
@@ -209,7 +235,25 @@ export default function CostLibrary() {
     if (!addState.description.trim()) { toast.error("Description required"); return; }
     if (!addState.unit.trim()) { toast.error("Unit required"); return; }
     if (isNaN(uc) || uc < 0) { toast.error("Invalid unit cost"); return; }
-    addMutation.mutate({ description: addState.description, unit: addState.unit.toUpperCase(), unitCost: uc, csiDivision: addState.csiDivision || undefined, notes: addState.notes || undefined });
+    addMutation.mutate({
+      description: addState.description,
+      unit: addState.unit.toUpperCase(),
+      unitCost: uc,
+      csiDivision: addState.csiDivision || undefined,
+      notes: addState.notes || undefined,
+    });
+  };
+
+  const startAddForDivision = (div: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't toggle collapse
+    // Make sure the division is expanded
+    setCollapsedDivisions(prev => {
+      const next = new Set(prev);
+      next.delete(div);
+      return next;
+    });
+    setAddingForDivision(div);
+    setAddState({ description: "", unit: "", unitCost: "", csiDivision: div, notes: "" });
   };
 
   const toggleDivision = (div: string) => {
@@ -251,33 +295,11 @@ export default function CostLibrary() {
           </div>
           <div className="w-px h-8 bg-white/10" />
           <div>
-            <h1 className="text-xl font-bold text-cream">My Cost Library</h1>
+            <h1 className="text-xl font-bold text-cream">Cost Library</h1>
             <p className="text-cream-muted text-sm">
               Upload your own unit costs — <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will match them to takeoff items automatically.
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload CSV / Excel
-          </Button>
-          <Button variant="outline" size="sm"
-            onClick={() => { setShowAddRow(true); setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" }); }}
-            className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
-            <Plus className="w-3.5 h-3.5" />Add Row
-          </Button>
-          <Button variant="outline" size="sm"
-            onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
-            disabled={loadDefaultsMutation.isPending}
-            className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
-            {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Sync ConstructLine Pricing
-          </Button>
-          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
         </div>
       </div>
 
@@ -297,6 +319,33 @@ export default function CostLibrary() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Toolbar buttons — below the info banner */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg gap-2"
+        >
+          <Upload className="w-4 h-4" />
+          Upload CSV / Excel
+        </Button>
+        <Button variant="outline" size="sm"
+          onClick={() => {
+            setAddingForDivision("__new__");
+            setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+          }}
+          className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
+          <Plus className="w-3.5 h-3.5" />Add Row
+        </Button>
+        <Button variant="outline" size="sm"
+          onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
+          disabled={loadDefaultsMutation.isPending}
+          className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
+          {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          Sync ConstructLine Pricing
+        </Button>
+        <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
+      </div>
 
       {/* Parse errors */}
       {parseErrors.length > 0 && (
@@ -336,6 +385,44 @@ export default function CostLibrary() {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Global Add Row form (when clicking top-level Add Row button) */}
+      {addingForDivision === "__new__" && (
+        <Card className="bg-amber-500/5 border-amber-500/30">
+          <CardContent className="py-3 px-4">
+            <p className="text-amber-300 font-medium text-sm mb-2">Add New Entry</p>
+            <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+              <ColGroup />
+              <thead>
+                <tr className="bg-navy-deep/60 text-cream-muted text-xs">
+                  <th className="text-left px-4 py-2 font-semibold">Description</th>
+                  <th className="text-left px-3 py-2 font-semibold">Unit</th>
+                  <th className="text-right px-3 py-2 font-semibold">Unit Cost</th>
+                  <th className="text-left px-3 py-2 font-semibold">Notes (CSI Div)</th>
+                  <th className="px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-amber-500/20">
+                  <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
+                  <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
+                  <td className="px-2 py-2"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-1">
+                      <Input value={addState.csiDivision} onChange={e => setAddState(s => ({ ...s, csiDivision: e.target.value }))} placeholder="Div (03)" className={inputCls + " w-16 shrink-0"} />
+                      <Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2"><div className="flex gap-1">
+                    <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                    <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
@@ -382,76 +469,68 @@ export default function CostLibrary() {
             </div>
           </CardHeader>
           <CardContent className="pt-0 space-y-2">
-            {/* Add Row inline form */}
-            {showAddRow && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden mb-2">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-navy-deep/60 text-cream-muted text-xs">
-                      <th className="text-left px-4 py-2 font-semibold">Description</th>
-                      <th className="text-left px-3 py-2 font-semibold w-16">Unit</th>
-                      <th className="text-right px-3 py-2 font-semibold w-28">Unit Cost</th>
-                      <th className="text-left px-3 py-2 font-semibold w-20">CSI Div</th>
-                      <th className="text-left px-3 py-2 font-semibold">Notes</th>
-                      <th className="w-16" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t border-amber-500/20">
-                      <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                      <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls + " w-14"} /></td>
-                      <td className="px-2 py-2"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " w-24 text-right"} /></td>
-                      <td className="px-2 py-2"><Input value={addState.csiDivision} onChange={e => setAddState(s => ({ ...s, csiDivision: e.target.value }))} placeholder="03" className={inputCls + " w-14"} /></td>
-                      <td className="px-2 py-2"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
-                      <td className="px-2 py-2"><div className="flex gap-1">
-                        <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                        <button onClick={() => setShowAddRow(false)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                      </div></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-
             {/* Grouped by CSI division */}
             {sortedDivisions.map(div => {
               const divEntries = grouped[div];
               const isCollapsed = collapsedDivisions.has(div);
               const divName = CSI_DIVISION_NAMES[div] || `Div ${div}`;
+              const isAddingHere = addingForDivision === div;
               return (
                 <div key={div} className="rounded-lg border border-white/10 overflow-hidden">
-                  {/* Division header — clickable to collapse */}
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-2.5 bg-navy-deep/60 hover:bg-navy-deep/80 transition-colors text-left"
-                    onClick={() => toggleDivision(div)}
-                  >
-                    <div className="flex items-center gap-2">
+                  {/* Division header — clickable to collapse, with Add Item button */}
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-navy-deep/60 hover:bg-navy-deep/80 transition-colors">
+                    <button
+                      className="flex items-center gap-2 flex-1 text-left"
+                      onClick={() => toggleDivision(div)}
+                    >
                       {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted/50" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted/50" />}
                       <span className="text-sm font-semibold text-cream">{divName}</span>
                       <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">{divEntries.length}</Badge>
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      onClick={(e) => startAddForDivision(div, e)}
+                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors"
+                      title={`Add item to ${divName}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Item</span>
+                    </button>
+                  </div>
 
                   {/* Rows */}
                   {!isCollapsed && (
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                      <ColGroup />
                       <thead>
                         <tr className="bg-navy-deep/40 text-cream-muted text-xs border-t border-white/5">
                           <th className="text-left px-4 py-2 font-semibold">Description</th>
-                          <th className="text-left px-3 py-2 font-semibold w-16">Unit</th>
-                          <th className="text-right px-3 py-2 font-semibold w-28">Unit Cost</th>
+                          <th className="text-left px-3 py-2 font-semibold">Unit</th>
+                          <th className="text-right px-3 py-2 font-semibold">Unit Cost</th>
                           <th className="text-left px-3 py-2 font-semibold">Notes</th>
-                          <th className="w-16" />
+                          <th className="px-2 py-2" />
                         </tr>
                       </thead>
                       <tbody>
+                        {/* Inline add row for this division */}
+                        {isAddingHere && (
+                          <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                            <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
+                            <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
+                            <td className="px-2 py-1.5"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
+                            <td className="px-2 py-1.5"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
+                            <td className="px-2 py-1.5"><div className="flex gap-1">
+                              <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+                              <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
+                            </div></td>
+                          </tr>
+                        )}
                         {divEntries.map((entry: any) => {
                           const isEditing = editingId === entry.id;
                           return isEditing ? (
                             <tr key={entry.id} className="border-t border-amber-500/30 bg-amber-500/5">
                               <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls + " w-14"} /></td>
-                              <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " w-24 text-right"} /></td>
+                              <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
+                              <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
                               <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
                               <td className="px-2 py-1.5"><div className="flex gap-1">
                                 <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
@@ -460,10 +539,10 @@ export default function CostLibrary() {
                             </tr>
                           ) : (
                             <tr key={entry.id} className="border-t border-white/5 hover:bg-white/3 group">
-                              <td className="px-4 py-2.5 text-cream cursor-pointer" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
+                              <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
                               <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
                               <td className="px-3 py-2.5 text-amber-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
-                              <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate max-w-xs">{entry.notes || "—"}</td>
+                              <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
                               <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                 <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-amber-400 p-1"><Pencil className="w-3.5 h-3.5" /></button>
                                 <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
