@@ -9,7 +9,7 @@
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
 import { invokeLLM, type Message } from "./_core/llm";
-import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup.js";
+import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
   getTakeoffItemsByProject,

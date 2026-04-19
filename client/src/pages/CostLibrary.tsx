@@ -171,10 +171,19 @@ export default function CostLibrary() {
     onSuccess: () => { toast.success("Entry added"); setShowAddRow(false); setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" }); refetch(); },
     onError: (err: any) => toast.error(err.message),
   });
-  const loadDefaultsMutation = trpc.takeoff.loadRSMeansDefaults.useMutation({
-    onSuccess: (result) => { toast.success(`Loaded ${result.count} RSMeans 2025 baseline prices`); refetch(); },
+  const loadDefaultsMutation = trpc.takeoff.loadDefaults.useMutation({
+    onSuccess: (result: any) => { toast.success(`Loaded ${result.count} ConstructLine baseline prices`); refetch(); },
     onError: (err: any) => toast.error(err.message),
   });
+
+  // Auto-load ConstructLine defaults on first visit if library is empty
+  const hasAutoLoaded = useRef(false);
+  useEffect(() => {
+    if (!isLoading && entries && entries.length === 0 && !loadDefaultsMutation.isPending && !hasAutoLoaded.current) {
+      hasAutoLoaded.current = true;
+      loadDefaultsMutation.mutate();
+    }
+  }, [isLoading, entries]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -273,11 +282,11 @@ export default function CostLibrary() {
             <Plus className="w-3.5 h-3.5" />Add Row
           </Button>
           <Button variant="outline" size="sm"
-            onClick={() => { if (!confirm("Load RSMeans 2025 baseline prices into your library? This will add/replace all default entries.")) return; loadDefaultsMutation.mutate(); }}
+            onClick={() => { if (!confirm("Load ConstructLine baseline prices into your library? This will add/replace all default entries.")) return; loadDefaultsMutation.mutate(); }}
             disabled={loadDefaultsMutation.isPending}
             className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
             {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Load RSMeans Defaults
+            Load ConstructLine Pricing Defaults
           </Button>
           <input
             ref={fileInputRef}
