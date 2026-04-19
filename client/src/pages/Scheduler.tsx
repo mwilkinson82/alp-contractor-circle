@@ -1878,6 +1878,35 @@ export default function Scheduler() {
         </div>{/* end ribbon row */}
       </div>{/* end toolbar */}
 
+      {/* ── Baseline overlay indicator bar ────────────────────────────────── */}
+      {showBaselineOverlay && baselineOverlayScheduleId && (
+        <div className="h-7 border-b border-white/10 bg-[#1a1c2e] flex items-center px-3 gap-4 text-xs shrink-0">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-2 rounded-sm bg-indigo-400" />
+            <span className="text-gray-400">Baseline:</span>
+            <span className="text-indigo-300 font-medium">
+              {baselineOverlayQuery.data?.scheduleName || 'Loading...'}
+            </span>
+            <button
+              onClick={() => setShowBaselinePickerDialog(true)}
+              className="text-gray-500 hover:text-indigo-400 ml-1 text-xs underline"
+            >
+              Change
+            </button>
+            <button
+              onClick={() => { setShowBaselineOverlay(false); setBaselineOverlayScheduleId(null); }}
+              className="text-gray-500 hover:text-red-400 ml-1"
+            >
+              &times;
+            </button>
+          </div>
+          {baselineOverlayQuery.data && (
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-gray-500">{baselineOverlayQuery.data.activities.length} activities</span>
+            </div>
+          )}
+        </div>
+      )}
       {/* ── Target indicators bar ──────────────────────────────────────────── */}
       {(target1Id || target2Id) && (
         <div className="h-7 border-b border-white/10 bg-[#1a1f2e] flex items-center px-3 gap-4 text-xs shrink-0">
@@ -3526,6 +3555,60 @@ export default function Scheduler() {
         </Dialog>
       )}
 
+      {/* ── Baseline Overlay Picker Dialog ──────────────────────────────── */}
+      <Dialog open={showBaselinePickerDialog} onOpenChange={setShowBaselinePickerDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-lg flex items-center gap-2">
+              <GitCompareArrows className="w-5 h-5 text-indigo-400" />
+              Select Baseline Schedule
+            </DialogTitle>
+            <DialogDescription>
+              Choose a schedule to overlay as the baseline. Baseline bars will appear below each activity bar showing the original planned dates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[320px] overflow-y-auto space-y-1 py-2">
+            {schedulesListQuery.isLoading && (
+              <div className="text-center text-gray-400 text-sm py-8">Loading schedules...</div>
+            )}
+            {schedulesListQuery.data && schedulesListQuery.data.filter((s: any) => s.id !== scheduleId).length === 0 && (
+              <div className="text-center text-gray-400 text-sm py-8">No other schedules available. Save a baseline or create another schedule first.</div>
+            )}
+            {schedulesListQuery.data?.filter((s: any) => s.id !== scheduleId).map((s: any) => (
+              <button
+                key={s.id}
+                onClick={() => {
+                  setBaselineOverlayScheduleId(s.id);
+                  setShowBaselineOverlay(true);
+                  setShowBaselinePickerDialog(false);
+                  toast.success(`Baseline overlay: ${s.name}`);
+                }}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all hover:border-indigo-500/40 hover:bg-indigo-500/10 ${
+                  baselineOverlayScheduleId === s.id
+                    ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
+                    : 'border-white/10 text-gray-300 hover:text-gray-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{s.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {s.projectName ? `${s.projectName} \u00b7 ` : ''}
+                      Updated {new Date(s.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  {baselineOverlayScheduleId === s.id && (
+                    <div className="text-xs text-indigo-400 font-medium">Current</div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setShowBaselinePickerDialog(false)} className="border-white/15">Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
         <DialogContent className="max-w-4xl">

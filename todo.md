@@ -2560,3 +2560,17 @@
 ## AI Takeoff Prompt Fixes (Darian's Issue)
 - [x] Fix wire mesh/WWR cross-sheet contamination — specs must be read from same sheet, not project context
 - [x] Fix expansion joint LF inflation — measured from plan views only, not detail sheet cross-sections
+
+## Desktop Experience Notice
+- [ ] Add "Best on Desktop" note to welcome email (ConstructLine tools designed for desktop/laptop)
+- [ ] Add mobile banner on portal dashboard when viewed on phone — nudge to use desktop for full experience
+
+## AI Takeoff Scale Accuracy (User Feedback — Darian & FRIGC)
+- [ ] Investigate and fix scale misread issue — AI reading 4,600 SF when actual is 462 SF (10x error)
+- [ ] Improve scale detection: cross-reference drawing scale notation with measured dimensions
+- [ ] Add scale validation step in post-processing: flag quantities that seem 10x off from typical ranges
+
+## Gantt Baseline Overlay
+- [x] Baseline overlay picker dialog — select any schedule as baseline
+- [x] Baseline overlay indicator bar — shows which schedule is being compared, with Change/Close buttons
+- [x] Baseline bars render below each activity bar (indigo for non-critical, red for critical)

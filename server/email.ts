@@ -3344,7 +3344,7 @@ export async function sendConstructLineAnnouncementEmail(params: {
 </body>
 </html>
       `.trim(),
-      text: `${firstName} —\n\nAs a founding member of the Contractor Circle, you now have access to the ConstructLine suite of proprietary tools — built specifically for contractors who are serious about running their business at a higher level.\n\n📐 QUANTITY TAKEOFF APPLICATION\nUpload your plans, measure quantities, and generate professional takeoff reports. Built for contractors who want accuracy without the bloated software.\n\n📊 CPM SCHEDULER\nCreate, manage, and analyze Critical Path Method schedules. Build professional construction schedules, track progress, and export presentation-quality PDFs — all from your browser.\n\nAccess ConstructLine now: ${PORTAL_URL}\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nMore tools are coming. You'll be the first to know.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
+      text: `${firstName} —\n\nAs a founding member of the Contractor Circle, you now have access to the ConstructLine suite of proprietary tools — built specifically for contractors who are serious about running their business at a higher level.\n\n📐 QUANTITY TAKEOFF APPLICATION\nUpload your plans, measure quantities, and generate professional takeoff reports. Built for contractors who want accuracy without the bloated software.\n\n📊 CPM SCHEDULER\nCreate, manage, and analyze Critical Path Method schedules. Build professional construction schedules, track progress, and export presentation-quality PDFs — all from your browser.\n\nAccess ConstructLine now: ${PORTAL_URL}\n\nBEST ON DESKTOP: ConstructLine tools are built for desktop or laptop. You can sign up and browse on mobile, but for the full experience with takeoffs and scheduling, hop on a computer.\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nMore tools are coming. You'll be the first to know.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
     });
 
     if (error) {
@@ -3434,6 +3434,11 @@ export async function sendConstructLineWelcomeEmail(params: {
               <a href="${PORTAL_URL}" style="display:inline-block;background:#D95F2B;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Access ConstructLine Now →</a>
             </td></tr>
           </table>
+          <!-- Desktop Notice -->
+          <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;padding:14px 18px;margin:20px 0;text-align:center;">
+            <p style="margin:0;font-size:13px;color:#818CF8;font-weight:600;">Best on Desktop</p>
+            <p style="margin:6px 0 0 0;font-size:12px;color:rgba(245,240,232,0.5);line-height:1.5;">ConstructLine tools are built for desktop or laptop. You can sign up and browse on mobile, but for the full experience with takeoffs and scheduling, hop on a computer.</p>
+          </div>
           <p style="margin:24px 0 0 0;font-size:14px;color:rgba(245,240,232,0.6);line-height:1.7;">These tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.</p>
           <p style="margin:16px 0 0 0;font-size:14px;color:rgba(245,240,232,0.6);line-height:1.7;">Let's build,<br><strong style="color:#F5F0E8;">Marshall Wilkinson</strong><br><span style="color:rgba(245,240,232,0.4);font-size:13px;">Founder &amp; CEO, ALP</span></p>
         </td></tr>
@@ -3446,7 +3451,7 @@ export async function sendConstructLineWelcomeEmail(params: {
   </table>
 </body>
 </html>`,
-      text: `Hi ${firstName},\n\nYou now have access to ConstructLine — Contractor Circle's proprietary construction software, powered by ALP.\n\nProfessional-grade construction tools built by construction professionals.\n\nYOUR LOGIN CREDENTIALS\nEmail: ${params.email}\nPassword: ${params.password}\n\nSave these credentials — you'll need them to sign in.\n\nWHAT'S INCLUDED:\n📐 Quantity Takeoff — AI-powered material estimates from construction drawings\n📊 CPM Scheduler — Critical path scheduling and professional Gantt charts\n\nAccess ConstructLine: ${PORTAL_URL}\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
+      text: `Hi ${firstName},\n\nYou now have access to ConstructLine — Contractor Circle's proprietary construction software, powered by ALP.\n\nProfessional-grade construction tools built by construction professionals.\n\nYOUR LOGIN CREDENTIALS\nEmail: ${params.email}\nPassword: ${params.password}\n\nSave these credentials — you'll need them to sign in.\n\nWHAT'S INCLUDED:\n📐 Quantity Takeoff — AI-powered material estimates from construction drawings\n📊 CPM Scheduler — Critical path scheduling and professional Gantt charts\n\nAccess ConstructLine: ${PORTAL_URL}\n\nBEST ON DESKTOP: ConstructLine tools are built for desktop or laptop. You can sign up and browse on mobile, but for the full experience with takeoffs and scheduling, hop on a computer.\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
     });
     if (error) {
       console.error("[Email] Failed to send ConstructLine welcome email:", error);

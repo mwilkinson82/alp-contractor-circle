@@ -567,6 +567,11 @@ export default function MemberPortalLayout({
             </div>
           )}
           <SubscriptionBanner isSubscribed={isSubscribed} />
+          {/* Mobile Desktop Notice — only visible on small screens */}
+          <div className="md:hidden mb-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-center">
+            <p className="text-xs font-semibold text-indigo-400 mb-1">Best on Desktop</p>
+            <p className="text-xs text-gray-400 leading-relaxed">ConstructLine tools are built for desktop or laptop. For the full experience with takeoffs and scheduling, hop on a computer.</p>
+          </div>
           {isLockedPage && (
             <div className="absolute inset-0 bg-navy-deep/60 backdrop-blur-sm rounded-lg flex items-center justify-center z-40">
               <div className="text-center">
