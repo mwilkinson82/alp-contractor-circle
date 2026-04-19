@@ -296,9 +296,8 @@ export default function GanttAnnotations({
     return () => window.removeEventListener("keydown", handler);
   }, [selectedId, editingTextId, deleteAnnotation]);
 
-  // If not visible AND no annotations, return null
-  // If visible but not editing, show annotations but no toolbar/interaction
-  if (!visible && annotations.length === 0) return null;
+  // If not visible, hide everything — annotations are saved but not rendered
+  if (!visible) return null;
 
   const showToolbar = editing;
   const allowInteraction = editing;

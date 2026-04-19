@@ -1724,100 +1724,126 @@ export default function Scheduler() {
                   <Settings className="w-3.5 h-3.5" /> Settings
                 </Button>
               </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
+            <DropdownMenuContent align="end" className="w-52">
+
+              {/* ── Relationships ── */}
+              <DropdownMenuItem onClick={() => setShowRelationshipDialog(true)}>
                 <svg viewBox="0 0 16 16" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h10M9 5l3 3-3 3" /></svg>
                 Add Relationship
               </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowIdSettingsDialog(true)}>
-              <Settings className="w-4 h-4 mr-2" /> Activity ID Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowBaselineDialog(true)}>
-              <Save className="w-4 h-4 mr-2" /> Save Baseline
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowUpdateDialog(true)}>
-              <Save className="w-4 h-4 mr-2" /> Save Update
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Target className="w-4 h-4 mr-2" /> Target 1
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => setTarget1Id(null)}>
-                  <span className={!target1Id ? "font-semibold text-amber-400" : ""}>None</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {baselines.map((b: any) => (
-                  <DropdownMenuItem key={b.id} onClick={() => setTarget1Id(b.id)}>
-                    <span className={target1Id === b.id ? "font-semibold text-amber-400" : ""}>
-                      {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
-                    </span>
+
+              <DropdownMenuSeparator />
+
+              {/* ── Schedule sub-menu ── */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Settings className="w-4 h-4 mr-2" /> Schedule
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-52">
+                  <DropdownMenuItem onClick={() => {
+                    setSchedSettingsProjectName(schedule?.schedule?.projectName || "");
+                    setSchedSettingsClientName(schedule?.schedule?.clientName || "");
+                    setSchedSettingsContractNumber(schedule?.schedule?.contractNumber || "");
+                    setSchedSettingsCompanyName(schedule?.schedule?.companyNameOverride || "");
+                    setShowScheduleInfo(true);
+                  }}>
+                    <Settings className="w-4 h-4 mr-2" /> Schedule Info
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Target className="w-4 h-4 mr-2" /> Target 2
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => setTarget2Id(null)}>
-                  <span className={!target2Id ? "font-semibold text-amber-400" : ""}>None</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {baselines.map((b: any) => (
-                  <DropdownMenuItem key={b.id} onClick={() => setTarget2Id(b.id)}>
-                    <span className={target2Id === b.id ? "font-semibold text-amber-400" : ""}>
-                      {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
-                    </span>
+                  <DropdownMenuItem onClick={() => setShowIdSettingsDialog(true)}>
+                    <Settings className="w-4 h-4 mr-2" /> Activity ID Settings
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowWbsManager(true)}>
-              <FolderTree className="w-4 h-4 mr-2" /> WBS Manager
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                if (scheduleId) autoAssignWbsMut.mutate({ scheduleId });
-              }}
-              disabled={autoAssignWbsMut.isPending}
-              title="Automatically assigns Submittal and Fabrication activities to matching WBS groups based on their names and CSI codes"
-            >
-              <Target className="w-4 h-4 mr-2 text-cyan-400" /> Auto-Assign Submittal/Fab WBS
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowCodeManager(true)}>
-              <Palette className="w-4 h-4 mr-2" /> Activity Code Manager
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowCalendarDialog(true)}>
-              <Calendar className="w-4 h-4 mr-2" /> Calendars
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowScheduleHealth(true)}>
-              <AlertTriangle className="w-4 h-4 mr-2" /> Schedule Health
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              // Initialize settings from schedule data
-              setSchedSettingsProjectName(schedule?.schedule?.projectName || "");
-              setSchedSettingsClientName(schedule?.schedule?.clientName || "");
-              setSchedSettingsContractNumber(schedule?.schedule?.contractNumber || "");
-              setSchedSettingsCompanyName(schedule?.schedule?.companyNameOverride || "");
-              setShowScheduleInfo(true);
-            }}>
-              <Settings className="w-4 h-4 mr-2" /> Schedule Info
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowGanttSettings(true)}>
-              <Settings className="w-4 h-4 mr-2" /> Gantt Display Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <LayoutGrid className="w-4 h-4 mr-2" /> Layouts
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-56">
+                  <DropdownMenuItem onClick={() => setShowCalendarDialog(true)}>
+                    <Calendar className="w-4 h-4 mr-2" /> Calendars
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowGanttSettings(true)}>
+                    <Settings className="w-4 h-4 mr-2" /> Gantt Display
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowScheduleHealth(true)}>
+                    <AlertTriangle className="w-4 h-4 mr-2" /> Schedule Health
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              {/* ── Baselines sub-menu ── */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Save className="w-4 h-4 mr-2" /> Baselines
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-52">
+                  <DropdownMenuItem onClick={() => setShowBaselineDialog(true)}>
+                    <Save className="w-4 h-4 mr-2" /> Save Baseline
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowUpdateDialog(true)}>
+                    <Save className="w-4 h-4 mr-2" /> Save Update
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Target className="w-4 h-4 mr-2" /> Target 1
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => setTarget1Id(null)}>
+                        <span className={!target1Id ? "font-semibold text-amber-400" : ""}>None</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {baselines.map((b: any) => (
+                        <DropdownMenuItem key={b.id} onClick={() => setTarget1Id(b.id)}>
+                          <span className={target1Id === b.id ? "font-semibold text-amber-400" : ""}>
+                            {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Target className="w-4 h-4 mr-2" /> Target 2
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => setTarget2Id(null)}>
+                        <span className={!target2Id ? "font-semibold text-amber-400" : ""}>None</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {baselines.map((b: any) => (
+                        <DropdownMenuItem key={b.id} onClick={() => setTarget2Id(b.id)}>
+                          <span className={target2Id === b.id ? "font-semibold text-amber-400" : ""}>
+                            {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              {/* ── WBS & Codes sub-menu ── */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FolderTree className="w-4 h-4 mr-2" /> WBS &amp; Codes
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-52">
+                  <DropdownMenuItem onClick={() => setShowWbsManager(true)}>
+                    <FolderTree className="w-4 h-4 mr-2" /> WBS Manager
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => { if (scheduleId) autoAssignWbsMut.mutate({ scheduleId }); }}
+                    disabled={autoAssignWbsMut.isPending}
+                    title="Automatically assigns Submittal and Fabrication activities to matching WBS groups based on their names and CSI codes"
+                  >
+                    <Target className="w-4 h-4 mr-2 text-cyan-400" /> Auto-Assign WBS
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowCodeManager(true)}>
+                    <Palette className="w-4 h-4 mr-2" /> Activity Code Manager
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              {/* ── Layouts sub-menu ── */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <LayoutGrid className="w-4 h-4 mr-2" /> Layouts
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56">
                 {(() => {
                   const activeLayout = activeLayoutId ? layouts.find((l: any) => l.id === activeLayoutId && l.name !== "__autosave__") : null;
                   return activeLayout ? (
@@ -1835,7 +1861,8 @@ export default function Scheduler() {
                       <Save className="w-4 h-4 mr-2" /> Save "{activeLayout.name}"
                     </DropdownMenuItem>
                   ) : null;
-                })()}
+                })()
+                }
                 <DropdownMenuItem onClick={() => { setLayoutName(""); setLayoutIsDefault(false); setShowLayoutDialog(true); }}>
                   <Plus className="w-4 h-4 mr-2" /> Save As New Layout
                 </DropdownMenuItem>
@@ -1853,39 +1880,52 @@ export default function Scheduler() {
                     </button>
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
-              <Download className="w-4 h-4 mr-2" /> Export PDF
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              const defaultName = `${schedule?.schedule?.name || 'Schedule'} - Update ${(baselines?.filter((b: any) => b.snapshotType === 'update').length ?? 0) + 1}`;
-              setDuplicateName(defaultName);
-              const today = new Date().toISOString().split('T')[0];
-              setDuplicateDataDate(dataDate ? dataDate.toISOString().split('T')[0] : today);
-              setShowDuplicateDialog(true);
-            }} disabled={duplicateAsUpdateMut.isPending}>
-              <Copy className="w-4 h-4 mr-2" /> Duplicate as Update
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              const templateName = `${schedule?.schedule?.name || 'Schedule'} - Template`;
-              duplicateMut.mutate({ id: scheduleId!, name: templateName });
-            }} disabled={duplicateMut.isPending}>
-              <Copy className="w-4 h-4 mr-2" /> Duplicate as Template
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowCompareDialog(true)}>
-              <GitCompareArrows className="w-4 h-4 mr-2" /> Compare with Another Schedule
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
-              <MessageSquarePlus className="w-4 h-4 mr-2" /> Send Feedback
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
-              <HelpCircle className="w-4 h-4 mr-2" /> Help / Tour
-            </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSeparator />
+
+              {/* ── Export & Duplicate sub-menu ── */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Download className="w-4 h-4 mr-2" /> Export &amp; Duplicate
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-52">
+                  <DropdownMenuItem onClick={() => { setPdfProjectName(schedule?.schedule?.name || ""); setShowPdfExport(true); }}>
+                    <Download className="w-4 h-4 mr-2" /> Export PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => {
+                    const defaultName = `${schedule?.schedule?.name || 'Schedule'} - Update ${(baselines?.filter((b: any) => b.snapshotType === 'update').length ?? 0) + 1}`;
+                    setDuplicateName(defaultName);
+                    const today = new Date().toISOString().split('T')[0];
+                    setDuplicateDataDate(dataDate ? dataDate.toISOString().split('T')[0] : today);
+                    setShowDuplicateDialog(true);
+                  }} disabled={duplicateAsUpdateMut.isPending}>
+                    <Copy className="w-4 h-4 mr-2" /> Duplicate as Update
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    const templateName = `${schedule?.schedule?.name || 'Schedule'} - Template`;
+                    duplicateMut.mutate({ id: scheduleId!, name: templateName });
+                  }} disabled={duplicateMut.isPending}>
+                    <Copy className="w-4 h-4 mr-2" /> Duplicate as Template
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowCompareDialog(true)}>
+                    <GitCompareArrows className="w-4 h-4 mr-2" /> Compare Schedules
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSeparator />
+
+              {/* ── Help ── */}
+              <DropdownMenuItem onClick={() => setShowCpmFeedback(true)}>
+                <MessageSquarePlus className="w-4 h-4 mr-2" /> Send Feedback
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
+                <HelpCircle className="w-4 h-4 mr-2" /> Help / Tour
+              </DropdownMenuItem>
            </DropdownMenuContent>
           </DropdownMenu>
             </div>

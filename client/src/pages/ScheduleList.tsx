@@ -325,16 +325,8 @@ export default function ScheduleList() {
                 <Card
                   className="bg-gradient-to-br from-emerald-950/40 to-card border-emerald-500/40 hover:border-emerald-400/70 transition-all cursor-pointer group relative overflow-hidden shadow-lg"
                   onClick={() => {
-                    if (creatingShowcase) return;
-                    setCreatingShowcase(true);
-                    createMutation.mutate({
-                      name: "Smith Residence",
-                      description: "Full residential new build showcase — WBS, submittals, fabrication, and construction phases with 70+ activities.",
-                      projectStartDate: new Date("2026-03-30"),
-                      templateId: "residential",
-                    }, {
-                      onSettled: () => setCreatingShowcase(false),
-                    });
+                    // Always open the canonical Smith Residence template (ID 1)
+                    window.open("/scheduler/1", "_blank");
                   }}
                 >
                   {/* Green glow accent line at top */}
@@ -348,7 +340,7 @@ export default function ScheduleList() {
                     <div className="flex items-center gap-2 mb-2">
                       <LayoutGrid className="w-4 h-4 text-emerald-400" />
                       <h3 className="font-heading font-bold text-foreground text-base">
-                        {creatingShowcase ? "Opening..." : "Smith Residence"}
+                        Smith Residence
                       </h3>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -363,9 +355,7 @@ export default function ScheduleList() {
                         <span>Critical path</span>
                       </div>
                       <span className="text-emerald-400 font-semibold group-hover:underline">
-                        {creatingShowcase ? (
-                          <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Opening...</span>
-                        ) : "Open →"}
+                        Open →
                       </span>
                     </div>
                   </CardContent>
