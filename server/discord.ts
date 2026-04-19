@@ -17,6 +17,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendNewMemberSignupNotification } from "./email";
+import { seedSmithResidenceForMember } from "./seedSmithResidence";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 // Production domain — must be registered in Discord Developer Portal
@@ -596,6 +597,11 @@ export function registerDiscordOAuthRoutes(app: Express) {
       res.cookie(MEMBER_COOKIE_NAME, sessionToken, cookieOptions);
       // Clear any lingering ConstructLine beta session so Discord member login takes full priority
       res.clearCookie("beta_session", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: -1 });
+
+      // Auto-seed Smith Residence template for new members (fire-and-forget, idempotent)
+      seedSmithResidenceForMember(member.id).catch((e: any) =>
+        console.warn("[Discord] Smith Residence seed failed:", e?.message)
+      );
 
       // Send new member signup notification to Marshall (fire-and-forget)
       if (member.discordUsername && member.email) {

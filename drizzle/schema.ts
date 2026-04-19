@@ -57,6 +57,8 @@ export const members = mysqlTable("members", {
   companyLogo: varchar("companyLogo", { length: 512 }),
   /** Whether the member has completed the CPM Scheduler onboarding tour */
   cpmOnboardingDone: boolean("cpmOnboardingDone").default(false).notNull(),
+  /** Whether the Smith Residence template schedule has been seeded into this member's account (runs once on first login) */
+  scheduleSeeded: boolean("scheduleSeeded").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

@@ -717,6 +717,16 @@ export default function TakeoffDetail() {
 
   return (
     <div className="min-h-screen bg-navy-deep">
+      {/* Processing Status Banner — shown when AI is enhancing unit costs */}
+      {isConsolidating && (
+        <div className="sticky top-0 z-50 bg-amber-500/95 backdrop-blur text-black px-4 py-2.5 flex items-center justify-center gap-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+            <span className="font-semibold text-sm">AI is enhancing unit costs…</span>
+          </div>
+          <span className="text-sm opacity-80">This may take 30–60 seconds. Costs will update automatically when complete.</span>
+        </div>
+      )}
       {/* Header Bar */}
       <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">

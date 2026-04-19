@@ -112,7 +112,7 @@ async function buildCalendarsForSchedule(scheduleId: number): Promise<{ calendar
 
 // ─── Recalculate CPM and persist results ─────────────────────────────────────
 
-async function recalculateAndPersist(scheduleId: number) {
+export async function recalculateAndPersist(scheduleId: number) {
   const schedule = await sdb.getScheduleById(scheduleId);
   if (!schedule) return;
 

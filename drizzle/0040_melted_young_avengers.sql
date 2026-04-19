@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD `scheduleSeeded` boolean DEFAULT false NOT NULL;

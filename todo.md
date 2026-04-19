@@ -2596,3 +2596,9 @@
 - [x] Fix PDF preview to show annotations (coordinate mapping from screen px to preview canvas)
 - [x] Add Hide Annotations toggle (Eye/EyeOff) to completely hide annotation layer from view
 - [ ] Redesign CPM scheduler toolbar with dropdown menus — eliminate horizontal scroll on smaller screens
+
+## Auto-Seed & Takeoff Banner
+- [ ] Auto-seed Smith Residence personal copy for each new member on first login (deep copy of schedule ID 1 with all WBS, activities, and relationships)
+- [ ] Add takeoff processing status banner while AI consolidation/enhancement is running
+- [ ] Fix annotation duplicating on page 2 in PDF preview — clip annotations to page 1 only
+- [ ] Improve logic line endpoint accuracy in PDF export — arrows should connect precisely to bar endpoints

@@ -535,6 +535,7 @@ export function PdfExportPreview({
     pageRows: typeof previewRows,
     pageNum: number,
     numPages: number,
+    allPages: (typeof previewRows)[] = [],
   ) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -1123,12 +1124,17 @@ export function PdfExportPreview({
         };
         // Screen Y: annotations are positioned relative to the gantt scroll area
         // rowYOffsets[i] gives canvas Y for row i; we map screen Y by finding which row it falls in
+        const SCREEN_ROW_H = 32; // approximate screen row height
+        const SCREEN_HEADER_H = 40; // approximate gantt header height
+        // Calculate the screen Y offset for this page (sum of all rows on previous pages)
+        const pageScreenYOffset = (pageNum - 1 > 0)
+          ? allPages.slice(0, pageNum - 1).reduce((sum, pg) => sum + pg.length * SCREEN_ROW_H, 0)
+          : 0;
+        const pageScreenYEnd = pageScreenYOffset + pageRows.length * SCREEN_ROW_H;
         const screenYToCanvasY = (sy: number): number => {
           // Each row has a known height in screen pixels (BASE_ROW_HEIGHT ~32px)
           // Map proportionally to canvas row heights
-          const SCREEN_ROW_H = 32; // approximate screen row height
-          const SCREEN_HEADER_H = 40; // approximate gantt header height
-          const screenContentY = sy - SCREEN_HEADER_H;
+          const screenContentY = sy - SCREEN_HEADER_H - pageScreenYOffset;
           if (rowYOffsets.length === 0) return contentY + rowH;
           // Find which row this Y falls in
           let accumulated = 0;
@@ -1146,11 +1152,19 @@ export function PdfExportPreview({
         const screenWToCanvasW = (sw: number): number => {
           return (sw / ganttScreenWidth) * ganttW;
         };
+        // Helper: check if an annotation Y coordinate falls on this page
+        const annYOnThisPage = (sy: number): boolean => {
+          const absY = sy - SCREEN_HEADER_H;
+          return absY >= pageScreenYOffset && absY < pageScreenYEnd;
+        };
         ctx.save();
         ctx.beginPath();
         ctx.rect(ganttX, contentY, ganttW, contentH);
         ctx.clip();
         for (const ann of annotations) {
+          // Skip annotations whose primary Y coordinate is not on this page
+          const primaryY = ann.type === 'arrow' ? ann.y1 : ann.y;
+          if (primaryY != null && !annYOnThisPage(primaryY)) continue;
           if (ann.type === "shading" && ann.x != null && ann.y != null && ann.width && ann.height) {
             const cx = screenXToCanvasX(ann.x);
             const cy = screenYToCanvasY(ann.y);
@@ -1306,7 +1320,7 @@ export function PdfExportPreview({
       pages.forEach((pageRows, idx) => {
         const canvas = canvasRefs.current[idx];
         if (canvas) {
-          drawPage(canvas, pageRows, idx + 1, numPages);
+          drawPage(canvas, pageRows, idx + 1, numPages, pages);
         }
       });
     }, 50);
