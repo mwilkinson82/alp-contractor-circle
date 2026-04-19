@@ -594,6 +594,8 @@ export function registerDiscordOAuthRoutes(app: Express) {
       const sessionToken = await createMemberSession(member);
       const cookieOptions = getMemberCookieOptions(req);
       res.cookie(MEMBER_COOKIE_NAME, sessionToken, cookieOptions);
+      // Clear any lingering ConstructLine beta session so Discord member login takes full priority
+      res.clearCookie("beta_session", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: -1 });
 
       // Send new member signup notification to Marshall (fire-and-forget)
       if (member.discordUsername && member.email) {

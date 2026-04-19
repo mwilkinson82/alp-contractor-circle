@@ -26,6 +26,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
+  DropdownMenuLabel, DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -466,6 +467,7 @@ export default function Scheduler() {
   const [showResourcePanel, setShowResourcePanel] = useState(false);
   const [showCostOverlay, setShowCostOverlay] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(false);
+  const [hideAnnotations, setHideAnnotations] = useState(false); // hides annotation layer entirely (saved annotations still persist)
   const [ganttAnnotations, setGanttAnnotations] = useState<Annotation[]>([]);
   const [annotationsLoaded, setAnnotationsLoaded] = useState(false);
   const [ganttScrollOffset, setGanttScrollOffset] = useState({ scrollTop: 0, scrollLeft: 0 });
@@ -1610,9 +1612,15 @@ export default function Scheduler() {
                 </Button>
               </div>
               <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-8 text-xs gap-1 rounded-md ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400 shadow-sm shadow-amber-500/20" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
-                onClick={() => setShowAnnotations(!showAnnotations)} title="Annotation overlay for delay analysis">
+                onClick={() => { setShowAnnotations(!showAnnotations); if (hideAnnotations) setHideAnnotations(false); }} title="Annotation overlay for delay analysis">
                 <Pencil className="w-3.5 h-3.5" /> Annotate
               </Button>
+              {ganttAnnotations.length > 0 && (
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-md ${hideAnnotations ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                  onClick={() => setHideAnnotations(!hideAnnotations)} title={hideAnnotations ? "Show annotations" : "Hide annotations"}>
+                  {hideAnnotations ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </Button>
+              )}
               <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
               <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 rounded-md" onClick={() => setShowColumnPicker(true)} title="Choose visible table columns">
                 <Columns3 className="w-3.5 h-3.5" /> Columns
@@ -2446,8 +2454,8 @@ export default function Scheduler() {
             height={ganttContainerRef.current?.scrollHeight || 1000}
             annotations={ganttAnnotations}
             onAnnotationsChange={handleAnnotationsChange}
-            visible={showAnnotations || ganttAnnotations.length > 0}
-            editing={showAnnotations}
+            visible={!hideAnnotations && (showAnnotations || ganttAnnotations.length > 0)}
+            editing={showAnnotations && !hideAnnotations}
             scrollOffset={ganttScrollOffset}
           />
           </div>
@@ -4640,6 +4648,10 @@ export default function Scheduler() {
         groupBy={groupBy}
         relationships={relationships as any}
         savedPdfConfig={savedPdfConfig}
+        annotations={ganttAnnotations as any}
+        ganttScreenWidth={ganttDimensions.totalWidth}
+        ganttPixelsPerDay={ganttDimensions.pixelsPerDay}
+        ganttRangeStartMs={ganttDimensions.rangeStartMs}
         onConfigChange={(config) => {
           setSavedPdfConfig(config);
           // Also persist to layout autosave

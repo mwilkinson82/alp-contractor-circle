@@ -2578,3 +2578,12 @@
 ## Scheduler Bugs (Apr 18)
 - [x] Fix React error #185 crash in CPM Scheduler (stabilized array refs with useMemo, added prevDimsRef guard)
 - [x] Fix toolbar ribbon buttons cut off / not fitting on screen (removed flex-1 spacer, added shrink-0 to all groups)
+- [ ] Redesign CPM Scheduler toolbar with dropdown menus — no horizontal scroll needed
+- [ ] Improve AI takeoff scale validation — cross-validate scale vs actual measurements, flag mismatches
+- [ ] Fix locked sidebar items — show upsell modal instead of redirecting to home page
+- [ ] Remove duplicate announcement bar in ConstructLine view for free-access users
+- [ ] Add Smith Residence as default template schedule for all users with green TEMPLATE badge
+- [x] Annotation toggle: toolbar only — annotations always visible on Gantt, toggle controls editing toolbar visibility only
+- [x] Fix beta/ConstructLine cookie not clearing on logout — prevents signing back in as Discord admin
+- [x] Fix PDF preview to show annotations (final PDF export works, but preview does not)
+- [x] Add "Hide Annotations" toggle button next to Annotate button — hides annotation layer entirely from view (annotations still saved), separate from the editing toolbar toggle

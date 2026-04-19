@@ -94,6 +94,23 @@ interface PdfExportPreviewProps {
   savedPdfConfig?: SavedPdfConfig | null;
   /** Called after export with the current config so it can be persisted */
   onConfigChange?: (config: SavedPdfConfig) => void;
+  /** Annotations to overlay on the preview (same data passed to generateSchedulePdf) */
+  annotations?: Array<{
+    id: string;
+    type: "text" | "arrow" | "shading";
+    x?: number; y?: number; text?: string; fontSize?: number; color?: string; bgColor?: string;
+    bold?: boolean; italic?: boolean; underline?: boolean; width?: number; height?: number;
+    x1?: number; y1?: number; x2?: number; y2?: number; strokeWidth?: number; label?: string;
+    lineStyle?: "solid" | "dashed" | "dotted";
+    startEndpoint?: "arrow" | "circle" | "diamond" | "none";
+    endEndpoint?: "arrow" | "circle" | "diamond" | "none";
+    opacity?: number; pattern?: "solid" | "hatching" | "crosshatch" | "dots";
+  }>;
+  /** Screen-space Gantt dimensions for annotation coordinate mapping */
+  ganttScreenWidth?: number;
+  ganttScreenHeight?: number;
+  ganttPixelsPerDay?: number;
+  ganttRangeStartMs?: number;
 }
 
 export interface SavedPdfConfig {
@@ -185,6 +202,10 @@ export function PdfExportPreview({
   appColumnWidths,
   savedPdfConfig,
   onConfigChange,
+  annotations = [],
+  ganttScreenWidth = 2000,
+  ganttPixelsPerDay = 4,
+  ganttRangeStartMs,
 }: PdfExportPreviewProps) {
   const [headerColumnCount, setHeaderColumnCount] = useState<3 | 5>(3);
   const [footerColumnCount, setFooterColumnCount] = useState<3 | 5>(3);
@@ -1089,6 +1110,106 @@ export function PdfExportPreview({
         }
       }
 
+      // ── Annotations overlay ──
+      if (annotations && annotations.length > 0 && ganttPixelsPerDay > 0) {
+        // Convert screen-pixel X to canvas X using date-based mapping
+        // Screen X = (dateMs - ganttRangeStartMs) / msPerDay * ganttPixelsPerDay
+        // Canvas X = ganttX + 4 + ((dateMs - minDate) / dateRange) * (ganttW - 8)
+        const effectiveRangeStartMs = ganttRangeStartMs ?? minDate;
+        const msPerDay = 86400000;
+        const screenXToCanvasX = (sx: number): number => {
+          const dateMs = effectiveRangeStartMs + (sx / ganttPixelsPerDay) * msPerDay;
+          return ganttX + 4 + ((dateMs - minDate) / dateRange) * (ganttW - 8);
+        };
+        // Screen Y: annotations are positioned relative to the gantt scroll area
+        // rowYOffsets[i] gives canvas Y for row i; we map screen Y by finding which row it falls in
+        const screenYToCanvasY = (sy: number): number => {
+          // Each row has a known height in screen pixels (BASE_ROW_HEIGHT ~32px)
+          // Map proportionally to canvas row heights
+          const SCREEN_ROW_H = 32; // approximate screen row height
+          const SCREEN_HEADER_H = 40; // approximate gantt header height
+          const screenContentY = sy - SCREEN_HEADER_H;
+          if (rowYOffsets.length === 0) return contentY + rowH;
+          // Find which row this Y falls in
+          let accumulated = 0;
+          for (let ri = 0; ri < pageRows.length; ri++) {
+            const screenRH = SCREEN_ROW_H;
+            if (screenContentY <= accumulated + screenRH) {
+              const fraction = Math.max(0, screenContentY - accumulated) / screenRH;
+              const rh = getRowHeightPdf(pageRows[ri], ppi);
+              return rowYOffsets[ri] + fraction * rh;
+            }
+            accumulated += screenRH;
+          }
+          return rowYOffsets[rowYOffsets.length - 1] + getRowHeightPdf(pageRows[pageRows.length - 1], ppi);
+        };
+        const screenWToCanvasW = (sw: number): number => {
+          return (sw / ganttScreenWidth) * ganttW;
+        };
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(ganttX, contentY, ganttW, contentH);
+        ctx.clip();
+        for (const ann of annotations) {
+          if (ann.type === "shading" && ann.x != null && ann.y != null && ann.width && ann.height) {
+            const cx = screenXToCanvasX(ann.x);
+            const cy = screenYToCanvasY(ann.y);
+            const cw = screenWToCanvasW(ann.width);
+            const ch = (ann.height / 32) * (rowYOffsets.length > 0 ? getRowHeightPdf(pageRows[0], ppi) : 20);
+            const rgb = (hex: string) => { const h = hex.replace('#',''); return [parseInt(h.slice(0,2),16)||0, parseInt(h.slice(2,4),16)||0, parseInt(h.slice(4,6),16)||0]; };
+            const [r,g,b] = rgb(ann.color || "#3b82f6");
+            ctx.globalAlpha = ann.opacity ?? 0.15;
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(cx, cy, cw, ch);
+            ctx.globalAlpha = 1;
+          } else if (ann.type === "text" && ann.x != null && ann.y != null && ann.text) {
+            const cx = screenXToCanvasX(ann.x);
+            const cy = screenYToCanvasY(ann.y);
+            const cw = ann.width ? screenWToCanvasW(ann.width) : 120;
+            const fs = Math.max(5, (ann.fontSize || 12) * (ppi / 96));
+            const weight = ann.bold ? "bold" : "normal";
+            const style = ann.italic ? "italic" : "normal";
+            if (ann.bgColor && ann.bgColor !== "transparent") {
+              ctx.fillStyle = ann.bgColor;
+              ctx.fillRect(cx, cy, cw, fs * 1.6);
+            }
+            ctx.font = `${style} ${weight} ${fs}px 'DM Sans', sans-serif`;
+            ctx.fillStyle = ann.color || "#1e293b";
+            ctx.textBaseline = "top";
+            ctx.textAlign = "left";
+            ctx.fillText(ann.text, cx + 2, cy + 2, cw - 4);
+          } else if (ann.type === "arrow" && ann.x1 != null && ann.y1 != null && ann.x2 != null && ann.y2 != null) {
+            const cx1 = screenXToCanvasX(ann.x1);
+            const cy1 = screenYToCanvasY(ann.y1);
+            const cx2 = screenXToCanvasX(ann.x2);
+            const cy2 = screenYToCanvasY(ann.y2);
+            ctx.strokeStyle = ann.color || "#ef4444";
+            ctx.lineWidth = Math.max(0.5, (ann.strokeWidth || 2) * (ppi / 96));
+            if (ann.lineStyle === "dashed") ctx.setLineDash([4, 3]);
+            else if (ann.lineStyle === "dotted") ctx.setLineDash([1, 3]);
+            else ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx2, cy2);
+            ctx.stroke();
+            // Arrowhead at end
+            if (!ann.endEndpoint || ann.endEndpoint === "arrow") {
+              const angle = Math.atan2(cy2 - cy1, cx2 - cx1);
+              const as = 4;
+              ctx.fillStyle = ann.color || "#ef4444";
+              ctx.beginPath();
+              ctx.moveTo(cx2, cy2);
+              ctx.lineTo(cx2 - as * Math.cos(angle - Math.PI / 6), cy2 - as * Math.sin(angle - Math.PI / 6));
+              ctx.lineTo(cx2 - as * Math.cos(angle + Math.PI / 6), cy2 - as * Math.sin(angle + Math.PI / 6));
+              ctx.closePath();
+              ctx.fill();
+            }
+            ctx.setLineDash([]);
+          }
+        }
+        ctx.restore();
+      }
+
       // ── END CLIP: Restore canvas state after Gantt drawing ──
       ctx.restore();
     }
@@ -1170,6 +1291,7 @@ export function PdfExportPreview({
     showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
     getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
     getRowHeightPdf, gridlineInterval, timescaleLabels, headerHeightMm, footerHeightMm,
+    annotations, ganttPixelsPerDay, ganttScreenWidth, ganttRangeStartMs,
   ]);
 
   // Render all pages

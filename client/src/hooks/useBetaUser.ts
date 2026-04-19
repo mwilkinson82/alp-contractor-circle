@@ -24,12 +24,17 @@ export function useBetaUser() {
         const res = await fetch("/api/beta/me");
         if (res.ok) {
           const data = await res.json();
-          // Normalize: server returns isConstructLineUser, ensure isBeta stays for compat
-          setBetaUser({
-            ...data,
-            isBeta: true,
-            isConstructLineUser: true,
-          });
+          // Guard: server returns null (200 with JSON null) when no valid session.
+          // Spreading null gives a truthy object { isBeta: true } — must check data.id.
+          if (data && data.id) {
+            setBetaUser({
+              ...data,
+              isBeta: true,
+              isConstructLineUser: true,
+            });
+          } else {
+            setBetaUser(null);
+          }
         } else {
           setBetaUser(null);
         }
@@ -48,6 +53,8 @@ export function useBetaUser() {
     try {
       await fetch("/api/beta/logout", { method: "POST" });
       setBetaUser(null);
+      // Hard redirect so the Discord login page doesn't see a stale beta session
+      window.location.href = "/constructline";
     } catch (err) {
       console.error("[useBetaUser] Logout error:", err);
     }

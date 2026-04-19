@@ -45,8 +45,13 @@ import {
   Lock,
 } from "lucide-react";
 import { ConstructLineWordmark, ConstructLineInline } from "@/components/ConstructLineBrand";
-import { useState } from "react";
-import { SubscriptionBanner } from "@/components/portal/SubscriptionGate";
+import { useState, useCallback } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+// SubscriptionBanner removed — using inline amber bar + upsell modal instead
 import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
@@ -234,6 +239,12 @@ export default function MemberPortalLayout({
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const checkoutMut = trpc.stripe.createCircleCheckout.useMutation({
+    onSuccess: (data) => {
+      if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+    },
+  });
 
   if (loading || betaLoading) return <MemberPortalSkeleton />;
   if (!isAuthenticated && !betaUser) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
@@ -310,7 +321,7 @@ export default function MemberPortalLayout({
                   data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   onClick={() => {
                     if (isLocked) {
-                      window.location.href = "/";
+                      setShowUpsellModal(true);
                     } else {
                       setLocation(item.path);
                     }
@@ -355,7 +366,7 @@ export default function MemberPortalLayout({
                   key={item.path}
                   onClick={() => {
                     if (isLocked) {
-                      window.location.href = "/";
+                      setShowUpsellModal(true);
                     } else {
                       setLocation(item.path);
                     }
@@ -455,7 +466,7 @@ export default function MemberPortalLayout({
                     key={item.path}
                     onClick={() => {
                       if (isLocked) {
-                        window.location.href = "/";
+                        setShowUpsellModal(true);
                         setMobileMenuOpen(false);
                       } else {
                         setLocation(item.path);
@@ -514,7 +525,7 @@ export default function MemberPortalLayout({
                         key={item.path}
                         onClick={() => {
                           if (isLocked) {
-                            window.location.href = "/";
+                            setShowUpsellModal(true);
                             setMobileMenuOpen(false);
                           } else {
                             setLocation(item.path);
@@ -558,15 +569,15 @@ export default function MemberPortalLayout({
               <p className="text-sm text-amber-400 font-medium">
                 You have access to ConstructLine tools. Unlock the full Contractor Circle for live coaching, templates, replays, and more.
               </p>
-              <a
-                href="/"
+              <button
+                onClick={() => setShowUpsellModal(true)}
                 className="shrink-0 text-xs font-semibold text-amber-400 border border-amber-400/40 rounded-lg px-3 py-1.5 hover:bg-amber-400/10 transition-all"
               >
                 Upgrade
-              </a>
+              </button>
             </div>
           )}
-          <SubscriptionBanner isSubscribed={isSubscribed} />
+
           {/* Mobile Desktop Notice — only visible on small screens */}
           <div className="md:hidden mb-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-center">
             <p className="text-xs font-semibold text-indigo-400 mb-1">Best on Desktop</p>
@@ -592,6 +603,45 @@ export default function MemberPortalLayout({
           {!isLockedPage && children}
         </main>
       </div>
+
+      {/* Upsell Modal for locked items */}
+      <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
+        <DialogContent className="bg-navy-deep border-white/10 text-cream max-w-md">
+          <DialogHeader>
+            <div className="w-14 h-14 rounded-full bg-ember/15 flex items-center justify-center mx-auto mb-2">
+              <Crown className="w-7 h-7 text-ember" />
+            </div>
+            <DialogTitle className="text-center text-xl font-heading text-cream">
+              Contractor Circle Members Only
+            </DialogTitle>
+            <DialogDescription className="text-center text-cream-muted leading-relaxed">
+              This area is exclusive to Contractor Circle members. Get live coaching, templates, replay library, and the full ConstructLine suite.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center text-sm text-cream-muted/70 py-2">
+            Want to join the Contractor Circle?
+          </div>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full bg-ember hover:bg-ember/90 text-white font-semibold py-3"
+              onClick={() => {
+                checkoutMut.mutate();
+                setShowUpsellModal(false);
+              }}
+              disabled={checkoutMut.isPending}
+            >
+              {checkoutMut.isPending ? "Redirecting..." : "Yes — Join Contractor Circle"}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-cream-muted hover:text-cream"
+              onClick={() => setShowUpsellModal(false)}
+            >
+              Not right now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* What's New Changelog Modal */}
       <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />

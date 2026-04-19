@@ -48,6 +48,7 @@ export default function ScheduleList() {
   const isAllowed = isAuthenticated || !!betaUser;
   const [, setLocation] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
+  const [creatingShowcase, setCreatingShowcase] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newStartDate, setNewStartDate] = useState(
@@ -314,6 +315,55 @@ export default function ScheduleList() {
           </div>
         ) : (
           <>
+            {/* Smith Residence Showcase Template */}
+            {!activeSchedules.some((s: any) => s.templateId === "residential" && s.name.includes("Smith Residence")) && (
+              <div className="mb-8">
+                <h2 className="text-lg font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
+                  Showcase Template
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card
+                    className="bg-card border-emerald-500/30 hover:border-emerald-400/50 transition-all cursor-pointer group relative overflow-hidden"
+                    onClick={() => {
+                      if (creatingShowcase) return;
+                      setCreatingShowcase(true);
+                      createMutation.mutate({
+                        name: "Smith Residence",
+                        description: "Full residential new build showcase — WBS, submittals, fabrication, and construction phases with 70+ activities.",
+                        projectStartDate: new Date("2026-03-30"),
+                        templateId: "residential",
+                      }, {
+                        onSettled: () => setCreatingShowcase(false),
+                      });
+                    }}
+                  >
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Template
+                      </span>
+                    </div>
+                    <CardContent className="p-5">
+                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                        {creatingShowcase ? "Creating..." : "Smith Residence"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Full residential new build — WBS, submittals, fabrication, and construction phases.
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                          70+ activities
+                        </span>
+                        <span className="flex items-center gap-1 text-emerald-400">
+                          Click to explore
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
             {/* Active Schedules */}
             {activeSchedules.length > 0 && (
               <div className="mb-10">
