@@ -289,7 +289,7 @@ export default function CostLibrary() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/portal")}
+              onClick={() => setLocation("/portal/constructline")}
               className="text-cream-muted hover:text-cream"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />

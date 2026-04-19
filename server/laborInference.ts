@@ -1,9 +1,10 @@
 /**
  * laborInference.ts — AI-powered auto-matching of takeoff items to crews + productivity.
  *
- * Two entry points:
- *   inferLaborForItemsPreview  — runs LLM, returns assignments WITHOUT saving (for review panel)
- *   inferLaborForItems         — legacy: runs LLM AND saves to DB immediately
+ * Three entry points:
+ *   inferLaborByTasks            — NEW: clusters items into installation tasks, assigns one crew per task
+ *   inferLaborForItemsPreview    — legacy item-level: runs LLM, returns assignments WITHOUT saving (for review panel)
+ *   inferLaborForItems           — legacy: runs LLM AND saves to DB immediately
  */
 import { invokeLLM } from "./_core/llm";
 import { getDb as _getDb } from "./db";
@@ -32,6 +33,201 @@ export interface LaborAssignment {
   crewName: string;
   productivityPerCrewHr: number;
   reasoning: string;
+}
+
+// ─── Task-based grouping types ────────────────────────────────────────────────
+
+export interface TaskGroup {
+  taskName: string;
+  taskDescription: string;
+  crewId: number | null;
+  crewName: string;
+  items: Array<{
+    description: string;
+    unit: string;
+    csiDivision: string;
+    productivityPerCrewHr: number;
+  }>;
+  reasoning: string;
+}
+
+// ─── Task-based inference (new) ───────────────────────────────────────────────
+
+/**
+ * Cluster takeoff items into named installation tasks, then assign one crew per task.
+ * Returns task groups that the review panel can display with inline crew editing.
+ */
+export async function inferLaborByTasks(
+  items: TakeoffItem[],
+  crews: CrewDef[],
+): Promise<TaskGroup[]> {
+  if (items.length === 0 || crews.length === 0) return [];
+
+  const crewSummaries = crews.map(c => {
+    const members = JSON.parse(c.crewMembers || "[]");
+    const memberDesc = members.map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`).join(", ");
+    const primaryTrade = members.length > 0 ? members[0].tradeName : c.crewName;
+    return {
+      id: c.id,
+      name: c.crewName,
+      trade: primaryTrade,
+      laborType: c.laborType,
+      composition: memberDesc || c.crewName,
+    };
+  });
+
+  const prompt = `You are an expert construction estimator. Your job is to organize takeoff line items into logical installation tasks, then assign the most appropriate crew to each task.
+
+AVAILABLE CREWS:
+${JSON.stringify(crewSummaries, null, 2)}
+
+TAKEOFF ITEMS:
+${JSON.stringify(items.map((item, idx) => ({
+  index: idx,
+  description: item.description,
+  unit: item.unit,
+  quantity: item.quantity,
+  csiDivision: item.csiDivision,
+})), null, 2)}
+
+INSTRUCTIONS:
+1. Group related line items into logical installation tasks (e.g., "Concrete Slab on Grade", "Exterior Framing", "Drywall Installation").
+2. Each task should represent a distinct scope of work that one crew would perform.
+3. Assign the most appropriate crew to each task based on trade and CSI division.
+4. For each item within a task, estimate the productivity rate (units of output per crew-hour).
+5. Use RS Means-style productivity rates as your baseline.
+6. Items that cannot be logically grouped should each form their own single-item task.
+7. Every item must appear in exactly one task.
+
+Return a JSON object with a "tasks" array.`;
+
+  try {
+    const response = await invokeLLM({
+      messages: [
+        { role: "system", content: "You are a construction estimating expert. Return only valid JSON." },
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "task_groups",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              tasks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    taskName: { type: "string", description: "Short name for this installation task" },
+                    taskDescription: { type: "string", description: "One-sentence description of the scope" },
+                    crewId: { type: ["integer", "null"], description: "ID of the assigned crew, or null if no match" },
+                    crewName: { type: "string", description: "Name of the assigned crew" },
+                    reasoning: { type: "string", description: "Why this crew was selected for this task" },
+                    items: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          index: { type: "integer", description: "Index of the takeoff item from the input list" },
+                          productivityPerCrewHr: { type: "number", description: "Units of output per crew-hour for this specific item" },
+                        },
+                        required: ["index", "productivityPerCrewHr"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["taskName", "taskDescription", "crewId", "crewName", "reasoning", "items"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["tasks"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+
+    const content = response.choices?.[0]?.message?.content as string | undefined;
+    if (!content) return fallbackToItemLevel(items, crews);
+
+    const parsed = JSON.parse(content);
+    const rawTasks = parsed.tasks || [];
+
+    const taskGroups: TaskGroup[] = [];
+
+    for (const task of rawTasks) {
+      const validCrewId = task.crewId && crews.some(c => c.id === task.crewId) ? task.crewId : null;
+      const crewName = validCrewId ? task.crewName : "unassigned";
+
+      const taskItems = (task.items || [])
+        .map((ti: any) => {
+          const item = items[ti.index];
+          if (!item) return null;
+          return {
+            description: item.description,
+            unit: item.unit,
+            csiDivision: item.csiDivision,
+            productivityPerCrewHr: Math.max(0.1, ti.productivityPerCrewHr || 1),
+          };
+        })
+        .filter(Boolean);
+
+      if (taskItems.length === 0) continue;
+
+      taskGroups.push({
+        taskName: task.taskName || "Unnamed Task",
+        taskDescription: task.taskDescription || "",
+        crewId: validCrewId,
+        crewName,
+        items: taskItems,
+        reasoning: task.reasoning || "",
+      });
+    }
+
+    // Safety: ensure all items are covered
+    const coveredDescs = new Set(taskGroups.flatMap(t => t.items.map(i => i.description)));
+    const uncovered = items.filter(item => !coveredDescs.has(item.description));
+    if (uncovered.length > 0) {
+      taskGroups.push({
+        taskName: "Unassigned Items",
+        taskDescription: "Items not matched to an installation task",
+        crewId: null,
+        crewName: "unassigned",
+        items: uncovered.map(item => ({
+          description: item.description,
+          unit: item.unit,
+          csiDivision: item.csiDivision,
+          productivityPerCrewHr: 1,
+        })),
+        reasoning: "These items could not be grouped automatically",
+      });
+    }
+
+    return taskGroups;
+  } catch (err) {
+    console.error("[LaborInference] Task grouping error:", err);
+    return fallbackToItemLevel(items, crews);
+  }
+}
+
+/** Fallback: create one task per item if task grouping fails */
+function fallbackToItemLevel(items: TakeoffItem[], _crews: CrewDef[]): TaskGroup[] {
+  return items.map(item => ({
+    taskName: item.description.slice(0, 60),
+    taskDescription: "",
+    crewId: null,
+    crewName: "unassigned",
+    items: [{
+      description: item.description,
+      unit: item.unit,
+      csiDivision: item.csiDivision,
+      productivityPerCrewHr: 1,
+    }],
+    reasoning: "Task grouping failed — please assign a crew manually",
+  }));
 }
 
 // ─── Core LLM inference (no DB writes) ───────────────────────────────────────

@@ -219,7 +219,7 @@ export default function LaborLibrary() {
       <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/portal")} className="text-cream-muted hover:text-cream">
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/portal/constructline")} className="text-cream-muted hover:text-cream">
               <ArrowLeft className="w-4 h-4 mr-1" />Back
             </Button>
             <div className="w-px h-6 bg-white/10" />

@@ -31,6 +31,7 @@ import LaborLibrary from "./pages/LaborLibrary";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { OnboardingTour } from "./components/OnboardingTour";
 import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
+import { ConstructLineHubTour } from "./components/ConstructLineHubTour";
 import AdminFeedback from "./pages/AdminFeedback";
 import BetaSignup from "./pages/BetaSignup";
 import BetaLogin from "./pages/BetaLogin";
@@ -165,6 +166,7 @@ function App() {
           <FeedbackWidget />
           <OnboardingTour />
           <TakeoffOnboardingTour />
+          <ConstructLineHubTour />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

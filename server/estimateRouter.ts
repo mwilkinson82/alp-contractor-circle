@@ -4,7 +4,7 @@
 import { router, publicProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getEstimateMarkup, upsertEstimateMarkup } from "./estimateDb";
-import { inferLaborForItemsPreview } from "./laborInference";
+import { inferLaborForItemsPreview, inferLaborByTasks, type TaskGroup } from "./laborInference";
 import { getDb as _getDb } from "./db";
 import { crewDefinitions, activityProductivity } from "../drizzle/schema";
 import { eq, inArray, and } from "drizzle-orm";
@@ -120,6 +120,101 @@ export const estimateRouter = router({
         success: true,
         message: `AI analyzed ${assignments.length} items`,
         assignments,
+      };
+    }),
+
+  /**
+   * inferLaborByTasks — clusters items into installation tasks, assigns one crew per task.
+   * Returns task groups for the review panel with inline crew editing.
+   */
+  inferLaborByTasks: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      items: z.array(z.object({
+        description: z.string(),
+        unit: z.string(),
+        quantity: z.number(),
+        csiDivision: z.string(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const db = await _getDb();
+      if (!db) throw new Error("Database not available");
+      const crews = await db.select().from(crewDefinitions).where(eq(crewDefinitions.memberId, member.id));
+      if (crews.length === 0) {
+        return {
+          success: false,
+          message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
+          tasks: [] as TaskGroup[],
+        };
+      }
+      const tasks = await inferLaborByTasks(input.items, crews);
+      return {
+        success: true,
+        message: `ConstructLine grouped ${input.items.length} items into ${tasks.length} installation tasks`,
+        tasks,
+      };
+    }),
+
+  /**
+   * confirmTaskAssignments — saves user-approved task-based assignments to activity_productivity.
+   */
+  confirmTaskAssignments: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      tasks: z.array(z.object({
+        crewId: z.number().nullable(),
+        items: z.array(z.object({
+          description: z.string(),
+          unit: z.string(),
+          csiDivision: z.string(),
+          productivityPerCrewHr: z.number(),
+        })),
+        reasoning: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx);
+      const db = await _getDb();
+      if (!db) throw new Error("Database not available");
+
+      // Flatten tasks into individual assignments (only tasks with a crew)
+      const assignments = input.tasks
+        .filter(t => t.crewId !== null)
+        .flatMap(t => t.items.map(item => ({
+          memberId: member.id,
+          csiDivision: item.csiDivision,
+          description: item.description,
+          unit: item.unit,
+          crewId: t.crewId as number,
+          productivityPerCrewHr: String(item.productivityPerCrewHr),
+          source: "ai_inferred" as const,
+          notes: t.reasoning || null,
+        })));
+
+      // Delete existing AI-inferred entries for these descriptions
+      const descs = assignments.map(a => a.description);
+      if (descs.length > 0) {
+        for (let i = 0; i < descs.length; i += 50) {
+          const batch = descs.slice(i, i + 50);
+          await db.delete(activityProductivity).where(
+            and(
+              eq(activityProductivity.memberId, member.id),
+              eq(activityProductivity.source, "ai_inferred"),
+              inArray(activityProductivity.description, batch)
+            )
+          );
+        }
+      }
+
+      for (let i = 0; i < assignments.length; i += 50) {
+        await db.insert(activityProductivity).values(assignments.slice(i, i + 50));
+      }
+
+      return {
+        success: true,
+        message: `Saved ${assignments.length} labor assignments from ${input.tasks.filter(t => t.crewId !== null).length} tasks`,
       };
     }),
 

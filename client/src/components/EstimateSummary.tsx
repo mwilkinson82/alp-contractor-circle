@@ -13,7 +13,7 @@ import * as XLSX from "xlsx";
 import {
   Calculator, Save, Download, ChevronDown, ChevronRight,
   DollarSign, HardHat, Percent, TrendingUp, FileSpreadsheet,
-  Users, Info, Sparkles, Loader2,
+  Users, Info, Sparkles, Loader2, Layers, X,
 } from "lucide-react";
 import {
   TRADES, getBaseWage,
@@ -67,9 +67,14 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     onError: (err: any) => toast.error(err.message),
   });
 
-  // ─── Labor Inference Review Panel ──────────────────────────────────
+  // ─── Labor Inference Review Panel (item-level legacy) ──────────────
   const [reviewAssignments, setReviewAssignments] = useState<any[] | null>(null);
   const [showReviewPanel, setShowReviewPanel] = useState(false);
+
+  // ─── Task-based Review Panel (new) ──────────────────────────────────
+  const [taskGroups, setTaskGroups] = useState<any[] | null>(null);
+  const [showTaskPanel, setShowTaskPanel] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
 
   const confirmLaborMutation = trpc.estimate.confirmLaborAssignments.useMutation({
     onSuccess: (result) => {
@@ -81,10 +86,19 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     onError: (err: any) => toast.error("Failed to save assignments: " + err.message),
   });
 
+  const confirmTasksMutation = trpc.estimate.confirmTaskAssignments.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.message);
+      utils.tradeRates.getActivityProductivity.invalidate();
+      setShowTaskPanel(false);
+      setTaskGroups(null);
+    },
+    onError: (err: any) => toast.error("Failed to save task assignments: " + err.message),
+  });
+
   const inferLaborMutation = trpc.estimate.inferLabor.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        // Show review panel instead of auto-saving
         setReviewAssignments(result.assignments);
         setShowReviewPanel(true);
         toast.success(`ConstructLine analyzed ${result.assignments.length} items — review assignments below before confirming.`);
@@ -95,12 +109,27 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     onError: (err: any) => toast.error("ConstructLine labor analysis failed: " + err.message),
   });
 
+  const inferByTasksMutation = trpc.estimate.inferLaborByTasks.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        setTaskGroups(result.tasks);
+        setShowTaskPanel(true);
+        setExpandedTasks(new Set(result.tasks.map((_: any, i: number) => i)));
+        toast.success(`ConstructLine grouped items into ${result.tasks.length} installation tasks — review and edit crews before confirming.`);
+      } else {
+        toast.error(result.message);
+      }
+    },
+    onError: (err: any) => toast.error("ConstructLine task analysis failed: " + err.message),
+  });
+
   const handleCalculateLabor = () => {
     if (!crewsData || crewsData.length === 0) {
       toast.error("No crews defined yet. Go to Trade Rate Library → Crew Builder to set up your crews first.");
       return;
     }
-    inferLaborMutation.mutate({
+    // Use task-based grouping as the primary method
+    inferByTasksMutation.mutate({
       projectId,
       items: items.map(i => ({
         description: i.description || "",
@@ -126,6 +155,51 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           notes: a.reasoning,
         })),
     });
+  };
+
+  const handleConfirmTasks = () => {
+    if (!taskGroups) return;
+    confirmTasksMutation.mutate({
+      projectId,
+      tasks: taskGroups
+        .filter((t: any) => !t._excluded)
+        .map((t: any) => ({
+          crewId: t.crewId,
+          items: t.items,
+          reasoning: t.reasoning,
+        })),
+    });
+  };
+
+  const updateTaskCrew = (taskIdx: number, crewId: number | null) => {
+    if (!crewsData) return;
+    const crew = crewId ? crewsData.find((c: any) => c.id === crewId) : null;
+    setTaskGroups(prev =>
+      prev ? prev.map((t: any, i: number) =>
+        i === taskIdx ? { ...t, crewId, crewName: crew?.crewName || "unassigned" } : t
+      ) : prev
+    );
+  };
+
+  const toggleTaskExpand = (idx: number) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
+
+  const updateItemProductivity = (taskIdx: number, itemIdx: number, val: number) => {
+    setTaskGroups(prev =>
+      prev ? prev.map((t: any, ti: number) =>
+        ti === taskIdx ? {
+          ...t,
+          items: t.items.map((item: any, ii: number) =>
+            ii === itemIdx ? { ...item, productivityPerCrewHr: val } : item
+          ),
+        } : t
+      ) : prev
+    );
   };
 
   // ─── Markup state ────────────────────────────────────────────────────
@@ -375,13 +449,13 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Button
             variant="outline" size="sm"
             onClick={handleCalculateLabor}
-            disabled={inferLaborMutation.isPending}
+            disabled={inferByTasksMutation.isPending}
             className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5 shrink-0"
           >
-            {inferLaborMutation.isPending ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing...</>
+            {inferByTasksMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping tasks...</>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5" />Re-calculate Labor</>
+              <><Layers className="w-3.5 h-3.5" />Re-calculate Labor</>
             )}
           </Button>
         </div>
@@ -397,13 +471,13 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Button
             size="sm"
             onClick={handleCalculateLabor}
-            disabled={inferLaborMutation.isPending}
+            disabled={inferByTasksMutation.isPending}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white gap-1.5 shrink-0"
           >
-            {inferLaborMutation.isPending ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing{items.length > 20 ? ` ${items.length} items` : ''}...</>
+            {inferByTasksMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping{items.length > 20 ? ` ${items.length} items` : ''} into tasks...</>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5" />ConstructLine Labor Analysis</>
+              <><Layers className="w-3.5 h-3.5" />ConstructLine Labor Analysis</>
             )}
           </Button>
         </div>
@@ -531,6 +605,149 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
               className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
             >
               {confirmLaborMutation.isPending ? (
+                <><Loader2 className="w-3 h-3 animate-spin" />Saving...</>
+              ) : (
+                <>Confirm & Apply</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Task-based Labor Review Panel ───────────────────────────────── */}
+      {showTaskPanel && taskGroups && (
+        <div className="border border-indigo-500/30 rounded-xl bg-indigo-500/5 overflow-hidden">
+          <div className="px-4 py-3 border-b border-indigo-500/20 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-semibold text-cream">ConstructLine Task-Based Labor Review</h3>
+              <span className="text-xs text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full">
+                {taskGroups.filter((t: any) => !t._excluded && t.crewId !== null).length} of {taskGroups.length} tasks assigned
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { setShowTaskPanel(false); setTaskGroups(null); }}
+                className="border-white/10 text-cream-muted hover:text-cream text-xs"
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmTasks}
+                disabled={confirmTasksMutation.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+              >
+                {confirmTasksMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" />Saving...</>
+                ) : (
+                  <>Confirm & Apply {taskGroups.filter((t: any) => !t._excluded && t.crewId !== null).length} Tasks</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="divide-y divide-white/5">
+            {taskGroups.map((task: any, taskIdx: number) => {
+              const isExpanded = expandedTasks.has(taskIdx);
+              return (
+                <div key={taskIdx} className={`${task._excluded ? "opacity-40" : ""}`}>
+                  {/* Task header */}
+                  <div className="px-4 py-3 flex items-center gap-3 hover:bg-white/3 transition-colors">
+                    {/* Exclude toggle */}
+                    <button
+                      onClick={() => setTaskGroups(prev => prev ? prev.map((t: any, i: number) => i === taskIdx ? { ...t, _excluded: !t._excluded } : t) : prev)}
+                      title={task._excluded ? "Click to include" : "Click to exclude"}
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        task._excluded ? "border-red-400/40 bg-red-500/10 text-red-400" : "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
+                      }`}
+                    >
+                      {task._excluded ? "✕" : "✓"}
+                    </button>
+
+                    {/* Expand toggle */}
+                    <button onClick={() => toggleTaskExpand(taskIdx)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                      {isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-cream-muted shrink-0" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-cream-muted shrink-0" />
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-cream">{task.taskName}</p>
+                        {task.taskDescription && (
+                          <p className="text-xs text-cream-muted/60 truncate">{task.taskDescription}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-cream-muted/50 shrink-0">{task.items.length} item{task.items.length !== 1 ? "s" : ""}</span>
+                    </button>
+
+                    {/* Inline crew selector */}
+                    <select
+                      value={task.crewId ?? ""}
+                      onChange={e => updateTaskCrew(taskIdx, e.target.value ? parseInt(e.target.value) : null)}
+                      className="text-xs bg-navy-medium border border-white/10 rounded px-2 py-1.5 text-cream focus:border-indigo-400/50 focus:outline-none min-w-0 max-w-[180px] shrink-0"
+                    >
+                      <option value="">unassigned</option>
+                      {(crewsData || []).map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.crewName}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Expanded item list */}
+                  {isExpanded && (
+                    <div className="bg-navy-deep/40 border-t border-white/5">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-white/5">
+                            <th className="text-left text-cream-muted font-medium px-6 py-1.5">Item Description</th>
+                            <th className="text-left text-cream-muted font-medium px-3 py-1.5 w-16">Unit</th>
+                            <th className="text-right text-cream-muted font-medium px-3 py-1.5 w-36">Output / Crew-Hour</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {task.items.map((item: any, itemIdx: number) => (
+                            <tr key={itemIdx} className="border-b border-white/3">
+                              <td className="px-6 py-1.5 text-cream/70">{item.description}</td>
+                              <td className="px-3 py-1.5 text-cream-muted">{item.unit}</td>
+                              <td className="px-3 py-1.5 text-right">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0.01"
+                                  value={item.productivityPerCrewHr}
+                                  onChange={e => {
+                                    const val = parseFloat(e.target.value);
+                                    if (!isNaN(val) && val > 0) updateItemProductivity(taskIdx, itemIdx, val);
+                                  }}
+                                  className="w-24 bg-navy-medium border border-white/10 rounded px-2 py-1 text-right text-cream focus:border-indigo-400/50 focus:outline-none text-xs"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {task.reasoning && (
+                        <p className="px-6 py-2 text-xs text-cream-muted/50 italic">{task.reasoning}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="px-4 py-2.5 border-t border-indigo-500/20 flex items-center justify-between">
+            <p className="text-xs text-cream-muted/60">
+              Select a crew for each task. Expand tasks to edit per-item productivity. Toggle ✓/✕ to include or exclude.
+            </p>
+            <Button
+              size="sm"
+              onClick={handleConfirmTasks}
+              disabled={confirmTasksMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+            >
+              {confirmTasksMutation.isPending ? (
                 <><Loader2 className="w-3 h-3 animate-spin" />Saving...</>
               ) : (
                 <>Confirm & Apply</>

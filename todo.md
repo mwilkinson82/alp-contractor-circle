@@ -2708,3 +2708,22 @@
 - [x] Rate Setup Wizard gates only ConstructLine hub — fires on first visit, not on portal login
 - [x] ConstructLine sidebar button navigates to hub; sub-items still visible for quick nav
 - [x] TypeScript clean, production build clean
+
+## ConstructLine Hub Improvements
+- [ ] Fix back arrow on TakeoffList, CostLibrary, LaborLibrary to navigate to /portal/constructline hub (not dashboard)
+- [ ] Add recent projects section to ConstructLine hub (last 3 takeoff projects)
+- [ ] Task-based labor grouping: AI clusters takeoff items into installation tasks, one crew per task
+- [ ] Inline crew editing in Labor Inference Review Panel (swap/remove crews before confirming)
+- [ ] Upgrade hub page aesthetics: news/changelog section, richer layout
+- [ ] Onboarding tours for each ConstructLine module (Takeoff, Cost Library, Trade Rate Library, CPM Schedule)
+
+## ConstructLine Hub Improvements (Apr 19 2026)
+- [x] Fix back arrows on CostLibrary and LaborLibrary to navigate to /portal/constructline hub
+- [x] Add recent projects section to ConstructLine hub (last 3 projects, empty state, "View all" link)
+- [x] Implement task-based labor grouping — LLM clusters takeoff items into named installation tasks, assigns one crew per task
+- [x] Add inline crew editing in Labor Inference Review Panel — crew dropdown per task before confirming
+- [x] Upgrade ConstructLine hub aesthetics — two-column layout (tools + changelog sidebar), richer module cards
+- [x] Add What's New changelog feed to hub sidebar (mirrors WhatsNewModal data)
+- [x] Add ConstructLineHubTour component — onboarding tours for Hub, Cost Library, and Trade Rate Library
+- [x] Mount ConstructLineHubTour in App.tsx alongside existing tours
+- [x] Add data-tour attributes to hub page elements (hub-hero, hub-configure-rates, hub-recent-projects, hub-module-cards, hub-whats-new)
