@@ -327,8 +327,24 @@ export default function LaborLibrary() {
                   <div className="divide-y divide-white/5">
                     {divTrades.map(trade => {
                       const isExpanded = expandedTrades.has(trade.tradeName);
-                      const journeymanBase = getRate(trade.tradeName, "journeyman");
-                      const journeymanBurdened = getBurdenedRate(journeymanBase);
+                      // Find the best representative rate: prefer journeyman, then first role with a nonzero rate, then first role
+                      const journeymanRole = trade.roles.find(r => r.roleKey === "journeyman");
+                      let repLabel = "Journeyman";
+                      let repBase = journeymanRole ? getRate(trade.tradeName, "journeyman") : 0;
+                      if (!repBase) {
+                        // No journeyman or $0 — pick the highest-paid classification as representative
+                        let bestRate = 0;
+                        let bestRole = trade.roles[0];
+                        for (const role of trade.roles) {
+                          const r = getRate(trade.tradeName, role.roleKey);
+                          if (r > bestRate) { bestRate = r; bestRole = role; }
+                        }
+                        if (bestRole) {
+                          repLabel = bestRole.roleLabel;
+                          repBase = bestRate;
+                        }
+                      }
+                      const repBurdened = getBurdenedRate(repBase);
                       return (
                         <div key={trade.tradeName}>
                           <button onClick={() => toggleTrade(trade.tradeName)}
@@ -339,10 +355,10 @@ export default function LaborLibrary() {
                               <span className="text-cream font-medium text-sm">{trade.tradeName}</span>
                             </div>
                             <div className="flex items-center gap-4 text-xs">
-                              <span className="text-cream-muted">Journeyman:</span>
-                              <span className="text-cream font-mono">{formatCents(journeymanBase)}/hr</span>
+                              <span className="text-cream-muted">{repLabel}:</span>
+                              <span className="text-cream font-mono">{formatCents(repBase)}/hr</span>
                               <span className="text-cream-muted">→</span>
-                              <span className="text-emerald-400 font-mono font-semibold">{formatCents(journeymanBurdened)}/hr burdened</span>
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCents(repBurdened)}/hr burdened</span>
                             </div>
                           </button>
                           {isExpanded && (

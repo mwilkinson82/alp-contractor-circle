@@ -2670,3 +2670,9 @@
 - [ ] Inline crew editing during estimate: add new crews, edit crew composition (man counts/roles), remove crews
 - [ ] Inline productivity override: edit productivity rates per task directly in the review panel
 - [ ] Takeoff drawing scaling/calibration tool: user sets a known dimension on the drawing, system recalculates all measurements
+
+## Session — Trade Rate Seeding & Crew Trade Name Fix
+- [x] Seed RS Means national average base wages for all 20 trades / 92 classifications for all 22 members (2024 rates)
+- [x] Auto-seed default trade rates on new member first login
+- [x] Fix crew member trade names to match canonical TRADES constant (231 crew definitions corrected)
+- [x] Fix trade rate roll-up: show best available classification instead of always looking for 'journeyman'
