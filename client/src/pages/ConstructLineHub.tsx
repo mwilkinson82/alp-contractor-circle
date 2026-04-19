@@ -173,9 +173,22 @@ export default function ConstructLineHub() {
   const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(loadRateConfig());
   const [showWizard, setShowWizard] = useState(!loadRateConfig());
 
-  // Recent projects
+  // Recent projects + quick stats
   const { data: projects } = trpc.takeoff.listProjects.useQuery();
   const recentProjects = (projects ?? []).slice(0, 3);
+
+  // Quick stats derived from project list
+  const totalProjects = projects?.length ?? 0;
+  const activeProjects = (projects ?? []).filter(
+    (p) => p.status === "processing" || p.status === "post_processing" || p.status === "uploading"
+  ).length;
+  const totalEstimatedValue = (projects ?? []).reduce(
+    (sum, p) => sum + (p.totalEstimatedCost ?? 0),
+    0
+  );
+  const lastActivityDate = projects && projects.length > 0
+    ? new Date(Math.max(...projects.map((p) => new Date(p.updatedAt).getTime())))
+    : null;
 
   const configureMutation = trpc.tradeRates.configureRates.useMutation({
     onSuccess: () => {
@@ -228,7 +241,34 @@ export default function ConstructLineHub() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 pt-10 pb-20">
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-20">
+
+        {/* ── Quick Stats Bar ────────────────────────────────────────── */}
+        {totalProjects > 0 && (
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
+              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Total Projects</p>
+              <p className="text-2xl font-bold text-white">{totalProjects}</p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
+              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Est. Portfolio Value</p>
+              <p className="text-2xl font-bold text-amber-400">
+                {totalEstimatedValue > 0
+                  ? `$${(totalEstimatedValue / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+                  : "—"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
+              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Last Activity</p>
+              <p className="text-2xl font-bold text-white">
+                {lastActivityDate ? lastActivityDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+              </p>
+              {activeProjects > 0 && (
+                <p className="text-[10px] text-emerald-400 mt-0.5">{activeProjects} active</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Two-column layout: main content + sidebar ──────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

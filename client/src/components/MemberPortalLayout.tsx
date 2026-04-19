@@ -54,6 +54,7 @@ import { trpc } from "@/lib/trpc";
 // SubscriptionBanner removed — using inline amber bar + upsell modal instead
 import { useResetTour } from "@/components/OnboardingTour";
 import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
+import { resetConstructLineTours } from "@/components/ConstructLineHubTour";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import RateSetupWizard, { loadRateConfig, saveRateConfig, type RateSetupConfig } from "@/components/RateSetupWizard";
@@ -260,6 +261,7 @@ export default function MemberPortalLayout({
   const portalResetTour = useResetTour();
   const resetTour = () => {
     resetTakeoffTours();
+    resetConstructLineTours();
     portalResetTour();
   };
   const { showModal: showWhatsNew, dismiss: dismissWhatsNew, openManually: openWhatsNew } = useWhatsNew();

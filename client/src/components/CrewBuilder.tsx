@@ -103,7 +103,7 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
   const crews = crewsQuery.data || [];
 
   const addMember = () => {
-    setNewCrewMembers(prev => [...prev, { tradeName: TRADES[0]?.tradeName || "Laborer", classification: "journeyman", count: 1 }]);
+    setNewCrewMembers(prev => [...prev, { tradeName: allTradeOptions[0]?.tradeName || "Laborer", classification: allTradeOptions[0]?.roles[0]?.roleKey || "journeyman", count: 1 }]);
   };
 
   const removeMember = (idx: number) => {
@@ -125,7 +125,27 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
     });
   };
 
-  const tradeNames = TRADES.map(t => t.tradeName);
+  // Fetch user's custom trade rates to merge into dropdowns
+  const tradeRatesQuery = trpc.tradeRates.getTradeRates.useQuery({ laborType });
+
+  // Build merged trade/classification options: standard TRADES + custom DB roles
+  const allTradeOptions = useMemo(() => {
+    const standard = TRADES.map(t => ({ tradeName: t.tradeName, roles: t.roles.map(r => ({ roleKey: r.roleKey, roleLabel: r.roleLabel })) }));
+    const customRates = (tradeRatesQuery.data as any[] || []).filter(
+      (r: any) => !TRADES.some(t => t.tradeName === r.tradeName)
+    );
+    // Group custom rates by tradeName
+    const customMap = new Map<string, { roleKey: string; roleLabel: string }[]>();
+    for (const r of customRates) {
+      const key = r.tradeName;
+      if (!customMap.has(key)) customMap.set(key, []);
+      customMap.get(key)!.push({ roleKey: r.classification, roleLabel: r.classification.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) });
+    }
+    const customEntries = Array.from(customMap.entries()).map(([tradeName, roles]) => ({ tradeName, roles, isCustom: true }));
+    return [...standard, ...customEntries];
+  }, [tradeRatesQuery.data]);
+
+  const tradeNames = allTradeOptions.map(t => t.tradeName);
 
   return (
     <div className="space-y-4">
@@ -183,7 +203,7 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
                     className="h-8 rounded-md border border-white/10 bg-navy-deep text-cream text-sm px-2"
                   >
                     {(() => {
-                      const trade = TRADES.find(t => t.tradeName === m.tradeName);
+                      const trade = allTradeOptions.find(t => t.tradeName === m.tradeName);
                       return (trade?.roles || []).map(r => <option key={r.roleKey} value={r.roleKey}>{r.roleLabel}</option>);
                     })()}
                   </select>

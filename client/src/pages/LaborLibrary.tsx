@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ChevronDown, ChevronRight, Search, X,
   Loader2, Settings2, Download,
-  Pencil, Check, Info, HardHat, Users, Sparkles,
+  Pencil, Check, Info, HardHat, Users, Sparkles, Plus, UserPlus,
 } from "lucide-react";
 import CrewBuilder from "@/components/CrewBuilder";
 import {
@@ -81,6 +81,12 @@ export default function LaborLibrary() {
   const [showBurdenPanel, setShowBurdenPanel] = useState(false);
   const [editingRate, setEditingRate] = useState<{ tradeName: string; classification: string } | null>(null);
   const [editValue, setEditValue] = useState("");
+  // Custom role dialog
+  const [addCustomRole, setAddCustomRole] = useState<{ div: string } | null>(null);
+  const [customTradeName, setCustomTradeName] = useState("");
+  const [customClassification, setCustomClassification] = useState("");
+  const [customHourlyRate, setCustomHourlyRate] = useState("");
+  const [customRoleNotes, setCustomRoleNotes] = useState("");
 
   const tradeRatesQuery = trpc.tradeRates.getTradeRates.useQuery({ laborType });
   const burdenQuery = trpc.tradeRates.getBurdenForType.useQuery({ laborType });
@@ -93,6 +99,35 @@ export default function LaborLibrary() {
     },
     onError: () => toast.error("Failed to configure rates"),
   });
+
+  const saveCustomRoleMutation = trpc.tradeRates.updateTradeRate.useMutation({
+    onSuccess: () => {
+      toast.success("Custom role saved");
+      utils.tradeRates.getTradeRates.invalidate();
+      setAddCustomRole(null);
+      setCustomTradeName("");
+      setCustomClassification("");
+      setCustomHourlyRate("");
+      setCustomRoleNotes("");
+    },
+    onError: () => toast.error("Failed to save custom role"),
+  });
+
+  const handleSaveCustomRole = () => {
+    if (!customTradeName.trim() || !customClassification.trim() || !customHourlyRate.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    const cents = parseDollarsToCents(customHourlyRate);
+    if (cents <= 0) { toast.error("Invalid hourly rate"); return; }
+    saveCustomRoleMutation.mutate({
+      tradeName: customTradeName.trim(),
+      classification: customClassification.trim().toLowerCase().replace(/\s+/g, "_"),
+      laborType,
+      baseWageCents: cents,
+      csiDivision: addCustomRole?.div || "05",
+    });
+  };
 
   const updateRateMutation = trpc.tradeRates.updateTradeRate.useMutation({
     onSuccess: () => {
@@ -379,6 +414,15 @@ export default function LaborLibrary() {
                       <span className="text-cream font-semibold text-sm">Div {div} — {CSI_DIV_NAMES[div] || "Other"}</span>
                       <Badge variant="outline" className="text-[10px] border-white/20 text-cream-muted">{divTrades.length} trades</Badge>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs text-cream-muted hover:text-amber-400 hover:bg-amber-500/10"
+                      onClick={() => { setAddCustomRole({ div }); setCustomTradeName(""); setCustomClassification(""); setCustomHourlyRate(""); setCustomRoleNotes(""); }}
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      Add Custom Role
+                    </Button>
                   </div>
                   <div className="divide-y divide-white/5">
                     {divTrades.map(trade => {
@@ -487,6 +531,80 @@ export default function LaborLibrary() {
                         </div>
                       );
                     })}
+                    {/* Custom roles for this division from DB */}
+                    {(() => {
+                      const customRoles = (tradeRatesQuery.data as any[] || []).filter(
+                        (r: any) => r.csiDivision === div && !TRADES.some(t => t.tradeName === r.tradeName)
+                      );
+                      if (!customRoles.length) return null;
+                      return (
+                        <div className="border-t border-amber-500/10">
+                          <div className="px-4 py-2 bg-amber-500/5">
+                            <span className="text-[10px] text-amber-400/70 uppercase tracking-wider font-semibold">Custom Roles</span>
+                          </div>
+                          <table className="w-full">
+                            <tbody className="divide-y divide-white/3">
+                              {customRoles.map((r: any) => {
+                                const base = r.baseWageCents || 0;
+                                const burdened = getBurdenedRate(base);
+                                const burdenAmount = burdened - base;
+                                const isEditing = editingRate?.tradeName === r.tradeName && editingRate?.classification === r.classification;
+                                return (
+                                  <tr key={`${r.tradeName}::${r.classification}`} className="hover:bg-white/3 transition-colors">
+                                    <td className="px-4 py-2.5 pl-8 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <UserPlus className="w-3 h-3 text-amber-400/60" />
+                                        <span className="text-cream">{r.tradeName}</span>
+                                        <span className="text-cream-muted text-xs">· {r.classification.replace(/_/g, " ")}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-right">
+                                      {isEditing ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span className="text-cream-muted text-xs">$</span>
+                                          <Input value={editValue} onChange={e => setEditValue(e.target.value)}
+                                            className="w-20 h-7 text-right text-sm bg-navy-deep border-white/20 text-cream" autoFocus
+                                            onKeyDown={e => {
+                                              if (e.key === "Enter") {
+                                                const cents = parseDollarsToCents(editValue);
+                                                if (cents > 0) updateRateMutation.mutate({ tradeName: r.tradeName, classification: r.classification, laborType, baseWageCents: cents, csiDivision: div });
+                                              }
+                                              if (e.key === "Escape") setEditingRate(null);
+                                            }} />
+                                          <span className="text-cream-muted text-xs">/hr</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-cream font-mono text-sm">{formatCents(base)}/hr</span>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-2.5 text-right text-cream-muted font-mono text-xs">+{formatCents(burdenAmount)}</td>
+                                    <td className="px-4 py-2.5 text-right">
+                                      <span className="text-emerald-400 font-mono font-semibold text-sm">{formatCents(burdened)}/hr</span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-right">
+                                      {isEditing ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                          <button onClick={() => {
+                                            const cents = parseDollarsToCents(editValue);
+                                            if (cents > 0) updateRateMutation.mutate({ tradeName: r.tradeName, classification: r.classification, laborType, baseWageCents: cents, csiDivision: div });
+                                          }} className="p-1 hover:bg-emerald-500/20 rounded"><Check className="w-3.5 h-3.5 text-emerald-400" /></button>
+                                          <button onClick={() => setEditingRate(null)} className="p-1 hover:bg-red-500/20 rounded"><X className="w-3.5 h-3.5 text-red-400" /></button>
+                                        </div>
+                                      ) : (
+                                        <button onClick={() => { setEditingRate({ tradeName: r.tradeName, classification: r.classification }); setEditValue((base / 100).toFixed(2)); }}
+                                          className="p-1 hover:bg-white/10 rounded opacity-50 hover:opacity-100 transition-opacity">
+                                          <Pencil className="w-3.5 h-3.5 text-cream-muted" />
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -495,6 +613,91 @@ export default function LaborLibrary() {
         )}
         </div>)}
       </div>
+
+      {/* Add Custom Role Modal */}
+      {addCustomRole && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-bold text-white">Add Custom Role</h3>
+              </div>
+              <button onClick={() => setAddCustomRole(null)} className="text-white/40 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-cream-muted">
+                Add a specialist or custom trade to <span className="text-amber-400 font-medium">Div {addCustomRole.div} — {CSI_DIV_NAMES[addCustomRole.div] || "Other"}</span>.
+                This role will appear in your rate library and can be added to crews.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-cream-muted uppercase tracking-wider font-semibold block mb-1.5">Trade / Specialty Name <span className="text-red-400">*</span></label>
+                  <Input
+                    placeholder="e.g. Specialty Welder, Crane Operator, Tile Setter"
+                    value={customTradeName}
+                    onChange={e => setCustomTradeName(e.target.value)}
+                    className="bg-navy-deep border-white/20 text-cream placeholder:text-cream-muted/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-cream-muted uppercase tracking-wider font-semibold block mb-1.5">Classification / Role <span className="text-red-400">*</span></label>
+                  <Input
+                    placeholder="e.g. Journeyman, Foreman, Apprentice, Specialist"
+                    value={customClassification}
+                    onChange={e => setCustomClassification(e.target.value)}
+                    className="bg-navy-deep border-white/20 text-cream placeholder:text-cream-muted/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-cream-muted uppercase tracking-wider font-semibold block mb-1.5">Base Hourly Rate ($/hr) <span className="text-red-400">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted text-sm">$</span>
+                    <Input
+                      placeholder="0.00"
+                      value={customHourlyRate}
+                      onChange={e => setCustomHourlyRate(e.target.value)}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="pl-7 bg-navy-deep border-white/20 text-cream placeholder:text-cream-muted/50"
+                    />
+                  </div>
+                  {customHourlyRate && parseFloat(customHourlyRate) > 0 && (
+                    <p className="text-xs text-emerald-400/70 mt-1">
+                      Burdened rate ≈ {formatCents(getBurdenedRate(parseDollarsToCents(customHourlyRate)))}/hr
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs text-cream-muted uppercase tracking-wider font-semibold block mb-1.5">Notes (optional)</label>
+                  <Input
+                    placeholder="e.g. Prevailing wage, certified welder, night shift premium"
+                    value={customRoleNotes}
+                    onChange={e => setCustomRoleNotes(e.target.value)}
+                    className="bg-navy-deep border-white/20 text-cream placeholder:text-cream-muted/50"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-3">
+              <Button variant="outline" onClick={() => setAddCustomRole(null)} className="border-white/20 text-cream">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveCustomRole}
+                disabled={saveCustomRoleMutation.isPending || !customTradeName.trim() || !customClassification.trim() || !customHourlyRate.trim()}
+                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white gap-2"
+              >
+                {saveCustomRoleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Save Custom Role
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rate Setup Wizard Modal */}
       <RateSetupWizard

@@ -20,6 +20,7 @@ import {
   getPendingSheets,
   getTakeoffProject,
   getDrawingSheetsByProject,
+  getSheetMarkup,
 } from "./takeoffDb";
 import { postProcessTakeoff, hardScopeFilter } from "./takeoffPostProcess";
 import { indexAllSheets, type ProjectContext } from "./takeoffSheetIndex";
@@ -165,7 +166,36 @@ RULES:
 - This scope filter overrides the CSI division selection — even if a CSI division is selected, only items matching the scope text should be returned`;
 }
 
-function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null, specialtyIds?: string[] | null): string {
+function buildScaleInstruction(scaleRatio: number | null, scaleUnit: string | null): string {
+  if (!scaleRatio || scaleRatio <= 0) return "";
+  const unit = scaleUnit || "ft";
+  const unitLabel = unit === "ft" ? "feet" : unit === "m" ? "meters" : unit;
+  const pxPerUnit = scaleRatio.toFixed(4);
+  return `\n\n## DRAWING SCALE CALIBRATION — CRITICAL FOR ACCURACY
+This drawing has been calibrated by the user. Use these values for ALL measurements:
+- Scale: ${pxPerUnit} pixels = 1 ${unitLabel}
+- To convert pixel distances to real-world units: divide pixel distance by ${pxPerUnit}
+- To convert pixel areas to real-world units: divide pixel area by ${parseFloat(pxPerUnit) ** 2} (pixels²)
+- Unit of measure: ${unitLabel.toUpperCase()}
+
+IMPORTANT: Use this calibration for ALL quantity calculations. Do NOT rely on title block scale ratios or visual estimates — use the calibrated value above. Show calibrated calculations in the notes field (e.g., "Measured 1,240 px × 980 px ÷ ${pxPerUnit}² = ${((1240 * 980) / (parseFloat(pxPerUnit) ** 2)).toFixed(0)} SF").`;
+}
+
+function buildProjectTypeInstruction(projectType: string | null, workType: string | null, region: string | null): string {
+  if (!projectType && !workType && !region) return "";
+  const parts: string[] = [];
+  if (projectType) parts.push(`Project Type: ${projectType}`);
+  if (workType) parts.push(`Labor Type: ${workType} (${workType === 'union' ? 'union labor, prevailing wage applies' : workType === 'open_shop' ? 'open shop / merit shop labor' : 'government/public works project'})`);
+  if (region) parts.push(`Region: ${region}`);
+  return `\n\n## PROJECT CONTEXT — USE FOR MEASUREMENT ASSUMPTIONS
+${parts.join('\n')}
+
+Apply these assumptions:
+- ${projectType === 'residential' ? 'Residential construction: lighter framing, smaller dimensions, residential-grade materials' : projectType === 'commercial' ? 'Commercial construction: heavier structural systems, larger spans, commercial-grade materials' : projectType === 'industrial' ? 'Industrial construction: heavy-duty systems, large equipment pads, industrial specifications' : 'Use standard commercial construction assumptions'}
+- ${workType === 'union' ? 'Union labor: include all CSI Div 01 general conditions items (supervision, temp facilities, safety)' : 'Open shop: standard general conditions, no union-specific items'}`;
+}
+
+function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string | null, scopeText?: string | null, projectContext?: string | null, specialtyIds?: string[] | null, scaleRatio?: number | null, scaleUnit?: string | null, projectType?: string | null, workType?: string | null, region?: string | null): string {
   const divisionRef = buildDivisionReference(selectedDivisions);
   const scopeInstruction = buildScopingInstruction(selectedDivisions);
   const currencyInstruction = buildCurrencyInstruction(currency || null);
@@ -183,12 +213,14 @@ function buildSystemPrompt(selectedDivisions: string[] | null, currency?: string
     : "";
 
   const specialtyInjection = buildSpecialtyPromptInjection(specialtyIds || []);
+  const scaleInstruction = buildScaleInstruction(scaleRatio || null, scaleUnit || null);
+  const projectTypeInstruction = buildProjectTypeInstruction(projectType || null, workType || null, region || null);
 
   return `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs that will be used for bidding.
 
 ## YOUR TASK
 Analyze the provided construction drawing image and extract a complete, accurate quantity takeoff.
-${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${specialtyInjection}${contextBlock}
+${scopeInstruction}${currencyInstruction}${scopeTextInstruction}${specialtyInjection}${scaleInstruction}${projectTypeInstruction}${contextBlock}
 
 ## PROCESS (follow exactly):
 1. **Identify the drawing**: Read the title block to get the sheet name, number, and project info
@@ -398,9 +430,14 @@ async function extractQuantities(
   currency?: string | null,
   scopeText?: string | null,
   projectContext?: string | null,
-  specialtyIds?: string[] | null
+  specialtyIds?: string[] | null,
+  scaleRatio?: number | null,
+  scaleUnit?: string | null,
+  projectType?: string | null,
+  workType?: string | null,
+  region?: string | null
 ): Promise<TakeoffExtractionResult> {
-  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext, specialtyIds);
+  const systemPrompt = buildSystemPrompt(selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region);
   const scopeNote = selectedDivisions && selectedDivisions.length > 0
     ? ` Only extract items for the specified CSI divisions: ${selectedDivisions.join(", ")}.`
     : "";
@@ -565,7 +602,12 @@ export async function processDrawingSheet(
   currency?: string | null,
   scopeText?: string | null,
   projectContext?: string | null,
-  specialtyIds?: string[] | null
+  specialtyIds?: string[] | null,
+  scaleRatio?: number | null,
+  scaleUnit?: string | null,
+  projectType?: string | null,
+  workType?: string | null,
+  region?: string | null
 ): Promise<TakeoffExtractionResult | null> {
   try {
     // Mark sheet as processing
@@ -573,8 +615,9 @@ export async function processDrawingSheet(
 
     // Extraction pass: Extract quantities (scoped to selected divisions, with project context)
     const hasContext = projectContext ? " [with project context]" : "";
-    console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}`);
-    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext, specialtyIds);
+    const hasScale = scaleRatio ? ` [scale: ${scaleRatio.toFixed(2)}px/${scaleUnit || 'ft'}]` : "";
+    console.log(`[Takeoff AI] Extracting quantities for sheet ${sheetId}${selectedDivisions ? ` (scoped to divisions: ${selectedDivisions.join(",")})` : " (all divisions)"}${hasContext}${hasScale}`);
+    const extracted = await extractQuantities(imageUrl, selectedDivisions, currency, scopeText, projectContext, specialtyIds, scaleRatio, scaleUnit, projectType, workType, region);
 
     // Verification pass REMOVED for speed optimization.
     // The verification was adding N extra LLM calls (~7-10 min for 15 sheets)
@@ -771,9 +814,29 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     console.log(`[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`);
 
     const results = await Promise.allSettled(
-      batch.map(sheet =>
-        processDrawingSheet(sheet.id, sheet.imageUrl!, projectId, selectedDivisions, project.currency, project.scopeText, projectContextText, specialtyIds)
-      )
+      batch.map(async sheet => {
+        // Fetch per-sheet scale calibration if available
+        let sheetScaleRatio: number | null = null;
+        let sheetScaleUnit: string | null = null;
+        try {
+          const markup = await getSheetMarkup(sheet.id, project.memberId);
+          if (markup && markup.scaleRatio && parseFloat(markup.scaleRatio) > 0) {
+            sheetScaleRatio = parseFloat(markup.scaleRatio);
+            sheetScaleUnit = markup.scaleUnit || "ft";
+            console.log(`[Takeoff AI] Sheet ${sheet.id} has calibrated scale: ${sheetScaleRatio.toFixed(2)} px/${sheetScaleUnit}`);
+          }
+        } catch {
+          // No scale calibration — proceed without it
+        }
+        return processDrawingSheet(
+          sheet.id, sheet.imageUrl!, projectId, selectedDivisions,
+          project.currency, project.scopeText, projectContextText, specialtyIds,
+          sheetScaleRatio, sheetScaleUnit,
+          (project as any).projectType || null,
+          (project as any).workType || null,
+          (project as any).region || null
+        );
+      })
     );
 
     for (const result of results) {

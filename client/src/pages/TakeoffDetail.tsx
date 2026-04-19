@@ -52,6 +52,7 @@ import {
   Ruler,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
+import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,8 @@ export default function TakeoffDetail() {
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
+  const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
+  const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string }>>({});
   const [showImportExcel, setShowImportExcel] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
@@ -1086,25 +1089,46 @@ export default function TakeoffDetail() {
                               </p>
                             )}
                           </div>
-                          {(sheet.status === "error" || sheet.status === "completed") && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
-                              onClick={() =>
-                                reprocessMutation.mutate({
-                                  sheetId: sheet.id,
-                                  projectId,
-                                })
-                              }
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {/* Set Scale button — always visible when sheet has an image */}
+                            {sheet.imageUrl && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                                title={sheetScales[sheet.id] ? `Scale set: 1 ${sheetScales[sheet.id].unit} = ${Math.round(sheetScales[sheet.id].ratio)}px` : "Set drawing scale for accurate AI measurements"}
+                                onClick={(e) => { e.stopPropagation(); setCalibratingSheet(sheet); }}
+                              >
+                                <Ruler className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {(sheet.status === "error" || sheet.status === "completed") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                                onClick={() =>
+                                  reprocessMutation.mutate({
+                                    sheetId: sheet.id,
+                                    projectId,
+                                  })
+                                }
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {sheet.errorMessage && (
                           <p className="text-red-400 text-xs mt-1 line-clamp-2">
                             {sheet.errorMessage}
+                          </p>
+                        )}
+                        {/* Scale indicator */}
+                        {sheetScales[sheet.id] && (
+                          <p className="text-[10px] text-amber-400/70 mt-1 flex items-center gap-1">
+                            <Ruler className="w-2.5 h-2.5" />
+                            Scale: 1 {sheetScales[sheet.id].unit} = {Math.round(sheetScales[sheet.id].ratio)}px
                           </p>
                         )}
                       </CardContent>
@@ -1804,6 +1828,18 @@ export default function TakeoffDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── Sheet Scale Calibrator ──────────────────────────────────── */}
+      {calibratingSheet && (
+        <SheetScaleCalibrator
+          sheet={calibratingSheet}
+          projectId={projectId}
+          onClose={() => setCalibratingSheet(null)}
+          onSaved={(ratio, unit) => {
+            setSheetScales((prev) => ({ ...prev, [calibratingSheet.id]: { ratio, unit } }));
+          }}
+        />
       )}
     </div>
   );

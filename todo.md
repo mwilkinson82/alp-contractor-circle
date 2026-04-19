@@ -2727,3 +2727,31 @@
 - [x] Add ConstructLineHubTour component — onboarding tours for Hub, Cost Library, and Trade Rate Library
 - [x] Mount ConstructLineHubTour in App.tsx alongside existing tours
 - [x] Add data-tour attributes to hub page elements (hub-hero, hub-configure-rates, hub-recent-projects, hub-module-cards, hub-whats-new)
+
+## Takeoff Accuracy & Hub Enhancements (Apr 19 2026)
+- [ ] Project-level rate override — "Configure Rates for This Project" button in each takeoff project (overrides global hub config without changing it)
+- [ ] Hub Quick Stats bar — total estimated value across all projects, active takeoff count, last activity date
+- [ ] Restart Tour button in sidebar footer — lets users replay any ConstructLine module tour on demand
+- [ ] Drawing scale calibration tool — click two points on a known dimension, enter real-world distance, all measurements on that sheet recalibrate to correct scale
+- [ ] Improved AI contextual awareness — drawing type detection (arch/struct/MEP/civil), project type fed into prompt, cross-sheet deduplication context so AI doesn't double-count items already taken off
+
+## Trade Rate Library — Custom Crew Entry
+- [ ] Add "Add Custom Crew" button per CSI division in Trade Rate Library
+- [ ] Custom crew form: name, hourly rate, notes, division assignment
+- [ ] Custom crews saved to user's rate config (persisted in DB)
+- [ ] Custom crews appear alongside standard RS Means crews during labor inference
+
+## Takeoff Accuracy & AI Context + Custom Roles (Apr 19 2026 — Release 2)
+- [x] Hub Quick Stats bar — total estimated value, active takeoffs, last activity (computed from listProjects data)
+- [x] Restart Tour button in sidebar now resets ALL ConstructLine module tours (Hub + Cost Library + Trade Rate Library)
+- [x] Drawing scale calibration tool — SheetScaleCalibrator component: two-click overlay on sheet image, saves scaleRatio + scaleUnit to DB via saveSheetMarkup
+- [x] Set Scale button added to each sheet card in TakeoffDetail
+- [x] AI scale injection — processAllPendingSheets fetches per-sheet scaleRatio/scaleUnit from DB and passes to AI prompt
+- [x] AI project type injection — project type, work type (union/open shop), and region fed into AI system prompt for measurement assumptions
+- [x] buildScaleInstruction() — tells AI exact px/unit conversion, shows calibrated calculation examples in notes
+- [x] buildProjectTypeInstruction() — residential/commercial/industrial + union/open shop assumptions in prompt
+- [x] Custom role entry in Trade Rate Library — "Add Custom Role" button per CSI division
+- [x] Custom role modal: trade name, classification, hourly rate, notes, live burdened rate preview
+- [x] Custom roles saved via updateTradeRate mutation, displayed in division with amber "Custom Roles" section
+- [x] CrewBuilder updated: fetches custom roles from DB, merges into trade + classification dropdowns
+- [x] Custom roles now available for crew composition and flow into labor inference
