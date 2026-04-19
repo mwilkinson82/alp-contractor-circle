@@ -2546,3 +2546,13 @@
 - [x] Fix Strategy 2 merge — prefer placeholder email over null Discord email
 - [x] Fix Strategy 3 merge — prefer placeholder email over null Discord email
 - [ ] Investigate Delbuilder1 (id=180001) — active member with null email, no stripeCustomerId
+
+## Gantt Baseline Overlay
+- [ ] Add baseline overlay toggle button to Scheduler toolbar
+- [ ] Add compareScheduleId selector (pick which schedule to use as baseline overlay)
+- [ ] Fetch baseline activities via trpc when overlay is enabled
+- [ ] Pass baselineActivities prop to GanttChart
+- [ ] Render thin baseline bars behind current bars in GanttChart canvas (muted blue/gray, semi-transparent)
+- [ ] Show slippage visually: baseline bar extends past current bar when delayed
+- [ ] Add legend: baseline bar color vs current bar color
+- [ ] Deploy with public visibility

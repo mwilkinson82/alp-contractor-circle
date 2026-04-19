@@ -718,9 +718,9 @@ export default function TakeoffDetail() {
   return (
     <div className="min-h-screen bg-navy-deep">
       {/* Header Bar */}
-      <div className="bg-navy-medium/80 border-b border-white/10 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
@@ -800,7 +800,7 @@ export default function TakeoffDetail() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList data-tour="takeoff-tabs" className="bg-navy-medium/50 border border-white/10 mb-6">
             <TabsTrigger value="sheets" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">

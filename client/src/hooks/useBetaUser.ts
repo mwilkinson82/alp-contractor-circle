@@ -1,6 +1,6 @@
 /**
- * useBetaUser — Hook to detect and manage beta user session.
- * Returns null if no beta session, or { id, email, name, companyName, isBeta: true } if authenticated.
+ * useBetaUser — Hook to detect and manage ConstructLine free-access user session.
+ * Returns null if no session, or { id, email, name, companyName, isConstructLineUser: true } if authenticated.
  */
 import { useEffect, useState } from "react";
 
@@ -9,7 +9,9 @@ export interface BetaUser {
   email: string;
   name: string;
   companyName: string | null;
-  isBeta: true;
+  /** @deprecated kept for backward compat — prefer isConstructLineUser */
+  isBeta?: true;
+  isConstructLineUser: true;
 }
 
 export function useBetaUser() {
@@ -22,7 +24,12 @@ export function useBetaUser() {
         const res = await fetch("/api/beta/me");
         if (res.ok) {
           const data = await res.json();
-          setBetaUser(data);
+          // Normalize: server returns isConstructLineUser, ensure isBeta stays for compat
+          setBetaUser({
+            ...data,
+            isBeta: true,
+            isConstructLineUser: true,
+          });
         } else {
           setBetaUser(null);
         }

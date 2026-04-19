@@ -5,6 +5,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMember } from "@/hooks/useMember";
+import { useBetaUser } from "@/hooks/useBetaUser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ import { toast } from "sonner";
 
 export default function ScheduleList() {
   const { member, loading: memberLoading, isAuthenticated, getLoginUrl } = useMember();
+  const { betaUser, loading: betaLoading } = useBetaUser();
+  const isAllowed = isAuthenticated || !!betaUser;
   const [, setLocation] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
@@ -61,10 +64,10 @@ export default function ScheduleList() {
   const [xerProgress, setXerProgress] = useState("");
 
   const schedulesQuery = trpc.schedule.list.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAllowed,
   });
   const templatesQuery = trpc.schedule.templates.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAllowed,
   });
 
   const createMutation = trpc.schedule.create.useMutation({
@@ -204,7 +207,7 @@ export default function ScheduleList() {
   );
 
   // Auth gate
-  if (memberLoading) {
+  if (memberLoading || betaLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-ember" />
@@ -212,7 +215,7 @@ export default function ScheduleList() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAllowed) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="max-w-md w-full bg-card border-border">

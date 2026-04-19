@@ -10,6 +10,7 @@ import { parse as parseCookieHeader } from "cookie";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { betaUsers, type BetaUser } from "../drizzle/schema";
+import { sendConstructLineWelcomeEmail } from "./email";
 
 const BETA_COOKIE_NAME = "beta_session";
 const BETA_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
@@ -148,6 +149,14 @@ export function registerBetaAuthRoutes(app: Express) {
       const token = await createBetaToken(newUser);
       res.cookie(BETA_COOKIE_NAME, token, cookieOptions);
 
+      // Send welcome email with credentials (fire and forget)
+      sendConstructLineWelcomeEmail({
+        to: newUser.email,
+        name: newUser.name,
+        email: newUser.email,
+        password: password, // plain text password before hashing is still in scope
+      }).catch((err) => console.error("[Beta Signup] Welcome email failed:", err));
+
       return res.json({
         success: true,
         user: {
@@ -230,7 +239,7 @@ export function registerBetaAuthRoutes(app: Express) {
       email: user.email,
       name: user.name,
       companyName: user.companyName,
-      isBeta: true,
+      isConstructLineUser: true,
     });
   });
 

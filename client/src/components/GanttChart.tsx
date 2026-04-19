@@ -90,6 +90,9 @@ interface GanttChartProps {
   onScrollChange?: (scroll: { scrollTop: number; scrollLeft: number }) => void; // full scroll position for annotation sync
   magnificationZoom?: number; // 50-150 for row height scaling
   onDimensionsChange?: (dims: { totalWidth: number; totalHeight: number; pixelsPerDay: number; rangeStartMs: number }) => void; // expose canvas dimensions for PDF annotation mapping
+  // Baseline overlay: activities from another schedule drawn as thin bars behind current bars
+  baselineActivities?: Array<{ activityId: string; earlyStart: string | Date | null; earlyFinish: string | Date | null; isCritical?: boolean; duration?: number }>;
+  showBaselineOverlay?: boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -253,6 +256,8 @@ export default function GanttChart({
   onScrollChange,
   magnificationZoom = 100,
   onDimensionsChange,
+  baselineActivities,
+  showBaselineOverlay = false,
 }: GanttChartProps) {
   // Dynamic row height: taller when cost overlay is active to prevent clipping
   const ROW_HEIGHT = showCostOverlay ? COST_ROW_HEIGHT : BASE_ROW_HEIGHT;
@@ -796,6 +801,11 @@ export default function GanttChart({
     for (const ta of target1Activities) t1Map.set(ta.id, ta);
     const t2Map = new Map<number, TargetActivity>();
     for (const ta of target2Activities) t2Map.set(ta.id, ta);
+    // Baseline overlay: map by activityId string for cross-schedule matching
+    const baselineActMap = new Map<string, { activityId: string; earlyStart: string | Date | null; earlyFinish: string | Date | null; isCritical?: boolean; duration?: number }>();
+    if (showBaselineOverlay && baselineActivities) {
+      for (const ba of baselineActivities) baselineActMap.set(ba.activityId, ba);
+    }
 
     for (const row of flatRows) {
       const rh = row.rowHeight;
@@ -928,6 +938,34 @@ export default function GanttChart({
         } else {
           barX = barX + deltaX;
           barW = Math.max(barW - deltaX, pixelsPerDay);
+        }
+      }
+
+      // ── Baseline overlay bar ──────────────────────────────────────────
+      // Draw a thin bar representing the baseline schedule position, behind the current bar
+      if (showBaselineOverlay && baselineActivities) {
+        const blAct = baselineActMap.get(act.activityId);
+        if (blAct && blAct.earlyStart && blAct.earlyFinish) {
+          const blStart = blAct.earlyStart instanceof Date ? blAct.earlyStart : new Date(blAct.earlyStart);
+          const blFinish = blAct.earlyFinish instanceof Date ? blAct.earlyFinish : new Date(blAct.earlyFinish);
+          if (!isNaN(blStart.getTime()) && !isNaN(blFinish.getTime())) {
+            const blX = daysBetween(rangeStart, blStart) * pixelsPerDay + offsetX;
+            const blW = Math.max(daysBetween(blStart, blFinish) * pixelsPerDay, 3);
+            const blBarY = barY + BAR_HEIGHT + 3; // draw below the current bar
+            const BASELINE_BAR_H = 5;
+            const radius = 2;
+            // Muted steel-blue for baseline, slightly different for critical
+            ctx.fillStyle = blAct.isCritical ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.45)';
+            ctx.beginPath();
+            ctx.roundRect(blX, blBarY, blW, BASELINE_BAR_H, radius);
+            ctx.fill();
+            // Thin border for definition
+            ctx.strokeStyle = blAct.isCritical ? 'rgba(239,68,68,0.6)' : 'rgba(99,102,241,0.7)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.roundRect(blX, blBarY, blW, BASELINE_BAR_H, radius);
+            ctx.stroke();
+          }
         }
       }
 

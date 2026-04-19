@@ -3359,3 +3359,103 @@ export async function sendConstructLineAnnouncementEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+// ─── ConstructLine Welcome Email (Free Access Signup) ────────────────────────
+export async function sendConstructLineWelcomeEmail(params: {
+  to: string;
+  name: string;
+  email: string;
+  password: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping ConstructLine welcome email");
+    return { success: false, error: "Resend not configured" };
+  }
+  const firstName = params.name.split(" ")[0] || params.name;
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "You now have access to ConstructLine — Powered by ALP",
+      html: `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0A0F1E;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0F1E;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111827;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#1a2035 0%,#0f1729 100%);padding:36px 40px;border-bottom:1px solid rgba(255,255,255,0.08);">
+          <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F59E0B;">CONTRACTOR CIRCLE</p>
+          <h1 style="margin:0;font-size:28px;font-weight:800;color:#F5F0E8;line-height:1.2;">Construct<span style="color:#F59E0B;">Line</span></h1>
+          <p style="margin:6px 0 0 0;font-size:12px;color:rgba(245,240,232,0.5);letter-spacing:1px;text-transform:uppercase;">Powered by ALP</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:36px 40px;">
+          <p style="margin:0 0 20px 0;font-size:17px;color:#F5F0E8;line-height:1.6;">Hi ${firstName},</p>
+          <p style="margin:0 0 20px 0;font-size:15px;color:rgba(245,240,232,0.75);line-height:1.7;">You now have access to <strong style="color:#F5F0E8;">ConstructLine</strong> — Contractor Circle's proprietary construction software, powered by ALP.</p>
+          <p style="margin:0 0 20px 0;font-size:15px;color:rgba(245,240,232,0.75);line-height:1.7;">Professional-grade construction tools built by construction professionals.</p>
+          <!-- Credentials Box -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;margin:24px 0;">
+            <tr><td style="padding:24px 28px;">
+              <p style="margin:0 0 14px 0;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#F59E0B;">Your Login Credentials</p>
+              <table cellpadding="0" cellspacing="0">
+                <tr><td style="padding:4px 0;">
+                  <span style="font-size:13px;color:rgba(245,240,232,0.5);display:inline-block;width:80px;">Email:</span>
+                  <span style="font-size:14px;color:#F5F0E8;font-weight:600;">${params.email}</span>
+                </td></tr>
+                <tr><td style="padding:4px 0;">
+                  <span style="font-size:13px;color:rgba(245,240,232,0.5);display:inline-block;width:80px;">Password:</span>
+                  <span style="font-size:14px;color:#F5F0E8;font-weight:600;">${params.password}</span>
+                </td></tr>
+              </table>
+              <p style="margin:14px 0 0 0;font-size:12px;color:rgba(245,240,232,0.4);">Save these credentials — you'll need them to sign in.</p>
+            </td></tr>
+          </table>
+          <!-- Tools -->
+          <p style="margin:24px 0 14px 0;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,240,232,0.5);">What's included:</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            <tr>
+              <td width="48%" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:18px 20px;vertical-align:top;">
+                <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#F5F0E8;">📐 Quantity Takeoff</p>
+                <p style="margin:0;font-size:13px;color:rgba(245,240,232,0.6);line-height:1.5;">AI-powered material estimates from construction drawings</p>
+              </td>
+              <td width="4%"></td>
+              <td width="48%" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:18px 20px;vertical-align:top;">
+                <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#F5F0E8;">📊 CPM Scheduler</p>
+                <p style="margin:0;font-size:13px;color:rgba(245,240,232,0.6);line-height:1.5;">Critical path scheduling and professional Gantt charts</p>
+              </td>
+            </tr>
+          </table>
+          <!-- CTA -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+            <tr><td align="center">
+              <a href="${PORTAL_URL}" style="display:inline-block;background:#D95F2B;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Access ConstructLine Now →</a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0 0;font-size:14px;color:rgba(245,240,232,0.6);line-height:1.7;">These tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.</p>
+          <p style="margin:16px 0 0 0;font-size:14px;color:rgba(245,240,232,0.6);line-height:1.7;">Let's build,<br><strong style="color:#F5F0E8;">Marshall Wilkinson</strong><br><span style="color:rgba(245,240,232,0.4);font-size:13px;">Founder &amp; CEO, ALP</span></p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 40px;border-top:1px solid rgba(255,255,255,0.06);">
+          <p style="margin:0;font-size:12px;color:rgba(245,240,232,0.3);text-align:center;">ALP Contractor Circle · <a href="${PORTAL_URL}" style="color:rgba(245,240,232,0.4);text-decoration:none;">alpcontractorcircle.com</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+      text: `Hi ${firstName},\n\nYou now have access to ConstructLine — Contractor Circle's proprietary construction software, powered by ALP.\n\nProfessional-grade construction tools built by construction professionals.\n\nYOUR LOGIN CREDENTIALS\nEmail: ${params.email}\nPassword: ${params.password}\n\nSave these credentials — you'll need them to sign in.\n\nWHAT'S INCLUDED:\n📐 Quantity Takeoff — AI-powered material estimates from construction drawings\n📊 CPM Scheduler — Critical path scheduling and professional Gantt charts\n\nAccess ConstructLine: ${PORTAL_URL}\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    });
+    if (error) {
+      console.error("[Email] Failed to send ConstructLine welcome email:", error);
+      return { success: false, error: error.message };
+    }
+    console.log(`[Email] ConstructLine welcome email sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending ConstructLine welcome email:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

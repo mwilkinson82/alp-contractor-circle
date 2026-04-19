@@ -1,7 +1,7 @@
 /**
- * Beta Login Page — Login for returning beta users.
+ * ConstructLine Login Page — Login for returning ConstructLine users.
  * Email + password login form.
- * After successful login, redirects to /portal.
+ * After successful login, redirects to /portal/scheduler.
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -77,7 +77,7 @@ export default function BetaLogin() {
               Welcome Back
             </h1>
             <p className="text-cream-muted text-lg">
-              Sign in to your ConstructLine beta account
+              Sign in to your ConstructLine account
             </p>
           </div>
 
@@ -139,7 +139,7 @@ export default function BetaLogin() {
                 onClick={() => setLocation("/constructline")}
                 className="text-amber-400 hover:text-amber-300 font-semibold transition-colors"
               >
-                Sign up for beta
+                Create a free account
               </button>
             </p>
           </div>

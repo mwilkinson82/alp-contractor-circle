@@ -5,6 +5,7 @@
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
+import { getBetaUserFromRequest } from "./betaAuth";
 import { z } from "zod";
 import type { Member } from "../drizzle/schema";
 import {
@@ -19,15 +20,46 @@ import * as sdb from "./scheduleDb";
 import { CSI_DIVISIONS, WBS_GROUP_COLORS } from "../shared/csiDivisions";
 import { commercialTiTemplate, renovationTemplate, hospitalTemplate, waterTreatmentTemplate, electricalTemplate, hvacTemplate, civilTemplate } from "./scheduleTemplates";
 
+/** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
+const BETA_MEMBER_OFFSET = 10_000_000;
+
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
+/**
+ * Returns a Member-shaped object for either a Discord member or a ConstructLine (beta) user.
+ * Beta users get a virtual memberId = BETA_MEMBER_OFFSET + betaUser.id so their data is isolated.
+ */
 async function requireMember(req: any): Promise<Member> {
+  // Try Discord member first
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
-  if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
-  const member = await getMemberById(session.memberId);
-  if (!member) throw new TRPCError({ code: "UNAUTHORIZED", message: "Member not found" });
-  return member;
+  if (session) {
+    const member = await getMemberById(session.memberId);
+    if (member) return member;
+  }
+  // Fall back to ConstructLine (beta) user
+  const betaUser = await getBetaUserFromRequest(req);
+  if (betaUser) {
+    return {
+      id: BETA_MEMBER_OFFSET + betaUser.id,
+      discordId: `beta_${betaUser.id}`,
+      discordUsername: betaUser.name,
+      displayName: betaUser.name,
+      email: betaUser.email,
+      avatarUrl: null,
+      memberRole: "member",
+      subscriptionStatus: "active",
+      subscriptionId: null,
+      stripeCustomerId: null,
+      companyName: betaUser.companyName ?? null,
+      companyLogo: null,
+      cpmOnboardingDone: true,
+      takeoffOnboardingDone: true,
+      createdAt: betaUser.createdAt,
+      updatedAt: betaUser.updatedAt,
+    } as unknown as Member;
+  }
+  throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
 }
 
 async function requireScheduleOwner(req: any, scheduleId: number) {
@@ -3009,6 +3041,29 @@ export const scheduleRouter = router({
           baselineDataDate: baseSched.dataDate ? fmt(baseSched.dataDate) : null,
           updateDataDate: updSched.dataDate ? fmt(updSched.dataDate) : null,
         },
+      };
+    }),
+
+  // Fetch activities from another schedule for Gantt baseline overlay
+  // Returns only the fields needed to draw baseline bars on the Gantt canvas
+  getBaselineOverlayActivities: publicProcedure
+    .input(z.object({ scheduleId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await requireScheduleOwner(ctx.req, input.scheduleId);
+      const sched = await sdb.getScheduleById(input.scheduleId);
+      if (!sched) throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found' });
+      const acts = await sdb.getActivitiesBySchedule(input.scheduleId);
+      return {
+        scheduleName: sched.name,
+        dataDate: sched.dataDate,
+        activities: acts.map((a) => ({
+          id: a.id,
+          activityId: a.activityId,
+          earlyStart: a.earlyStart,
+          earlyFinish: a.earlyFinish,
+          isCritical: a.isCritical,
+          duration: a.duration,
+        })),
       };
     }),
 });

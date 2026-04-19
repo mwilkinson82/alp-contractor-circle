@@ -6,6 +6,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
+import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
 import { storagePut } from "./storage";
 import {
@@ -45,13 +46,41 @@ import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 import { getCostLibraryByMember, upsertCostLibraryEntries, deleteCostLibraryEntry, clearCostLibrary } from "./costLibraryDb";
 
-/** Helper: extract member from Discord session cookie */
+/** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
+const BETA_MEMBER_OFFSET = 10_000_000;
+
+/** Helper: extract member from Discord session cookie, or fall back to ConstructLine beta user */
 async function getMemberFromRequest(req: any): Promise<Member | null> {
+  // Try Discord member first
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
-  if (!session) return null;
-  const member = await getMemberById(session.memberId);
-  return member || null;
+  if (session) {
+    const member = await getMemberById(session.memberId);
+    if (member) return member;
+  }
+  // Fall back to ConstructLine (beta) user
+  const betaUser = await getBetaUserFromRequest(req);
+  if (betaUser) {
+    return {
+      id: BETA_MEMBER_OFFSET + betaUser.id,
+      discordId: `beta_${betaUser.id}`,
+      discordUsername: betaUser.name,
+      displayName: betaUser.name,
+      email: betaUser.email,
+      avatarUrl: null,
+      memberRole: "member",
+      subscriptionStatus: "active",
+      subscriptionId: null,
+      stripeCustomerId: null,
+      companyName: betaUser.companyName ?? null,
+      companyLogo: null,
+      cpmOnboardingDone: true,
+      takeoffOnboardingDone: true,
+      createdAt: betaUser.createdAt,
+      updatedAt: betaUser.updatedAt,
+    } as unknown as Member;
+  }
+  return null;
 }
 
 /** Helper: require Discord member auth */

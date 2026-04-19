@@ -470,6 +470,17 @@ export default function Scheduler() {
   const [annotationsLoaded, setAnnotationsLoaded] = useState(false);
   const [ganttScrollOffset, setGanttScrollOffset] = useState({ scrollTop: 0, scrollLeft: 0 });
   const [ganttDimensions, setGanttDimensions] = useState({ totalWidth: 2000, totalHeight: 1000, pixelsPerDay: 4, rangeStartMs: Date.now() });
+  // Baseline overlay state: show bars from another schedule behind current bars
+  const [showBaselineOverlay, setShowBaselineOverlay] = useState(false);
+  const [baselineOverlayScheduleId, setBaselineOverlayScheduleId] = useState<number | null>(null);
+  const [showBaselinePickerDialog, setShowBaselinePickerDialog] = useState(false);
+  // Baseline overlay: fetch activities from the selected baseline schedule
+  const baselineOverlayQuery = trpc.schedule.getBaselineOverlayActivities.useQuery(
+    { scheduleId: baselineOverlayScheduleId! },
+    { enabled: !!baselineOverlayScheduleId && showBaselineOverlay }
+  );
+  // Schedules list for the baseline picker dialog
+  const schedulesListQuery = trpc.schedule.list.useQuery(undefined, { enabled: showBaselinePickerDialog });
 
   // Load annotations from DB on first fetch
   useEffect(() => {
@@ -1583,7 +1594,17 @@ export default function Scheduler() {
                   <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
                 </Button>
                 <div className="w-px h-4 bg-white/[0.06]" />
-                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showCostOverlay ? "text-emerald-400 bg-emerald-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                <Button size="sm" variant="ghost" className={`h-8 px-2 rounded-none text-xs gap-1 ${showBaselineOverlay ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]'}`}
+                  onClick={() => {
+                    if (!showBaselineOverlay && !baselineOverlayScheduleId) {
+                      setShowBaselinePickerDialog(true);
+                    } else {
+                      setShowBaselineOverlay(!showBaselineOverlay);
+                    }
+                  }} title="Baseline overlay — show baseline schedule bars">
+                <GitCompareArrows className="h-4 w-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showCostOverlay ? "text-emerald-400 bg-emerald-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
                   onClick={() => setShowCostOverlay(!showCostOverlay)} title="Cost overlay">
                   <DollarSign className="w-3.5 h-3.5" />
                 </Button>
@@ -2390,6 +2411,8 @@ export default function Scheduler() {
             magnificationZoom={magnificationZoom}
             onScrollChange={setGanttScrollOffset}
             onDimensionsChange={setGanttDimensions}
+            showBaselineOverlay={showBaselineOverlay}
+            baselineActivities={baselineOverlayQuery.data?.activities}
           />
           <GanttAnnotations
             width={ganttContainerRef.current?.scrollWidth || 2000}

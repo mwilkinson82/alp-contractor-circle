@@ -303,20 +303,33 @@ export default function MemberPortalLayout({
             {/* Top items */}
             {visibleTopItems.map(item => {
               const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+              const isLocked = isBetaUser;
               return (
                 <button
                   key={item.path}
                   data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  onClick={() => setLocation(item.path)}
+                  onClick={() => {
+                    if (isLocked) {
+                      window.location.href = "/";
+                    } else {
+                      setLocation(item.path);
+                    }
+                  }}
+                  title={isLocked ? "Upgrade to Contractor Circle to unlock" : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-ember/10 text-ember font-medium"
-                      : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    isLocked
+                      ? "opacity-40 cursor-pointer hover:opacity-60"
+                      : isActive
+                        ? "bg-ember/10 text-ember font-medium"
+                        : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 ${isActive ? "text-ember" : ""}`} />
+                  <item.icon className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`} />
                   <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+                  {isLocked
+                    ? <Lock className="w-3 h-3 ml-auto opacity-60" />
+                    : isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                  }
                 </button>
               );
             })}
@@ -336,19 +349,32 @@ export default function MemberPortalLayout({
             {/* Bottom items */}
             {visibleBottomItems.map(item => {
               const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+              const isLocked = isBetaUser;
               return (
                 <button
                   key={item.path}
-                  onClick={() => setLocation(item.path)}
+                  onClick={() => {
+                    if (isLocked) {
+                      window.location.href = "/";
+                    } else {
+                      setLocation(item.path);
+                    }
+                  }}
+                  title={isLocked ? "Upgrade to Contractor Circle to unlock" : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-ember/10 text-ember font-medium"
-                      : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    isLocked
+                      ? "opacity-40 cursor-pointer hover:opacity-60"
+                      : isActive
+                        ? "bg-ember/10 text-ember font-medium"
+                        : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 ${isActive ? "text-ember" : ""}`} />
+                  <item.icon className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`} />
                   <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+                  {isLocked
+                    ? <Lock className="w-3 h-3 ml-auto opacity-60" />
+                    : isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                  }
                 </button>
               );
             })}
@@ -423,21 +449,30 @@ export default function MemberPortalLayout({
               {/* Top items */}
               {visibleTopItems.map(item => {
                 const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+                const isLocked = isBetaUser;
                 return (
                   <button
                     key={item.path}
                     onClick={() => {
-                      setLocation(item.path);
-                      setMobileMenuOpen(false);
+                      if (isLocked) {
+                        window.location.href = "/";
+                        setMobileMenuOpen(false);
+                      } else {
+                        setLocation(item.path);
+                        setMobileMenuOpen(false);
+                      }
                     }}
                     className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                      isActive
-                        ? "bg-ember/10 text-ember font-medium"
-                        : "text-cream-muted hover:text-cream hover:bg-white/5"
+                      isLocked
+                        ? "opacity-40 cursor-pointer"
+                        : isActive
+                          ? "bg-ember/10 text-ember font-medium"
+                          : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive ? "text-ember" : ""}`} />
+                    <item.icon className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`} />
                     <span>{item.label}</span>
+                    {isLocked && <Lock className="w-4 h-4 ml-auto opacity-60" />}
                   </button>
                 );
               })}
@@ -473,21 +508,30 @@ export default function MemberPortalLayout({
                 <div className="border-t border-white/5 pt-2 mt-2 space-y-2">
                   {visibleBottomItems.map(item => {
                     const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+                    const isLocked = isBetaUser;
                     return (
                       <button
                         key={item.path}
                         onClick={() => {
-                          setLocation(item.path);
-                          setMobileMenuOpen(false);
+                          if (isLocked) {
+                            window.location.href = "/";
+                            setMobileMenuOpen(false);
+                          } else {
+                            setLocation(item.path);
+                            setMobileMenuOpen(false);
+                          }
                         }}
                         className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                          isActive
-                            ? "bg-ember/10 text-ember font-medium"
-                            : "text-cream-muted hover:text-cream hover:bg-white/5"
+                          isLocked
+                            ? "opacity-40 cursor-pointer"
+                            : isActive
+                              ? "bg-ember/10 text-ember font-medium"
+                              : "text-cream-muted hover:text-cream hover:bg-white/5"
                         }`}
                       >
-                        <item.icon className={`w-5 h-5 ${isActive ? "text-ember" : ""}`} />
+                        <item.icon className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`} />
                         <span>{item.label}</span>
+                        {isLocked && <Lock className="w-4 h-4 ml-auto opacity-60" />}
                       </button>
                     );
                   })}
@@ -510,10 +554,16 @@ export default function MemberPortalLayout({
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto relative">
           {isBetaUser && (
-            <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-4">
               <p className="text-sm text-amber-400 font-medium">
-                You're using ConstructLine as a beta tester. Some portal features require Contractor Circle membership.
+                You have access to ConstructLine tools. Unlock the full Contractor Circle for live coaching, templates, replays, and more.
               </p>
+              <a
+                href="/"
+                className="shrink-0 text-xs font-semibold text-amber-400 border border-amber-400/40 rounded-lg px-3 py-1.5 hover:bg-amber-400/10 transition-all"
+              >
+                Upgrade
+              </a>
             </div>
           )}
           <SubscriptionBanner isSubscribed={isSubscribed} />
