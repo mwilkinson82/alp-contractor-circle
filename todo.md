@@ -2910,3 +2910,9 @@
 - [x] Fix server: added scopeText: z.string().max(2000).nullable().optional() to updateProjectSettings
 - [x] Fix server: null scopeText now correctly clears the field in DB
 - [x] QA: clear scope description, save, reopen modal — field must be empty
+
+## Edit Scope Shortcut + Scope Change Detection
+- [x] Add "Edit Scope" item to the More (...) dropdown in the toolbar (no new standalone button)
+- [x] Clicking "Edit Scope" opens Project Settings modal scrolled to Scope Description field
+- [x] Scope change detection: when user saves a new scope on a completed project, show toast "Scope updated — re-run analysis to apply?" with a "Re-run Now" action button
+- [x] QA: toolbar still fits at $10M+ total — no overflow, no new buttons in main row (no new buttons added to main row)

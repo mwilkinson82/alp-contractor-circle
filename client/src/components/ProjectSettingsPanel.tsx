@@ -9,7 +9,7 @@
  * - Shows current settings with badges
  * - "Re-Analyze" option when divisions change so user doesn't have to re-upload drawings
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,11 @@ interface ProjectSettingsPanelProps {
   onReAnalyze?: (divisions: string[] | null) => void;
   /** Whether sheets have been processed (to show re-analyze option) */
   hasProcessedSheets?: boolean;
+  /** External control: open the dialog from outside */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+  /** If true, scroll to the Scope Description field when dialog opens */
+  focusScope?: boolean;
 }
 
 export default function ProjectSettingsPanel({
@@ -65,8 +70,25 @@ export default function ProjectSettingsPanel({
   onSave,
   onReAnalyze,
   hasProcessedSheets,
+  externalOpen,
+  onExternalOpenChange,
+  focusScope,
 }: ProjectSettingsPanelProps) {
   const [open, setOpen] = useState(false);
+  const scopeRef = useRef<HTMLDivElement>(null);
+  // Sync with external open control
+  useEffect(() => {
+    if (externalOpen !== undefined) setOpen(externalOpen);
+  }, [externalOpen]);
+  // When dialog opens with focusScope, scroll to scope field after a brief delay
+  useEffect(() => {
+    if (open && focusScope && scopeRef.current) {
+      setTimeout(() => {
+        scopeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scopeRef.current?.focus();
+      }, 150);
+    }
+  }, [open, focusScope]);
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(currentDivisions || []);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
@@ -411,6 +433,7 @@ export default function ProjectSettingsPanel({
                 Scope Description
                 <span className="text-xs text-cream-muted">(optional — guides <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analysis)</span>
               </div>
+              <div ref={scopeRef}>
               <Textarea
                 value={scopeText}
                 onChange={(e) => setScopeText(e.target.value)}
@@ -418,6 +441,7 @@ export default function ProjectSettingsPanel({
                 className="min-h-[80px] bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 resize-none"
                 maxLength={2000}
               />
+              </div>
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-cream-muted/50">
                   Leave blank to analyze all drawings without scope filtering.

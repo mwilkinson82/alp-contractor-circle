@@ -61,6 +61,7 @@ import {
   GitCompareArrows,
   Merge,
   MoreHorizontal,
+  FileText,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -164,6 +165,9 @@ export default function TakeoffDetail() {
   const importFileRef = useRef<HTMLInputElement>(null);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
   const [showConsolidationDiff, setShowConsolidationDiff] = useState(false);
+  const [openSettingsToScope, setOpenSettingsToScope] = useState(false);
+  // Track previous scopeText to detect scope changes
+  const prevScopeTextRef = useRef<string | null>(null);
   // Elapsed timer for processing banner
   const [processingElapsed, setProcessingElapsed] = useState(0);
   const processingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -253,6 +257,13 @@ export default function TakeoffDetail() {
   const prevStatusRef = useRef<string | null>(null);
   // Track when processing started for elapsed timer
   const processingStartRef = useRef<number | null>(null);
+
+  // Initialize prevScopeTextRef when project first loads
+  useEffect(() => {
+    if (project && prevScopeTextRef.current === null) {
+      prevScopeTextRef.current = project.scopeText ?? "";
+    }
+  }, [project]);
 
   // Auto-switch to items tab when processing completes & refetch items
   useEffect(() => {
@@ -391,8 +402,24 @@ export default function TakeoffDetail() {
   });
 
   const settingsMutation = trpc.takeoff.updateProjectSettings.useMutation({
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       refetchProject();
+      // Scope change detection: if scopeText changed and project is completed, prompt re-run
+      const prevScope = prevScopeTextRef.current;
+      const newScope = variables.scopeText !== undefined ? (variables.scopeText ?? "") : null;
+      const isCompleted = project?.status === "completed";
+      if (isCompleted && newScope !== null && newScope !== prevScope) {
+        toast.info("Scope updated", {
+          description: "Re-run analysis to apply the new scope to your takeoff.",
+          action: {
+            label: "Re-run Now",
+            onClick: () => consolidateMutation.mutate({ projectId }),
+          },
+          duration: 8000,
+        });
+      }
+      // Update the tracked scope
+      if (newScope !== null) prevScopeTextRef.current = newScope;
     },
     onError: (err) => toast.error(`Settings error: ${err.message}`),
   });
@@ -988,6 +1015,9 @@ export default function TakeoffDetail() {
                   );
                 });
               }}
+              externalOpen={openSettingsToScope}
+              onExternalOpenChange={(v) => setOpenSettingsToScope(v)}
+              focusScope={openSettingsToScope}
               onReAnalyze={(divisions) => {
                 // Re-analyze with updated divisions — triggers startProcessing
                 processMutation.mutate({
@@ -1472,6 +1502,15 @@ export default function TakeoffDetail() {
                         >
                           <Layers className="w-4 h-4 text-amber-400" />
                           Measurements
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setOpenSettingsToScope(true);
+                          }}
+                        >
+                          <FileText className="w-4 h-4 text-amber-400" />
+                          Edit Scope
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
