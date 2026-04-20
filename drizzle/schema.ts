@@ -59,6 +59,10 @@ export const members = mysqlTable("members", {
   cpmOnboardingDone: boolean("cpmOnboardingDone").default(false).notNull(),
   /** Whether the Smith Residence template schedule has been seeded into this member's account (runs once on first login) */
   scheduleSeeded: boolean("scheduleSeeded").default(false).notNull(),
+  /** Last-used drawing scale index (for pre-filling scale calibration modal) */
+  lastScaleIdx: int("lastScaleIdx").default(0),
+  /** Last-used paper size index (for pre-filling scale calibration modal) */
+  lastPaperIdx: int("lastPaperIdx").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

@@ -1,15 +1,16 @@
 /**
- * ScaleCalibrationPrompt v4
+ * ScaleCalibrationPrompt v5
+ *
+ * Fixes:
+ *  - Uses bulkSaveSheetScale endpoint (single request, no sequential awaits → no freeze)
+ *  - Remembers last-used scale + paper via saveScalePreference / getScalePreference
+ *  - Proper Dialog close handling (no more onOpenChange no-op freeze)
  *
  * Two modes:
- *   "all"    — One scale for the whole set (simple projects, same-scale drawings)
+ *   "all"    — One scale for the whole set (default, prominent)
  *   "groups" — One scale per discipline: Arch / Structural / MEP / Civil / Other
- *              Sheets are auto-assigned to a group based on their name prefix.
- *
- * Members never see raw pixel values. They pick a standard drawing scale
- * (e.g. 1/4"=1'-0") and a print size — the math is invisible.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import { toast } from "sonner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DRAWING_SCALES = [
+export const DRAWING_SCALES = [
   { label: '1/4" = 1\'-0"  (most common)', drawingInchesPerFt: 0.25 },
   { label: '1/8" = 1\'-0"',                drawingInchesPerFt: 0.125 },
   { label: '3/16" = 1\'-0"',               drawingInchesPerFt: 0.1875 },
@@ -45,7 +46,7 @@ const DRAWING_SCALES = [
   { label: '1:500  (metric)',               drawingInchesPerFt: 0.02362 },
 ];
 
-const PAPER_SIZES = [
+export const PAPER_SIZES = [
   { label: '24" × 36"  (Arch D — most common)', dpi: 150 },
   { label: '30" × 42"  (Arch E1)',               dpi: 150 },
   { label: '36" × 48"  (Arch E)',                dpi: 150 },
@@ -70,7 +71,7 @@ function guessGroup(sheetName: string): string {
   return "other";
 }
 
-function pxPerFt(scaleIdx: number, paperIdx: number): number {
+export function pxPerFt(scaleIdx: number, paperIdx: number): number {
   return DRAWING_SCALES[scaleIdx].drawingInchesPerFt * PAPER_SIZES[paperIdx].dpi;
 }
 
@@ -159,7 +160,27 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
     Object.fromEntries(DISCIPLINES.map(d => [d.key, { scaleIdx: 0, paperIdx: 0 }]))
   );
 
-  const saveMarkupMutation = trpc.takeoff.saveSheetMarkup.useMutation();
+  // ── Remember last-used scale ────────────────────────────────────────────────
+  const prefQuery = trpc.takeoff.getScalePreference.useQuery(undefined, { enabled: open });
+  const savePrefMutation = trpc.takeoff.saveScalePreference.useMutation();
+  const bulkScaleMutation = trpc.takeoff.bulkSaveSheetScale.useMutation();
+
+  // Pre-fill from saved preference when data arrives
+  useEffect(() => {
+    if (prefQuery.data) {
+      const { lastScaleIdx, lastPaperIdx } = prefQuery.data;
+      if (lastScaleIdx >= 0 && lastScaleIdx < DRAWING_SCALES.length) setAllScaleIdx(lastScaleIdx);
+      if (lastPaperIdx >= 0 && lastPaperIdx < PAPER_SIZES.length) setAllPaperIdx(lastPaperIdx);
+      // Also pre-fill group defaults
+      setGroupScales(prev => {
+        const next = { ...prev };
+        for (const key of Object.keys(next)) {
+          next[key] = { scaleIdx: lastScaleIdx || 0, paperIdx: lastPaperIdx || 0 };
+        }
+        return next;
+      });
+    }
+  }, [prefQuery.data]);
 
   // Auto-assign sheets to discipline groups
   const sheetGroups = useMemo(() => {
@@ -175,33 +196,54 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
   const activeGroups = DISCIPLINES.filter(d => sheetGroups[d.key].length > 0);
 
   const handleApply = async () => {
-    if (saving) return;
+    if (saving || done) return;
     setSaving(true);
     try {
       const scalesMap: Record<number, SheetScale> = {};
 
       if (mode === "all") {
         const ratio = pxPerFt(allScaleIdx, allPaperIdx);
+        // Single bulk request — no sequential awaits
+        await bulkScaleMutation.mutateAsync({
+          projectId,
+          sheetIds: sheets.map(s => s.id),
+          scaleRatio: ratio,
+          scaleUnit: "ft",
+        });
         for (const sheet of sheets) {
-          await saveMarkupMutation.mutateAsync({ sheetId: sheet.id, projectId, shapesJson: "", scaleRatio: ratio, scaleUnit: "ft" });
           scalesMap[sheet.id] = { ratio, unit: "ft" };
         }
+        // Save preference for next time
+        savePrefMutation.mutate({ lastScaleIdx: allScaleIdx, lastPaperIdx: allPaperIdx });
       } else {
+        // Groups mode — one bulk request per discipline group (max 5 requests, not 49)
         for (const disc of DISCIPLINES) {
           const groupSheets = sheetGroups[disc.key];
           if (!groupSheets.length) continue;
           const { scaleIdx, paperIdx } = groupScales[disc.key];
           const ratio = pxPerFt(scaleIdx, paperIdx);
+          await bulkScaleMutation.mutateAsync({
+            projectId,
+            sheetIds: groupSheets.map(s => s.id),
+            scaleRatio: ratio,
+            scaleUnit: "ft",
+          });
           for (const sheet of groupSheets) {
-            await saveMarkupMutation.mutateAsync({ sheetId: sheet.id, projectId, shapesJson: "", scaleRatio: ratio, scaleUnit: "ft" });
             scalesMap[sheet.id] = { ratio, unit: "ft" };
           }
+        }
+        // Save the first group's preference as default for next time
+        const firstGroup = activeGroups[0];
+        if (firstGroup) {
+          const { scaleIdx, paperIdx } = groupScales[firstGroup.key];
+          savePrefMutation.mutate({ lastScaleIdx: scaleIdx, lastPaperIdx: paperIdx });
         }
       }
 
       setDone(true);
-      toast.success(`Scale set for all ${sheets.length} sheets — starting analysis`);
-      onComplete(scalesMap);
+      toast.success(`Scale set for all ${sheets.length} sheets`);
+      // Small delay so user sees the "Done" state before modal closes
+      setTimeout(() => onComplete(scalesMap), 400);
     } catch (err: any) {
       toast.error(`Failed to save scale: ${err.message}`);
     } finally {
@@ -209,8 +251,15 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
     }
   };
 
+  // Proper close handler — skip on close (not a no-op that freezes)
+  const handleClose = (isOpen: boolean) => {
+    if (!isOpen && !saving) {
+      onSkipAll();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-xl bg-navy-medium border-white/10 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">

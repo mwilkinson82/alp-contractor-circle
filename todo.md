@@ -2795,3 +2795,9 @@
 - [x] Downgrade pdfjs-dist from 5.6.205 → 4.10.38 — v5 used Map.prototype.getOrInsertComputed (TC39 proposal, only Chrome 136+, crashes iOS Safari / Firefox / older Chrome)
 - [x] Copy matching pdf.worker.min.mjs from node_modules to client/public/ (worker must match library version)
 - [x] TypeScript clean (0 errors), 414 tests passing
+
+## Scale UX Improvements + Freeze Fix (Apr 19 2026)
+- [x] Remember last-used scale per member — pre-fill dropdown on next upload (lastScaleIdx/lastPaperIdx columns + getScalePreference/saveScalePreference endpoints)
+- [x] Pre-load saved scale on re-run (modal pre-fills from saved preference)
+- [x] Scale badge on each sheet card showing human-readable scale (e.g. 1/4" = 1'-0") via reverse-lookup
+- [x] Fix freeze bug — root cause: sequential mutateAsync per sheet + onOpenChange no-op. Fix: bulkSaveSheetScale endpoint (single request), proper Dialog close handler

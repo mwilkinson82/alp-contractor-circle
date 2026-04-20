@@ -54,7 +54,26 @@ import {
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
-import ScaleCalibrationPrompt from "@/components/ScaleCalibrationPrompt";
+import ScaleCalibrationPrompt, { DRAWING_SCALES, PAPER_SIZES, pxPerFt } from "@/components/ScaleCalibrationPrompt";
+
+/** Reverse-lookup: given a px/ft ratio, find the closest matching human-readable scale label */
+function getScaleLabel(ratio: number): string {
+  let bestLabel = `${Math.round(ratio)} px/ft`;
+  let bestDist = Infinity;
+  for (let si = 0; si < DRAWING_SCALES.length; si++) {
+    for (let pi = 0; pi < PAPER_SIZES.length; pi++) {
+      const candidate = pxPerFt(si, pi);
+      const dist = Math.abs(candidate - ratio);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestLabel = DRAWING_SCALES[si].label.split("(")[0].trim();
+      }
+    }
+  }
+  // Only use the label if it's a close match (within 5%)
+  if (bestDist / ratio > 0.05) return `${ratio.toFixed(1)} px/ft`;
+  return bestLabel;
+}
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1197,7 +1216,7 @@ export default function TakeoffDetail() {
                         {sheetScales[sheet.id] && (
                           <p className="text-[10px] text-amber-400/70 mt-1 flex items-center gap-1">
                             <Ruler className="w-2.5 h-2.5" />
-                            Scale: 1 {sheetScales[sheet.id].unit} = {Math.round(sheetScales[sheet.id].ratio)}px
+                            {getScaleLabel(sheetScales[sheet.id].ratio)}
                           </p>
                         )}
                       </CardContent>

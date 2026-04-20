@@ -874,6 +874,62 @@ export const takeoffRouter = router({
       return { success: true, id };
     }),
 
+  /** Bulk-set scale for multiple sheets in one request (no sequential await per sheet) */
+  bulkSaveSheetScale: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        sheetIds: z.array(z.number()),
+        scaleRatio: z.number(),
+        scaleUnit: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const results = await Promise.all(
+        input.sheetIds.map((sheetId) =>
+          saveSheetMarkup({
+            sheetId,
+            memberId: member.id,
+            projectId: input.projectId,
+            shapesJson: "",
+            scaleRatio: input.scaleRatio.toString(),
+            scaleUnit: input.scaleUnit,
+          })
+        )
+      );
+      return { success: true, count: results.length };
+    }),
+
+  /** Save member's last-used scale + paper size so we can pre-fill next time */
+  saveScalePreference: publicProcedure
+    .input(
+      z.object({
+        lastScaleIdx: z.number(),
+        lastPaperIdx: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireMember(ctx.req);
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { members } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await db.update(members).set({
+        lastScaleIdx: input.lastScaleIdx,
+        lastPaperIdx: input.lastPaperIdx,
+      }).where(eq(members.id, member.id));
+      return { success: true };
+    }),
+
+  /** Get member's last-used scale preference */
+  getScalePreference: publicProcedure
+    .query(async ({ ctx }) => {
+      const member = await requireMember(ctx.req);
+      return { lastScaleIdx: member.lastScaleIdx ?? 0, lastPaperIdx: member.lastPaperIdx ?? 0 };
+    }),
+
   deleteSheetMarkup: publicProcedure
     .input(z.object({ sheetId: z.number() }))
     .mutation(async ({ ctx, input }) => {
