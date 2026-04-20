@@ -428,19 +428,19 @@ const RESPONSE_SCHEMA = {
             additionalProperties: false,
           },
         },
-      },
-      detectedScale: {
+        detectedScale: {
           type: "object",
-          description: "If a scale notation is found on the drawing (e.g., '1/4\" = 1\'-0\"', '1:100', 'Scale: 3/16\" = 1\'-0\"'), extract it here. If no scale notation is visible, set found to false.",
+          description: "If a scale notation is found on the drawing (e.g., '1/4\" = 1'-0\"', '1:100', 'Scale: 3/16\" = 1'-0\"'), extract it here. If no scale notation is visible, set found to false.",
           properties: {
             found: { type: "boolean", description: "Whether a scale notation was detected on the drawing" },
-            notation: { type: "string", description: "The exact scale notation text found on the drawing, e.g., '1/4\" = 1\'-0\"' or '1:100'. Empty string if not found." },
-            drawingUnitsPerRealUnit: { type: "number", description: "The ratio of drawing units to real-world units. For '1/4\" = 1\'-0\"', this would be 48 (1 foot = 48 quarter-inches). Set to 0 if not found or cannot be calculated." },
+            notation: { type: "string", description: "The exact scale notation text found on the drawing, e.g., '1/4\" = 1'-0\"' or '1:100'. Empty string if not found." },
+            drawingUnitsPerRealUnit: { type: "number", description: "The ratio of drawing units to real-world units. For '1/4\" = 1'-0\"', this would be 48 (1 foot = 48 quarter-inches). Set to 0 if not found or cannot be calculated." },
             realUnit: { type: "string", description: "The real-world unit: 'ft', 'm', 'in', 'cm'. Empty string if not found." },
           },
           required: ["found", "notation", "drawingUnitsPerRealUnit", "realUnit"],
           additionalProperties: false,
         },
+      },
       required: ["sheetName", "sheetType", "items", "detectedScale"],
       additionalProperties: false,
     },
@@ -494,7 +494,8 @@ async function extractQuantities(
   }
 
   const result = JSON.parse(content) as TakeoffExtractionResult;
-
+  // Null safety: ensure items array exists even if LLM returns malformed response
+  if (!Array.isArray(result.items)) result.items = [];
   // Post-filter: ensure only selected divisions are included (belt-and-suspenders)
   if (selectedDivisions && selectedDivisions.length > 0) {
     result.items = result.items.filter((item) =>
