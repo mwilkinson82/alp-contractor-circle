@@ -448,7 +448,7 @@ export default function TakeoffDetail() {
     // Use pdf.js to render PDF pages to images
     // Worker file is copied to public/ dir so it's served as a static asset
     const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.v4.min.mjs";
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
