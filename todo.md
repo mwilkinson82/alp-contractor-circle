@@ -2790,3 +2790,8 @@
 - [x] ActivityFeedPanel in Admin Panel (side-by-side with OnlineUsersPanel)
 - [x] useActivityLog hook for frontend activity logging
 - [x] Heartbeat tracks page changes and logs navigation events
+
+## Bug Fix — pdf.js getOrInsertComputed Crash (Apr 19 2026)
+- [x] Downgrade pdfjs-dist from 5.6.205 → 4.10.38 — v5 used Map.prototype.getOrInsertComputed (TC39 proposal, only Chrome 136+, crashes iOS Safari / Firefox / older Chrome)
+- [x] Copy matching pdf.worker.min.mjs from node_modules to client/public/ (worker must match library version)
+- [x] TypeScript clean (0 errors), 414 tests passing
