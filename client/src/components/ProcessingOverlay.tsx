@@ -386,7 +386,7 @@ export default function ProcessingOverlay({
     {
       key: "consolidating" as const,
       label: "Consolidate & Enhance",
-      description: "Merging & refining results",
+      description: "Auto-running — merging & refining results",
     },
   ];
 

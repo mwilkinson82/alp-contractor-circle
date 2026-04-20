@@ -414,13 +414,13 @@ export default function TakeoffDetail() {
 
   const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
     onSuccess: () => {
-      toast.success("Consolidate & Enhance started! This may take a minute...");
+      toast.success("Re-running full analysis… items will update when complete.");
       // The backend sets status to post_processing, which triggers polling via refetchInterval.
       // The prevStatusRef effect above will detect post_processing → completed and auto-refresh items.
       refetchProject();
       refetchProgress();
     },
-    onError: (err) => toast.error(`Consolidation error: ${err.message}`),
+    onError: (err) => toast.error(`Re-run error: ${err.message}`),
   });
 
   const repriceMutation = trpc.takeoff.repriceItems.useMutation({
@@ -1320,7 +1320,7 @@ export default function TakeoffDetail() {
                   </div>
                   {/* Row 2: Action Buttons — compact with overflow dropdown */}
                   <div className="flex items-center gap-2 border-t border-white/5 pt-2">
-                    {/* Consolidate & Enhance — primary action */}
+                    {/* Re-run Analysis — manual re-trigger of full post-processing pipeline */}
                     <div className="relative group">
                       <Button
                         data-tour="takeoff-consolidate-btn"
@@ -1333,13 +1333,14 @@ export default function TakeoffDetail() {
                         {consolidateMutation.isPending ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         )}
-                        <span className="hidden sm:inline">Consolidate & Enhance</span>
-                        <span className="sm:hidden">Enhance</span>
+                        <span className="hidden sm:inline">Re-run Analysis</span>
+                        <span className="sm:hidden">Re-run</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-amber-400 text-xs font-semibold mb-1.5">ConstructLine Engine Post-Processing</p>
+                        <p className="text-amber-400 text-xs font-semibold mb-1.5">Re-run Full Analysis Pipeline</p>
+                        <p className="text-cream-muted text-[11px] mb-2">This runs automatically after upload. Use this to re-process after editing scope or adding sheets.</p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
                           <li>• Merges duplicate items from different sheets</li>
                           <li>• Converts lump sums to measured quantities</li>

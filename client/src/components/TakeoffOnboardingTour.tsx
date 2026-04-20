@@ -80,7 +80,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-summary-bar"]',
     content:
-      "The summary bar shows your line item count, CSI divisions, reviewed count, and total estimated cost. Use the action buttons below to Consolidate & Enhance, Re-price, Export, Import, Add Items, or open the Bid Calculator. Additional tools are in the More menu.",
+      "The summary bar shows your line item count, CSI divisions, reviewed count, and total estimated cost. Use the action buttons to Re-run Analysis, Re-price, Export, Import, Add Items, or open the Bid Calculator. Additional tools are in the More menu.",
     title: "Quantity Takeoff Summary & Tools",
     placement: "bottom",
     skipBeacon: true,
@@ -88,8 +88,8 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-consolidate-btn"]',
     content:
-      "After the initial analysis, click Consolidate & Enhance to let the ConstructLine engine merge duplicates, convert lump sums to measured quantities, calculate concrete volumes, and remove out-of-scope items. This refines your takeoff without re-reading the drawings.",
-    title: "Consolidate & Enhance",
+      "The full analysis pipeline runs automatically after upload — no action needed. Use Re-run Analysis to re-process after editing scope, adding sheets, or changing settings. It merges duplicates, converts lump sums to measured quantities, calculates CY volumes, and removes out-of-scope items.",
+    title: "Re-run Analysis",
     placement: "bottom",
     skipBeacon: true,
   },

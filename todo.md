@@ -2880,3 +2880,12 @@
 - [x] Update extraction prompt to enforce CY (not CF) for all concrete volume quantities (already enforced)
 - [x] Add post-processing conversion: any concrete items in CF → convert to CY (÷27) (already done in calculateConcreteVolumes)
 - [x] Verify CSI Division 03 unit guidance says CY for volumes (confirmed working)
+
+## Auto-Pipeline: End-to-End Consolidate & Enhance
+- [x] Server: auto-trigger postProcessTakeoff() immediately after processAllPendingSheets() completes (was already auto-running)
+- [x] Server: set project status to "consolidating" before post-process, "completed" after (already implemented)
+- [x] UI: remove manual "Consolidate & Enhance" button from toolbar
+- [x] UI: rename to "Re-run Analysis" button (secondary, for manual re-triggers only)
+- [x] UI: ProcessingOverlay shows all 3 steps running end-to-end without user action
+- [x] UI: polling continues through consolidation phase automatically (already implemented)
+- [x] QA: build clean, all tests pass, no regressions
