@@ -276,6 +276,9 @@ export default function ProcessingOverlay({
   const [messageIndex, setMessageIndex] = useState(0);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
+  // Track when consolidation phase started for countdown
+  const consolidationStartRef = useRef<number | null>(null);
+  const [consolidationElapsed, setConsolidationElapsed] = useState(0);
 
   // Determine current phase
   const currentPhase: AnalysisPhase = useMemo(() => {
@@ -283,6 +286,22 @@ export default function ProcessingOverlay({
     if (processedSheets > 0) return "extracting";
     return "indexing";
   }, [projectStatus, processedSheets]);
+
+  // Track consolidation phase start time and elapsed
+  useEffect(() => {
+    if (currentPhase === "consolidating") {
+      if (!consolidationStartRef.current) {
+        consolidationStartRef.current = Date.now();
+      }
+      const interval = setInterval(() => {
+        setConsolidationElapsed(Date.now() - (consolidationStartRef.current || Date.now()));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      consolidationStartRef.current = null;
+      setConsolidationElapsed(0);
+    }
+  }, [currentPhase]);
 
   // Get messages for current phase
   const phaseMessages = useMemo(() => {
@@ -328,6 +347,10 @@ export default function ProcessingOverlay({
     return sheets.find((s) => s.status === "processing");
   }, [sheets]);
 
+  // Consolidation ETA: 5 LLM calls × ~30s each = ~180s baseline, scales slightly with item count
+  // We use 180s as a baseline and count down from there
+  const CONSOLIDATION_ESTIMATE_MS = 180000; // 3 minutes
+
   // ETA calculation — real countdown based on per-sheet speed
   const etaMs = useMemo(() => {
     if (currentPhase === "indexing") {
@@ -335,8 +358,8 @@ export default function ProcessingOverlay({
       return totalSheets * 30000;
     }
     if (currentPhase === "consolidating") {
-      // Consolidation is usually ~60-90s regardless of sheet count
-      return 60000;
+      // Countdown from 3-minute estimate minus elapsed time in this phase
+      return Math.max(0, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
     }
     // Extracting phase: use actual per-sheet timing
     const remaining = totalSheets - processedSheets;
@@ -346,7 +369,7 @@ export default function ProcessingOverlay({
         ? elapsed / processedSheets
         : 30000; // fallback 30s/sheet
     return remaining * avgPerSheet;
-  }, [currentPhase, totalSheets, processedSheets, elapsed]);
+  }, [currentPhase, totalSheets, processedSheets, elapsed, consolidationElapsed]);
 
   // Phase step config
   const phases = [
@@ -374,9 +397,14 @@ export default function ProcessingOverlay({
   ];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
-  const isIndeterminate =
-    currentPhase === "indexing" || currentPhase === "consolidating";
+  // Consolidation is now determinate (has countdown), only indexing is indeterminate
+  const isIndeterminate = currentPhase === "indexing";
   const ringColor = currentPhase === "consolidating" ? "emerald" : "amber";
+  // For consolidation, calculate percentage from elapsed vs estimate
+  const consolidationPercentage = currentPhase === "consolidating"
+    ? Math.min(95, Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100))
+    : 0;
+  const displayPercentage = currentPhase === "consolidating" ? consolidationPercentage : percentage;
 
   // ─── Splash Phase ────────────────────────────────────────────────────────
   if (showSplash) {
@@ -402,7 +430,7 @@ export default function ProcessingOverlay({
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
             <ProgressRing
-              percentage={percentage}
+              percentage={displayPercentage}
               isIndeterminate={isIndeterminate}
               color={ringColor}
             />
@@ -418,7 +446,7 @@ export default function ProcessingOverlay({
                     }}
                   />
                   <span className="text-[11px] text-cream-muted/60 font-medium">
-                    {currentPhase === "indexing" ? "Indexing" : "Enhancing"}
+                    Indexing
                   </span>
                 </>
               ) : (
@@ -439,7 +467,7 @@ export default function ProcessingOverlay({
           <div className="flex items-center gap-4 mt-4">
             {!isIndeterminate && (
               <span className="text-sm font-semibold text-amber-400">
-                {percentage}% complete
+                {displayPercentage}% complete
               </span>
             )}
             <span className="text-xs text-cream-muted/50">

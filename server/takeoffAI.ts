@@ -849,7 +849,13 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   let processedCount = project.processedSheets || 0;
   let hasError = false;
 
-  // Skip sheets without images first
+  // ─── Smart Context-Only Sheet Detection ─────────────────────────────────
+  // After Pass 1 indexing, sheets classified as "cover" or "other" (general_notes)
+  // with no measurable elements are skipped from the expensive extraction LLM call.
+  // Their context (notes, project info) was already captured in Pass 1.
+  const CONTEXT_ONLY_SHEET_TYPES = new Set(["cover"]);
+
+  // Skip sheets without images first, then skip context-only sheets
   const sheetsToProcess = [];
   for (const sheet of pendingSheets) {
     if (!sheet.imageUrl) {
@@ -858,9 +864,27 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         errorMessage: "No image URL available",
       });
       processedCount++;
+    } else if (CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType)) {
+      // Context-only sheet — skip extraction, mark as completed with 0 items
+      console.log(`[Takeoff AI] Skipping extraction for context-only sheet ${sheet.id} (type: ${sheet.sheetType}, name: ${sheet.sheetName}) — context captured in Pass 1`);
+      await updateDrawingSheet(sheet.id, {
+        status: "completed" as any,
+        aiRawResponse: JSON.stringify({
+          contextOnly: true,
+          reason: `Sheet type "${sheet.sheetType}" contains no measurable quantities. Context was captured during indexing.`,
+          items: [],
+        }),
+      });
+      processedCount++;
+      await updateTakeoffProject(projectId, { processedSheets: processedCount });
     } else {
       sheetsToProcess.push(sheet);
     }
+  }
+
+  if (sheetsToProcess.length < pendingSheets.length) {
+    const skippedCount = pendingSheets.length - sheetsToProcess.length;
+    console.log(`[Takeoff AI] ${skippedCount} sheet(s) skipped (no image or context-only). ${sheetsToProcess.length} sheets queued for extraction.`);
   }
 
   // Process sheets in parallel batches of 6 for maximum throughput

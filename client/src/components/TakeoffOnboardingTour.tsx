@@ -80,7 +80,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-summary-bar"]',
     content:
-      "The summary bar shows total line items, CSI divisions, reviewed count, and your estimated total cost. Use the toolbar buttons to Consolidate & Enhance results, export to Excel/CSV, view measurement rollups, add manual items, or open the Bid Calculator.",
+      "The summary bar shows your line item count, CSI divisions, reviewed count, and total estimated cost. Use the action buttons below to Consolidate & Enhance, Re-price, Export, Import, Add Items, or open the Bid Calculator. Additional tools are in the More menu.",
     title: "Quantity Takeoff Summary & Tools",
     placement: "bottom",
     skipBeacon: true,

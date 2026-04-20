@@ -2853,3 +2853,30 @@
 - [x] Move CPM Schedule from C1 (bottom-right) to top-left position in tools grid
 - [x] Make CPM Schedule the highlighted/featured tool card
 - [x] Fix scale modal: replace glass-morphic/transparent bg with solid dark bg matching portal theme
+
+## Smart Sheet Handling — Context-Only Sheets
+- [x] Detect cover sheets, general notes, title sheets, specifications during indexing
+- [x] Extract project context (scope, specs, conditions) from context-only sheets — no line item extraction
+- [x] Store extracted context at project level for use by other sheets (already done in Pass 1)
+- [x] Inject project context into extraction prompts for actual drawing sheets (already done in Pass 2)
+- [x] Show "Context Only" status on non-drawing sheet cards
+- [x] Skip quantity extraction LLM call for context-only sheets (save ~2-3 min per sheet)
+- [x] QA: build clean, tests passing, no regressions
+
+## Processing Overlay — Banner & Consolidation Timer Fixes
+- [x] Remove or fix misleading "2-5 minutes for large projects" top banner
+- [x] Add countdown timer estimate to consolidation/enhance phase (not just elapsed)
+- [x] Ensure ProcessingOverlay shows useful time info during ALL phases, not just extraction
+
+## TakeoffDetail Toolbar Re-engineering
+- [x] Redesign summary toolbar to prevent overflow with large dollar values ($10M+)
+- [x] Move less-used actions into a "More" dropdown menu
+- [x] Ensure "Consolidate & Enhance" button doesn't overlap the total dollar value
+- [x] Make toolbar responsive — works on all screen widths without squishing
+- [x] Keep primary actions (Export, Add Item) always visible; group secondary actions
+- [x] QA: toolbar looks correct with $0, $100K, $1M, $10M+ values
+
+## Concrete Quantities — Enforce Cubic Yards (CY)
+- [x] Update extraction prompt to enforce CY (not CF) for all concrete volume quantities (already enforced)
+- [x] Add post-processing conversion: any concrete items in CF → convert to CY (÷27) (already done in calculateConcreteVolumes)
+- [x] Verify CSI Division 03 unit guidance says CY for volumes (confirmed working)

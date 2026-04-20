@@ -11,6 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -53,6 +60,7 @@ import {
   Bookmark,
   GitCompareArrows,
   Merge,
+  MoreHorizontal,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -858,20 +866,15 @@ export default function TakeoffDetail() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
             <span className="font-semibold text-sm">
-              {isConsolidating ? "ConstructLine is enhancing unit costs…" : "ConstructLine is analyzing drawings…"}
+              {isConsolidating ? "Enhancing & consolidating results…" : "Analyzing drawings…"}
             </span>
           </div>
-          <span className="text-sm opacity-80">
-            {isConsolidating
-              ? "This typically takes 2–5 minutes for large projects."
-              : "Extracting quantities from all sheets. Large jobs may take several minutes."}
-          </span>
           {processingElapsed > 0 && (
             <span className="text-sm font-mono bg-black/20 px-2 py-0.5 rounded">
               {Math.floor(processingElapsed / 60)}:{String(processingElapsed % 60).padStart(2, "0")}
             </span>
           )}
-          <span className="text-xs opacity-60">Page will refresh automatically when done.</span>
+          <span className="text-xs opacity-60">Page refreshes automatically when done.</span>
         </div>
       )}
       {/* Header Bar */}
@@ -1156,7 +1159,11 @@ export default function TakeoffDetail() {
             {sheets.length > 0 ? (
               <div data-tour="takeoff-sheet-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {sheets.map((sheet: any) => {
-                  const statusConfig = SHEET_STATUS_CONFIG[sheet.status] || SHEET_STATUS_CONFIG.pending;
+                  // Detect context-only sheets (cover, general notes) that were auto-completed
+                  const isContextOnly = sheet.status === "completed" && sheet.sheetType === "cover";
+                  const statusConfig = isContextOnly
+                    ? { label: "Context Only", color: "bg-blue-500/20 text-blue-300", icon: CheckCircle2 }
+                    : (SHEET_STATUS_CONFIG[sheet.status] || SHEET_STATUS_CONFIG.pending);
                   const StatusIcon = statusConfig.icon;
                   return (
                     <Card
@@ -1291,23 +1298,29 @@ export default function TakeoffDetail() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Summary Bar */}
-                <div data-tour="takeoff-summary-bar" className="flex flex-wrap items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-6 text-sm text-cream-muted">
-                    <span>{items.length} line items</span>
-                    <span>{Object.keys(groupedItems).length} CSI divisions</span>
-                    <span>
-                      {items.filter((i: any) => i.reviewed).length} reviewed
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-cream-muted text-sm">Total:</span>
-                      <span className="text-amber-400 font-bold text-xl">
+                {/* Summary Bar — Redesigned two-row toolbar */}
+                <div data-tour="takeoff-summary-bar" className="bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 space-y-2">
+                  {/* Row 1: Stats + Total + Primary Actions */}
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Left: Stats */}
+                    <div className="flex items-center gap-3 sm:gap-5 text-sm text-cream-muted shrink-0">
+                      <span className="whitespace-nowrap">{items.length} items</span>
+                      <span className="hidden sm:inline whitespace-nowrap">{Object.keys(groupedItems).length} CSI divisions</span>
+                      <span className="whitespace-nowrap">
+                        {items.filter((i: any) => i.reviewed).length} reviewed
+                      </span>
+                    </div>
+                    {/* Right: Total */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-cream-muted text-sm hidden sm:inline">Total:</span>
+                      <span className="text-amber-400 font-bold text-lg sm:text-xl tabular-nums">
                         {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
                     </div>
-                    <div className="w-px h-6 bg-white/10" />
+                  </div>
+                  {/* Row 2: Action Buttons — compact with overflow dropdown */}
+                  <div className="flex items-center gap-2 border-t border-white/5 pt-2">
+                    {/* Consolidate & Enhance — primary action */}
                     <div className="relative group">
                       <Button
                         data-tour="takeoff-consolidate-btn"
@@ -1315,74 +1328,88 @@ export default function TakeoffDetail() {
                         variant="outline"
                         onClick={() => consolidateMutation.mutate({ projectId })}
                         disabled={consolidateMutation.isPending || isProcessing}
-                        className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                        className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
                       >
                         {consolidateMutation.isPending ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
                           <Sparkles className="w-3.5 h-3.5" />
                         )}
-                        Consolidate & Enhance
+                        <span className="hidden sm:inline">Consolidate & Enhance</span>
+                        <span className="sm:hidden">Enhance</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                         <p className="text-amber-400 text-xs font-semibold mb-1.5">ConstructLine Engine Post-Processing</p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
                           <li>• Merges duplicate items from different sheets</li>
-                          <li>• Converts lump sums to measured quantities using plan dimensions</li>
-                          <li>• Calculates concrete volumes (CY) from dimensions</li>
-                          <li>• Generates formwork items for concrete elements</li>
-                          <li>• Removes items outside your defined scope</li>
+                          <li>• Converts lump sums to measured quantities</li>
+                          <li>• Calculates concrete volumes (CY)</li>
+                          <li>• Generates formwork items</li>
+                          <li>• Removes out-of-scope items</li>
                         </ul>
-                        <p className="text-cream-muted/50 text-[10px] mt-2">Drawings are not re-read — only existing data is refined.</p>
                       </div>
                     </div>
+                    {/* Re-price */}
                     <div className="relative group">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => repriceMutation.mutate({ projectId })}
                         disabled={repriceMutation.isPending || isProcessing}
-                        className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                        className="h-7 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
                       >
                         {repriceMutation.isPending ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
                           <DollarSign className="w-3.5 h-3.5" />
                         )}
-                        Re-price Items
+                        <span className="hidden sm:inline">Re-price</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-navy-deep border border-blue-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                         <p className="text-blue-400 text-xs font-semibold mb-1.5">Re-run Cost Lookup</p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
-                          <li>• Re-matches items against the cost database</li>
+                          <li>• Re-matches items against cost database</li>
                           <li>• Fixes $1.00 placeholder costs</li>
-                          <li>• Applies your regional cost multiplier</li>
-                          <li>• No re-upload or re-extraction needed</li>
+                          <li>• Applies regional cost multiplier</li>
                         </ul>
-                        <p className="text-cream-muted/50 text-[10px] mt-2">Quantities are not changed — only unit costs are updated.</p>
                       </div>
                     </div>
-                    <div className="w-px h-6 bg-white/10" />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleExportExcel}
-                      disabled={!items || items.length === 0}
-                      className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
-                      title="Export to Excel (.xlsx)"
-                    >
-                      <FileSpreadsheet className="w-3.5 h-3.5" />
-                      Export
-                    </Button>
+                    <div className="w-px h-5 bg-white/10" />
+                    {/* Export dropdown — combines Excel + CSV */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!items || items.length === 0}
+                          className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          Export
+                          <ChevronDown className="w-3 h-3 opacity-60" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-44">
+                        <DropdownMenuItem onClick={handleExportExcel}>
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                          Excel (.xlsx)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleExportCsv}>
+                          <Download className="w-4 h-4 text-blue-400" />
+                          CSV (.csv)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    {/* Import */}
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => importFileRef.current?.click()}
-                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                      className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
                       title="Import from Excel (.xlsx)"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      Import
+                      <span className="hidden sm:inline">Import</span>
                     </Button>
                     <input
                       ref={importFileRef}
@@ -1391,44 +1418,24 @@ export default function TakeoffDetail() {
                       className="hidden"
                       onChange={handleImportExcel}
                     />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleExportCsv}
-                      disabled={!items || items.length === 0}
-                      className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
-                      title="Export to CSV"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      CSV
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowRollup(true)}
-                      disabled={!projectMarkups || projectMarkups.length === 0}
-                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                      title="View measurement rollup across all sheets"
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      Measurements
-                    </Button>
-                    <div className="w-px h-6 bg-white/10" />
+                    <div className="w-px h-5 bg-white/10" />
+                    {/* Add Item */}
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setShowAddItem(true)}
-                      className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
                       title="Add a manual line item"
                     >
                       <PlusCircle className="w-3.5 h-3.5" />
-                      Add Item
+                      <span className="hidden sm:inline">Add Item</span>
                     </Button>
+                    {/* Bid Calculator */}
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setShowMarkup(!showMarkup)}
-                      className={`h-8 text-xs gap-1.5 ${
+                      className={`h-7 text-xs gap-1.5 ${
                         showMarkup
                           ? "border-amber-500/50 text-amber-400 bg-amber-500/10"
                           : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
@@ -1436,22 +1443,39 @@ export default function TakeoffDetail() {
                       title="Bid Markup Calculator"
                     >
                       <Calculator className="w-3.5 h-3.5" />
-                      Bid Calculator
+                      <span className="hidden sm:inline">Bid Calc</span>
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowConsolidationDiff(!showConsolidationDiff)}
-                      className={`h-8 text-xs gap-1.5 ${
-                        showConsolidationDiff
-                          ? "border-cyan-500/50 text-cyan-400 bg-cyan-500/10"
-                          : "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-                      }`}
-                      title="Show what changed during consolidation"
-                    >
-                      <GitCompareArrows className="w-3.5 h-3.5" />
-                      {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
-                    </Button>
+                    {/* More dropdown — Measurements + Show Diff */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-7 text-xs gap-1 border-white/10 text-cream-muted hover:bg-white/5 hover:text-cream ${
+                            showConsolidationDiff ? "border-cyan-500/40 text-cyan-400" : ""
+                          }`}
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">More</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem
+                          onClick={() => setShowRollup(true)}
+                          disabled={!projectMarkups || projectMarkups.length === 0}
+                        >
+                          <Layers className="w-4 h-4 text-amber-400" />
+                          Measurements
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setShowConsolidationDiff(!showConsolidationDiff)}
+                        >
+                          <GitCompareArrows className={`w-4 h-4 ${showConsolidationDiff ? "text-cyan-400" : "text-cyan-400/60"}`} />
+                          {showConsolidationDiff ? "Hide Consolidation Diff" : "Show Consolidation Diff"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 

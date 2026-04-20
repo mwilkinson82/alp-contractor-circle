@@ -1195,9 +1195,9 @@ export const takeoffRouter = router({
           // Try fuzzy: match by division + first 40 chars of normalized description
           const shortKey = `${(ci.csiDivision || "").trim()}|${norm(ci.description).substring(0, 40)}`;
           let fuzzyMatches: SnapshotItem[] = [];
-          for (const [k, v] of snapByDesc.entries()) {
+          for (const [k, v] of Array.from(snapByDesc.entries())) {
             if (k.startsWith(shortKey)) {
-              fuzzyMatches.push(...v.filter(s => !matchedSnapIds.has(s.id)));
+              fuzzyMatches.push(...v.filter((s: SnapshotItem) => !matchedSnapIds.has(s.id)));
             }
           }
 

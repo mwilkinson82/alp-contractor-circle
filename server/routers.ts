@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, router, mergeRouters } from "./_core/trpc";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
@@ -83,7 +83,7 @@ export const appRouter = router({
 
   member: memberRouter,
   schedule: scheduleRouter,
-  takeoff: router({ ...takeoffRouter._def.procedures, ...takeoffCostRouter._def.procedures }),
+  takeoff: mergeRouters(takeoffRouter, takeoffCostRouter),
   labor: laborLibraryRouter,
   estimate: estimateRouter,
   tradeRates: tradeRateRouter,
