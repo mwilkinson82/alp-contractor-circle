@@ -185,56 +185,78 @@ function MeasureTool({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Zoom/pan state
-  const [zoomIdx, setZoomIdx] = useState(0);
+  const [zoom, setZoom] = useState(1);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const dragMoved = useRef(false);
+  // Mode: "pan" = drag to navigate, "draw" = click to place points
+  const [interactMode, setInteractMode] = useState<"pan" | "draw">("draw");
 
   // Touch pinch state
   const lastTouchDist = useRef<number | null>(null);
-
-  const zoom = ZOOM_LEVELS[zoomIdx];
 
   useEffect(() => {
     if (step === "enter_dist") setTimeout(() => inputRef.current?.focus(), 80);
   }, [step]);
 
-  const zoomIn = useCallback(() => {
-    setZoomIdx(prev => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
-  }, []);
-
-  const zoomOut = useCallback(() => {
-    setZoomIdx(prev => {
-      const next = Math.max(prev - 1, 0);
-      if (next === 0) setPanPos({ x: 0, y: 0 });
+  const zoomIn = useCallback((cursorX?: number, cursorY?: number) => {
+    const container = containerRef.current;
+    const rect = container?.getBoundingClientRect();
+    const cx = cursorX ?? (rect ? rect.left + rect.width / 2 : 0);
+    const cy = cursorY ?? (rect ? rect.top + rect.height / 2 : 0);
+    setZoom(prev => {
+      const next = Math.min(prev * 1.5, 8);
+      if (next <= 1.01) { setPanPos({ x: 0, y: 0 }); return next; }
+      if (!container || !rect) return next;
+      const cw = rect.width, ch = rect.height;
+      const imgX = (cx - rect.left - cw / 2 - panPos.x) / prev;
+      const imgY = (cy - rect.top - ch / 2 - panPos.y) / prev;
+      setPanPos({ x: cx - rect.left - cw / 2 - imgX * next, y: cy - rect.top - ch / 2 - imgY * next });
       return next;
     });
-  }, []);
+  }, [panPos]);
+
+  const zoomOut = useCallback((cursorX?: number, cursorY?: number) => {
+    const container = containerRef.current;
+    const rect = container?.getBoundingClientRect();
+    const cx = cursorX ?? (rect ? rect.left + rect.width / 2 : 0);
+    const cy = cursorY ?? (rect ? rect.top + rect.height / 2 : 0);
+    setZoom(prev => {
+      const next = Math.max(prev / 1.5, 1);
+      if (next <= 1.01) { setPanPos({ x: 0, y: 0 }); return 1; }
+      if (!container || !rect) return next;
+      const cw = rect.width, ch = rect.height;
+      const imgX = (cx - rect.left - cw / 2 - panPos.x) / prev;
+      const imgY = (cy - rect.top - ch / 2 - panPos.y) / prev;
+      setPanPos({ x: cx - rect.left - cw / 2 - imgX * next, y: cy - rect.top - ch / 2 - imgY * next });
+      return next;
+    });
+  }, [panPos]);
 
   const resetZoom = useCallback(() => {
-    setZoomIdx(0);
+    setZoom(1);
     setPanPos({ x: 0, y: 0 });
   }, []);
 
-  // Wheel zoom
+  // Wheel zoom — cursor-centered
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.deltaY < 0) zoomIn();
-    else zoomOut();
+    if (e.deltaY < 0) zoomIn(e.clientX, e.clientY);
+    else zoomOut(e.clientX, e.clientY);
   }, [zoomIn, zoomOut]);
 
-  // Mouse drag for pan (shift+click or middle/right button when zoomed)
+  // Mouse down: in pan mode always drag; in draw mode only drag with shift/middle/right
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (zoom <= 1) return;
-    if (e.button === 1 || e.button === 2 || e.shiftKey) {
-      e.preventDefault();
-      setIsDragging(true);
-      dragMoved.current = false;
-      setDragStart({ x: e.clientX - panPos.x, y: e.clientY - panPos.y });
-    }
-  }, [zoom, panPos]);
+    const shouldPan = interactMode === "pan" || e.button === 1 || e.button === 2 || e.shiftKey;
+    if (!shouldPan) return;
+    if (zoom <= 1 && interactMode !== "pan") return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragMoved.current = false;
+    setDragStart({ x: e.clientX - panPos.x, y: e.clientY - panPos.y });
+  }, [interactMode, zoom, panPos]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
@@ -246,14 +268,18 @@ function MeasureTool({
     setIsDragging(false);
   }, []);
 
-  // Touch handlers for pinch-to-zoom
+  // Touch handlers for pinch-to-zoom and single-finger pan
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       lastTouchDist.current = Math.sqrt(dx * dx + dy * dy);
+      lastTouchPos.current = null;
+    } else if (e.touches.length === 1 && zoom > 1) {
+      lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  }, []);
+  }, [zoom]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && lastTouchDist.current !== null) {
@@ -261,14 +287,25 @@ function MeasureTool({
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const delta = dist - lastTouchDist.current;
-      if (delta > 20) { zoomIn(); lastTouchDist.current = dist; }
-      else if (delta < -20) { zoomOut(); lastTouchDist.current = dist; }
+      if (Math.abs(delta) > 10) {
+        if (delta > 0) zoomIn(midX, midY); else zoomOut(midX, midY);
+        lastTouchDist.current = dist;
+      }
+    } else if (e.touches.length === 1 && lastTouchPos.current && zoom > 1) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - lastTouchPos.current.x;
+      const dy = e.touches[0].clientY - lastTouchPos.current.y;
+      setPanPos(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  }, [zoomIn, zoomOut]);
+  }, [zoomIn, zoomOut, zoom]);
 
   const handleTouchEnd = useCallback(() => {
     lastTouchDist.current = null;
+    lastTouchPos.current = null;
   }, []);
 
   // Convert screen click to image-space coordinates (accounting for zoom/pan)
@@ -287,8 +324,8 @@ function MeasureTool({
     else { ih = ch; iw = ch * imgAspect; }
     const ox = (cw - iw) / 2, oy = (ch - ih) / 2;
     const centerX = cw / 2, centerY = ch / 2;
-    const ptx = (cx - centerX) / zoom + centerX - panPos.x / zoom;
-    const pty = (cy - centerY) / zoom + centerY - panPos.y / zoom;
+    const ptx = (cx - centerX - panPos.x) / zoom + centerX;
+    const pty = (cy - centerY - panPos.y) / zoom + centerY;
     return {
       x: Math.max(0, Math.min(nw, ((ptx - ox) / iw) * nw)),
       y: Math.max(0, Math.min(nh, ((pty - oy) / ih) * nh)),
@@ -312,13 +349,14 @@ function MeasureTool({
     const pty = oy + (p.y / nh) * ih;
     const centerX = cw / 2, centerY = ch / 2;
     return {
-      x: centerX + (ptx - centerX + panPos.x / zoom) * zoom,
-      y: centerY + (pty - centerY + panPos.y / zoom) * zoom,
+      x: centerX + (ptx - centerX) * zoom + panPos.x,
+      y: centerY + (pty - centerY) * zoom + panPos.y,
     };
   }, [zoom, panPos]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (dragMoved.current) return;
+    if (interactMode === "pan") return; // pan mode — don't place points
     if (step === "pick_p1") {
       setP1(toImageCoords(e));
       setStep("pick_p2");
@@ -331,7 +369,7 @@ function MeasureTool({
       }
       setStep("enter_dist");
     }
-  }, [step, p1, toImageCoords]);
+  }, [step, p1, toImageCoords, interactMode]);
 
   const handleConfirm = () => {
     const val = parseFloat(distance);
@@ -350,37 +388,71 @@ function MeasureTool({
   const c1 = p1 ? toContainerCoords(p1) : null;
   const c2 = p2 ? toContainerCoords(p2) : null;
 
-  // Dynamic height: normal = 360px, fullscreen = fill available space
-  const viewerHeight = isFullscreen ? "calc(100vh - 220px)" : "360px";
+  // Dynamic height: normal = 380px, fullscreen = fill available space
+  const viewerHeight = isFullscreen ? "calc(100vh - 240px)" : "380px";
+
+  // Cursor based on mode and state
+  const getCursor = () => {
+    if (isDragging) return "grabbing";
+    if (interactMode === "pan") return zoom > 1 ? "grab" : "default";
+    if (step === "enter_dist") return "default";
+    return "crosshair";
+  };
 
   return (
     <div className="space-y-3">
-      {/* Zoom toolbar + fullscreen + pan hint */}
-      <div className="flex items-center gap-2">
-        {/* Pan instruction — prominent when zoomed */}
-        {zoom > 1 ? (
-          <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/40 rounded-md px-3 py-1.5">
-            <Move className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-amber-300 text-xs font-semibold">Hold Shift + Drag to pan</span>
-          </div>
+      {/* Toolbar: mode toggle + zoom controls + fullscreen */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Pan / Draw mode toggle */}
+        <div className="flex items-center rounded-lg border border-white/15 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setInteractMode("draw")}
+            title="Draw mode — click to place measurement points"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all ${
+              interactMode === "draw"
+                ? "bg-amber-500/20 text-amber-300 border-r border-amber-500/30"
+                : "bg-white/5 text-white/40 hover:text-white/60 border-r border-white/10"
+            }`}
+          >
+            <Crosshair className="w-3.5 h-3.5" />
+            Draw
+          </button>
+          <button
+            type="button"
+            onClick={() => setInteractMode("pan")}
+            title="Pan mode — drag to navigate the drawing"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all ${
+              interactMode === "pan"
+                ? "bg-blue-500/20 text-blue-300"
+                : "bg-white/5 text-white/40 hover:text-white/60"
+            }`}
+          >
+            <Move className="w-3.5 h-3.5" />
+            Pan
+          </button>
+        </div>
+
+        {/* Mode hint */}
+        {interactMode === "pan" ? (
+          <span className="text-blue-300/70 text-xs">Drag to navigate · Switch to Draw to place points</span>
+        ) : zoom > 1 ? (
+          <span className="text-amber-300/70 text-xs">Switch to Pan to navigate · Click to place points</span>
         ) : (
-          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-md px-3 py-1.5">
-            <MousePointer2 className="w-3.5 h-3.5 text-white/40" />
-            <span className="text-white/40 text-xs">Scroll to zoom · Pinch on mobile</span>
-          </div>
+          <span className="text-white/40 text-xs">Scroll to zoom · Click to place measurement points</span>
         )}
 
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={zoomOut} disabled={zoomIdx === 0}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+          <button type="button" onClick={() => zoomOut()} disabled={zoom <= 1}
+            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70" title="Zoom out">
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-white/60 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={zoomIn} disabled={zoomIdx === ZOOM_LEVELS.length - 1}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+          <span className="text-white/60 text-xs font-mono min-w-[3.5rem] text-center">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => zoomIn()} disabled={zoom >= 8}
+            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70" title="Zoom in">
             <ZoomIn className="w-4 h-4" />
           </button>
-          {zoomIdx > 0 && (
+          {zoom > 1 && (
             <button type="button" onClick={resetZoom}
               className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-white/70 ml-1" title="Reset zoom">
               <RotateCcw className="w-3.5 h-3.5" />
@@ -391,24 +463,18 @@ function MeasureTool({
             type="button"
             onClick={onToggleFullscreen}
             className="p-1.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 ml-1"
-            title={isFullscreen ? "Exit fullscreen" : "Fullscreen — zoom in and drag for precision"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen — zoom in for precision"}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Drawing preview with click area + zoom/pan */}
+      {/* Drawing viewer */}
       <div
         ref={containerRef}
         className="relative rounded-lg overflow-hidden bg-[#0d1117] border border-white/10"
-        style={{
-          height: viewerHeight,
-          cursor: step === "enter_dist"
-            ? (isDragging ? "grabbing" : "default")
-            : (isDragging ? "grabbing" : "crosshair"),
-          touchAction: "none",
-        }}
+        style={{ height: viewerHeight, cursor: getCursor(), touchAction: "none" }}
         onClick={handleClick}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -428,9 +494,9 @@ function MeasureTool({
             className="w-full h-full object-contain select-none"
             draggable={false}
             style={{
-              transform: `scale(${zoom}) translate(${panPos.x / zoom}px, ${panPos.y / zoom}px)`,
+              transform: `translate(${panPos.x}px, ${panPos.y}px) scale(${zoom})`,
               transformOrigin: "center center",
-              transition: isDragging ? "none" : "transform 0.15s ease-out",
+              transition: isDragging ? "none" : "transform 0.1s ease-out",
             }}
           />
         ) : (
@@ -666,13 +732,14 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
   // Fullscreen: use a fixed overlay instead of the dialog
   const dialogClasses = isFullscreen
-    ? "!bg-[#1a1f2e] border-white/10 text-white max-w-none w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
-    : `!bg-[#1a1f2e] border-white/10 text-white max-h-[90vh] overflow-y-auto ${mode === "measure" ? "max-w-3xl" : "max-w-xl"}`;
+    ? "!bg-[#1a1f2e] border-white/10 text-white max-w-none w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden"
+    : `!bg-[#1a1f2e] border-white/10 text-white flex flex-col overflow-hidden ${mode === "measure" ? "max-w-3xl max-h-[92vh]" : "max-w-xl max-h-[85vh]"}`;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={dialogClasses}>
-        <DialogHeader>
+        {/* Fixed header */}
+        <DialogHeader className="flex-shrink-0 pb-0">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
               <Ruler className="w-5 h-5 text-amber-400" />
@@ -685,6 +752,8 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
             </div>
           </div>
         </DialogHeader>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
 
         {/* ── Mode toggle ── */}
         <div className="space-y-2">
@@ -846,8 +915,10 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
           </div>
         )}
 
-        {/* ── Footer ── */}
-        <div className="flex items-center justify-between pt-2 gap-3">
+        </div>{/* end scrollable body */}
+
+        {/* ── Sticky Footer — always visible, never clipped ── */}
+        <div className="flex-shrink-0 flex items-center justify-between pt-3 mt-1 border-t border-white/10 gap-3">
           <Button
             type="button"
             variant="ghost"

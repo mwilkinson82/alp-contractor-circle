@@ -712,12 +712,13 @@ export async function processDrawingSheet(
       console.log(`[Takeoff AI] Auto-detected scale on sheet ${sheetId}: ${result.detectedScale.notation} (${result.detectedScale.drawingUnitsPerRealUnit} ${result.detectedScale.realUnit})`);
     }
 
-    // Update sheet status
+    // Update sheet status — clear any previous errorMessage
     await updateDrawingSheet(sheetId, {
       status: "completed" as any,
       sheetName: result.sheetName,
       sheetType: result.sheetType as any,
       aiRawResponse: JSON.stringify(result),
+      errorMessage: null,
     });
 
     console.log(`[Takeoff AI] Sheet ${sheetId} complete: ${result.items.length} items extracted (type: ${result.sheetType})`);
@@ -869,6 +870,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
       console.log(`[Takeoff AI] Skipping extraction for context-only sheet ${sheet.id} (type: ${sheet.sheetType}, name: ${sheet.sheetName}) — context captured in Pass 1`);
       await updateDrawingSheet(sheet.id, {
         status: "completed" as any,
+        errorMessage: null,
         aiRawResponse: JSON.stringify({
           contextOnly: true,
           reason: `Sheet type "${sheet.sheetType}" contains no measurable quantities. Context was captured during indexing.`,

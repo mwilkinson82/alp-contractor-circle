@@ -465,8 +465,8 @@ export const takeoffRouter = router({
         } catch { /* ignore */ }
       }
 
-      // Reset sheet status
-      await updateDrawingSheet(input.sheetId, { status: "pending" as any });
+      // Reset sheet status and clear previous error
+      await updateDrawingSheet(input.sheetId, { status: "pending" as any, errorMessage: null });
 
       // Process in background
       processDrawingSheet(input.sheetId, sheet.imageUrl, input.projectId, selectedDivisions)

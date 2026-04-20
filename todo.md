@@ -2889,3 +2889,17 @@
 - [x] UI: ProcessingOverlay shows all 3 steps running end-to-end without user action
 - [x] UI: polling continues through consolidation phase automatically (already implemented)
 - [x] QA: build clean, all tests pass, no regressions
+
+## Scale Calibration Modal Fixes
+- [x] Add pan/drag mode — when zoomed in, user must be able to pan the image to reach the scale bar at the bottom
+- [x] Separate pan mode from draw mode — clicking to draw scale line should only happen in "draw" mode, not while panning
+- [x] Add a Pan/Draw mode toggle button (hand icon = Pan, crosshair = Draw)
+- [x] Fix zoom behavior — zoom now centers on cursor position, not the middle of the image
+- [x] Fix clipped bottom buttons — modal footer with Set Scale / Cancel buttons always visible (sticky footer)
+- [x] Ensure modal is scrollable or uses fixed footer so buttons are never cut off
+- [x] QA: test on a tall drawing where scale bar is at the bottom
+
+## Sheet Error Badge Fix
+- [x] After a successful retry (sheet status changes from "error" to "completed"), the red error badge clears automatically
+- [x] errorMessage cleared when sheet resets to pending for reprocess (server fix)
+- [x] errorMessage cleared when sheet completes successfully (server fix)
