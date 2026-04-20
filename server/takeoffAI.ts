@@ -1014,5 +1014,6 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   await updateTakeoffProject(projectId, {
     status: finalStatus,
     processedSheets: processedCount,
-  });
+    lastAnalyzedAt: new Date(),
+  } as any);
 }

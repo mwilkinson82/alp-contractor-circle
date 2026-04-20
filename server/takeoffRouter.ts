@@ -729,6 +729,7 @@ export const takeoffRouter = router({
         costRegion: z.string().max(64).nullable().optional(),
         currency: z.enum(["USD", "GBP", "AUD"]).optional(),
         selectedSpecialties: z.array(z.string()).nullable().optional(),
+        scopeText: z.string().max(2000).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -746,6 +747,11 @@ export const takeoffRouter = router({
       // Handle currency update
       if (input.currency !== undefined) {
         updates.currency = input.currency;
+      }
+
+      // Handle scopeText update (null = clear the scope description)
+      if (input.scopeText !== undefined) {
+        updates.scopeText = input.scopeText;
       }
 
       // Handle division update (only affects future extractions, not existing items)
@@ -825,7 +831,7 @@ export const takeoffRouter = router({
       Promise.race([postProcessTakeoff(input.projectId), timeoutPromise])
         .then(async (stats) => {
           console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);
-          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: false } as any);
+          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: false, lastAnalyzedAt: new Date() } as any);
         })
         .catch(async (err) => {
           const isTimeout = err?.message?.includes("timed out");

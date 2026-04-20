@@ -778,6 +778,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   rateProfileId: int("rateProfileId"),
   /** JSON snapshot of pre-consolidation line items — saved before consolidation runs so we can show diffs */
   consolidationSnapshot: json("consolidationSnapshot"),
+  /** Timestamp of when the last full analysis (post-processing) completed */
+  lastAnalyzedAt: timestamp("lastAnalyzedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

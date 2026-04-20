@@ -2903,3 +2903,10 @@
 - [x] After a successful retry (sheet status changes from "error" to "completed"), the red error badge clears automatically
 - [x] errorMessage cleared when sheet resets to pending for reprocess (server fix)
 - [x] errorMessage cleared when sheet completes successfully (server fix)
+
+## Scope Description Save Bug
+- [x] Fix: clearing the Scope Description textarea and clicking Save Changes does not persist — text comes back on reopen
+- [x] Root cause: updateProjectSettings procedure was missing scopeText in its input schema
+- [x] Fix server: added scopeText: z.string().max(2000).nullable().optional() to updateProjectSettings
+- [x] Fix server: null scopeText now correctly clears the field in DB
+- [x] QA: clear scope description, save, reopen modal — field must be empty

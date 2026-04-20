@@ -351,6 +351,13 @@
       "when": 1776671365380,
       "tag": "0049_brown_turbo",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1776705261811,
+      "tag": "0050_condemned_master_chief",
+      "breakpoints": true
     }
   ]
 }

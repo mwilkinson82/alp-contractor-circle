@@ -1309,6 +1309,11 @@ export default function TakeoffDetail() {
                       <span className="whitespace-nowrap">
                         {items.filter((i: any) => i.reviewed).length} reviewed
                       </span>
+                      {project?.lastAnalyzedAt && (
+                        <span className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60" title={new Date(project.lastAnalyzedAt).toLocaleString()}>
+                          Last analyzed: {new Date(project.lastAnalyzedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
                     </div>
                     {/* Right: Total */}
                     <div className="flex items-center gap-2 shrink-0">
