@@ -2801,3 +2801,10 @@
 - [x] Pre-load saved scale on re-run (modal pre-fills from saved preference)
 - [x] Scale badge on each sheet card showing human-readable scale (e.g. 1/4" = 1'-0") via reverse-lookup
 - [x] Fix freeze bug — root cause: sequential mutateAsync per sheet + onOpenChange no-op. Fix: bulkSaveSheetScale endpoint (single request), proper Dialog close handler
+
+## Virtual Architect's Scale / Measure to Verify (Apr 19 2026)
+- [x] "Measure on Drawing" tool — click two points on a known dimension in the PDF preview, type the real-world length, system calculates exact px/ft scale
+- [x] Clear UX messaging: Known Scale = "scale noted in title block"; Measure = "scale not noted, not accurate, or set your own"
+- [x] Wired into ScaleCalibrationPrompt as third mode alongside "Known Scale" and "By Discipline"
+- [x] Works on any sheet's image preview with click-to-measure overlay (A/B points + dashed line)
+- [x] Calculated scale applied to all sheets via bulk endpoint on confirm
