@@ -2819,3 +2819,10 @@
 - [x] Apply-to-discipline-only option in measure mode (dropdown: All sheets / Architectural / Structural / MEP / Civil)
 - [x] Scale verification badge on sheet cards: green "Measured" badge vs blue "Title Block" badge
 - [x] Load saved scales from DB on page refresh via projectMarkups useEffect (scales no longer lost on reload)
+
+## Processing Animation Redesign + Time Estimate (Apr 19 2026)
+- [x] Replace ugly green bar animation with a polished, visually appealing processing animation members want to look at
+- [x] Add real estimated time remaining countdown (not just elapsed timer) based on per-sheet processing speed
+- [x] Calculate ETA from: sheets completed / total sheets × average time per sheet
+- [x] Show countdown like "~3 min remaining" that updates as sheets complete
+- [x] Make the whole processing state something worth staring at — members will be watching this for 2-5 minutes
