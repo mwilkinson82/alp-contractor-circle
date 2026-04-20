@@ -17,6 +17,7 @@ import {
   getDrawingSheetsByProject,
   createTakeoffItemsBatch,
   recalculateProjectTotal,
+  updateTakeoffProject,
 } from "./takeoffDb";
 import { getDb } from "./db";
 import { takeoffItems } from "../drizzle/schema";
@@ -1499,6 +1500,28 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   // Load all current items
   const rawItems = await getTakeoffItemsByProject(projectId) as unknown as RawItem[];
   const originalCount = rawItems.length;
+
+  // ─── Snapshot pre-consolidation items for diff tracking ───────────────────
+  const preConsolidationSnapshot = rawItems.map(item => ({
+    id: item.id,
+    csiDivision: item.csiDivision,
+    csiCode: item.csiCode,
+    description: item.description,
+    quantity: item.quantity,
+    unit: item.unit,
+    unitCost: item.unitCost,
+    extendedCost: item.extendedCost,
+    confidence: item.confidence,
+    notes: item.notes,
+    sheetId: item.sheetId,
+  }));
+  try {
+    await updateTakeoffProject(projectId, { consolidationSnapshot: preConsolidationSnapshot } as any);
+    console.log(`[PostProcess] Saved pre-consolidation snapshot: ${preConsolidationSnapshot.length} items`);
+  } catch (snapErr) {
+    console.error(`[PostProcess] Failed to save consolidation snapshot:`, snapErr);
+    // Non-fatal — continue with consolidation even if snapshot fails
+  }
 
   if (originalCount === 0) {
     console.log("[PostProcess] No items to process");

@@ -776,6 +776,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   processingTimedOut: boolean("processingTimedOut").default(false).notNull(),
   /** Optional rate profile ID — overrides global hub config for this project */
   rateProfileId: int("rateProfileId"),
+  /** JSON snapshot of pre-consolidation line items — saved before consolidation runs so we can show diffs */
+  consolidationSnapshot: json("consolidationSnapshot"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

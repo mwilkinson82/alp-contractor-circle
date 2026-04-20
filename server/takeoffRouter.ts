@@ -1129,4 +1129,170 @@ export const takeoffRouter = router({
         totalRows: input.rows.length,
       };
     }),
+
+  /**
+   * Get consolidation diff — compares pre-consolidation snapshot to current items.
+   * Returns per-item annotations: qty changes, merged items, new items, removed items.
+   */
+  getConsolidationDiff: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      // Parse snapshot from DB
+      const snapshot = project.consolidationSnapshot as any[] | null;
+      if (!snapshot || !Array.isArray(snapshot) || snapshot.length === 0) {
+        return { hasDiff: false, itemAnnotations: {} as Record<number, any>, removedItems: [] as any[] };
+      }
+
+      // Get current items
+      const currentItems = await getTakeoffItemsByProject(input.projectId) as any[];
+
+      // Build a lookup of snapshot items by description+division for fuzzy matching
+      type SnapshotItem = {
+        id: number; csiDivision: string | null; csiCode: string | null;
+        description: string; quantity: string; unit: string;
+        unitCost: number; extendedCost: number; confidence: number;
+        notes: string | null; sheetId: number;
+      };
+
+      // Normalize description for matching
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+
+      // Build map: normalized description → snapshot items
+      const snapByDesc = new Map<string, SnapshotItem[]>();
+      for (const si of snapshot as SnapshotItem[]) {
+        const key = `${(si.csiDivision || "").trim()}|${norm(si.description)}`;
+        if (!snapByDesc.has(key)) snapByDesc.set(key, []);
+        snapByDesc.get(key)!.push(si);
+      }
+
+      // Track which snapshot items were matched
+      const matchedSnapIds = new Set<number>();
+
+      // Build per-current-item annotations
+      const itemAnnotations: Record<number, {
+        qtyBefore?: number;
+        qtyAfter?: number;
+        qtyChanged: boolean;
+        mergedFrom: number; // how many original items were combined
+        isNew: boolean;
+        unitCostBefore?: number;
+        unitCostAfter?: number;
+        costChanged: boolean;
+        mergedDescriptions?: string[]; // descriptions of merged source items
+      }> = {};
+
+      for (const ci of currentItems) {
+        const key = `${(ci.csiDivision || "").trim()}|${norm(ci.description)}`;
+        const matches = snapByDesc.get(key) || [];
+
+        if (matches.length === 0) {
+          // Try fuzzy: match by division + first 40 chars of normalized description
+          const shortKey = `${(ci.csiDivision || "").trim()}|${norm(ci.description).substring(0, 40)}`;
+          let fuzzyMatches: SnapshotItem[] = [];
+          for (const [k, v] of snapByDesc.entries()) {
+            if (k.startsWith(shortKey)) {
+              fuzzyMatches.push(...v.filter(s => !matchedSnapIds.has(s.id)));
+            }
+          }
+
+          if (fuzzyMatches.length === 0) {
+            // Truly new item — appeared only after consolidation
+            itemAnnotations[ci.id] = {
+              qtyChanged: false,
+              mergedFrom: 0,
+              isNew: true,
+              costChanged: false,
+            };
+          } else {
+            // Fuzzy matched — treat as merged
+            const totalQtyBefore = fuzzyMatches.reduce((sum, s) => sum + parseFloat(s.quantity || "0"), 0);
+            const qtyAfter = parseFloat(ci.quantity || "0");
+            for (const fm of fuzzyMatches) matchedSnapIds.add(fm.id);
+            itemAnnotations[ci.id] = {
+              qtyBefore: totalQtyBefore,
+              qtyAfter,
+              qtyChanged: Math.abs(totalQtyBefore - qtyAfter) > 0.01,
+              mergedFrom: fuzzyMatches.length,
+              isNew: false,
+              unitCostBefore: fuzzyMatches[0]?.unitCost,
+              unitCostAfter: ci.unitCost,
+              costChanged: fuzzyMatches[0]?.unitCost !== ci.unitCost,
+              mergedDescriptions: fuzzyMatches.length > 1
+                ? fuzzyMatches.map(s => s.description)
+                : undefined,
+            };
+          }
+        } else if (matches.length === 1) {
+          // 1:1 match — check for changes
+          const snap = matches[0];
+          matchedSnapIds.add(snap.id);
+          const qtyBefore = parseFloat(snap.quantity || "0");
+          const qtyAfter = parseFloat(ci.quantity || "0");
+          const qtyChanged = Math.abs(qtyBefore - qtyAfter) > 0.01;
+          const costChanged = snap.unitCost !== ci.unitCost;
+
+          if (qtyChanged || costChanged) {
+            itemAnnotations[ci.id] = {
+              qtyBefore,
+              qtyAfter,
+              qtyChanged,
+              mergedFrom: 1,
+              isNew: false,
+              unitCostBefore: snap.unitCost,
+              unitCostAfter: ci.unitCost,
+              costChanged,
+            };
+          }
+          // If nothing changed, no annotation (clean)
+        } else {
+          // Multiple matches — items were merged into this one
+          const unmatched = matches.filter(s => !matchedSnapIds.has(s.id));
+          const toUse = unmatched.length > 0 ? unmatched : matches;
+          const totalQtyBefore = toUse.reduce((sum, s) => sum + parseFloat(s.quantity || "0"), 0);
+          const qtyAfter = parseFloat(ci.quantity || "0");
+          for (const m of toUse) matchedSnapIds.add(m.id);
+
+          itemAnnotations[ci.id] = {
+            qtyBefore: totalQtyBefore,
+            qtyAfter,
+            qtyChanged: Math.abs(totalQtyBefore - qtyAfter) > 0.01,
+            mergedFrom: toUse.length,
+            isNew: false,
+            unitCostBefore: toUse[0]?.unitCost,
+            unitCostAfter: ci.unitCost,
+            costChanged: toUse[0]?.unitCost !== ci.unitCost,
+            mergedDescriptions: toUse.length > 1
+              ? toUse.map(s => s.description)
+              : undefined,
+          };
+        }
+      }
+
+      // Find removed items — snapshot items that weren't matched to any current item
+      const removedItems = (snapshot as SnapshotItem[])
+        .filter(s => !matchedSnapIds.has(s.id))
+        .map(s => ({
+          description: s.description,
+          csiDivision: s.csiDivision,
+          csiCode: s.csiCode,
+          quantity: parseFloat(s.quantity || "0"),
+          unit: s.unit,
+          unitCost: s.unitCost,
+          extendedCost: s.extendedCost,
+        }));
+
+      return {
+        hasDiff: true,
+        itemAnnotations,
+        removedItems,
+        snapshotItemCount: snapshot.length,
+        currentItemCount: currentItems.length,
+      };
+    }),
 });

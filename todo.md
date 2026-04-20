@@ -2826,3 +2826,13 @@
 - [x] Calculate ETA from: sheets completed / total sheets × average time per sheet
 - [x] Show countdown like "~3 min remaining" that updates as sheets complete
 - [x] Make the whole processing state something worth staring at — members will be watching this for 2-5 minutes
+
+## Consolidation Diff Feature
+- [x] Snapshot pre-consolidation line items before consolidation runs
+- [x] Compare post-consolidation data to pre-consolidation snapshot
+- [x] Inline "Qty: 12 → 8" annotation on quantity-changed items
+- [x] "Combined from N items" tag on merged items
+- [x] "New" tag on items that appeared only after consolidation
+- [x] "Removed" section or strikethrough for items removed during consolidation
+- [x] No clutter on unchanged items
+- [x] QA: tsc clean, pnpm build clean, pnpm test passing, no regressions

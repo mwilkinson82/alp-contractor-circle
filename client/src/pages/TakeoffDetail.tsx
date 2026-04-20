@@ -51,6 +51,8 @@ import {
   Layers,
   Ruler,
   Bookmark,
+  GitCompareArrows,
+  Merge,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -153,6 +155,7 @@ export default function TakeoffDetail() {
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
+  const [showConsolidationDiff, setShowConsolidationDiff] = useState(false);
   // Elapsed timer for processing banner
   const [processingElapsed, setProcessingElapsed] = useState(0);
   const processingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -211,6 +214,12 @@ export default function TakeoffDetail() {
       });
     }
   }, [projectMarkups]);
+
+  // ─── Consolidation Diff Query ─────────────────────────────────────────
+  const { data: consolidationDiff } = trpc.takeoff.getConsolidationDiff.useQuery(
+    { projectId },
+    { enabled: projectId > 0 && showConsolidationDiff }
+  );
 
   // ─── Verified (measurement history) items ─────────────────────────────
   const { data: verifiedItemIds } = trpc.takeoff.getItemsWithMeasurements.useQuery(
@@ -1429,6 +1438,20 @@ export default function TakeoffDetail() {
                       <Calculator className="w-3.5 h-3.5" />
                       Bid Calculator
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowConsolidationDiff(!showConsolidationDiff)}
+                      className={`h-8 text-xs gap-1.5 ${
+                        showConsolidationDiff
+                          ? "border-cyan-500/50 text-cyan-400 bg-cyan-500/10"
+                          : "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+                      }`}
+                      title="Show what changed during consolidation"
+                    >
+                      <GitCompareArrows className="w-3.5 h-3.5" />
+                      {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
+                    </Button>
                   </div>
                 </div>
 
@@ -1645,6 +1668,28 @@ export default function TakeoffDetail() {
                                     </td>
                                     <td className="px-4 py-2 text-cream max-w-xs">
                                       <p className="line-clamp-2">{item.description}</p>
+                                      {/* Consolidation diff annotations */}
+                                      {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
+                                        const ann = consolidationDiff.itemAnnotations[item.id];
+                                        if (!ann) return null;
+                                        return (
+                                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                                            {ann.isNew && (
+                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                New
+                                              </span>
+                                            )}
+                                            {ann.mergedFrom > 1 && (
+                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+                                                title={ann.mergedDescriptions?.join('\n')}
+                                              >
+                                                <Merge className="w-2.5 h-2.5" />
+                                                Combined from {ann.mergedFrom}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
                                       {item.notes && (
                                         <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
                                           {item.notes}
@@ -1652,14 +1697,35 @@ export default function TakeoffDetail() {
                                       )}
                                     </td>
                                     <td className="px-4 py-2 text-right text-cream font-mono">
-                                      {parseFloat(item.quantity).toLocaleString()}
+                                      <span>{parseFloat(item.quantity).toLocaleString()}</span>
+                                      {/* Quantity change annotation */}
+                                      {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
+                                        const ann = consolidationDiff.itemAnnotations[item.id];
+                                        if (!ann || !ann.qtyChanged || ann.isNew) return null;
+                                        return (
+                                          <div className="text-[10px] text-amber-400/80 font-normal mt-0.5" title="Quantity changed during consolidation">
+                                            was {(ann.qtyBefore ?? 0).toLocaleString()}
+                                          </div>
+                                        );
+                                      })()}
                                     </td>
                                     <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
                                     <td className="px-4 py-2 text-right text-cream font-mono">
                                       {isConsolidating ? (
                                         <span className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse" title="Pricing being applied..." />
                                       ) : (
-                                        formatCurrency(item.unitCost, project?.currency || "USD")
+                                        <>
+                                          <span>{formatCurrency(item.unitCost, project?.currency || "USD")}</span>
+                                          {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
+                                            const ann = consolidationDiff.itemAnnotations[item.id];
+                                            if (!ann || !ann.costChanged || ann.isNew) return null;
+                                            return (
+                                              <div className="text-[10px] text-amber-400/80 font-normal mt-0.5" title="Unit cost changed during consolidation">
+                                                was {formatCurrency(ann.unitCostBefore ?? 0, project?.currency || "USD")}
+                                              </div>
+                                            );
+                                          })()}
+                                        </>
                                       )}
                                     </td>
                                     <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
@@ -1739,9 +1805,97 @@ export default function TakeoffDetail() {
                             </table>
                           </div>
                         )}
-                      </div>
+                       </div>
                     );
                   })}
+
+                {/* ─── Consolidation Diff: Summary Banner ─────────────────── */}
+                {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
+                  const anns = Object.values(consolidationDiff.itemAnnotations) as any[];
+                  const newCount = anns.filter(a => a.isNew).length;
+                  const mergedCount = anns.filter(a => a.mergedFrom > 1).length;
+                  const qtyChangedCount = anns.filter(a => a.qtyChanged && !a.isNew).length;
+                  const removedCount = consolidationDiff.removedItems?.length || 0;
+                  const unchanged = (consolidationDiff.currentItemCount || 0) - anns.length;
+
+                  return (
+                    <div className="mt-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <GitCompareArrows className="w-4 h-4 text-cyan-400" />
+                        <span className="text-cyan-400 font-semibold text-sm">Consolidation Diff</span>
+                        <span className="text-cream-muted text-xs ml-auto">
+                          {consolidationDiff.snapshotItemCount} items before → {consolidationDiff.currentItemCount} after
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs">
+                        {mergedCount > 0 && (
+                          <span className="text-cyan-400">
+                            <Merge className="w-3 h-3 inline mr-1" />{mergedCount} merged
+                          </span>
+                        )}
+                        {qtyChangedCount > 0 && (
+                          <span className="text-amber-400">{qtyChangedCount} qty changed</span>
+                        )}
+                        {newCount > 0 && (
+                          <span className="text-emerald-400">{newCount} new</span>
+                        )}
+                        {removedCount > 0 && (
+                          <span className="text-red-400">{removedCount} removed</span>
+                        )}
+                        {unchanged > 0 && (
+                          <span className="text-cream-muted">{unchanged} unchanged</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* ─── Consolidation Diff: Removed Items ──────────────────── */}
+                {showConsolidationDiff && consolidationDiff?.hasDiff && consolidationDiff.removedItems && consolidationDiff.removedItems.length > 0 && (
+                  <div className="mt-4 border border-red-500/20 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10">
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      <span className="text-red-400 font-semibold text-sm">Removed During Consolidation</span>
+                      <span className="text-cream-muted text-xs ml-auto">{consolidationDiff.removedItems.length} items</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <th className="text-left px-4 py-2 w-12">CSI</th>
+                            <th className="text-left px-4 py-2">Description</th>
+                            <th className="text-right px-4 py-2 w-20">Qty</th>
+                            <th className="text-left px-4 py-2 w-14">Unit</th>
+                            <th className="text-right px-4 py-2 w-24">Unit Cost</th>
+                            <th className="text-right px-4 py-2 w-28">Extended</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {consolidationDiff.removedItems.map((ri: any, idx: number) => (
+                            <tr key={idx} className="border-t border-white/5 opacity-60">
+                              <td className="px-4 py-2 text-cream-muted font-mono text-xs line-through">
+                                {ri.csiCode || ri.csiDivision}
+                              </td>
+                              <td className="px-4 py-2 text-cream line-through">
+                                {ri.description}
+                              </td>
+                              <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                {ri.quantity.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2 text-cream-muted line-through">{ri.unit}</td>
+                              <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                {formatCurrency(ri.unitCost, project?.currency || "USD")}
+                              </td>
+                              <td className="px-4 py-2 text-right text-red-400/60 font-mono line-through">
+                                {formatCurrency(ri.extendedCost, project?.currency || "USD")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
