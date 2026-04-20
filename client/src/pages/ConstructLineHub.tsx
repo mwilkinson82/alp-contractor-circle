@@ -58,18 +58,33 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 // ─── Module Cards ──────────────────────────────────────────────────────────────
 const MODULES = [
   {
+    id: "scheduler",
+    label: "C1",
+    name: "CPM Schedule",
+    description: "Build critical path method schedules, track float, and generate Gantt charts for your projects.",
+    icon: GanttChart,
+    path: "/portal/scheduler",
+    accent: "from-amber-500/20 to-amber-500/5",
+    border: "hover:border-amber-500/40",
+    iconBg: "bg-amber-500/15",
+    iconColor: "text-amber-400",
+    badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    glow: "group-hover:shadow-amber-500/15",
+    featured: true,
+  },
+  {
     id: "takeoff",
     label: "C2",
     name: "Quantity Takeoff",
     description: "Upload drawings, auto-detect dimensions, and generate material quantities with the ConstructLine CV engine.",
     icon: Ruler,
     path: "/portal/takeoff",
-    accent: "from-amber-500/15 to-amber-500/5",
-    border: "hover:border-amber-500/30",
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-400",
-    badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    glow: "group-hover:shadow-amber-500/10",
+    accent: "from-orange-500/15 to-orange-500/5",
+    border: "hover:border-orange-500/30",
+    iconBg: "bg-orange-500/10",
+    iconColor: "text-orange-400",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    glow: "group-hover:shadow-orange-500/10",
   },
   {
     id: "cost-library",
@@ -98,20 +113,6 @@ const MODULES = [
     iconColor: "text-emerald-400",
     badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     glow: "group-hover:shadow-emerald-500/10",
-  },
-  {
-    id: "scheduler",
-    label: "C1",
-    name: "CPM Schedule",
-    description: "Build critical path method schedules, track float, and generate Gantt charts for your projects.",
-    icon: GanttChart,
-    path: "/portal/scheduler",
-    accent: "from-purple-500/15 to-purple-500/5",
-    border: "hover:border-purple-500/30",
-    iconBg: "bg-purple-500/10",
-    iconColor: "text-purple-400",
-    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    glow: "group-hover:shadow-purple-500/10",
   },
 ];
 
@@ -406,11 +407,16 @@ export default function ConstructLineHub() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {MODULES.map((mod) => {
                   const Icon = mod.icon;
+                  const isFeatured = (mod as any).featured;
                   return (
                     <button
                       key={mod.id}
                       onClick={() => navigate(mod.path)}
-                      className={`group text-left rounded-xl border border-white/8 bg-gradient-to-br ${mod.accent} p-5 ${mod.border} hover:shadow-lg ${mod.glow} transition-all duration-200`}
+                      className={`group text-left rounded-xl border bg-gradient-to-br ${mod.accent} p-5 ${mod.border} hover:shadow-lg ${mod.glow} transition-all duration-200 ${
+                        isFeatured
+                          ? "border-amber-500/30 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5"
+                          : "border-white/8"
+                      }`}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -418,6 +424,12 @@ export default function ConstructLineHub() {
                             <Icon className={`w-4.5 h-4.5 ${mod.iconColor}`} />
                           </div>
                           <Badge className={`text-xs font-mono ${mod.badgeColor}`}>{mod.label}</Badge>
+                          {isFeatured && (
+                            <Badge className="text-[10px] bg-amber-500/15 text-amber-300 border-amber-500/25 animate-pulse">
+                              <Zap className="w-2.5 h-2.5 mr-0.5" />
+                              Featured
+                            </Badge>
+                          )}
                         </div>
                         <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
                       </div>

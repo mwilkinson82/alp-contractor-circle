@@ -122,7 +122,7 @@ function ScaleRow({
   onScaleChange: (i: number) => void; onPaperChange: (i: number) => void;
 }) {
   return (
-    <div className="space-y-2.5 p-3 rounded-lg bg-white/3 border border-white/8">
+    <div className="space-y-2.5 p-3 rounded-lg bg-[#151a27] border border-white/10">
       <div className="flex items-center gap-2">
         <span className={`text-sm font-semibold ${color}`}>{label}</span>
         <Badge variant="outline" className="border-white/20 text-white/50 text-xs ml-auto">
@@ -133,10 +133,10 @@ function ScaleRow({
       <div>
         <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Drawing Scale</label>
         <Select value={String(scaleIdx)} onValueChange={v => onScaleChange(Number(v))}>
-          <SelectTrigger className="bg-navy-deep/60 border-amber-500/30 text-white h-10 text-sm w-full">
+          <SelectTrigger className="bg-[#0d1117] border-amber-500/30 text-white h-10 text-sm w-full">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-navy-medium border-white/10 max-h-64">
+          <SelectContent className="bg-[#1a1f2e] border-white/10 max-h-64">
             {DRAWING_SCALES.map((s, i) => (
               <SelectItem key={i} value={String(i)} className="text-sm">{s.label}</SelectItem>
             ))}
@@ -147,10 +147,10 @@ function ScaleRow({
       <div>
         <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Paper Size</label>
         <Select value={String(paperIdx)} onValueChange={v => onPaperChange(Number(v))}>
-          <SelectTrigger className="bg-navy-deep/60 border-amber-500/30 text-white h-10 text-sm w-full">
+          <SelectTrigger className="bg-[#0d1117] border-amber-500/30 text-white h-10 text-sm w-full">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-navy-medium border-white/10">
+          <SelectContent className="bg-[#1a1f2e] border-white/10">
             {PAPER_SIZES.map((p, i) => (
               <SelectItem key={i} value={String(i)} className="text-sm">{p.label}</SelectItem>
             ))}
@@ -401,7 +401,7 @@ function MeasureTool({
       {/* Drawing preview with click area + zoom/pan */}
       <div
         ref={containerRef}
-        className="relative rounded-lg overflow-hidden bg-black/40 border border-white/10"
+        className="relative rounded-lg overflow-hidden bg-[#0d1117] border border-white/10"
         style={{
           height: viewerHeight,
           cursor: step === "enter_dist"
@@ -473,7 +473,7 @@ function MeasureTool({
       )}
       {step === "enter_dist" && (
         <div className="space-y-2">
-          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-3">
+          <div className="bg-[#151a27] border border-white/10 rounded-lg px-4 py-3">
             <p className="text-white text-sm font-medium">
               Measured: <span className="text-amber-400 font-mono">{Math.round(pixelDist)}px</span> on screen
             </p>
@@ -489,13 +489,13 @@ function MeasureTool({
               onChange={e => setDistance(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleConfirm()}
               placeholder="e.g. 20"
-              className="flex-1 bg-black/50 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+              className="flex-1 bg-[#0d1117] border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
             />
             <Select value={unit} onValueChange={setUnit}>
-              <SelectTrigger className="w-32 bg-black/50 border-white/20 text-white h-10 text-sm">
+              <SelectTrigger className="w-32 bg-[#0d1117] border-white/20 text-white h-10 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-navy-medium border-white/10">
+              <SelectContent className="bg-[#1a1f2e] border-white/10">
                 {MEASURE_UNITS.map(u => (
                   <SelectItem key={u.value} value={u.value} className="text-sm">{u.label}</SelectItem>
                 ))}
@@ -666,8 +666,8 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
   // Fullscreen: use a fixed overlay instead of the dialog
   const dialogClasses = isFullscreen
-    ? "bg-navy-medium border-white/10 text-white max-w-none w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
-    : `bg-navy-medium border-white/10 text-white max-h-[90vh] overflow-y-auto ${mode === "measure" ? "max-w-3xl" : "max-w-xl"}`;
+    ? "!bg-[#1a1f2e] border-white/10 text-white max-w-none w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
+    : `!bg-[#1a1f2e] border-white/10 text-white max-h-[90vh] overflow-y-auto ${mode === "measure" ? "max-w-3xl" : "max-w-xl"}`;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -742,7 +742,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
               onScaleChange={setAllScaleIdx}
               onPaperChange={setAllPaperIdx}
             />
-            <div className="bg-white/3 rounded-lg px-4 py-2.5 text-xs text-white/50">
+            <div className="bg-[#151a27] rounded-lg px-4 py-2.5 text-xs text-white/50">
               <span className="text-white/70 font-medium">{DRAWING_SCALES[allScaleIdx].label.split("(")[0].trim()}</span>
               {" on "}
               <span className="text-white/70 font-medium">{PAPER_SIZES[allPaperIdx].label.split("(")[0].trim()}</span>
@@ -773,16 +773,14 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
           <div className="space-y-3">
             {/* Sheet selector — prominent, large, high-contrast */}
             {sheets.length > 1 && (
-              <div className="bg-white/5 border border-amber-500/30 rounded-lg p-3">
+              <div className="bg-[#151a27] border border-amber-500/30 rounded-lg p-3">
                 <label className="text-xs font-semibold text-amber-300 uppercase tracking-wider mb-2 block">
                   Select Sheet to Measure On
                 </label>
                 <Select value={String(measureSheetIdx)} onValueChange={v => { setMeasureSheetIdx(Number(v)); setMeasuredRatio(null); }}>
-                  <SelectTrigger className="bg-navy-deep/80 border-amber-500/40 text-white h-11 text-sm w-full font-medium">
+                  <SelectTrigger className="bg-[#0d1117] border-amber-500/40 text-white h-11 text-sm w-full font-medium">
                     <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-navy-medium border-amber-500/20 max-h-64">
-                    {sheets.map((s, i) => (
+                  </SelectTrigger>                  <SelectContent className="bg-[#1a1f2e] border-amber-500/20 max-h-64">                    {sheets.map((s, i) => (
                       <SelectItem key={s.id} value={String(i)} className="text-sm py-2">
                         {s.sheetName || `Sheet ${s.pageNumber || i + 1}`}
                       </SelectItem>
@@ -812,7 +810,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
                 {/* Apply-to selector: all sheets or specific discipline */}
                 {activeGroups.length > 1 && (
-                  <div className="bg-white/3 border border-white/8 rounded-lg p-3 space-y-2">
+                  <div className="bg-[#151a27] border border-white/10 rounded-lg p-3 space-y-2">
                     <p className="text-white/60 text-xs font-medium">Apply measured scale to:</p>
                     <div className="flex flex-wrap gap-2">
                       <button

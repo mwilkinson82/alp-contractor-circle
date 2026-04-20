@@ -2848,3 +2848,8 @@
 - [x] Implement parallel batch processing for sheet extraction (4-6 concurrent)
 - [x] Ensure progress tracking still works correctly with parallel execution
 - [x] QA: build clean, tests passing, no regressions
+
+## ConstructLine Hub — CPM Schedule Promotion
+- [x] Move CPM Schedule from C1 (bottom-right) to top-left position in tools grid
+- [x] Make CPM Schedule the highlighted/featured tool card
+- [x] Fix scale modal: replace glass-morphic/transparent bg with solid dark bg matching portal theme
