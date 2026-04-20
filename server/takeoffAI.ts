@@ -843,7 +843,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
 
   //  // ─── PASS 2: Extract Quantities with Context (PARALLEL) ───────────────
   const pass2Start = Date.now();
-  console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} (parallel, concurrency=3) ===`);
+  console.log(`[Takeoff AI] === PASS 2: Extracting quantities for project ${projectId} ${projectContextText ? '[with project context]' : '[no context]'} (parallel, concurrency=6) ===`);
 
   const pendingSheets = await getPendingSheets(projectId);
   let processedCount = project.processedSheets || 0;
@@ -863,8 +863,8 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     }
   }
 
-  // Process sheets in parallel batches of 3
-  const EXTRACT_CONCURRENCY = 3;
+  // Process sheets in parallel batches of 6 for maximum throughput
+  const EXTRACT_CONCURRENCY = 6;
   for (let batchStart = 0; batchStart < sheetsToProcess.length; batchStart += EXTRACT_CONCURRENCY) {
     const batch = sheetsToProcess.slice(batchStart, batchStart + EXTRACT_CONCURRENCY);
     console.log(`[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`);

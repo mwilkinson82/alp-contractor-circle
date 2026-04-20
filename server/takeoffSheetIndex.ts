@@ -405,10 +405,10 @@ export async function indexAllSheets(projectId: number): Promise<ProjectContext>
 
   const indexEntries: SheetIndexEntry[] = [];
 
-  console.log(`[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=4)...`);
+  console.log(`[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=6)...`);
 
-  // Process sheets in parallel batches of 4 for speed
-  const CONCURRENCY = 4;
+  // Process sheets in parallel batches of 6 for speed
+  const CONCURRENCY = 6;
   const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
   const skipped = sheets.length - sheetsWithImages.length;
   if (skipped > 0) console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);

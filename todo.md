@@ -2836,3 +2836,15 @@
 - [x] "Removed" section or strikethrough for items removed during consolidation
 - [x] No clutter on unchanged items
 - [x] QA: tsc clean, pnpm build clean, pnpm test passing, no regressions
+
+## Scale Calibration Modal UX Fixes
+- [x] Reformat Known Scale tab — scale + paper size dropdowns stack properly, stay inside modal bounds
+- [x] Make sheet dropdown in Measure on Drawing tab more visible/prominent with better contrast
+- [x] Make "Shift+drag to pan" instruction highly visible — prominent highlighted callout, not tiny gray text
+- [x] Add fullscreen mode button for the drawing viewer so members can zoom in and drag precisely
+
+## Parallel Sheet Processing (Speed Optimization)
+- [x] Audit current pipeline — identify sequential vs parallel processing
+- [x] Implement parallel batch processing for sheet extraction (4-6 concurrent)
+- [x] Ensure progress tracking still works correctly with parallel execution
+- [x] QA: build clean, tests passing, no regressions

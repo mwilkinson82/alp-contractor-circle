@@ -1,5 +1,5 @@
 /**
- * ScaleCalibrationPrompt v7
+ * ScaleCalibrationPrompt v8
  *
  * Three modes:
  *   "all"     — Known scale from title block → pick from dropdown, applies to all sheets
@@ -7,10 +7,12 @@
  *   "measure" — Scale NOT noted on drawings or you want to set your own custom scale
  *               → click two points on a drawing, type the real-world distance, system calculates px/ft
  *
- * v7 improvements:
- *   - Pinch-to-zoom + scroll-to-zoom + drag-to-pan on the measure tool drawing preview
- *   - Apply-to-discipline-only option in measure mode (apply measured scale to just one trade)
- *   - Scale method tracking: "measured" vs "title_block" passed through to parent for badge display
+ * v8 improvements:
+ *   - Reformatted "Known Scale" tab: scale + paper size dropdowns stack vertically, stay inside modal
+ *   - Sheet dropdown in Measure mode is large, prominent, high-contrast with amber border
+ *   - "Shift+drag to pan" is a prominent highlighted callout bar, not tiny gray text
+ *   - Added fullscreen mode button — expands drawing viewer to fill the entire screen for precise measurement
+ *   - Improved overall spacing and readability
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
@@ -23,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Ruler, CheckCircle2, Layers, Crosshair, RotateCcw, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Ruler, CheckCircle2, Layers, Crosshair, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2, Move, MousePointer2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -72,7 +74,7 @@ const MEASURE_UNITS = [
   { value: "cm", label: "Centimeters" },
 ];
 
-const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
+const ZOOM_LEVELS = [1, 1.5, 2.5, 4, 6];
 
 function guessGroup(sheetName: string): string {
   const lower = (sheetName || "").toLowerCase().trim();
@@ -120,51 +122,57 @@ function ScaleRow({
   onScaleChange: (i: number) => void; onPaperChange: (i: number) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-lg bg-white/3 border border-white/8">
+    <div className="space-y-2.5 p-3 rounded-lg bg-white/3 border border-white/8">
       <div className="flex items-center gap-2">
         <span className={`text-sm font-semibold ${color}`}>{label}</span>
         <Badge variant="outline" className="border-white/20 text-white/50 text-xs ml-auto">
           {count} sheet{count !== 1 ? "s" : ""}
         </Badge>
       </div>
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Select value={String(scaleIdx)} onValueChange={v => onScaleChange(Number(v))}>
-            <SelectTrigger className="bg-navy-deep/60 border-white/20 text-white h-9 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-navy-medium border-white/10 max-h-64">
-              {DRAWING_SCALES.map((s, i) => (
-                <SelectItem key={i} value={String(i)} className="text-xs">{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-44">
-          <Select value={String(paperIdx)} onValueChange={v => onPaperChange(Number(v))}>
-            <SelectTrigger className="bg-navy-deep/60 border-white/20 text-white h-9 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-navy-medium border-white/10">
-              {PAPER_SIZES.map((p, i) => (
-                <SelectItem key={i} value={String(i)} className="text-xs">{p.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Scale dropdown — full width */}
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Drawing Scale</label>
+        <Select value={String(scaleIdx)} onValueChange={v => onScaleChange(Number(v))}>
+          <SelectTrigger className="bg-navy-deep/60 border-amber-500/30 text-white h-10 text-sm w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-navy-medium border-white/10 max-h-64">
+            {DRAWING_SCALES.map((s, i) => (
+              <SelectItem key={i} value={String(i)} className="text-sm">{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Paper size dropdown — full width */}
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-white/40 mb-1 block">Paper Size</label>
+        <Select value={String(paperIdx)} onValueChange={v => onPaperChange(Number(v))}>
+          <SelectTrigger className="bg-navy-deep/60 border-amber-500/30 text-white h-10 text-sm w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-navy-medium border-white/10">
+            {PAPER_SIZES.map((p, i) => (
+              <SelectItem key={i} value={String(i)} className="text-sm">{p.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
 }
 
-// ── Inline Measure Tool with zoom/pan ─────────────────────────────────────────
+// ── Inline Measure Tool with zoom/pan/fullscreen ─────────────────────────────
 
 function MeasureTool({
   sheet,
   onMeasured,
+  isFullscreen,
+  onToggleFullscreen,
 }: {
   sheet: Sheet;
   onMeasured: (pxPerFtRatio: number) => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
 }) {
   const [step, setStep] = useState<"pick_p1" | "pick_p2" | "enter_dist">("pick_p1");
   const [p1, setP1] = useState<Point | null>(null);
@@ -217,19 +225,16 @@ function MeasureTool({
     else zoomOut();
   }, [zoomIn, zoomOut]);
 
-  // Mouse drag for pan (only when zoomed)
+  // Mouse drag for pan (shift+click or middle/right button when zoomed)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (zoom <= 1) return;
-    // Only pan with right-click or when in enter_dist step (not picking points)
-    if (step !== "enter_dist" && step !== "pick_p1" && step !== "pick_p2") return;
-    // Use middle/right button for pan, or shift+click
     if (e.button === 1 || e.button === 2 || e.shiftKey) {
       e.preventDefault();
       setIsDragging(true);
       dragMoved.current = false;
       setDragStart({ x: e.clientX - panPos.x, y: e.clientY - panPos.y });
     }
-  }, [zoom, step, panPos]);
+  }, [zoom, panPos]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
@@ -281,12 +286,7 @@ function MeasureTool({
     if (imgAspect > ctnAspect) { iw = cw; ih = cw / imgAspect; }
     else { ih = ch; iw = ch * imgAspect; }
     const ox = (cw - iw) / 2, oy = (ch - ih) / 2;
-    // Account for zoom + pan: the image is transformed by scale(zoom) translate(pan/zoom)
-    // So the visual position of image pixel (ix, iy) on screen is:
-    //   screenX = centerX + (ox + ix/nw * iw - cw/2 + panPos.x/zoom) * zoom
-    // We need to invert this.
     const centerX = cw / 2, centerY = ch / 2;
-    // Invert transform: screen -> pre-transform coords
     const ptx = (cx - centerX) / zoom + centerX - panPos.x / zoom;
     const pty = (cy - centerY) / zoom + centerY - panPos.y / zoom;
     return {
@@ -308,10 +308,8 @@ function MeasureTool({
     if (imgAspect > ctnAspect) { iw = cw; ih = cw / imgAspect; }
     else { ih = ch; iw = ch * imgAspect; }
     const ox = (cw - iw) / 2, oy = (ch - ih) / 2;
-    // Pre-transform position
     const ptx = ox + (p.x / nw) * iw;
     const pty = oy + (p.y / nh) * ih;
-    // Apply transform: scale from center + translate
     const centerX = cw / 2, centerY = ch / 2;
     return {
       x: centerX + (ptx - centerX + panPos.x / zoom) * zoom,
@@ -320,7 +318,6 @@ function MeasureTool({
   }, [zoom, panPos]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't register clicks during/after drag
     if (dragMoved.current) return;
     if (step === "pick_p1") {
       setP1(toImageCoords(e));
@@ -352,30 +349,53 @@ function MeasureTool({
 
   const c1 = p1 ? toContainerCoords(p1) : null;
   const c2 = p2 ? toContainerCoords(p2) : null;
-  const sheetLabel = sheet.sheetName || `Sheet ${sheet.pageNumber}`;
+
+  // Dynamic height: normal = 360px, fullscreen = fill available space
+  const viewerHeight = isFullscreen ? "calc(100vh - 220px)" : "360px";
 
   return (
     <div className="space-y-3">
-      {/* Zoom toolbar */}
-      <div className="flex items-center gap-1 justify-end">
-        <button type="button" onClick={zoomOut} disabled={zoomIdx === 0}
-          className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <span className="text-white/60 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
-        <button type="button" onClick={zoomIn} disabled={zoomIdx === ZOOM_LEVELS.length - 1}
-          className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        {zoomIdx > 0 && (
-          <button type="button" onClick={resetZoom}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-white/70 ml-1">
-            <Maximize2 className="w-3.5 h-3.5" />
+      {/* Zoom toolbar + fullscreen + pan hint */}
+      <div className="flex items-center gap-2">
+        {/* Pan instruction — prominent when zoomed */}
+        {zoom > 1 ? (
+          <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/40 rounded-md px-3 py-1.5">
+            <Move className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-amber-300 text-xs font-semibold">Hold Shift + Drag to pan</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-md px-3 py-1.5">
+            <MousePointer2 className="w-3.5 h-3.5 text-white/40" />
+            <span className="text-white/40 text-xs">Scroll to zoom · Pinch on mobile</span>
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-1">
+          <button type="button" onClick={zoomOut} disabled={zoomIdx === 0}
+            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+            <ZoomOut className="w-4 h-4" />
           </button>
-        )}
-        {zoom > 1 && (
-          <span className="text-white/30 text-[10px] ml-2">Shift+drag to pan</span>
-        )}
+          <span className="text-white/60 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={zoomIn} disabled={zoomIdx === ZOOM_LEVELS.length - 1}
+            className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          {zoomIdx > 0 && (
+            <button type="button" onClick={resetZoom}
+              className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-white/70 ml-1" title="Reset zoom">
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {/* Fullscreen toggle */}
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="p-1.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 ml-1"
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen — zoom in and drag for precision"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Drawing preview with click area + zoom/pan */}
@@ -383,7 +403,7 @@ function MeasureTool({
         ref={containerRef}
         className="relative rounded-lg overflow-hidden bg-black/40 border border-white/10"
         style={{
-          height: 360,
+          height: viewerHeight,
           cursor: step === "enter_dist"
             ? (isDragging ? "grabbing" : "default")
             : (isDragging ? "grabbing" : "crosshair"),
@@ -404,7 +424,7 @@ function MeasureTool({
           <img
             ref={imgRef}
             src={sheet.imageUrl}
-            alt={sheetLabel}
+            alt={sheet.sheetName || `Sheet ${sheet.pageNumber}`}
             className="w-full h-full object-contain select-none"
             draggable={false}
             style={{
@@ -418,7 +438,7 @@ function MeasureTool({
             No preview available — upload a drawing first
           </div>
         )}
-        {/* Overlay line + points (SVG stays in container space, points are screen-mapped) */}
+        {/* Overlay line + points */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
           {c1 && c2 && (
             <line x1={c1.x} y1={c1.y} x2={c2.x} y2={c2.y} stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 3" />
@@ -436,13 +456,6 @@ function MeasureTool({
             </>
           )}
         </svg>
-
-        {/* Zoom hint overlay */}
-        {zoomIdx === 0 && step !== "enter_dist" && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1">
-            <span className="text-white/50 text-[10px]">Scroll to zoom · Pinch on mobile</span>
-          </div>
-        )}
       </div>
 
       {/* Step instructions */}
@@ -512,6 +525,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
   const [mode, setMode] = useState<"all" | "groups" | "measure">("all");
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // "all" mode state
   const [allScaleIdx, setAllScaleIdx] = useState(0);
@@ -558,6 +572,21 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
   const activeGroups = DISCIPLINES.filter(d => sheetGroups[d.key].length > 0);
 
+  // Escape key exits fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsFullscreen(false);
+      }
+    };
+    if (isFullscreen) {
+      window.addEventListener("keydown", handleKeyDown, true);
+      return () => window.removeEventListener("keydown", handleKeyDown, true);
+    }
+  }, [isFullscreen]);
+
   const handleApply = async () => {
     if (saving || done) return;
     setSaving(true);
@@ -565,7 +594,6 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
       const scalesMap: Record<number, SheetScale> = {};
 
       if (mode === "measure" && measuredRatio) {
-        // Determine which sheets to apply the measured scale to
         const targetSheets = measureApplyTo === "all"
           ? sheets
           : sheetGroups[measureApplyTo] || sheets;
@@ -634,12 +662,16 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
     toast.success("Scale calculated — hit 'Set Scale & Analyze' to apply.");
   };
 
-  // Pick a sheet to measure on — prefer one with an imageUrl
   const measureSheet = sheets[measureSheetIdx] || sheets[0];
+
+  // Fullscreen: use a fixed overlay instead of the dialog
+  const dialogClasses = isFullscreen
+    ? "bg-navy-medium border-white/10 text-white max-w-none w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
+    : `bg-navy-medium border-white/10 text-white max-h-[90vh] overflow-y-auto ${mode === "measure" ? "max-w-3xl" : "max-w-xl"}`;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`bg-navy-medium border-white/10 text-white max-h-[90vh] overflow-y-auto ${mode === "measure" ? "max-w-3xl" : "max-w-xl"}`}>
+      <DialogContent className={dialogClasses}>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
@@ -659,7 +691,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setMode("all")}
+              onClick={() => { setMode("all"); setIsFullscreen(false); }}
               className={`flex-1 flex flex-col items-center gap-1 rounded-lg px-3 py-2.5 text-sm font-medium border transition-all ${
                 mode === "all" ? "bg-amber-500/15 border-amber-500/50 text-amber-300" : "border-white/10 text-white/50 hover:bg-white/5"
               }`}
@@ -669,7 +701,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
             </button>
             <button
               type="button"
-              onClick={() => setMode("groups")}
+              onClick={() => { setMode("groups"); setIsFullscreen(false); }}
               className={`flex-1 flex flex-col items-center gap-1 rounded-lg px-3 py-2.5 text-sm font-medium border transition-all ${
                 mode === "groups" ? "bg-amber-500/15 border-amber-500/50 text-amber-300" : "border-white/10 text-white/50 hover:bg-white/5"
               }`}
@@ -689,11 +721,13 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
             </button>
           </div>
           {/* Mode description */}
-          <p className="text-white/40 text-xs px-1">
-            {mode === "all" && "Scale is noted in the title block — pick it from the dropdown."}
-            {mode === "groups" && "Different trades at different scales — set one per discipline."}
-            {mode === "measure" && "Scale isn't noted on the drawings, isn't accurate, or you want to set your own custom scale."}
-          </p>
+          {!isFullscreen && (
+            <p className="text-white/40 text-xs px-1">
+              {mode === "all" && "Scale is noted in the title block — pick it from the dropdown."}
+              {mode === "groups" && "Different trades at different scales — set one per discipline."}
+              {mode === "measure" && "Scale isn't noted on the drawings, isn't accurate, or you want to set your own custom scale."}
+            </p>
+          )}
         </div>
 
         {/* ── Content ── */}
@@ -737,17 +771,19 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
         {mode === "measure" && (
           <div className="space-y-3">
-            {/* Sheet selector if multiple sheets */}
+            {/* Sheet selector — prominent, large, high-contrast */}
             {sheets.length > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-white/50 text-xs">Measuring on:</span>
+              <div className="bg-white/5 border border-amber-500/30 rounded-lg p-3">
+                <label className="text-xs font-semibold text-amber-300 uppercase tracking-wider mb-2 block">
+                  Select Sheet to Measure On
+                </label>
                 <Select value={String(measureSheetIdx)} onValueChange={v => { setMeasureSheetIdx(Number(v)); setMeasuredRatio(null); }}>
-                  <SelectTrigger className="bg-navy-deep/60 border-white/20 text-white h-8 text-xs flex-1">
+                  <SelectTrigger className="bg-navy-deep/80 border-amber-500/40 text-white h-11 text-sm w-full font-medium">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-medium border-white/10 max-h-48">
+                  <SelectContent className="bg-navy-medium border-amber-500/20 max-h-64">
                     {sheets.map((s, i) => (
-                      <SelectItem key={s.id} value={String(i)} className="text-xs">
+                      <SelectItem key={s.id} value={String(i)} className="text-sm py-2">
                         {s.sheetName || `Sheet ${s.pageNumber || i + 1}`}
                       </SelectItem>
                     ))}
@@ -760,6 +796,8 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
               key={measureSheet.id}
               sheet={measureSheet}
               onMeasured={handleMeasured}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={() => setIsFullscreen(prev => !prev)}
             />
 
             {measuredRatio && (
