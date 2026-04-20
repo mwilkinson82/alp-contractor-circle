@@ -145,7 +145,7 @@ export default function TakeoffDetail() {
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
-  const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string }>>({});
+  const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string; method?: "measured" | "title_block" }>>({});
   const [showScalePrompt, setShowScalePrompt] = useState(false);
   const [newlyUploadedSheets, setNewlyUploadedSheets] = useState<any[]>([]);
   const [showImportExcel, setShowImportExcel] = useState(false);
@@ -196,6 +196,21 @@ export default function TakeoffDetail() {
     { projectId },
     { enabled: projectId > 0 }
   );
+
+  // Load saved scales from projectMarkups on page load
+  useEffect(() => {
+    if (projectMarkups && projectMarkups.length > 0) {
+      setSheetScales(prev => {
+        const next = { ...prev };
+        for (const m of projectMarkups) {
+          if (m.scaleRatio && m.sheetId && !next[m.sheetId]) {
+            next[m.sheetId] = { ratio: m.scaleRatio, unit: m.scaleUnit || "ft" };
+          }
+        }
+        return next;
+      });
+    }
+  }, [projectMarkups]);
 
   // ─── Verified (measurement history) items ─────────────────────────────
   const { data: verifiedItemIds } = trpc.takeoff.getItemsWithMeasurements.useQuery(
@@ -1212,12 +1227,19 @@ export default function TakeoffDetail() {
                             {sheet.errorMessage}
                           </p>
                         )}
-                        {/* Scale indicator */}
+                        {/* Scale indicator with verification badge */}
                         {sheetScales[sheet.id] && (
-                          <p className="text-[10px] text-amber-400/70 mt-1 flex items-center gap-1">
-                            <Ruler className="w-2.5 h-2.5" />
-                            {getScaleLabel(sheetScales[sheet.id].ratio)}
-                          </p>
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <p className="text-[10px] text-amber-400/70 flex items-center gap-1">
+                              <Ruler className="w-2.5 h-2.5" />
+                              {getScaleLabel(sheetScales[sheet.id].ratio)}
+                            </p>
+                            {sheetScales[sheet.id].method === "measured" ? (
+                              <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded px-1.5 py-0.5">Measured</span>
+                            ) : sheetScales[sheet.id].method === "title_block" ? (
+                              <span className="text-[9px] bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded px-1.5 py-0.5">Title Block</span>
+                            ) : null}
+                          </div>
                         )}
                       </CardContent>
                     </Card>

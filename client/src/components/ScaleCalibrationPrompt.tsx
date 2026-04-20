@@ -1,5 +1,5 @@
 /**
- * ScaleCalibrationPrompt v6
+ * ScaleCalibrationPrompt v7
  *
  * Three modes:
  *   "all"     — Known scale from title block → pick from dropdown, applies to all sheets
@@ -7,9 +7,10 @@
  *   "measure" — Scale NOT noted on drawings or you want to set your own custom scale
  *               → click two points on a drawing, type the real-world distance, system calculates px/ft
  *
- * Clear UX messaging:
- *   - Dropdown modes = "I know my drawing scale (it's in the title block)"
- *   - Measure mode   = "Scale isn't noted, isn't accurate, or I want to set my own"
+ * v7 improvements:
+ *   - Pinch-to-zoom + scroll-to-zoom + drag-to-pan on the measure tool drawing preview
+ *   - Apply-to-discipline-only option in measure mode (apply measured scale to just one trade)
+ *   - Scale method tracking: "measured" vs "title_block" passed through to parent for badge display
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
@@ -22,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Ruler, CheckCircle2, Layers, Crosshair, RotateCcw, ArrowLeft } from "lucide-react";
+import { Ruler, CheckCircle2, Layers, Crosshair, RotateCcw, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -71,6 +72,8 @@ const MEASURE_UNITS = [
   { value: "cm", label: "Centimeters" },
 ];
 
+const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
+
 function guessGroup(sheetName: string): string {
   const lower = (sheetName || "").toLowerCase().trim();
   for (const d of DISCIPLINES.filter(d => d.key !== "other")) {
@@ -97,7 +100,7 @@ function toPxPerFt(pxPerUnit: number, unit: string): number {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Sheet { id: number; sheetName?: string; pageNumber?: number; imageUrl?: string; }
-interface SheetScale { ratio: number; unit: string; }
+export interface SheetScale { ratio: number; unit: string; method?: "measured" | "title_block"; }
 interface Props {
   open: boolean;
   sheets: Sheet[];
@@ -154,7 +157,7 @@ function ScaleRow({
   );
 }
 
-// ── Inline Measure Tool (embedded in the dialog, not fullscreen) ─────────────
+// ── Inline Measure Tool with zoom/pan ─────────────────────────────────────────
 
 function MeasureTool({
   sheet,
@@ -173,10 +176,97 @@ function MeasureTool({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Zoom/pan state
+  const [zoomIdx, setZoomIdx] = useState(0);
+  const [panPos, setPanPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragMoved = useRef(false);
+
+  // Touch pinch state
+  const lastTouchDist = useRef<number | null>(null);
+
+  const zoom = ZOOM_LEVELS[zoomIdx];
+
   useEffect(() => {
     if (step === "enter_dist") setTimeout(() => inputRef.current?.focus(), 80);
   }, [step]);
 
+  const zoomIn = useCallback(() => {
+    setZoomIdx(prev => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoomIdx(prev => {
+      const next = Math.max(prev - 1, 0);
+      if (next === 0) setPanPos({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setZoomIdx(0);
+    setPanPos({ x: 0, y: 0 });
+  }, []);
+
+  // Wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.deltaY < 0) zoomIn();
+    else zoomOut();
+  }, [zoomIn, zoomOut]);
+
+  // Mouse drag for pan (only when zoomed)
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    // Only pan with right-click or when in enter_dist step (not picking points)
+    if (step !== "enter_dist" && step !== "pick_p1" && step !== "pick_p2") return;
+    // Use middle/right button for pan, or shift+click
+    if (e.button === 1 || e.button === 2 || e.shiftKey) {
+      e.preventDefault();
+      setIsDragging(true);
+      dragMoved.current = false;
+      setDragStart({ x: e.clientX - panPos.x, y: e.clientY - panPos.y });
+    }
+  }, [zoom, step, panPos]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    dragMoved.current = true;
+    setPanPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch handlers for pinch-to-zoom
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDist.current = Math.sqrt(dx * dx + dy * dy);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDist.current !== null) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const delta = dist - lastTouchDist.current;
+      if (delta > 20) { zoomIn(); lastTouchDist.current = dist; }
+      else if (delta < -20) { zoomOut(); lastTouchDist.current = dist; }
+    }
+  }, [zoomIn, zoomOut]);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDist.current = null;
+  }, []);
+
+  // Convert screen click to image-space coordinates (accounting for zoom/pan)
   const toImageCoords = useCallback((e: React.MouseEvent<HTMLDivElement>): Point => {
     const container = containerRef.current;
     const img = imgRef.current;
@@ -191,12 +281,21 @@ function MeasureTool({
     if (imgAspect > ctnAspect) { iw = cw; ih = cw / imgAspect; }
     else { ih = ch; iw = ch * imgAspect; }
     const ox = (cw - iw) / 2, oy = (ch - ih) / 2;
+    // Account for zoom + pan: the image is transformed by scale(zoom) translate(pan/zoom)
+    // So the visual position of image pixel (ix, iy) on screen is:
+    //   screenX = centerX + (ox + ix/nw * iw - cw/2 + panPos.x/zoom) * zoom
+    // We need to invert this.
+    const centerX = cw / 2, centerY = ch / 2;
+    // Invert transform: screen -> pre-transform coords
+    const ptx = (cx - centerX) / zoom + centerX - panPos.x / zoom;
+    const pty = (cy - centerY) / zoom + centerY - panPos.y / zoom;
     return {
-      x: Math.max(0, Math.min(nw, ((cx - ox) / iw) * nw)),
-      y: Math.max(0, Math.min(nh, ((cy - oy) / ih) * nh)),
+      x: Math.max(0, Math.min(nw, ((ptx - ox) / iw) * nw)),
+      y: Math.max(0, Math.min(nh, ((pty - oy) / ih) * nh)),
     };
-  }, []);
+  }, [zoom, panPos]);
 
+  // Convert image-space coords to screen-space container coords (accounting for zoom/pan)
   const toContainerCoords = useCallback((p: Point): Point => {
     const container = containerRef.current;
     const img = imgRef.current;
@@ -209,10 +308,20 @@ function MeasureTool({
     if (imgAspect > ctnAspect) { iw = cw; ih = cw / imgAspect; }
     else { ih = ch; iw = ch * imgAspect; }
     const ox = (cw - iw) / 2, oy = (ch - ih) / 2;
-    return { x: ox + (p.x / nw) * iw, y: oy + (p.y / nh) * ih };
-  }, []);
+    // Pre-transform position
+    const ptx = ox + (p.x / nw) * iw;
+    const pty = oy + (p.y / nh) * ih;
+    // Apply transform: scale from center + translate
+    const centerX = cw / 2, centerY = ch / 2;
+    return {
+      x: centerX + (ptx - centerX + panPos.x / zoom) * zoom,
+      y: centerY + (pty - centerY + panPos.y / zoom) * zoom,
+    };
+  }, [zoom, panPos]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Don't register clicks during/after drag
+    if (dragMoved.current) return;
     if (step === "pick_p1") {
       setP1(toImageCoords(e));
       setStep("pick_p2");
@@ -247,15 +356,49 @@ function MeasureTool({
 
   return (
     <div className="space-y-3">
-      {/* Drawing preview with click area */}
+      {/* Zoom toolbar */}
+      <div className="flex items-center gap-1 justify-end">
+        <button type="button" onClick={zoomOut} disabled={zoomIdx === 0}
+          className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-white/60 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={zoomIn} disabled={zoomIdx === ZOOM_LEVELS.length - 1}
+          className="p-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white/70">
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+        {zoomIdx > 0 && (
+          <button type="button" onClick={resetZoom}
+            className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-white/70 ml-1">
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {zoom > 1 && (
+          <span className="text-white/30 text-[10px] ml-2">Shift+drag to pan</span>
+        )}
+      </div>
+
+      {/* Drawing preview with click area + zoom/pan */}
       <div
         ref={containerRef}
         className="relative rounded-lg overflow-hidden bg-black/40 border border-white/10"
         style={{
-          height: 320,
-          cursor: step === "pick_p1" || step === "pick_p2" ? "crosshair" : "default",
+          height: 360,
+          cursor: step === "enter_dist"
+            ? (isDragging ? "grabbing" : "default")
+            : (isDragging ? "grabbing" : "crosshair"),
+          touchAction: "none",
         }}
         onClick={handleClick}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={e => e.preventDefault()}
       >
         {sheet.imageUrl ? (
           <img
@@ -264,37 +407,49 @@ function MeasureTool({
             alt={sheetLabel}
             className="w-full h-full object-contain select-none"
             draggable={false}
+            style={{
+              transform: `scale(${zoom}) translate(${panPos.x / zoom}px, ${panPos.y / zoom}px)`,
+              transformOrigin: "center center",
+              transition: isDragging ? "none" : "transform 0.15s ease-out",
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/40 text-sm">
             No preview available — upload a drawing first
           </div>
         )}
-        {/* Overlay line + points */}
+        {/* Overlay line + points (SVG stays in container space, points are screen-mapped) */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
           {c1 && c2 && (
             <line x1={c1.x} y1={c1.y} x2={c2.x} y2={c2.y} stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 3" />
           )}
           {c1 && (
             <>
-              <circle cx={c1.x} cy={c1.y} r="6" fill="#f59e0b" opacity="0.9" />
-              <text x={c1.x + 9} y={c1.y - 5} fill="#f59e0b" fontSize="11" fontWeight="bold">A</text>
+              <circle cx={c1.x} cy={c1.y} r="7" fill="#f59e0b" opacity="0.9" />
+              <text x={c1.x + 10} y={c1.y - 6} fill="#f59e0b" fontSize="12" fontWeight="bold">A</text>
             </>
           )}
           {c2 && (
             <>
-              <circle cx={c2.x} cy={c2.y} r="6" fill="#10b981" opacity="0.9" />
-              <text x={c2.x + 9} y={c2.y - 5} fill="#10b981" fontSize="11" fontWeight="bold">B</text>
+              <circle cx={c2.x} cy={c2.y} r="7" fill="#10b981" opacity="0.9" />
+              <text x={c2.x + 10} y={c2.y - 6} fill="#10b981" fontSize="12" fontWeight="bold">B</text>
             </>
           )}
         </svg>
+
+        {/* Zoom hint overlay */}
+        {zoomIdx === 0 && step !== "enter_dist" && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1">
+            <span className="text-white/50 text-[10px]">Scroll to zoom · Pinch on mobile</span>
+          </div>
+        )}
       </div>
 
       {/* Step instructions */}
       {step === "pick_p1" && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3">
           <p className="text-amber-300 text-sm font-semibold">Step 1: Click the start of a known dimension</p>
-          <p className="text-white/50 text-xs mt-0.5">Pick a wall, door, room width — anything you know the real length of.</p>
+          <p className="text-white/50 text-xs mt-0.5">Pick a wall, door, room width — anything you know the real length of. Zoom in for accuracy.</p>
         </div>
       )}
       {step === "pick_p2" && (
@@ -370,6 +525,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
   // "measure" mode state
   const [measureSheetIdx, setMeasureSheetIdx] = useState(0);
   const [measuredRatio, setMeasuredRatio] = useState<number | null>(null);
+  const [measureApplyTo, setMeasureApplyTo] = useState<"all" | string>("all");
 
   // ── Remember last-used scale ────────────────────────────────────────────────
   const prefQuery = trpc.takeoff.getScalePreference.useQuery(undefined, { enabled: open });
@@ -409,15 +565,19 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
       const scalesMap: Record<number, SheetScale> = {};
 
       if (mode === "measure" && measuredRatio) {
-        // Apply the measured ratio to all sheets
+        // Determine which sheets to apply the measured scale to
+        const targetSheets = measureApplyTo === "all"
+          ? sheets
+          : sheetGroups[measureApplyTo] || sheets;
+
         await bulkScaleMutation.mutateAsync({
           projectId,
-          sheetIds: sheets.map(s => s.id),
+          sheetIds: targetSheets.map(s => s.id),
           scaleRatio: measuredRatio,
           scaleUnit: "ft",
         });
-        for (const sheet of sheets) {
-          scalesMap[sheet.id] = { ratio: measuredRatio, unit: "ft" };
+        for (const sheet of targetSheets) {
+          scalesMap[sheet.id] = { ratio: measuredRatio, unit: "ft", method: "measured" };
         }
       } else if (mode === "all") {
         const ratio = pxPerFt(allScaleIdx, allPaperIdx);
@@ -428,7 +588,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
           scaleUnit: "ft",
         });
         for (const sheet of sheets) {
-          scalesMap[sheet.id] = { ratio, unit: "ft" };
+          scalesMap[sheet.id] = { ratio, unit: "ft", method: "title_block" };
         }
         savePrefMutation.mutate({ lastScaleIdx: allScaleIdx, lastPaperIdx: allPaperIdx });
       } else {
@@ -444,7 +604,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
             scaleUnit: "ft",
           });
           for (const sheet of groupSheets) {
-            scalesMap[sheet.id] = { ratio, unit: "ft" };
+            scalesMap[sheet.id] = { ratio, unit: "ft", method: "title_block" };
           }
         }
         const firstGroup = activeGroups[0];
@@ -455,7 +615,8 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
       }
 
       setDone(true);
-      toast.success(`Scale set for all ${sheets.length} sheets`);
+      const appliedCount = Object.keys(scalesMap).length;
+      toast.success(`Scale set for ${appliedCount} sheet${appliedCount !== 1 ? "s" : ""}`);
       setTimeout(() => onComplete(scalesMap), 400);
     } catch (err: any) {
       toast.error(`Failed to save scale: ${err.message}`);
@@ -470,7 +631,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
 
   const handleMeasured = (ratio: number) => {
     setMeasuredRatio(ratio);
-    toast.success("Scale calculated — hit 'Set Scale & Analyze' to apply to all sheets.");
+    toast.success("Scale calculated — hit 'Set Scale & Analyze' to apply.");
   };
 
   // Pick a sheet to measure on — prefer one with an imageUrl
@@ -602,12 +763,48 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
             />
 
             {measuredRatio && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div>
-                  <p className="text-emerald-300 text-sm font-semibold">Scale calculated: {measuredRatio.toFixed(1)} px/ft</p>
-                  <p className="text-white/50 text-xs">This will be applied to all {sheets.length} sheets when you hit the button below.</p>
+              <div className="space-y-3">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-emerald-300 text-sm font-semibold">Scale calculated: {measuredRatio.toFixed(1)} px/ft</p>
+                    <p className="text-white/50 text-xs">Choose which sheets to apply this scale to:</p>
+                  </div>
                 </div>
+
+                {/* Apply-to selector: all sheets or specific discipline */}
+                {activeGroups.length > 1 && (
+                  <div className="bg-white/3 border border-white/8 rounded-lg p-3 space-y-2">
+                    <p className="text-white/60 text-xs font-medium">Apply measured scale to:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMeasureApplyTo("all")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                          measureApplyTo === "all"
+                            ? "bg-amber-500/15 border-amber-500/50 text-amber-300"
+                            : "border-white/10 text-white/50 hover:bg-white/5"
+                        }`}
+                      >
+                        All {sheets.length} sheets
+                      </button>
+                      {activeGroups.map(disc => (
+                        <button
+                          key={disc.key}
+                          type="button"
+                          onClick={() => setMeasureApplyTo(disc.key)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                            measureApplyTo === disc.key
+                              ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300"
+                              : "border-white/10 text-white/50 hover:bg-white/5"
+                          }`}
+                        >
+                          {disc.label} ({sheetGroups[disc.key].length})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

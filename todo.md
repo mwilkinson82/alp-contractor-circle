@@ -2808,3 +2808,14 @@
 - [x] Wired into ScaleCalibrationPrompt as third mode alongside "Known Scale" and "By Discipline"
 - [x] Works on any sheet's image preview with click-to-measure overlay (A/B points + dashed line)
 - [x] Calculated scale applied to all sheets via bulk endpoint on confirm
+
+## New Member Onboarding Verification (Apr 19 2026)
+- [x] Verified: preston@barcconstruction.com — Supabase record created, subscription_status=active, founding_member=true, stripe_customer_id set
+- [x] Discord invite link works (discord.gg/KUTmm9D5aW)
+- [x] Portal login flow confirmed working — name will auto-update from 'New Member' on first Discord login
+
+## Scale UX Improvements Round 2 (Apr 19 2026)
+- [x] Pinch-to-zoom + scroll-to-zoom + shift-drag-to-pan on measure tool drawing preview (mobile-friendly)
+- [x] Apply-to-discipline-only option in measure mode (dropdown: All sheets / Architectural / Structural / MEP / Civil)
+- [x] Scale verification badge on sheet cards: green "Measured" badge vs blue "Title Block" badge
+- [x] Load saved scales from DB on page refresh via projectMarkups useEffect (scales no longer lost on reload)
