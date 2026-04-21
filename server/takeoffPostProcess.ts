@@ -13,6 +13,7 @@ import { invokeLLM, invokeLLMWithTimeout, type Message } from "./_core/llm";
 // Hard per-call timeout for all post-processing LLM calls (90 seconds)
 const PP_LLM_TIMEOUT_MS = 90_000;
 import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
+import { refineWithAiPricing } from "./aiPricingRefine";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
   getTakeoffItemsByProject,
@@ -1624,6 +1625,18 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   
   // Validate rebar quantities
   pricedItems = validateRebarQuantities(pricedItems);
+
+  // Step 6.5: AI Pricing Refinement — improve accuracy for specific/branded products
+  // Items from contractor's cost library are never modified. Only items with weak
+  // RS Means matches or specific product descriptions get refined.
+  try {
+    console.log(`[PostProcess] Starting AI pricing refinement...`);
+    pricedItems = await refineWithAiPricing(pricedItems, 1.0);
+    console.log(`[PostProcess] AI pricing refinement complete`);
+  } catch (err) {
+    console.error(`[PostProcess] AI pricing refinement failed, using RS Means prices:`, err);
+    // Non-fatal — we continue with RS Means pricing if AI fails
+  }
 
   // Write prices back to consolidated items (convert dollars back to cents)
   for (let i = 0; i < consolidated.length; i++) {

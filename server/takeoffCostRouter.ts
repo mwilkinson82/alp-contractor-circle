@@ -16,6 +16,7 @@ import {
   recalculateProjectTotal,
 } from "./takeoffDb";
 import { applyPricing, applyPricingWithLibrary, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
+import { refineWithAiPricing } from "./aiPricingRefine";
 import { COST_TABLE } from "../shared/costTable";
 import {
   getCostLibraryByMember,
@@ -102,9 +103,15 @@ export const takeoffCostRouter = router({
         unitCost: e.unitCost / 100,
         csiDivision: e.csiDivision || "",
       }));
-      const pricedItems = memberOverrides.length > 0
+      let pricedItems = memberOverrides.length > 0
         ? applyPricingWithLibrary(costItems, memberOverrides, multiplier)
         : applyPricing(costItems, multiplier);
+      // AI pricing refinement — improves accuracy for specific/branded products
+      try {
+        pricedItems = await refineWithAiPricing(pricedItems, multiplier);
+      } catch (err) {
+        console.error(`[RePrice] AI pricing refinement failed, using RS Means prices:`, err);
+      }
       let updated = 0;
       for (let i = 0; i < items.length; i++) {
         const priced = pricedItems[i];

@@ -483,6 +483,28 @@ export default function PreAnalysisModal({
               </div>
             </div>
 
+            {/* Quick-add presets */}
+            <div className="space-y-2">
+              <span className="text-xs text-cream-muted">Quick Add — Residential</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "Kitchen Cabinets", amount: 15000 },
+                  { label: "Countertops", amount: 8000 },
+                  { label: "Flooring", amount: 12000 },
+                  { label: "Appliances", amount: 10000 },
+                  { label: "Tile", amount: 6000 },
+                ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: preset.label, amount: preset.amount }])}
+                    className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Allowance items list */}
             <div className="space-y-2">
               {allowances.map((item) => (

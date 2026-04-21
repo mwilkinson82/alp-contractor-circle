@@ -953,7 +953,7 @@ export default function TakeoffDetail() {
                   onValueChange={(val) => {
                     const profileId = val === "default" ? null : Number(val);
                     updateProjectMutation.mutate(
-                      { id: projectId, rateProfileId: profileId },
+                      { id: projectId, rateProfileId: profileId } as any,
                       {
                         onSuccess: () => {
                           refetchProject();
@@ -1008,7 +1008,7 @@ export default function TakeoffDetail() {
                 if (rateProfileId !== undefined) {
                   await new Promise<void>((resolve, reject) => {
                     updateProjectMutation.mutate(
-                      { id: projectId, rateProfileId },
+                      { id: projectId, rateProfileId } as any,
                       { onSuccess: () => resolve(), onError: (err) => reject(err) }
                     );
                   });
@@ -1648,6 +1648,58 @@ export default function TakeoffDetail() {
                             )}
                           </div>
                           <span className="text-amber-400 font-bold text-2xl font-mono">{fmtDollars(grandTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* ─── Summary Breakdown Bar ───────────────────────────────────────── */}
+                {(items && items.length > 0) && (() => {
+                  const materialSubtotal = (items || []).reduce((sum: number, item: any) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const matCost = (item.materialCost || 0); // in cents
+                    return sum + (qty * matCost);
+                  }, 0);
+                  const laborSubtotal = (items || []).reduce((sum: number, item: any) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const labCost = (item.laborCost || 0); // in cents
+                    return sum + (qty * labCost);
+                  }, 0);
+                  const curr = project?.currency || "USD";
+                  return (
+                    <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {/* Material Subtotal */}
+                        <div className="flex flex-col">
+                          <span className="text-cream-muted text-xs uppercase tracking-wider mb-1">Material</span>
+                          <span className="text-cream font-mono font-semibold text-lg">
+                            {formatCurrency(materialSubtotal, curr)}
+                          </span>
+                        </div>
+                        {/* Labor Subtotal */}
+                        <div className="flex flex-col">
+                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Labor</span>
+                          <span className="text-cyan-400 font-mono font-semibold text-lg">
+                            {formatCurrency(laborSubtotal, curr)}
+                          </span>
+                        </div>
+                        {/* Allowances Subtotal */}
+                        <div className="flex flex-col">
+                          <span className="text-amber-400/60 text-xs uppercase tracking-wider mb-1">Allowances</span>
+                          <span className="text-amber-400 font-mono font-semibold text-lg">
+                            {allowancesTotal > 0 ? new Intl.NumberFormat(
+                              CURRENCY_LOCALE[curr] || "en-US",
+                              { style: "currency", currency: curr, minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                            ).format(allowancesTotal) : formatCurrency(0, curr)}
+                          </span>
+                        </div>
+                        {/* Grand Total */}
+                        <div className="flex flex-col border-l border-white/10 pl-4">
+                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Total Estimate</span>
+                          <span className="text-emerald-400 font-mono font-bold text-lg">
+                            {formatCurrency(totalCost, curr)}
+                          </span>
                         </div>
                       </div>
                     </div>

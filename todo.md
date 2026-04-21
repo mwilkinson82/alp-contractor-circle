@@ -2971,3 +2971,16 @@
 - [x] Evaluate scale calibration impact — NOT used in AI pipeline, only for manual markup tool
 - [x] Ensure smooth end-to-end flow: create project → onboard settings + allowances → upload drawings → auto-analyze → results view
 - [x] Remove scale calibration prompt entirely from upload flow (per Marshall's direction)
+
+## Summary Breakdown Bar & Allowance Presets — April 21 (Part 3)
+- [x] Add summary breakdown bar showing Material subtotal, Labor subtotal, Allowances subtotal above items table
+- [x] Add residential allowance presets (kitchen, cabinets, countertops, flooring, appliances, tiling) as quick-add buttons
+- [ ] Propose commercial and public works allowance presets for Marshall's review
+- [ ] Implement commercial and public works presets after approval
+
+## Tiered Pricing — AI-Assisted Product Pricing — April 21 (Part 4)
+- [x] Build AI pricing pass that evaluates RS Means match quality for specific products
+- [x] AI provides better cost estimate when RS Means match is clearly wrong (e.g., specific brand/model items)
+- [x] Wire tiered pricing: contractor cost library > AI-specific pricing > RS Means (silent, no source labels)
+- [x] Ensure cost library lookup is properly wired for contractors who upload their own pricing
+- [ ] Test repricing on Kramer Residence to verify accuracy improvement

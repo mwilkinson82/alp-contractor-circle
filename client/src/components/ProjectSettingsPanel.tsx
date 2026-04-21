@@ -446,6 +446,25 @@ export default function ProjectSettingsPanel({
                 Allowances
                 <span className="text-xs text-cream-muted">(selections not yet priced — cabinets, countertops, tile, etc.)</span>
               </div>
+              {/* Quick-add presets */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {[
+                  { label: "Kitchen Cabinets", amount: 1500000 },
+                  { label: "Countertops", amount: 800000 },
+                  { label: "Flooring", amount: 1200000 },
+                  { label: "Appliances", amount: 1000000 },
+                  { label: "Tile", amount: 600000 },
+                ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
+                    className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
               <div className="space-y-2">
                 {allowances.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2">

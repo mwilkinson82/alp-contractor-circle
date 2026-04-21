@@ -610,7 +610,7 @@ export default function ScaleCalibrationPrompt({ open, sheets, projectId, onComp
   // ── Remember last-used scale ────────────────────────────────────────────────
   const prefQuery = trpc.takeoff.getScalePreference.useQuery(undefined, { enabled: open });
   const savePrefMutation = trpc.takeoff.saveScalePreference.useMutation();
-  const bulkScaleMutation = trpc.takeoff.bulkSaveSheetScale.useMutation();
+  const bulkScaleMutation = (trpc.takeoff as any).bulkSaveSheetScale.useMutation();
 
   useEffect(() => {
     if (prefQuery.data) {
