@@ -66,6 +66,8 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  /** Optional AbortSignal — pass one to enforce a hard HTTP timeout on the LLM call */
+  signal?: AbortSignal;
 };
 
 export type ToolCall = {
@@ -265,6 +267,25 @@ const normalizeResponseFormat = ({
   };
 };
 
+/**
+ * Wrap an invokeLLM call with a hard per-call timeout using AbortController.
+ * The HTTP connection itself is killed when the deadline fires.
+ */
+export async function invokeLLMWithTimeout(
+  params: InvokeParams,
+  timeoutMs: number
+): Promise<InvokeResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await invokeLLM({ ...params, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
@@ -277,6 +298,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     output_schema,
     responseFormat,
     response_format,
+    signal,
   } = params;
 
   const payload: Record<string, unknown> = {
@@ -319,6 +341,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       authorization: `Bearer ${ENV.forgeApiKey}`,
     },
     body: JSON.stringify(payload),
+    ...(signal ? { signal } : {}),
   });
 
   if (!response.ok) {

@@ -8,7 +8,10 @@
  * 4. Generate formwork items for concrete members (Priority 4)
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
-import { invokeLLM, type Message } from "./_core/llm";
+import { invokeLLM, invokeLLMWithTimeout, type Message } from "./_core/llm";
+
+// Hard per-call timeout for all post-processing LLM calls (90 seconds)
+const PP_LLM_TIMEOUT_MS = 90_000;
 import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
@@ -440,13 +443,13 @@ IMPORTANT RULES:
   try {
     console.log(`[PostProcess] Consolidating ${items.length} items from ${sheets.length} sheets...`);
     
-    const response = await invokeLLM({
+    const response = await invokeLLMWithTimeout({
       messages: [
-        { role: "system", content: "You are a senior construction estimator. Consolidate duplicate takeoff items and enforce scope compliance. Return JSON." },
+        { role: "system", content: "You are a senior construction estimator. Consolidate duplicate line items. Return JSON." },
         { role: "user", content: consolidationPrompt },
       ],
-      response_format: responseSchema,
-    });
+      response_format: consolidationSchema,
+    }, PP_LLM_TIMEOUT_MS);
 
     const rawContent = response.choices[0]?.message?.content;
     if (!rawContent) throw new Error("No content in consolidation response");
@@ -666,10 +669,10 @@ If you CANNOT measure an item from the available plans, set canMeasure to false.
       },
     ];
 
-    const response = await invokeLLM({
+    const response = await invokeLLMWithTimeout({
       messages: enhanceMessages,
       response_format: enhancementSchema,
-    });
+    }, PP_LLM_TIMEOUT_MS);
 
     const rawContent2 = response.choices[0]?.message?.content;
     if (!rawContent2) throw new Error("No content in enhancement response");
@@ -840,13 +843,13 @@ Only generate formwork for items that actually need forms (not for slabs-on-grad
   try {
     console.log(`[PostProcess] Generating formwork for ${concreteItems.length} concrete items...`);
 
-    const response = await invokeLLM({
+    const response = await invokeLLMWithTimeout({
       messages: [
         { role: "system", content: "You are a senior construction estimator. Calculate formwork quantities for concrete members. Return JSON." },
         { role: "user", content: formworkPrompt },
       ],
       response_format: formworkSchema,
-    });
+    }, PP_LLM_TIMEOUT_MS);
 
     const rawContent3 = response.choices[0]?.message?.content;
     if (!rawContent3) throw new Error("No content in formwork response");
@@ -1071,10 +1074,10 @@ Return enhanced rebar items as a JSON array. For each rebar item:
       { role: "user", content: userContent },
     ];
 
-    const response = await invokeLLM({
+    const response = await invokeLLMWithTimeout({
       messages: rebarMessages,
       response_format: rebarSchema,
-    });
+    }, PP_LLM_TIMEOUT_MS);
 
     const rawContent4 = response.choices[0]?.message?.content;
     if (!rawContent4) throw new Error("No content in rebar enhancement response");
