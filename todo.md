@@ -2916,3 +2916,17 @@
 - [x] Clicking "Edit Scope" opens Project Settings modal scrolled to Scope Description field
 - [x] Scope change detection: when user saves a new scope on a completed project, show toast "Scope updated — re-run analysis to apply?" with a "Re-run Now" action button
 - [x] QA: toolbar still fits at $10M+ total — no overflow, no new buttons in main row (no new buttons added to main row)
+
+## CRITICAL: Cost Regression ($1.7M → $450K)
+- [ ] Investigate why the same drawings now produce $450K instead of $1.7M
+- [ ] Check if context-only sheet skipping is incorrectly skipping quantity-bearing sheets
+- [ ] Check if scope description save fix cleared a scope that was guiding extraction
+- [ ] Review all changes to takeoffAI.ts since the last known-good build
+- [ ] Check if the consolidation/post-processing merge logic changed
+- [ ] Verify the PDF sheet count matches what the system is processing
+- [ ] Fix root cause and restore accurate pricing
+
+## Online Presence Monitor Bug
+- [ ] Investigate why "Who's Online" only shows the current user
+- [ ] Check the presence tracking mechanism (polling vs websocket)
+- [ ] Fix presence to show all active users correctly
