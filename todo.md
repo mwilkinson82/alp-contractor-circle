@@ -2954,11 +2954,20 @@
 ## Contractor-Driven Allowances
 - [x] Add allowance input UI — field where contractor can add allowance line items (description + dollar amount) during or after upload
 - [x] Store allowances in database tied to takeoff project
-- [ ] Display allowance items in takeoff results as editable line items
+- [x] Display allowance items in takeoff results as grouped section before CSI divisions
 - [x] Allowances are contractor-entered only — no AI auto-generation
-- [ ] Allowances should be included in project totals
+- [x] Allowances should be included in project totals (summed into grand total)
 
 ## Pre-existing Bugs (Carry Forward)
 - [ ] FIX: Error card layout — refresh icon overflows on error sheet cards
 - [ ] FIX: Yellow top counter bar flickers during processing
 - [x] CLEANUP: Fixed consolidationSchema TS error — was referencing wrong variable name
+
+## Streamlined Takeoff Flow — April 21 (Part 2)
+- [x] Move allowances input into pre-analysis onboarding modal (Step 6 in wizard)
+- [x] Sum allowances into grand total bar — show as separate grouped line
+- [x] Display allowances as grouped section BEFORE CSI divisions in takeoff items table
+- [x] Auto-analyze after upload — upload triggers PreAnalysis modal directly, analysis starts on confirm
+- [x] Evaluate scale calibration impact — NOT used in AI pipeline, only for manual markup tool
+- [x] Ensure smooth end-to-end flow: create project → onboard settings + allowances → upload drawings → auto-analyze → results view
+- [x] Remove scale calibration prompt entirely from upload flow (per Marshall's direction)

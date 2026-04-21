@@ -62,10 +62,12 @@ import {
   Merge,
   MoreHorizontal,
   FileText,
+  ClipboardList,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
-import ScaleCalibrationPrompt, { DRAWING_SCALES, PAPER_SIZES, pxPerFt } from "@/components/ScaleCalibrationPrompt";
+// Scale calibration prompt removed — not used in AI pipeline
+import { DRAWING_SCALES, PAPER_SIZES, pxPerFt } from "@/components/ScaleCalibrationPrompt";
 
 /** Reverse-lookup: given a px/ft ratio, find the closest matching human-readable scale label */
 function getScaleLabel(ratio: number): string {
@@ -157,8 +159,7 @@ export default function TakeoffDetail() {
   const [showRollup, setShowRollup] = useState(false);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
   const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string; method?: "measured" | "title_block" }>>({});
-  const [showScalePrompt, setShowScalePrompt] = useState(false);
-  const [newlyUploadedSheets, setNewlyUploadedSheets] = useState<any[]>([]);
+  // Scale calibration prompt removed from upload flow
   const [showImportExcel, setShowImportExcel] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
@@ -508,12 +509,11 @@ export default function TakeoffDetail() {
         }
       }
 
-      // After upload, refetch sheets and show scale calibration prompt
+      // After upload, refetch sheets and go straight to pre-analysis settings
       await refetchProject();
       refetchProgress();
-      // Collect newly uploaded sheet IDs from the updated sheet list
-      // We'll show the prompt with the latest pending sheets
-      setShowScalePrompt(true);
+      // Auto-trigger the pre-analysis modal so user can confirm settings and start analysis
+      setShowPreAnalysis(true);
     } catch (err: any) {
       toast.error(`Upload error: ${err.message}`);
     } finally {
@@ -887,7 +887,17 @@ export default function TakeoffDetail() {
   const sheets = project.sheets || [];
   const isProcessing = progress?.status === "processing" || progress?.status === "post_processing";
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
-  const totalCost = project.totalEstimatedCost || 0;
+  // Parse project allowances
+  const projectAllowances: Array<{ description: string; amount: number }> = (() => {
+    try {
+      if (!project.allowances) return [];
+      const raw = typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances;
+      return Array.isArray(raw) ? raw.filter((a: any) => a.description && a.amount > 0) : [];
+    } catch { return []; }
+  })();
+  const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const itemsCost = project.totalEstimatedCost || 0;
+  const totalCost = itemsCost + allowancesTotal;
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -1148,6 +1158,16 @@ export default function TakeoffDetail() {
                 setShowPreAnalysis(false);
                 // Save preferred currency for next time
                 savePreferredCurrency.mutate({ currency: settings.currency });
+                // Save allowances to project if any were entered
+                if (settings.allowances && settings.allowances.length > 0) {
+                  settingsMutation.mutate({
+                    projectId,
+                    selectedDivisions: settings.selectedDivisions,
+                    costRegion: settings.costRegion,
+                    currency: settings.currency as any,
+                    allowances: settings.allowances.map(a => ({ description: a.description, amount: a.amount })),
+                  });
+                }
                 processMutation.mutate({
                   projectId,
                   currency: settings.currency,
@@ -1633,6 +1653,56 @@ export default function TakeoffDetail() {
                     </div>
                   );
                 })()}
+
+                {/* Allowances Section — shown before CSI divisions */}
+                {projectAllowances.length > 0 && (
+                  <div className="bg-navy-medium/30 border border-amber-500/20 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleDivision("_allowances")}
+                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronDown className={`w-4 h-4 text-cream-muted transition-transform ${collapsedDivisions.has("_allowances") ? "-rotate-90" : ""}`} />
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4 text-amber-400" />
+                          <span className="font-semibold text-cream">Allowances</span>
+                          <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] font-normal">
+                            {projectAllowances.length} item{projectAllowances.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                      </div>
+                      <span className="text-amber-400 font-semibold">
+                        {formatCurrency(allowancesTotal, project?.currency || "USD")}
+                      </span>
+                    </button>
+                    {!collapsedDivisions.has("_allowances") && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <th className="text-left px-4 py-2 w-12"></th>
+                              <th className="text-left px-4 py-2">Description</th>
+                              <th className="text-right px-4 py-2 w-28">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {projectAllowances.map((a, idx) => (
+                              <tr key={idx} className="border-t border-white/5 hover:bg-white/5 transition-colors">
+                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                  <ClipboardList className="w-3.5 h-3.5 text-amber-400/50" />
+                                </td>
+                                <td className="px-4 py-2 text-cream">{a.description}</td>
+                                <td className="px-4 py-2 text-right text-amber-300 font-mono">
+                                  {formatCurrency(a.amount, project?.currency || "USD")}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Items by CSI Division */}
                 {Object.entries(groupedItems)
@@ -2200,19 +2270,7 @@ export default function TakeoffDetail() {
         />
       )}
 
-      {/* ─── Scale Calibration Prompt (fires after every upload) ─────── */}
-      {showScalePrompt && (
-        <ScaleCalibrationPrompt
-          open={showScalePrompt}
-          sheets={(sheets as any[]).filter((s: any) => s.status === "pending")}
-          projectId={projectId}
-          onComplete={(savedScales) => {
-            setSheetScales(prev => ({ ...prev, ...savedScales }));
-            setShowScalePrompt(false);
-          }}
-          onSkipAll={() => setShowScalePrompt(false)}
-        />
-      )}
+      {/* Scale calibration prompt removed — not used in AI pipeline */}
     </div>
   );
 }

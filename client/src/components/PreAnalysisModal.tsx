@@ -39,10 +39,20 @@ import {
   Wrench,
   AlertTriangle,
   Ruler,
+  Plus,
+  Trash2,
+  ClipboardList,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 
 const STORAGE_KEY = "alp-takeoff-preanalysis-prefs";
+
+export interface AllowanceItem {
+  id: string;
+  description: string;
+  amount: number;
+}
 
 interface PreAnalysisSettings {
   currency: "USD" | "GBP" | "AUD";
@@ -50,6 +60,7 @@ interface PreAnalysisSettings {
   costRegion: string | null;
   scopeText: string;
   selectedSpecialties: string[];
+  allowances: AllowanceItem[];
 }
 
 const DEFAULT_SETTINGS: PreAnalysisSettings = {
@@ -58,6 +69,7 @@ const DEFAULT_SETTINGS: PreAnalysisSettings = {
   costRegion: null,
   scopeText: "",
   selectedSpecialties: [],
+  allowances: [],
 };
 
 function loadSavedSettings(): PreAnalysisSettings {
@@ -166,6 +178,7 @@ export default function PreAnalysisModal({
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(
     existingSpecialties || saved.selectedSpecialties || []
   );
+  const [allowances, setAllowances] = useState<AllowanceItem[]>(saved.allowances || []);
 
   // Reset step when modal opens
   useEffect(() => {
@@ -179,12 +192,23 @@ export default function PreAnalysisModal({
       costRegion,
       scopeText: scopeText.trim(),
       selectedSpecialties,
+      allowances: allowances.filter(a => a.description.trim() && a.amount > 0),
     };
     saveSettings(settings);
     onConfirm(settings);
   };
 
-  const totalSteps = 5;
+  const addAllowance = () => {
+    setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: "", amount: 0 }]);
+  };
+  const removeAllowance = (id: string) => {
+    setAllowances(prev => prev.filter(a => a.id !== id));
+  };
+  const updateAllowance = (id: string, field: "description" | "amount", value: string | number) => {
+    setAllowances(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
+  };
+
+  const totalSteps = 6;
 
   // Build specialty names for summary
   const specialtyNames = selectedSpecialties
@@ -233,11 +257,11 @@ export default function PreAnalysisModal({
 
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-1 py-2">
-          {[1, 2, 3, 4, 5].map((s) => (
+          {[1, 2, 3, 4, 5, 6].map((s) => (
             <div key={s} className="flex items-center">
               <button
                 onClick={() => setStep(s)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   s === step
                     ? "bg-amber-500 text-white"
                     : s < step
@@ -247,8 +271,8 @@ export default function PreAnalysisModal({
               >
                 {s}
               </button>
-              {s < 5 && (
-                <div className={`w-6 h-0.5 ${s < step ? "bg-amber-500/30" : "bg-white/10"}`} />
+              {s < 6 && (
+                <div className={`w-4 h-0.5 ${s < step ? "bg-amber-500/30" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -432,6 +456,83 @@ export default function PreAnalysisModal({
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* Step 6: Allowances (Residential) */}
+        {step === 6 && (
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-2 mb-1">
+              <ClipboardList className="w-4 h-4 text-amber-500" />
+              <Label className="text-sm font-semibold text-cream">Allowances</Label>
+              <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Optional</Badge>
+            </div>
+
+            {/* Explanation callout */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-cream font-medium">Skip this if selections are already on the drawings</p>
+                <p className="text-xs text-cream-muted mt-0.5">
+                  For residential projects where cabinets, countertops, tile, or other selections haven't been picked yet, add allowance items here with placeholder dollar amounts. You can refine them later when you get actual pricing.
+                </p>
+              </div>
+            </div>
+
+            {/* Allowance items list */}
+            <div className="space-y-2">
+              {allowances.map((item) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <Input
+                    value={item.description}
+                    onChange={(e) => updateAllowance(item.id, "description", e.target.value)}
+                    placeholder="e.g. Kitchen Cabinets"
+                    className="flex-1 bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 h-9 text-sm"
+                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-cream-muted text-sm">$</span>
+                    <Input
+                      type="number"
+                      value={item.amount || ""}
+                      onChange={(e) => updateAllowance(item.id, "amount", parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 h-9 text-sm pl-6 text-right"
+                      min={0}
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeAllowance(item.id)}
+                    className="text-red-400/60 hover:text-red-400 transition-colors p-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={addAllowance}
+              className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors py-1"
+            >
+              <Plus className="w-4 h-4" />
+              Add Allowance Item
+            </button>
+
+            {allowances.length > 0 && allowances.some(a => a.amount > 0) && (
+              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-cream-muted">Total Allowances:</span>
+                  <span className="text-sm font-semibold text-amber-300">
+                    ${allowances.reduce((sum, a) => sum + (a.amount || 0), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Summary */}
             <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
               <span className="text-xs font-semibold text-cream">Analysis Summary</span>
@@ -462,10 +563,18 @@ export default function PreAnalysisModal({
                     {costRegion || "National Average"}
                   </span>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <span className="text-cream-muted">Scope:</span>{" "}
                   <span className="text-cream font-medium">
                     {scopeText.trim() ? "Custom" : "Full"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-cream-muted">Allowances:</span>{" "}
+                  <span className="text-cream font-medium">
+                    {allowances.filter(a => a.description.trim() && a.amount > 0).length > 0
+                      ? `${allowances.filter(a => a.description.trim() && a.amount > 0).length} items ($${allowances.filter(a => a.amount > 0).reduce((s, a) => s + a.amount, 0).toLocaleString()})`
+                      : "None"}
                   </span>
                 </div>
               </div>
