@@ -112,14 +112,39 @@ function scoreMatch(item: TakeoffItem, entry: CostTableEntry): number {
 }
 
 /**
+ * Enrich item description with standard keywords to improve cost table matching.
+ * E.g., "Concrete Slab" → "Concrete Slab 4 inch" if we can infer thickness from notes.
+ */
+function enrichDescription(item: TakeoffItem): string {
+  let desc = item.description || "";
+  const notes = (item.notes || "").toLowerCase();
+  
+  // If it's a concrete slab and we don't have thickness, try to infer from notes
+  if (desc.toLowerCase().includes("slab") && !desc.match(/\d+"/)) {
+    if (notes.includes("4") || notes.includes("inch")) desc += " 4 inch";
+    else if (notes.includes("6")) desc += " 6 inch";
+    else if (notes.includes("8")) desc += " 8 inch";
+  }
+  
+  // If it's a footing and we don't have dimensions, add generic keyword
+  if (desc.toLowerCase().includes("footing") && !desc.match(/\d+\s*x\s*\d+/)) {
+    if (!desc.toLowerCase().includes("continuous")) desc += " continuous";
+  }
+  
+  return desc;
+}
+
+/**
  * Find the best matching cost table entry for a takeoff item.
  */
 export function findBestMatch(item: TakeoffItem): CostMatch | null {
+  // Enrich the description before matching
+  const enrichedItem = { ...item, description: enrichDescription(item) };
   let bestEntry: CostTableEntry | null = null;
   let bestScore = 0;
   
   for (const entry of COST_TABLE) {
-    const score = scoreMatch(item, entry);
+    const score = scoreMatch(enrichedItem, entry);
     if (score > bestScore) {
       bestScore = score;
       bestEntry = entry;
