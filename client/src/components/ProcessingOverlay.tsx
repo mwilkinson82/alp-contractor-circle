@@ -29,27 +29,29 @@ import {
 // ─── Status Messages ──────────────────────────────────────────────────────────
 
 const PHASE1_MESSAGES = [
-  { icon: ScanLine, text: "Scanning all drawings to build project context..." },
-  { icon: FileSearch, text: "Identifying plan views and section details..." },
-  { icon: Ruler, text: "Extracting building dimensions from plans..." },
-  { icon: Layers, text: "Mapping structural elements across sheets..." },
+  { icon: ScanLine, text: "Scanning drawings — classifying sheet types..." },
+  { icon: FileSearch, text: "Identifying plan views, sections, and details..." },
+  { icon: Layers, text: "Detecting cover sheets and schedules..." },
+  { icon: Ruler, text: "Preparing sheets for extraction..." },
 ];
 
 const PHASE2_MESSAGES = [
-  { icon: Boxes, text: "Classifying materials by CSI division..." },
-  { icon: Calculator, text: "Calculating material quantities..." },
-  { icon: HardHat, text: "Cross-referencing with plan dimensions..." },
-  { icon: Hammer, text: "Matching items to unit cost database..." },
-  { icon: Wrench, text: "Applying regional cost adjustments..." },
-  { icon: DollarSign, text: "Finalizing cost estimates..." },
+  { icon: HardHat, text: "Pass 1 — Reading the drawing holistically..." },
+  { icon: Boxes, text: "Pass 1 — Extracting every measurable quantity..." },
+  { icon: Calculator, text: "Pass 1 — Classifying items by CSI division..." },
+  { icon: ScanLine, text: "Pass 2 — Verifying quantities against the drawing..." },
+  { icon: FileSearch, text: "Pass 2 — Checking for missing items..." },
+  { icon: Wrench, text: "Pass 2 — Correcting any quantity errors..." },
+  { icon: Hammer, text: "Merging verified results..." },
 ];
 
 const PHASE3_MESSAGES = [
-  { icon: Layers, text: "Merging duplicate items across sheets..." },
-  { icon: Calculator, text: "Replacing lump sums with measured quantities..." },
-  { icon: Ruler, text: "Generating formwork calculations..." },
-  { icon: ScanLine, text: "Enforcing scope compliance..." },
-  { icon: DollarSign, text: "Recalculating final costs..." },
+  { icon: Layers, text: "Consolidating duplicate items across all sheets..." },
+  { icon: Calculator, text: "Converting lump sums to measured quantities..." },
+  { icon: Ruler, text: "Calculating formwork (SFCA)..." },
+  { icon: Wrench, text: "Enhancing rebar quantities..." },
+  { icon: DollarSign, text: "Applying RS Means cost data..." },
+  { icon: ScanLine, text: "Applying regional cost multiplier..." },
 ];
 
 type AnalysisPhase = "indexing" | "extracting" | "consolidating";
@@ -375,18 +377,18 @@ export default function ProcessingOverlay({
   const phases = [
     {
       key: "indexing" as const,
-      label: "Index Drawings",
-      description: "Building project context",
+      label: "Classify Sheets",
+      description: "Identifying sheet types",
     },
     {
       key: "extracting" as const,
-      label: "Extract Quantities",
-      description: "Analyzing each sheet",
+      label: "Extract & Verify",
+      description: "2-pass AI per sheet",
     },
     {
       key: "consolidating" as const,
-      label: "Consolidate & Enhance",
-      description: "Auto-running — merging & refining results",
+      label: "Price & Consolidate",
+      description: "RS Means + dedup + formwork",
     },
   ];
 
