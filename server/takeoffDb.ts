@@ -236,6 +236,8 @@ export async function recalculateItemCosts(
   for (const item of items) {
     // Recalculate unit cost: old unit cost * adjustment ratio
     const newUnitCost = item.unitCost ? Math.round(item.unitCost * adjustmentRatio) : 0;
+    const newMaterialCost = item.materialCost ? Math.round(item.materialCost * adjustmentRatio) : 0;
+    const newLaborCost = item.laborCost ? Math.round(item.laborCost * adjustmentRatio) : 0;
     
     // Recalculate extended cost: new unit cost * quantity
     const quantity = parseFloat(item.quantity || "0");
@@ -244,6 +246,8 @@ export async function recalculateItemCosts(
     await updateTakeoffItem(item.id, {
       unitCost: newUnitCost,
       extendedCost: newExtendedCost,
+      materialCost: newMaterialCost,
+      laborCost: newLaborCost,
     });
   }
 

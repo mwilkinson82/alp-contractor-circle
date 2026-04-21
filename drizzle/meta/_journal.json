@@ -358,6 +358,20 @@
       "when": 1776705261811,
       "tag": "0050_condemned_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "5",
+      "when": 1776785133590,
+      "tag": "0051_classy_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "5",
+      "when": 1776785682342,
+      "tag": "0052_plain_gambit",
+      "breakpoints": true
     }
   ]
 }

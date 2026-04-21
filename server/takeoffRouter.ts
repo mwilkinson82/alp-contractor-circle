@@ -586,6 +586,8 @@ export const takeoffRouter = router({
       const sheetId = await getOrCreateManualSheet(input.projectId);
       const qty = parseFloat(input.quantity) || 0;
       const extendedCost = Math.round(qty * input.unitCost);
+      // For manually added items, default to full amount as material, 0 labor
+      // (contractor can adjust via the Trade Rate Library)
       const id = await createTakeoffItem({
         projectId: input.projectId,
         sheetId,
@@ -596,6 +598,8 @@ export const takeoffRouter = router({
         unit: input.unit,
         unitCost: input.unitCost,
         extendedCost,
+        materialCost: input.unitCost,
+        laborCost: 0,
         confidence: 100,
         notes: input.notes || null,
         reviewed: true,
@@ -730,6 +734,11 @@ export const takeoffRouter = router({
         currency: z.enum(["USD", "GBP", "AUD"]).optional(),
         selectedSpecialties: z.array(z.string()).nullable().optional(),
         scopeText: z.string().max(2000).nullable().optional(),
+        /** Contractor-entered allowance items (residential selections etc.) */
+        allowances: z.array(z.object({
+          description: z.string().min(1).max(256),
+          amount: z.number().min(0), // in cents
+        })).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -752,6 +761,11 @@ export const takeoffRouter = router({
       // Handle scopeText update (null = clear the scope description)
       if (input.scopeText !== undefined) {
         updates.scopeText = input.scopeText;
+      }
+
+      // Handle allowances update
+      if (input.allowances !== undefined) {
+        updates.allowances = input.allowances ? JSON.stringify(input.allowances) : null;
       }
 
       // Handle division update (only affects future extractions, not existing items)

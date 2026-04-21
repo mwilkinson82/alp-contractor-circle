@@ -776,6 +776,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   processingTimedOut: boolean("processingTimedOut").default(false).notNull(),
   /** Optional rate profile ID — overrides global hub config for this project */
   rateProfileId: int("rateProfileId"),
+  /** JSON array of contractor-entered allowance items, e.g. [{"description":"Cabinets","amount":15000},{"description":"Countertops","amount":8000}] */
+  allowances: json("allowances"),
   /** JSON snapshot of pre-consolidation line items — saved before consolidation runs so we can show diffs */
   consolidationSnapshot: json("consolidationSnapshot"),
   /** Timestamp of when the last full analysis (post-processing) completed */
@@ -861,10 +863,14 @@ export const takeoffItems = mysqlTable("takeoff_items", {
   quantity: decimal("quantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
   /** Unit of measure e.g. "SF", "LF", "CY", "EA", "LS" */
   unit: varchar("unit", { length: 16 }).default("EA").notNull(),
-  /** Unit cost in cents */
+  /** Unit cost in cents (material + labor combined) */
   unitCost: int("unitCost").default(0).notNull(),
   /** Extended cost in cents (quantity * unitCost) */
   extendedCost: int("extendedCost").default(0).notNull(),
+  /** Material-only unit cost in cents */
+  materialCost: int("materialCost").default(0).notNull(),
+  /** Labor-only unit cost in cents */
+  laborCost: int("laborCost").default(0).notNull(),
   /** AI confidence score (0-100) */
   confidence: int("confidence").default(80).notNull(),
   /** Notes or AI reasoning */

@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
 import SpecialtySelector from "@/components/SpecialtySelector";
-import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, X } from "lucide-react";
+import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, X, PlusCircle, Trash2, DollarSign } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 import { trpc } from "@/lib/trpc";
@@ -27,6 +28,11 @@ const CURRENCIES = [
   { code: "GBP", symbol: "\u00A3", label: "British Pound", flag: "\u{1F1EC}\u{1F1E7}" },
   { code: "AUD", symbol: "A$", label: "Australian Dollar", flag: "\u{1F1E6}\u{1F1FA}" },
 ] as const;
+
+export interface AllowanceItem {
+  description: string;
+  amount: number; // in cents
+}
 
 interface ProjectSettingsPanelProps {
   projectId: number;
@@ -38,13 +44,15 @@ interface ProjectSettingsPanelProps {
   currentSpecialties?: string[] | null;
   detectedSpecialties?: string[] | null;
   currentRateProfileId?: number | null;
+  currentAllowances?: AllowanceItem[] | null;
   onSave: (
     divisions: string[] | null,
     region: string | null,
     currency?: string,
     scopeText?: string | null,
     specialties?: string[] | null,
-    rateProfileId?: number | null
+    rateProfileId?: number | null,
+    allowances?: AllowanceItem[] | null
   ) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
@@ -67,6 +75,7 @@ export default function ProjectSettingsPanel({
   currentSpecialties,
   detectedSpecialties,
   currentRateProfileId,
+  currentAllowances,
   onSave,
   onReAnalyze,
   hasProcessedSheets,
@@ -95,6 +104,7 @@ export default function ProjectSettingsPanel({
   const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
   const [selectedRateProfileId, setSelectedRateProfileId] = useState<number | null>(currentRateProfileId ?? null);
+  const [allowances, setAllowances] = useState<AllowanceItem[]>(currentAllowances || []);
   const [saving, setSaving] = useState(false);
 
   const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
@@ -108,8 +118,9 @@ export default function ProjectSettingsPanel({
       setScopeText(currentScopeText || "");
       setSelectedSpecialties(currentSpecialties || []);
       setSelectedRateProfileId(currentRateProfileId ?? null);
+      setAllowances(currentAllowances || []);
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties, currentRateProfileId]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties, currentRateProfileId, currentAllowances]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
@@ -117,7 +128,8 @@ export default function ProjectSettingsPanel({
   const scopeChanged = scopeText !== (currentScopeText || "");
   const specialtiesChanged = JSON.stringify([...(selectedSpecialties || [])].sort()) !== JSON.stringify([...(currentSpecialties || [])].sort());
   const rateProfileChanged = selectedRateProfileId !== (currentRateProfileId ?? null);
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged || rateProfileChanged;
+  const allowancesChanged = JSON.stringify(allowances) !== JSON.stringify(currentAllowances || []);
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged || rateProfileChanged || allowancesChanged;
 
   const handleSave = async () => {
     setSaving(true);
@@ -129,6 +141,7 @@ export default function ProjectSettingsPanel({
         scopeChanged ? (scopeText.trim() || null) : undefined,
         specialtiesChanged ? (selectedSpecialties.length > 0 ? selectedSpecialties : null) : undefined,
         rateProfileChanged ? selectedRateProfileId : undefined,
+        allowancesChanged ? (allowances.length > 0 ? allowances : null) : undefined,
       );
 
       if (result.regionChanged) {
@@ -426,6 +439,70 @@ export default function ProjectSettingsPanel({
               )}
             </div>
 
+            {/* Allowances (Residential Selections) */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-amber-400" />
+                Allowances
+                <span className="text-xs text-cream-muted">(selections not yet priced — cabinets, countertops, tile, etc.)</span>
+              </div>
+              <div className="space-y-2">
+                {allowances.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      value={item.description}
+                      onChange={(e) => {
+                        const updated = [...allowances];
+                        updated[idx] = { ...updated[idx], description: e.target.value };
+                        setAllowances(updated);
+                      }}
+                      placeholder="e.g. Kitchen Cabinets"
+                      className="flex-1 h-9 text-sm bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40"
+                    />
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-cream-muted text-sm">$</span>
+                      <Input
+                        type="number"
+                        step="100"
+                        min="0"
+                        value={(item.amount / 100).toFixed(0)}
+                        onChange={(e) => {
+                          const updated = [...allowances];
+                          updated[idx] = { ...updated[idx], amount: Math.round(parseFloat(e.target.value || "0") * 100) };
+                          setAllowances(updated);
+                        }}
+                        placeholder="0"
+                        className="w-32 h-9 text-sm bg-white/5 border-white/10 text-cream pl-6 text-right"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAllowances(allowances.filter((_, i) => i !== idx))}
+                      className="p-1.5 rounded hover:bg-red-500/20 text-red-400/60 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setAllowances([...allowances, { description: "", amount: 0 }])}
+                  className="flex items-center gap-1.5 text-xs text-amber-400/80 hover:text-amber-400 transition-colors py-1"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  Add Allowance Item
+                </button>
+              </div>
+              {allowances.length > 0 && (
+                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                  <span className="text-xs text-cream-muted">Total Allowances</span>
+                  <span className="text-sm font-semibold text-amber-400 font-mono">
+                    ${(allowances.reduce((sum, a) => sum + a.amount, 0) / 100).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Scope Text */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-cream flex items-center gap-2">
@@ -468,6 +545,7 @@ export default function ProjectSettingsPanel({
                 setSelectedCurrency(currentCurrency || "USD");
                 setScopeText(currentScopeText || "");
                 setSelectedSpecialties(currentSpecialties || []);
+                setAllowances(currentAllowances || []);
                 setOpen(false);
               }}
               disabled={saving}

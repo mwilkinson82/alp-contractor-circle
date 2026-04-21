@@ -51,8 +51,10 @@ interface ConsolidatedItem {
   description: string;
   quantity: number;
   unit: string;
-  unitCost: number; // cents
+  unitCost: number; // cents (material + labor combined)
   extendedCost: number; // cents
+  materialCost: number; // cents (material only)
+  laborCost: number; // cents (labor only)
   confidence: number;
   notes: string;
   sourceSheetIds: number[];
@@ -448,7 +450,7 @@ IMPORTANT RULES:
         { role: "system", content: "You are a senior construction estimator. Consolidate duplicate line items. Return JSON." },
         { role: "user", content: consolidationPrompt },
       ],
-      response_format: consolidationSchema,
+      response_format: responseSchema,
     }, PP_LLM_TIMEOUT_MS);
 
     const rawContent = response.choices[0]?.message?.content;
@@ -497,6 +499,8 @@ IMPORTANT RULES:
         unit: ci.unit.toUpperCase().trim(),
         unitCost: Math.round(ci.unitCost * 100), // back to cents
         extendedCost: Math.round(ci.quantity * ci.unitCost * 100),
+        materialCost: 0,
+        laborCost: 0,
         confidence: Math.min(100, Math.max(0, ci.confidence)),
         notes: ci.notes,
         sourceSheetIds,
@@ -520,6 +524,8 @@ IMPORTANT RULES:
       unit: item.unit,
       unitCost: item.unitCost,
       extendedCost: item.extendedCost,
+      materialCost: 0,
+      laborCost: 0,
       confidence: item.confidence,
       notes: item.notes || "",
       sourceSheetIds: [item.sheetId],
@@ -708,6 +714,8 @@ If you CANNOT measure an item from the available plans, set canMeasure to false.
         unit: enhancement.measuredUnit.toUpperCase().trim(),
         unitCost: Math.round(enhancement.unitCost * 100),
         extendedCost: Math.round(enhancement.measuredQuantity * enhancement.unitCost * 100),
+        materialCost: 0,
+        laborCost: 0,
         confidence: enhancement.confidence,
         notes: `[Enhanced from plan] ${enhancement.measurementNotes}. Original: 1 LS @ ${(lsItem.extendedCost / 100).toFixed(2)}`,
         wasEnhanced: true,
@@ -903,6 +911,8 @@ Only generate formwork for items that actually need forms (not for slabs-on-grad
         unit: fw.unit.toUpperCase().trim(),
         unitCost: Math.round(fw.unitCost * 100),
         extendedCost: Math.round(fw.quantity * fw.unitCost * 100),
+        materialCost: 0,
+        laborCost: 0,
         confidence: fw.confidence,
         notes: `[Generated] ${fw.notes}. For: ${fw.forConcreteItem}`,
         sourceSheetIds: [],
@@ -1109,6 +1119,8 @@ Return enhanced rebar items as a JSON array. For each rebar item:
         unit: rebar.unit.toUpperCase().trim(),
         unitCost: Math.round(rebar.unitCost * 100),
         extendedCost: Math.round(rebar.quantity * rebar.unitCost * 100),
+        materialCost: 0,
+        laborCost: 0,
         confidence: rebar.confidence,
         notes: `[Enhanced] ${rebar.notes}. Weight: ${rebar.weightLbs.toFixed(0)} lbs. ${rebar.replacesOriginal !== "new" ? `Replaces: ${rebar.replacesOriginal}` : ""}`,
         sourceSheetIds: [],
@@ -1618,8 +1630,12 @@ export async function postProcessTakeoff(projectId: number): Promise<{
     const priced = pricedItems[i];
     if (priced) {
       const uc = priced.unitCost ?? 0;
+      const matC = priced.materialCost ?? 0;
+      const labC = priced.laborCost ?? 0;
       consolidated[i].unitCost = Math.round(uc * 100); // dollars to cents
       consolidated[i].extendedCost = Math.round(priced.quantity * uc * 100); // dollars to cents
+      consolidated[i].materialCost = Math.round(matC * 100); // dollars to cents
+      consolidated[i].laborCost = Math.round(labC * 100); // dollars to cents
       consolidated[i].quantity = priced.quantity; // may have been adjusted by rebar validation
       if (priced.notes && priced.notes !== consolidated[i].notes) {
         consolidated[i].notes = priced.notes;
@@ -1650,6 +1666,8 @@ export async function postProcessTakeoff(projectId: number): Promise<{
       unit: item.unit,
       unitCost: item.unitCost,
       extendedCost: item.extendedCost,
+      materialCost: item.materialCost,
+      laborCost: item.laborCost,
       confidence: item.confidence,
       notes: item.notes,
       reviewed: false,

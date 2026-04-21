@@ -111,10 +111,14 @@ export const takeoffCostRouter = router({
         const dbItem = items[i] as any;
         if (!priced) continue;
         const uc = priced.unitCost ?? 0;
+        const matC = priced.materialCost ?? 0;
+        const labC = priced.laborCost ?? 0;
         const newUnitCost = Math.round(uc * 100);
         const newExtCost = Math.round(uc * (parseFloat(dbItem.quantity) || 0) * 100);
-        if (newUnitCost !== dbItem.unitCost || newExtCost !== dbItem.extendedCost) {
-          await updateTakeoffItem(dbItem.id, { unitCost: newUnitCost, extendedCost: newExtCost });
+        const newMatCost = Math.round(matC * 100);
+        const newLabCost = Math.round(labC * 100);
+        if (newUnitCost !== dbItem.unitCost || newExtCost !== dbItem.extendedCost || newMatCost !== dbItem.materialCost || newLabCost !== dbItem.laborCost) {
+          await updateTakeoffItem(dbItem.id, { unitCost: newUnitCost, extendedCost: newExtCost, materialCost: newMatCost, laborCost: newLabCost });
           updated++;
         }
       }

@@ -605,10 +605,10 @@ export default function TakeoffDetail() {
     // Build rows with branding header and CSI division headers and subtotals
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Unit Cost (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Labor (${currencySymbol})`, `Installed (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
     const aoa: any[][] = [
-      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", ""],
-      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", `Currency: ${currencyCode}`, "", ""],
+      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", ""],
+      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", ""],
       [], // blank separator
       headers,
     ];
@@ -617,7 +617,7 @@ export default function TakeoffDetail() {
     for (const div of sortedDivs) {
       const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
       // Division header row
-      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", ""]);
+      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", "", "", ""]);
       let divTotal = 0;
       for (const item of divGroups[div]) {
         const extCost = (parseFloat(item.extendedCost) || 0) / 100;
@@ -627,6 +627,8 @@ export default function TakeoffDetail() {
           item.description || "",
           parseFloat(item.quantity) || 0,
           item.unit || "",
+          (parseFloat(item.materialCost) || 0) / 100,
+          (parseFloat(item.laborCost) || 0) / 100,
           (parseFloat(item.unitCost) || 0) / 100,
           extCost,
           item.confidence || 0,
@@ -635,16 +637,16 @@ export default function TakeoffDetail() {
         ]);
       }
       // Division subtotal row
-      aoa.push(["", `Subtotal — ${divName}`, "", "", "", divTotal, "", "", ""]);
+      aoa.push(["", `Subtotal — ${divName}`, "", "", "", "", "", divTotal, "", "", ""]);
       // Blank separator row
       aoa.push([]);
       grandTotal += divTotal;
     }
     // Grand total row
-    aoa.push(["", "GRAND TOTAL", "", "", "", grandTotal, "", "", ""]);
+    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal, "", "", ""]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
 
     // Style branding rows
     const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
@@ -680,7 +682,7 @@ export default function TakeoffDetail() {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Unit Cost (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Labor (${currencySymbol})`, `Installed (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
@@ -694,8 +696,8 @@ export default function TakeoffDetail() {
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const csvRows: string[] = [
-      `"ConstructLine | Powered by ALP","","","","","","","",""`,
-      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","Currency: ${currencyCode}","",""`,
+      `"ConstructLine | Powered by ALP","","","","","","","","","",""`,
+      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","","Currency: ${currencyCode}","","",""`,
       "",
       headers.join(","),
     ];
@@ -704,7 +706,7 @@ export default function TakeoffDetail() {
     for (const div of sortedDivs) {
       const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
       // Division header row
-      csvRows.push(`"${div} \u2014 ${divName}","","","","","","","",""`);
+      csvRows.push(`"${div} — ${divName}","","","","","","","","","",""`);
       let divTotal = 0;
       for (const item of divGroups[div]) {
         const extCost = (parseFloat(item.extendedCost) || 0) / 100;
@@ -714,6 +716,8 @@ export default function TakeoffDetail() {
           `"${(item.description || "").replace(/"/g, '""')}"`,
           parseFloat(item.quantity) || 0,
           item.unit || "",
+          ((parseFloat(item.materialCost) || 0) / 100).toFixed(2),
+          ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
           ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
           extCost.toFixed(2),
           item.confidence || 0,
@@ -722,11 +726,11 @@ export default function TakeoffDetail() {
         ].join(","));
       }
       // Division subtotal
-      csvRows.push(`"","Subtotal \u2014 ${divName}","","","",${divTotal.toFixed(2)},"","",""`);
+      csvRows.push(`"","Subtotal — ${divName}","","","","","",${divTotal.toFixed(2)},"","",""`);
       csvRows.push(""); // blank separator
       grandTotal += divTotal;
     }
-    csvRows.push(`"","GRAND TOTAL","","","",${grandTotal.toFixed(2)},"","",""`);
+    csvRows.push(`"","GRAND TOTAL","","","","","",${grandTotal.toFixed(2)},"","",""`);
 
     const csv = csvRows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -987,8 +991,9 @@ export default function TakeoffDetail() {
               currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
               detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
               currentRateProfileId={project.rateProfileId ?? null}
+              currentAllowances={project.allowances ? (typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances) : null}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId) => {
+              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances) => {
                 // Save rateProfileId separately via updateProject if it changed
                 if (rateProfileId !== undefined) {
                   await new Promise<void>((resolve, reject) => {
@@ -1007,6 +1012,7 @@ export default function TakeoffDetail() {
                       currency: currency as any,
                       ...(scopeText !== undefined ? { scopeText } : {}),
                       ...(specialties !== undefined ? { selectedSpecialties: specialties } : {}),
+                      ...(allowances !== undefined ? { allowances } : {}),
                     },
                     {
                       onSuccess: (result) => resolve(result),
@@ -1713,7 +1719,9 @@ export default function TakeoffDetail() {
                                   <th className="text-left px-4 py-2">Description</th>
                                   <th className="text-right px-4 py-2 w-20">Qty</th>
                                   <th className="text-left px-4 py-2 w-14">Unit</th>
-                                  <th className="text-right px-4 py-2 w-24">Unit Cost</th>
+                                  <th className="text-right px-4 py-2 w-20">Material</th>
+                                  <th className="text-right px-4 py-2 w-20">Labor</th>
+                                  <th className="text-right px-4 py-2 w-24">Installed</th>
                                   <th className="text-right px-4 py-2 w-28">Extended</th>
                                   <th className="text-center px-4 py-2 w-16">Conf.</th>
                                   <th className="text-center px-4 py-2 w-16">Verified</th>
@@ -1779,6 +1787,23 @@ export default function TakeoffDetail() {
                                       })()}
                                     </td>
                                     <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
+                                    {/* Material Cost */}
+                                    <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                                      {isConsolidating ? (
+                                        <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
+                                      ) : (
+                                        formatCurrency(item.materialCost || 0, project?.currency || "USD")
+                                      )}
+                                    </td>
+                                    {/* Labor Cost */}
+                                    <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
+                                      {isConsolidating ? (
+                                        <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
+                                      ) : (
+                                        formatCurrency(item.laborCost || 0, project?.currency || "USD")
+                                      )}
+                                    </td>
+                                    {/* Installed (Combined) Unit Cost */}
                                     <td className="px-4 py-2 text-right text-cream font-mono">
                                       {isConsolidating ? (
                                         <span className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse" title="Pricing being applied..." />

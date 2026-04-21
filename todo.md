@@ -2941,3 +2941,24 @@
 - [x] Full QA — tsc 0 errors, build clean, 414 tests passing
 - [x] Checkpoint for Marshall review before deploy
 - [ ] FIX: Error card layout — refresh icon overflows/doesn't fit when error message is shown on sheet card
+
+## Material + Labor Split Pricing — April 21
+- [x] Wire labor table (laborTable.ts) into costLookup.ts — match extracted items to labor table entries alongside material cost table
+- [x] Return both materialCost and laborCost as separate fields on each takeoff item
+- [x] Update TakeoffItem type to include materialCost, laborCost, and totalInstalledCost fields
+- [x] Update takeoff UI table to show Material Cost and Labor Cost as separate visible columns
+- [ ] Update summary/totals bar to show Material subtotal, Labor subtotal, and Combined total
+- [x] Ensure existing crew building / labor inference system remains untouched — separate step contractor runs after
+- [x] Update Excel export to include material and labor columns
+
+## Contractor-Driven Allowances
+- [x] Add allowance input UI — field where contractor can add allowance line items (description + dollar amount) during or after upload
+- [x] Store allowances in database tied to takeoff project
+- [ ] Display allowance items in takeoff results as editable line items
+- [x] Allowances are contractor-entered only — no AI auto-generation
+- [ ] Allowances should be included in project totals
+
+## Pre-existing Bugs (Carry Forward)
+- [ ] FIX: Error card layout — refresh icon overflows on error sheet cards
+- [ ] FIX: Yellow top counter bar flickers during processing
+- [x] CLEANUP: Fixed consolidationSchema TS error — was referencing wrong variable name
