@@ -126,8 +126,8 @@ export function findBestMatch(item: TakeoffItem): CostMatch | null {
     }
   }
   
-  if (!bestEntry || bestScore < 20) {
-    return null; // No good match found
+  if (!bestEntry || bestScore < 10) {
+    return null; // No good match found (lowered threshold to allow partial matches)
   }
   
   return {

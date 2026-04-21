@@ -2940,3 +2940,4 @@
 - [x] Speed target — 24 sheets < 20 minutes total (concurrency=6, no bloat in prompts)
 - [x] Full QA — tsc 0 errors, build clean, 414 tests passing
 - [x] Checkpoint for Marshall review before deploy
+- [ ] FIX: Error card layout — refresh icon overflows/doesn't fit when error message is shown on sheet card
