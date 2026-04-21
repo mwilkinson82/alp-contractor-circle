@@ -270,8 +270,23 @@ async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
       if (!Array.isArray(result.items)) result.items = [];
       return result;
     } catch (err: any) {
-      const is500 = err?.message?.includes("500") || err?.message?.includes("Internal Server Error") || err?.status === 500;
-      if (detail === "high" && is500) {
+      // Detect any error that suggests the image was too large for the LLM:
+      // - HTTP 500 / Internal Server Error
+      // - gRPC code 13 ("received bad response")
+      // - JSON parse failures (LLM returned garbage due to overload)
+      // - "bad response" or "token" mentions
+      const msg = err?.message || "";
+      const isRetryable = 
+        msg.includes("500") || 
+        msg.includes("Internal Server Error") || 
+        msg.includes("code\":13") ||
+        msg.includes("code:13") ||
+        msg.includes("bad response") ||
+        msg.includes("received bad") ||
+        msg.includes("token") ||
+        err?.status === 500;
+      if (detail === "high" && isRetryable) {
+        console.log(`[Takeoff AI] Retryable error on high detail: ${msg.slice(0, 120)}`);
         // Will retry with low detail on next loop iteration
         continue;
       }
