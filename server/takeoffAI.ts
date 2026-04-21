@@ -239,34 +239,48 @@ interface TakeoffExtractionResult {
 // ─── Pass 1: Extract ───────────────────────────────────────────────────────────
 
 async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
-  const response = await invokeLLM({
-    messages: [
-      { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
+  const EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
+
+  // Try high detail first, fall back to low detail on 500 (token limit exceeded)
+  for (const detail of ["high", "low"] as const) {
+    try {
+      if (detail === "low") {
+        console.log(`[Takeoff AI] Retrying extraction with detail:low (high detail exceeded token limit)`);
+      }
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
           {
-            type: "text",
-            text: "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.",
-          },
-          {
-            type: "image_url",
-            image_url: { url: imageUrl, detail: "high" },
+            role: "user",
+            content: [
+              { type: "text", text: EXTRACT_PROMPT },
+              { type: "image_url", image_url: { url: imageUrl, detail } },
+            ],
           },
         ],
-      },
-    ],
-    response_format: RESPONSE_SCHEMA,
-  });
+        response_format: RESPONSE_SCHEMA,
+      });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content || typeof content !== "string") {
-    throw new Error("No content in extraction response");
+      const content = response.choices[0]?.message?.content;
+      if (!content || typeof content !== "string") {
+        throw new Error("No content in extraction response");
+      }
+
+      const result = JSON.parse(content) as TakeoffExtractionResult;
+      if (!Array.isArray(result.items)) result.items = [];
+      return result;
+    } catch (err: any) {
+      const is500 = err?.message?.includes("500") || err?.message?.includes("Internal Server Error") || err?.status === 500;
+      if (detail === "high" && is500) {
+        // Will retry with low detail on next loop iteration
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const result = JSON.parse(content) as TakeoffExtractionResult;
-  if (!Array.isArray(result.items)) result.items = [];
-  return result;
+  // Should never reach here
+  throw new Error("extractPass exhausted all detail levels");
 }
 
 // ─── Pass 2: Verify / QA ───────────────────────────────────────────────────────

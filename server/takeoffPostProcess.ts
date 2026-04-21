@@ -247,17 +247,19 @@ async function consolidateItems(
     divisionGroups.get(div)!.push(item);
   }
 
-  console.log(`[PostProcess] Batching consolidation by ${divisionGroups.size} CSI divisions: ${Array.from(divisionGroups.keys()).join(", ")}`);
+  console.log(`[PostProcess] Batching consolidation by ${divisionGroups.size} CSI divisions (parallel): ${Array.from(divisionGroups.keys()).join(", ")}`);
 
-  // Process each division batch separately
-  const allResults: ConsolidatedItem[] = [];
+  // Process all division batches IN PARALLEL — major speed improvement over sequential
   const divEntries = Array.from(divisionGroups.entries());
-  for (const [div, divItems] of divEntries) {
+  const batchPromises = divEntries.map(async ([div, divItems]) => {
     console.log(`[PostProcess] Consolidating CSI ${div}: ${divItems.length} items...`);
     const batchResult = await consolidateBatch(divItems, sheets, currency, scopeText);
-    allResults.push(...batchResult);
     console.log(`[PostProcess] CSI ${div}: ${divItems.length} → ${batchResult.length} items`);
-  }
+    return batchResult;
+  });
+
+  const batchResults = await Promise.all(batchPromises);
+  const allResults: ConsolidatedItem[] = batchResults.flat();
 
   console.log(`[PostProcess] Total after batched consolidation: ${deduped.length} → ${allResults.length} items`);
   return allResults;
@@ -555,13 +557,19 @@ async function enhanceLumpSums(
     return items;
   }
 
+  // Skip lump-sum enhancement if too many LS items (slow LLM call) or too few to justify
+  if (lumpSumItems.length > 20) {
+    console.log(`[PostProcess] Skipping lump-sum enhancement: ${lumpSumItems.length} LS items is too many for a single LLM call (speed guard)`);
+    return items;
+  }
+
   console.log(`[PostProcess] Attempting to enhance ${lumpSumItems.length} lump-sum items using ${planSheets.length} plan sheets...`);
 
   const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
 
   // Send plan images with lump-sum items to get measured quantities
-  // Process up to 3 plan sheets (most relevant ones)
-  const relevantPlans = planSheets.slice(0, 3);
+  // Process up to 2 plan sheets (reduced from 3 to avoid token limit on large sets)
+  const relevantPlans = planSheets.slice(0, 2);
   
   const imageContent = relevantPlans.map(sheet => ({
     type: "image_url" as const,
