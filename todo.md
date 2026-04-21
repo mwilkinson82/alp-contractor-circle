@@ -2930,3 +2930,13 @@
 - [ ] Investigate why "Who's Online" only shows the current user
 - [ ] Check the presence tracking mechanism (polling vs websocket)
 - [ ] Fix presence to show all active users correctly
+
+
+## Pipeline Simplification — April 21
+- [x] Strip AI extraction prompt to basics — drawing image only, no scale/dedup/scope/rate context
+- [x] Move RS Means cost lookup to post-processing only (not in AI prompt)
+- [x] Move labor library to post-processing only (not in AI prompt)
+- [x] Move deduplication to lightweight post-processing step (not in AI prompt)
+- [x] Speed target — 24 sheets < 20 minutes total (concurrency=6, no bloat in prompts)
+- [x] Full QA — tsc 0 errors, build clean, 414 tests passing
+- [x] Checkpoint for Marshall review before deploy
