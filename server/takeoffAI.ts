@@ -280,7 +280,12 @@ async function verifyPass(
     return extracted;
   }
 
-  const extractedJson = JSON.stringify(extracted, null, 2);
+  // Build a compact summary — just description + quantity + unit per item.
+  // Sending the full JSON with notes/csiCode/confidence bloats the prompt and
+  // causes LLM 500 errors on large sheets (image + JSON exceeds token limit).
+  const compactSummary = extracted.items
+    .map((item, i) => `${i + 1}. [${item.csiDivision}] ${item.description} — ${item.quantity} ${item.unit}`)
+    .join("\n");
 
   try {
     const response = await invokeLLM({
@@ -291,7 +296,7 @@ async function verifyPass(
           content: [
             {
               type: "text",
-              text: `Here is the quantity takeoff extracted from this drawing:\n\n${extractedJson}\n\nCompare this to the drawing. What's missing? What's wrong? Return the corrected takeoff as JSON. If it looks correct, return it unchanged.`,
+              text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
             },
             {
               type: "image_url",
