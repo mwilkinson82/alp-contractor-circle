@@ -8,7 +8,7 @@
  * 4. Generate formwork items for concrete members (Priority 4)
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
-import { invokeLLM, invokeLLMWithTimeout, type Message } from "./_core/llm";
+import { invokeLLMWithTimeout, type Message } from "./_core/llm";
 
 // Hard per-call timeout for all post-processing LLM calls (60 seconds — reduced from 90s)
 const PP_LLM_TIMEOUT_MS = 60_000;
@@ -407,205 +407,72 @@ function rawItemToConsolidated(item: RawItem, sheets: SheetContext[]): Consolida
   };
 }
 
-/*
- * REMOVED: consolidateBatch LLM function (~250 lines)
- * Was: LLM call per CSI division to merge duplicates
- * Now: Handled by synonym-based grouping in consolidateItems() above
- */
-
-/* REMOVED: ~250 lines of consolidateBatch LLM function. See git history for reference. */
-// ─── Priority 2: Plan-View Enhancementt ────────────────────────────────────────
+// ─── Priority 2: Lump-Sum Resolution ───────────────────────────────────────────────────
 
 /**
- * Takes consolidated items that are still lump-sum and attempts to convert them
- * to measured quantities using plan-view context from the drawing sheets.
+ * Takes consolidated items that are still lump-sum and resolves them
+ * to proper units using the expanded synonym library (no LLM call).
  */
 async function enhanceLumpSums(
   items: ConsolidatedItem[],
-  sheets: SheetContext[],
-  currency: string | null,
-  scopeText: string | null
+  _sheets: SheetContext[],
+  _currency: string | null,
+  _scopeText: string | null
 ): Promise<ConsolidatedItem[]> {
-  // Find plan-view sheets that can provide dimensions
-  const planSheets = sheets.filter(s =>
-    s.sheetType && ["floor_plan", "structural", "site_plan"].includes(s.sheetType) && s.imageUrl
-  );
+  // Programmatic lump-sum resolution using the expanded synonym library.
+  // For each LS item, find the correct unit from the cost library and re-price.
+  // Items that don't match stay as LS for manual contractor review.
 
-  if (planSheets.length === 0) {
-    console.log("[PostProcess] No plan-view sheets found, skipping lump-sum enhancement");
-    return items;
-  }
-
-  // Find items that are still lump sums
   const lumpSumItems = items.filter(item => item.unit === "LS");
   if (lumpSumItems.length === 0) {
     console.log("[PostProcess] No lump-sum items to enhance");
     return items;
   }
 
-  // Skip lump-sum enhancement if too many LS items (slow LLM call) or too few to justify
-  if (lumpSumItems.length > 20) {
-    console.log(`[PostProcess] Skipping lump-sum enhancement: ${lumpSumItems.length} LS items is too many for a single LLM call (speed guard)`);
-    return items;
-  }
+  console.log(`[PostProcess] Resolving ${lumpSumItems.length} lump-sum items via synonym library...`);
+  await loadExpandedLibrary();
 
-  console.log(`[PostProcess] Attempting to enhance ${lumpSumItems.length} lump-sum items using ${planSheets.length} plan sheets...`);
+  let enhancedCount = 0;
+  for (const lsItem of lumpSumItems) {
+    // Try to find a match in the expanded cost library
+    const match = await findBestMatchV2({
+      description: lsItem.description,
+      quantity: lsItem.quantity,
+      unit: "LS", // current unit
+      csiDivision: lsItem.csiDivision,
+      csiCode: lsItem.csiCode,
+    });
 
-  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+    if (!match || match.score < 40) continue; // No confident match
 
-  // Send plan images with lump-sum items to get measured quantities
-  // Process up to 2 plan sheets (reduced from 3 to avoid token limit on large sets)
-  const relevantPlans = planSheets.slice(0, 1); // Reduced from 2 to 1 for speed
-  
-  const imageContent = relevantPlans.map(sheet => ({
-    type: "image_url" as const,
-    image_url: { url: sheet.imageUrl!, detail: "low" as const },
-  }));
+    const correctUnit = match.entry.unit.toUpperCase().trim();
+    // Only enhance if the library has a real measurable unit (not LS)
+    if (correctUnit === "LS") continue;
 
-  const lumpSumDescriptions = lumpSumItems.map((item, idx) => ({
-    idx,
-    description: item.description,
-    csiCode: item.csiCode,
-    currentCost: item.extendedCost / 100,
-    notes: item.notes,
-  }));
+    // Find this item in the main items array
+    const mainIdx = items.indexOf(lsItem);
+    if (mainIdx === -1) continue;
 
-  const enhancementPrompt = `You are a senior construction estimator. I have ${lumpSumItems.length} line items from a quantity takeoff that are currently marked as "Lump Sum" (LS) because the AI couldn't measure them from the individual sheet it was looking at.
-
-I'm now showing you the PLAN VIEW drawings for this project. Your job is to:
-1. Look at each lump-sum item below
-2. Find the corresponding element on the plan drawings
-3. MEASURE the actual quantity (area in SF, length in LF, volume in CY, count in EA)
-4. Return the measured quantity with the correct unit
-
-${scopeText ? `SCOPE: "${scopeText}"` : ""}
-
-## LUMP-SUM ITEMS TO ENHANCE:
-${JSON.stringify(lumpSumDescriptions, null, 2)}
-
-## PLAN SHEETS PROVIDED:
-${relevantPlans.map(s => `- ${s.sheetName || 'Unknown'} (${s.sheetType})`).join('\n')}
-
-## MEASUREMENT INSTRUCTIONS:
-- For SLABS: measure the plan area in SF. Look for overall building dimensions, room dimensions, or area callouts. Calculate: length × width = SF. Then convert to CY: SF × thickness(ft) / 27
-- For FOOTINGS: trace the footing lines on the plan. Measure total linear feet. Look for footing schedules that show width and depth.
-- For WALLS: measure wall lengths from plan. Multiply by height (from sections/elevations) for SF.
-- For PITS: measure plan dimensions (length × width). Multiply by depth for volume.
-- For FOUNDATIONS: count the number of foundations on plan, measure typical dimensions.
-
-## OUTPUT FORMAT
-Return a JSON array. For each lump-sum item, return:
-- originalIdx: the idx from the input
-- canMeasure: boolean — true if you can determine a measured quantity from the plans
-- measuredQuantity: number (0 if canMeasure is false)
-- measuredUnit: string (the correct unit: SF, LF, CY, EA, etc.)
-- unitCost: set to 1 (pricing applied from cost database)
-- confidence: 0-100
-- measurementNotes: how you measured it (reference specific plan dimensions)
-
-If you CANNOT measure an item from the available plans, set canMeasure to false.`;
-
-  const enhancementSchema = {
-    type: "json_schema" as const,
-    json_schema: {
-      name: "enhancement_result",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          enhancedItems: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                originalIdx: { type: "integer" },
-                canMeasure: { type: "boolean" },
-                measuredQuantity: { type: "number" },
-                measuredUnit: { type: "string" },
-                unitCost: { type: "number" },
-                confidence: { type: "integer" },
-                measurementNotes: { type: "string" },
-              },
-              required: ["originalIdx", "canMeasure", "measuredQuantity", "measuredUnit", "unitCost", "confidence", "measurementNotes"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["enhancedItems"],
-        additionalProperties: false,
-      },
-    },
-  };
-
-  try {
-    const enhanceMessages: Message[] = [
-      {
-        role: "system",
-        content: "You are a senior construction estimator. Measure quantities from plan drawings to replace lump-sum estimates. Return JSON.",
-      },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: enhancementPrompt },
-          ...imageContent,
-        ],
-      },
-    ];
-
-    const response = await ppLimiter(() => invokeLLMWithTimeout({
-      messages: enhanceMessages,
-      response_format: enhancementSchema,
-    }, PP_LLM_TIMEOUT_MS));
-
-    const rawContent2 = response.choices[0]?.message?.content;
-    if (!rawContent2) throw new Error("No content in enhancement response");
-    const content = typeof rawContent2 === "string" ? rawContent2 : JSON.stringify(rawContent2);
-
-    const parsed = JSON.parse(content) as {
-      enhancedItems: Array<{
-        originalIdx: number;
-        canMeasure: boolean;
-        measuredQuantity: number;
-        measuredUnit: string;
-        unitCost: number;
-        confidence: number;
-        measurementNotes: string;
-      }>;
+    // Convert to the correct unit with quantity=1 (flagged for manual update)
+    // Re-price using the library's unit cost
+    const unitCostCents = Math.round(match.entry.materialCost * 100);
+    items[mainIdx] = {
+      ...items[mainIdx],
+      unit: correctUnit,
+      quantity: 1, // Placeholder — contractor updates with real measurement
+      unitCost: unitCostCents,
+      extendedCost: unitCostCents, // 1 * unitCost
+      materialCost: unitCostCents,
+      laborCost: 0,
+      confidence: Math.min(lsItem.confidence, 50), // Lower confidence since qty is placeholder
+      notes: `[LS→${correctUnit}] Unit resolved from cost library (matched: ${match.entry.description}, score: ${match.score}). Quantity set to 1 — update with actual measurement. Original: 1 LS @ $${(lsItem.extendedCost / 100).toFixed(2)}`,
+      wasEnhanced: true,
     };
-
-    // Apply enhancements
-    let enhancedCount = 0;
-    for (const enhancement of parsed.enhancedItems) {
-      if (!enhancement.canMeasure) continue;
-      
-      const lsItem = lumpSumItems[enhancement.originalIdx];
-      if (!lsItem) continue;
-
-      // Find this item in the main items array and update it
-      const mainIdx = items.indexOf(lsItem);
-      if (mainIdx === -1) continue;
-
-      items[mainIdx] = {
-        ...items[mainIdx],
-        quantity: enhancement.measuredQuantity,
-        unit: enhancement.measuredUnit.toUpperCase().trim(),
-        unitCost: Math.round(enhancement.unitCost * 100),
-        extendedCost: Math.round(enhancement.measuredQuantity * enhancement.unitCost * 100),
-        materialCost: 0,
-        laborCost: 0,
-        confidence: enhancement.confidence,
-        notes: `[Enhanced from plan] ${enhancement.measurementNotes}. Original: 1 LS @ ${(lsItem.extendedCost / 100).toFixed(2)}`,
-        wasEnhanced: true,
-      };
-      enhancedCount++;
-    }
-
-    console.log(`[PostProcess] Enhanced ${enhancedCount} of ${lumpSumItems.length} lump-sum items with measured quantities`);
-    return items;
-  } catch (error) {
-    console.error("[PostProcess] Lump-sum enhancement failed:", error);
-    return items;
+    enhancedCount++;
   }
+
+  console.log(`[PostProcess] Resolved ${enhancedCount} of ${lumpSumItems.length} lump-sum items to measured units (qty=1, needs manual update)`);
+  return items;
 }
 
 // ─── Priority 4: Formwork Generation ──────────────────────────────────────────

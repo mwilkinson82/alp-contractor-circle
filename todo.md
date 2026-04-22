@@ -3056,3 +3056,12 @@
 - [x] Simplify verification prompt — removed CSI instructions, streamlined to ~127 words
 - [x] All 428 tests passing (14 V2 + 414 others), 0 TS errors
 - [x] Ready for live test
+
+## PIPELINE REBUILD Phase 3 — Remove enhanceLumpSums LLM + Dead Code Cleanup — April 22
+- [x] Replace enhanceLumpSums LLM call with programmatic synonym-based lump-sum resolution (qty=1 placeholder, correct unit from library)
+- [x] Moved validateRebarQuantities into costLookupV2.ts (self-contained, no old file dependency)
+- [x] Deleted costLookup.ts (~500 lines) and aiPricingRefine.ts (~300 lines)
+- [x] Removed unused invokeLLM import, cleaned up duplicate comments
+- [x] All 428 tests passing, 0 TS errors
+- [x] takeoffPostProcess.ts: 1788 → 1508 lines (280 lines removed)
+- [x] Ready for live test

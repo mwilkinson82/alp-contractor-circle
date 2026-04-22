@@ -601,9 +601,45 @@ export async function applyPricingWithLibraryV2(
   return results;
 }
 
-// ─── Re-export utilities that other modules depend on ───────────────────────────
+// ─── Rebar Quantity Validation (moved from costLookup.ts) ─────────────────────
 
-export { validateRebarQuantities } from "./costLookup";
+function normalizeForRebarCheck(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s#'"\/-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function validateRebarQuantities(items: TakeoffItem[]): TakeoffItem[] {
+  // Find slab area
+  const slabItems = items.filter(i => {
+    const desc = normalizeForRebarCheck(i.description);
+    return desc.includes("slab") && !desc.includes("rebar") && !desc.includes("formwork");
+  });
+  const totalSlabSF = slabItems.reduce((sum, i) => {
+    const unit = (i.unit || "").toUpperCase();
+    if (unit === "SF") return sum + (i.quantity || 0);
+    return sum;
+  }, 0);
+  if (totalSlabSF === 0) return items;
+  // Max rebar for slab: SF × 2.2 (12" O.C. both ways with 10% lap)
+  const maxSlabRebarLF = totalSlabSF * 2.2;
+  return items.map(item => {
+    const desc = normalizeForRebarCheck(item.description);
+    const unit = (item.unit || "").toUpperCase();
+    if (unit === "LF" && (desc.includes("rebar") || desc.includes("reinforc")) && desc.includes("slab")) {
+      if (item.quantity > maxSlabRebarLF) {
+        const correctedQty = Math.round(maxSlabRebarLF);
+        console.log(`[CostLookupV2] Rebar quantity corrected: ${item.quantity} LF → ${correctedQty} LF (max for ${totalSlabSF} SF slab)`);
+        const newExt = Math.round(correctedQty * (item.unitCost || 0) * 100) / 100;
+        return {
+          ...item,
+          quantity: correctedQty,
+          extendedCost: newExt,
+          notes: `${item.notes || ""} [Qty adjusted: was ${item.quantity} LF, capped at 2.2x slab SF]`.trim(),
+        };
+      }
+    }
+    return item;
+  });
+}
 
 /**
  * Legacy compatibility: findBestMatch wrapper for modules that import it directly.
