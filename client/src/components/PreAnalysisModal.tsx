@@ -484,7 +484,7 @@ export default function PreAnalysisModal({
             </div>
 
             {/* Quick-add presets */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <span className="text-xs text-cream-muted">Quick Add — Residential</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
@@ -498,6 +498,46 @@ export default function PreAnalysisModal({
                     key={preset.label}
                     onClick={() => setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: preset.label, amount: preset.amount }])}
                     className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <span className="text-xs text-cream-muted">Quick Add — Commercial</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "FF&E (Furniture, Fixtures & Equipment)", amount: 25000 },
+                  { label: "Signage & Wayfinding", amount: 8000 },
+                  { label: "Security Systems", amount: 15000 },
+                  { label: "Low-Voltage / Data & Communications", amount: 20000 },
+                  { label: "Specialty Equipment", amount: 30000 },
+                  { label: "AV Systems", amount: 12000 },
+                ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: preset.label, amount: preset.amount }])}
+                    className="px-2.5 py-1 text-xs rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors"
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <span className="text-xs text-cream-muted">Quick Add — Public Works</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "Traffic Control & MOT", amount: 15000 },
+                  { label: "Environmental Compliance", amount: 10000 },
+                  { label: "Temporary Facilities", amount: 8000 },
+                  { label: "Erosion & Sediment Control", amount: 6000 },
+                  { label: "Dewatering", amount: 12000 },
+                  { label: "Testing & Inspection", amount: 10000 },
+                ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: preset.label, amount: preset.amount }])}
+                    className="px-2.5 py-1 text-xs rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
                   >
                     + {preset.label}
                   </button>

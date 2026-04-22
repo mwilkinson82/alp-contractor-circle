@@ -642,8 +642,21 @@ export default function TakeoffDetail() {
       aoa.push([]);
       grandTotal += divTotal;
     }
-    // Grand total row
-    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal, "", "", ""]);
+    // Allowances section
+    const projectAllowances = (project as any)?.allowances;
+    let allowancesTotal = 0;
+    if (projectAllowances && Array.isArray(projectAllowances) && projectAllowances.length > 0) {
+      aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", ""]);
+      for (const allowance of projectAllowances) {
+        const amt = (allowance.amount || 0) / 100;
+        allowancesTotal += amt;
+        aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "", ""]);
+      }
+      aoa.push(["", "Subtotal — Allowances", "", "", "", "", "", allowancesTotal, "", "", ""]);
+      aoa.push([]);
+    }
+    // Grand total row (includes allowances)
+    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal + allowancesTotal, "", "", ""]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
@@ -730,7 +743,20 @@ export default function TakeoffDetail() {
       csvRows.push(""); // blank separator
       grandTotal += divTotal;
     }
-    csvRows.push(`"","GRAND TOTAL","","","","","",${grandTotal.toFixed(2)},"","",""`);
+    // Allowances section
+    const csvAllowances = (project as any)?.allowances;
+    let csvAllowancesTotal = 0;
+    if (csvAllowances && Array.isArray(csvAllowances) && csvAllowances.length > 0) {
+      csvRows.push(`"ALLOWANCES","","","","","","","","","",""`);
+      for (const allowance of csvAllowances) {
+        const amt = (allowance.amount || 0) / 100;
+        csvAllowancesTotal += amt;
+        csvRows.push(`"","${(allowance.description || 'Allowance').replace(/"/g, '""')}","","LS","","","",${amt.toFixed(2)},"","",""`);
+      }
+      csvRows.push(`"","Subtotal — Allowances","","","","","",${csvAllowancesTotal.toFixed(2)},"","",""`);
+      csvRows.push("");
+    }
+    csvRows.push(`"","GRAND TOTAL","","","","","",${(grandTotal + csvAllowancesTotal).toFixed(2)},"","",""`);
 
     const csv = csvRows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });

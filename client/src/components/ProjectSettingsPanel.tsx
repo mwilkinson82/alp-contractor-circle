@@ -447,23 +447,72 @@ export default function ProjectSettingsPanel({
                 <span className="text-xs text-cream-muted">(selections not yet priced — cabinets, countertops, tile, etc.)</span>
               </div>
               {/* Quick-add presets */}
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {[
-                  { label: "Kitchen Cabinets", amount: 1500000 },
-                  { label: "Countertops", amount: 800000 },
-                  { label: "Flooring", amount: 1200000 },
-                  { label: "Appliances", amount: 1000000 },
-                  { label: "Tile", amount: 600000 },
-                ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
-                    className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
-                  >
-                    + {preset.label}
-                  </button>
-                ))}
+              <div className="space-y-2 mb-2">
+                <div>
+                  <span className="text-xs text-cream-muted">Residential</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {[
+                      { label: "Kitchen Cabinets", amount: 1500000 },
+                      { label: "Countertops", amount: 800000 },
+                      { label: "Flooring", amount: 1200000 },
+                      { label: "Appliances", amount: 1000000 },
+                      { label: "Tile", amount: 600000 },
+                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
+                        className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                      >
+                        + {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-cream-muted">Commercial</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {[
+                      { label: "FF&E (Furniture, Fixtures & Equipment)", amount: 2500000 },
+                      { label: "Signage & Wayfinding", amount: 800000 },
+                      { label: "Security Systems", amount: 1500000 },
+                      { label: "Low-Voltage / Data & Communications", amount: 2000000 },
+                      { label: "Specialty Equipment", amount: 3000000 },
+                      { label: "AV Systems", amount: 1200000 },
+                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
+                        className="px-2.5 py-1 text-xs rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors"
+                      >
+                        + {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-cream-muted">Public Works</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {[
+                      { label: "Traffic Control & MOT", amount: 1500000 },
+                      { label: "Environmental Compliance", amount: 1000000 },
+                      { label: "Temporary Facilities", amount: 800000 },
+                      { label: "Erosion & Sediment Control", amount: 600000 },
+                      { label: "Dewatering", amount: 1200000 },
+                      { label: "Testing & Inspection", amount: 1000000 },
+                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
+                        className="px-2.5 py-1 text-xs rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        + {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 {allowances.map((item, idx) => (

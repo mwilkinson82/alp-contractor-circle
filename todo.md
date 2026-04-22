@@ -2975,12 +2975,18 @@
 ## Summary Breakdown Bar & Allowance Presets — April 21 (Part 3)
 - [x] Add summary breakdown bar showing Material subtotal, Labor subtotal, Allowances subtotal above items table
 - [x] Add residential allowance presets (kitchen, cabinets, countertops, flooring, appliances, tiling) as quick-add buttons
-- [ ] Propose commercial and public works allowance presets for Marshall's review
-- [ ] Implement commercial and public works presets after approval
+- [x] Propose commercial and public works allowance presets for Marshall's review
+- [x] Implement commercial and public works presets after approval
 
 ## Tiered Pricing — AI-Assisted Product Pricing — April 21 (Part 4)
 - [x] Build AI pricing pass that evaluates RS Means match quality for specific products
 - [x] AI provides better cost estimate when RS Means match is clearly wrong (e.g., specific brand/model items)
 - [x] Wire tiered pricing: contractor cost library > AI-specific pricing > RS Means (silent, no source labels)
 - [x] Ensure cost library lookup is properly wired for contractors who upload their own pricing
-- [ ] Test repricing on Kramer Residence to verify accuracy improvement
+- [x] Test repricing on Kramer Residence to verify accuracy improvement (went from $373K to $1.148M)
+
+## Commercial & Public Works Allowance Presets + Excel Export — April 21 (Part 5)
+- [x] Add commercial allowance presets (FF&E, Signage, Security Systems, Low-Voltage/Data, Specialty Equipment, AV Systems)
+- [x] Add public works allowance presets (Traffic Control, Environmental Compliance, Temporary Facilities, Erosion Control, Dewatering, Testing & Inspection)
+- [x] Add allowance totals to Excel export
+- [x] Add allowance totals to CSV export
