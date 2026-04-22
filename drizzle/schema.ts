@@ -877,6 +877,8 @@ export const takeoffItems = mysqlTable("takeoff_items", {
   notes: text("notes"),
   /** Whether this item has been manually reviewed/edited */
   reviewed: boolean("reviewed").default(false).notNull(),
+  /** Whether this item needs manual quantity measurement (qty=1 placeholder from LS resolution) */
+  needsMeasurement: boolean("needsMeasurement").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

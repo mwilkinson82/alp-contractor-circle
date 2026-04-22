@@ -3084,3 +3084,12 @@
 - [x] Library expanded: 701 cost entries, 295 labor entries, ~8,000+ synonyms
 - [x] All 428 tests passing, 0 TS errors
 - [ ] Verify total output within 10% of actual $1.54M-$1.67M subtotal (needs re-run)
+
+## PIPELINE REBUILD Phase 4 — Eliminate Last LLM Calls + Needs Measurement Flag
+- [x] Replace generateFormwork LLM call with programmatic formwork SFCA calculation (footings: 2×depth×length, walls: 2×height×length, slabs: perimeter×thickness)
+- [x] Replace enhanceRebar LLM call with programmatic rebar estimation (slabs: #4@12"OC=2.0 LF/SF, footings: #4 cont+#3 ties, walls: #4@16"OC)
+- [x] Remove ALL LLM imports from takeoffPostProcess.ts — post-processing is now 100% programmatic, zero LLM calls
+- [x] Add 'needsMeasurement' boolean column to takeoff_items schema (migration 0054)
+- [x] Wire needsMeasurement=true into enhanceLumpSums for LS→measured unit conversions with qty=1 placeholder
+- [x] Add 'needs qty' indicator with Ruler icon in amber below quantity in takeoff table UI
+- [x] All 428 tests passing, 0 TS errors, server running clean

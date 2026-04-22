@@ -1,0 +1,1 @@
+ALTER TABLE `takeoff_items` ADD `needsMeasurement` boolean DEFAULT false NOT NULL;

@@ -1928,6 +1928,13 @@ export default function TakeoffDetail() {
                                     </td>
                                     <td className="px-4 py-2 text-right text-cream font-mono">
                                       <span>{parseFloat(item.quantity).toLocaleString()}</span>
+                                      {/* Needs measurement indicator */}
+                                      {item.needsMeasurement && (
+                                        <div className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1" title="Quantity is a placeholder — update with actual measurement">
+                                          <Ruler className="w-3 h-3" />
+                                          needs qty
+                                        </div>
+                                      )}
                                       {/* Quantity change annotation */}
                                       {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
                                         const ann = consolidationDiff.itemAnnotations[item.id];

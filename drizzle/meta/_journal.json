@@ -379,6 +379,13 @@
       "when": 1776875604929,
       "tag": "0053_tense_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "5",
+      "when": 1776896189270,
+      "tag": "0054_fancy_living_lightning",
+      "breakpoints": true
     }
   ]
 }

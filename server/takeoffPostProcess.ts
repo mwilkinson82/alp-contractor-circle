@@ -8,34 +8,11 @@
  * 4. Generate formwork items for concrete members (Priority 4)
  * 5. Enhance rebar quantities by combining plan dims with section callouts (Priority 5)
  */
-import { invokeLLMWithTimeout, type Message } from "./_core/llm";
-
-// Hard per-call timeout for all post-processing LLM calls (60 seconds — reduced from 90s)
-const PP_LLM_TIMEOUT_MS = 60_000;
-// Max concurrent LLM calls across the entire post-processing pipeline
-const PP_MAX_CONCURRENCY = 3;
+// NOTE: All post-processing is now fully programmatic — zero LLM calls.
 // Total pipeline timeout — if exceeded, save what we have and finish
 const PP_PIPELINE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
-// Simple concurrency limiter (no external dependency needed)
-function createLimiter(concurrency: number) {
-  let active = 0;
-  const queue: Array<() => void> = [];
-  return async function limit<T>(fn: () => Promise<T>): Promise<T> {
-    if (active >= concurrency) {
-      await new Promise<void>(resolve => queue.push(resolve));
-    }
-    active++;
-    try {
-      return await fn();
-    } finally {
-      active--;
-      if (queue.length > 0) queue.shift()!();
-    }
-  };
-}
-
-const ppLimiter = createLimiter(PP_MAX_CONCURRENCY);
+// Concurrency limiter removed — no longer needed without LLM calls.
 import { applyPricingV2, applyPricingWithLibraryV2, validateRebarQuantities, loadExpandedLibrary, findBestMatchV2, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookupV2";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
@@ -86,6 +63,7 @@ interface ConsolidatedItem {
   wasConsolidated: boolean;
   wasEnhanced: boolean;
   isGenerated: boolean; // formwork, etc.
+  needsMeasurement: boolean; // true if qty=1 placeholder from LS resolution
 }
 
 interface SheetContext {
@@ -368,10 +346,10 @@ async function consolidateItems(
       wasConsolidated,
       wasEnhanced: false,
       isGenerated: false,
+      needsMeasurement: false,
     });
   }
-
-  console.log(`[PostProcess] Synonym consolidation: ${deduped.length} → ${result.length} items (${synonymMergedCount} merged via synonym match)`);
+  console.log(`[PostProcess] Synonym consolidation:: ${deduped.length} → ${result.length} items (${synonymMergedCount} merged via synonym match)`);
   return result;
 }
 
@@ -401,12 +379,12 @@ function rawItemToConsolidated(item: RawItem, sheets: SheetContext[]): Consolida
     notes: item.notes || "",
     sourceSheetIds: [item.sheetId],
     sourceItemIds: [item.id],
-    wasConsolidated: false,
+     wasConsolidated: false,
     wasEnhanced: false,
     isGenerated: false,
+    needsMeasurement: false,
   };
 }
-
 // ─── Priority 2: Lump-Sum Resolution ───────────────────────────────────────────────────
 
 /**
@@ -467,11 +445,11 @@ async function enhanceLumpSums(
       confidence: Math.min(lsItem.confidence, 50), // Lower confidence since qty is placeholder
       notes: `[LS→${correctUnit}] Unit resolved from cost library (matched: ${match.entry.description}, score: ${match.score}). Quantity set to 1 — update with actual measurement. Original: 1 LS @ $${(lsItem.extendedCost / 100).toFixed(2)}`,
       wasEnhanced: true,
+      needsMeasurement: true, // qty=1 placeholder — contractor needs to measure
     };
     enhancedCount++;
   }
-
-  console.log(`[PostProcess] Resolved ${enhancedCount} of ${lumpSumItems.length} lump-sum items to measured units (qty=1, needs manual update)`);
+  console.log(`[PostProcess] Resolved ${enhancedCount}} of ${lumpSumItems.length} lump-sum items to measured units (qty=1, needs manual update)`);
   return items;
 }
 
@@ -481,12 +459,24 @@ async function enhanceLumpSums(
  * Generates formwork items for concrete members that need forms.
  * Calculates SFCA (square feet of contact area) based on concrete dimensions.
  */
-async function generateFormwork(
+// ─── Formwork Constants ───────────────────────────────────────────────────────
+const FORMWORK_MATERIAL_COST_CENTS = 350; // $3.50/SFCA material (plywood, lumber, hardware)
+const FORMWORK_LABOR_COST_CENTS = 650;    // $6.50/SFCA labor (set, strip, clean)
+
+/**
+ * Programmatic formwork generation — no LLM call.
+ * Parses concrete item descriptions/notes for dimensions and calculates SFCA.
+ * Rules:
+ *   FOOTINGS/GRADE BEAMS: 2 sides × depth × length
+ *   WALLS/STEM WALLS: 2 sides × height × length
+ *   SLABS (edge forms only): perimeter × thickness (estimated from area)
+ *   PIERS/COLUMNS: 4 sides × width × height
+ */
+function generateFormwork(
   items: ConsolidatedItem[],
-  currency: string | null,
-  scopeText: string | null
-): Promise<ConsolidatedItem[]> {
-  // Only generate formwork if concrete items exist
+  _currency: string | null,
+  _scopeText: string | null
+): ConsolidatedItem[] {
   const concreteItems = items.filter(item =>
     item.csiDivision === "03" && item.unit !== "LS" && item.quantity > 0 &&
     !item.description.toLowerCase().includes("formwork") &&
@@ -499,213 +489,218 @@ async function generateFormwork(
     return items;
   }
 
-  // Check for EXISTING formwork items already extracted from sheets
-  // Use strict matching: must start with 'formwork' or 'form for' or have CSI 03 11
-  // Do NOT match items that merely contain 'form' as part of a word (e.g. 'information', 'platform')
+  // Check for existing formwork items already extracted
   const existingFormwork = items.filter(item => {
     const desc = item.description.toLowerCase();
     return (
-      desc.startsWith("formwork") ||
-      desc.startsWith("form for") ||
-      desc.startsWith("forms for") ||
-      desc.includes(" formwork") ||
+      desc.startsWith("formwork") || desc.startsWith("form for") ||
+      desc.startsWith("forms for") || desc.includes(" formwork") ||
       item.csiCode?.startsWith("03 11")
     );
   });
-  const existingFormworkDescs = existingFormwork.map(f => f.description.toLowerCase());
-  console.log(`[PostProcess] Found ${existingFormwork.length} existing formwork items, ${concreteItems.length} concrete items needing formwork`);
 
-  // Only skip formwork generation if we have a substantial number of existing formwork items
-  // (at least 5 items AND covers ≥80% of concrete items) — be conservative about skipping
   if (existingFormwork.length >= 5 && existingFormwork.length >= concreteItems.length * 0.8) {
-    console.log(`[PostProcess] Extracted formwork (${existingFormwork.length}) already covers ≥80% of concrete items (${concreteItems.length}) — skipping formwork generation`);
+    console.log(`[PostProcess] Extracted formwork (${existingFormwork.length}) already covers ≥80% of concrete — skipping`);
     return items;
   }
 
-  // Check if scope includes formwork (CSI 03 11 00 series)
-  // Formwork is always part of concrete work, so if concrete is in scope, formwork is too
+  const existingFormworkDescs = new Set(existingFormwork.map(f => f.description.toLowerCase()));
+  console.log(`[PostProcess] Generating formwork programmatically for ${concreteItems.length} concrete items...`);
 
-  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+  const formworkItems: ConsolidatedItem[] = [];
 
-  const formworkPrompt = `You are a senior construction estimator. Generate formwork quantities for the following concrete items.
+  for (const item of concreteItems) {
+    const desc = item.description.toLowerCase();
+    const notes = (item.notes || "").toLowerCase();
+    const combined = `${desc} ${notes}`;
 
-For each concrete member, calculate the formwork needed:
-- FOOTINGS: 2 sides × depth × length = SFCA. Also estimate form boards (2×12 or 2×10), stakes, and kickers.
-- WALLS/STEM WALLS: 2 sides × height × length = SFCA. Estimate plywood sheets, walers, and ties.
-- SLABS (edges only): perimeter × slab thickness = SFCA for edge forms. Estimate form boards and stakes.
-- PITS: calculate all formed surfaces (walls + any formed bottom edges)
-- GRADE BEAMS: 2 sides × depth × length = SFCA
+    // Parse dimensions from description/notes
+    // Look for patterns like: 24"W x 12"D, 12" wide, 8' tall, etc.
+    const dims = parseDimensions(combined);
+    let sfca = 0;
+    let calcNote = "";
 
-${scopeText ? `SCOPE: "${scopeText}"` : ""}
+    const isFooting = desc.includes("footing") || desc.includes("ftg") || desc.includes("grade beam");
+    const isWall = desc.includes("wall") || desc.includes("stem");
+    const isSlab = desc.includes("slab") || desc.includes("sog") || desc.includes("slab on grade") || desc.includes("flatwork");
+    const isPier = desc.includes("pier") || desc.includes("column") || desc.includes("pilaster");
+    const isBeam = desc.includes("beam") && !desc.includes("grade beam");
 
-## CONCRETE ITEMS:
-${JSON.stringify(concreteItems.map(item => ({
-  description: item.description,
-  quantity: item.quantity,
-  unit: item.unit,
-  notes: item.notes,
-})), null, 2)}
-
-## OUTPUT FORMAT
-Return formwork items as a JSON array. Each item should be:
-- csiCode: "03 11 00" (Concrete Forming)
-- description: specific formwork description (e.g., "Formwork for Continuous Footing 24\"W × 12\"D")
-- quantity: SFCA (square feet of contact area)
-- unit: "SFCA"
-- unitCost: set to 1 (pricing applied from cost database)
-- confidence: 0-100
-- notes: calculation breakdown
-- forConcreteItem: description of the concrete item this formwork is for
-
-Only generate formwork for items that actually need forms (not for slabs-on-grade interior, vapor barriers, etc.)`;
-
-  const formworkSchema = {
-    type: "json_schema" as const,
-    json_schema: {
-      name: "formwork_result",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          formworkItems: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                csiCode: { type: "string" },
-                description: { type: "string" },
-                quantity: { type: "number" },
-                unit: { type: "string" },
-                unitCost: { type: "number" },
-                confidence: { type: "integer" },
-                notes: { type: "string" },
-                forConcreteItem: { type: "string" },
-              },
-              required: ["csiCode", "description", "quantity", "unit", "unitCost", "confidence", "notes", "forConcreteItem"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["formworkItems"],
-        additionalProperties: false,
-      },
-    },
-  };
-
-  try {
-    console.log(`[PostProcess] Generating formwork for ${concreteItems.length} concrete items...`);
-
-    const response = await ppLimiter(() => invokeLLMWithTimeout({
-      messages: [
-        { role: "system", content: "You are a senior construction estimator. Calculate formwork quantities for concrete members. Return JSON." },
-        { role: "user", content: formworkPrompt },
-      ],
-      response_format: formworkSchema,
-    }, PP_LLM_TIMEOUT_MS));
-
-    const rawContent3 = response.choices[0]?.message?.content;
-    if (!rawContent3) throw new Error("No content in formwork response");
-    const content = typeof rawContent3 === "string" ? rawContent3 : JSON.stringify(rawContent3);
-
-    const parsed = JSON.parse(content) as {
-      formworkItems: Array<{
-        csiCode: string;
-        description: string;
-        quantity: number;
-        unit: string;
-        unitCost: number;
-        confidence: number;
-        notes: string;
-        forConcreteItem: string;
-      }>;
-    };
-
-    // Add formwork items to the consolidated list, but DEDUPLICATE against existing formwork
-    let addedCount = 0;
-    let skippedCount = 0;
-    const formworkConsolidated: ConsolidatedItem[] = [];
-
-    for (const fw of parsed.formworkItems) {
-      const newDesc = fw.description.toLowerCase();
-      // Check if a similar formwork item already exists
-      const isDuplicate = existingFormworkDescs.some(existingDesc => {
-        // Fuzzy match: check if they refer to the same concrete element
-        const newWords = newDesc.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2);
-        const existWords = existingDesc.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2);
-        // Count matching keywords (excluding common words like "for", "the", "formwork")
-        const skipWords = new Set(["for", "the", "and", "formwork", "form", "forms", "concrete"]);
-        const meaningfulNew = newWords.filter(w => !skipWords.has(w));
-        const meaningfulExist = existWords.filter(w => !skipWords.has(w));
-        const matches = meaningfulNew.filter(w => meaningfulExist.some(e => e.includes(w) || w.includes(e)));
-        const matchRatio = meaningfulNew.length > 0 ? matches.length / meaningfulNew.length : 0;
-        return matchRatio >= 0.4; // 40% keyword overlap = same element (tightened to catch more duplicates)
-      });
-
-      if (isDuplicate) {
-        skippedCount++;
-        console.log(`[PostProcess] Skipping duplicate formwork: ${fw.description}`);
-        continue;
+    if (isFooting) {
+      // Footings: 2 sides × depth × length
+      const depth = dims.depth || dims.height || 1; // ft
+      const length = item.unit === "LF" ? item.quantity : (dims.length || 0);
+      if (length > 0) {
+        sfca = 2 * depth * length;
+        calcNote = `2 sides × ${depth.toFixed(1)}' depth × ${length.toFixed(0)} LF = ${sfca.toFixed(0)} SFCA`;
       }
-
-      formworkConsolidated.push({
-        csiDivision: "03",
-        csiCode: fw.csiCode.trim(),
-        description: fw.description,
-        quantity: fw.quantity,
-        unit: fw.unit.toUpperCase().trim(),
-        unitCost: Math.round(fw.unitCost * 100),
-        extendedCost: Math.round(fw.quantity * fw.unitCost * 100),
-        materialCost: 0,
-        laborCost: 0,
-        confidence: fw.confidence,
-        notes: `[Generated] ${fw.notes}. For: ${fw.forConcreteItem}`,
-        sourceSheetIds: [],
-        sourceItemIds: [],
-        wasConsolidated: false,
-        wasEnhanced: false,
-        isGenerated: true,
-      });
-      addedCount++;
+    } else if (isWall) {
+      // Walls: 2 sides × height × length
+      const height = dims.height || dims.depth || 4; // default 4' for stem walls
+      const length = item.unit === "LF" ? item.quantity : (dims.length || 0);
+      if (length > 0) {
+        sfca = 2 * height * length;
+        calcNote = `2 sides × ${height.toFixed(1)}' height × ${length.toFixed(0)} LF = ${sfca.toFixed(0)} SFCA`;
+      }
+    } else if (isSlab) {
+      // Slabs: edge forms only = estimated perimeter × thickness
+      const thickness = dims.depth || dims.height || 0.33; // default 4" slab
+      const area = item.unit === "SF" ? item.quantity : (item.unit === "SY" ? item.quantity * 9 : 0);
+      if (area > 0) {
+        // Estimate perimeter from area (assume roughly square)
+        const side = Math.sqrt(area);
+        const perimeter = 4 * side;
+        sfca = perimeter * thickness;
+        calcNote = `Edge forms: est. ${perimeter.toFixed(0)} LF perimeter × ${(thickness * 12).toFixed(0)}" thick = ${sfca.toFixed(0)} SFCA`;
+      }
+    } else if (isPier) {
+      // Piers/columns: 4 sides × width × height × count
+      const width = dims.width || 1; // ft
+      const height = dims.height || dims.depth || 3; // ft
+      const count = item.unit === "EA" ? item.quantity : 1;
+      sfca = 4 * width * height * count;
+      calcNote = `4 sides × ${width.toFixed(1)}' × ${height.toFixed(1)}' × ${count} EA = ${sfca.toFixed(0)} SFCA`;
+    } else if (isBeam) {
+      // Beams: 3 sides (bottom + 2 sides) × depth × length
+      const depth = dims.depth || dims.height || 1;
+      const width = dims.width || 0.5;
+      const length = item.unit === "LF" ? item.quantity : (dims.length || 0);
+      if (length > 0) {
+        sfca = (2 * depth + width) * length;
+        calcNote = `(2×${depth.toFixed(1)}' + ${width.toFixed(1)}') × ${length.toFixed(0)} LF = ${sfca.toFixed(0)} SFCA`;
+      }
     }
 
-    console.log(`[PostProcess] Formwork: ${parsed.formworkItems.length} generated, ${skippedCount} duplicates skipped, ${addedCount} new items added`);
-    return [...items, ...formworkConsolidated];
-  } catch (error) {
-    console.error("[PostProcess] Formwork generation failed:", error);
-    return items;
+    if (sfca <= 0) continue; // Can't calculate formwork for this item
+
+    // Round SFCA to whole number
+    sfca = Math.round(sfca);
+
+    // Check for duplicate against existing formwork
+    const fwDesc = `Formwork for ${item.description}`;
+    const fwDescLower = fwDesc.toLowerCase();
+    const isDuplicate = Array.from(existingFormworkDescs).some((existing: string) => {
+      const words = fwDescLower.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w: string) => w.length > 2);
+      const existWords = existing.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w: string) => w.length > 2);
+      const skip = new Set(["for", "the", "and", "formwork", "form", "forms", "concrete"]);
+      const meaningful = words.filter((w: string) => !skip.has(w));
+      const meaningfulExist = existWords.filter((w: string) => !skip.has(w));
+      const matches = meaningful.filter((w: string) => meaningfulExist.some((e: string) => e.includes(w) || w.includes(e)));
+      return meaningful.length > 0 && matches.length / meaningful.length >= 0.4;
+    });
+
+    if (isDuplicate) {
+      console.log(`[PostProcess] Skipping duplicate formwork: ${fwDesc}`);
+      continue;
+    }
+
+    const unitCostCents = FORMWORK_MATERIAL_COST_CENTS + FORMWORK_LABOR_COST_CENTS;
+    formworkItems.push({
+      csiDivision: "03",
+      csiCode: "03 11 00",
+      description: fwDesc,
+      quantity: sfca,
+      unit: "SFCA",
+      unitCost: unitCostCents,
+      extendedCost: sfca * unitCostCents,
+      materialCost: sfca * FORMWORK_MATERIAL_COST_CENTS,
+      laborCost: sfca * FORMWORK_LABOR_COST_CENTS,
+      confidence: 80,
+      notes: `[Generated] ${calcNote}`,
+      sourceSheetIds: item.sourceSheetIds,
+      sourceItemIds: item.sourceItemIds,
+      wasConsolidated: false,
+      wasEnhanced: false,
+      isGenerated: true,
+      needsMeasurement: false,
+    });
   }
+  console.log(`[PostProcess] Formwork:: ${formworkItems.length} items generated programmatically`);
+  return [...items, ...formworkItems];
 }
 
-// ─── Priority 5: Rebar Enhancement ────────────────────────────────────────────
+/**
+ * Parse dimensions from a text string. Returns dimensions in FEET.
+ * Handles patterns like: 24"W x 12"D, 12" wide, 8'-0" tall, 4" thick, etc.
+ */
+function parseDimensions(text: string): { width: number; height: number; depth: number; length: number } {
+  const result = { width: 0, height: 0, depth: 0, length: 0 };
+
+  // Pattern: X'[-]Y" or X' or Y"
+  const ftInchPattern = /(\d+)['’]\s*[-]?\s*(\d+)?["\u201D]?/g;
+  const inchOnlyPattern = /(\d+(?:\.\d+)?)["\u201D]/g;
+
+  // Look for labeled dimensions: "24\" wide", "12\" deep", "8' tall"
+  const widthMatch = text.match(/(\d+(?:\.\d+)?)["\u201D']?\s*(?:w(?:ide)?|width)/i);
+  const heightMatch = text.match(/(\d+(?:\.\d+)?)["\u201D']?\s*(?:h(?:igh)?|height|tall)/i);
+  const depthMatch = text.match(/(\d+(?:\.\d+)?)["\u201D']?\s*(?:d(?:eep)?|depth|thick(?:ness)?)/i);
+  const lengthMatch = text.match(/(\d+(?:\.\d+)?)["\u201D']?\s*(?:l(?:ong)?|length)/i);
+
+  // Also look for "WxD" or "WxH" patterns like "24x12" or "24\"x12\""
+  const wxdMatch = text.match(/(\d+(?:\.\d+)?)["\u201D]?\s*[x×]\s*(\d+(?:\.\d+)?)["\u201D]?/);
+
+  if (widthMatch) result.width = parseToFeet(widthMatch[1], text.includes("'"));
+  if (heightMatch) result.height = parseToFeet(heightMatch[1], text.includes("'"));
+  if (depthMatch) result.depth = parseToFeet(depthMatch[1], false); // depth is usually in inches
+  if (lengthMatch) result.length = parseToFeet(lengthMatch[1], text.includes("'"));
+
+  // If we got a WxD pattern but no labeled dims, use it
+  if (wxdMatch && result.width === 0 && result.depth === 0) {
+    result.width = parseToFeet(wxdMatch[1], false);
+    result.depth = parseToFeet(wxdMatch[2], false);
+  }
+
+  return result;
+}
+
+/** Convert a numeric string to feet. If the value is > 12, assume inches. */
+function parseToFeet(val: string, isFeet: boolean): number {
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+  if (isFeet) return num;
+  // Heuristic: values > 12 are almost certainly inches in construction
+  return num > 12 ? num / 12 : num / 12; // always treat bare numbers as inches
+}
+
+// ─── Rebar Constants ────────────────────────────────────────────────────────
+const REBAR_WEIGHT_PER_FT: Record<string, number> = {
+  "#3": 0.376, "#4": 0.668, "#5": 1.043, "#6": 1.502, "#7": 2.044, "#8": 2.670,
+};
+const REBAR_COST_PER_LF_CENTS: Record<string, number> = {
+  "#3": 95, "#4": 125, "#5": 165, "#6": 205, "#7": 250, "#8": 300,
+};
+// Standard residential rebar ratios (LF of rebar per unit of concrete member)
+const REBAR_RATIOS = {
+  slab_sf: 2.0,       // #4 @ 12" OC each way = ~2.0 LF rebar per SF of slab
+  footing_lf: 6.0,    // 2 continuous #4 + #3 ties @ 24" OC = ~6 LF rebar per LF of footing
+  wall_sf: 1.5,       // #4 @ 16" OC each way = ~1.5 LF rebar per SF of wall face
+  pier_ea: 40,        // 4 vertical #5 + #3 ties = ~40 LF per pier
+  beam_lf: 8.0,       // 3 continuous #5 + #3 stirrups @ 12" OC = ~8 LF per LF of beam
+};
+const REBAR_LAP_WASTE_FACTOR = 1.10; // 10% for lap splices and waste
 
 /**
- * Enhances rebar quantities by combining plan dimensions with section callouts.
- * For items like "#4 @ 16" OC T&B each way" that have a callout but no total LF,
- * this uses the measured slab/footing/wall dimensions to calculate total rebar.
+ * Programmatic rebar enhancement — no LLM call.
+ * Uses standard residential ratios to calculate rebar from concrete member dimensions.
+ * Only LS or qty=0 rebar items get enhanced; items with good quantities are kept as-is.
  */
-async function enhanceRebar(
+function enhanceRebar(
   items: ConsolidatedItem[],
-  sheets: SheetContext[],
-  currency: string | null
-): Promise<ConsolidatedItem[]> {
-  // Find rebar items (CSI 03 20 00) that are LS or have low quantities
+  _sheets: SheetContext[],
+  _currency: string | null
+): ConsolidatedItem[] {
   const rebarItems = items.filter(item =>
-    item.csiCode?.startsWith("03 20") || 
+    item.csiCode?.startsWith("03 20") ||
     item.description.toLowerCase().includes("rebar") ||
     item.description.toLowerCase().includes("reinforc") ||
-    item.description.toLowerCase().includes("#3 ") ||
-    item.description.toLowerCase().includes("#4 ") ||
-    item.description.toLowerCase().includes("#5 ") ||
-    item.description.toLowerCase().includes("#6 ")
+    /\#[3-8]\s/.test(item.description)
   );
 
-  // Find concrete items with measured quantities (these provide dimensions)
   const measuredConcrete = items.filter(item =>
-    item.csiDivision === "03" && 
-    item.unit !== "LS" && 
-    item.quantity > 0 &&
+    item.csiDivision === "03" && item.unit !== "LS" && item.quantity > 0 &&
     !item.description.toLowerCase().includes("rebar") &&
-    !item.description.toLowerCase().includes("reinforc")
+    !item.description.toLowerCase().includes("reinforc") &&
+    !item.description.toLowerCase().includes("formwork")
   );
 
   if (rebarItems.length === 0 || measuredConcrete.length === 0) {
@@ -713,174 +708,82 @@ async function enhanceRebar(
     return items;
   }
 
-  // Find structural section sheets for rebar callout details
-  const sectionSheets = sheets.filter(s =>
-    s.sheetType && ["section", "detail", "structural"].includes(s.sheetType) && s.imageUrl
-  );
-
-  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
-
-  const rebarPrompt = `You are a senior construction estimator specializing in reinforcing steel. 
-
-I have rebar items from a takeoff that need quantity enhancement. Some are lump sums, some have partial quantities. I also have the MEASURED concrete member dimensions that these rebar items belong to.
-
-Your job: Calculate total rebar quantities (in LF and LBS) by combining the rebar callouts with the concrete member dimensions.
-
-## REBAR CALCULATION RULES:
-- Spacing callout (e.g., "#4 @ 16" OC"): bars per foot = 12 / spacing_inches
-- "Each way" means bars in both directions
-- "T&B" (top & bottom) means two layers
-- Add 10% for lap splices and waste
-- Convert LF to LBS using standard weights: #3=0.376, #4=0.668, #5=1.043, #6=1.502 lbs/ft
-
-## REBAR PRICING (2026 RSMeans + Regional Adjustment):
-Base unit costs per LF (includes material + labor + equipment for placement):
-- #3 Rebar: $0.85-1.10 per LF
-- #4 Rebar: $1.10-1.45 per LF
-- #5 Rebar: $1.45-1.85 per LF
-- #6 Rebar: $1.85-2.25 per LF
-- Stirrups/Ties (#3 or #4): $0.95-1.35 per LF
-- Dowels: $1.20-1.60 per LF
-For this project, apply regional multiplier: 1.00x (or adjust based on local market conditions)
-
-## CURRENT REBAR ITEMS:
-${JSON.stringify(rebarItems.map(item => ({
-  description: item.description,
-  quantity: item.quantity,
-  unit: item.unit,
-  notes: item.notes,
-})), null, 2)}
-
-## MEASURED CONCRETE MEMBERS (use these dimensions):
-${JSON.stringify(measuredConcrete.map(item => ({
-  description: item.description,
-  quantity: item.quantity,
-  unit: item.unit,
-  notes: item.notes,
-})), null, 2)}
-
-## OUTPUT FORMAT
-Return enhanced rebar items as a JSON array. For each rebar item:
-- description: specific description with bar size, spacing, and member
-- quantity: total LF of rebar
-- unit: "LF"
-- weightLbs: total weight in pounds
-- unitCost: set to 1 (pricing applied from cost database)
-- confidence: 0-100
-- notes: calculation breakdown (show the math)
-- replacesOriginal: description of the original item this replaces (or "new" if it's a new item)`;
-
-  const rebarSchema = {
-    type: "json_schema" as const,
-    json_schema: {
-      name: "rebar_result",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          enhancedRebarItems: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                description: { type: "string" },
-                quantity: { type: "number" },
-                unit: { type: "string" },
-                weightLbs: { type: "number" },
-                unitCost: { type: "number" },
-                confidence: { type: "integer" },
-                notes: { type: "string" },
-                replacesOriginal: { type: "string" },
-              },
-              required: ["description", "quantity", "unit", "weightLbs", "unitCost", "confidence", "notes", "replacesOriginal"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["enhancedRebarItems"],
-        additionalProperties: false,
-      },
-    },
-  };
-
-  try {
-    console.log(`[PostProcess] Enhancing ${rebarItems.length} rebar items using ${measuredConcrete.length} concrete member dimensions...`);
-
-    // Include section sheet images if available for rebar callout details
-    const userContent: Array<{type: "text"; text: string} | {type: "image_url"; image_url: {url: string; detail: "high"}}> = [{ type: "text", text: rebarPrompt }];
-    
-    // Add up to 2 section sheet images for rebar callout reference
-    const rebarSections = sectionSheets.slice(0, 2);
-    for (const sheet of rebarSections) {
-      if (sheet.imageUrl) {
-        userContent.push({
-          type: "image_url",
-          image_url: { url: sheet.imageUrl, detail: "high" },
-        });
-      }
-    }
-
-    const rebarMessages: Message[] = [
-      {
-        role: "system",
-        content: "You are a senior construction estimator specializing in reinforcing steel. Calculate rebar quantities from callouts and member dimensions. Return JSON.",
-      },
-      { role: "user", content: userContent },
-    ];
-
-    const response = await ppLimiter(() => invokeLLMWithTimeout({
-      messages: rebarMessages,
-      response_format: rebarSchema,
-    }, PP_LLM_TIMEOUT_MS));
-
-    const rawContent4 = response.choices[0]?.message?.content;
-    if (!rawContent4) throw new Error("No content in rebar enhancement response");
-    const content = typeof rawContent4 === "string" ? rawContent4 : JSON.stringify(rawContent4);
-
-    const parsed = JSON.parse(content) as {
-      enhancedRebarItems: Array<{
-        description: string;
-        quantity: number;
-        unit: string;
-        weightLbs: number;
-        unitCost: number;
-        confidence: number;
-        notes: string;
-        replacesOriginal: string;
-      }>;
-    };
-
-    // Remove original rebar items that are being replaced
-    const enhancedItems = items.filter(item => !rebarItems.includes(item));
-
-    // Add enhanced rebar items
-    for (const rebar of parsed.enhancedRebarItems) {
-      enhancedItems.push({
-        csiDivision: "03",
-        csiCode: "03 20 00",
-        description: rebar.description,
-        quantity: rebar.quantity,
-        unit: rebar.unit.toUpperCase().trim(),
-        unitCost: Math.round(rebar.unitCost * 100),
-        extendedCost: Math.round(rebar.quantity * rebar.unitCost * 100),
-        materialCost: 0,
-        laborCost: 0,
-        confidence: rebar.confidence,
-        notes: `[Enhanced] ${rebar.notes}. Weight: ${rebar.weightLbs.toFixed(0)} lbs. ${rebar.replacesOriginal !== "new" ? `Replaces: ${rebar.replacesOriginal}` : ""}`,
-        sourceSheetIds: [],
-        sourceItemIds: [],
-        wasConsolidated: false,
-        wasEnhanced: true,
-        isGenerated: rebar.replacesOriginal === "new",
-      });
-    }
-
-    console.log(`[PostProcess] Enhanced rebar: ${rebarItems.length} original → ${parsed.enhancedRebarItems.length} enhanced items`);
-    return enhancedItems;
-  } catch (error) {
-    console.error("[PostProcess] Rebar enhancement failed:", error);
+  // Only enhance rebar items that are LS or have qty=0
+  const needsEnhancement = rebarItems.filter(r => r.unit === "LS" || r.quantity <= 0);
+  if (needsEnhancement.length === 0) {
+    console.log(`[PostProcess] All ${rebarItems.length} rebar items already have quantities — skipping enhancement`);
     return items;
   }
+
+  console.log(`[PostProcess] Enhancing ${needsEnhancement.length} rebar items programmatically from ${measuredConcrete.length} concrete members...`);
+
+  // Calculate total rebar needed from concrete members
+  let totalRebarLF = 0;
+  const breakdowns: string[] = [];
+
+  for (const item of measuredConcrete) {
+    const desc = item.description.toLowerCase();
+    const isSlab = desc.includes("slab") || desc.includes("sog") || desc.includes("flatwork");
+    const isFooting = desc.includes("footing") || desc.includes("ftg") || desc.includes("grade beam");
+    const isWall = desc.includes("wall") || desc.includes("stem");
+    const isPier = desc.includes("pier") || desc.includes("column");
+    const isBeam = desc.includes("beam") && !desc.includes("grade beam");
+
+    let rebarLF = 0;
+    if (isSlab && item.unit === "SF") {
+      rebarLF = item.quantity * REBAR_RATIOS.slab_sf;
+      breakdowns.push(`Slab ${item.quantity} SF × ${REBAR_RATIOS.slab_sf} = ${rebarLF.toFixed(0)} LF`);
+    } else if (isFooting && item.unit === "LF") {
+      rebarLF = item.quantity * REBAR_RATIOS.footing_lf;
+      breakdowns.push(`Footing ${item.quantity} LF × ${REBAR_RATIOS.footing_lf} = ${rebarLF.toFixed(0)} LF`);
+    } else if (isWall && (item.unit === "SF" || item.unit === "LF")) {
+      const wallSF = item.unit === "LF" ? item.quantity * 4 : item.quantity;
+      rebarLF = wallSF * REBAR_RATIOS.wall_sf;
+      breakdowns.push(`Wall ${wallSF} SF × ${REBAR_RATIOS.wall_sf} = ${rebarLF.toFixed(0)} LF`);
+    } else if (isPier && item.unit === "EA") {
+      rebarLF = item.quantity * REBAR_RATIOS.pier_ea;
+      breakdowns.push(`Pier ${item.quantity} EA × ${REBAR_RATIOS.pier_ea} = ${rebarLF.toFixed(0)} LF`);
+    } else if (isBeam && item.unit === "LF") {
+      rebarLF = item.quantity * REBAR_RATIOS.beam_lf;
+      breakdowns.push(`Beam ${item.quantity} LF × ${REBAR_RATIOS.beam_lf} = ${rebarLF.toFixed(0)} LF`);
+    }
+    totalRebarLF += rebarLF;
+  }
+
+  if (totalRebarLF <= 0) {
+    console.log("[PostProcess] Could not calculate rebar from concrete dimensions");
+    return items;
+  }
+
+  // Apply lap/waste factor
+  totalRebarLF = Math.round(totalRebarLF * REBAR_LAP_WASTE_FACTOR);
+
+  // Detect bar size from existing rebar descriptions, default to #4
+  const barSizeMatch = rebarItems.map(r => r.description.match(/#([3-8])/)).find(m => m);
+  const barSize = barSizeMatch ? `#${barSizeMatch[1]}` : "#4";
+  const weightPerFt = REBAR_WEIGHT_PER_FT[barSize] || 0.668;
+  const costPerLFCents = REBAR_COST_PER_LF_CENTS[barSize] || 125;
+  const totalWeightLbs = Math.round(totalRebarLF * weightPerFt);
+
+  // Replace LS/qty=0 rebar items with calculated quantities
+  const enhancedItems = items.map(item => {
+    if (!needsEnhancement.includes(item)) return item;
+    return {
+      ...item,
+      quantity: totalRebarLF,
+      unit: "LF",
+      unitCost: costPerLFCents,
+      extendedCost: totalRebarLF * costPerLFCents,
+      materialCost: Math.round(totalRebarLF * costPerLFCents * 0.6), // ~60% material
+      laborCost: Math.round(totalRebarLF * costPerLFCents * 0.4),    // ~40% labor
+      confidence: 75,
+      wasEnhanced: true,
+      notes: `[Enhanced] ${barSize} rebar, ${totalWeightLbs} lbs total (incl. 10% lap/waste). Calc: ${breakdowns.join("; ")}`,
+    };
+  });
+
+  console.log(`[PostProcess] Rebar enhanced: ${needsEnhancement.length} items → ${totalRebarLF} LF (${totalWeightLbs} lbs) of ${barSize}`);
+  return enhancedItems;
 }
 
 // ─── Priority 6: Concrete Volume (CY) Calculation ───────────────────────────
@@ -1457,6 +1360,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
       confidence: item.confidence,
       notes: item.notes,
       reviewed: false,
+      needsMeasurement: item.needsMeasurement || false,
     }));
 
     // Insert in batches of 50 to avoid query size limits
