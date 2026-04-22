@@ -1232,6 +1232,9 @@ export default function TakeoffDetail() {
                     pageNumber: s.pageNumber,
                     status: s.status,
                   }))}
+                  onRetrySheet={(sheetId) =>
+                    reprocessMutation.mutate({ sheetId, projectId })
+                  }
                 />
               </div>
             )}
@@ -1366,6 +1369,9 @@ export default function TakeoffDetail() {
                     pageNumber: s.pageNumber,
                     status: s.status,
                   }))}
+                  onRetrySheet={(sheetId) =>
+                    reprocessMutation.mutate({ sheetId, projectId })
+                  }
                 />
               </div>
             )}

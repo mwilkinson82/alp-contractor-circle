@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   Loader2,
   Circle,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
@@ -90,6 +92,7 @@ interface ProcessingOverlayProps {
     status: string;
   }>;
   projectStatus?: string;
+  onRetrySheet?: (sheetId: number) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -296,6 +299,7 @@ export default function ProcessingOverlay({
   processedSheets,
   sheets,
   projectStatus,
+  onRetrySheet,
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -358,6 +362,12 @@ export default function ProcessingOverlay({
   const currentSheet = useMemo(() => {
     if (!sheets) return null;
     return sheets.find((s) => s.status === "processing");
+  }, [sheets]);
+
+  // Error sheets detection
+  const errorSheets = useMemo(() => {
+    if (!sheets) return [];
+    return sheets.filter((s) => s.status === "error");
   }, [sheets]);
 
   const CONSOLIDATION_ESTIMATE_MS = 180000;
@@ -652,6 +662,42 @@ export default function ProcessingOverlay({
           </div>
         )}
 
+        {/* ─── Error Alert Banner ──────────────────────────────────── */}
+        {currentPhase === "extracting" && errorSheets.length > 0 && (
+          <div
+            className="max-w-md mx-auto mb-5 rounded-lg px-4 py-3 flex items-center gap-3"
+            style={{
+              backgroundColor: "rgba(196, 100, 90, 0.08)",
+              border: `1px solid rgba(196, 100, 90, 0.25)`,
+            }}
+          >
+            <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: COLORS.error }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold" style={{ color: COLORS.error }}>
+                {errorSheets.length} sheet{errorSheets.length > 1 ? "s" : ""} failed — tap to retry now
+              </p>
+              <p className="text-[10px] mt-0.5" style={{ color: COLORS.textMuted }}>
+                {errorSheets.map((s) => s.sheetName || `Page ${s.pageNumber}`).join(", ")}
+              </p>
+            </div>
+            {onRetrySheet && (
+              <button
+                onClick={() => errorSheets.forEach((s) => onRetrySheet(s.id))}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold"
+                style={{
+                  backgroundColor: COLORS.error,
+                  color: "#FFFFFF",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                <RefreshCw className="w-3 h-3" />
+                Retry All
+              </button>
+            )}
+          </div>
+        )}
         {/* Sheet Status Grid — during extraction, max 60 sheets */}
         {currentPhase === "extracting" &&
           sheets &&
@@ -715,6 +761,14 @@ export default function ProcessingOverlay({
                           borderTopColor: "transparent",
                         }}
                       />
+                    ) : isError && onRetrySheet ? (
+                      <button
+                        onClick={() => onRetrySheet(sheet.id)}
+                        className="w-full h-full flex items-center justify-center"
+                        title={`Retry ${sheet.sheetName || `Page ${sheet.pageNumber}`}`}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
                     ) : (
                       sheet.pageNumber
                     )}

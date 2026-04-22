@@ -236,7 +236,79 @@ interface TakeoffExtractionResult {
   detectedScale?: DetectedScale;
 }
 
-// ─── Pass 1: Extract ───────────────────────────────────────────────────────────
+// ─── JSON Repair Helper ────────────────────────────────────────────────────────────────
+
+/**
+ * Attempt to repair truncated JSON from LLM responses.
+ * Common issue: LLM hits output token limit mid-JSON, producing
+ * unterminated strings, missing brackets, etc.
+ */
+function repairTruncatedJSON(raw: string): any | null {
+  // Strategy 1: Try parsing as-is (maybe it's fine)
+  try {
+    return JSON.parse(raw);
+  } catch (_) {}
+
+  // Strategy 2: Find the last complete item in the items array
+  // Look for the last valid closing brace before the truncation
+  try {
+    // Find the items array
+    const itemsStart = raw.indexOf('"items"');
+    if (itemsStart === -1) return null;
+
+    const arrayStart = raw.indexOf('[', itemsStart);
+    if (arrayStart === -1) return null;
+
+    // Walk backwards from end to find the last complete object
+    let lastGoodPos = -1;
+    let braceDepth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = arrayStart; i < raw.length; i++) {
+      const ch = raw[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') braceDepth++;
+      if (ch === '}') {
+        braceDepth--;
+        if (braceDepth === 0) {
+          lastGoodPos = i;
+        }
+      }
+    }
+
+    if (lastGoodPos > arrayStart) {
+      // Truncate after the last complete item, close the array and object
+      const repaired = raw.substring(0, lastGoodPos + 1) + '],"detectedScale":{"found":false,"notation":"","drawingUnitsPerRealUnit":0,"realUnit":""}}';
+      const parsed = JSON.parse(repaired);
+      if (parsed && Array.isArray(parsed.items)) {
+        console.log(`[Takeoff AI] JSON repair successful: recovered ${parsed.items.length} items from truncated response`);
+        return parsed;
+      }
+    }
+  } catch (_) {}
+
+  // Strategy 3: Try to extract just the items we can find with regex
+  try {
+    // Extract the portion before truncation and close it
+    const trimmed = raw.replace(/,[\s]*$/, ''); // remove trailing comma
+    const closers = ']}'; // try closing array + object
+    for (let i = 0; i < 5; i++) {
+      try {
+        const attempt = trimmed + closers.substring(0, i + 1).split('').join('');
+        const parsed = JSON.parse(attempt);
+        if (parsed) return parsed;
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+// ─── Pass 1: Extract ─────────────────────────────────────────────────────────────────────
 
 async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
   const EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
@@ -266,7 +338,19 @@ async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
         throw new Error("No content in extraction response");
       }
 
-      const result = JSON.parse(content) as TakeoffExtractionResult;
+      // Try normal parse first, then repair if truncated
+      let result: TakeoffExtractionResult;
+      try {
+        result = JSON.parse(content) as TakeoffExtractionResult;
+      } catch (parseErr: any) {
+        console.warn(`[Takeoff AI] JSON parse failed (detail:${detail}): ${parseErr.message.slice(0, 100)}`);
+        const repaired = repairTruncatedJSON(content);
+        if (repaired && Array.isArray(repaired.items)) {
+          result = repaired as TakeoffExtractionResult;
+        } else {
+          throw parseErr; // Can't repair — let the retry logic handle it
+        }
+      }
       if (!Array.isArray(result.items)) result.items = [];
       return result;
     } catch (err: any) {
@@ -284,6 +368,8 @@ async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
         msg.includes("bad response") ||
         msg.includes("received bad") ||
         msg.includes("token") ||
+        msg.includes("Unterminated") ||
+        msg.includes("JSON") ||
         err?.status === 500;
       if (detail === "high" && isRetryable) {
         console.log(`[Takeoff AI] Retryable error on high detail: ${msg.slice(0, 120)}`);
@@ -316,53 +402,95 @@ async function verifyPass(
     .map((item, i) => `${i + 1}. [${item.csiDivision}] ${item.description} — ${item.quantity} ${item.unit}`)
     .join("\n");
 
-  try {
-    const response = await invokeLLM({
-      messages: [
-        { role: "system", content: VERIFICATION_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
-            },
-            {
-              type: "image_url",
-              image_url: { url: imageUrl, detail: "high" },
-            },
-          ],
-        },
-      ],
-      response_format: RESPONSE_SCHEMA,
-    });
+  // Try high detail first, fall back to low detail on 500/token errors
+  for (const detail of ["high", "low"] as const) {
+    try {
+      if (detail === "low") {
+        console.log(`[Takeoff AI] Retrying verification with detail:low`);
+      }
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: VERIFICATION_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
+              },
+              {
+                type: "image_url",
+                image_url: { url: imageUrl, detail },
+              },
+            ],
+          },
+        ],
+        response_format: RESPONSE_SCHEMA,
+      });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content || typeof content !== "string") {
-      console.warn("[Takeoff AI] Verification pass returned no content — using extraction result");
-      return extracted;
-    }
+      const content = response.choices[0]?.message?.content;
+      if (!content || typeof content !== "string") {
+        console.warn("[Takeoff AI] Verification pass returned no content — using extraction result");
+        return extracted;
+      }
 
-    const verified = JSON.parse(content) as TakeoffExtractionResult;
-    if (!Array.isArray(verified.items)) verified.items = [];
+      // Try normal parse first, then repair if truncated
+      let verified: TakeoffExtractionResult;
+      try {
+        verified = JSON.parse(content) as TakeoffExtractionResult;
+      } catch (parseErr: any) {
+        console.warn(`[Takeoff AI] Verify JSON parse failed (detail:${detail}): ${parseErr.message.slice(0, 100)}`);
+        const repaired = repairTruncatedJSON(content);
+        if (repaired && Array.isArray(repaired.items)) {
+          verified = repaired as TakeoffExtractionResult;
+        } else if (detail === "high") {
+          // Try low detail next
+          continue;
+        } else {
+          // Both details failed — use extraction result
+          console.warn("[Takeoff AI] Verification JSON repair failed — using extraction result");
+          return extracted;
+        }
+      }
+      if (!Array.isArray(verified.items)) verified.items = [];
 
-    // Safety check: if verification removes more than 40% of items, something went wrong — use original
-    if (verified.items.length < extracted.items.length * 0.6) {
-      console.warn(
-        `[Takeoff AI] Verification reduced items from ${extracted.items.length} to ${verified.items.length} (>40% drop) — using extraction result`
+      // Safety check: if verification removes more than 40% of items, something went wrong — use original
+      if (verified.items.length < extracted.items.length * 0.6) {
+        console.warn(
+          `[Takeoff AI] Verification reduced items from ${extracted.items.length} to ${verified.items.length} (>40% drop) — using extraction result`
+        );
+        return extracted;
+      }
+
+      const added = verified.items.length - extracted.items.length;
+      console.log(
+        `[Takeoff AI] Verification: ${extracted.items.length} → ${verified.items.length} items (${added >= 0 ? "+" : ""}${added} changes)`
       );
+      return verified;
+    } catch (err: any) {
+      const msg = err?.message || "";
+      const isRetryable =
+        msg.includes("500") ||
+        msg.includes("Internal Server Error") ||
+        msg.includes("code\":13") ||
+        msg.includes("code:13") ||
+        msg.includes("bad response") ||
+        msg.includes("received bad") ||
+        msg.includes("token") ||
+        msg.includes("Unterminated") ||
+        msg.includes("JSON") ||
+        err?.status === 500;
+      if (detail === "high" && isRetryable) {
+        console.log(`[Takeoff AI] Verify retryable error on high detail: ${msg.slice(0, 120)}`);
+        continue;
+      }
+      console.warn("[Takeoff AI] Verification pass failed — using extraction result:", err);
       return extracted;
     }
-
-    const added = verified.items.length - extracted.items.length;
-    console.log(
-      `[Takeoff AI] Verification: ${extracted.items.length} → ${verified.items.length} items (${added >= 0 ? "+" : ""}${added} changes)`
-    );
-    return verified;
-  } catch (err) {
-    console.warn("[Takeoff AI] Verification pass failed — using extraction result:", err);
-    return extracted;
   }
+  // Exhausted both detail levels
+  console.warn("[Takeoff AI] Verification exhausted all detail levels — using extraction result");
+  return extracted;
 }
 
 // ─── Main Sheet Processing Function ───────────────────────────────────────────
@@ -387,12 +515,14 @@ export async function processDrawingSheet(
   _projectType?: string | null,
   _workType?: string | null,
   _region?: string | null,
-  _alreadyExtracted?: string | null
+  _alreadyExtracted?: string | null,
+  _retryAttempt: number = 0
 ): Promise<TakeoffExtractionResult | null> {
+  const MAX_AUTO_RETRIES = 1; // Auto-retry once on transient 500 errors
   try {
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
-    console.log(`[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}...`);
+    console.log(`[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}${_retryAttempt > 0 ? ` (auto-retry #${_retryAttempt})` : ''}...`);
     const extracted = await extractPass(imageUrl);
     console.log(`[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`);
 
@@ -441,7 +571,27 @@ export async function processDrawingSheet(
     console.log(`[Takeoff AI] Sheet ${sheetId} done: ${result.items.length} items`);
     return result;
   } catch (error: any) {
-    console.error(`[Takeoff AI] Error processing sheet ${sheetId}:`, error);
+    // Auto-retry on transient 500/LLM errors before marking as error
+    const msg = error?.message || "";
+    const isTransient =
+      msg.includes("500") ||
+      msg.includes("Internal Server Error") ||
+      msg.includes("code\":13") ||
+      msg.includes("code:13") ||
+      msg.includes("bad response") ||
+      msg.includes("received bad");
+    if (isTransient && _retryAttempt < MAX_AUTO_RETRIES) {
+      console.log(`[Takeoff AI] Transient error on sheet ${sheetId} — auto-retrying in 5s (attempt ${_retryAttempt + 1}/${MAX_AUTO_RETRIES})...`);
+      await new Promise((r) => setTimeout(r, 5000)); // 5s backoff
+      return processDrawingSheet(
+        sheetId, imageUrl, projectId,
+        _selectedDivisions, _currency, _scopeText, _projectContext,
+        _specialtyIds, _scaleRatio, _scaleUnit, _projectType,
+        _workType, _region, _alreadyExtracted,
+        _retryAttempt + 1
+      );
+    }
+    console.error(`[Takeoff AI] Error processing sheet ${sheetId}${_retryAttempt > 0 ? ' (after auto-retry)' : ''}:`, error);
     await updateDrawingSheet(sheetId, {
       status: "error" as any,
       errorMessage: error.message || "Unknown error during AI processing",

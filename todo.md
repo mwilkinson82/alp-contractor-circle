@@ -3014,3 +3014,13 @@
 - [x] Extraction phase: keeps smart remaining timer based on actual per-sheet completion rate (data-driven, accurate)
 - [x] Consolidation phase: shows animated icon + "Finalizing" label instead of a countdown that overshoots
 - [x] Timer never hits 0:00 while still processing — minimum 15s floor, formatTime shows "< 1 min" at zero
+
+## Sheet Error Handling During Processing — April 22
+- [x] Auto-retry: When a sheet gets a 500 LLM error, automatically retry once with 5s backoff before marking as error
+- [x] Error alert in ProcessingOverlay: Prominent "X sheets failed — tap to retry now" banner with Retry All button
+- [x] Make retry intuitive: Error tiles in sheet grid are clickable, plus Retry All button in the banner
+- [x] FIX: Persistent 500 errors on complex structural sheets — auto-retry + detail:low fallback in both extractPass and verifyPass
+- [x] FIX: Truncated JSON parse error — added repairTruncatedJSON() with 3 strategies to recover partial items
+- [x] Add JSON repair/recovery for truncated LLM responses — repairTruncatedJSON() with 3 strategies
+- [x] Add detail:low fallback in verifyPass (now matches extractPass with high→low fallback loop)
+- [x] Wire onRetrySheet prop through ProcessingOverlay to TakeoffDetail — error alert banner + clickable error tiles + Retry All button
