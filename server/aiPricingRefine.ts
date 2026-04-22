@@ -38,12 +38,12 @@ interface AiPriceResult {
   confidence: string; // "high" | "medium" | "low"
 }
 
-// Max items to send for AI refinement — keeps total time under 60s
-const MAX_REFINE_ITEMS = 60;
-// Items per LLM call — larger batches = fewer calls = faster
-const BATCH_SIZE = 20;
+// Max items to send for AI refinement — reduced from 60 to 30 for speed
+const MAX_REFINE_ITEMS = 30;
+// Items per LLM call — single batch = 1 LLM call total
+const BATCH_SIZE = 30;
 // Max concurrent LLM calls
-const MAX_CONCURRENCY = 3;
+const MAX_CONCURRENCY = 1;
 
 /**
  * Determine if an item needs AI pricing refinement.

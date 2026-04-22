@@ -1318,3 +1318,74 @@ export const userActivityLog = mysqlTable("user_activity_log", {
 });
 export type UserActivityLog = typeof userActivityLog.$inferSelect;
 export type InsertUserActivityLog = typeof userActivityLog.$inferInsert;
+
+// ─── Expanded Cost Library (Synonyms + Missing Items) ──────────────────────────
+/**
+ * Pre-expanded cost library with LLM-generated synonyms/aliases.
+ * Built offline (one-time run) to bridge the nomenclature gap between
+ * LLM extraction output and the RS Means cost table.
+ *
+ * Each row is a cost item (either from the original costTable.ts or newly generated)
+ * with a JSON array of synonyms that an LLM might use when reading drawings.
+ *
+ * The live pipeline matches extracted descriptions against synonyms first (exact match),
+ * then falls back to CSI code + fuzzy description match. No LLM needed at runtime.
+ */
+export const expandedCostLibrary = mysqlTable("expanded_cost_library", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Original cost table ID (e.g. "slab-4in") or generated ID for new items */
+  costItemId: varchar("costItemId", { length: 128 }).notNull(),
+  /** CSI division code e.g. "03" */
+  csiDivision: varchar("csiDivision", { length: 8 }).notNull(),
+  /** Full CSI code e.g. "03 30 00" */
+  csiCode: varchar("csiCode", { length: 16 }).notNull(),
+  /** Canonical description (the "official" name) */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Unit of measure: SF, LF, CY, EA, etc. */
+  unit: varchar("unit", { length: 16 }).notNull(),
+  /** Material cost per unit (dollars, 2 decimal places stored as cents) */
+  materialCost: int("materialCost").default(0).notNull(),
+  /** Category grouping (concrete, metals, wood, etc.) */
+  category: varchar("category", { length: 64 }).notNull(),
+  /** JSON array of keyword arrays for matching, e.g. [["slab","4 inch"],["slab","4\""]] */
+  keywords: json("keywords"),
+  /** JSON array of exclude keywords */
+  excludeKeywords: json("excludeKeywords"),
+  /** JSON array of synonym strings — all the ways an LLM might describe this item */
+  synonyms: json("synonyms"),
+  /** Whether this is from the original cost table (true) or LLM-generated expansion (false) */
+  isOriginal: boolean("isOriginal").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ExpandedCostLibraryItem = typeof expandedCostLibrary.$inferSelect;
+export type InsertExpandedCostLibraryItem = typeof expandedCostLibrary.$inferInsert;
+
+// ─── Expanded Labor Library (Synonyms + Missing Items) ──────────────────────────
+export const expandedLaborLibrary = mysqlTable("expanded_labor_library", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Original labor table ID or generated ID */
+  laborItemId: varchar("laborItemId", { length: 128 }).notNull(),
+  /** CSI division code */
+  csiDivision: varchar("csiDivision", { length: 8 }).notNull(),
+  /** Full CSI code */
+  csiCode: varchar("csiCode", { length: 16 }).notNull(),
+  /** Canonical description */
+  description: varchar("description", { length: 512 }).notNull(),
+  /** Unit of measure */
+  unit: varchar("unit", { length: 16 }).notNull(),
+  /** Base labor cost per unit (dollars, stored as cents) — Residential Open Shop */
+  baseLaborCost: int("baseLaborCost").default(0).notNull(),
+  /** Typical crew size */
+  crewSize: int("crewSize").default(2).notNull(),
+  /** Productivity: units per crew-hour */
+  productivity: int("productivity").default(100).notNull(),
+  /** Category grouping */
+  category: varchar("category", { length: 64 }).notNull(),
+  /** JSON array of synonym strings */
+  synonyms: json("synonyms"),
+  /** Whether this is from the original labor table */
+  isOriginal: boolean("isOriginal").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferSelect;
+export type InsertExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferInsert;

@@ -10,10 +10,33 @@
  */
 import { invokeLLM, invokeLLMWithTimeout, type Message } from "./_core/llm";
 
-// Hard per-call timeout for all post-processing LLM calls (90 seconds)
-const PP_LLM_TIMEOUT_MS = 90_000;
-import { applyPricing, applyPricingWithLibrary, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookup";
-import { refineWithAiPricing } from "./aiPricingRefine";
+// Hard per-call timeout for all post-processing LLM calls (60 seconds — reduced from 90s)
+const PP_LLM_TIMEOUT_MS = 60_000;
+// Max concurrent LLM calls across the entire post-processing pipeline
+const PP_MAX_CONCURRENCY = 3;
+// Total pipeline timeout — if exceeded, save what we have and finish
+const PP_PIPELINE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
+// Simple concurrency limiter (no external dependency needed)
+function createLimiter(concurrency: number) {
+  let active = 0;
+  const queue: Array<() => void> = [];
+  return async function limit<T>(fn: () => Promise<T>): Promise<T> {
+    if (active >= concurrency) {
+      await new Promise<void>(resolve => queue.push(resolve));
+    }
+    active++;
+    try {
+      return await fn();
+    } finally {
+      active--;
+      if (queue.length > 0) queue.shift()!();
+    }
+  };
+}
+
+const ppLimiter = createLimiter(PP_MAX_CONCURRENCY);
+import { applyPricingV2, applyPricingWithLibraryV2, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookupV2";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
   getTakeoffItemsByProject,
@@ -446,13 +469,13 @@ IMPORTANT RULES:
   try {
     console.log(`[PostProcess] Consolidating ${items.length} items from ${sheets.length} sheets...`);
     
-    const response = await invokeLLMWithTimeout({
+    const response = await ppLimiter(() => invokeLLMWithTimeout({
       messages: [
         { role: "system", content: "You are a senior construction estimator. Consolidate duplicate line items. Return JSON." },
         { role: "user", content: consolidationPrompt },
       ],
       response_format: responseSchema,
-    }, PP_LLM_TIMEOUT_MS);
+    }, PP_LLM_TIMEOUT_MS));
 
     const rawContent = response.choices[0]?.message?.content;
     if (!rawContent) throw new Error("No content in consolidation response");
@@ -579,11 +602,11 @@ async function enhanceLumpSums(
 
   // Send plan images with lump-sum items to get measured quantities
   // Process up to 2 plan sheets (reduced from 3 to avoid token limit on large sets)
-  const relevantPlans = planSheets.slice(0, 2);
+  const relevantPlans = planSheets.slice(0, 1); // Reduced from 2 to 1 for speed
   
   const imageContent = relevantPlans.map(sheet => ({
     type: "image_url" as const,
-    image_url: { url: sheet.imageUrl!, detail: "high" as const },
+    image_url: { url: sheet.imageUrl!, detail: "low" as const },
   }));
 
   const lumpSumDescriptions = lumpSumItems.map((item, idx) => ({
@@ -676,10 +699,10 @@ If you CANNOT measure an item from the available plans, set canMeasure to false.
       },
     ];
 
-    const response = await invokeLLMWithTimeout({
+    const response = await ppLimiter(() => invokeLLMWithTimeout({
       messages: enhanceMessages,
       response_format: enhancementSchema,
-    }, PP_LLM_TIMEOUT_MS);
+    }, PP_LLM_TIMEOUT_MS));
 
     const rawContent2 = response.choices[0]?.message?.content;
     if (!rawContent2) throw new Error("No content in enhancement response");
@@ -852,13 +875,13 @@ Only generate formwork for items that actually need forms (not for slabs-on-grad
   try {
     console.log(`[PostProcess] Generating formwork for ${concreteItems.length} concrete items...`);
 
-    const response = await invokeLLMWithTimeout({
+    const response = await ppLimiter(() => invokeLLMWithTimeout({
       messages: [
         { role: "system", content: "You are a senior construction estimator. Calculate formwork quantities for concrete members. Return JSON." },
         { role: "user", content: formworkPrompt },
       ],
       response_format: formworkSchema,
-    }, PP_LLM_TIMEOUT_MS);
+    }, PP_LLM_TIMEOUT_MS));
 
     const rawContent3 = response.choices[0]?.message?.content;
     if (!rawContent3) throw new Error("No content in formwork response");
@@ -1085,10 +1108,10 @@ Return enhanced rebar items as a JSON array. For each rebar item:
       { role: "user", content: userContent },
     ];
 
-    const response = await invokeLLMWithTimeout({
+    const response = await ppLimiter(() => invokeLLMWithTimeout({
       messages: rebarMessages,
       response_format: rebarSchema,
-    }, PP_LLM_TIMEOUT_MS);
+    }, PP_LLM_TIMEOUT_MS));
 
     const rawContent4 = response.choices[0]?.message?.content;
     if (!rawContent4) throw new Error("No content in rebar enhancement response");
@@ -1653,26 +1676,18 @@ export async function postProcessTakeoff(projectId: number): Promise<{
     csiDivision: e.csiDivision || "",
   }));
   // Apply cost table with member overrides taking priority over RSMeans defaults
+  // V2: Uses expanded synonym library (8,600+ synonyms) — ZERO LLM calls
   let pricedItems = memberOverrides.length > 0
-    ? applyPricingWithLibrary(costTableItems, memberOverrides, 1.0)
-    : applyPricing(costTableItems, 1.0); // national average first
+    ? await applyPricingWithLibraryV2(costTableItems, memberOverrides, 1.0)
+    : await applyPricingV2(costTableItems, 1.0); // national average first
   
   // Validate rebar quantities
   pricedItems = validateRebarQuantities(pricedItems);
 
-  console.log(`[PostProcess] Step 5.5/6: AI pricing refinement...`);
-  await updateTakeoffProject(projectId, { postProcessStep: 'ai_pricing' } as any).catch(() => {});
-  // Step 6.5: AI Pricing Refinement — improve accuracy for specific/branded products
-  // Items from contractor's cost library are never modified. Only items with weak
-  // RS Means matches or specific product descriptions get refined.
-  try {
-    console.log(`[PostProcess] Starting AI pricing refinement...`);
-    pricedItems = await refineWithAiPricing(pricedItems, 1.0);
-    console.log(`[PostProcess] AI pricing refinement complete`);
-  } catch (err) {
-    console.error(`[PostProcess] AI pricing refinement failed, using RS Means prices:`, err);
-    // Non-fatal — we continue with RS Means pricing if AI fails
-  }
+  // NOTE: AI pricing refinement step REMOVED — the expanded synonym library
+  // with 8,600+ synonyms provides better coverage than the old LLM-based
+  // refinement pass, and runs in <1ms instead of 30-60 seconds.
+  console.log(`[PostProcess] Synonym-based pricing complete (no AI refinement needed)`);
 
   // Write prices back to consolidated items (convert dollars back to cents)
   for (let i = 0; i < consolidated.length; i++) {

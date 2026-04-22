@@ -3030,3 +3030,21 @@
 - [x] Optimize: Steps 2-4 now run in parallel via Promise.all (lump sums, formwork, rebar)
 - [x] Optimize: Regional cost recalculation uses single batch SQL UPDATE instead of 961 individual updates
 - [x] Fix progress weighting — consolidation estimate reduced from 180s to 120s, cap raised from 95% to 99%
+
+## CRITICAL: Consolidation Hangs for 60+ Minutes — April 22
+- [ ] BUG: Consolidation step hangs indefinitely — Kramer Residence stuck for 60+ minutes at "Finalizing"
+- [ ] Diagnose: Is it a hung LLM call, a DB deadlock, or an infinite loop?
+- [ ] Add timeout protection — no single step should run longer than 5 minutes
+- [ ] Add stuck-detection — if no progress for 3 minutes, auto-cancel and mark as error
+- [ ] Optimize consolidation — break into parallel batches by CSI division
+- [ ] Add a "Cancel Processing" button so user can abort and retry
+
+## PIPELINE REBUILD — First Principles Approach — April 22
+- [x] Understand current cost library schema + RS Means data structure
+- [x] Build cost library expansion tool — generate missing items + synonyms per CSI division via LLM (one-time run)
+- [x] Run the expansion tool to populate expanded library with synonyms/aliases (677 cost + 271 labor items, 8,606 synonyms)
+- [x] Build new matching engine — synonym-first lookup V2 (costLookupV2.ts) with CSI+unit+dimension scoring
+- [x] Wire V2 engine into takeoffPostProcess.ts and takeoffCostRouter.ts
+- [x] Eliminate AI pricing refinement LLM calls — replaced by synonym-based programmatic pricing
+- [x] All 14 vitest tests passing for costLookupV2
+- [ ] Target: 23 sheets in under 10 minutes, ~24 LLM calls total, minimal token usage (needs live test)
