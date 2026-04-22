@@ -240,9 +240,14 @@ function normalize(text: string): string {
 }
 
 function tokenize(text: string): Set<string> {
-  return new Set(
-    text.split(/\s+/).filter(w => w.length > 1) // keep 2+ char words
-  );
+  const raw = text.split(/\s+/).filter(w => w.length > 1);
+  const tokens = new Set<string>();
+  for (const w of raw) {
+    tokens.add(w);
+    // Add singular form for better matching (countertops → countertop)
+    if (w.endsWith('s') && w.length > 3) tokens.add(w.slice(0, -1));
+  }
+  return tokens;
 }
 
 /** Parse a JSON field that might be a string or already parsed */
@@ -263,8 +268,11 @@ const UNIT_COMPAT: Record<string, string[]> = {
   "LF": ["LF"],
   "CY": ["CY", "CF"],
   "CF": ["CF", "CY"],
-  "EA": ["EA"],
-  "LS": ["LS", "EA"],
+  "EA": ["EA", "RISER", "SET", "STOP"],
+  "RISER": ["RISER", "EA"],
+  "SET": ["SET", "EA"],
+  "STOP": ["STOP", "EA"],
+  "LS": ["LS", "EA", "LF", "SF", "TON", "CY"],
   "LB": ["LB", "CWT", "TON"],
   "TON": ["TON", "LB"],
   "CWT": ["CWT", "LB"],

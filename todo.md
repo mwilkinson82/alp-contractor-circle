@@ -3065,3 +3065,22 @@
 - [x] All 428 tests passing, 0 TS errors
 - [x] takeoffPostProcess.ts: 1788 → 1508 lines (280 lines removed)
 - [x] Ready for live test
+
+## PRICING CALIBRATION — Kramer Residence Benchmark
+- [x] Fix stair riser pricing bug ($86,450/unit → now $45/EA residential stair riser)
+- [x] Fix stair riser matching — was matching to Commercial Escalator ($95K), now Residential Stair Riser ($45/EA)
+- [x] Fix stair railing matching — was matching to Stair Lift ($3,500), now Residential Stair Railing ($35/LF)
+- [x] Fix dishwasher matching — was matching to Commercial Dumbwaiter ($12,500), now Residential Dishwasher ($650/EA)
+- [x] Fix escalator synonyms — removed "auto stair"/"electric stair" that caused false matches
+- [x] Fix dumbwaiter synonyms — removed "dw"/"d.w." that matched dishwasher abbreviation
+- [x] Add residential entries: kitchen cabinets ($250/LF), countertops ($75/SF), bathroom vanity ($850/EA)
+- [x] Add residential entries: closet shelving ($35/LF), mirrors ($18/SF), outdoor kitchen ($8,500/EA)
+- [x] Add residential entries: fire sprinkler ($3.50/SF), fire alarm ($2.50/SF)
+- [x] Add residential entries: mini-split AHU ($2,500/EA), HVAC system ($3,500/TON), ductwork ($3.50/LB)
+- [x] Add residential entries: electrical panel ($1,500/EA), outlets ($8/EA), switches ($5/EA), light fixtures ($125/EA)
+- [x] Add residential entries: dishwasher connection ($85/EA), water heater ($1,200/EA), marble sill ($45/LF)
+- [x] Fix UNIT_COMPAT — EA now accepts RISER/SET/STOP; LS now accepts LF/SF/TON/CY
+- [x] Fix tokenizer — added singular form generation (countertops → countertop) for better matching
+- [x] Library expanded: 701 cost entries, 295 labor entries, ~8,000+ synonyms
+- [x] All 428 tests passing, 0 TS errors
+- [ ] Verify total output within 10% of actual $1.54M-$1.67M subtotal (needs re-run)
