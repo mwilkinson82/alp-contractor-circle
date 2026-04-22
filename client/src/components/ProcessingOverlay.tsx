@@ -6,7 +6,7 @@
  * - Circular progress ring with live countdown timer as the HERO element
  * - Rotating status messages that cycle through analysis phases
  * - Segmented sheet progress bar + sheet status grid
- * - Elapsed time display
+ * - Smart remaining time estimate (never shows 0:00 while processing)
  *
  * Design: Warm cream/off-white background, charcoal text, copper/bronze accents
  */
@@ -95,7 +95,7 @@ interface ProcessingOverlayProps {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTime(ms: number): string {
-  if (ms <= 0) return "0:00";
+  if (ms <= 0) return "< 1 min";
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
@@ -363,16 +363,17 @@ export default function ProcessingOverlay({
   const CONSOLIDATION_ESTIMATE_MS = 180000;
 
   const etaMs = useMemo(() => {
-    if (currentPhase === "indexing") return totalSheets * 30000;
+    if (currentPhase === "indexing") return 0; // No timer during indexing
     if (currentPhase === "consolidating") {
-      return Math.max(0, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
+      // Never let it hit zero — show at least 15s while still in this phase
+      return Math.max(15000, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
     }
     const remaining = totalSheets - processedSheets;
-    if (remaining <= 0) return 0;
+    if (remaining <= 0) return 15000; // Almost done — show minimal time
     const avgPerSheet = processedSheets > 0 && elapsed > 5000
       ? elapsed / processedSheets
       : 30000;
-    return remaining * avgPerSheet;
+    return Math.max(15000, remaining * avgPerSheet); // Never show less than 15s
   }, [currentPhase, totalSheets, processedSheets, elapsed, consolidationElapsed]);
 
   const phases = [
@@ -458,6 +459,19 @@ export default function ProcessingOverlay({
                     Indexing
                   </span>
                 </>
+              ) : currentPhase === "consolidating" ? (
+                <>
+                  <CurrentIcon
+                    className="w-8 h-8 mb-1"
+                    style={{
+                      color: COLORS.success,
+                      animation: "cl-icon-pulse 2s ease-in-out infinite",
+                    }}
+                  />
+                  <span className="text-[11px] font-medium" style={{ color: COLORS.textMuted }}>
+                    Finalizing
+                  </span>
+                </>
               ) : (
                 <>
                   <span
@@ -474,17 +488,14 @@ export default function ProcessingOverlay({
             </div>
           </div>
 
-          {/* Percentage + elapsed row */}
-          <div className="flex items-center gap-4 mt-5">
-            {!isIndeterminate && (
+          {/* Percentage row */}
+          {!isIndeterminate && (
+            <div className="flex items-center gap-4 mt-5">
               <span className="text-sm font-semibold" style={{ color: COLORS.accent }}>
                 {displayPercentage}% complete
               </span>
-            )}
-            <span className="text-xs" style={{ color: COLORS.textLight }}>
-              Elapsed: {formatTime(elapsed)}
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* ─── 3-Step Phase Progress ─────────────────────────────────── */}

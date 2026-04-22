@@ -3007,3 +3007,10 @@
 - [x] Hide the drag-and-drop upload area when analysis is running (isProcessing) — it's dead space pushing the animation down
 - [x] Processing overlay now sits at the top of the sheets tab, clean and prominent
 - [x] Upload area reappears after processing completes so user can add more sheets later
+
+## Processing Timer Rework — April 22
+- [x] Remove elapsed timer entirely — no more "Elapsed: 6:27" reminding users how long they've been staring
+- [x] Indexing phase: no timer, just animated ring + icon + "Indexing" label + rotating status messages
+- [x] Extraction phase: keeps smart remaining timer based on actual per-sheet completion rate (data-driven, accurate)
+- [x] Consolidation phase: shows animated icon + "Finalizing" label instead of a countdown that overshoots
+- [x] Timer never hits 0:00 while still processing — minimum 15s floor, formatTime shows "< 1 min" at zero
