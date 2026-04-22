@@ -2940,14 +2940,14 @@
 - [x] Speed target — 24 sheets < 20 minutes total (concurrency=6, no bloat in prompts)
 - [x] Full QA — tsc 0 errors, build clean, 414 tests passing
 - [x] Checkpoint for Marshall review before deploy
-- [ ] FIX: Error card layout — refresh icon overflows/doesn't fit when error message is shown on sheet card
+- [x] FIX: Error card layout — refresh icon overflows/doesn't fit when error message is shown on sheet card
 
 ## Material + Labor Split Pricing — April 21
 - [x] Wire labor table (laborTable.ts) into costLookup.ts — match extracted items to labor table entries alongside material cost table
 - [x] Return both materialCost and laborCost as separate fields on each takeoff item
 - [x] Update TakeoffItem type to include materialCost, laborCost, and totalInstalledCost fields
 - [x] Update takeoff UI table to show Material Cost and Labor Cost as separate visible columns
-- [ ] Update summary/totals bar to show Material subtotal, Labor subtotal, and Combined total
+- [x] Update summary/totals bar to show Material subtotal, Labor subtotal, and Combined total
 - [x] Ensure existing crew building / labor inference system remains untouched — separate step contractor runs after
 - [x] Update Excel export to include material and labor columns
 
@@ -2959,8 +2959,8 @@
 - [x] Allowances should be included in project totals (summed into grand total)
 
 ## Pre-existing Bugs (Carry Forward)
-- [ ] FIX: Error card layout — refresh icon overflows on error sheet cards
-- [ ] FIX: Yellow top counter bar flickers during processing
+- [x] FIX: Error card layout — refresh icon overflows on error sheet cards
+- [x] FIX: Yellow top counter bar removed (redundant with processing overlay timer)
 - [x] CLEANUP: Fixed consolidationSchema TS error — was referencing wrong variable name
 
 ## Streamlined Takeoff Flow — April 21 (Part 2)
@@ -2990,3 +2990,9 @@
 - [x] Add public works allowance presets (Traffic Control, Environmental Compliance, Temporary Facilities, Erosion Control, Dewatering, Testing & Inspection)
 - [x] Add allowance totals to Excel export
 - [x] Add allowance totals to CSV export
+
+## Processing Animation & UI Fixes — April 22
+- [x] Rebuild ProcessingOverlay — cinematic, cream/off-white background, professional wow factor, streamlined flow steps
+- [x] Keep elapsed timer in processing overlay
+- [x] Remove yellow counter bar at top (redundant with processing overlay timer)
+- [x] Fix error card layout overflow — refresh icon overflows on error sheet cards

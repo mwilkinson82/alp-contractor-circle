@@ -1,12 +1,14 @@
 /**
- * ProcessingOverlay — Polished construction-themed overlay shown during
+ * ProcessingOverlay — Cinematic, cream-toned overlay shown during
  * ConstructLine analysis. Features:
- * - Branded splash intro animation (wordmark reveal + glow pulse)
- * - Clear 3-step phase progression: Index → Extract → Consolidate
+ * - Branded cinematic splash intro (wordmark reveal + elegant sweep)
+ * - Clear 3-step phase progression: Index → Extract → Price & Consolidate
  * - Circular progress ring with live countdown timer as the HERO element
  * - Rotating status messages that cycle through analysis phases
- * - Sheet status grid showing completed/processing/pending sheets
+ * - Segmented sheet progress bar + sheet status grid
  * - Elapsed time display
+ *
+ * Design: Warm cream/off-white background, charcoal text, copper/bronze accents
  */
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,28 @@ import {
   Loader2,
   Circle,
 } from "lucide-react";
+
+// ─── Design Tokens ──────────────────────────────────────────────────────────
+
+const COLORS = {
+  bg: "#FAF8F5",           // warm cream
+  bgSubtle: "#F3F0EB",     // slightly deeper cream
+  bgCard: "#FFFFFF",        // white card surfaces
+  text: "#2C2825",          // warm charcoal
+  textMuted: "#8A8279",     // muted warm gray
+  textLight: "#B5AEA4",     // light warm gray
+  accent: "#B8865C",        // copper/bronze accent
+  accentLight: "#D4A574",   // lighter copper
+  accentGlow: "rgba(184, 134, 92, 0.25)",
+  success: "#5B8A72",       // sage green
+  successLight: "rgba(91, 138, 114, 0.15)",
+  active: "#B8865C",        // copper for active states
+  activeLight: "rgba(184, 134, 92, 0.12)",
+  error: "#C4645A",         // muted red
+  pending: "#E8E3DC",       // light warm gray for pending
+  border: "#E8E3DC",        // warm border
+  borderAccent: "rgba(184, 134, 92, 0.3)",
+};
 
 // ─── Status Messages ──────────────────────────────────────────────────────────
 
@@ -50,31 +74,26 @@ const PHASE3_MESSAGES = [
   { icon: Calculator, text: "Converting lump sums to measured quantities..." },
   { icon: Ruler, text: "Calculating formwork (SFCA)..." },
   { icon: Wrench, text: "Enhancing rebar quantities..." },
-  { icon: DollarSign, text: "Applying RS Means cost data..." },
+  { icon: DollarSign, text: "Applying material and labor pricing..." },
   { icon: ScanLine, text: "Applying regional cost multiplier..." },
 ];
 
 type AnalysisPhase = "indexing" | "extracting" | "consolidating";
 
 interface ProcessingOverlayProps {
-  /** Total number of sheets being processed */
   totalSheets: number;
-  /** Number of sheets completed so far */
   processedSheets: number;
-  /** List of sheet objects with status info */
   sheets?: Array<{
     id: number;
     sheetName?: string | null;
     pageNumber: number;
     status: string;
   }>;
-  /** Current project status for phase display */
   projectStatus?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Format milliseconds to "M:SS" or "H:MM:SS" */
 function formatTime(ms: number): string {
   if (ms <= 0) return "0:00";
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
@@ -89,24 +108,25 @@ function formatTime(ms: number): string {
 
 // ─── SVG Circular Progress Ring ──────────────────────────────────────────────
 
-const RING_SIZE = 180;
-const RING_STROKE = 8;
+const RING_SIZE = 200;
+const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function ProgressRing({
   percentage,
   isIndeterminate,
-  color,
+  phase,
 }: {
   percentage: number;
   isIndeterminate: boolean;
-  color: "amber" | "emerald";
+  phase: AnalysisPhase;
 }) {
-  const strokeColor = color === "amber" ? "#f59e0b" : "#10b981";
-  const glowColor =
-    color === "amber" ? "rgba(245, 158, 11, 0.3)" : "rgba(16, 185, 129, 0.3)";
-  const trackColor = "rgba(255, 255, 255, 0.06)";
+  const strokeColor = phase === "consolidating" ? COLORS.success : COLORS.accent;
+  const glowColor = phase === "consolidating"
+    ? "rgba(91, 138, 114, 0.3)"
+    : COLORS.accentGlow;
+  const trackColor = COLORS.border;
 
   const offset = isIndeterminate
     ? RING_CIRCUMFERENCE * 0.75
@@ -118,9 +138,8 @@ function ProgressRing({
       height={RING_SIZE}
       viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
       className="block"
-      style={{ filter: `drop-shadow(0 0 12px ${glowColor})` }}
+      style={{ filter: `drop-shadow(0 0 16px ${glowColor})` }}
     >
-      {/* Background track */}
       <circle
         cx={RING_SIZE / 2}
         cy={RING_SIZE / 2}
@@ -129,7 +148,6 @@ function ProgressRing({
         stroke={trackColor}
         strokeWidth={RING_STROKE}
       />
-      {/* Progress arc */}
       <circle
         cx={RING_SIZE / 2}
         cy={RING_SIZE / 2}
@@ -143,19 +161,15 @@ function ProgressRing({
         style={{
           transform: "rotate(-90deg)",
           transformOrigin: "50% 50%",
-          transition: isIndeterminate
-            ? "none"
-            : "stroke-dashoffset 0.8s ease-out",
-          animation: isIndeterminate
-            ? "cl-ring-spin 2s linear infinite"
-            : "none",
+          transition: isIndeterminate ? "none" : "stroke-dashoffset 0.8s ease-out",
+          animation: isIndeterminate ? "cl-ring-spin 2s linear infinite" : "none",
         }}
       />
     </svg>
   );
 }
 
-// ─── Splash Animation Component ──────────────────────────────────────────────
+// ─── Cinematic Splash Animation ─────────────────────────────────────────────
 
 function SplashIntro({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
@@ -175,28 +189,31 @@ function SplashIntro({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div
-      className="flex flex-col items-center justify-center py-16 relative overflow-hidden"
+      className="flex flex-col items-center justify-center py-20 relative overflow-hidden"
       style={{
+        background: `linear-gradient(180deg, ${COLORS.bg} 0%, ${COLORS.bgSubtle} 100%)`,
         animation:
           phase === "enter"
-            ? "cl-splash-fade-in 1s ease-out forwards"
+            ? "cl-splash-fade-in 1.2s ease-out forwards"
             : phase === "exit"
               ? "cl-splash-exit 0.5s ease-in forwards"
               : undefined,
       }}
     >
-      {/* Expanding ring effects */}
+      {/* Expanding ring effects — subtle and elegant */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="w-32 h-32 rounded-full border-2 border-amber-500/40 absolute"
+          className="w-32 h-32 rounded-full absolute"
           style={{
-            animation: "cl-splash-ring-expand 2s ease-out 0.3s forwards",
+            border: `1.5px solid ${COLORS.borderAccent}`,
+            animation: "cl-splash-ring-expand 2.5s ease-out 0.3s forwards",
           }}
         />
         <div
-          className="w-32 h-32 rounded-full border border-amber-500/20 absolute"
+          className="w-32 h-32 rounded-full absolute"
           style={{
-            animation: "cl-splash-ring-expand 2.5s ease-out 0.6s forwards",
+            border: `1px solid rgba(184, 134, 92, 0.12)`,
+            animation: "cl-splash-ring-expand 3s ease-out 0.6s forwards",
           }}
         />
       </div>
@@ -207,20 +224,21 @@ function SplashIntro({ onComplete }: { onComplete: () => void }) {
         style={{
           animation:
             phase === "hold"
-              ? "cl-splash-glow-pulse 2s ease-in-out infinite"
+              ? "cl-splash-glow-pulse 2.5s ease-in-out infinite"
               : undefined,
         }}
       >
         <span className="text-5xl sm:text-6xl font-black tracking-tight select-none">
-          <span className="text-white">Construct</span>
-          <span className="text-amber-400">Line</span>
+          <span style={{ color: COLORS.text }}>Construct</span>
+          <span style={{ color: COLORS.accent }}>Line</span>
         </span>
       </div>
 
       {/* Accent line sweep */}
       <div
-        className="h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mt-4 rounded-full"
+        className="h-px mt-5 rounded-full"
         style={{
+          background: `linear-gradient(90deg, transparent, ${COLORS.accent}, transparent)`,
           animation: "cl-splash-line-sweep 1.2s ease-out 0.4s forwards",
           width: 0,
         }}
@@ -228,24 +246,28 @@ function SplashIntro({ onComplete }: { onComplete: () => void }) {
 
       {/* Subtitle */}
       <div
-        className="mt-4"
+        className="mt-5"
         style={{
           animation: "cl-splash-subtitle-in 0.8s ease-out 0.6s forwards",
           opacity: 0,
         }}
       >
-        <span className="text-[10px] text-cream-muted/50 tracking-[0.3em] uppercase font-medium">
+        <span
+          className="text-[10px] tracking-[0.35em] uppercase font-medium"
+          style={{ color: COLORS.textLight }}
+        >
           Powered by ALP
         </span>
       </div>
 
       {/* Loading dots */}
-      <div className="flex items-center gap-1.5 mt-6">
+      <div className="flex items-center gap-2 mt-8">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="w-1.5 h-1.5 rounded-full bg-amber-400"
+            className="w-1.5 h-1.5 rounded-full"
             style={{
+              backgroundColor: COLORS.accent,
               animation: `cl-splash-dots 1.5s ease-in-out ${i * 0.3}s infinite`,
             }}
           />
@@ -254,8 +276,9 @@ function SplashIntro({ onComplete }: { onComplete: () => void }) {
 
       {/* Initializing text */}
       <p
-        className="text-xs text-cream-muted/40 mt-3"
+        className="text-xs mt-4"
         style={{
+          color: COLORS.textLight,
           animation: "cl-splash-subtitle-in 0.6s ease-out 1s forwards",
           opacity: 0,
         }}
@@ -278,18 +301,15 @@ export default function ProcessingOverlay({
   const [messageIndex, setMessageIndex] = useState(0);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
-  // Track when consolidation phase started for countdown
   const consolidationStartRef = useRef<number | null>(null);
   const [consolidationElapsed, setConsolidationElapsed] = useState(0);
 
-  // Determine current phase
   const currentPhase: AnalysisPhase = useMemo(() => {
     if (projectStatus === "post_processing") return "consolidating";
     if (processedSheets > 0) return "extracting";
     return "indexing";
   }, [projectStatus, processedSheets]);
 
-  // Track consolidation phase start time and elapsed
   useEffect(() => {
     if (currentPhase === "consolidating") {
       if (!consolidationStartRef.current) {
@@ -305,19 +325,14 @@ export default function ProcessingOverlay({
     }
   }, [currentPhase]);
 
-  // Get messages for current phase
   const phaseMessages = useMemo(() => {
     switch (currentPhase) {
-      case "indexing":
-        return PHASE1_MESSAGES;
-      case "extracting":
-        return PHASE2_MESSAGES;
-      case "consolidating":
-        return PHASE3_MESSAGES;
+      case "indexing": return PHASE1_MESSAGES;
+      case "extracting": return PHASE2_MESSAGES;
+      case "consolidating": return PHASE3_MESSAGES;
     }
   }, [currentPhase]);
 
-  // Track elapsed time — update every second
   useEffect(() => {
     const interval = setInterval(() => {
       setElapsed(Date.now() - startTime);
@@ -325,7 +340,6 @@ export default function ProcessingOverlay({
     return () => clearInterval(interval);
   }, [startTime]);
 
-  // Rotate through status messages every 3.5 seconds
   useEffect(() => {
     setMessageIndex(0);
   }, [currentPhase]);
@@ -337,72 +351,40 @@ export default function ProcessingOverlay({
     return () => clearInterval(interval);
   }, [phaseMessages]);
 
-  const percentage =
-    totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
-
+  const percentage = totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
   const currentMessage = phaseMessages[messageIndex % phaseMessages.length];
   const CurrentIcon = currentMessage.icon;
 
-  // Find the currently processing sheet
   const currentSheet = useMemo(() => {
     if (!sheets) return null;
     return sheets.find((s) => s.status === "processing");
   }, [sheets]);
 
-  // Consolidation ETA: 5 LLM calls × ~30s each = ~180s baseline, scales slightly with item count
-  // We use 180s as a baseline and count down from there
-  const CONSOLIDATION_ESTIMATE_MS = 180000; // 3 minutes
+  const CONSOLIDATION_ESTIMATE_MS = 180000;
 
-  // ETA calculation — real countdown based on per-sheet speed
   const etaMs = useMemo(() => {
-    if (currentPhase === "indexing") {
-      // During indexing, estimate ~30s per sheet for the full job
-      return totalSheets * 30000;
-    }
+    if (currentPhase === "indexing") return totalSheets * 30000;
     if (currentPhase === "consolidating") {
-      // Countdown from 3-minute estimate minus elapsed time in this phase
       return Math.max(0, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
     }
-    // Extracting phase: use actual per-sheet timing
     const remaining = totalSheets - processedSheets;
     if (remaining <= 0) return 0;
-    const avgPerSheet =
-      processedSheets > 0 && elapsed > 5000
-        ? elapsed / processedSheets
-        : 30000; // fallback 30s/sheet
+    const avgPerSheet = processedSheets > 0 && elapsed > 5000
+      ? elapsed / processedSheets
+      : 30000;
     return remaining * avgPerSheet;
   }, [currentPhase, totalSheets, processedSheets, elapsed, consolidationElapsed]);
 
-  // Phase step config
   const phases = [
-    {
-      key: "indexing" as const,
-      label: "Classify Sheets",
-      description: "Identifying sheet types",
-    },
-    {
-      key: "extracting" as const,
-      label: "Extract & Verify",
-      description: "2-pass AI per sheet",
-    },
-    {
-      key: "consolidating" as const,
-      label: "Price & Consolidate",
-      description: "RS Means + dedup + formwork",
-    },
+    { key: "indexing" as const, label: "Classify Sheets", description: "Identifying sheet types" },
+    { key: "extracting" as const, label: "Extract & Verify", description: "2-pass AI per sheet" },
+    { key: "consolidating" as const, label: "Price & Consolidate", description: "Material + labor pricing" },
   ];
 
-  const phaseOrder: AnalysisPhase[] = [
-    "indexing",
-    "extracting",
-    "consolidating",
-  ];
+  const phaseOrder: AnalysisPhase[] = ["indexing", "extracting", "consolidating"];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
-  // Consolidation is now determinate (has countdown), only indexing is indeterminate
   const isIndeterminate = currentPhase === "indexing";
-  const ringColor = currentPhase === "consolidating" ? "emerald" : "amber";
-  // For consolidation, calculate percentage from elapsed vs estimate
   const consolidationPercentage = currentPhase === "consolidating"
     ? Math.min(95, Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100))
     : 0;
@@ -411,8 +393,21 @@ export default function ProcessingOverlay({
   // ─── Splash Phase ────────────────────────────────────────────────────────
   if (showSplash) {
     return (
-      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]" />
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          border: `1px solid ${COLORS.border}`,
+          boxShadow: `0 4px 24px rgba(44, 40, 37, 0.08), 0 1px 3px rgba(44, 40, 37, 0.04)`,
+        }}
+      >
+        <div
+          className="h-1"
+          style={{
+            background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.accentLight}, ${COLORS.accent})`,
+            backgroundSize: "200% 100%",
+            animation: "shimmer 2s ease-in-out infinite",
+          }}
+        />
         <SplashIntro onComplete={() => setShowSplash(false)} />
       </div>
     );
@@ -421,43 +416,57 @@ export default function ProcessingOverlay({
   // ─── Working Phase ───────────────────────────────────────────────────────
   return (
     <div
-      className="rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/5 via-navy-medium/40 to-navy-deep/60 overflow-hidden"
-      style={{ animation: "cl-splash-fade-in 0.6s ease-out" }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        border: `1px solid ${COLORS.border}`,
+        background: `linear-gradient(180deg, ${COLORS.bg} 0%, ${COLORS.bgSubtle} 100%)`,
+        boxShadow: `0 4px 24px rgba(44, 40, 37, 0.08), 0 1px 3px rgba(44, 40, 37, 0.04)`,
+        animation: "cl-splash-fade-in 0.6s ease-out",
+      }}
     >
       {/* Top accent bar */}
-      <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]" />
+      <div
+        className="h-1"
+        style={{
+          background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.accentLight}, ${COLORS.accent})`,
+          backgroundSize: "200% 100%",
+          animation: "shimmer 2s ease-in-out infinite",
+        }}
+      />
 
-      <div className="px-6 sm:px-8 py-8 sm:py-10">
+      <div className="px-6 sm:px-10 py-10 sm:py-12">
         {/* ─── HERO: Circular Progress Ring + Countdown ──────────────── */}
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-10">
           <div className="relative">
             <ProgressRing
               percentage={displayPercentage}
               isIndeterminate={isIndeterminate}
-              color={ringColor}
+              phase={currentPhase}
             />
-            {/* Center content — inside the ring */}
+            {/* Center content */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {isIndeterminate ? (
                 <>
-                  {/* Pulsing icon for indeterminate phases */}
                   <CurrentIcon
-                    className="w-8 h-8 text-amber-400 mb-1"
+                    className="w-8 h-8 mb-1"
                     style={{
+                      color: COLORS.accent,
                       animation: "cl-icon-pulse 2s ease-in-out infinite",
                     }}
                   />
-                  <span className="text-[11px] text-cream-muted/60 font-medium">
+                  <span className="text-[11px] font-medium" style={{ color: COLORS.textMuted }}>
                     Indexing
                   </span>
                 </>
               ) : (
                 <>
-                  {/* Live countdown timer — the HERO */}
-                  <span className="text-3xl sm:text-4xl font-bold text-white tabular-nums tracking-tight leading-none">
+                  <span
+                    className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight leading-none"
+                    style={{ color: COLORS.text }}
+                  >
                     {formatTime(etaMs)}
                   </span>
-                  <span className="text-[11px] text-cream-muted/60 font-medium mt-1">
+                  <span className="text-[11px] font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
                     remaining
                   </span>
                 </>
@@ -466,88 +475,97 @@ export default function ProcessingOverlay({
           </div>
 
           {/* Percentage + elapsed row */}
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex items-center gap-4 mt-5">
             {!isIndeterminate && (
-              <span className="text-sm font-semibold text-amber-400">
+              <span className="text-sm font-semibold" style={{ color: COLORS.accent }}>
                 {displayPercentage}% complete
               </span>
             )}
-            <span className="text-xs text-cream-muted/50">
+            <span className="text-xs" style={{ color: COLORS.textLight }}>
               Elapsed: {formatTime(elapsed)}
             </span>
           </div>
         </div>
 
         {/* ─── 3-Step Phase Progress ─────────────────────────────────── */}
-        <div className="max-w-lg mx-auto mb-6">
+        <div className="max-w-lg mx-auto mb-8">
           <div className="flex items-center justify-between">
             {phases.map((phase, i) => {
               const isComplete = i < currentPhaseIndex;
               const isActive = i === currentPhaseIndex;
 
               return (
-                <div
-                  key={phase.key}
-                  className="flex-1 flex flex-col items-center relative"
-                >
+                <div key={phase.key} className="flex-1 flex flex-col items-center relative">
                   {/* Connector line */}
                   {i > 0 && (
                     <div
-                      className={`absolute top-4 right-1/2 w-full h-0.5 -z-10 ${
-                        isComplete || isActive
-                          ? "bg-emerald-500/40"
-                          : "bg-white/10"
-                      }`}
+                      className="absolute top-4 right-1/2 w-full h-px -z-10"
+                      style={{
+                        backgroundColor: isComplete || isActive
+                          ? COLORS.success
+                          : COLORS.border,
+                        opacity: isComplete || isActive ? 0.5 : 1,
+                      }}
                     />
                   )}
 
                   {/* Step circle */}
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-500 ${
-                      isComplete
-                        ? "bg-emerald-500/20 border-2 border-emerald-500/50"
+                    className="w-8 h-8 rounded-full flex items-center justify-center mb-2.5"
+                    style={{
+                      transition: "all 0.5s ease",
+                      backgroundColor: isComplete
+                        ? COLORS.successLight
                         : isActive
-                          ? "bg-amber-500/20 border-2 border-amber-500/50"
-                          : "bg-white/5 border-2 border-white/10"
-                    }`}
+                          ? COLORS.activeLight
+                          : "transparent",
+                      border: `2px solid ${
+                        isComplete
+                          ? COLORS.success
+                          : isActive
+                            ? COLORS.accent
+                            : COLORS.border
+                      }`,
+                    }}
                   >
                     {isComplete ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <CheckCircle2 className="w-4 h-4" style={{ color: COLORS.success }} />
                     ) : isActive ? (
-                      <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                      <Loader2
+                        className="w-4 h-4 animate-spin"
+                        style={{ color: COLORS.accent }}
+                      />
                     ) : (
-                      <Circle className="w-3 h-3 text-cream-muted/30" />
+                      <Circle className="w-3 h-3" style={{ color: COLORS.textLight }} />
                     )}
                   </div>
 
                   {/* Step label */}
                   <span
-                    className={`text-xs font-semibold text-center leading-tight ${
-                      isComplete
-                        ? "text-emerald-400"
+                    className="text-xs font-semibold text-center leading-tight"
+                    style={{
+                      color: isComplete
+                        ? COLORS.success
                         : isActive
-                          ? "text-amber-300"
-                          : "text-cream-muted/30"
-                    }`}
+                          ? COLORS.accent
+                          : COLORS.textLight,
+                    }}
                   >
                     {phase.label}
                   </span>
 
                   {/* Step description */}
                   <span
-                    className={`text-[10px] text-center mt-0.5 ${
-                      isComplete
-                        ? "text-emerald-400/60"
+                    className="text-[10px] text-center mt-0.5"
+                    style={{
+                      color: isComplete
+                        ? `${COLORS.success}99`
                         : isActive
-                          ? "text-amber-300/60"
-                          : "text-cream-muted/20"
-                    }`}
+                          ? `${COLORS.accent}99`
+                          : COLORS.textLight,
+                    }}
                   >
-                    {isComplete
-                      ? "Done"
-                      : isActive
-                        ? phase.description
-                        : "Waiting"}
+                    {isComplete ? "Done" : isActive ? phase.description : "Waiting"}
                   </span>
                 </div>
               );
@@ -556,41 +574,48 @@ export default function ProcessingOverlay({
         </div>
 
         {/* Current phase message with icon */}
-        <div className="flex items-center justify-center gap-2 mb-6 h-5">
-          <CurrentIcon className="w-4 h-4 text-amber-400/70 shrink-0" />
-          <p className="text-amber-300/90 text-sm font-medium transition-all duration-300">
+        <div className="flex items-center justify-center gap-2.5 mb-8 h-5">
+          <CurrentIcon className="w-4 h-4 shrink-0" style={{ color: `${COLORS.accent}B3` }} />
+          <p
+            className="text-sm font-medium"
+            style={{
+              color: COLORS.text,
+              transition: "all 0.3s ease",
+              opacity: 0.8,
+            }}
+          >
             {currentMessage.text}
           </p>
         </div>
 
         {/* Sheet progress bar (extraction phase only) */}
         {currentPhase === "extracting" && (
-          <div className="max-w-md mx-auto mb-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-cream-muted">
+          <div className="max-w-md mx-auto mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium" style={{ color: COLORS.textMuted }}>
                 {processedSheets} of {totalSheets} sheets
               </span>
             </div>
-            {/* Segmented progress — one segment per sheet */}
-            <div className="flex gap-0.5 h-2 rounded-full overflow-hidden bg-navy-deep/80">
+            <div
+              className="flex gap-0.5 h-2 rounded-full overflow-hidden"
+              style={{ backgroundColor: COLORS.pending }}
+            >
               {Array.from({ length: totalSheets }, (_, i) => {
                 const isDone = i < processedSheets;
                 const isActive = i === processedSheets;
                 return (
                   <div
                     key={i}
-                    className="flex-1 rounded-sm transition-all duration-500"
+                    className="flex-1 rounded-sm"
                     style={{
+                      transition: "all 0.5s ease",
                       backgroundColor: isDone
-                        ? "#10b981"
+                        ? COLORS.success
                         : isActive
-                          ? "#f59e0b"
-                          : "rgba(255,255,255,0.04)",
+                          ? COLORS.accent
+                          : "transparent",
                       ...(isActive
-                        ? {
-                            animation:
-                              "cl-segment-pulse 1.5s ease-in-out infinite",
-                          }
+                        ? { animation: "cl-segment-pulse 1.5s ease-in-out infinite" }
                         : {}),
                     }}
                   />
@@ -600,10 +625,17 @@ export default function ProcessingOverlay({
           </div>
         )}
 
-        {/* Currently Processing Sheet — only during extraction */}
+        {/* Currently Processing Sheet */}
         {currentPhase === "extracting" && currentSheet && (
-          <div className="text-center mb-5">
-            <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-xs px-3 py-1">
+          <div className="text-center mb-6">
+            <Badge
+              className="text-xs px-3 py-1 font-medium"
+              style={{
+                backgroundColor: COLORS.activeLight,
+                color: COLORS.accent,
+                border: `1px solid ${COLORS.borderAccent}`,
+              }}
+            >
               Analyzing: {currentSheet.sheetName || `Page ${currentSheet.pageNumber}`}
             </Badge>
           </div>
@@ -614,7 +646,7 @@ export default function ProcessingOverlay({
           sheets &&
           sheets.length > 0 &&
           sheets.length <= 60 && (
-            <div className="flex flex-wrap justify-center gap-1.5 max-w-lg mx-auto mb-4">
+            <div className="flex flex-wrap justify-center gap-1.5 max-w-lg mx-auto mb-5">
               {sheets.map((sheet) => {
                 const isCompleted = sheet.status === "completed";
                 const isProcessing = sheet.status === "processing";
@@ -622,24 +654,37 @@ export default function ProcessingOverlay({
                 return (
                   <div
                     key={sheet.id}
-                    className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-mono font-bold transition-all duration-500 ${
-                      isCompleted
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-mono font-bold"
+                    style={{
+                      transition: "all 0.5s ease",
+                      backgroundColor: isCompleted
+                        ? COLORS.successLight
                         : isProcessing
-                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                          ? COLORS.activeLight
                           : isError
-                            ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                            : "bg-white/5 text-cream-muted/30 border border-white/5"
-                    }`}
+                            ? "rgba(196, 100, 90, 0.12)"
+                            : COLORS.pending,
+                      color: isCompleted
+                        ? COLORS.success
+                        : isProcessing
+                          ? COLORS.accent
+                          : isError
+                            ? COLORS.error
+                            : COLORS.textLight,
+                      border: `1px solid ${
+                        isCompleted
+                          ? `${COLORS.success}40`
+                          : isProcessing
+                            ? COLORS.borderAccent
+                            : isError
+                              ? "rgba(196, 100, 90, 0.3)"
+                              : COLORS.border
+                      }`,
+                      ...(isProcessing
+                        ? { animation: "cl-segment-pulse 1.5s ease-in-out infinite" }
+                        : {}),
+                    }}
                     title={sheet.sheetName || `Page ${sheet.pageNumber}`}
-                    style={
-                      isProcessing
-                        ? {
-                            animation:
-                              "cl-segment-pulse 1.5s ease-in-out infinite",
-                          }
-                        : undefined
-                    }
                   >
                     {isCompleted ? (
                       <svg
@@ -649,14 +694,16 @@ export default function ProcessingOverlay({
                         stroke="currentColor"
                         strokeWidth={2.5}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     ) : isProcessing ? (
-                      <div className="w-2.5 h-2.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <div
+                        className="w-2.5 h-2.5 rounded-full animate-spin"
+                        style={{
+                          border: `2px solid ${COLORS.accent}`,
+                          borderTopColor: "transparent",
+                        }}
+                      />
                     ) : (
                       sheet.pageNumber
                     )}
@@ -667,12 +714,12 @@ export default function ProcessingOverlay({
           )}
 
         {/* Tip */}
-        <p className="text-center text-[11px] text-cream-muted/40 mt-4">
+        <p className="text-center text-[11px] mt-5" style={{ color: COLORS.textLight }}>
           You can leave this page — analysis continues in the background
         </p>
       </div>
 
-      {/* CSS Keyframes for ring animation */}
+      {/* CSS Keyframes */}
       <style>{`
         @keyframes cl-ring-spin {
           from { transform: rotate(-90deg); }
@@ -685,6 +732,38 @@ export default function ProcessingOverlay({
         @keyframes cl-segment-pulse {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 1; }
+        }
+        @keyframes cl-splash-fade-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cl-splash-exit {
+          from { opacity: 1; transform: scale(1); }
+          to { opacity: 0; transform: scale(0.97); }
+        }
+        @keyframes cl-splash-ring-expand {
+          from { transform: scale(1); opacity: 0.6; }
+          to { transform: scale(4); opacity: 0; }
+        }
+        @keyframes cl-splash-glow-pulse {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.15); }
+        }
+        @keyframes cl-splash-line-sweep {
+          from { width: 0; }
+          to { width: 240px; }
+        }
+        @keyframes cl-splash-subtitle-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cl-splash-dots {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
       `}</style>
     </div>

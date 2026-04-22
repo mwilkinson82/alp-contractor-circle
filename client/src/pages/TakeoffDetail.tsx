@@ -169,9 +169,7 @@ export default function TakeoffDetail() {
   const [openSettingsToScope, setOpenSettingsToScope] = useState(false);
   // Track previous scopeText to detect scope changes
   const prevScopeTextRef = useRef<string | null>(null);
-  // Elapsed timer for processing banner
-  const [processingElapsed, setProcessingElapsed] = useState(0);
-  const processingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [markups, setMarkups] = useState({
     labor: 0,
     overhead: 0,
@@ -272,22 +270,10 @@ export default function TakeoffDetail() {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = currentStatus || null;
 
-    // Start elapsed timer when processing begins
-    if ((currentStatus === "processing" || currentStatus === "post_processing") && !processingTimerRef.current) {
-      processingStartRef.current = Date.now();
-      setProcessingElapsed(0);
-      processingTimerRef.current = setInterval(() => {
-        setProcessingElapsed(Math.floor((Date.now() - (processingStartRef.current || Date.now())) / 1000));
-      }, 1000);
-    }
+
 
     // Stop timer and detect completion
     if (prevStatus && prevStatus !== "completed" && currentStatus === "completed") {
-      if (processingTimerRef.current) {
-        clearInterval(processingTimerRef.current);
-        processingTimerRef.current = null;
-      }
-      setProcessingElapsed(0);
       processingStartRef.current = null;
 
       // Play completion chime and send browser notification
@@ -307,19 +293,10 @@ export default function TakeoffDetail() {
       }
     }
 
-    // Stop timer if status is no longer processing (e.g. error)
-    if (currentStatus !== "processing" && currentStatus !== "post_processing" && processingTimerRef.current) {
-      clearInterval(processingTimerRef.current);
-      processingTimerRef.current = null;
-    }
+
   }, [progress?.status, project?.status, refetchItems]);
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (processingTimerRef.current) clearInterval(processingTimerRef.current);
-    };
-  }, []);
+
 
   // Force-refetch when user returns to the tab during processing
   // This ensures completion is detected immediately even if the background poll
@@ -927,23 +904,7 @@ export default function TakeoffDetail() {
 
   return (
     <div className="min-h-screen bg-navy-deep">
-      {/* Processing Status Banner — shown during initial analysis or consolidation */}
-      {isProcessing && (
-        <div className="sticky top-0 z-50 bg-amber-500/95 backdrop-blur text-black px-4 py-2.5 flex items-center justify-center gap-3 shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
-            <span className="font-semibold text-sm">
-              {isConsolidating ? "Enhancing & consolidating results…" : "Analyzing drawings…"}
-            </span>
-          </div>
-          {processingElapsed > 0 && (
-            <span className="text-sm font-mono bg-black/20 px-2 py-0.5 rounded">
-              {Math.floor(processingElapsed / 60)}:{String(processingElapsed % 60).padStart(2, "0")}
-            </span>
-          )}
-          <span className="text-xs opacity-60">Page refreshes automatically when done.</span>
-        </div>
-      )}
+
       {/* Header Bar */}
       <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
@@ -1279,8 +1240,8 @@ export default function TakeoffDetail() {
                         </div>
                       </div>
                       <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="min-w-0 flex-1">
                             <p className="text-cream text-sm font-medium truncate">
                               {sheet.sheetName || `Page ${sheet.pageNumber}`}
                             </p>
@@ -1290,7 +1251,7 @@ export default function TakeoffDetail() {
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             {/* Set Scale button — always visible when sheet has an image */}
                             {sheet.imageUrl && (
                               <Button
