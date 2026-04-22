@@ -397,7 +397,7 @@ export default function ProcessingOverlay({
 
   const isIndeterminate = currentPhase === "indexing";
   const consolidationPercentage = currentPhase === "consolidating"
-    ? Math.min(95, Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100))
+    ? Math.min(99, Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100))
     : 0;
   const displayPercentage = currentPhase === "consolidating" ? consolidationPercentage : percentage;
 

@@ -3024,3 +3024,9 @@
 - [x] Add JSON repair/recovery for truncated LLM responses — repairTruncatedJSON() with 3 strategies
 - [x] Add detail:low fallback in verifyPass (now matches extractPass with high→low fallback loop)
 - [x] Wire onRetrySheet prop through ProcessingOverlay to TakeoffDetail — error alert banner + clickable error tiles + Retry All button
+## CRITICAL: Processing Speed Optimization — April 22
+- [x] BUG: 40+ minutes for 23 sheets — parallelized steps 2-4 (lump sums + formwork + rebar run simultaneously)
+- [x] Investigate consolidation pipeline bottleneck — 7 sequential steps, 961 individual DB updates, multiple sequential LLM calls
+- [x] Optimize: Steps 2-4 now run in parallel via Promise.all (lump sums, formwork, rebar)
+- [x] Optimize: Regional cost recalculation uses single batch SQL UPDATE instead of 961 individual updates
+- [x] Fix progress weighting — consolidation estimate reduced from 180s to 120s, cap raised from 95% to 99%
