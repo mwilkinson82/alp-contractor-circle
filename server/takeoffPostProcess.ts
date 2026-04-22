@@ -36,7 +36,7 @@ function createLimiter(concurrency: number) {
 }
 
 const ppLimiter = createLimiter(PP_MAX_CONCURRENCY);
-import { applyPricingV2, applyPricingWithLibraryV2, validateRebarQuantities, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookupV2";
+import { applyPricingV2, applyPricingWithLibraryV2, validateRebarQuantities, loadExpandedLibrary, findBestMatchV2, type TakeoffItem as CostTakeoffItem, type UserLibraryEntry } from "./costLookupV2";
 import { getCostLibraryByMember } from "./costLibraryDb";
 import {
   getTakeoffItemsByProject,
@@ -248,320 +248,173 @@ function programmaticDedup(items: RawItem[]): RawItem[] {
   return result;
 }
 
-// ─── Priority 1: Cross-Sheet Consolidation ────────────────────────────────────
+// ─── Priority 1: Cross-Sheet Consolidation (Programmatic — ZERO LLM calls) ────
 
 /**
  * Groups items that refer to the same physical element across multiple sheets
  * and merges them, keeping the most specific (non-LS) quantity.
- * Now processes items in batches by CSI division for better LLM accuracy.
+ * 
+ * V2: 100% programmatic using the expanded synonym library.
+ * Items that match the same costItemId in the synonym library are treated as
+ * the same element and merged. No LLM calls.
  */
 async function consolidateItems(
   items: RawItem[],
   sheets: SheetContext[],
-  currency: string | null,
-  scopeText: string | null
+  _currency: string | null,
+  _scopeText: string | null
 ): Promise<ConsolidatedItem[]> {
   if (items.length === 0) return [];
 
-  // ─── Step 0: Programmatic pre-dedup ───────────────────────────────────────
+  // ─── Step 0: Programmatic pre-dedup (exact + fuzzy word overlap) ──────────
   const deduped = programmaticDedup(items);
   console.log(`[PostProcess] Pre-dedup: ${items.length} → ${deduped.length} items`);
 
-  // ─── Step 0.5: Batch by CSI division for better LLM accuracy ──────────────
-  // Group items by 2-digit CSI division
-  const divisionGroups = new Map<string, RawItem[]>();
-  for (const item of deduped) {
-    const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "99").trim();
-    if (!divisionGroups.has(div)) divisionGroups.set(div, []);
-    divisionGroups.get(div)!.push(item);
+  // ─── Step 1: Synonym-based consolidation ──────────────────────────────────
+  // Load the expanded library and match each item to a costItemId.
+  // Items sharing the same costItemId + compatible unit = same physical element.
+  await loadExpandedLibrary();
+
+  // Match each item to its best synonym entry
+  interface TaggedItem {
+    item: RawItem;
+    matchId: string | null; // costItemId from expanded library, or null
+    matchScore: number;
   }
-
-  console.log(`[PostProcess] Batching consolidation by ${divisionGroups.size} CSI divisions (parallel): ${Array.from(divisionGroups.keys()).join(", ")}`);
-
-  // Process all division batches IN PARALLEL — major speed improvement over sequential
-  const divEntries = Array.from(divisionGroups.entries());
-  const batchPromises = divEntries.map(async ([div, divItems]) => {
-    console.log(`[PostProcess] Consolidating CSI ${div}: ${divItems.length} items...`);
-    const batchResult = await consolidateBatch(divItems, sheets, currency, scopeText);
-    console.log(`[PostProcess] CSI ${div}: ${divItems.length} → ${batchResult.length} items`);
-    return batchResult;
-  });
-
-  const batchResults = await Promise.all(batchPromises);
-  const allResults: ConsolidatedItem[] = batchResults.flat();
-
-  console.log(`[PostProcess] Total after batched consolidation: ${deduped.length} → ${allResults.length} items`);
-  return allResults;
-}
-
-/**
- * Consolidate a single batch of items (typically one CSI division).
- */
-async function consolidateBatch(
-  items: RawItem[],
-  sheets: SheetContext[],
-  currency: string | null,
-  scopeText: string | null
-): Promise<ConsolidatedItem[]> {
-  if (items.length === 0) return [];
-
-  // Build a summary of all items for the LLM
-  const itemSummaries = items.map((item, idx) => {
-    const sheet = sheets.find(s => s.id === item.sheetId);
-    return {
-      idx,
-      id: item.id,
-      sheetId: item.sheetId,
-      sheetName: sheet?.sheetName || `Sheet ${item.sheetId}`,
-      sheetType: sheet?.sheetType || "unknown",
-      csiDivision: item.csiDivision || "",
-      csiCode: item.csiCode || "",
+  const tagged: TaggedItem[] = [];
+  for (const item of deduped) {
+    const match = await findBestMatchV2({
       description: item.description,
+      csiCode: item.csiCode || undefined,
+      csiDivision: item.csiDivision || undefined,
       quantity: parseFloat(item.quantity),
       unit: item.unit,
-      unitCost: item.unitCost / 100, // convert cents to dollars for LLM
-      confidence: item.confidence,
-      notes: item.notes || "",
-    };
-  });
+    });
+    tagged.push({
+      item,
+      matchId: match ? match.entry.id : null,
+      matchScore: match ? match.score : 0,
+    });
+  }
 
-  const currencyLabel = currency === "GBP" ? "GBP" : currency === "AUD" ? "AUD" : "USD";
+  const matchedCount = tagged.filter(t => t.matchId !== null).length;
+  console.log(`[PostProcess] Synonym matching: ${matchedCount}/${deduped.length} items matched to library entries`);
 
-  const consolidationPrompt = `You are a senior construction estimator performing a post-processing consolidation on a quantity takeoff.
+  // ─── Step 2: Group by (matchId + unit) for items with matches ─────────────
+  // Items with the same matchId + same unit are the same physical element.
+  // Unmatched items stay as singletons.
+  const groups = new Map<string, TaggedItem[]>();
+  let singletonIdx = 0;
+  for (const t of tagged) {
+    const unit = t.item.unit.toUpperCase().trim();
+    const key = t.matchId
+      ? `match:${t.matchId}|${unit}`
+      : `solo:${singletonIdx++}`; // unmatched items never merge
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(t);
+  }
 
-The takeoff was extracted from ${sheets.length} drawing sheets independently. As a result, the SAME physical element may appear multiple times — once from each sheet that shows it. Your job is to:
+  // ─── Step 3: Merge each group into a single ConsolidatedItem ──────────────
+  const result: ConsolidatedItem[] = [];
+  let synonymMergedCount = 0;
 
-1. **IDENTIFY DUPLICATES**: Find items that refer to the same physical building element (e.g., "Concrete Slab-on-Grade" appearing from multiple sheets)
-2. **MERGE DUPLICATES**: Combine them into ONE consolidated item, keeping:
-   - The MOST SPECIFIC quantity (measured > counted > lump sum)
-   - The BEST description (most detailed)
-   - The HIGHEST confidence score
-   - Combined notes explaining the consolidation
-3. **KEEP UNIQUE ITEMS**: Items that are genuinely different (e.g., "Footing Type A" vs "Footing Type B") should remain separate
-4. **CONVERT LUMP SUMS**: Where possible, if one instance has a measured quantity and another has LS, use the measured quantity
-5. **FLAG REMAINING LUMP SUMS**: For items that are still LS after consolidation, note in the description that plan measurement is needed
+  for (const [_key, group] of Array.from(groups.entries())) {
+    // Sort: prefer measured (non-LS) over lump sum, then highest confidence, then largest qty
+    group.sort((a, b) => {
+      const aIsLS = a.item.unit.toUpperCase() === "LS" ? 1 : 0;
+      const bIsLS = b.item.unit.toUpperCase() === "LS" ? 1 : 0;
+      if (aIsLS !== bIsLS) return aIsLS - bIsLS; // non-LS first
+      if (b.item.confidence !== a.item.confidence) return b.item.confidence - a.item.confidence;
+      return parseFloat(b.item.quantity) - parseFloat(a.item.quantity);
+    });
 
-${scopeText ? `## SCOPE FILTER — CRITICAL (CSI-Division-Aware)
-The scope of work is: "${scopeText}"
+    const best = group[0];
+    const wasConsolidated = group.length > 1;
+    if (wasConsolidated) synonymMergedCount += group.length - 1;
 
-Use these CSI division rules:
-- CSI 03: Concrete (usually IN scope)
-- CSI 04: Masonry (exclude if foundation/none-of-vertical/concrete-only)
-- CSI 05: Metals (exclude if foundation/none-of-vertical/concrete-only)
-- CSI 06: Wood (exclude if foundation/none-of-vertical/concrete-only)
-- CSI 08: Openings/Doors/Windows (exclude if foundation/none-of-vertical)
-- CSI 09: Finishes (exclude if foundation/concrete-only)
-- CSI 23: HVAC (exclude if foundation/concrete-only)
-- CSI 26: Electrical (exclude if foundation/concrete-only)
-- CSI 27: Communications (exclude if foundation/concrete-only)
-- CSI 28: Electronic Safety (exclude if foundation/concrete-only)
-- CSI 31: Earthwork (usually IN scope for foundation)
-- CSI 32: Exterior Improvements (usually IN scope)
+    // For quantities: keep the MAX measured quantity (plan view is most accurate)
+    // Don't sum — the same element appears on multiple sheets
+    const quantities = group.map(t => parseFloat(t.item.quantity));
+    const bestQty = Math.max(...quantities);
 
-Keyword exclusions (regardless of CSI):
-- If scope says "foundation up" or "none of vertical": exclude wall, column, roof, door, window, frame, finish, paint, flooring, hvac, electrical, plumbing
-- If scope says "concrete only": exclude everything except concrete items
-- If scope says "structural only": exclude finishes, hvac, electrical, communications, safety systems
+    // Collect source info
+    const sourceItemIds = group.map(t => t.item.id);
+    const sourceSheetIds = Array.from(new Set(group.map(t => t.item.sheetId)));
 
-Example: If scope says "foundation through SOG only, none of the vertical":
-- REMOVE: CMU grout (masonry), finishes, paint, doors, windows, HVAC, electrical
-- KEEP: Concrete footings, slabs, excavation, backfill` : ""}
-
-## ITEMS TO CONSOLIDATE (${items.length} items from ${sheets.length} sheets):
-${JSON.stringify(itemSummaries, null, 2)}
-
-## OUTPUT FORMAT
-Return a JSON array of consolidated items. Each item must have:
-- groupedItemIndices: array of original item indices (idx field) that were merged into this item
-- csiDivision: 2-digit code
-- csiCode: full 6-digit code
-- description: consolidated description (be specific about dimensions, locations)
-- quantity: best available quantity
-- unit: unit of measure
-- unitCost: set to 1 for all items (pricing applied from cost database after consolidation)
-- confidence: confidence score 0-100
-- notes: explanation of consolidation decisions
-- outOfScope: boolean — true if this item should be REMOVED because it's outside the defined scope
-
-IMPORTANT RULES:
-- AGGRESSIVELY merge duplicates — the input has already been pre-filtered, so most items in this batch refer to the same physical elements seen from different drawing sheets
-- Prefer measured quantities (SF, LF, CY, EA) over lump sums (LS)
-- If ALL instances of an item are LS, keep it as LS but note it needs plan measurement
-- Do NOT sum quantities from different sheets for the same element — keep the LARGEST measured quantity (the plan view is most accurate)
-- TARGET: A typical foundation takeoff should have 30-60 consolidated items, NOT 100+. If you're outputting more than 80 items, you're not merging aggressively enough.
-
-## MERGE AGGRESSIVELY — THESE ARE THE SAME ITEM:
-- "Excavation for Trench Pit" and "Earthwork Excavation for Trench Pit" → MERGE (keep max qty)
-- "Concrete Footing for Bollard" and "Concrete Bollard Foundation" → MERGE
-- "Concrete Gate Post Foundation" and "Concrete for Gate Post Foundations" → MERGE
-- "Concrete Trench Pit" and "Concrete Carwash Trench Pit" → MERGE
-- "Excavation for Bollard Footings" appearing 3x with different quantities → MERGE (keep max qty)
-- Items with the same element name but different dimension callouts → MERGE (keep the most detailed description)
-- "Compacted Base Course below X" and "Compacted Base Course below Y" for adjacent areas → MERGE into one base course item with combined area
-
-## CRITICAL DEDUPLICATION RULES:
-
-### CONTINUOUS FOOTINGS (WF-1, WF-2, WF-3, etc.):
-- The SAME footing appears on multiple sheets (foundation plan, details, sections)
-- Do NOT add footing lengths from different sheets — the plan view has the most accurate total LF
-- If WF-1 appears as 175 LF on one sheet and 320 LF on another, keep the value from the FOUNDATION PLAN (the plan view measurement is most accurate)
-- Footing detail sheets show cross-sections, NOT additional length
-
-### SLABS (Slab-on-Grade, Concrete Slab):
-- NEVER drop or merge slab items unless they are truly the same slab area
-- 4" slabs and 6" slabs are DIFFERENT items — do not merge them
-- Slab areas from the PLAN VIEW are the most accurate measurements
-- If a slab appears on multiple sheets, keep the plan view quantity
-- CRITICAL: If no slab items exist in the input but the drawings show slabs, this is an extraction gap — do NOT create new items, but note it
-
-### CONSTRUCTION JOINTS:
-- Construction joints are measured in LINEAR FEET (LF), not EA
-- If an item says "construction joints" with a quantity in EA, check if the notes have LF measurements
-- Typical construction joint spacing is every 15-20 feet in slabs
-
-### BOLLARDS vs POLE FOUNDATIONS:
-- Bollard footings and gate post footings are SEPARATE items from the bollards/posts themselves
-- Do NOT merge "Concrete Filled Pipe Bollard" (2 EA) with "Bollard Footing" (2 EA) — they are different scope items
-- Count bollards and gate posts EXACTLY as shown on the plan (typically 2 bollards, 4 gate posts for a car wash)`;
-
-  const responseSchema = {
-    type: "json_schema" as const,
-    json_schema: {
-      name: "consolidation_result",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          consolidatedItems: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                groupedItemIndices: {
-                  type: "array",
-                  items: { type: "integer" },
-                  description: "Original item indices merged into this consolidated item",
-                },
-                csiDivision: { type: "string" },
-                csiCode: { type: "string" },
-                description: { type: "string" },
-                quantity: { type: "number" },
-                unit: { type: "string" },
-                unitCost: { type: "number", description: "Set to 1 for all items" },
-                confidence: { type: "integer" },
-                notes: { type: "string" },
-                outOfScope: { type: "boolean" },
-              },
-              required: [
-                "groupedItemIndices", "csiDivision", "csiCode", "description",
-                "quantity", "unit", "unitCost", "confidence", "notes", "outOfScope",
-              ],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["consolidatedItems"],
-        additionalProperties: false,
-      },
-    },
-  };
-
-  try {
-    console.log(`[PostProcess] Consolidating ${items.length} items from ${sheets.length} sheets...`);
-    
-    const response = await ppLimiter(() => invokeLLMWithTimeout({
-      messages: [
-        { role: "system", content: "You are a senior construction estimator. Consolidate duplicate line items. Return JSON." },
-        { role: "user", content: consolidationPrompt },
-      ],
-      response_format: responseSchema,
-    }, PP_LLM_TIMEOUT_MS));
-
-    const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) throw new Error("No content in consolidation response");
-    const content = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
-
-    const parsed = JSON.parse(content) as {
-      consolidatedItems: Array<{
-        groupedItemIndices: number[];
-        csiDivision: string;
-        csiCode: string;
-        description: string;
-        quantity: number;
-        unit: string;
-        unitCost: number;
-        confidence: number;
-        notes: string;
-        outOfScope: boolean;
-      }>;
-    };
-
-    // Convert to ConsolidatedItem format
-    const result: ConsolidatedItem[] = [];
-    for (const ci of parsed.consolidatedItems) {
-      // Skip out-of-scope items (Priority 3: Scope Enforcement)
-      if (ci.outOfScope) {
-        console.log(`[PostProcess] Removing out-of-scope item: ${ci.description}`);
-        continue;
-      }
-
-      const sourceItemIds = ci.groupedItemIndices
-        .map(idx => itemSummaries[idx]?.id)
-        .filter((id): id is number => id !== undefined);
-      const sheetIdSet = new Set(
-        ci.groupedItemIndices
-          .map(idx => itemSummaries[idx]?.sheetId)
-          .filter((id): id is number => id !== undefined)
-      );
-      const sourceSheetIds = Array.from(sheetIdSet);
-
-      result.push({
-        csiDivision: ci.csiDivision.trim(),
-        csiCode: ci.csiCode.trim(),
-        description: ci.description,
-        quantity: ci.quantity,
-        unit: ci.unit.toUpperCase().trim(),
-        unitCost: Math.round(ci.unitCost * 100), // back to cents
-        extendedCost: Math.round(ci.quantity * ci.unitCost * 100),
-        materialCost: 0,
-        laborCost: 0,
-        confidence: Math.min(100, Math.max(0, ci.confidence)),
-        notes: ci.notes,
-        sourceSheetIds,
-        sourceItemIds,
-        wasConsolidated: ci.groupedItemIndices.length > 1,
-        wasEnhanced: false,
-        isGenerated: false,
+    // Build notes
+    let notes = best.item.notes || "";
+    if (wasConsolidated) {
+      const sheetNames = group.map(t => {
+        const sheet = sheets.find(s => s.id === t.item.sheetId);
+        return sheet?.sheetName || `Sheet ${t.item.sheetId}`;
       });
+      notes = `[Consolidated ${group.length} items from: ${sheetNames.join(", ")}] ${notes}`.trim();
     }
 
-    console.log(`[PostProcess] Consolidated ${items.length} items → ${result.length} items (${items.length - result.length} removed/merged)`);
-    return result;
-  } catch (error) {
-    console.error("[PostProcess] Consolidation failed, returning original items:", error);
-    // Fallback: return items as-is
-    return items.map(item => ({
-      csiDivision: item.csiDivision || "",
-      csiCode: item.csiCode || "",
-      description: item.description,
-      quantity: parseFloat(item.quantity),
-      unit: item.unit,
-      unitCost: item.unitCost,
-      extendedCost: item.extendedCost,
+    result.push({
+      csiDivision: (best.item.csiDivision || best.item.csiCode?.substring(0, 2) || "").trim(),
+      csiCode: (best.item.csiCode || "").trim(),
+      description: best.item.description,
+      quantity: bestQty,
+      unit: best.item.unit.toUpperCase().trim(),
+      unitCost: best.item.unitCost, // will be overwritten by pricing step
+      extendedCost: Math.round(bestQty * best.item.unitCost),
       materialCost: 0,
       laborCost: 0,
-      confidence: item.confidence,
-      notes: item.notes || "",
-      sourceSheetIds: [item.sheetId],
-      sourceItemIds: [item.id],
-      wasConsolidated: false,
+      confidence: Math.min(100, Math.max(0, best.item.confidence)),
+      notes,
+      sourceSheetIds,
+      sourceItemIds,
+      wasConsolidated,
       wasEnhanced: false,
       isGenerated: false,
-    }));
+    });
   }
+
+  console.log(`[PostProcess] Synonym consolidation: ${deduped.length} → ${result.length} items (${synonymMergedCount} merged via synonym match)`);
+  return result;
 }
 
-// ─── Priority 2: Plan-View Enhancement ────────────────────────────────────────
+// NOTE: consolidateBatch (LLM-based) has been REMOVED.
+// Consolidation is now 100% programmatic in consolidateItems() above.
+// The old function sent each CSI division to the LLM for merging.
+// Now, items matching the same expanded library costItemId are merged automatically.
+
+// ─── LEGACY CONSOLIDATION REMOVED ────────────────────────────────────────────
+// The following function was removed to eliminate LLM calls from consolidation:
+//   async function consolidateBatch(items, sheets, currency, scopeText)
+// It has been replaced by synonym-based grouping in consolidateItems().
+
+// Keeping the fallback conversion as a standalone helper for edge cases:
+function rawItemToConsolidated(item: RawItem, sheets: SheetContext[]): ConsolidatedItem {
+  return {
+    csiDivision: item.csiDivision || "",
+    csiCode: item.csiCode || "",
+    description: item.description,
+    quantity: parseFloat(item.quantity),
+    unit: item.unit,
+    unitCost: item.unitCost,
+    extendedCost: item.extendedCost,
+    materialCost: 0,
+    laborCost: 0,
+    confidence: item.confidence,
+    notes: item.notes || "",
+    sourceSheetIds: [item.sheetId],
+    sourceItemIds: [item.id],
+    wasConsolidated: false,
+    wasEnhanced: false,
+    isGenerated: false,
+  };
+}
+
+/*
+ * REMOVED: consolidateBatch LLM function (~250 lines)
+ * Was: LLM call per CSI division to merge duplicates
+ * Now: Handled by synonym-based grouping in consolidateItems() above
+ */
+
+/* REMOVED: ~250 lines of consolidateBatch LLM function. See git history for reference. */
+// ─── Priority 2: Plan-View Enhancementt ────────────────────────────────────────
 
 /**
  * Takes consolidated items that are still lump-sum and attempts to convert them

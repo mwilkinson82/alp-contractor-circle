@@ -3048,3 +3048,11 @@
 - [x] Eliminate AI pricing refinement LLM calls — replaced by synonym-based programmatic pricing
 - [x] All 14 vitest tests passing for costLookupV2
 - [ ] Target: 23 sheets in under 10 minutes, ~24 LLM calls total, minimal token usage (needs live test)
+
+## PIPELINE REBUILD Phase 2 — Programmatic Dedup + Extract-Only Prompt — April 22
+- [x] Replace LLM consolidation (consolidateBatch) with programmatic synonym-based dedup — items matching same costItemId merged automatically
+- [x] Remove old consolidateBatch LLM function (~250 lines) — file dropped from 1788 → 1641 lines
+- [x] Simplify extraction prompt — removed CSI division reference block (~390 tokens/call saved), streamlined to ~263 words
+- [x] Simplify verification prompt — removed CSI instructions, streamlined to ~127 words
+- [x] All 428 tests passing (14 V2 + 414 others), 0 TS errors
+- [x] Ready for live test

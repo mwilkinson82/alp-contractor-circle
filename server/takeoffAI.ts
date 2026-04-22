@@ -34,120 +34,64 @@ import { postProcessTakeoff } from "./takeoffPostProcess";
 import { indexAllSheets } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 
-// ─── CSI Division Reference (compact — for classification only) ────────────────
-
-const CSI_DIVISIONS_REFERENCE = `
-CSI DIVISION REFERENCE (for classification):
-01 - General Requirements (mobilization, temp facilities, project management)
-02 - Existing Conditions (demolition, site clearing, hazmat abatement)
-03 - Concrete (footings, slabs, walls, piers — SF, LF, CY, EA)
-04 - Masonry (CMU block, brick, stone — SF, EA)
-05 - Metals (structural steel, misc metals — TON, LF)
-06 - Wood, Plastics & Composites (framing, sheathing, millwork — BF, LF, SF)
-07 - Thermal & Moisture Protection (roofing, insulation, waterproofing — SF, SQ)
-08 - Openings (doors, windows, hardware — EA)
-09 - Finishes (drywall, flooring, paint, tile — SF, SY)
-10 - Specialties (toilet accessories, signage, lockers — EA, LS)
-11 - Equipment (appliances, kitchen equipment — EA)
-12 - Furnishings (casework, window treatments — LF, EA)
-13 - Special Construction (pools, clean rooms — LS, SF)
-14 - Conveying Equipment (elevators, escalators — EA)
-21 - Fire Suppression (sprinkler heads, pipes — EA, LF)
-22 - Plumbing (fixtures, pipes, water heater — EA, LF)
-23 - HVAC (equipment, ductwork, diffusers — EA, TON, LF)
-26 - Electrical (panels, devices, conduit, fixtures — EA, LF)
-27 - Communications (data, phone, AV — EA, LF)
-28 - Electronic Safety & Security (cameras, access control — EA)
-31 - Earthwork (grading, excavation, fill — CY, AC)
-32 - Exterior Improvements (paving, landscaping, curbs — SF, LF, SY)
-33 - Utilities (underground piping, manholes — LF, EA)
-`.trim();
+// CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
+// Keeping a minimal reference for the schema only.
+const CSI_DIVISIONS_REFERENCE = ""; // No longer injected into prompts
 
 // ─── Pass 1: Extraction System Prompt ─────────────────────────────────────────
 
-const EXTRACTION_SYSTEM_PROMPT = `You are a senior construction estimator with 20+ years of experience performing quantity takeoffs from construction drawings. You work for a general contractor and produce accurate, detailed quantity takeoffs used for bidding.
+const EXTRACTION_SYSTEM_PROMPT = `You are a senior construction estimator performing a quantity takeoff from a construction drawing.
 
-## YOUR TASK
-Look at this construction drawing holistically — the notes, the details, the dimensions, the construction processes required to build what's shown. Give back an itemized takeoff of every measurable quantity visible on this sheet.
+## TASK
+Extract every measurable item visible on this sheet. Be thorough — include everything a contractor would need to price and build.
 
 ## PROCESS:
-1. Read the title block: get the sheet name, number, and drawing type
-2. Classify the sheet type: floor_plan, elevation, section, detail, schedule, site_plan, structural, mep, electrical, plumbing, hvac, landscape, cover, or other
-3. Work through the drawing systematically — area by area, room by room, or system by system
-4. Extract EVERY measurable item — be thorough, not selective
-5. Assign CSI codes: every item gets a 2-digit division code AND a full 6-digit CSI code
-6. Set unitCost to 1 for ALL items — pricing is applied separately after extraction
-7. Show your math in the notes field (e.g., "110.33' × 82.17' = 9,067 SF")
+1. Read the title block: sheet name, number, drawing type
+2. Classify: floor_plan, elevation, section, detail, schedule, site_plan, structural, mep, electrical, plumbing, hvac, landscape, cover, or other
+3. Work systematically — area by area, element by element
+4. For each item: description, quantity, unit, and show your math in notes
+5. Set unitCost to 1 for ALL items (pricing applied separately)
+6. For csiDivision: use your best guess (2-digit, e.g. "03" for concrete). If unsure, use "99"
+7. For csiCode: use your best guess (e.g. "03 30 00"). If unsure, use "99 00 00"
 
-## UNITS — USE INDUSTRY STANDARD:
-- Area: SF (square feet)
-- Linear: LF (linear feet)
-- Volume: CY (cubic yards) — always convert CF to CY (divide by 27)
-- Count: EA (each)
-- Steel: TON
-- Roofing: SQ (100 SF) for shingles/membrane, SF for metal
-- Do NOT use LS (lump sum) if you can calculate a real quantity
+## UNITS:
+SF (area), LF (linear), CY (volume — always convert CF÷27), EA (count), TON (steel), SQ (roofing 100SF)
+Do NOT use LS if you can calculate a real quantity.
 
-## MEASUREMENT RULES:
-- Floor areas: net interior dimensions, not gross footprint
-- Wall lengths: centerline measurement
-- Concrete: always specify thickness and application
-- Framing: specify member size, spacing, and orientation
+## KEY RULES:
+- Slabs: extract with area (SF) AND thickness — 4" and 6" slabs are DIFFERENT items
+- Footings: total LF from plan view; detail sheets show cross-sections, NOT additional length
 - Earthwork: CY only, never CF
-- Slabs: ALWAYS extract with area (SF) and thickness — 4" and 6" slabs are DIFFERENT items
-- Footings: get total LF from plan view; detail sheets show cross-sections, NOT additional length
-- Spread footings: EA with dimensions, calculate CY if dimensions given
+- Concrete: specify thickness and application
+- Show math in notes (e.g., "110.33' × 82.17' = 9,067 SF")
 
-## CONFIDENCE SCORING:
-- 90-100: Dimension explicitly labeled on drawing
-- 75-89: Can be measured from scaled drawing or counted directly
-- 60-74: Estimated from typical construction ratios or partial information
-- 40-59: Inferred from context, drawing is unclear
-- Below 40: Best guess, drawing very unclear
+## CONFIDENCE: 90-100 = labeled dimension, 75-89 = measurable, 60-74 = estimated, 40-59 = inferred, <40 = guess
 
-## DO NOT EXTRACT:
-- Specification notes (e.g., "Grade 60 KSI yield strength", "ASTM A36")
-- General notes (e.g., "All dimensions shall be verified")
-- Code requirements (e.g., "Conform to AISC")
-- Material specifications (e.g., "Southern Pine No. 2 Grade")
-- Construction methods (e.g., "Trusses shall be cambered")
-- Nailing/fastening schedules
-- Any text describing HOW to build rather than WHAT to build
-
-A valid takeoff item MUST have a measurable physical quantity > 0 that a contractor can order or install.
-
-${CSI_DIVISIONS_REFERENCE}`;
+## DO NOT EXTRACT: spec notes, general notes, code requirements, material specs, construction methods, nailing schedules. Only extract items with measurable physical quantity > 0.`;
 
 // ─── Pass 2: Verification System Prompt ───────────────────────────────────────
 
-const VERIFICATION_SYSTEM_PROMPT = `You are a senior QA construction estimator reviewing a quantity takeoff for accuracy and completeness.
+const VERIFICATION_SYSTEM_PROMPT = `You are a QA estimator reviewing a quantity takeoff against a construction drawing.
 
-## YOUR TASK
-You are given:
-1. A construction drawing image
-2. A quantity takeoff that was extracted from this drawing
-
-Compare the takeoff to what you see in the drawing. Your job:
-- Find items that are MISSING from the takeoff (visible on the drawing but not extracted)
-- Find items with WRONG quantities (quantity doesn't match what's shown)
-- Find items with WRONG units (e.g., should be CY not SF)
-- Find items that should NOT be there (spec notes, not actual quantities)
-- DO NOT remove items just because you're unsure — only remove clear errors
+## TASK:
+Compare the extracted takeoff to the drawing. Find:
+- MISSING items (visible on drawing but not extracted)
+- WRONG quantities or units
+- Items that should NOT be there (spec notes, not quantities)
 
 ## RULES:
-- Keep all items that look correct — do not change them
-- Fix quantities and units where you can see a clear error
-- Add missing items you can identify from the drawing
-- Remove items that are clearly spec notes or non-measurable text
+- Keep correct items unchanged
+- Fix clear quantity/unit errors
+- Add missing items you can identify
+- Remove only clear spec notes or non-measurable text
 - Set unitCost to 1 for ALL items
-- Show your reasoning in the notes field
+- For csiDivision/csiCode: keep original values or use best guess
+- Show reasoning in notes
 
 ## IMPORTANT:
-- If the original extraction looks correct, return it unchanged
-- Do not reduce the item count by more than 30% — if you're removing that many items, you're being too aggressive
-- Prefer keeping items with lower confidence over removing them — the post-processor will handle dedup
-
-${CSI_DIVISIONS_REFERENCE}`;
+- If extraction looks correct, return it unchanged
+- Do NOT reduce item count by more than 30%
+- Prefer keeping uncertain items over removing them`;
 
 // ─── Response Schema (shared for both passes) ─────────────────────────────────
 
