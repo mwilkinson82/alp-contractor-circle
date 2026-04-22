@@ -153,6 +153,7 @@ export default function TakeoffDetail() {
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -169,6 +170,17 @@ export default function TakeoffDetail() {
   const [openSettingsToScope, setOpenSettingsToScope] = useState(false);
   // Track previous scopeText to detect scope changes
   const prevScopeTextRef = useRef<string | null>(null);
+
+  // Prevent navigation during upload — PDF-to-image conversion runs client-side
+  useEffect(() => {
+    if (!uploading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [uploading]);
 
   const [markups, setMarkups] = useState({
     labor: 0,
@@ -510,9 +522,11 @@ export default function TakeoffDetail() {
     const numPages = pdf.numPages;
 
     toast.info(`Found ${numPages} pages in ${file.name}`);
+    setUploadProgress({ current: 0, total: numPages });
 
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       try {
+        setUploadProgress({ current: pageNum, total: numPages });
         const page = await pdf.getPage(pageNum);
         const scale = 2.0; // High resolution for ConstructLine analysis
         const viewport = page.getViewport({ scale });
@@ -535,12 +549,11 @@ export default function TakeoffDetail() {
           imageData: base64,
           contentType: "image/png",
         });
-
-        toast.success(`Uploaded page ${pageNum}/${numPages}`);
       } catch (err: any) {
         toast.error(`Failed to process page ${pageNum}: ${err.message}`);
       }
     }
+    setUploadProgress(null);
   };
 
   // ─── Drag & Drop ──────────────────────────────────────────────────────────
@@ -1058,7 +1071,8 @@ export default function TakeoffDetail() {
 
           {/* ─── Sheets Tab ──────────────────────────────────────────────── */}
           <TabsContent value="sheets">
-            {/* Upload Area */}
+            {/* Upload Area — hidden during processing when sheets already exist */}
+            {!(isProcessing && sheets.length > 0) && (
             <div
               data-tour="takeoff-upload-area"
               className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
@@ -1082,7 +1096,30 @@ export default function TakeoffDetail() {
                 {uploading ? (
                   <>
                     <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-                    <p className="text-cream font-medium">Uploading drawings...</p>
+                    <p className="text-cream font-medium">
+                      {uploadProgress
+                        ? `Converting & uploading page ${uploadProgress.current} of ${uploadProgress.total}...`
+                        : "Uploading drawings..."}
+                    </p>
+                    {uploadProgress && (
+                      <div className="w-full max-w-xs">
+                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                            style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-cream-muted text-xs text-center mt-1.5">
+                          {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <p className="text-amber-300 text-xs font-medium">
+                        Please stay on this page — PDF conversion runs in your browser and will stop if you navigate away.
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -1107,6 +1144,7 @@ export default function TakeoffDetail() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Analyze Drawings Button — opens Pre-Analysis Modal */}
             {/* Shows when: sheets exist AND not currently processing */}

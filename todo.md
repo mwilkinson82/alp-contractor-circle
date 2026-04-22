@@ -2996,3 +2996,14 @@
 - [x] Keep elapsed timer in processing overlay
 - [x] Remove yellow counter bar at top (redundant with processing overlay timer)
 - [x] Fix error card layout overflow — refresh icon overflows on error sheet cards
+
+## Upload Navigation Issue — April 22
+- [x] BUG: Navigating away during PDF upload/image conversion silently kills the process — user comes back to find nothing processed
+- [x] Investigate: PDF-to-image conversion is client-side (pdf.js renders each page to canvas in browser, then uploads base64 PNG one-by-one)
+- [x] Fix: Added beforeunload browser warning + visible "stay on this page" notice with amber warning box + per-page progress bar ("Converting & uploading page 5 of 24...")
+- [x] Ensure upload progress is not silently lost when user clicks away
+
+## Hide Upload Area During Processing — April 22
+- [x] Hide the drag-and-drop upload area when analysis is running (isProcessing) — it's dead space pushing the animation down
+- [x] Processing overlay now sits at the top of the sheets tab, clean and prominent
+- [x] Upload area reappears after processing completes so user can add more sheets later
