@@ -3468,7 +3468,7 @@ export async function sendConstructLineWelcomeEmail(params: {
 
 
 // ─── Three Silos Framework Lead Magnet Delivery Email ────────────────────────
-const THREE_SILOS_PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_b948d967.pdf";
+const THREE_SILOS_PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_fixed_1add3fd9.pdf";
 
 function buildThreeSilosEmailHtml(params: { firstName: string }): string {
   return `

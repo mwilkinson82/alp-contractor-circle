@@ -8,7 +8,7 @@
 import { motion } from "framer-motion";
 import { useSearch } from "wouter";
 
-const PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_b948d967.pdf";
+const PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_fixed_1add3fd9.pdf";
 
 export default function ThreeSilosThankYou() {
   const searchString = useSearch();
