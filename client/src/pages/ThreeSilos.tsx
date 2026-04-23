@@ -14,7 +14,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
-const PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Three_Silos_Framework_v3_b948d967.pdf";
+const PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_b948d967.pdf";
 
 // ─── Animated Background ─────────────────────────────────────────────────
 function LandingBackground() {
