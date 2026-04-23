@@ -24,6 +24,8 @@ import Q2LeadMagnet from "./pages/Q2LeadMagnet";
 import Q2ThankYou from "./pages/Q2ThankYou";
 import EstimatingChecklist from "./pages/EstimatingChecklist";
 import EstimatingThankYou from "./pages/EstimatingThankYou";
+import ThreeSilos from "./pages/ThreeSilos";
+import ThreeSilosThankYou from "./pages/ThreeSilosThankYou";
 import TakeoffList from "./pages/TakeoffList";
 import TakeoffDetail from "./pages/TakeoffDetail";
 import CostLibrary from "./pages/CostLibrary";
@@ -50,6 +52,8 @@ function Router() {
       <Route path={"/q2/thank-you"} component={Q2ThankYou} />
       <Route path={"/estimating"} component={EstimatingChecklist} />
       <Route path={"/estimating/thank-you"} component={EstimatingThankYou} />
+      <Route path={"/silos"} component={ThreeSilos} />
+      <Route path={"/silos/thank-you"} component={ThreeSilosThankYou} />
 
       {/* ConstructLine landing page + beta signup/login (public) */}
       <Route path={"/constructline"} component={ConstructLineLanding} />

@@ -15,7 +15,7 @@ import { presenceRouter } from "./presenceRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
-import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail } from "./email";
+import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail, sendThreeSilosEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
 import { z } from "zod";
 
@@ -223,6 +223,14 @@ export const appRouter = router({
             to: input.email,
             firstName: input.firstName,
           }).catch((err) => console.error("[Leads] Failed to send estimating checklist email:", err));
+        }
+
+        // Send the Three Silos Framework PDF delivery email
+        if (input.source === "three-silos-framework") {
+          sendThreeSilosEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send Three Silos email:", err));
         }
 
         // Notify Marshall of every lead magnet download

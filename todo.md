@@ -3093,3 +3093,15 @@
 - [x] Wire needsMeasurement=true into enhanceLumpSums for LS→measured unit conversions with qty=1 placeholder
 - [x] Add 'needs qty' indicator with Ruler icon in amber below quantity in takeoff table UI
 - [x] All 428 tests passing, 0 TS errors, server running clean
+
+## Three Silos Framework Lead Magnet
+- [x] Upload Three Silos PDF to CDN
+- [x] Add sendThreeSilosEmail delivery function in email.ts
+- [x] Wire source "three-silos-framework" in routers.ts leads.capture
+- [x] Add three_silos_single drip sequence mapping in dripAutoEnroll.ts
+- [x] Add three_silos_single drip emails in dripEmails.ts
+- [x] Add three_silos_single schedule in dripEmails.ts
+- [x] Build ThreeSilos landing page (client/src/pages/ThreeSilos.tsx)
+- [x] Build ThreeSilosThankYou page (client/src/pages/ThreeSilosThankYou.tsx)
+- [x] Register /silos and /silos/thank-you routes in App.tsx
+- [x] Test end-to-end flow

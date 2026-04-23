@@ -32,12 +32,14 @@ async function getPool() {
 const SOURCE_TO_SEQUENCE: Record<string, string> = {
   "estimating-checklist": "estimating_single",
   "q1-q2-framework": "q1q2_single",
+  "three-silos-framework": "three_silos_single",
 };
 
 // The opposite sequence for double-dipper detection
 const OPPOSITE_SEQUENCE: Record<string, string> = {
   estimating_single: "q1q2_single",
   q1q2_single: "estimating_single",
+  three_silos_single: "estimating_single",
 };
 
 /**

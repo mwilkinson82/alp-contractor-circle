@@ -396,11 +396,109 @@ const HP_3: DripEmailDef = {
     `Hey ${fn} —\n\nI've sent you a couple emails. If they resonated, great — I'd love to hear from you. If not, no hard feelings.\n\nBut if you're a contractor who's serious about scaling and you want the full system — estimating, planning, accountability, execution — here's where to go:\n\nalpcontractorcircle.com\n\nThat's my Contractor Circle. Live coaching, battle-tested frameworks, and a community of operators who are actually building. $497/mo, founding rate locked forever.\n\nThe only thing that matters to me is that you win.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEQUENCE 5: THREE SILOS FRAMEWORK SINGLE-DIPPERS (5 emails)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TS_1: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 1,
+  subject: (fn) => `${fn}, which silo is broken?`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`Hope you've had a chance to read through the Three Silos Framework. If you haven't yet, do it today — it's 5 pages and it will change how you think about your business.`) +
+    p(`Here's the question I want you to sit with: which silo is your weakest?`) +
+    p(`Most contractors I work with think their problem is "not enough work" — that's an Attention problem. But when I dig in, it's almost never that. It's usually a People problem disguised as a revenue problem. They can't scale because they can't delegate. They can't delegate because they don't have the right people. And they don't have the right people because nobody knows who they are.`) +
+    p(`See how the silos connect? That's the flywheel. When one breaks, they all slow down.`) +
+    p(`Go back to the diagnostic checklist on page 4. Be brutally honest. The boxes you can't check — that's where the real work is.`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nHope you've had a chance to read through the Three Silos Framework. If you haven't yet, do it today — it's 5 pages and it will change how you think about your business.\n\nHere's the question I want you to sit with: which silo is your weakest?\n\nMost contractors I work with think their problem is "not enough work" — that's an Attention problem. But when I dig in, it's almost never that. It's usually a People problem disguised as a revenue problem.\n\nGo back to the diagnostic checklist on page 4. Be brutally honest. The boxes you can't check — that's where the real work is.\n\nMarshall`,
+};
+
+const TS_2: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 2,
+  subject: (_fn) => `The $6M contractor who couldn't leave for a week`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`I worked with a contractor doing $6M a year. Profitable on paper. But he couldn't take a week off without the whole thing falling apart.`) +
+    p(`His Attention silo was strong — he had a reputation, referrals came in. His People silo was decent — good crews, loyal guys. But his Process silo was nonexistent. Nothing was documented. Nothing was systematized. Every decision ran through him.`) +
+    p(`He was the bottleneck. And he didn't even realize it because he was too busy being the bottleneck.`) +
+    p(`We spent 90 days building three things: a documented estimating process, a project handoff system, and a weekly accountability rhythm. That's it. Three processes.`) +
+    p(`Within 6 months he took two weeks off and revenue didn't dip. Within a year he was at $9M. Not because he worked harder — because the system worked without him.`) +
+    p(`That's what Process does. It's the silo that sets you free.`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI worked with a contractor doing $6M a year. Profitable on paper. But he couldn't take a week off without the whole thing falling apart.\n\nHis Process silo was nonexistent. Nothing was documented. Every decision ran through him.\n\nWe spent 90 days building three things: a documented estimating process, a project handoff system, and a weekly accountability rhythm.\n\nWithin 6 months he took two weeks off and revenue didn't dip. Within a year he was at $9M.\n\nThat's what Process does. It's the silo that sets you free.\n\nMarshall`,
+};
+
+const TS_3: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 3,
+  subject: (_fn) => `"We don't need marketing — we get all our work from referrals"`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`I hear this constantly. And every time I hear it, I know exactly what's going to happen next.`) +
+    p(`Referrals dry up. A big client moves on. The phone stops ringing for two months. And suddenly you're scrambling, cutting prices, taking bad jobs just to keep the lights on.`) +
+    p(`Referrals are great. But they're not a system. They're a byproduct of doing good work — and they're completely outside your control.`) +
+    p(`The Attention silo isn't about running ads or posting on social media. It's about building a predictable, repeatable way to generate interest in your company. So that when referrals slow down — and they will — you're not starting from zero.`) +
+    p(`The data backs this up: 35% of business failures come from having no market demand. Translation: nobody knew they existed.`) +
+    p(`You don't need to become a marketing guru. You need one consistent channel that works. That's it.`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI hear this constantly: "We don't need marketing — we get all our work from referrals."\n\nReferrals are great. But they're not a system. They're completely outside your control.\n\nThe Attention silo isn't about running ads. It's about building a predictable way to generate interest. So when referrals slow down, you're not starting from zero.\n\n35% of business failures come from having no market demand. Translation: nobody knew they existed.\n\nYou don't need to become a marketing guru. You need one consistent channel that works.\n\nMarshall`,
+};
+
+const TS_4: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 4,
+  subject: (_fn) => `The flywheel is either spinning or it's not`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`By now you've had the Three Silos Framework for about a week. Let me ask you something direct:`) +
+    p(`Is your flywheel spinning?`) +
+    p(`More Attention brings more revenue and attracts better talent. Better People deliver a superior product and build more effective processes. Stronger Processes create the capacity to handle more attention and onboard more people. And the cycle repeats.`) +
+    p(`If any one of those three is broken, the whole thing stalls. And here's what most people don't realize: you can't fix all three at once. You pick the weakest one and you fix that first.`) +
+    p(`If nobody knows you exist → fix Attention.`) +
+    p(`If you can't keep good people → fix People.`) +
+    p(`If everything depends on you → fix Process.`) +
+    p(`One silo. One quarter. Full focus. That's how you get the flywheel moving.`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nIs your flywheel spinning?\n\nMore Attention → Better People → Stronger Processes → cycle repeats.\n\nIf any one is broken, the whole thing stalls. You can't fix all three at once. Pick the weakest one first.\n\nIf nobody knows you exist → fix Attention.\nIf you can't keep good people → fix People.\nIf everything depends on you → fix Process.\n\nOne silo. One quarter. Full focus.\n\nMarshall`,
+};
+
+const TS_5: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 5,
+  subject: (_fn) => `Last thing from me on this`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`I've sent you a few emails since you downloaded the Three Silos Framework. I hope they've been useful. This is the last one in this series.`) +
+    p(`Here's what I know after $2.5 billion in construction: the contractors who win aren't the ones with the most talent, the best equipment, or the lowest prices. They're the ones who build a system that works without them.`) +
+    p(`Attention. People. Process. That's the whole game.`) +
+    p(`If you're ready to stop being the bottleneck and actually build the system, I've got two ways to help:`) +
+    p(`<strong>The Contractor Circle</strong> — live coaching, battle-tested frameworks, and a community of operators who are actually building. $497/mo, founding rate locked forever.`) +
+    p(link("alpcontractorcircle.com", CIRCLE_URL)) +
+    p(`Or reply to this email and tell me what you're working on. I read every reply.`) +
+    p(`The only thing that matters to me is that you win.`) +
+    sigFull()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI've sent you a few emails since you downloaded the Three Silos Framework. I hope they've been useful. This is the last one in this series.\n\nHere's what I know after $2.5 billion in construction: the contractors who win aren't the ones with the most talent, the best equipment, or the lowest prices. They're the ones who build a system that works without them.\n\nAttention. People. Process. That's the whole game.\n\nIf you're ready to stop being the bottleneck:\n\nThe Contractor Circle — live coaching, battle-tested frameworks, $497/mo founding rate locked forever.\nalpcontractorcircle.com\n\nOr reply to this email and tell me what you're working on. I read every reply.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
+};
+
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 export const ALL_DRIP_EMAILS: DripEmailDef[] = [
   EST_1, EST_2, EST_3, EST_4, EST_5,
   Q1Q2_1, Q1Q2_2, Q1Q2_3, Q1Q2_4, Q1Q2_5,
+  TS_1, TS_2, TS_3, TS_4, TS_5,
   DD_1, DD_2, DD_3,
   HP_1, HP_2, HP_3,
 ];
@@ -428,6 +526,7 @@ const SCHEDULE: Record<string, number[]> = {
   // index 0 = delivery email (step 0), index 1 = step 1, etc.
   estimating_single: [0, 2, 2, 3, 3, 4], // Day 0, 2, 4, 7, 10, 14
   q1q2_single: [0, 2, 2, 3, 3, 4],       // same
+  three_silos_single: [0, 2, 2, 3, 3, 4], // Day 0, 2, 4, 7, 10, 14
   double_dipper: [0, 0, 3, 3],            // Day 0, 0(immediate), 3, 6
   homepage_only: [0, 1, 2, 2],            // Day 0, 1, 3, 5
 };

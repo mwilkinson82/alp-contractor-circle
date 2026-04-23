@@ -3464,3 +3464,210 @@ export async function sendConstructLineWelcomeEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+
+
+// ─── Three Silos Framework Lead Magnet Delivery Email ────────────────────────
+const THREE_SILOS_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Three_Silos_Framework_v3_b948d967.pdf";
+
+function buildThreeSilosEmailHtml(params: { firstName: string }): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Three Silos Framework</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Gradient Bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Badge -->
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+                  <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">Your Three Silos Framework</span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Headline -->
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:28px;font-weight:700;line-height:1.2;font-family:Georgia,'Times New Roman',serif;">
+              Hey ${params.firstName} — here's your framework.
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+
+          <!-- Subtext -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.7);font-size:15px;line-height:1.7;padding:0 20px;">
+              The Three Silos Framework breaks business down to its three fundamentals: Attention, People, and Process. Master these three and everything else falls into place.
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Download CTA -->
+          <tr>
+            <td align="center">
+              <a href="${THREE_SILOS_PDF_URL}" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                Download the Framework →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- What's Inside Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+              <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px 0;font-weight:600;">Inside the Framework</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#EDE6DB;font-size:14px;line-height:2;padding:0;">
+                    ✓ The Complexity Trap — why most businesses overcomplicate growth<br/>
+                    ✓ The Three Silos: Attention, People, Process<br/>
+                    ✓ The Flywheel Effect — how the silos compound on each other<br/>
+                    ✓ Why Most Businesses Stall — the data behind failure<br/>
+                    ✓ The Diagnostic Checklist — 12 questions to find your bottleneck
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Next Steps Card -->
+          <tr>
+            <td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+              <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px 0;font-weight:600;">Your Next 3 Moves</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#EDE6DB;font-size:14px;line-height:2;padding:0;">
+                    <strong style="color:#D4915C;">1.</strong> Read the framework. It's 5 pages. Takes 10 minutes.<br/>
+                    <strong style="color:#D4915C;">2.</strong> Run the diagnostic checklist on page 4. Be honest.<br/>
+                    <strong style="color:#D4915C;">3.</strong> Identify your weakest silo. That's where you start.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Divider -->
+          <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+
+          <!-- Circle CTA -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.5);font-size:13px;line-height:1.7;padding:0 20px;">
+              Want live coaching, more frameworks, and a community of operators scaling 7- and 8-figure businesses?
+            </td>
+          </tr>
+          <tr><td style="height:12px;"></td></tr>
+          <tr>
+            <td align="center">
+              <a href="https://alpcontractorcircle.com" style="display:inline-block;border:1px solid rgba(212,145,92,0.3);background:rgba(212,145,92,0.08);color:#D4915C;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:0.5px;">
+                Explore The Contractor Circle →
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+          <!-- Signature -->
+          <tr>
+            <td align="center">
+              <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,rgba(212,145,92,0.3),transparent);margin:0 auto 16px;"></div>
+              <p style="color:#EDE6DB;font-size:14px;font-weight:600;margin:0;">Marshall Wilkinson</p>
+              <p style="color:rgba(237,230,219,0.4);font-size:12px;margin:4px 0 0 0;">Founder, ALP | $2.5B+ in Construction</p>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildThreeSilosEmailText(params: { firstName: string }): string {
+  return `Hey ${params.firstName} — here's your Three Silos Framework.
+
+The Three Silos Framework breaks business down to its three fundamentals: Attention, People, and Process. Master these three and everything else falls into place.
+
+Download the framework here:
+${THREE_SILOS_PDF_URL}
+
+─────────────────────────────────────
+
+Inside the Framework:
+
+✓ The Complexity Trap — why most businesses overcomplicate growth
+✓ The Three Silos: Attention, People, Process
+✓ The Flywheel Effect — how the silos compound on each other
+✓ Why Most Businesses Stall — the data behind failure
+✓ The Diagnostic Checklist — 12 questions to find your bottleneck
+
+─────────────────────────────────────
+
+Your Next 3 Moves:
+
+1. Read the framework. It's 5 pages. Takes 10 minutes.
+2. Run the diagnostic checklist on page 4. Be honest.
+3. Identify your weakest silo. That's where you start.
+
+─────────────────────────────────────
+
+Want more frameworks, live coaching, and a community of operators?
+→ https://alpcontractorcircle.com
+
+— Marshall Wilkinson
+Founder, ALP | $2.5B+ in Construction
+`;
+}
+
+export async function sendThreeSilosEmail(params: {
+  to: string;
+  firstName: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping Three Silos delivery");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Your Three Silos Framework — Download Inside",
+      html: buildThreeSilosEmailHtml({ firstName: params.firstName }),
+      text: buildThreeSilosEmailText({ firstName: params.firstName }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send Three Silos email:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Three Silos Framework sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending Three Silos email:", err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
