@@ -6,6 +6,9 @@ import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification } f
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 import { upsertSupabaseMember } from "./supabaseClient";
 import { markDripConverted } from "./dripAutoEnroll";
+import { webhookEvents } from "../drizzle/schema";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 
 /**
  * Register the Stripe webhook endpoint.
@@ -50,6 +53,20 @@ export function registerStripeWebhook(app: Express) {
       }
 
       console.log(`[Stripe Webhook] Received event: ${event.type} (${event.id})`);
+      // Log webhook receipt for monitoring
+      try {
+        const pool = mysql.createPool(process.env.DATABASE_URL!);
+        const logDb = drizzle(pool);
+        await logDb.insert(webhookEvents).values({
+          eventType: "webhook_received",
+          stripeId: event.id,
+          details: `Stripe event: ${event.type}`,
+          success: true,
+        });
+        await pool.end();
+      } catch (logErr) {
+        console.warn("[Stripe Webhook] Failed to log webhook event:", logErr);
+      }
 
       try {
         switch (event.type) {

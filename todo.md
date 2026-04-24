@@ -3171,3 +3171,8 @@
 - [x] Add real-time Stripe API lookup when subscription gate blocks a user — checks Stripe customers.list + subscriptions.list by email
 - [x] If Stripe confirms active subscription, update member record (subscriptionStatus, stripeCustomerId, stripeSubscriptionId) and let them through
 - [x] Log the fallback with detailed console output so we can track webhook reliability
+
+## Landing Page Error Message + Webhook Monitoring
+- [x] Show clear error message on /circle landing page when ?error=no_subscription is in the URL — amber banner with explanation and auto-dismiss
+- [x] Add webhook reliability monitoring — webhook_events table logs all webhook receipts, fallback rescues, and gate blocks
+- [x] Added tRPC endpoint webhookMonitor.getEvents for admin visibility with summary stats

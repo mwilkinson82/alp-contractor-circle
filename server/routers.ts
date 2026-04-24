@@ -496,5 +496,24 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  webhookMonitor: router({
+    getEvents: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50) }).optional())
+      .query(async ({ input }) => {
+        const mysql2 = await import("mysql2/promise");
+        const { drizzle } = await import("drizzle-orm/mysql2");
+        const { desc } = await import("drizzle-orm");
+        const { webhookEvents } = await import("../drizzle/schema");
+        const pool = mysql2.createPool(process.env.DATABASE_URL!);
+        const db = drizzle(pool);
+        const limit = input?.limit ?? 50;
+        const events = await db.select().from(webhookEvents).orderBy(desc(webhookEvents.createdAt)).limit(limit);
+        await pool.end();
+        const fallbackCount = events.filter(e => e.eventType === "stripe_fallback").length;
+        const blockedCount = events.filter(e => e.eventType === "gate_blocked").length;
+        const webhookCount = events.filter(e => e.eventType === "webhook_received").length;
+        return { events, summary: { fallbackCount, blockedCount, webhookCount, total: events.length } };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

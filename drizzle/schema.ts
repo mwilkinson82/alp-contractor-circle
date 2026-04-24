@@ -1392,3 +1392,23 @@ export const expandedLaborLibrary = mysqlTable("expanded_labor_library", {
 });
 export type ExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferSelect;
 export type InsertExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferInsert;
+
+// ─── Webhook Events Log (for monitoring Stripe webhook reliability) ──────────
+export const webhookEvents = mysqlTable("webhook_events", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Type of event: 'webhook_received', 'stripe_fallback', 'gate_blocked' */
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  /** Email of the user involved */
+  email: varchar("email", { length: 255 }),
+  /** Discord username if available */
+  discordUsername: varchar("discordUsername", { length: 128 }),
+  /** Stripe event ID or subscription ID */
+  stripeId: varchar("stripeId", { length: 255 }),
+  /** Human-readable details */
+  details: text("details"),
+  /** Whether the action succeeded */
+  success: boolean("success").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type InsertWebhookEvent = typeof webhookEvents.$inferInsert;

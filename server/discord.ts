@@ -18,6 +18,7 @@ import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendNewMemberSignupNotification } from "./email";
 import { stripe } from "./stripe";
+import { webhookEvents } from "../drizzle/schema";
 import { seedSmithResidenceForMember } from "./seedSmithResidence";
 import { seedDefaultCrewsForMember, seedDefaultTradeRatesForMember } from "./seedDefaultCrews";
 
@@ -582,6 +583,22 @@ export function registerDiscordOAuthRoutes(app: Express) {
                 const sub = subscriptions.data[0];
                 stripeConfirmed = true;
                 console.log(`[Discord OAuth] STRIPE FALLBACK: Found active subscription ${sub.id} for ${memberEmail} — updating member record and allowing access`);
+                // Log the fallback event for monitoring
+                try {
+                  const db = getDb();
+                  if (db) {
+                    await db.insert(webhookEvents).values({
+                      eventType: "stripe_fallback",
+                      email: memberEmail,
+                      discordUsername: discordUser.username,
+                      stripeId: sub.id,
+                      details: `Webhook missed — Stripe API confirmed active subscription. Updated member record from "${member.subscriptionStatus}" to "${sub.status}". Customer: ${customer.id}`,
+                      success: true,
+                    });
+                  }
+                } catch (logErr) {
+                  console.warn("[Discord OAuth] Failed to log fallback event:", logErr);
+                }
                 // Update the member record so this doesn't happen again
                 await upsertMember({
                   discordId: discordUser.id,
@@ -604,6 +621,21 @@ export function registerDiscordOAuthRoutes(app: Express) {
         }
         if (!stripeConfirmed) {
           console.log(`[Discord OAuth] BLOCKED: ${discordUser.username} (${memberEmail}) has subscriptionStatus="${member.subscriptionStatus}" and no active Stripe subscription — redirecting to sales page`);
+          // Log the block event for monitoring
+          try {
+            const db = getDb();
+            if (db) {
+              await db.insert(webhookEvents).values({
+                eventType: "gate_blocked",
+                email: memberEmail,
+                discordUsername: discordUser.username,
+                details: `Blocked login attempt — subscriptionStatus="${member.subscriptionStatus}", no active Stripe subscription found`,
+                success: false,
+              });
+            }
+          } catch (logErr) {
+            console.warn("[Discord OAuth] Failed to log block event:", logErr);
+          }
           res.redirect(302, `${origin}/circle?error=no_subscription`);
           return;
         }
