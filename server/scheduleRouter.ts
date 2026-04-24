@@ -29,15 +29,32 @@ const BETA_MEMBER_OFFSET = 10_000_000;
  * Returns a Member-shaped object for either a Discord member or a ConstructLine (beta) user.
  * Beta users get a virtual memberId = BETA_MEMBER_OFFSET + betaUser.id so their data is isolated.
  */
+/**
+ * Whitelisted member IDs — bypass subscription check.
+ * Daniel G (1320007), alpteambot (360002).
+ */
+const WHITELISTED_MEMBER_IDS = new Set([1320007, 360002]);
+
 async function requireMember(req: any): Promise<Member> {
   // Try Discord member first
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
   if (session) {
     const member = await getMemberById(session.memberId);
-    if (member) return member;
+    if (member) {
+      // Whitelisted members bypass subscription check
+      if (WHITELISTED_MEMBER_IDS.has(member.id)) return member;
+      // Everyone else must have an active subscription
+      if (member.subscriptionStatus !== "active") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "An active Contractor Circle subscription is required to access this feature.",
+        });
+      }
+      return member;
+    }
   }
-  // Fall back to ConstructLine (beta) user
+  // Fall back to ConstructLine (beta) user — beta users have their own gating
   const betaUser = await getBetaUserFromRequest(req);
   if (betaUser) {
     return {

@@ -40,6 +40,10 @@ import {
 } from "../shared/tradeRates";
 
 const BETA_MEMBER_OFFSET = 10_000_000;
+
+/** Whitelisted member IDs — bypass subscription check. Daniel G (1320007), alpteambot (360002). */
+const WHITELISTED_MEMBER_IDS = new Set([1320007, 360002]);
+
 async function getMemberFromRequest(req: any): Promise<Member | null> {
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
@@ -74,6 +78,14 @@ async function getMemberFromRequest(req: any): Promise<Member | null> {
 async function requireMember(ctx: any) {
   const member = await getMemberFromRequest(ctx.req);
   if (!member) throw new TRPCError({ code: "UNAUTHORIZED", message: "Not a member" });
+  // Beta users bypass subscription check
+  if (member.id >= BETA_MEMBER_OFFSET) return member;
+  // Whitelisted members bypass subscription check
+  if (WHITELISTED_MEMBER_IDS.has(member.id)) return member;
+  // Everyone else must have an active subscription
+  if (member.subscriptionStatus !== "active") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "An active Contractor Circle subscription is required." });
+  }
   return member;
 }
 

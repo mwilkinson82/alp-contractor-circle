@@ -3122,6 +3122,13 @@
 - [x] Upload Three Silos Framework PDF to CDN
 - [x] Upload EOS Component Connection Map PDF to CDN
 - [x] Insert both templates into SQL database under Operations category
-- [ ] Deploy and verify templates are accessible in library
+- [x] Deploy and verify templates are accessible in library
 - [ ] Send test email to Marshall for approval
 - [ ] Send announcement email to all members
+
+## Subscription Gate — Portal Access Control
+- [x] Add subscription check to requireMember() — only active subscribers allowed
+- [x] Whitelist Daniel G (ID 1320007) and alpteambot (ID 360002)
+- [x] Block supreme_1780 (ID 1410005) and Samuel Celia (ID 1410006)
+- [x] Add frontend gate — show "subscription required" page for non-subscribers
+- [x] Deploy and verify

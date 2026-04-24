@@ -29,12 +29,20 @@ const upload = multer({
 
 // ─── Auth helper (same pattern as scheduleRouter) ──────────────────────────
 
+/** Whitelisted member IDs — bypass subscription check. Daniel G (1320007), alpteambot (360002). */
+const WHITELISTED_MEMBER_IDS = new Set([1320007, 360002]);
+
 async function authenticateMember(req: Request) {
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
   if (!session) return null;
   const member = await getMemberById(session.memberId);
-  return member || null;
+  if (!member) return null;
+  // Whitelisted members bypass subscription check
+  if (WHITELISTED_MEMBER_IDS.has(member.id)) return member;
+  // Everyone else must have an active subscription
+  if (member.subscriptionStatus !== "active") return null;
+  return member;
 }
 
 // ─── In-memory progress tracker for active imports ─────────────────────────

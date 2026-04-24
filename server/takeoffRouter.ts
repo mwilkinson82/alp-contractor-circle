@@ -49,6 +49,13 @@ import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
 
+/**
+ * Whitelisted member IDs — these members bypass the subscription check.
+ * Daniel G (1320007) — granted ConstructLine access by Marshall.
+ * alpteambot (360002) — ALP team bot account.
+ */
+const WHITELISTED_MEMBER_IDS = new Set([1320007, 360002]);
+
 /** Helper: extract member from Discord session cookie, or fall back to ConstructLine beta user */
 async function getMemberFromRequest(req: any): Promise<Member | null> {
   // Try Discord member first
@@ -83,13 +90,24 @@ async function getMemberFromRequest(req: any): Promise<Member | null> {
   return null;
 }
 
-/** Helper: require Discord member auth */
+/** Helper: require Discord member auth + active subscription */
 async function requireMember(req: any) {
   const member = await getMemberFromRequest(req);
   if (!member) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "You must be logged in as a member to access takeoffs.",
+    });
+  }
+  // Beta users (ConstructLine public) bypass subscription check — they have their own gating
+  if (member.id >= BETA_MEMBER_OFFSET) return member;
+  // Whitelisted members bypass subscription check
+  if (WHITELISTED_MEMBER_IDS.has(member.id)) return member;
+  // Everyone else must have an active subscription
+  if (member.subscriptionStatus !== "active") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "An active Contractor Circle subscription is required to access this feature.",
     });
   }
   return member;
