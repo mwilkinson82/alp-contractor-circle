@@ -12,7 +12,8 @@ import { replays, members, callQuestions, bootcampTopics } from "../drizzle/sche
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 import { sendQuestionNotification, sendBootcampTopicNotification, sendTopicSelectedEmail } from "./email";
-import { emailSubscribers } from "../drizzle/schema";
+import { emailSubscribers, webhookEvents } from "../drizzle/schema";
+import { upsertMemberByEmail } from "./memberDb";
 import { storagePut } from "./storage";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -878,4 +879,95 @@ export const memberRouter = router({
     await getDb()!.update(members).set({ cpmOnboardingDone: true }).where(eq(members.id, member.id));
     return { success: true };
   }),
+
+  /**
+   * Admin: Manually verify a member's Stripe subscription status.
+   * Checks Stripe directly by email and updates the member record.
+   */
+  verifySubscription: publicProcedure
+    .input(z.object({ memberId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const admin = await getMemberFromRequest(ctx.req);
+      if (!admin || admin.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+
+      const [target] = await db.select().from(members).where(eq(members.id, input.memberId)).limit(1);
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+      if (!target.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Member has no email — cannot verify with Stripe" });
+      if (!stripe) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe not configured" });
+
+      const customers = await stripe.customers.list({ email: target.email, limit: 1 });
+      if (customers.data.length === 0) {
+        await db.insert(webhookEvents).values({
+          eventType: "manual_verify",
+          email: target.email,
+          details: `Admin manual verify: No Stripe customer found for ${target.email}`,
+          success: false,
+        });
+        return {
+          status: "no_customer" as const,
+          message: `No Stripe customer found for ${target.email}`,
+          previousStatus: target.subscriptionStatus,
+          newStatus: target.subscriptionStatus,
+        };
+      }
+
+      const customer = customers.data[0];
+      const activeSubs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 1 });
+      const trialingSubs = await stripe.subscriptions.list({ customer: customer.id, status: "trialing", limit: 1 });
+      const sub = activeSubs.data[0] || trialingSubs.data[0];
+      const previousStatus = target.subscriptionStatus;
+
+      if (sub) {
+        const newStatus = sub.status === "trialing" ? "trialing" : "active";
+        await upsertMemberByEmail({
+          email: target.email,
+          stripeCustomerId: customer.id,
+          stripeSubscriptionId: sub.id,
+          subscriptionStatus: newStatus as any,
+        });
+        await db.insert(webhookEvents).values({
+          eventType: "manual_verify",
+          email: target.email,
+          stripeId: sub.id,
+          details: `Admin manual verify: Found ${sub.status} subscription. Updated from "${previousStatus}" to "${newStatus}". Customer: ${customer.id}`,
+          success: true,
+        });
+        return {
+          status: "updated" as const,
+          message: `Subscription verified: ${newStatus} (was: ${previousStatus})`,
+          previousStatus,
+          newStatus,
+          stripeCustomerId: customer.id,
+          stripeSubscriptionId: sub.id,
+        };
+      } else {
+        const canceledSubs = await stripe.subscriptions.list({ customer: customer.id, status: "canceled", limit: 1 });
+        const newStatus = canceledSubs.data.length > 0 ? "canceled" : "none";
+        if (previousStatus !== newStatus) {
+          await upsertMemberByEmail({
+            email: target.email,
+            stripeCustomerId: customer.id,
+            subscriptionStatus: newStatus as any,
+          });
+        }
+        await db.insert(webhookEvents).values({
+          eventType: "manual_verify",
+          email: target.email,
+          stripeId: customer.id,
+          details: `Admin manual verify: No active subscription. Status: ${newStatus} (was: ${previousStatus}). Customer: ${customer.id}`,
+          success: false,
+        });
+        return {
+          status: "no_subscription" as const,
+          message: `No active subscription found (status: ${newStatus}, was: ${previousStatus})`,
+          previousStatus,
+          newStatus,
+          stripeCustomerId: customer.id,
+        };
+      }
+    }),
 });

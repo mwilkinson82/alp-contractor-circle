@@ -3176,3 +3176,9 @@
 - [x] Show clear error message on /circle landing page when ?error=no_subscription is in the URL — amber banner with explanation and auto-dismiss
 - [x] Add webhook reliability monitoring — webhook_events table logs all webhook receipts, fallback rescues, and gate blocks
 - [x] Added tRPC endpoint webhookMonitor.getEvents for admin visibility with summary stats
+
+## Manual Verify Subscription Button (Admin Members Page)
+- [x] Add tRPC mutation to check a member's Stripe subscription status by email and update their record
+- [x] Add "Verify Subscription" button (refresh icon) to each member row in AdminMembers page
+- [x] Add "Verify All" button in header to batch-verify all members at once
+- [x] Show result toast (updated/confirmed/no subscription found) with member name

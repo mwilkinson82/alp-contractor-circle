@@ -10,12 +10,12 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
-  Clock,
   ExternalLink,
   Search,
-  MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 
 function StatusDot({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -57,6 +57,36 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
+function VerifyButton({ memberId, memberName }: { memberId: number; memberName: string }) {
+  const utils = trpc.useUtils();
+  const verify = trpc.member.verifySubscription.useMutation({
+    onSuccess: (result) => {
+      utils.member.adminMembers.invalidate();
+      if (result.status === "updated") {
+        toast.success(`${memberName}: ${result.message}`);
+      } else if (result.status === "no_customer") {
+        toast.warning(`${memberName}: ${result.message}`);
+      } else {
+        toast.info(`${memberName}: ${result.message}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Failed to verify ${memberName}: ${err.message}`);
+    },
+  });
+
+  return (
+    <button
+      onClick={() => verify.mutate({ memberId })}
+      disabled={verify.isPending}
+      className="w-6 h-6 rounded bg-white/5 hover:bg-ember/10 flex items-center justify-center transition-colors disabled:opacity-50"
+      title="Verify subscription with Stripe"
+    >
+      <RefreshCw className={`w-3 h-3 text-cream-muted hover:text-ember ${verify.isPending ? "animate-spin" : ""}`} />
+    </button>
+  );
+}
+
 export default function AdminMembers() {
   const { member } = useMember();
   const { data, isLoading } = trpc.member.adminMembers.useQuery(undefined, {
@@ -67,6 +97,35 @@ export default function AdminMembers() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const isAdmin = member?.memberRole === "admin";
+
+  // Verify all members mutation
+  const utils = trpc.useUtils();
+  const verifyAll = trpc.member.verifySubscription.useMutation({
+    onSuccess: () => {
+      utils.member.adminMembers.invalidate();
+    },
+  });
+  const [verifyingAll, setVerifyingAll] = useState(false);
+
+  const handleVerifyAll = async () => {
+    if (!data?.members || verifyingAll) return;
+    setVerifyingAll(true);
+    let updated = 0;
+    let noChange = 0;
+    let errors = 0;
+    for (const m of data.members) {
+      try {
+        const result = await verifyAll.mutateAsync({ memberId: m.id });
+        if (result.status === "updated") updated++;
+        else noChange++;
+      } catch {
+        errors++;
+      }
+    }
+    setVerifyingAll(false);
+    utils.member.adminMembers.invalidate();
+    toast.success(`Verification complete: ${updated} updated, ${noChange} unchanged, ${errors} errors`);
+  };
 
   const filteredMembers = useMemo(() => {
     if (!data?.members) return [];
@@ -107,13 +166,23 @@ export default function AdminMembers() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
-          Members Dashboard
-        </h1>
-        <p className="text-cream-muted mt-1">
-          View all members, subscription status, and Discord link status.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
+            Members Dashboard
+          </h1>
+          <p className="text-cream-muted mt-1">
+            View all members, subscription status, and Discord link status.
+          </p>
+        </div>
+        <button
+          onClick={handleVerifyAll}
+          disabled={verifyingAll || isLoading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-ember/10 border border-ember/20 text-ember text-xs font-semibold hover:bg-ember/20 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${verifyingAll ? "animate-spin" : ""}`} />
+          {verifyingAll ? "Verifying..." : "Verify All"}
+        </button>
       </div>
 
       {/* Stats Row */}
@@ -186,7 +255,7 @@ export default function AdminMembers() {
               <div className="col-span-2">Role</div>
               <div className="col-span-2">Discord</div>
               <div className="col-span-2">Joined</div>
-              <div className="col-span-1">Last Sign-In</div>
+              <div className="col-span-1">Actions</div>
             </div>
 
             {filteredMembers.map(m => (
@@ -231,6 +300,7 @@ export default function AdminMembers() {
                         <ExternalLink className="w-3 h-3" /> Stripe
                       </a>
                     )}
+                    <VerifyButton memberId={m.id} memberName={m.displayName || m.email || "Member"} />
                   </div>
                 </div>
 
@@ -267,12 +337,15 @@ export default function AdminMembers() {
                       </span>
                     )}
                   </div>
-                  <div className="col-span-2 flex items-center gap-2">
+                  <div className="col-span-2">
                     <span className="text-xs text-cream-muted">
                       {m.createdAt
                         ? new Date(m.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                         : "—"}
                     </span>
+                  </div>
+                  <div className="col-span-1 flex items-center gap-1.5">
+                    <VerifyButton memberId={m.id} memberName={m.displayName || m.email || "Member"} />
                     {m.stripeCustomerId && (
                       <a
                         href={`https://dashboard.stripe.com/customers/${m.stripeCustomerId}`}
@@ -284,13 +357,6 @@ export default function AdminMembers() {
                         <ExternalLink className="w-3 h-3 text-cream-muted hover:text-ember" />
                       </a>
                     )}
-                  </div>
-                  <div className="col-span-1">
-                    <span className="text-xs text-cream-muted">
-                      {m.lastSignedIn
-                        ? new Date(m.lastSignedIn).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                        : <span className="text-cream-muted/40">Never</span>}
-                    </span>
                   </div>
                 </div>
               </div>
