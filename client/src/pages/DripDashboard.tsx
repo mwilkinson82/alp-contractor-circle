@@ -24,6 +24,7 @@ import {
 const SEQUENCE_LABELS: Record<string, string> = {
   estimating_single: "Estimating Checklist",
   q1q2_single: "Q1/Q2 Framework",
+  three_silos_single: "Three Silos Framework",
   double_dipper: "Double-Dipper",
   homepage_only: "Homepage Subscriber",
 };

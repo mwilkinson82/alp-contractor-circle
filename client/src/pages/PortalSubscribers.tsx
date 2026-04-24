@@ -6,12 +6,55 @@
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
-import { Mail, Download, Search, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Download, Search, Loader2, AlertCircle, Filter } from "lucide-react";
+
+/** Human-readable labels for subscriber source tags */
+const SOURCE_LABELS: Record<string, string> = {
+  homepage_capture: "Homepage",
+  "estimating-checklist": "Estimating Checklist",
+  "lead_magnet_estimating-checklist": "Estimating Checklist",
+  "q1-q2-framework": "Q1/Q2 Framework",
+  "lead_magnet_q1-q2-framework": "Q1/Q2 Framework",
+  "three-silos-framework": "Three Silos Framework",
+  "lead_magnet_three-silos-framework": "Three Silos Framework",
+  constructline_beta: "ConstructLine Beta",
+  "contractor-circle-subscribe": "Circle Subscriber",
+};
+
+/** Color classes for source badges */
+const SOURCE_COLORS: Record<string, string> = {
+  homepage_capture: "bg-blue-500/10 text-blue-400",
+  "estimating-checklist": "bg-purple-500/10 text-purple-400",
+  "lead_magnet_estimating-checklist": "bg-purple-500/10 text-purple-400",
+  "q1-q2-framework": "bg-teal-500/10 text-teal-400",
+  "lead_magnet_q1-q2-framework": "bg-teal-500/10 text-teal-400",
+  "three-silos-framework": "bg-amber-500/10 text-amber-400",
+  "lead_magnet_three-silos-framework": "bg-amber-500/10 text-amber-400",
+  constructline_beta: "bg-emerald-500/10 text-emerald-400",
+  "contractor-circle-subscribe": "bg-orange-500/10 text-orange-400",
+};
+
+/** Normalize source to a canonical key for grouping (strip lead_magnet_ prefix) */
+function normalizeSource(source: string | null | undefined): string {
+  const s = source || "homepage_capture";
+  return s.replace(/^lead_magnet_/, "");
+}
+
+function getSourceLabel(source: string | null | undefined): string {
+  const s = source || "homepage_capture";
+  return SOURCE_LABELS[s] || SOURCE_LABELS[normalizeSource(s)] || s.replace(/^lead_magnet_/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getSourceColor(source: string | null | undefined): string {
+  const s = source || "homepage_capture";
+  return SOURCE_COLORS[s] || SOURCE_COLORS[normalizeSource(s)] || "bg-white/5 text-cream-muted";
+}
 
 export default function PortalSubscribers() {
   const { member } = useMember();
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   // Check admin access
   if (member?.memberRole !== "admin") {
@@ -31,16 +74,39 @@ export default function PortalSubscribers() {
   // Fetch all subscribers
   const { data: subscribersData, isLoading, error } = trpc.member.adminSubscribers.useQuery();
 
-  // Filter subscribers based on search query
+  // Get unique sources for filter dropdown (grouped by normalized source)
+  const uniqueSources = useMemo(() => {
+    if (!subscribersData?.subscribers) return [];
+    const sourceCounts = new Map<string, number>();
+    subscribersData.subscribers.forEach((sub: any) => {
+      const normalized = normalizeSource(sub.source);
+      sourceCounts.set(normalized, (sourceCounts.get(normalized) || 0) + 1);
+    });
+    return Array.from(sourceCounts.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([source, count]) => ({ source, count }));
+  }, [subscribersData]);
+
+  // Filter subscribers based on search query and source filter
   const filteredSubscribers = useMemo(() => {
     if (!subscribersData?.subscribers) return [];
-    if (!searchQuery.trim()) return subscribersData.subscribers;
+    let result = subscribersData.subscribers;
 
-    const query = searchQuery.toLowerCase();
-    return subscribersData.subscribers.filter((sub: any) =>
-      sub.email.toLowerCase().includes(query)
-    );
-  }, [subscribersData, searchQuery]);
+    // Apply source filter (match by normalized source)
+    if (sourceFilter !== "all") {
+      result = result.filter((sub: any) => normalizeSource(sub.source) === sourceFilter);
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((sub: any) =>
+        sub.email.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [subscribersData, searchQuery, sourceFilter]);
 
   // Export to CSV
   const handleExport = () => {
@@ -51,7 +117,7 @@ export default function PortalSubscribers() {
       const headers = ["Email", "Source", "Verified", "Signup Date"];
       const rows = subscribersData.subscribers.map((sub: any) => [
         sub.email,
-        sub.source || "homepage_capture",
+        getSourceLabel(sub.source),
         sub.verified ? "Yes" : "No",
         new Date(sub.createdAt).toLocaleDateString("en-US"),
       ]);
@@ -116,24 +182,53 @@ export default function PortalSubscribers() {
 
       {/* Stats */}
       {subscribersData && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-card rounded-xl p-4">
-            <p className="text-cream-muted text-sm">Total Subscribers</p>
-            <p className="font-heading text-2xl font-bold text-cream mt-1">
-              {subscribersData.subscribers.length}
-            </p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="glass-card rounded-xl p-4">
+              <p className="text-cream-muted text-sm">Total Subscribers</p>
+              <p className="font-heading text-2xl font-bold text-cream mt-1">
+                {subscribersData.subscribers.length}
+              </p>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <p className="text-cream-muted text-sm">Verified</p>
+              <p className="font-heading text-2xl font-bold text-green-400 mt-1">
+                {subscribersData.subscribers.filter((s: any) => s.verified).length}
+              </p>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <p className="text-cream-muted text-sm">Unverified</p>
+              <p className="font-heading text-2xl font-bold text-yellow-400 mt-1">
+                {subscribersData.subscribers.filter((s: any) => !s.verified).length}
+              </p>
+            </div>
           </div>
-          <div className="glass-card rounded-xl p-4">
-            <p className="text-cream-muted text-sm">Verified</p>
-            <p className="font-heading text-2xl font-bold text-green-400 mt-1">
-              {subscribersData.subscribers.filter((s: any) => s.verified).length}
-            </p>
-          </div>
-          <div className="glass-card rounded-xl p-4">
-            <p className="text-cream-muted text-sm">Unverified</p>
-            <p className="font-heading text-2xl font-bold text-yellow-400 mt-1">
-              {subscribersData.subscribers.filter((s: any) => !s.verified).length}
-            </p>
+
+          {/* Source Breakdown */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSourceFilter("all")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                sourceFilter === "all"
+                  ? "bg-ember/20 text-ember border border-ember/30"
+                  : "bg-white/5 text-cream-muted border border-white/10 hover:bg-white/10"
+              }`}
+            >
+              All ({subscribersData.subscribers.length})
+            </button>
+            {uniqueSources.map(({ source, count }) => (
+              <button
+                key={source}
+                onClick={() => setSourceFilter(source)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  sourceFilter === source
+                    ? "bg-ember/20 text-ember border border-ember/30"
+                    : `${getSourceColor(source)} border border-white/10 hover:border-white/20`
+                }`}
+              >
+                {getSourceLabel(source)} ({count})
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -187,8 +282,8 @@ export default function PortalSubscribers() {
                       </a>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-cream-muted text-sm">
-                        {subscriber.source || "homepage_capture"}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getSourceColor(subscriber.source)}`}>
+                        {getSourceLabel(subscriber.source)}
                       </span>
                     </td>
                     <td className="px-6 py-4">

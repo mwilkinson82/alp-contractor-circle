@@ -554,6 +554,7 @@ export const dripEnrollments = mysqlTable("drip_enrollments", {
     "q1q2_single",
     "double_dipper",
     "homepage_only",
+    "three_silos_single",
   ]).notNull(),
   /** Current step in the sequence (1-based: 1 = first email, 2 = second, etc.) */
   currentStep: int("currentStep").default(0).notNull(),

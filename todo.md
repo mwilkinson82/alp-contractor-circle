@@ -3132,3 +3132,30 @@
 - [x] Block supreme_1780 (ID 1410005) and Samuel Celia (ID 1410006)
 - [x] Add frontend gate — show "subscription required" page for non-subscribers
 - [x] Deploy and verify
+
+## Takeoff Accuracy Improvements - Round 2
+- [ ] Fix rebar double-counting across Div 03/04/05 in post-processing
+- [ ] Update default allowances to realistic numbers (permits, contingency, cabinets, appliances, countertops)
+- [ ] Make allowances scale with project size (SF-based)
+- [ ] Fix HVAC equipment pricing in cost library
+- [ ] Fix fire suppression pricing in cost library
+- [ ] Fix plumbing fixture pricing in cost library
+- [ ] Fix electrical panel/wiring pricing in cost library
+
+## Member Status Fixes
+- [ ] Fix Jake's subscription status (showing as comped, should be active paid)
+- [ ] Fix Carson's subscription status (showing as comped, should be active paid)
+
+## Three Silos Source Tagging Fix
+- [ ] Fix Three Silos leads being tagged as "estimating-checklist" instead of "three-silos-framework"
+- [ ] Fix existing mis-tagged leads in database
+- [ ] Verify drip campaign enrollment for three-silos-framework source
+
+## CRITICAL BUG: Three Silos Leads Getting Wrong Drip (Apr 24)
+- [x] Fix Three Silos drip enrollment — root cause was drip_enrollments.sequenceId ENUM missing 'three_silos_single'
+- [x] Added three_silos_single to database ENUM and Drizzle schema
+- [x] Enrolled all 13 Three Silos leads into three_silos_single drip sequence
+- [x] Jon Cazares was actually an estimating-checklist lead (not Three Silos) — no fix needed
+- [x] Added three_silos_single to DripDashboard SEQUENCE_LABELS
+- [x] Added source filter badges + human-readable labels to PortalSubscribers page
+- [x] Normalized lead_magnet_ prefix handling in PortalSubscribers source display
