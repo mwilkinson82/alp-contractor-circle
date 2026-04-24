@@ -3117,3 +3117,11 @@
 - [ ] Update cost library with accurate residential construction pricing
 - [ ] Fix CSI-division-specific fallback defaults (replace generic $5.50/SF)
 - [ ] Re-test Kramer Residence pricing after improvements
+
+## Template Library - New Templates (Apr 24)
+- [x] Upload Three Silos Framework PDF to CDN
+- [x] Upload EOS Component Connection Map PDF to CDN
+- [x] Insert both templates into SQL database under Operations category
+- [ ] Deploy and verify templates are accessible in library
+- [ ] Send test email to Marshall for approval
+- [ ] Send announcement email to all members
