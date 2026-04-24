@@ -545,6 +545,16 @@ export function registerDiscordOAuthRoutes(app: Express) {
         res.status(500).json({ error: "Failed to create member record" });
         return;
       }
+      // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
+      // Only paying members can access the portal. If no active subscription,
+      // redirect to the sales page. Do NOT create a session cookie.
+      // Whitelisted IDs: alpteambot (360002), Daniel G (1320007) — beta testers.
+      const PORTAL_WHITELIST = new Set([360002, 1320007]);
+      if (member.subscriptionStatus !== "active" && member.subscriptionStatus !== "trialing" && !PORTAL_WHITELIST.has(member.id)) {
+        console.log(`[Discord OAuth] BLOCKED: ${discordUser.username} (${discordUser.email}) has subscriptionStatus="${member.subscriptionStatus}" — redirecting to sales page`);
+        res.redirect(302, `${origin}/circle?error=no_subscription`);
+        return;
+      }
 
       // ─── Assign Contractor Circle role via bot ───────────────────────────
       // Only attempt if the member has an active subscription

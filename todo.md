@@ -3159,3 +3159,10 @@
 - [x] Added three_silos_single to DripDashboard SEQUENCE_LABELS
 - [x] Added source filter badges + human-readable labels to PortalSubscribers page
 - [x] Normalized lead_magnet_ prefix handling in PortalSubscribers source display
+
+## CRITICAL: Portal Access Lockdown
+- [x] Block non-paying users from logging into the portal — subscription gate added at Discord OAuth callback
+- [x] Remove unauthorized member records (jaydeezol, Samuel Celia, supreme_1780) — deleted from DB + cleaned up seeded data
+- [x] Whitelisted beta testers (alpteambot, Daniel G) to bypass subscription gate
+- [x] Only send "New Member Created Account" notification for paying members — notification is after the subscription gate so non-payers never reach it
+- [x] Update AGENTS.md with portal access rules — full section added documenting the gate, whitelist, and incident

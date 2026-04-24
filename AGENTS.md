@@ -214,3 +214,34 @@ ConstructLine is the construction management toolset inside the portal:
 4. **Don't ask Marshall for information you can look up.** Check the code, database, environment, and Settings panels first.
 5. **Don't use `/manus-storage/` paths for template URLs.** Always use `manus-upload-file --webdev` to get proper CDN URLs.
 6. **Don't duplicate work.** Check git history and todo.md before starting anything.
+
+---
+
+## Portal Access Control — CRITICAL
+
+The portal is LOCKED DOWN. Only paying members can access it.
+
+### How It Works
+- **Discord OAuth callback** (`server/discord.ts`) has a **SUBSCRIPTION GATE** after the member record is fetched
+- If `member.subscriptionStatus` is NOT `active` or `trialing`, the user is **rejected** and redirected to `/circle?error=no_subscription`
+- No session cookie is created. No templates are seeded. No notification is sent.
+- **Whitelisted IDs** bypass the gate: `alpteambot (360002)`, `Daniel G (1320007)` — these are beta testers
+
+### Frontend Backup Gates
+- `SubscriptionGate` component wraps member-only content (Replays, Templates, etc.)
+- `MemberPortalLayout` checks `isSubscribed` and shows upgrade prompts for non-subscribers
+- These are BACKUP gates — the primary gate is at the OAuth callback level
+
+### Rules
+1. **NEVER remove or weaken the subscription gate in discord.ts.** If someone without an active subscription logs in via Discord, they MUST be blocked.
+2. **If adding new whitelisted users, add them to the `PORTAL_WHITELIST` Set in discord.ts.**
+3. **The "New Member Created Account" notification should ONLY fire for paying members.** Non-paying users who somehow get a member record should NOT trigger a notification to Marshall.
+4. **Anyone who logs in via Discord gets a member record created automatically.** The gate prevents them from getting a session cookie, but the record still exists. This is expected — the record is needed for Stripe webhook matching later.
+
+### What Happened (April 24, 2026)
+- An email was sent to the full subscriber list (280+ people) instead of just members
+- Some subscribers clicked through and logged in via Discord, creating unauthorized member records
+- jaydeezol, Samuel Celia, supreme_1780 all got member records with `subscriptionStatus: "none"`
+- The subscription gate was MISSING — it was never implemented at the OAuth callback level
+- Fixed by adding the gate at line ~548 of discord.ts
+- Unauthorized records were deleted from the database
