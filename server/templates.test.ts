@@ -32,11 +32,13 @@ const TEMPLATES = [
   { id: "24", name: "Subcontractor Bid Submittal Form",                url: "https://docs.google.com/document/d/1IWR5H9w7EvJ7kNpMC8i85IH8loUfvJ8xKgHq4tio2lI/copy", type: "google-doc",   category: "estimating" },
   { id: "25", name: "ALP/EOS Vision/Traction Organizer (V/TO)",        url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Toolkit_VITO_63e29d87.pdf", type: "pdf", category: "operations" },
   { id: "26", name: "Presentation from Call #2: Your Business is Your Biggest Asset", url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_Call2_Your_Biggest_Asset_a98da66c.pdf", type: "pdf", category: "contractor_circle" },
+  { id: "27", name: "The Three Silos Framework", url: "/manus-storage/ALP_Three_Silos_Framework_v3_3ba50529.pdf", type: "pdf", category: "operations" },
+  { id: "28", name: "EOS Component Connection Map", url: "/manus-storage/ALP_EOS_Component_Connection_Map_0a3bdbab.pdf", type: "pdf", category: "operations" },
 ];
 
 describe("Template Catalog", () => {
-  it("all 26 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(26);
+  it("all 28 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(28);
   });
 
   it("template IDs are unique", () => {
@@ -57,7 +59,7 @@ describe("Template Catalog", () => {
   it("all templates have valid URLs", () => {
     for (const template of TEMPLATES) {
       expect(template.url).toBeTruthy();
-      expect(template.url).toMatch(/^https:\/\//);
+      expect(template.url).toMatch(/^(https:\/\/|\/manus-storage\/)/);
     }
   });
 
@@ -81,7 +83,8 @@ describe("Template Catalog", () => {
     for (const pdf of pdfs) {
       const isViewUrl = pdf.url.endsWith("/view");
       const isCdnUrl = pdf.url.includes("cloudfront.net");
-      expect(isViewUrl || isCdnUrl).toBe(true);
+      const isManusStorage = pdf.url.includes("/manus-storage/");
+      expect(isViewUrl || isCdnUrl || isManusStorage).toBe(true);
     }
   });
 
