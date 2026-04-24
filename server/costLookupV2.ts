@@ -395,24 +395,22 @@ function findBestSynonymMatch(
   return { entryId: bestEntryId, score: bestScore, matchedSynonym: bestSynonym };
 }
 
-// ─── Default Fallbacks ──────────────────────────────────────────────────────────
-
+//// ─── Default Fallbacks ──────────────────────────────────────────────────────────
+// Generic unit-based defaults (used when no CSI division match)
 const MATERIAL_DEFAULTS: Record<string, number> = {
-  "SF": 3.50, "LF": 8.00, "CY": 150.00, "EA": 25.00,
-  "SFCA": 4.50, "SY": 12.00, "LS": 500.00, "LB": 1.50,
-  "GAL": 18.00, "TON": 85.00, "CWT": 8.50, "MSF": 45.00, "SQ": 75.00,
+  "SF": 5.50, "LF": 12.00, "CY": 175.00, "EA": 75.00,
+  "SFCA": 6.00, "SY": 18.00, "LS": 1500.00, "LB": 2.00,
+  "GAL": 22.00, "TON": 120.00, "CWT": 12.00, "MSF": 65.00, "SQ": 125.00,
 };
-
 const LABOR_DEFAULTS: Record<string, number> = {
-  "SF": 2.00, "LF": 5.00, "CY": 65.00, "EA": 35.00,
-  "SFCA": 5.50, "SY": 8.00, "LS": 750.00, "LB": 0.45,
-  "GAL": 8.00, "TON": 850.00, "CWT": 4.00, "MSF": 25.00, "SQ": 100.00,
+  "SF": 4.00, "LF": 8.00, "CY": 85.00, "EA": 65.00,
+  "SFCA": 7.00, "SY": 12.00, "LS": 1500.00, "LB": 0.75,
+  "GAL": 12.00, "TON": 950.00, "CWT": 6.00, "MSF": 40.00, "SQ": 150.00,
 };
-
 const MATERIAL_CAPS: Record<string, number> = {
-  "SF": 25, "LF": 150, "CY": 400, "EA": 2500,
-  "SFCA": 15, "SY": 100, "LS": 50000, "LB": 10,
-  "GAL": 80, "TON": 300,
+  "SF": 35, "LF": 200, "CY": 500, "EA": 5000,
+  "SFCA": 20, "SY": 150, "LS": 75000, "LB": 15,
+  "GAL": 100, "TON": 400,
 };
 
 // ─── User Library Matching ──────────────────────────────────────────────────────

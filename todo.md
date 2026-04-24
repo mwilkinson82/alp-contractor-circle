@@ -3105,3 +3105,15 @@
 - [x] Build ThreeSilosThankYou page (client/src/pages/ThreeSilosThankYou.tsx)
 - [x] Register /silos and /silos/thank-you routes in App.tsx
 - [x] Test end-to-end flow
+
+## Takeoff Total Calculation Bug
+- [ ] Fix project total discrepancy: UI shows $847K but items sum to $2.54M
+- [ ] Investigate Division 33 Utilities inflated to $858K
+- [ ] Investigate Foundation/Concrete underestimate ($15K vs $233K actual)
+- [ ] Optimize takeoff processing speed (currently 21 min for 23 pages)
+
+## Cost Library Accuracy Improvements
+- [ ] Audit existing cost library — identify gaps and underpriced items
+- [ ] Update cost library with accurate residential construction pricing
+- [ ] Fix CSI-division-specific fallback defaults (replace generic $5.50/SF)
+- [ ] Re-test Kramer Residence pricing after improvements
