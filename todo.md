@@ -3166,3 +3166,8 @@
 - [x] Whitelisted beta testers (alpteambot, Daniel G) to bypass subscription gate
 - [x] Only send "New Member Created Account" notification for paying members — notification is after the subscription gate so non-payers never reach it
 - [x] Update AGENTS.md with portal access rules — full section added documenting the gate, whitelist, and incident
+
+## Stripe Fallback for Subscription Gate
+- [x] Add real-time Stripe API lookup when subscription gate blocks a user — checks Stripe customers.list + subscriptions.list by email
+- [x] If Stripe confirms active subscription, update member record (subscriptionStatus, stripeCustomerId, stripeSubscriptionId) and let them through
+- [x] Log the fallback with detailed console output so we can track webhook reliability

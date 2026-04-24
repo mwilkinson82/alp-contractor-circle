@@ -17,6 +17,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { members, type Member, type InsertMember } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendNewMemberSignupNotification } from "./email";
+import { stripe } from "./stripe";
 import { seedSmithResidenceForMember } from "./seedSmithResidence";
 import { seedDefaultCrewsForMember, seedDefaultTradeRatesForMember } from "./seedDefaultCrews";
 
@@ -547,13 +548,65 @@ export function registerDiscordOAuthRoutes(app: Express) {
       }
       // ─── SUBSCRIPTION GATE ─────────────────────────────────────────────
       // Only paying members can access the portal. If no active subscription,
-      // redirect to the sales page. Do NOT create a session cookie.
+      // check Stripe directly as a fallback (webhooks can be unreliable).
       // Whitelisted IDs: alpteambot (360002), Daniel G (1320007) — beta testers.
       const PORTAL_WHITELIST = new Set([360002, 1320007]);
       if (member.subscriptionStatus !== "active" && member.subscriptionStatus !== "trialing" && !PORTAL_WHITELIST.has(member.id)) {
-        console.log(`[Discord OAuth] BLOCKED: ${discordUser.username} (${discordUser.email}) has subscriptionStatus="${member.subscriptionStatus}" — redirecting to sales page`);
-        res.redirect(302, `${origin}/circle?error=no_subscription`);
-        return;
+        // ─── STRIPE FALLBACK: Real-time subscription check ───────────────
+        // The webhook may not have fired yet. Check Stripe directly by email.
+        let stripeConfirmed = false;
+        const memberEmail = member.email || discordUser.email;
+        if (stripe && memberEmail) {
+          try {
+            console.log(`[Discord OAuth] Subscription gate triggered for ${discordUser.username} — checking Stripe directly for ${memberEmail}`);
+            const customers = await stripe.customers.list({ email: memberEmail, limit: 1 });
+            if (customers.data.length > 0) {
+              const customer = customers.data[0];
+              const subscriptions = await stripe.subscriptions.list({
+                customer: customer.id,
+                status: "active",
+                limit: 1,
+              });
+              if (subscriptions.data.length === 0) {
+                // Also check for trialing
+                const trialingSubs = await stripe.subscriptions.list({
+                  customer: customer.id,
+                  status: "trialing",
+                  limit: 1,
+                });
+                if (trialingSubs.data.length > 0) {
+                  subscriptions.data.push(trialingSubs.data[0]);
+                }
+              }
+              if (subscriptions.data.length > 0) {
+                const sub = subscriptions.data[0];
+                stripeConfirmed = true;
+                console.log(`[Discord OAuth] STRIPE FALLBACK: Found active subscription ${sub.id} for ${memberEmail} — updating member record and allowing access`);
+                // Update the member record so this doesn't happen again
+                await upsertMember({
+                  discordId: discordUser.id,
+                  discordUsername: discordUser.username,
+                  email: memberEmail,
+                  subscriptionStatus: sub.status === "trialing" ? "trialing" : "active",
+                  stripeCustomerId: customer.id,
+                  stripeSubscriptionId: sub.id,
+                });
+                // Re-fetch the member so downstream code has the updated record
+                const updatedMember = await getMemberByDiscordId(discordUser.id);
+                if (updatedMember) {
+                  Object.assign(member, updatedMember);
+                }
+              }
+            }
+          } catch (stripeErr: any) {
+            console.warn(`[Discord OAuth] Stripe fallback check failed for ${memberEmail}:`, stripeErr?.message);
+          }
+        }
+        if (!stripeConfirmed) {
+          console.log(`[Discord OAuth] BLOCKED: ${discordUser.username} (${memberEmail}) has subscriptionStatus="${member.subscriptionStatus}" and no active Stripe subscription — redirecting to sales page`);
+          res.redirect(302, `${origin}/circle?error=no_subscription`);
+          return;
+        }
       }
 
       // ─── Assign Contractor Circle role via bot ───────────────────────────
