@@ -198,8 +198,8 @@ function QuestionModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Monthly Bootcamp Topic Submission ────────────────────────────────────────
-const NEXT_BOOTCAMP_DATE = "2025-04-26";
-const NEXT_BOOTCAMP_DISPLAY = "Saturday, April 26 at 5 PM ET";
+const NEXT_BOOTCAMP_DATE = "2026-04-26";
+const NEXT_BOOTCAMP_DISPLAY = "Sunday, April 26 at 5 PM ET";
 const BOOTCAMP_ZOOM_LINK = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
 
 // Generate Google Calendar add link for the bootcamp
@@ -244,7 +244,7 @@ function BootcampTopicWidget() {
   ) ?? [];
 
   // Countdown
-  const bootcampDate = new Date("2025-04-26T21:00:00Z"); // 5 PM ET = 21:00 UTC
+  const bootcampDate = new Date("2026-04-26T21:00:00Z"); // 5 PM ET = 21:00 UTC
   const now = new Date();
   const daysUntil = Math.max(0, Math.ceil((bootcampDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 

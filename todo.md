@@ -3182,3 +3182,9 @@
 - [x] Add "Verify Subscription" button (refresh icon) to each member row in AdminMembers page
 - [x] Add "Verify All" button in header to batch-verify all members at once
 - [x] Show result toast (updated/confirmed/no subscription found) with member name
+
+## Bootcamp Date Discrepancy
+- [x] Fixed NEXT_BOOTCAMP_DATE from 2025-04-26 to 2026-04-26 in PortalDashboard.tsx
+- [x] Fixed display from "Saturday" to "Sunday" in NEXT_BOOTCAMP_DISPLAY
+- [x] Fixed countdown timer Date object from 2025 to 2026
+- [x] Updated 8 bootcamp_topics records in database from 2025-04-26 to 2026-04-26
