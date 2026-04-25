@@ -3188,3 +3188,16 @@
 - [x] Fixed display from "Saturday" to "Sunday" in NEXT_BOOTCAMP_DISPLAY
 - [x] Fixed countdown timer Date object from 2025 to 2026
 - [x] Updated 8 bootcamp_topics records in database from 2025-04-26 to 2026-04-26
+
+## Automated Failed Payment Emails
+- [x] Add invoice.payment_failed handler to stripeWebhook.ts
+- [x] Send styled email to the member with link to update payment details
+- [x] Log the event to webhook_events table
+- [x] Notify Marshall via owner notification
+
+## Admin Bootcamp Date Setting
+- [ ] Create admin_settings table in database for key-value config
+- [ ] Add tRPC endpoints to get/set admin settings (admin-only)
+- [ ] Add bootcamp date picker UI in the admin panel
+- [ ] Update PortalDashboard to read bootcamp date from admin settings instead of hardcoded constant
+- [ ] Update Google Calendar link generation to use dynamic date

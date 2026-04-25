@@ -3933,3 +3933,114 @@ export async function sendNewTemplatesAnnouncementEmail(params: {
     return { success: false, error: err.message || "Unknown error" };
   }
 }
+
+// ─── FAILED PAYMENT EMAIL ─────────────────────────────────────────────────────
+
+export function buildFailedPaymentEmailHtml(params: {
+  name: string;
+  amount: string;
+  attemptNumber: number;
+}): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Update Needed</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+          <tr><td style="height:32px;"></td></tr>
+          <tr>
+            <td align="center" style="color:#EDE6DB;font-size:28px;font-weight:700;line-height:1.2;">
+              Hey ${firstName} \u2014 Quick Heads Up
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          <tr>
+            <td style="color:rgba(237,230,219,0.8);font-size:16px;line-height:1.7;padding:0 10px;">
+              Your ${params.amount} payment for The Contractor Circle didn't go through. No stress \u2014 these things happen. It could be an expired card, insufficient funds, or just a bank hiccup.
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          <tr>
+            <td style="color:rgba(237,230,219,0.8);font-size:16px;line-height:1.7;padding:0 10px;">
+              To keep your access active and make sure you don't miss anything, just update your payment details through your portal account:
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td align="center">
+              <a href="https://alpcontractorcircle.com/portal/account" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;font-size:16px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                Update Payment Details
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td style="color:rgba(237,230,219,0.5);font-size:14px;line-height:1.6;padding:0 10px;">
+              Once you log in, go to Account and click \u201cManage Billing\u201d to update your card through Stripe's secure portal.
+            </td>
+          </tr>
+          <tr><td style="height:16px;"></td></tr>
+          <tr>
+            <td style="color:rgba(237,230,219,0.8);font-size:16px;line-height:1.7;padding:0 10px;">
+              If you have any questions or need help, just reply to this email.
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+          <tr><td style="height:1px;background-color:rgba(212,145,92,0.2);"></td></tr>
+          <tr><td style="height:24px;"></td></tr>
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.4);font-size:12px;line-height:1.5;">
+              Marshall Wilkinson | ALP<br/>
+              The Contractor Circle
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendFailedPaymentEmail(params: {
+  to: string;
+  name: string;
+  amount: string;
+  attemptNumber: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const html = buildFailedPaymentEmailHtml(params);
+
+    if (!resend) {
+      console.error("[Email] Resend not configured");
+      return { success: false, error: "Resend not configured" };
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Quick Heads Up \u2014 Payment Didn't Go Through",
+      html,
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send payment failure email:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Payment failure email sent to ${params.to} \u2014 id: ${data?.id}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error("[Email] Failed to send payment failure email:", err);
+    return { success: false, error: err.message };
+  }
+}

@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { stripe } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification } from "./email";
+import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification, sendFailedPaymentEmail } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 import { upsertSupabaseMember } from "./supabaseClient";
 import { markDripConverted } from "./dripAutoEnroll";
@@ -379,6 +379,26 @@ export function registerStripeWebhook(app: Express) {
               `[Stripe Webhook] Invoice payment failed — id: ${failedInvoice.id}, customer: ${failedCustId}, email: ${failedEmail}`
             );
 
+            // Send automated email to the member
+            if (failedEmail && failedEmail !== "unknown") {
+              try {
+                const emailResult = await sendFailedPaymentEmail({
+                  to: failedEmail,
+                  name: failedName,
+                  amount: failedAmount,
+                  attemptNumber: attemptNum,
+                });
+                if (emailResult.success) {
+                  console.log(`[Stripe Webhook] Failed payment email sent to ${failedEmail}`);
+                } else {
+                  console.warn(`[Stripe Webhook] Failed to send payment failure email: ${emailResult.error}`);
+                }
+              } catch (emailErr) {
+                console.error("[Stripe Webhook] Error sending payment failure email:", emailErr);
+              }
+            }
+
+            // Notify Marshall
             try {
               await notifyOwner({
                 title: `Payment Failed — ${failedName}`,
@@ -392,7 +412,7 @@ export function registerStripeWebhook(app: Express) {
                   `Stripe Customer: ${failedCustId}`,
                   `Invoice: ${failedInvoice.id}`,
                   ``,
-                  `Action needed: Reach out to the member to update their payment method.`,
+                  `Automated email sent to member: ${failedEmail !== "unknown" ? "YES" : "NO (no email on file)"}`,
                   `Stripe will automatically retry the payment. If it continues to fail,`,
                   `the subscription will eventually be canceled.`,
                 ].join("\n"),
