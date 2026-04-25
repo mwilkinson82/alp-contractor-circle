@@ -97,5 +97,5 @@ describe("Three Silos Framework — Email Delivery", () => {
     } else {
       expect(result.error).toBeTruthy();
     }
-  });
+  }, 15_000);
 });

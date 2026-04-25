@@ -8,7 +8,7 @@ import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord
 import { stripe } from "./stripe";
 import { drizzle } from "drizzle-orm/mysql2";
 import { and, desc, eq } from "drizzle-orm";
-import { replays, members, callQuestions, bootcampTopics } from "../drizzle/schema";
+import { replays, members, callQuestions, bootcampTopics, adminSettings } from "../drizzle/schema";
 import type { Member } from "../drizzle/schema";
 import { z } from "zod";
 import { sendQuestionNotification, sendBootcampTopicNotification, sendTopicSelectedEmail } from "./email";
@@ -969,5 +969,83 @@ export const memberRouter = router({
           stripeCustomerId: customer.id,
         };
       }
+    }),
+
+  // ─── Admin Settings ────────────────────────────────────────────────────────
+
+  /**
+   * Get all admin settings (public read — used by PortalDashboard for bootcamp date).
+   */
+  getSettings: publicProcedure.query(async () => {
+    const db = getDb();
+    if (!db) return { settings: {} as Record<string, string> };
+    const rows = await db.select().from(adminSettings);
+    const map: Record<string, string> = {};
+    for (const row of rows) {
+      map[row.settingKey] = row.settingValue;
+    }
+    return { settings: map };
+  }),
+
+  /**
+   * Admin: Update a setting by key.
+   */
+  updateSetting: publicProcedure
+    .input(z.object({
+      key: z.string().min(1),
+      value: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Upsert: update if exists, insert if not
+      const existing = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, input.key));
+      if (existing.length > 0) {
+        await db.update(adminSettings).set({ settingValue: input.value }).where(eq(adminSettings.settingKey, input.key));
+      } else {
+        await db.insert(adminSettings).values({ settingKey: input.key, settingValue: input.value });
+      }
+
+      return { success: true, key: input.key, value: input.value };
+    }),
+
+  /**
+   * Admin: Batch update multiple settings at once.
+   */
+  updateSettings: publicProcedure
+    .input(z.object({
+      settings: z.record(z.string(), z.string()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      for (const [key, value] of Object.entries(input.settings)) {
+        const existing = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, key));
+        if (existing.length > 0) {
+          await db.update(adminSettings).set({ settingValue: value }).where(eq(adminSettings.settingKey, key));
+        } else {
+          await db.insert(adminSettings).values({ settingKey: key, settingValue: value });
+        }
+      }
+
+      return { success: true, updated: Object.keys(input.settings) };
     }),
 });

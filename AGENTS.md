@@ -245,3 +245,89 @@ The portal is LOCKED DOWN. Only paying members can access it.
 - The subscription gate was MISSING — it was never implemented at the OAuth callback level
 - Fixed by adding the gate at line ~548 of discord.ts
 - Unauthorized records were deleted from the database
+
+---
+
+## Automated Failed Payment Emails (Added April 25, 2026)
+
+When Stripe fires `invoice.payment_failed`, the system now:
+1. **Sends an automated email** to the member with a link to update their payment details (portal account page → Manage Billing)
+2. **Notifies Marshall** via owner notification with full details (member name, email, amount, attempt number, and whether the automated email was sent)
+3. **Logs the event** to the `webhook_events` table for monitoring
+
+### Key Files
+- `server/email.ts` — `sendFailedPaymentEmail()` function (line ~3937)
+- `server/stripeWebhook.ts` — `invoice.payment_failed` handler calls `sendFailedPaymentEmail()` then `notifyOwner()`
+
+### Important
+- The automated email is sent DIRECTLY to the customer — this was approved by Marshall
+- The email tells them to go to Account → Manage Billing to update their card
+- Marshall still gets notified so he can follow up personally if needed
+- Stripe automatically retries failed payments on its own schedule
+
+---
+
+## Stripe API Fallback (Subscription Gate)
+
+When a user logs in via Discord and the subscription gate blocks them (because their `member.subscriptionStatus` is not `active` or `trialing`), the system does a **real-time Stripe API lookup** before rejecting:
+
+1. Searches Stripe customers by email (`customers.list`)
+2. If a customer is found, checks their subscriptions (`subscriptions.list`)
+3. If an active/trialing subscription exists, **updates the member record** and lets them through
+4. Logs the rescue to `webhook_events` table as `stripe_fallback`
+
+This handles webhook delays/failures gracefully. The fallback is in `server/discord.ts` inside the subscription gate block.
+
+---
+
+## Admin Settings System (Added April 25, 2026)
+
+The `admin_settings` table stores key-value configuration that admins can change from the admin panel without code changes.
+
+### Current Settings
+| Key | Description | Default |
+|-----|-------------|---------|
+| `bootcamp_date` | Next bootcamp date (YYYY-MM-DD) | `2026-04-26` |
+| `bootcamp_time` | Bootcamp time in 24h format (HH:MM) ET | `17:00` |
+| `bootcamp_day_label` | Day of week for display | `Sunday` |
+| `bootcamp_zoom_link` | Zoom meeting URL | (current Zoom link) |
+
+### How It Works
+- **Admin Panel** (`PortalAdmin.tsx`) has a "Bootcamp Settings" panel with date picker, time picker, and Zoom link input
+- **Member Dashboard** (`PortalDashboard.tsx`) reads settings via `trpc.member.getSettings` and uses them dynamically
+- The date picker auto-detects the day of week
+- A live preview shows exactly how the date will appear on the member dashboard
+- Changes take effect immediately — no deploy needed
+
+### Key Files
+- `drizzle/schema.ts` — `adminSettings` table definition
+- `server/memberRouter.ts` — `getSettings`, `updateSetting`, `updateSettings` endpoints
+- `client/src/pages/PortalAdmin.tsx` — `BootcampSettingsPanel` component
+- `client/src/pages/PortalDashboard.tsx` — Dynamic bootcamp date display
+
+### To Update the Bootcamp Date
+Marshall can do this himself from the admin panel:
+1. Go to `/portal/admin`
+2. Find the "Bootcamp Settings" card
+3. Change the date, time, or Zoom link
+4. Click "Save Bootcamp Settings"
+
+No code changes or deploys required.
+
+---
+
+## Webhook Monitoring
+
+The `webhook_events` table logs:
+- `webhook_received` — Every Stripe webhook event processed
+- `stripe_fallback` — When the Stripe API fallback rescued a login
+- `gate_blocked` — When a non-paying user was blocked at the subscription gate
+- `manual_verify` — When an admin used the "Verify Subscription" button
+
+The `webhookMonitor.getEvents` tRPC endpoint provides admin visibility with summary stats (fallback count, blocked count, webhook count).
+
+### Verify Subscription Button
+The Admin Members page has:
+- Per-member refresh icon — checks that member's Stripe subscription in real-time
+- "Verify All" batch button — checks ALL members at once
+- Results shown via toast notifications

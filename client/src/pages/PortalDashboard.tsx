@@ -198,25 +198,50 @@ function QuestionModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Monthly Bootcamp Topic Submission ────────────────────────────────────────
-const NEXT_BOOTCAMP_DATE = "2026-04-26";
-const NEXT_BOOTCAMP_DISPLAY = "Sunday, April 26 at 5 PM ET";
-const BOOTCAMP_ZOOM_LINK = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
+// Fallback defaults (used while settings load or if DB is empty)
+const DEFAULT_BOOTCAMP_DATE = "2026-04-26";
+const DEFAULT_BOOTCAMP_TIME = "17:00";
+const DEFAULT_BOOTCAMP_DAY = "Sunday";
+const DEFAULT_BOOTCAMP_ZOOM = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
 
-// Generate Google Calendar add link for the bootcamp
-function getBootcampCalendarUrl() {
-  // April 26, 2026 5:00 PM ET = 21:00 UTC
-  const start = "20260426T210000Z";
-  // Assume ~2 hours
-  const end = "20260426T230000Z";
+/**
+ * Generate a Google Calendar add link for the bootcamp.
+ * Now accepts dynamic date/time/zoom from admin settings.
+ */
+function getBootcampCalendarUrl(dateStr: string, timeStr: string, zoomLink: string) {
+  // Parse date and time into UTC start/end
+  const [year, month, day] = dateStr.split("-");
+  const [hour, minute] = timeStr.split(":");
+  // Convert ET to UTC: ET is UTC-4 (EDT) or UTC-5 (EST). Assume EDT for simplicity.
+  const hourUtc = (parseInt(hour) + 4).toString().padStart(2, "0");
+  const start = `${year}${month}${day}T${hourUtc}${minute}00Z`;
+  // End = start + 2 hours
+  const endHourUtc = (parseInt(hourUtc) + 2).toString().padStart(2, "0");
+  const end = `${year}${month}${day}T${endHourUtc}${minute}00Z`;
+
   const title = encodeURIComponent("Contractor Circle Monthly Bootcamp");
   const details = encodeURIComponent(
-    "Monthly Bootcamp — Deep dive session with Marshall and the Contractor Circle community.\n\n" +
-    "Join Zoom Meeting:\n" + BOOTCAMP_ZOOM_LINK + "\n\n" +
-    "Meeting ID: 870 2820 6220\nPasscode: 260916\n\n" +
+    "Monthly Bootcamp \u2014 Deep dive session with Marshall and the Contractor Circle community.\n\n" +
+    "Join Zoom Meeting:\n" + zoomLink + "\n\n" +
     "Come prepared: water, coffee, pen & paper. 90+ minutes. Audience participation expected."
   );
-  const location = encodeURIComponent(BOOTCAMP_ZOOM_LINK);
+  const location = encodeURIComponent(zoomLink);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
+}
+
+/**
+ * Format a date string like "2026-04-26" + day label into display like "Sunday, April 26 at 5 PM ET"
+ */
+function formatBootcampDisplay(dateStr: string, dayLabel: string, timeStr: string): string {
+  const d = new Date(dateStr + "T12:00:00"); // noon to avoid timezone shift
+  const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const dayNum = d.getUTCDate();
+  // Format time: "17:00" → "5 PM"
+  const [h] = timeStr.split(":");
+  const hour24 = parseInt(h);
+  const ampm = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+  return `${dayLabel}, ${month} ${dayNum} at ${hour12} ${ampm} ET`;
 }
 
 function BootcampTopicWidget() {
@@ -224,6 +249,16 @@ function BootcampTopicWidget() {
   const [reason, setReason] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // Fetch admin settings for dynamic bootcamp date
+  const { data: settingsData } = trpc.member.getSettings.useQuery(undefined, { retry: false, staleTime: 60_000 });
+  const settings = settingsData?.settings || {};
+
+  const NEXT_BOOTCAMP_DATE = settings.bootcamp_date || DEFAULT_BOOTCAMP_DATE;
+  const BOOTCAMP_TIME = settings.bootcamp_time || DEFAULT_BOOTCAMP_TIME;
+  const BOOTCAMP_DAY = settings.bootcamp_day_label || DEFAULT_BOOTCAMP_DAY;
+  const BOOTCAMP_ZOOM_LINK = settings.bootcamp_zoom_link || DEFAULT_BOOTCAMP_ZOOM;
+  const NEXT_BOOTCAMP_DISPLAY = formatBootcampDisplay(NEXT_BOOTCAMP_DATE, BOOTCAMP_DAY, BOOTCAMP_TIME);
 
   const { data: myTopicsData } = trpc.member.myBootcampTopics.useQuery(undefined, { retry: false });
   const { data: selectedData } = trpc.member.selectedBootcampTopics.useQuery({ bootcampDate: NEXT_BOOTCAMP_DATE }, { retry: false });
@@ -243,8 +278,9 @@ function BootcampTopicWidget() {
     (t: any) => t.bootcampDate === NEXT_BOOTCAMP_DATE
   ) ?? [];
 
-  // Countdown
-  const bootcampDate = new Date("2026-04-26T21:00:00Z"); // 5 PM ET = 21:00 UTC
+  // Countdown — compute from dynamic date + time
+  const [h, m] = BOOTCAMP_TIME.split(":");
+  const bootcampDate = new Date(`${NEXT_BOOTCAMP_DATE}T${(parseInt(h) + 4).toString().padStart(2, "0")}:${m}:00Z`); // ET → UTC
   const now = new Date();
   const daysUntil = Math.max(0, Math.ceil((bootcampDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
@@ -291,7 +327,7 @@ function BootcampTopicWidget() {
             Join on Zoom
           </a>
           <a
-            href={getBootcampCalendarUrl()}
+            href={getBootcampCalendarUrl(NEXT_BOOTCAMP_DATE, BOOTCAMP_TIME, BOOTCAMP_ZOOM_LINK)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-cream text-sm font-semibold hover:bg-white/10 transition-colors"

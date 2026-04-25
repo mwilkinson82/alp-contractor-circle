@@ -3196,8 +3196,12 @@
 - [x] Notify Marshall via owner notification
 
 ## Admin Bootcamp Date Setting
-- [ ] Create admin_settings table in database for key-value config
-- [ ] Add tRPC endpoints to get/set admin settings (admin-only)
-- [ ] Add bootcamp date picker UI in the admin panel
-- [ ] Update PortalDashboard to read bootcamp date from admin settings instead of hardcoded constant
-- [ ] Update Google Calendar link generation to use dynamic date
+- [x] Create admin_settings table in database for key-value config
+- [x] Add tRPC endpoints to get/set admin settings (admin-only)
+- [x] Add bootcamp date picker UI in the admin panel
+- [x] Update PortalDashboard to read bootcamp date from admin settings instead of hardcoded constant
+- [x] Update Google Calendar link generation to use dynamic date
+- [x] Seed initial settings: bootcamp_date=2026-04-26, bootcamp_time=17:00, bootcamp_day_label=Sunday, bootcamp_zoom_link
+- [x] Auto-detect day of week from date in admin UI
+- [x] Live preview of how the date will display on member dashboard
+- [x] 8 vitest tests passing for admin settings

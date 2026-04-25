@@ -1412,3 +1412,19 @@ export const webhookEvents = mysqlTable("webhook_events", {
 });
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type InsertWebhookEvent = typeof webhookEvents.$inferInsert;
+
+// ─── Admin Settings (key-value config for admin-managed settings) ────────────
+export const adminSettings = mysqlTable("admin_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Unique setting key (e.g., 'bootcamp_date', 'bootcamp_time') */
+  settingKey: varchar("settingKey", { length: 128 }).notNull().unique(),
+  /** Setting value as a string */
+  settingValue: text("settingValue").notNull(),
+  /** Human-readable label for admin UI */
+  label: varchar("label", { length: 255 }),
+  /** Optional description */
+  description: text("description"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;

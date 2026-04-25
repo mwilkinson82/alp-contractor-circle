@@ -393,6 +393,13 @@
       "when": 1777065189337,
       "tag": "0055_loose_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "5",
+      "when": 1777139655554,
+      "tag": "0056_shocking_golden_guardian",
+      "breakpoints": true
     }
   ]
 }
