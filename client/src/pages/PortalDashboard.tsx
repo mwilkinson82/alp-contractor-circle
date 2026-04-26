@@ -29,7 +29,7 @@ import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { CalendarIntegration } from "@/components/portal/CalendarIntegration";
 
-const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
+const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
 
 const BOOTCAMP_POSTER_URL = "/manus-storage/BootcampPoster_6025f4ca.png";
 const BOOTCAMP_ZOOM_DIRECT = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";

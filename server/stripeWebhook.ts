@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { stripe } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendWelcomeEmail, sendFoundingMemberEmail, sendPurchaseNotification, sendFailedPaymentEmail } from "./email";
+import { sendWelcomeEmail, sendFoundingMemberEmail, sendDiscordIntroEmail, sendPurchaseNotification, sendFailedPaymentEmail } from "./email";
 import { upsertMemberByEmail, getMemberByEmail } from "./memberDb";
 import { upsertSupabaseMember } from "./supabaseClient";
 import { markDripConverted } from "./dripAutoEnroll";
@@ -175,6 +175,23 @@ export function registerStripeWebhook(app: Express) {
                   console.warn("[Stripe Webhook] Failed to send founding member email #2:", err);
                 }
               }, 5000); // 5-second delay between emails
+
+              // Email #3: Discord intro — join & introduce yourself (15-second delay)
+              setTimeout(async () => {
+                try {
+                  const discordResult = await sendDiscordIntroEmail({
+                    to: memberEmail,
+                    name: memberName,
+                  });
+                  if (discordResult.success) {
+                    console.log(`[Stripe Webhook] Discord intro email #3 sent to ${memberEmail}`);
+                  } else {
+                    console.warn(`[Stripe Webhook] Discord intro email #3 failed: ${discordResult.error}`);
+                  }
+                } catch (err) {
+                  console.warn("[Stripe Webhook] Failed to send Discord intro email #3:", err);
+                }
+              }, 15000); // 15-second delay after email #1
             } else {
               console.warn("[Stripe Webhook] No email found on checkout session — skipping welcome emails");
             }            // ─── DETAILED MONITORING NOTIFICATION TO MARSHALL ─────────────────

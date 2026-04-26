@@ -3210,3 +3210,8 @@
 - [x] Add bootcamp poster as hero banner at top of member dashboard
 - [x] Make it the first thing members see when they log in
 - [x] Include "Join Zoom" CTA button
+
+## Discord Intro Email Template
+- [x] Add buildDiscordIntroEmailHtml() and sendDiscordIntroEmail() to email.ts
+- [x] Wire into Stripe checkout.session.completed webhook as Email #3 in onboarding sequence
+- [x] Update Discord invite link to discord.gg/rsK5HZcF across all files (dashboard, emails, welcome page, tests)

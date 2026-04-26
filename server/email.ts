@@ -11,7 +11,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
 const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const DISCORD_INVITE = "https://discord.gg/2pagscG2Np"; // Points to #introduce-yourself channel
+const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
 // ─── Add-to-Calendar links for recurring Sunday 5 PM ET bi-weekly meeting ────────
@@ -4337,6 +4337,181 @@ export async function sendBootcampReminderEmail(params: {
     return { success: true, id: data?.id };
   } catch (err: any) {
     console.error(`[Email] Unexpected error sending bootcamp reminder (${params.urgency}):`, err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
+
+
+// ─── Discord Intro Email — "Join Discord & Introduce Yourself" ───────────────
+// Sent to new members after purchase to get them into the Discord community.
+// Can be triggered automatically from the onboarding flow or manually.
+
+export function buildDiscordIntroEmailHtml(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <!-- Gradient Bar -->
+  <tr><td style="height:4px;background:linear-gradient(90deg,#D4915C,#C9A96E,#D4915C);border-radius:2px;"></td></tr>
+  <tr><td style="height:32px;"></td></tr>
+
+  <!-- Badge -->
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="background-color:rgba(212,145,92,0.15);border:1px solid rgba(212,145,92,0.3);border-radius:50px;padding:6px 16px;">
+        <span style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">\u{1F389} Welcome to the Circle</span>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="height:24px;"></td></tr>
+
+  <!-- Headline -->
+  <tr><td align="center" style="color:#EDE6DB;font-size:28px;font-weight:700;line-height:1.3;">
+    ${firstName}, welcome aboard.
+  </td></tr>
+  <tr><td style="height:12px;"></td></tr>
+
+  <!-- Intro -->
+  <tr><td align="center" style="color:rgba(237,230,219,0.7);font-size:16px;line-height:1.7;padding:0 20px;">
+    You just joined the most serious group of contractors in the country. We're glad you're here.
+  </td></tr>
+  <tr><td style="height:8px;"></td></tr>
+  <tr><td align="center" style="color:rgba(237,230,219,0.7);font-size:16px;line-height:1.7;padding:0 20px;">
+    There's one thing I want you to do right now:
+  </td></tr>
+  <tr><td style="height:28px;"></td></tr>
+
+  <!-- Discord CTA Card -->
+  <tr><td style="background-color:rgba(88,101,242,0.08);border:2px solid rgba(88,101,242,0.25);border-radius:16px;padding:28px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td width="48" valign="top">
+        <div style="width:44px;height:44px;background-color:rgba(88,101,242,0.2);border-radius:12px;text-align:center;line-height:44px;font-size:24px;">\u{1F4AC}</div>
+      </td>
+      <td style="padding-left:16px;">
+        <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0 0 8px 0;">Join the Discord & Introduce Yourself</p>
+        <p style="color:rgba(237,230,219,0.65);font-size:15px;line-height:1.6;margin:0 0 20px 0;">
+          This is where the community lives between calls. Drop into <strong style="color:#EDE6DB;">#general-chat</strong> and tell us:<br/><br/>
+          \u{2022} <strong style="color:#EDE6DB;">Who you are</strong> and what your company does<br/>
+          \u{2022} <strong style="color:#EDE6DB;">Where you're at</strong> in your business right now<br/>
+          \u{2022} <strong style="color:#EDE6DB;">What you want to get out of</strong> the Contractor Circle<br/><br/>
+          The other members are waiting to meet you. This isn't a lurk-and-watch community \u{2014} this is a room full of operators who want to help each other win.
+        </p>
+        <a href="${DISCORD_INVITE}" style="display:inline-block;background:linear-gradient(135deg,#5865F2,#7289DA);color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+          Join Discord Now \u{2192}
+        </a>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="height:24px;"></td></tr>
+
+  <!-- Portal Reminder -->
+  <tr><td style="background-color:rgba(212,145,92,0.06);border:1px solid rgba(212,145,92,0.2);border-radius:16px;padding:24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td width="48" valign="top">
+        <div style="width:44px;height:44px;background-color:rgba(212,145,92,0.15);border-radius:12px;text-align:center;line-height:44px;font-size:24px;">\u{1F680}</div>
+      </td>
+      <td style="padding-left:16px;">
+        <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Your Portal</p>
+        <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 8px 0;">Access Templates, Replays & More</p>
+        <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0 0 4px 0;">
+          Your member portal has everything you need \u{2014} contractor templates, call replays, your Zoom link, and more. Log in anytime at <a href="${PORTAL_URL}" style="color:#D4915C;text-decoration:underline;">alpcontractorcircle.com/portal</a>.
+        </p>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="height:32px;"></td></tr>
+
+  <!-- Divider -->
+  <tr><td align="center"><div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#D4915C,transparent);"></div></td></tr>
+  <tr><td style="height:24px;"></td></tr>
+
+  <!-- Sign-off -->
+  <tr><td align="center" style="color:rgba(237,230,219,0.6);font-size:15px;line-height:1.7;padding:0 20px;">
+    Welcome to the NFL, ${firstName}. Let's build.<br/><br/>
+    <strong style="color:#EDE6DB;">Marshall Wilkinson</strong><br/>
+    <span style="color:rgba(237,230,219,0.4);font-size:13px;">Founder & CEO, ALP</span>
+  </td></tr>
+  <tr><td style="height:32px;"></td></tr>
+
+  <!-- Footer -->
+  <tr><td align="center" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="padding:0 12px;"><a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(237,230,219,0.3);text-decoration:none;font-size:12px;">Instagram</a></td>
+      <td style="padding:0 12px;"><a href="https://alpcontractorschool.com" style="color:rgba(237,230,219,0.3);text-decoration:none;font-size:12px;">ALP</a></td>
+      <td style="padding:0 12px;"><a href="${PORTAL_URL}" style="color:rgba(237,230,219,0.3);text-decoration:none;font-size:12px;">Portal</a></td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+export function buildDiscordIntroEmailText(params: { name: string }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+
+  return `${firstName}, welcome aboard.
+
+You just joined the most serious group of contractors in the country. We're glad you're here.
+
+There's one thing I want you to do right now:
+
+JOIN THE DISCORD & INTRODUCE YOURSELF
+${DISCORD_INVITE}
+
+Drop into #general-chat and tell us:
+- Who you are and what your company does
+- Where you're at in your business right now
+- What you want to get out of the Contractor Circle
+
+The other members are waiting to meet you. This isn't a lurk-and-watch community — this is a room full of operators who want to help each other win.
+
+YOUR PORTAL
+Access templates, replays, and more at ${PORTAL_URL}
+
+Welcome to the NFL, ${firstName}. Let's build.
+
+Marshall Wilkinson
+Founder & CEO, ALP`.trim();
+}
+
+export async function sendDiscordIntroEmail(params: {
+  to: string;
+  name: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping Discord intro email");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  const firstName = params.name.split(" ")[0] || "there";
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: `${firstName}, join the Discord and introduce yourself \u{1F4AC}`,
+      html: buildDiscordIntroEmailHtml({ name: params.name }),
+      text: buildDiscordIntroEmailText({ name: params.name }),
+    });
+
+    if (error) {
+      console.error("[Email] Failed to send Discord intro email:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Discord intro email sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Unexpected error sending Discord intro email:", err);
     return { success: false, error: err.message || "Unknown error" };
   }
 }
