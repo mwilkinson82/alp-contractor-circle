@@ -4044,3 +4044,299 @@ export async function sendFailedPaymentEmail(params: {
     return { success: false, error: err.message };
   }
 }
+
+// ─── Bootcamp Reminder Emails (escalating urgency) ──────────────────────────
+
+type ReminderUrgency = "morning" | "afternoon" | "two_hours" | "one_hour" | "thirty_min" | "ten_min";
+
+const REMINDER_CONFIG: Record<ReminderUrgency, {
+  badge: string;
+  badgeBg: string;
+  headline: string;
+  subtext: string;
+  bodyText: (firstName: string) => string;
+  ctaText: string;
+  closingQuote: string;
+  subject: string;
+}> = {
+  morning: {
+    badge: "TODAY",
+    badgeBg: "#D4915C",
+    headline: "Bootcamp Is Today",
+    subtext: "5:00 PM Eastern — Be There",
+    bodyText: (name) => `${name}, today's the day. The Contractor Circle Monthly Bootcamp is happening this afternoon at 5 PM ET. Block it off, clear your schedule, and come ready to work. This isn't a webinar — it's a working session.`,
+    ctaText: "Open Portal → Join Zoom at 5 PM",
+    closingQuote: "Block the time. Show up prepared. That's how you get the most out of this.",
+    subject: "🔥 Bootcamp Is Today — 5 PM ET",
+  },
+  afternoon: {
+    badge: "4 HOURS",
+    badgeBg: "#B8451C",
+    headline: "Bootcamp in 4 Hours",
+    subtext: "5:00 PM Eastern — Lock It In",
+    bodyText: (name) => `${name}, just a heads up — the Monthly Bootcamp kicks off in 4 hours. If you haven't already, grab your pen and paper, get your coffee ready, and make sure you've got the Zoom link saved. This is going to be a deep one.`,
+    ctaText: "Get Your Zoom Link Ready",
+    closingQuote: "Four hours. That's it. Get your head right and show up ready to execute.",
+    subject: "⏰ 4 Hours Until Bootcamp — 5 PM ET",
+  },
+  two_hours: {
+    badge: "2 HOURS",
+    badgeBg: "#B8451C",
+    headline: "2 Hours Out",
+    subtext: "5:00 PM Eastern — Final Prep",
+    bodyText: (name) => `${name}, we're two hours out from the Monthly Bootcamp. Wrap up what you're doing. Get your workspace set up. Water, coffee, pen and paper. This is a 90+ minute deep dive — you want to be locked in from minute one.`,
+    ctaText: "Get Your Zoom Link",
+    closingQuote: "Two hours. Finish what you're doing and get ready to go deep.",
+    subject: "🔥 2 Hours Until Bootcamp — Get Ready",
+  },
+  one_hour: {
+    badge: "1 HOUR",
+    badgeBg: "#CC3300",
+    headline: "One Hour Warning",
+    subtext: "5:00 PM Eastern — Almost Time",
+    bodyText: (name) => `${name}, one hour. That's all that's between you and the Bootcamp. Test your Zoom. Get your setup dialed. When we go live, we're going straight into it — no warm-up, no filler.`,
+    ctaText: "Test Your Zoom Now",
+    closingQuote: "One hour. Be early. Be ready. Let's go.",
+    subject: "⚡ 1 Hour Until Bootcamp — Test Your Zoom",
+  },
+  thirty_min: {
+    badge: "30 MIN",
+    badgeBg: "#CC3300",
+    headline: "30 Minutes",
+    subtext: "We Go Live at 5:00 PM ET",
+    bodyText: (name) => `${name}, thirty minutes. Open Zoom. Get settled. Have your questions ready. We're going deep today and I want everyone locked in from the jump.`,
+    ctaText: "Open Zoom Now",
+    closingQuote: "30 minutes. Open Zoom. Get settled. See you in there.",
+    subject: "🚨 30 Minutes Until Bootcamp — Open Zoom",
+  },
+  ten_min: {
+    badge: "STARTING NOW",
+    badgeBg: "#FF0000",
+    headline: "We're Live in 10",
+    subtext: "Join Now — Don't Be Late",
+    bodyText: (name) => `${name}, we're going live in 10 minutes. Click the button below and join the Zoom room now. If you're not in the room when we start, you're behind.`,
+    ctaText: "JOIN ZOOM NOW →",
+    closingQuote: "10 minutes. Join now. Don't be the one who shows up late.",
+    subject: "🔴 LIVE IN 10 MINUTES — Join Zoom NOW",
+  },
+};
+
+const BOOTCAMP_ZOOM_LINK = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
+
+function buildBootcampReminderHtml(params: { name: string; urgency: ReminderUrgency }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  const config = REMINDER_CONFIG[params.urgency];
+  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+
+  // For the last two urgency levels, CTA goes directly to Zoom
+  const ctaUrl = ["thirty_min", "ten_min"].includes(params.urgency) ? BOOTCAMP_ZOOM_LINK : PORTAL_URL;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${config.headline}</title>
+</head>
+<body style="margin:0;padding:0;${BASE_STYLES}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#08090D;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- CC Logo -->
+          <tr>
+            <td align="center" style="padding-bottom:24px;">
+              <img src="${LOGO_URL}" alt="ALP Contractor Circle" width="36" height="36" style="display:block;width:36px;height:36px;border-radius:8px;" />
+            </td>
+          </tr>
+
+          <!-- ═══ REMINDER CARD ═══ -->
+          <tr>
+            <td style="border-radius:20px;overflow:hidden;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+
+                <!-- Top accent bar -->
+                <tr><td style="height:6px;background:linear-gradient(90deg,${config.badgeBg},#D4915C,#C9A96E,#D4915C,${config.badgeBg});"></td></tr>
+
+                <!-- Hero section -->
+                <tr>
+                  <td style="background-color:#111318;padding:40px 32px 28px 32px;text-align:center;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td align="center">
+                        <span style="display:inline-block;background-color:${config.badgeBg};color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;padding:8px 20px;border-radius:4px;">${config.badge}</span>
+                      </td></tr>
+                      <tr><td style="height:20px;"></td></tr>
+                      <tr><td align="center" style="color:#EDE6DB;font-size:32px;font-weight:800;line-height:1.15;letter-spacing:-0.5px;">
+                        ${config.headline}
+                      </td></tr>
+                      <tr><td style="height:12px;"></td></tr>
+                      <tr><td align="center" style="color:rgba(237,230,219,0.5);font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">
+                        ${config.subtext}
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Dashed tear line -->
+                <tr><td style="height:0;border-bottom:2px dashed rgba(255,255,255,0.1);background-color:#111318;"></td></tr>
+
+                <!-- Date/Time strip -->
+                <tr>
+                  <td style="background-color:#111318;padding:24px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="33%" style="text-align:center;border-right:1px solid rgba(255,255,255,0.08);">
+                          <p style="color:#D4915C;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px 0;font-weight:700;">Date</p>
+                          <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0;">APR 26</p>
+                          <p style="color:rgba(237,230,219,0.5);font-size:12px;margin:4px 0 0 0;">Saturday</p>
+                        </td>
+                        <td width="33%" style="text-align:center;border-right:1px solid rgba(255,255,255,0.08);">
+                          <p style="color:#D4915C;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px 0;font-weight:700;">Time</p>
+                          <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0;">5:00 PM</p>
+                          <p style="color:rgba(237,230,219,0.5);font-size:12px;margin:4px 0 0 0;">Eastern Time</p>
+                        </td>
+                        <td width="33%" style="text-align:center;">
+                          <p style="color:#D4915C;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px 0;font-weight:700;">Format</p>
+                          <p style="color:#EDE6DB;font-size:20px;font-weight:700;margin:0;">LIVE</p>
+                          <p style="color:rgba(237,230,219,0.5);font-size:12px;margin:4px 0 0 0;">Zoom Meeting</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Second tear line -->
+                <tr><td style="height:0;border-bottom:2px dashed rgba(255,255,255,0.1);background-color:#111318;"></td></tr>
+
+                <!-- Body message -->
+                <tr>
+                  <td style="background-color:#111318;padding:28px 32px 24px 32px;">
+                    <p style="color:rgba(237,230,219,0.75);font-size:15px;line-height:1.7;margin:0;">
+                      ${config.bodyText(firstName)}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                  <td style="background-color:#111318;padding:0 32px 28px 32px;text-align:center;">
+                    <a href="${ctaUrl}" style="display:inline-block;background:${config.badgeBg};color:#FFFFFF;text-decoration:none;padding:18px 48px;border-radius:8px;font-size:16px;font-weight:800;letter-spacing:0.5px;">
+                      ${config.ctaText}
+                    </a>
+                  </td>
+                </tr>
+
+                <!-- Zoom link explicit -->
+                <tr>
+                  <td style="background-color:#111318;padding:0 32px 8px 32px;text-align:center;">
+                    <p style="color:rgba(237,230,219,0.35);font-size:11px;margin:0;">
+                      Zoom: <a href="${BOOTCAMP_ZOOM_LINK}" style="color:rgba(212,145,92,0.5);text-decoration:none;">${BOOTCAMP_ZOOM_LINK.split("?")[0]}</a>
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Closing -->
+                <tr>
+                  <td style="background-color:#111318;padding:20px 32px 32px 32px;text-align:center;">
+                    <p style="color:rgba(237,230,219,0.5);font-size:13px;line-height:1.6;margin:0 0 8px 0;font-style:italic;">
+                      "${config.closingQuote}"
+                    </p>
+                    <p style="color:#D4915C;font-size:13px;font-weight:700;margin:0;">— Marshall</p>
+                  </td>
+                </tr>
+
+                <!-- Bottom accent bar -->
+                <tr><td style="height:4px;background:linear-gradient(90deg,${config.badgeBg},#D4915C,#C9A96E,#D4915C,${config.badgeBg});"></td></tr>
+
+              </table>
+            </td>
+          </tr>
+          <!-- ═══ END CARD ═══ -->
+
+          <tr><td style="height:28px;"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="color:rgba(237,230,219,0.25);font-size:11px;line-height:1.6;">
+              <p style="margin:0;">Altitude Logic Pressure</p>
+              <p style="margin:4px 0 0 0;">
+                <a href="https://instagram.com/realmarshallwilkinson" style="color:rgba(212,145,92,0.4);text-decoration:none;">Instagram</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="https://alpcontractorschool.com" style="color:rgba(212,145,92,0.4);text-decoration:none;">Website</a>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="${PORTAL_URL}" style="color:rgba(212,145,92,0.4);text-decoration:none;">Member Portal</a>
+              </p>
+            </td>
+          </tr>
+          <tr><td style="height:32px;"></td></tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+function buildBootcampReminderText(params: { name: string; urgency: ReminderUrgency }): string {
+  const firstName = params.name.split(" ")[0] || "there";
+  const config = REMINDER_CONFIG[params.urgency];
+  return `
+${config.headline.toUpperCase()}
+${config.subtext}
+
+${config.bodyText(firstName)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Saturday, April 26
+⏰ 5:00 PM Eastern Time
+📍 Zoom Meeting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Zoom Link: ${BOOTCAMP_ZOOM_LINK}
+
+Portal: ${PORTAL_URL}
+
+"${config.closingQuote}"
+— Marshall
+
+Altitude Logic Pressure
+  `.trim();
+}
+
+export async function sendBootcampReminderEmail(params: {
+  to: string;
+  name: string;
+  urgency: ReminderUrgency;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn("[Email] Resend not configured — skipping bootcamp reminder");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  const config = REMINDER_CONFIG[params.urgency];
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: config.subject,
+      html: buildBootcampReminderHtml({ name: params.name, urgency: params.urgency }),
+      text: buildBootcampReminderText({ name: params.name, urgency: params.urgency }),
+    });
+
+    if (error) {
+      console.error(`[Email] Failed to send bootcamp reminder (${params.urgency}):`, error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email] Bootcamp reminder (${params.urgency}) sent to ${params.to} — id: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error(`[Email] Unexpected error sending bootcamp reminder (${params.urgency}):`, err);
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}

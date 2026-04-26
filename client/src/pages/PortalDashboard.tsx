@@ -31,6 +31,80 @@ import { CalendarIntegration } from "@/components/portal/CalendarIntegration";
 
 const DISCORD_INVITE = "https://discord.gg/KUTmm9D5aW";
 
+const BOOTCAMP_POSTER_URL = "/manus-storage/BootcampPoster_6025f4ca.png";
+const BOOTCAMP_ZOOM_DIRECT = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
+
+/**
+ * Featured hero banner for bootcamp day.
+ * Shows the bootcamp poster image with a pulsing "LIVE TODAY" badge and Join Zoom CTA.
+ * Only renders on the day of the bootcamp.
+ */
+function BootcampHeroBanner() {
+  const [dismissed, setDismissed] = useState(false);
+
+  // Check if today is bootcamp day (April 26, 2026)
+  const now = new Date();
+  const etOffset = -4; // EDT
+  const etHour = (now.getUTCHours() + etOffset + 24) % 24;
+  const etDate = new Date(now.getTime() + etOffset * 60 * 60 * 1000);
+  const todayStr = etDate.toISOString().slice(0, 10);
+  const isBootcampDay = todayStr === "2026-04-26";
+  const isBeforeEvent = etHour < 19; // Show until 7 PM ET (event ends ~7 PM)
+
+  if (dismissed || !isBootcampDay || !isBeforeEvent) return null;
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border-2 border-ember/40 shadow-[0_0_40px_rgba(212,145,92,0.15)]">
+      {/* Dismiss button */}
+      <button
+        onClick={() => setDismissed(true)}
+        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/60 hover:text-white hover:bg-black/80 transition-all"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* Pulsing LIVE TODAY badge */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+        </span>
+        <span className="text-white text-xs font-bold uppercase tracking-widest bg-red-600/90 px-3 py-1 rounded-full shadow-lg">
+          Live Today — 5 PM ET
+        </span>
+      </div>
+
+      {/* Poster image */}
+      <a href={BOOTCAMP_ZOOM_DIRECT} target="_blank" rel="noopener noreferrer" className="block">
+        <img
+          src={BOOTCAMP_POSTER_URL}
+          alt="Contractor Circle Bootcamp — Today at 5 PM ET"
+          className="w-full object-contain rounded-2xl"
+        />
+      </a>
+
+      {/* CTA overlay at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-center sm:text-left">
+            <p className="text-white font-heading font-bold text-lg sm:text-xl">Bootcamp starts at 5:00 PM ET</p>
+            <p className="text-white/60 text-sm">Click to join the Zoom meeting</p>
+          </div>
+          <a
+            href={BOOTCAMP_ZOOM_DIRECT}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-ember hover:bg-ember/90 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-ember/40 hover:shadow-ember/60 whitespace-nowrap text-base"
+          >
+            <Video className="w-5 h-5" />
+            Join Zoom Now
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Zoom recurring meeting link for bi-weekly Sunday calls at 5 PM ET
 // Update this URL when the Zoom meeting link changes
 const ZOOM_CALL_LINK = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
@@ -644,6 +718,9 @@ export default function PortalDashboard() {
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Question Modal */}
       {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
+
+      {/* BOOTCAMP DAY HERO BANNER — First thing members see */}
+      <BootcampHeroBanner />
 
       {/* Welcome Header */}
       <div data-tour="welcome-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

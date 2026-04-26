@@ -3205,3 +3205,8 @@
 - [x] Auto-detect day of week from date in admin UI
 - [x] Live preview of how the date will display on member dashboard
 - [x] 8 vitest tests passing for admin settings
+
+## Bootcamp Day Featured Banner
+- [x] Add bootcamp poster as hero banner at top of member dashboard
+- [x] Make it the first thing members see when they log in
+- [x] Include "Join Zoom" CTA button
