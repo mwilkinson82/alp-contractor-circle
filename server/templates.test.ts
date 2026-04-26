@@ -35,11 +35,12 @@ const TEMPLATES = [
   { id: "27", name: "The Three Silos Framework", url: "/manus-storage/ALP_Three_Silos_Framework_v3_3ba50529.pdf", type: "pdf", category: "operations" },
   { id: "28", name: "EOS Component Connection Map", url: "/manus-storage/ALP_EOS_Component_Connection_Map_0a3bdbab.pdf", type: "pdf", category: "operations" },
   { id: "29", name: "Project Manager Meeting — Weekly Process & Deliverables", url: "/manus-storage/ProjectManagerMeetingGraphic_7d272ed6.png", type: "pdf", category: "operations" },
+  { id: "30", name: "Project Financial & Schedule Overview — Job Cost Ledger", url: "/manus-storage/ProjectManagerDashboard_9dde9526.png", type: "pdf", category: "operations" },
 ];
 
 describe("Template Catalog", () => {
-  it("all 29 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(29);
+  it("all 30 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(30);
   });
 
   it("template IDs are unique", () => {

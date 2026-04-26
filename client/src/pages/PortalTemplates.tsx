@@ -625,6 +625,25 @@ const TEMPLATES: Template[] = [
       "Client-Facing Outcomes: cost visibility, accountability, fewer gaps, stronger weekly readiness",
     ],
   },
+  {
+    id: "30",
+    title: "Project Financial & Schedule Overview — Job Cost Ledger",
+    description: "Visual infographic showing the 8 critical financial and schedule metrics every PM must track for profitable project execution.",
+    longDescription: "Your Roadmap to Profitable Project Execution. This infographic breaks down the 8 numbers that are critical for every project manager meeting. For each project, you must know: (1) Original Contract Value — the contract value at execution. (2) Total Costs to Date — what you've actually spent on the project so far. (3) Total Committed Costs — the total cost you are on the hook for to complete the project (incurred + committed). (4) Revised Contract Value — the new contract value inclusive of approved add and deduct change orders. (5) Paid to Date — exactly what you've been paid on the contract. (6) Remaining to Be Paid — the delta on the contract that's remaining to be paid to you. (7) Original Contract Duration — in weeks, months, or years. (8) CPM Schedule Remaining Duration — the actual remaining duration as reflected in the CPM inclusive of adds and deduct change orders. These numbers are critical for every project manager meeting. By understanding both the financial and time position of the job, you can quickly assess whether you're behind or ahead, identify risks early, and take focused action to protect your margin and drive the job to success. Measure It. Manage It. Execute It. Win It.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/ProjectManagerDashboard_9dde9526.png",
+    featured: true,
+    badge: "New",
+    pages: "1 page infographic",
+    highlights: [
+      "8 critical metrics: OCV, Costs to Date, Committed Costs, RCV, Paid to Date, Remaining, Duration, CPM Remaining",
+      "Monday Morning Roadmap — understand position, identify risk, protect margin, execute with confidence",
+      "Visual breakdown of each metric with clear definitions and color-coded explanations",
+      "Sample project walkthrough: $24.5M Wastewater Treatment Plant with real numbers",
+      "Measure It. Manage It. Execute It. Win It.",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
