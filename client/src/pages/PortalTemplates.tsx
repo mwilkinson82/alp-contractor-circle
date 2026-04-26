@@ -606,6 +606,25 @@ const TEMPLATES: Template[] = [
       "The Bottom Line: build the V/TO first, Accountability Chart second, never skip ahead",
     ],
   },
+  {
+    id: "29",
+    title: "Project Manager Meeting — Weekly Process & Deliverables",
+    description: "Visual infographic of the weekly PM meeting cadence: Monday project review, One Week Look Ahead, and Friday L10 lock.",
+    longDescription: "A complete visual breakdown of the weekly Project Manager Meeting process and deliverables. Covers the three-step weekly cadence that keeps projects on track: (1) Monday Morning PM Meeting — review each project's Original Contract Value, Revised Contract Value, Cost to Date, Committed Costs, Schedule Status, and the locked One Week Look Ahead from the CPM schedule. (2) One Week Look Ahead Review — all work activities confirmed, materials scheduled and available, subcontractors locked in, manpower committed, and constraints/risks identified before the week begins. Must be locked on Friday before the Monday meeting. (3) Friday L10 Meeting & Lock — Project Managers deliver the locked One Week Look Ahead, confirmation that all subs, manpower, and materials are locked in, and clear readiness for the upcoming week. Includes the Key Rule: no work activity should appear in the One Week Look Ahead unless manpower, materials, and subcontractor commitments are locked in. Client-facing outcomes: better visibility into cost and schedule, improved weekly accountability, fewer execution gaps, and stronger readiness for the week ahead.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/ProjectManagerMeetingGraphic_7d272ed6.png",
+    featured: true,
+    badge: "New",
+    pages: "1 page infographic",
+    highlights: [
+      "Monday Morning PM Meeting — review OCV, RCV, Cost to Date, Committed Costs, Schedule Status",
+      "One Week Look Ahead — locked on Friday, all activities, materials, subs, and manpower confirmed",
+      "Friday L10 Meeting & Lock — deliverables from PMs with clear readiness confirmation",
+      "Key Rule: nothing on the Look Ahead unless manpower, materials, and subs are locked in",
+      "Client-Facing Outcomes: cost visibility, accountability, fewer gaps, stronger weekly readiness",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
