@@ -27,7 +27,7 @@ import { useMember } from "@/hooks/useMember";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { Send, Lightbulb, CheckCircle } from "lucide-react";
 
-type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance" | "estimating" | "contractor_circle";
+type TemplateCategory = "all" | "proposals" | "contracts" | "sales" | "operations" | "finance" | "estimating" | "contractor_circle" | "leadership";
 
 interface Template {
   id: string;
@@ -644,6 +644,63 @@ const TEMPLATES: Template[] = [
       "Measure It. Manage It. Execute It. Win It.",
     ],
   },
+  {
+    id: "31",
+    title: "ALP/EOS Weekly Scorecard — L10 Measurables & Quarterly Rocks",
+    description: "Complete EOS weekly scorecard template with 10 measurables across Controller, VP Ops, and CEO seats, plus quarterly rock review tracker.",
+    longDescription: "The ALP/EOS Weekly Scorecard is the heartbeat of your Level 10 meeting. This 2-page template shows exactly how to track the numbers that matter most — Revenue Billed, AR Over 60 Days, Cash on Hand, Active Projects on Schedule, Change Orders Pending, Safety Incidents, Bids Submitted, Bid-Hit Rate, New Qualified Prospects, and Employee Satisfaction Pulse. Each measurable has a clear owner (Controller, VP Ops, or CEO), a defined goal, and a 13-week trailing view so you can spot trends before they become problems. The rule is simple: THREE WEEKS RED = ISSUE — any number red for 3 consecutive weeks automatically drops to the Issues List for IDS. Page 2 is the Quarterly Rock Review — a structured tracker for your 90-day priorities with owner, description, and on-track/off-track status. This is the exact scorecard format used by Apex Commercial Contractors in the ALP/EOS bootcamp. Adapt the measurables to your business, but keep the discipline of tracking weekly.",
+    category: "operations",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/Scorecard_Apex_Commercial_cdf6e910.pdf",
+    featured: true,
+    badge: "Bootcamp",
+    pages: "2 pages",
+    highlights: [
+      "10 measurables across 3 seats: Controller (Revenue, AR, Cash), VP Ops (Schedule, COs, Safety), CEO (Bids, Hit Rate, Prospects, Satisfaction)",
+      "13-week trailing view with color-coded red/yellow/green performance indicators",
+      "Three Weeks Red = Issue rule — automatic escalation to the Issues List for IDS",
+      "Quarterly Rock Review with owner, description, and on-track/off-track status",
+      "Real example from Apex Commercial Contractors — adapt the measurables to your company",
+    ],
+  },
+  {
+    id: "32",
+    title: "Vision/Traction Organizer (VITO) — Complete Example",
+    description: "Full 8-page EOS Vision/Traction Organizer for a $25M commercial GC, covering Core Values through Quarterly Rocks with real targets and strategies.",
+    longDescription: "The VITO — Vision/Traction Organizer — is the single most important document in your company. This 8-page example, built for Apex Commercial Contractors, shows exactly how to complete every section of the EOS VITO for a construction company. PAGE 1: VISION — Core Values (Own It, Do What You Say, Team First, Get It Done, Safety Always), Core Focus (purpose, niche), 10-Year Target ($100M revenue, 12% net profit, 200+ employees, <5% owner involvement), and Marketing Strategy (target market, three uniques, proven process, guarantee). PAGE 2: TRACTION — 3-Year Picture ($50M, full leadership team, healthcare division at 30%, $25M single-project bonding), 1-Year Plan (7 goals from $30M revenue to implementing ALP/EOS company-wide), and Quarterly Rocks (Q2 2026: Post VP Ops listing, bid 4 healthcare projects, run L10s for 12 weeks, close out 3 lingering projects). Every layer of the VITO cascade pulls toward the layer above it — 10-Year → 3-Year → 1-Year → Quarterly Rocks. Use this as your blueprint to build your own.",
+    category: "leadership",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/VITO_Apex_Commercial_Contractors_859f6adb.pdf",
+    featured: true,
+    badge: "Bootcamp",
+    pages: "8 pages",
+    highlights: [
+      "Complete VITO example for a $25M commercial GC — every section filled out with real targets",
+      "Core Values with definitions, Core Focus with niche and purpose, 10-Year Target with specific metrics",
+      "Marketing Strategy: target market, three uniques, proven process, and guarantee",
+      "3-Year Picture, 1-Year Plan (7 goals), and Quarterly Rocks (Q2 2026) — all connected",
+      "The VITO Cascade: 10-Year → 3-Year → 1-Year → Quarterly Rocks — every layer pulls toward the one above",
+    ],
+  },
+  {
+    id: "33",
+    title: "Monthly Boot Camp — Building the Machine (April 2026)",
+    description: "Full 36-slide bootcamp deck covering ALP/EOS implementation, the VITO cascade, accountability charts, People Analyzer, mock L10 meetings, and the APP framework.",
+    longDescription: "The April 2026 ALP Contractor Circle Monthly Boot Camp slide deck — \"Building the Machine: ALP/EOS Implementation, the APP Framework, and Real-World Problem Solving.\" This 36-page presentation covers the complete 3-hour bootcamp in 5 blocks: Block 1 — VITO & Accountability Chart Review (45 min): The VITO cascade from 10-Year Target down to Quarterly Rocks, how to build your accountability chart with the 5 major functions (Sales/Marketing, Operations, Finance, Integrator, Visionary), and why structure drives execution. Block 2 — People Analyzer Deep Dive (30 min): The EOS People Analyzer tool for evaluating whether people are in the right seats — GWC (Get It, Want It, Capacity) plus core value alignment scoring. Block 3 — Mock L10 Meeting & IDS (45 min): A live walkthrough of the Level 10 meeting format — segue, scorecard review, rock review, customer/employee headlines, to-do list, and IDS (Identify, Discuss, Solve). Block 4 — The APP Framework (25 min): Marshall's proprietary Accountability, Process, Performance framework for building systems that run without the owner. Block 5 — Member-Submitted Topics (25 min): Open floor for real problems from real contractors. Facilitated by Marshall Wilkinson.",
+    category: "leadership",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/ALP_Contractor_Circle_—_Monthly_Boot_Camp_71b69e30.pdf",
+    featured: true,
+    badge: "Bootcamp",
+    pages: "36 pages",
+    highlights: [
+      "5 blocks: VITO & Accountability Chart, People Analyzer, Mock L10 & IDS, APP Framework, Member Topics",
+      "The VITO Cascade explained: 10-Year → 3-Year → 1-Year → Quarterly Rocks with real examples",
+      "EOS People Analyzer: GWC (Get It, Want It, Capacity) + core value alignment scoring",
+      "Full L10 meeting walkthrough: segue, scorecard, rocks, headlines, to-do list, IDS",
+      "Marshall's APP Framework: Accountability, Process, Performance — build systems that run without you",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
@@ -654,6 +711,7 @@ const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementT
   { value: "operations", label: "Operations", icon: BarChart3 },
   { value: "finance", label: "Finance", icon: FileSpreadsheet },
   { value: "estimating", label: "Estimating", icon: Calculator },
+  { value: "leadership", label: "Leadership", icon: Target },
   { value: "contractor_circle", label: "Circle Presentations", icon: BookOpen },
 ];
 

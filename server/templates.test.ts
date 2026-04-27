@@ -36,11 +36,14 @@ const TEMPLATES = [
   { id: "28", name: "EOS Component Connection Map", url: "/manus-storage/ALP_EOS_Component_Connection_Map_0a3bdbab.pdf", type: "pdf", category: "operations" },
   { id: "29", name: "Project Manager Meeting — Weekly Process & Deliverables", url: "/manus-storage/ProjectManagerMeetingGraphic_7d272ed6.png", type: "pdf", category: "operations" },
   { id: "30", name: "Project Financial & Schedule Overview — Job Cost Ledger", url: "/manus-storage/ProjectManagerDashboard_9dde9526.png", type: "pdf", category: "operations" },
+  { id: "31", name: "ALP/EOS Weekly Scorecard — L10 Measurables & Quarterly Rocks", url: "/manus-storage/Scorecard_Apex_Commercial_cdf6e910.pdf", type: "pdf", category: "operations" },
+  { id: "32", name: "Vision/Traction Organizer (VITO) — Complete Example", url: "/manus-storage/VITO_Apex_Commercial_Contractors_859f6adb.pdf", type: "pdf", category: "leadership" },
+  { id: "33", name: "Monthly Boot Camp — Building the Machine (April 2026)", url: "/manus-storage/ALP_Contractor_Circle_—_Monthly_Boot_Camp_71b69e30.pdf", type: "pdf", category: "leadership" },
 ];
 
 describe("Template Catalog", () => {
-  it("all 30 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(30);
+  it("all 33 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(33);
   });
 
   it("template IDs are unique", () => {
@@ -99,6 +102,7 @@ describe("Template Catalog", () => {
     expect(categories.has("operations")).toBe(true);
     expect(categories.has("estimating")).toBe(true);
     expect(categories.has("contractor_circle")).toBe(true);
+    expect(categories.has("leadership")).toBe(true);
   });
 
   it("file types are only google-doc, google-sheet, or pdf", () => {

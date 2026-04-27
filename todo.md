@@ -3215,3 +3215,11 @@
 - [x] Add buildDiscordIntroEmailHtml() and sendDiscordIntroEmail() to email.ts
 - [x] Wire into Stripe checkout.session.completed webhook as Email #3 in onboarding sequence
 - [x] Update Discord invite link to discord.gg/rsK5HZcF across all files (dashboard, emails, welcome page, tests)
+
+## April 2026 Bootcamp Templates
+- [x] Template #31: ALP/EOS Weekly Scorecard — L10 Measurables & Quarterly Rocks (operations, 2 pages)
+- [x] Template #32: Vision/Traction Organizer (VITO) — Complete Example (leadership, 8 pages)
+- [x] Template #33: Monthly Boot Camp — Building the Machine April 2026 (leadership, 36 pages)
+- [x] Added "leadership" category to TemplateCategory type and CATEGORIES filter
+- [x] All 3 PDFs uploaded to CDN and added to PortalTemplates.tsx
+- [x] Tests updated (33 templates, leadership category) — 447 tests passing
