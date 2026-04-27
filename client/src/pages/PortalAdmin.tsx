@@ -59,11 +59,15 @@ const CATEGORY_COLORS: Record<Category, string> = {
   q_and_a: "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
+type VideoSource = "cloudflare" | "zoom_clips";
+
 interface ReplayFormData {
   title: string;
   description: string;
   category: Category;
+  videoSource: VideoSource;
   cloudflareStreamId: string;
+  zoomClipsUrl: string;
   duration: string;
   callDate: string;
   featured: boolean;
@@ -73,7 +77,9 @@ const emptyForm: ReplayFormData = {
   title: "",
   description: "",
   category: "weekly_calls",
+  videoSource: "cloudflare",
   cloudflareStreamId: "",
+  zoomClipsUrl: "",
   duration: "",
   callDate: new Date().toISOString().split("T")[0],
   featured: false,
@@ -562,15 +568,25 @@ export default function PortalAdmin() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title || !form.cloudflareStreamId || !form.callDate) {
-      toast.error("Title, Cloudflare Stream ID, and date are required.");
+    if (!form.title || !form.callDate) {
+      toast.error("Title and date are required.");
+      return;
+    }
+    if (form.videoSource === "cloudflare" && !form.cloudflareStreamId) {
+      toast.error("Cloudflare Stream ID is required.");
+      return;
+    }
+    if (form.videoSource === "zoom_clips" && !form.zoomClipsUrl) {
+      toast.error("Zoom Clips embed URL is required.");
       return;
     }
     addMutation.mutate({
       title: form.title,
       description: form.description || undefined,
       category: form.category,
-      cloudflareStreamId: form.cloudflareStreamId,
+      videoSource: form.videoSource,
+      cloudflareStreamId: form.videoSource === "cloudflare" ? form.cloudflareStreamId : undefined,
+      zoomClipsUrl: form.videoSource === "zoom_clips" ? form.zoomClipsUrl : undefined,
       duration: form.duration || undefined,
       callDate: new Date(form.callDate),
       featured: form.featured,
@@ -582,7 +598,9 @@ export default function PortalAdmin() {
       title: replay.title,
       description: replay.description || "",
       category: replay.category as Category,
-      cloudflareStreamId: replay.cloudflareStreamId,
+      videoSource: (replay.videoSource as VideoSource) || "cloudflare",
+      cloudflareStreamId: replay.cloudflareStreamId || "",
+      zoomClipsUrl: replay.zoomClipsUrl || "",
       duration: replay.duration || "",
       callDate: new Date(replay.callDate).toISOString().split("T")[0],
       featured: replay.featured,
@@ -694,32 +712,97 @@ export default function PortalAdmin() {
                 />
               </div>
 
-              {/* Cloudflare Stream ID */}
+              {/* Video Source Toggle */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-cream-muted uppercase tracking-wider mb-2">
-                  Cloudflare Stream Video ID <span className="text-ember">*</span>
+                  Video Source <span className="text-ember">*</span>
                 </label>
-                <Input
-                  value={form.cloudflareStreamId}
-                  onChange={e => setForm(f => ({ ...f, cloudflareStreamId: e.target.value.trim() }))}
-                  placeholder="e.g. a4eXaMpLeId123abc456"
-                  className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 focus:border-ember/50 font-mono text-sm"
-                  required
-                />
-                {form.cloudflareStreamId && (
-                  <p className="text-xs text-cream-muted mt-1.5">
-                    Preview:{" "}
-                    <a
-                      href={`https://iframe.videodelivery.net/${form.cloudflareStreamId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-ember hover:underline inline-flex items-center gap-1"
-                    >
-                      Open embed URL <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </p>
-                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, videoSource: "cloudflare" }))}
+                    className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border ${
+                      form.videoSource === "cloudflare"
+                        ? "bg-ember/20 border-ember text-ember"
+                        : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/10"
+                    }`}
+                  >
+                    Cloudflare Stream
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, videoSource: "zoom_clips" }))}
+                    className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border ${
+                      form.videoSource === "zoom_clips"
+                        ? "bg-blue-500/20 border-blue-500 text-blue-400"
+                        : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/10"
+                    }`}
+                  >
+                    Zoom Clips
+                  </button>
+                </div>
               </div>
+
+              {/* Cloudflare Stream ID (shown when cloudflare selected) */}
+              {form.videoSource === "cloudflare" && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-cream-muted uppercase tracking-wider mb-2">
+                    Cloudflare Stream Video ID <span className="text-ember">*</span>
+                  </label>
+                  <Input
+                    value={form.cloudflareStreamId}
+                    onChange={e => setForm(f => ({ ...f, cloudflareStreamId: e.target.value.trim() }))}
+                    placeholder="e.g. a4eXaMpLeId123abc456"
+                    className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 focus:border-ember/50 font-mono text-sm"
+                    required
+                  />
+                  {form.cloudflareStreamId && (
+                    <p className="text-xs text-cream-muted mt-1.5">
+                      Preview:{" "}
+                      <a
+                        href={`https://iframe.videodelivery.net/${form.cloudflareStreamId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-ember hover:underline inline-flex items-center gap-1"
+                      >
+                        Open embed URL <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Zoom Clips URL (shown when zoom_clips selected) */}
+              {form.videoSource === "zoom_clips" && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-cream-muted uppercase tracking-wider mb-2">
+                    Zoom Clips Embed URL <span className="text-blue-400">*</span>
+                  </label>
+                  <Input
+                    value={form.zoomClipsUrl}
+                    onChange={e => setForm(f => ({ ...f, zoomClipsUrl: e.target.value.trim() }))}
+                    placeholder="Paste the embed URL from Zoom Clips → Share → Embed"
+                    className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 focus:border-blue-500/50 font-mono text-sm"
+                    required
+                  />
+                  <p className="text-xs text-cream-muted mt-1.5">
+                    In Zoom, go to your Clip → Share → Embed tab → copy the <strong>src URL</strong> from the iframe code
+                  </p>
+                  {form.zoomClipsUrl && (
+                    <p className="text-xs text-cream-muted mt-1">
+                      Preview:{" "}
+                      <a
+                        href={form.zoomClipsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline inline-flex items-center gap-1"
+                      >
+                        Open embed URL <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Category */}
               <div>
@@ -845,13 +928,17 @@ export default function PortalAdmin() {
                 className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
               >
                 {/* Thumbnail */}
-                <div className="w-full sm:w-28 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                  <img
-                    src={replay.thumbnailUrl}
-                    alt={replay.title}
-                    className="w-full h-full object-cover"
-                    onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
+                <div className="w-full sm:w-28 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+                  {replay.thumbnailUrl ? (
+                    <img
+                      src={replay.thumbnailUrl}
+                      alt={replay.title}
+                      className="w-full h-full object-cover"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <Video className="w-6 h-6 text-blue-400/60" />
+                  )}
                 </div>
 
                 {/* Info */}
@@ -871,7 +958,9 @@ export default function PortalAdmin() {
                     {new Date(replay.callDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     {replay.duration && ` · ${replay.duration}`}
                     {" · "}
-                    <span className="font-mono text-ember/70">{replay.cloudflareStreamId}</span>
+                    <span className="font-mono text-ember/70">
+                      {replay.videoSource === "zoom_clips" ? "Zoom Clips" : replay.cloudflareStreamId}
+                    </span>
                   </p>
                 </div>
 

@@ -93,12 +93,19 @@ export const replays = mysqlTable("replays", {
     "masterclass",
     "q_and_a",
   ]).default("weekly_calls").notNull(),
+  /** Video source: cloudflare (Cloudflare Stream) or zoom_clips (Zoom Clips embed) */
+  videoSource: mysqlEnum("videoSource", ["cloudflare", "zoom_clips"]).default("cloudflare").notNull(),
   /**
-   * Cloudflare Stream video ID.
+   * Cloudflare Stream video ID (used when videoSource = 'cloudflare').
    * Embed URL: https://iframe.videodelivery.net/{cloudflareStreamId}
    * Thumbnail URL: https://videodelivery.net/{cloudflareStreamId}/thumbnails/thumbnail.jpg
    */
-  cloudflareStreamId: varchar("cloudflareStreamId", { length: 128 }).notNull(),
+  cloudflareStreamId: varchar("cloudflareStreamId", { length: 128 }),
+  /**
+   * Zoom Clips embed URL (used when videoSource = 'zoom_clips').
+   * Paste the full embed URL from Zoom Clips share → Embed tab.
+   */
+  zoomClipsUrl: varchar("zoomClipsUrl", { length: 512 }),
   /** Duration string e.g. "1h 24m" */
   duration: varchar("duration", { length: 32 }),
   /** Date of the call/session */

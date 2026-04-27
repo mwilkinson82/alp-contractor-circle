@@ -52,10 +52,16 @@ function categoryLabel(cat: string): string {
 interface VideoModalProps {
   embedUrl: string;
   title: string;
+  videoSource?: string;
   onClose: () => void;
 }
 
-function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
+function VideoModal({ embedUrl, title, videoSource, onClose }: VideoModalProps) {
+  // Cloudflare gets autoplay params appended; Zoom Clips URL is used as-is
+  const iframeSrc = videoSource === "zoom_clips"
+    ? embedUrl
+    : `${embedUrl}?autoplay=true&muted=false`;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
@@ -75,10 +81,10 @@ function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
             <X className="w-4 h-4 text-cream-muted" />
           </button>
         </div>
-        {/* Cloudflare Stream iframe */}
+        {/* Video iframe — works for both Cloudflare Stream and Zoom Clips */}
         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
           <iframe
-            src={`${embedUrl}?autoplay=true&muted=false`}
+            src={iframeSrc}
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
@@ -93,7 +99,7 @@ function VideoModal({ embedUrl, title, onClose }: VideoModalProps) {
 export default function PortalReplays() {
   const [activeCategory, setActiveCategory] = useState<ReplayCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeVideo, setActiveVideo] = useState<{ embedUrl: string; title: string } | null>(null);
+  const [activeVideo, setActiveVideo] = useState<{ embedUrl: string; title: string; videoSource?: string } | null>(null);
   const { isSubscribed } = useMember();
 
   const { data, isLoading, error } = trpc.member.replays.useQuery();
@@ -189,18 +195,24 @@ export default function PortalReplays() {
               <button
                 key={replay.id}
                 className="group glass-card rounded-xl p-4 sm:p-5 text-left hover:bg-white/[0.03] transition-all duration-300 border border-ember/10"
-                onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title })}
+                onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title, videoSource: replay.videoSource })}
               >
-                {/* Cloudflare Stream thumbnail */}
+                {/* Video thumbnail */}
                 <div className="w-full aspect-video rounded-lg overflow-hidden mb-4 bg-white/5 relative">
-                  <img
-                    src={replay.thumbnailUrl}
-                    alt={replay.title}
-                    className="w-full h-full object-cover"
-                    onError={e => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                  {replay.thumbnailUrl ? (
+                    <img
+                      src={replay.thumbnailUrl}
+                      alt={replay.title}
+                      className="w-full h-full object-cover"
+                      onError={e => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900/30 to-blue-800/10">
+                      <PlayCircle className="w-10 h-10 text-blue-400/40" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
                     <div className="w-12 h-12 rounded-full bg-ember/80 flex items-center justify-center group-hover:bg-ember transition-colors">
                       <PlayCircle className="w-6 h-6 text-white" />
@@ -279,18 +291,24 @@ export default function PortalReplays() {
               <button
                 key={replay.id}
                 className="group w-full glass-card rounded-xl p-3 sm:p-4 md:p-5 text-left hover:bg-white/[0.03] transition-all duration-300 flex items-center gap-3 sm:gap-4"
-                onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title })}
+                onClick={() => setActiveVideo({ embedUrl: replay.embedUrl, title: replay.title, videoSource: replay.videoSource })}
               >
                 {/* Thumbnail */}
                 <div className="w-16 h-12 md:w-20 md:h-14 rounded-lg overflow-hidden bg-white/5 relative shrink-0">
-                  <img
-                    src={replay.thumbnailUrl}
-                    alt={replay.title}
-                    className="w-full h-full object-cover"
-                    onError={e => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                  {replay.thumbnailUrl ? (
+                    <img
+                      src={replay.thumbnailUrl}
+                      alt={replay.title}
+                      className="w-full h-full object-cover"
+                      onError={e => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <PlayCircle className="w-4 h-4 text-blue-400/50" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
                     <PlayCircle className="w-5 h-5 text-white/80 group-hover:text-ember transition-colors" />
                   </div>
@@ -341,6 +359,7 @@ export default function PortalReplays() {
         <VideoModal
           embedUrl={activeVideo.embedUrl}
           title={activeVideo.title}
+          videoSource={activeVideo.videoSource}
           onClose={() => setActiveVideo(null)}
         />
       )}

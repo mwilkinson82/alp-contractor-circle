@@ -3223,3 +3223,15 @@
 - [x] Added "leadership" category to TemplateCategory type and CATEGORIES filter
 - [x] All 3 PDFs uploaded to CDN and added to PortalTemplates.tsx
 - [x] Tests updated (33 templates, leadership category) — 447 tests passing
+
+## Zoom Clips Embed Support for Replays
+- [x] Add videoSource enum column to replays table (cloudflare | zoom_clips)
+- [x] Add zoomClipsUrl column to replays table (stores embed URL)
+- [x] Make cloudflareStreamId nullable (not required for Zoom Clips)
+- [x] Update addReplay procedure to accept videoSource + zoomClipsUrl with conditional validation
+- [x] Update replays query to return videoSource, zoomClipsUrl, and source-aware embedUrl/thumbnailUrl
+- [x] Add Cloudflare/Zoom Clips toggle to admin replay form
+- [x] Update replay player modal to handle Zoom Clips embeds (no autoplay params)
+- [x] Handle null thumbnails for Zoom Clips in replay library (featured + list views)
+- [x] Update admin replay list to show "Zoom Clips" label instead of stream ID
+- [x] Update tests for new video source schema — 454 tests passing

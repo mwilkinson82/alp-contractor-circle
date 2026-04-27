@@ -95,16 +95,26 @@ describe("addReplay input validation", () => {
     title: z.string().min(1),
     description: z.string().optional(),
     category: z.enum(["weekly_calls", "bootcamp", "masterclass", "q_and_a"]),
-    cloudflareStreamId: z.string().min(1),
+    videoSource: z.enum(["cloudflare", "zoom_clips"]).default("cloudflare"),
+    cloudflareStreamId: z.string().optional(),
+    zoomClipsUrl: z.string().optional(),
     duration: z.string().optional(),
     callDate: z.date(),
     featured: z.boolean().default(false),
-  });
+  }).refine(
+    (data) => {
+      if (data.videoSource === "cloudflare") return !!data.cloudflareStreamId;
+      if (data.videoSource === "zoom_clips") return !!data.zoomClipsUrl;
+      return false;
+    },
+    { message: "Cloudflare Stream ID or Zoom Clips URL is required based on video source" }
+  );
 
-  it("accepts valid replay input", () => {
+  it("accepts valid Cloudflare replay input", () => {
     const result = addReplaySchema.safeParse({
       title: "Weekly Call: Scaling Your Estimating Process",
       category: "weekly_calls",
+      videoSource: "cloudflare",
       cloudflareStreamId: "abc123def456",
       callDate: new Date("2026-03-13"),
       featured: false,
@@ -112,21 +122,55 @@ describe("addReplay input validation", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects empty title", () => {
+  it("accepts valid Zoom Clips replay input", () => {
     const result = addReplaySchema.safeParse({
-      title: "",
+      title: "Bootcamp: EOS Implementation",
+      category: "bootcamp",
+      videoSource: "zoom_clips",
+      zoomClipsUrl: "https://zoom.us/clips/share/abc123",
+      callDate: new Date("2026-04-27"),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("defaults videoSource to cloudflare", () => {
+    const result = addReplaySchema.safeParse({
+      title: "Test Call",
       category: "weekly_calls",
       cloudflareStreamId: "abc123",
+      callDate: new Date(),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.videoSource).toBe("cloudflare");
+    }
+  });
+
+  it("rejects cloudflare source without cloudflareStreamId", () => {
+    const result = addReplaySchema.safeParse({
+      title: "Test Call",
+      category: "weekly_calls",
+      videoSource: "cloudflare",
       callDate: new Date(),
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects empty cloudflareStreamId", () => {
+  it("rejects zoom_clips source without zoomClipsUrl", () => {
     const result = addReplaySchema.safeParse({
       title: "Test Call",
       category: "weekly_calls",
-      cloudflareStreamId: "",
+      videoSource: "zoom_clips",
+      callDate: new Date(),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty title", () => {
+    const result = addReplaySchema.safeParse({
+      title: "",
+      category: "weekly_calls",
+      cloudflareStreamId: "abc123",
       callDate: new Date(),
     });
     expect(result.success).toBe(false);
@@ -190,18 +234,60 @@ describe("deleteReplay input validation", () => {
   });
 });
 
-// ── Cloudflare Stream URL generation ──────────────────────────────────────────
-describe("Cloudflare Stream URL generation", () => {
-  const streamId = "abc123def456ghi789";
+// ── Video URL generation (Cloudflare + Zoom Clips) ──────────────────────────
+describe("Video URL generation", () => {
+  describe("Cloudflare Stream", () => {
+    const streamId = "abc123def456ghi789";
 
-  it("generates correct embed URL", () => {
-    const embedUrl = `https://iframe.videodelivery.net/${streamId}`;
-    expect(embedUrl).toBe("https://iframe.videodelivery.net/abc123def456ghi789");
+    it("generates correct embed URL", () => {
+      const embedUrl = `https://iframe.videodelivery.net/${streamId}`;
+      expect(embedUrl).toBe("https://iframe.videodelivery.net/abc123def456ghi789");
+    });
+
+    it("generates correct thumbnail URL", () => {
+      const thumbnailUrl = `https://videodelivery.net/${streamId}/thumbnails/thumbnail.jpg`;
+      expect(thumbnailUrl).toBe("https://videodelivery.net/abc123def456ghi789/thumbnails/thumbnail.jpg");
+    });
   });
 
-  it("generates correct thumbnail URL", () => {
-    const thumbnailUrl = `https://videodelivery.net/${streamId}/thumbnails/thumbnail.jpg`;
-    expect(thumbnailUrl).toBe("https://videodelivery.net/abc123def456ghi789/thumbnails/thumbnail.jpg");
+  describe("Zoom Clips", () => {
+    it("uses zoomClipsUrl directly as embed URL", () => {
+      const zoomClipsUrl = "https://zoom.us/clips/share/abc123";
+      const videoSource = "zoom_clips";
+      const embedUrl = videoSource === "zoom_clips" ? zoomClipsUrl : "https://iframe.videodelivery.net/fallback";
+      expect(embedUrl).toBe("https://zoom.us/clips/share/abc123");
+    });
+
+    it("returns null thumbnail for Zoom Clips", () => {
+      const videoSource = "zoom_clips";
+      const thumbnailUrl = videoSource === "zoom_clips" ? null : "https://videodelivery.net/x/thumbnails/thumbnail.jpg";
+      expect(thumbnailUrl).toBeNull();
+    });
+  });
+
+  describe("replay mapping logic", () => {
+    function mapReplay(r: { videoSource: string; cloudflareStreamId: string | null; zoomClipsUrl: string | null }) {
+      return {
+        embedUrl: r.videoSource === "zoom_clips" && r.zoomClipsUrl
+          ? r.zoomClipsUrl
+          : `https://iframe.videodelivery.net/${r.cloudflareStreamId}`,
+        thumbnailUrl: r.videoSource === "zoom_clips"
+          ? null
+          : `https://videodelivery.net/${r.cloudflareStreamId}/thumbnails/thumbnail.jpg`,
+      };
+    }
+
+    it("maps cloudflare replay correctly", () => {
+      const result = mapReplay({ videoSource: "cloudflare", cloudflareStreamId: "cf123", zoomClipsUrl: null });
+      expect(result.embedUrl).toBe("https://iframe.videodelivery.net/cf123");
+      expect(result.thumbnailUrl).toBe("https://videodelivery.net/cf123/thumbnails/thumbnail.jpg");
+    });
+
+    it("maps zoom_clips replay correctly", () => {
+      const result = mapReplay({ videoSource: "zoom_clips", cloudflareStreamId: null, zoomClipsUrl: "https://zoom.us/clips/share/z456" });
+      expect(result.embedUrl).toBe("https://zoom.us/clips/share/z456");
+      expect(result.thumbnailUrl).toBeNull();
+    });
   });
 });
 

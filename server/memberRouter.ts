@@ -137,19 +137,25 @@ export const memberRouter = router({
         title: r.title,
         description: r.description,
         category: r.category,
+        videoSource: r.videoSource ?? "cloudflare",
         cloudflareStreamId: r.cloudflareStreamId,
+        zoomClipsUrl: r.zoomClipsUrl,
         duration: r.duration,
         callDate: r.callDate,
         featured: r.featured,
-        // Cloudflare Stream embed and thumbnail URLs
-        embedUrl: `https://iframe.videodelivery.net/${r.cloudflareStreamId}`,
-        thumbnailUrl: `https://videodelivery.net/${r.cloudflareStreamId}/thumbnails/thumbnail.jpg`,
+        // Cloudflare Stream embed and thumbnail URLs (only valid for cloudflare source)
+        embedUrl: r.videoSource === "zoom_clips" && r.zoomClipsUrl
+          ? r.zoomClipsUrl
+          : `https://iframe.videodelivery.net/${r.cloudflareStreamId}`,
+        thumbnailUrl: r.videoSource === "zoom_clips"
+          ? null
+          : `https://videodelivery.net/${r.cloudflareStreamId}/thumbnails/thumbnail.jpg`,
       })),
     };
   }),
 
   /**
-   * Admin: Add a new replay (Cloudflare Stream video).
+   * Admin: Add a new replay (Cloudflare Stream or Zoom Clips).
    * Only accessible to members with memberRole === 'admin'.
    */
   addReplay: publicProcedure
@@ -158,11 +164,20 @@ export const memberRouter = router({
         title: z.string().min(1),
         description: z.string().optional(),
         category: z.enum(["weekly_calls", "bootcamp", "masterclass", "q_and_a"]),
-        cloudflareStreamId: z.string().min(1),
+        videoSource: z.enum(["cloudflare", "zoom_clips"]).default("cloudflare"),
+        cloudflareStreamId: z.string().optional(),
+        zoomClipsUrl: z.string().optional(),
         duration: z.string().optional(),
         callDate: z.date(),
         featured: z.boolean().default(false),
-      })
+      }).refine(
+        (data) => {
+          if (data.videoSource === "cloudflare") return !!data.cloudflareStreamId;
+          if (data.videoSource === "zoom_clips") return !!data.zoomClipsUrl;
+          return false;
+        },
+        { message: "Cloudflare Stream ID or Zoom Clips URL is required based on video source" }
+      )
     )
     .mutation(async ({ ctx, input }) => {
       const member = await getMemberFromRequest(ctx.req);
@@ -180,7 +195,9 @@ export const memberRouter = router({
         title: input.title,
         description: input.description,
         category: input.category,
-        cloudflareStreamId: input.cloudflareStreamId,
+        videoSource: input.videoSource,
+        cloudflareStreamId: input.videoSource === "cloudflare" ? input.cloudflareStreamId! : null,
+        zoomClipsUrl: input.videoSource === "zoom_clips" ? input.zoomClipsUrl! : null,
         duration: input.duration,
         callDate: input.callDate,
         featured: input.featured,
