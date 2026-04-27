@@ -719,8 +719,9 @@ export default function PortalDashboard() {
       {/* Question Modal */}
       {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
 
-      {/* BOOTCAMP DAY HERO BANNER — First thing members see */}
+      {/* BOOTCAMP DAY HERO BANNER — Disabled (April 2026 bootcamp is over)
       <BootcampHeroBanner />
+      */}
 
       {/* Welcome Header */}
       <div data-tour="welcome-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

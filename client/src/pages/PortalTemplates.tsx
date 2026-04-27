@@ -689,7 +689,7 @@ const TEMPLATES: Template[] = [
     longDescription: "The April 2026 ALP Contractor Circle Monthly Boot Camp slide deck — \"Building the Machine: ALP/EOS Implementation, the APP Framework, and Real-World Problem Solving.\" This 36-page presentation covers the complete 3-hour bootcamp in 5 blocks: Block 1 — VITO & Accountability Chart Review (45 min): The VITO cascade from 10-Year Target down to Quarterly Rocks, how to build your accountability chart with the 5 major functions (Sales/Marketing, Operations, Finance, Integrator, Visionary), and why structure drives execution. Block 2 — People Analyzer Deep Dive (30 min): The EOS People Analyzer tool for evaluating whether people are in the right seats — GWC (Get It, Want It, Capacity) plus core value alignment scoring. Block 3 — Mock L10 Meeting & IDS (45 min): A live walkthrough of the Level 10 meeting format — segue, scorecard review, rock review, customer/employee headlines, to-do list, and IDS (Identify, Discuss, Solve). Block 4 — The APP Framework (25 min): Marshall's proprietary Accountability, Process, Performance framework for building systems that run without the owner. Block 5 — Member-Submitted Topics (25 min): Open floor for real problems from real contractors. Facilitated by Marshall Wilkinson.",
     category: "leadership",
     fileType: "pdf",
-    downloadUrl: "/manus-storage/ALP_Contractor_Circle_—_Monthly_Boot_Camp_71b69e30.pdf",
+    downloadUrl: "/manus-storage/ALP_Contractor_Circle_Monthly_Boot_Camp_28fa55ce.pdf",
     featured: true,
     badge: "Bootcamp",
     pages: "36 pages",

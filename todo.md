@@ -3240,3 +3240,11 @@
 - [x] Accept full embed code (HTML block with div+iframe) and auto-extract src URL
 - [x] Update helper text to say "Paste the full embed code from Zoom"
 - [x] Ensure iframe renders with correct attributes (allowfullscreen, frameBorder=0, no Cloudflare autoplay params)
+
+## Post-Bootcamp Cleanup
+- [x] Remove bootcamp hero banner/poster from member dashboard (event is over)
+
+## Template Download Fix + Runbook
+- [x] Fix bootcamp slide deck template #33 download URL (404 — em dash in filename)
+- [x] Verify all 3 new templates (#31-33) download correctly (307 redirects to CloudFront)
+- [x] Create markdown runbook for template upload process (TEMPLATE-UPLOAD-RUNBOOK.md)
