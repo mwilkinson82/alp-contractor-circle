@@ -86,7 +86,8 @@ function VideoModal({ embedUrl, title, videoSource, onClose }: VideoModalProps) 
           <iframe
             src={iframeSrc}
             className="absolute inset-0 w-full h-full"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            frameBorder="0"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
             title={title}
           />

@@ -3235,3 +3235,8 @@
 - [x] Handle null thumbnails for Zoom Clips in replay library (featured + list views)
 - [x] Update admin replay list to show "Zoom Clips" label instead of stream ID
 - [x] Update tests for new video source schema — 454 tests passing
+
+## Zoom Clips Embed Fix
+- [x] Accept full embed code (HTML block with div+iframe) and auto-extract src URL
+- [x] Update helper text to say "Paste the full embed code from Zoom"
+- [x] Ensure iframe renders with correct attributes (allowfullscreen, frameBorder=0, no Cloudflare autoplay params)

@@ -772,34 +772,42 @@ export default function PortalAdmin() {
                 </div>
               )}
 
-              {/* Zoom Clips URL (shown when zoom_clips selected) */}
+              {/* Zoom Clips Embed Code (shown when zoom_clips selected) */}
               {form.videoSource === "zoom_clips" && (
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-cream-muted uppercase tracking-wider mb-2">
-                    Zoom Clips Embed URL <span className="text-blue-400">*</span>
+                    Zoom Clips Embed Code <span className="text-blue-400">*</span>
                   </label>
-                  <Input
+                  <textarea
                     value={form.zoomClipsUrl}
-                    onChange={e => setForm(f => ({ ...f, zoomClipsUrl: e.target.value.trim() }))}
-                    placeholder="Paste the embed URL from Zoom Clips → Share → Embed"
-                    className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 focus:border-blue-500/50 font-mono text-sm"
+                    onChange={e => {
+                      const raw = e.target.value;
+                      // Auto-extract src URL from iframe embed code
+                      const srcMatch = raw.match(/src=["']([^"']+)["']/);
+                      const extracted = srcMatch ? srcMatch[1] : raw.trim();
+                      setForm(f => ({ ...f, zoomClipsUrl: extracted }));
+                    }}
+                    placeholder='Paste the full embed code from Zoom Clips (the <div> block with the <iframe>)'
+                    className="w-full min-h-[80px] px-3 py-2 bg-white/5 border border-white/10 rounded-md text-cream placeholder:text-cream-muted/40 focus:border-blue-500/50 font-mono text-xs resize-y"
                     required
                   />
                   <p className="text-xs text-cream-muted mt-1.5">
-                    In Zoom, go to your Clip → Share → Embed tab → copy the <strong>src URL</strong> from the iframe code
+                    In Zoom, go to your Clip → Share → Embed tab → paste the <strong>entire embed code</strong>. The URL will be extracted automatically.
                   </p>
                   {form.zoomClipsUrl && (
-                    <p className="text-xs text-cream-muted mt-1">
-                      Preview:{" "}
+                    <div className="mt-2 p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                      <p className="text-xs text-blue-400 font-mono truncate">
+                        Extracted URL: {form.zoomClipsUrl}
+                      </p>
                       <a
                         href={form.zoomClipsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline inline-flex items-center gap-1"
+                        className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1 mt-1"
                       >
-                        Open embed URL <ExternalLink className="w-3 h-3" />
+                        Open in new tab <ExternalLink className="w-3 h-3" />
                       </a>
-                    </p>
+                    </div>
                   )}
                 </div>
               )}
