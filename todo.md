@@ -3256,4 +3256,13 @@
 - [x] Add template entry to PortalTemplates.tsx (id: 34, category: leadership)
 - [x] Update templates.test.ts (count 33→34, added ID + URL)
 - [x] Run tests — 454 passed, 0 failed
-- [ ] Save checkpoint and deploy
+- [x] Save checkpoint and deploy
+
+## Template #35 — ALP Owner Dependency Scorecard
+- [x] Review PDF content (10-page Owner Dependency Scorecard, 5 categories, 1-5 scale)
+- [x] Upload with clean ASCII filename per runbook (ALP_Owner_Dependency_Scorecard_Client_Facing.pdf)
+- [x] Verify download URL returns HTTP 307 — CONFIRMED
+- [x] Add template entry to PortalTemplates.tsx (id: 35, category: leadership)
+- [x] Update templates.test.ts (count 34→35, added ID + URL)
+- [x] Run tests — 454 passed, 0 failed
+- [x] Save checkpoint and deploy

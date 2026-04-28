@@ -719,6 +719,24 @@ const TEMPLATES: Template[] = [
       "Interlocking architecture — every component relies on the one before it, skip a step and the system breaks",
     ],
   },
+  {
+    id: "35",
+    title: "Owner Dependency Scorecard — How Reliant Is Your Business on You?",
+    description: "10-page self-assessment scoring your business across 5 critical categories on a 1-5 dependency scale, with coaching prompts to identify where you're still the bottleneck.",
+    longDescription: "The Owner Dependency Scorecard is a practical self-assessment for contractor owners who want a company that runs without them — a Contractor Circle Exclusive. Every contractor starts as the person who does everything: sell the work, estimate the work, manage the work, pay the bills, handle the problems. But what got you here will not get you to the next level. If your business cannot function without you for 30 days, you do not own a company — you own a job. This scorecard gives you an honest, measurable picture of where you stand today. Rate your company on a scale of 1 (Total Dependency — you do this entirely yourself, it fails without you) to 5 (Zero Dependency — fully delegated to a capable leader with a documented process). The 5 Categories: 1. Vision & Leadership — Can the company set goals, resolve conflicts, and stay aligned without you driving it every day? 2. Sales & Estimating — Can the company generate leads, build relationships, estimate projects, and close deals without you? 3. Operations & Field Production — Can projects be managed, crews scheduled, quality maintained, and problems solved without you? 4. Financial Management — Can the company manage cash flow, job costing, billing, and financial decisions without you? 5. People & Culture — Can the company hire, develop, hold accountable, and retain the right people without you? Each category includes a Coach's Prompt to help you identify where you are still the final approval point, problem-solver, or safety net. Best Practice: Complete the scorecard quickly the first time — your initial reaction is usually the most accurate. Then review the lowest-scoring category and identify one practical improvement that can be delegated, documented, or systematized in the next 90 days. Important: Do not average away a weak function. One low score can still keep the owner trapped in the business.",
+    category: "leadership",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/ALP_Owner_Dependency_Scorecard_Client_Facing_36b1deda.pdf",
+    featured: true,
+    badge: "New",
+    pages: "10 pages",
+    highlights: [
+      "5 scoring categories: Vision & Leadership, Sales & Estimating, Operations & Field Production, Financial Management, People & Culture",
+      "1-5 Dependency Scale: Total Dependency to Zero Dependency with detailed descriptions of what each level looks like",
+      "Coach's Prompts on every category to identify where you're still the bottleneck, approval point, or safety net",
+      "Best Practice: Complete quickly, review lowest score, identify one improvement to delegate or systematize in 90 days",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [

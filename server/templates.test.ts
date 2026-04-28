@@ -40,11 +40,12 @@ const TEMPLATES = [
   { id: "32", name: "Vision/Traction Organizer (VITO) — Complete Example", url: "/manus-storage/VITO_Apex_Commercial_Contractors_859f6adb.pdf", type: "pdf", category: "leadership" },
   { id: "33", name: "Monthly Boot Camp — Building the Machine (April 2026)", url: "/manus-storage/ALP_Contractor_Circle_Monthly_Boot_Camp_28fa55ce.pdf", type: "pdf", category: "leadership" },
   { id: "34", name: "ALP-EOS Command Center Blueprint — Your Complete Operating System on One Page", url: "/manus-storage/ALP_EOS_Command_Center_Blueprint_393ce9e4.pdf", type: "pdf", category: "leadership" },
+  { id: "35", name: "Owner Dependency Scorecard — How Reliant Is Your Business on You?", url: "/manus-storage/ALP_Owner_Dependency_Scorecard_Client_Facing_36b1deda.pdf", type: "pdf", category: "leadership" },
 ];
 
 describe("Template Catalog", () => {
-  it("all 34 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(34);
+  it("all 35 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(35);
   });
 
   it("template IDs are unique", () => {
