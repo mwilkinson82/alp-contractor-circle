@@ -3248,3 +3248,12 @@
 - [x] Fix bootcamp slide deck template #33 download URL (404 — em dash in filename)
 - [x] Verify all 3 new templates (#31-33) download correctly (307 redirects to CloudFront)
 - [x] Create markdown runbook for template upload process (TEMPLATE-UPLOAD-RUNBOOK.md)
+
+## Template #34 — ALP EOS Command Center Blueprint
+- [x] Review PDF content (1-page EOS Command Center blueprint)
+- [x] Upload with clean ASCII filename per runbook (ALP_EOS_Command_Center_Blueprint.pdf)
+- [x] Verify download URL returns HTTP 307 — CONFIRMED
+- [x] Add template entry to PortalTemplates.tsx (id: 34, category: leadership)
+- [x] Update templates.test.ts (count 33→34, added ID + URL)
+- [x] Run tests — 454 passed, 0 failed
+- [ ] Save checkpoint and deploy

@@ -38,12 +38,13 @@ const TEMPLATES = [
   { id: "30", name: "Project Financial & Schedule Overview — Job Cost Ledger", url: "/manus-storage/ProjectManagerDashboard_9dde9526.png", type: "pdf", category: "operations" },
   { id: "31", name: "ALP/EOS Weekly Scorecard — L10 Measurables & Quarterly Rocks", url: "/manus-storage/Scorecard_Apex_Commercial_cdf6e910.pdf", type: "pdf", category: "operations" },
   { id: "32", name: "Vision/Traction Organizer (VITO) — Complete Example", url: "/manus-storage/VITO_Apex_Commercial_Contractors_859f6adb.pdf", type: "pdf", category: "leadership" },
-  { id: "33", name: "Monthly Boot Camp — Building the Machine (April 2026)", url: "/manus-storage/ALP_Contractor_Circle_—_Monthly_Boot_Camp_71b69e30.pdf", type: "pdf", category: "leadership" },
+  { id: "33", name: "Monthly Boot Camp — Building the Machine (April 2026)", url: "/manus-storage/ALP_Contractor_Circle_Monthly_Boot_Camp_28fa55ce.pdf", type: "pdf", category: "leadership" },
+  { id: "34", name: "ALP-EOS Command Center Blueprint — Your Complete Operating System on One Page", url: "/manus-storage/ALP_EOS_Command_Center_Blueprint_393ce9e4.pdf", type: "pdf", category: "leadership" },
 ];
 
 describe("Template Catalog", () => {
-  it("all 33 templates are present", () => {
-    expect(TEMPLATES).toHaveLength(33);
+  it("all 34 templates are present", () => {
+    expect(TEMPLATES).toHaveLength(34);
   });
 
   it("template IDs are unique", () => {

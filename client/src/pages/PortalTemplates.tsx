@@ -701,6 +701,24 @@ const TEMPLATES: Template[] = [
       "Marshall's APP Framework: Accountability, Process, Performance — build systems that run without you",
     ],
   },
+  {
+    id: "34",
+    title: "ALP-EOS Command Center Blueprint — Your Complete Operating System on One Page",
+    description: "One-page visual blueprint mapping all 6 EOS components (Vision, People, Data, Issues, Process, Traction), the Golden Rules, and the Meeting Pulse rhythm.",
+    longDescription: "The ALP-EOS Command Center is your complete operating system on one page — a Contractor Circle Exclusive. This single-page blueprint maps the entire EOS framework as an interlocking architecture where every component relies on the one before it. The 6 Components: 1. VISION (Tool: VITO) — Core Values, Core Focus, 10-Year Target, Marketing Strategy, 3-Year Picture, 1-Year Plan, Quarterly Rocks, Issues List. The foundational document that defines where the company is going and how it will get there. 2. PEOPLE (Tool: Accountability Chart & People Analyzer) — One Person Per Seat, 5 Core Seats, 3-5 Accountabilities, GWC Evaluation. Structuring the organization for scalability. 3. DATA (Tool: Weekly Scorecard) — 5-15 Numbers Max, Leading Indicators, Single Ownership, Weekly Goal. Running the business on objective numbers. 4. ISSUES (Tool: Issues List & IDS Framework) — Identify root cause, Discuss perspectives, Solve with action items. 5. PROCESS (Tool: Core Process Documentation) — 20/80 Rule, 8 Core GC Processes, FBA Standard. Systematizing the business for consistency and scalability. 6. TRACTION (Tool: Rocks & L10 Meeting) — 90-Day Rocks, L10 Meeting Agenda, Weekly Discipline. The Golden Rules: The Foundation Rule (VITO first, Accountability Chart second), The Accountability Rule (one person per seat), The Scorecard Rule (no narrative — on track or off track), The Issue Rule (three weeks red = IDS'd), The Execution Rule (90% To-Do completion or it's an Issue). The Meeting Pulse: Weekly L10 (90 min), Quarterly Planning (1 Full Day Offsite), Annual Planning (2 Full Days Offsite), State of Company (Quarterly, 45 min). Architecture Note: This is not a menu of options. Every component relies on the one before it. Skip a step, and the system breaks.",
+    category: "leadership",
+    fileType: "pdf",
+    downloadUrl: "/manus-storage/ALP_EOS_Command_Center_Blueprint_393ce9e4.pdf",
+    featured: true,
+    badge: "New",
+    pages: "1 page",
+    highlights: [
+      "6 EOS Components mapped: Vision (VITO), People (Accountability Chart), Data (Scorecard), Issues (IDS), Process (Core Docs), Traction (Rocks & L10)",
+      "The Golden Rules: Foundation, Accountability, Scorecard, Issue, and Execution rules for running EOS",
+      "The Meeting Pulse: Weekly L10, Quarterly Planning, Annual Planning, State of Company cadence",
+      "Interlocking architecture — every component relies on the one before it, skip a step and the system breaks",
+    ],
+  },
 ];
 
 const CATEGORIES: { value: TemplateCategory; label: string; icon: React.ElementType }[] = [
