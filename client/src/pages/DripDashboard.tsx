@@ -46,7 +46,9 @@ export default function DripDashboard() {
   const [selectedSequence, setSelectedSequence] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "preview">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "preview" | "reenroll">("dashboard");
+  const [reEnrollSeq, setReEnrollSeq] = useState<string>("");
+  const [reEnrollConfirm, setReEnrollConfirm] = useState(false);
   const [previewSeq, setPreviewSeq] = useState<string>("");
   const [previewStep, setPreviewStep] = useState<number>(0);
   const [previewName, setPreviewName] = useState<string>("Contractor");
@@ -97,6 +99,9 @@ export default function DripDashboard() {
 
   // Manual trigger mutation
   const triggerDrip = trpc.drip.trigger.useMutation();
+  const reEnrollDryRun = trpc.drip.reEnrollAll.useMutation({
+    onSuccess: () => { refetchStats(); refetchEnrollments(); },
+  });
 
   // Compute sequence summary from stats
   const sequenceSummary = useMemo(() => {
@@ -167,6 +172,17 @@ export default function DripDashboard() {
         >
           <Eye className="w-4 h-4" />
           Email Preview
+        </button>
+        <button
+          onClick={() => setActiveTab("reenroll")}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            activeTab === "reenroll"
+              ? "bg-ember/20 text-ember border border-ember/30"
+              : "text-cream-muted hover:text-cream hover:bg-white/5"
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Re-Enroll
         </button>
       </div>
 
@@ -545,6 +561,119 @@ export default function DripDashboard() {
         )}
       </div>
       </>)}
+
+      {/* Re-Enroll Tab */}
+      {activeTab === "reenroll" && (
+        <div className="space-y-6">
+          <div className="glass-card rounded-2xl p-6 border border-white/5">
+            <h2 className="font-heading text-lg font-semibold text-cream mb-2">Re-Enroll Contacts</h2>
+            <p className="text-sm text-cream-muted mb-6">
+              Reset contacts back to Day 1 of their drip sequence. This will restart the full email sequence for everyone who has completed, paused, or progressed past step 1.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-cream-muted block mb-2">Sequence (leave blank for all)</label>
+                <select
+                  value={reEnrollSeq}
+                  onChange={(e) => setReEnrollSeq(e.target.value)}
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-cream"
+                >
+                  <option value="">All Sequences</option>
+                  <option value="estimating_single">Estimating Checklist</option>
+                  <option value="q1q2_single">Q1/Q2 Framework</option>
+                  <option value="three_silos_single">Three Silos / Holy Grail</option>
+                  <option value="double_dipper">Double Dipper</option>
+                  <option value="homepage_only">Homepage Signups</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    reEnrollDryRun.mutate({ sequenceId: reEnrollSeq || undefined, dryRun: true });
+                  }}
+                  disabled={reEnrollDryRun.isPending}
+                  className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/10 text-cream hover:bg-white/10 transition-colors text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {reEnrollDryRun.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                  Preview (Dry Run)
+                </button>
+
+                {reEnrollConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-amber-400">Are you sure? This will reset all contacts.</span>
+                    <button
+                      onClick={() => {
+                        reEnrollDryRun.mutate({ sequenceId: reEnrollSeq || undefined, dryRun: false });
+                        setReEnrollConfirm(false);
+                      }}
+                      className="px-4 py-2.5 rounded-lg bg-ember text-charcoal font-semibold text-sm hover:bg-ember-light transition-colors"
+                    >
+                      Yes, Re-Enroll All
+                    </button>
+                    <button
+                      onClick={() => setReEnrollConfirm(false)}
+                      className="px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/10 text-cream text-sm hover:bg-white/10 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReEnrollConfirm(true)}
+                    className="px-4 py-2.5 rounded-lg bg-ember/20 border border-ember/30 text-ember hover:bg-ember/30 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Re-Enroll Now
+                  </button>
+                )}
+              </div>
+
+              {reEnrollDryRun.data && (
+                <div className="mt-4 p-4 bg-white/[0.03] rounded-xl border border-white/5">
+                  {reEnrollDryRun.data.dryRun ? (
+                    <div>
+                      <p className="text-cream font-medium mb-2">
+                        Dry Run: {reEnrollDryRun.data.count} contacts would be re-enrolled
+                      </p>
+                      {reEnrollDryRun.data.preview && reEnrollDryRun.data.preview.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          <p className="text-xs text-cream-muted mb-2">Preview (first 20):</p>
+                          {reEnrollDryRun.data.preview.map((p: any, i: number) => (
+                            <div key={i} className="text-xs text-cream-muted flex gap-3">
+                              <span className="text-cream">{p.email}</span>
+                              <span>{p.sequenceId}</span>
+                              <span>Step {p.currentStep}</span>
+                              <span className="text-amber-400">{p.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-emerald-400 font-medium">
+                      {reEnrollDryRun.data.message || `Re-enrolled ${reEnrollDryRun.data.count} contacts.`}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 border border-white/5">
+            <h3 className="font-heading text-base font-semibold text-cream mb-3">How Re-Enrollment Works</h3>
+            <ul className="space-y-2 text-sm text-cream-muted">
+              <li>• Resets contacts to <strong className="text-cream">Step 1</strong> of their sequence</li>
+              <li>• First email sends <strong className="text-cream">tomorrow at 8 AM ET</strong></li>
+              <li>• Applies to: completed, paused, converted, and active contacts past step 1</li>
+              <li>• Does <strong className="text-cream">NOT</strong> re-send the lead magnet PDF delivery email</li>
+              <li>• Unsubscribed contacts are <strong className="text-cream">excluded</strong> (respects opt-out)</li>
+              <li>• Use "Preview" first to see exactly who will be affected</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

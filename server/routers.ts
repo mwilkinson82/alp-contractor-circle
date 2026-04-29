@@ -1,7 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, mergeRouters } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, mergeRouters } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { createCircleCheckoutSession, stripe } from "./stripe";
 import { memberRouter } from "./memberRouter";
 import { scheduleRouter } from "./scheduleRouter";
@@ -457,6 +458,74 @@ export const appRouter = router({
           html: emailDef.buildHtml(input.firstName),
           text: emailDef.buildText(input.firstName),
         };
+      }),
+
+    /** Re-enroll all contacts back to Day 1 of their sequences */
+    reEnrollAll: protectedProcedure
+      .input(z.object({
+        sequenceId: z.string().optional(), // if omitted, re-enroll ALL sequences
+        dryRun: z.boolean().default(true),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const mysql = await import("mysql2/promise");
+        const conn = await mysql.createConnection(process.env.DATABASE_URL!);
+        try {
+          // Find all enrollments to re-enroll (completed, paused, or active past step 1)
+          let where = "(status IN ('completed', 'paused', 'converted') OR (status = 'active' AND currentStep > 1))";
+          const params: any[] = [];
+          if (input.sequenceId) {
+            where += " AND sequenceId = ?";
+            params.push(input.sequenceId);
+          }
+          const [rows] = await conn.execute(
+            `SELECT id, email, firstName, sequenceId, currentStep, status FROM drip_enrollments WHERE ${where}`,
+            params
+          ) as [any[], any];
+
+          if (input.dryRun) {
+            return {
+              success: true,
+              dryRun: true,
+              count: rows.length,
+              preview: rows.slice(0, 20).map((r: any) => ({
+                email: r.email,
+                firstName: r.firstName,
+                sequenceId: r.sequenceId,
+                currentStep: r.currentStep,
+                status: r.status,
+              })),
+            };
+          }
+
+          // Reset all matched enrollments to step 1 with next send tomorrow 8 AM ET
+          const tomorrow = new Date();
+          tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const dateStr = `${tomorrow.getUTCFullYear()}-${pad(tomorrow.getUTCMonth() + 1)}-${pad(tomorrow.getUTCDate())} 12:00:00`;
+
+          const ids = rows.map((r: any) => r.id);
+          if (ids.length > 0) {
+            // Batch update in chunks of 500
+            for (let i = 0; i < ids.length; i += 500) {
+              const chunk = ids.slice(i, i + 500);
+              const placeholders = chunk.map(() => '?').join(',');
+              await conn.execute(
+                `UPDATE drip_enrollments SET currentStep = 1, status = 'active', nextSendAt = ? WHERE id IN (${placeholders})`,
+                [dateStr, ...chunk]
+              );
+            }
+          }
+
+          return {
+            success: true,
+            dryRun: false,
+            count: ids.length,
+            message: `Re-enrolled ${ids.length} contacts back to Day 1. First emails will send tomorrow at 8 AM ET.`,
+          };
+        } finally {
+          await conn.end();
+        }
       }),
 
     /** List all available drip email definitions (for the admin preview panel) */

@@ -3488,3 +3488,13 @@
 - [x] All CTAs point to /join (not homepage)
 - [x] Build email preview feature in admin panel drip campaigns section (Dashboard/Preview tabs, modal with Prev/Next nav)
 - [x] Make template reusable for all Contractor Circle communications (buildCCEmail, buildCCSimpleEmail exports)
+
+## Three Silos + Q1/Q2 + Double Dipper Drip Campaigns (April 29)
+- [x] Replace Three Silos sequence (5 → 8 emails) with Marshall's new copy
+- [x] Replace Q1/Q2 sequence (5 → 9 emails) with Marshall's new copy
+- [x] Create new Double Dipper sequence (3 → 6 emails, Day 0/1/3/5/7/10 cadence)
+- [x] All use new branded email template (buildCCEmail)
+- [x] All CTAs point to /join
+- [x] Verified lead magnet PDF delivery emails still fire correctly (PDF sends first, drip enrolls after)
+- [x] Built admin re-enrollment feature (Re-Enroll tab in Drip Campaigns: dry run preview + confirm + safety gate)
+- [x] Updated threeSilos test for new 8-email sequence (491 tests passing)

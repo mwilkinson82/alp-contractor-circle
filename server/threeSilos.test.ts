@@ -8,27 +8,27 @@ import { describe, it, expect } from "vitest";
 import { getDripEmail, getMaxStep, ALL_DRIP_EMAILS, getNextSendDate } from "./dripEmails";
 
 describe("Three Silos Framework — Drip Emails", () => {
-  it("has 5 drip emails for three_silos_single sequence", () => {
+  it("has 8 drip emails for three_silos_single sequence", () => {
     const siloEmails = ALL_DRIP_EMAILS.filter(
       (e) => e.sequenceId === "three_silos_single"
     );
-    expect(siloEmails).toHaveLength(5);
+    expect(siloEmails).toHaveLength(8);
   });
 
-  it("step numbers are 1 through 5", () => {
-    for (let step = 1; step <= 5; step++) {
+  it("step numbers are 1 through 8", () => {
+    for (let step = 1; step <= 8; step++) {
       const email = getDripEmail("three_silos_single", step);
       expect(email).toBeDefined();
       expect(email!.stepNumber).toBe(step);
     }
   });
 
-  it("getMaxStep returns 5 for three_silos_single", () => {
-    expect(getMaxStep("three_silos_single")).toBe(5);
+  it("getMaxStep returns 8 for three_silos_single", () => {
+    expect(getMaxStep("three_silos_single")).toBe(8);
   });
 
   it("each email has a subject, buildHtml, and buildText", () => {
-    for (let step = 1; step <= 5; step++) {
+    for (let step = 1; step <= 8; step++) {
       const email = getDripEmail("three_silos_single", step)!;
       const subject = email.subject("TestUser");
       const html = email.buildHtml("TestUser");
@@ -46,15 +46,15 @@ describe("Three Silos Framework — Drip Emails", () => {
     expect(email.subject("Marshall")).toContain("Marshall");
   });
 
-  it("email #5 (final) mentions Contractor Circle", () => {
-    const email = getDripEmail("three_silos_single", 5)!;
+  it("email #8 (final) mentions Contractor Circle", () => {
+    const email = getDripEmail("three_silos_single", 8)!;
     const html = email.buildHtml("TestUser");
     expect(html.toLowerCase()).toContain("contractor circle");
   });
 
   it("schedule returns valid dates for all steps", () => {
     const baseDate = new Date("2026-04-23T12:00:00Z");
-    for (let step = 1; step <= 5; step++) {
+    for (let step = 1; step <= 8; step++) {
       const nextDate = getNextSendDate("three_silos_single", step, baseDate);
       expect(nextDate).toBeTruthy();
       expect(typeof nextDate).toBe("string");
@@ -64,7 +64,7 @@ describe("Three Silos Framework — Drip Emails", () => {
   });
 
   it("getNextSendDate returns null after max step", () => {
-    const result = getNextSendDate("three_silos_single", 6);
+    const result = getNextSendDate("three_silos_single", 9);
     expect(result).toBeNull();
   });
 });

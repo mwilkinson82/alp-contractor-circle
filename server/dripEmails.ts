@@ -1,7 +1,7 @@
 /**
  * Drip Campaign Email Templates
  * 
- * 4 sequences × up to 5 emails each = 16 total emails
+ * 5 sequences × up to 9 emails each = 36 total emails
  * Elevated personal style — Georgia serif, 15px, subtle brand touches.
  * Looks like a personal email from a high-end executive, not a marketing blast.
  */
@@ -445,149 +445,734 @@ const EST_9: DripEmailDef = {
     `Hey ${fn} —\n\nThis is the last email in this sequence.\n\nSo I'll leave it plain.\n\nYou probably do not need another free resource.\n\nYou probably do not need another saved reel.\n\nYou probably do not need another moment where you say, "That's so true," and then go right back to the same patterns.\n\nYou downloaded the Estimating Checklist because some part of you knows the business needs to tighten up.\n\nMaybe it's margin.\nMaybe it's estimating.\nMaybe it's people.\nMaybe it's process.\nMaybe it's the fact that everything still depends too heavily on you.\n\nWhatever it is, the issue is probably not lack of information.\n\nThe issue is decision.\n\nYou have two options.\n\nOption 1:\nKeep collecting free tools. Save the checklist. Watch more content. Download another PDF. Hope that eventually the business starts operating differently.\n\nOption 2:\nGet in the room. Bring the real business under pressure. Install the systems, frameworks, accountability, and operating rhythm that help contractors stop guessing.\n\nThat room is Contractor Circle.\n\n$497/month.\nFounding rate locked while active.\nCancel anytime.\n\nIf you are ready, the door is here:\n\nhttps://alpcontractorcircle.com/join\n\nIf not, no problem.\n\nUse the checklist.\n\nTighten the estimate.\n\nKeep watching the content.\n\nBut if you are ready for the full operating system, you know the next move.\n\nMarshall Wilkinson\nFounder, ALP`,
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEQUENCE 2: Q1/Q2 FRAMEWORK → CONTRACTOR CIRCLE (9 emails)
+// Strategy: Quarter exposed something — truth, correction, momentum, stop repeating
+// Cadence: Day 0,1,2,3,4,5,6,8,10 (daily for 7, then spaced)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const Q1Q2_1: DripEmailDef = {
   sequenceId: "q1q2_single",
   stepNumber: 1,
-  subject: (fn) => `${fn}, the planning trap most contractors fall into`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`You downloaded the Q1/Q2 Planning Framework, which tells me you're thinking about your business at a higher level than most contractors. Good.`) +
-    p(`But here's the trap: planning without accountability is just wishful thinking.`) +
-    p(`I've watched contractors sit down every January, set revenue goals, talk about hiring, sketch out project targets — and by March, the plan is buried under a pile of change orders and daily fires.`) +
-    p(`The reason isn't that the plan was bad. The reason is there was no system to execute it. No weekly check-in. No scorecard. No one owning the deliverables. No mechanism to catch problems before they become crises.`) +
-    p(`The Q1/Q2 framework I gave you is designed to fix that. But only if you actually build the accountability structure around it.`) +
-    p(`Start with this: take your top 3 goals from the framework and assign one owner to each one. Not a team. Not "we." One name. That person reports on progress every week. That's it. That's where it starts.`) +
-    sig()
-  ),
+  subject: (fn) => `${fn}, your framework is here`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "The quarter already told you what is working and what is broken.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`You downloaded this because the quarter gave you information.`) +
+      p(`Maybe not the information you wanted.`) +
+      p(`But information.`) +
+      p(`That is what most contractors miss.`) +
+      p(`They treat the end of a quarter like a calendar event.`) +
+      p(`It is not.`) +
+      p(`It is a diagnostic event.`) +
+      p(`Q1 gave you data.`) +
+      p(`Q2 demands a decision.`) +
+      pShort(`What worked?`) +
+      pShort(`What stalled?`) +
+      pShort(`What got ignored?`) +
+      pShort(`What should have been killed?`) +
+      pShort(`What should have been doubled down on?`) +
+      p(`What system stayed broken because nobody forced the correction?`) +
+      p(`That is what this framework is for.`) +
+      p(`Not motivation.`) +
+      p(`Not theory.`) +
+      p(`Correction.`) +
+      p(`Read it honestly.`) +
+      p(`Not like content.`) +
+      p(`Like a mirror.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nYou downloaded the Q1/Q2 Planning Framework, which tells me you're thinking about your business at a higher level than most contractors. Good.\n\nBut here's the trap: planning without accountability is just wishful thinking.\n\nI've watched contractors sit down every January, set revenue goals, talk about hiring, sketch out project targets — and by March, the plan is buried under a pile of change orders and daily fires.\n\nThe reason isn't that the plan was bad. The reason is there was no system to execute it. No weekly check-in. No scorecard. No one owning the deliverables. No mechanism to catch problems before they become crises.\n\nThe Q1/Q2 framework I gave you is designed to fix that. But only if you actually build the accountability structure around it.\n\nStart with this: take your top 3 goals from the framework and assign one owner to each one. Not a team. Not "we." One name. That person reports on progress every week. That's it. That's where it starts.\n\nMarshall`,
+    `Hey ${fn} —\n\nYou downloaded this because the quarter gave you information.\n\nMaybe not the information you wanted.\nBut information.\n\nThat is what most contractors miss.\n\nThey treat the end of a quarter like a calendar event.\nIt is not.\nIt is a diagnostic event.\n\nQ1 gave you data.\nQ2 demands a decision.\n\nWhat worked?\nWhat stalled?\nWhat got ignored?\nWhat should have been killed?\nWhat should have been doubled down on?\nWhat system stayed broken because nobody forced the correction?\n\nThat is what this framework is for.\n\nNot motivation.\nNot theory.\nCorrection.\n\nRead it honestly.\nNot like content.\nLike a mirror.\n\nMarshall`,
 };
 
 const Q1Q2_2: DripEmailDef = {
   sequenceId: "q1q2_single",
   stepNumber: 2,
-  subject: (_fn) => `The contractor who went from chaos to $12M`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I worked with a contractor last year who was doing $6M in revenue and drowning. Every decision came back to him. Every problem landed on his desk. He was the estimator, the project manager, the HR department, and the firefighter — all at once.`) +
-    p(`His business didn't have a revenue problem. It had a structure problem.`) +
-    p(`We implemented three things: an accountability chart (who owns what), a weekly scorecard (5 numbers that tell you if you had a good week), and a 90-minute weekly leadership meeting with a fixed agenda.`) +
-    p(`Within 6 months, he stopped being the bottleneck. His team started solving problems without him. He got his weekends back. And his revenue hit $12M because he finally had the bandwidth to pursue better work instead of just surviving the work he had.`) +
-    p(`None of that required new technology. None of it required hiring 10 people. It required structure.`) +
-    p(`That's what the Q1/Q2 framework is the beginning of. But it's just the beginning.`) +
-    sig()
-  ),
+  subject: (_fn) => `the quarter told on you`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "The numbers are usually clearer than the story you are telling yourself.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Most owners do not need more optimism.`) +
+      p(`They need a more honest scorecard.`) +
+      p(`The quarter already exposed a lot:`) +
+      pShort(`where the bottlenecks are`) +
+      pShort(`which priorities were fake`) +
+      pShort(`which systems are weak`) +
+      pShort(`which people are carrying weight`) +
+      pShort(`which people are not`) +
+      pShort(`what the market responded to`) +
+      p(`what it ignored`) +
+      p(`The problem is not usually lack of data.`) +
+      p(`The problem is that most business owners reinterpret the data in a way that protects their ego.`) +
+      p(`They say:`) +
+      pShort(`"We made progress."`) +
+      pShort(`"We were close."`) +
+      pShort(`"We had a weird month."`) +
+      p(`"We just need a little more time."`) +
+      p(`Maybe.`) +
+      p(`Or maybe the quarter gave you a very clean message and you are refusing to hear it.`) +
+      p(`That is why this framework matters.`) +
+      p(`It forces you to stop narrating and start diagnosing.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI worked with a contractor last year who was doing $6M in revenue and drowning. Every decision came back to him. Every problem landed on his desk. He was the estimator, the project manager, the HR department, and the firefighter — all at once.\n\nHis business didn't have a revenue problem. It had a structure problem.\n\nWe implemented three things: an accountability chart (who owns what), a weekly scorecard (5 numbers that tell you if you had a good week), and a 90-minute weekly leadership meeting with a fixed agenda.\n\nWithin 6 months, he stopped being the bottleneck. His team started solving problems without him. He got his weekends back. And his revenue hit $12M because he finally had the bandwidth to pursue better work instead of just surviving the work he had.\n\nNone of that required new technology. None of it required hiring 10 people. It required structure.\n\nThat's what the Q1/Q2 framework is the beginning of. But it's just the beginning.\n\nMarshall`,
+    `Hey ${fn} —\n\nMost owners do not need more optimism.\n\nThey need a more honest scorecard.\n\nThe quarter already exposed a lot:\nwhere the bottlenecks are\nwhich priorities were fake\nwhich systems are weak\nwhich people are carrying weight\nwhich people are not\nwhat the market responded to\nwhat it ignored\n\nThe problem is not usually lack of data.\n\nThe problem is that most business owners reinterpret the data in a way that protects their ego.\n\nThey say:\n"We made progress."\n"We were close."\n"We had a weird month."\n"We just need a little more time."\n\nMaybe.\n\nOr maybe the quarter gave you a very clean message and you are refusing to hear it.\n\nThat is why this framework matters.\n\nIt forces you to stop narrating and start diagnosing.\n\nMarshall`,
 };
 
 const Q1Q2_3: DripEmailDef = {
   sequenceId: "q1q2_single",
   stepNumber: 3,
-  subject: (_fn) => `"We're too small for structure"`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I hear this all the time: "Marshall, we're a small company. We don't need all that structure. We just need to do the work."`) +
-    p(`Let me ask you something: do NFL teams say "we're too small for a playbook"? Do they say "we'll figure out the plays when we get to the game"?`) +
-    p(`No. The playbook IS the reason they win. And the smaller your team, the more important the playbook becomes — because every person is wearing multiple hats and the margin for error is zero.`) +
-    p(`When you have 5 people doing the jobs of 15, the only way to know things are getting done is to define who owns what, measure it, and review it every single week.`) +
-    p(`Structure isn't bureaucracy. Bureaucracy is when you create systems to justify people's jobs. Structure is when you create systems to make sure the work gets done and nothing falls through the cracks.`) +
-    p(`You can overlap roles. You can wear multiple hats. But every hat needs an owner, a measurable, and a weekly checkpoint.`) +
-    p(`That's the difference between a $5M company that feels like chaos and a $15M company that runs like a machine.`) +
-    sig()
-  ),
+  subject: (_fn) => `kill one thing`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "Most owners enter the new quarter still dragging the last one behind them.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`One of the most important ideas in the framework is simple:`) +
+      p(`Kill one thing.`) +
+      p(`Every contractor is carrying something that should already be dead.`) +
+      pShort(`A bad process.`) +
+      pShort(`A weak offer.`) +
+      pShort(`A loose meeting rhythm.`) +
+      pShort(`A dragging employee problem.`) +
+      pShort(`A project that keeps consuming time without producing value.`) +
+      p(`A habit of doing things the long way because "that's how we've always done it."`) +
+      p(`Most businesses do not need more additions.`) +
+      p(`They need more subtraction.`) +
+      p(`You cannot build a stronger quarter on top of dead weight.`) +
+      p(`That is how owners stay overwhelmed.`) +
+      p(`They never clear the shelves.`) +
+      p(`They just keep stacking more junk on top.`) +
+      p(`Read the framework again and ask yourself one hard question:`) +
+      p(`What should already be dead that I am still carrying?`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI hear this all the time: "Marshall, we're a small company. We don't need all that structure. We just need to do the work."\n\nLet me ask you something: do NFL teams say "we're too small for a playbook"? Do they say "we'll figure out the plays when we get to the game"?\n\nNo. The playbook IS the reason they win. And the smaller your team, the more important the playbook becomes — because every person is wearing multiple hats and the margin for error is zero.\n\nWhen you have 5 people doing the jobs of 15, the only way to know things are getting done is to define who owns what, measure it, and review it every single week.\n\nStructure isn't bureaucracy. Bureaucracy is when you create systems to justify people's jobs. Structure is when you create systems to make sure the work gets done and nothing falls through the cracks.\n\nYou can overlap roles. You can wear multiple hats. But every hat needs an owner, a measurable, and a weekly checkpoint.\n\nThat's the difference between a $5M company that feels like chaos and a $15M company that runs like a machine.\n\nMarshall`,
+    `Hey ${fn} —\n\nOne of the most important ideas in the framework is simple:\n\nKill one thing.\n\nEvery contractor is carrying something that should already be dead.\n\nA bad process.\nA weak offer.\nA loose meeting rhythm.\nA dragging employee problem.\nA project that keeps consuming time without producing value.\nA habit of doing things the long way because "that's how we've always done it."\n\nMost businesses do not need more additions.\nThey need more subtraction.\n\nYou cannot build a stronger quarter on top of dead weight.\n\nThat is how owners stay overwhelmed.\nThey never clear the shelves.\nThey just keep stacking more junk on top.\n\nRead the framework again and ask yourself one hard question:\n\nWhat should already be dead that I am still carrying?\n\nMarshall`,
 };
 
 const Q1Q2_4: DripEmailDef = {
   sequenceId: "q1q2_single",
   stepNumber: 4,
-  subject: (_fn) => `Your P&L is lying to you`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`Your P&amp;L tells you what already happened. It's a rearview mirror.`) +
-    p(`By the time your financials show a problem, the problem happened 60–90 days ago. If your margins are thin this quarter, the estimating mistakes that caused it were made last quarter. If cash flow is tight this month, the billing delays that caused it started two months ago.`) +
-    p(`That's why the most important tool in the Q1/Q2 framework isn't the goal-setting section. It's the scorecard.`) +
-    p(`A scorecard is 5–15 weekly numbers that tell you whether your business is on track BEFORE the P&amp;L shows it. Leading indicators, not lagging ones.`) +
-    p(`Proposals sent — not revenue closed.<br/>Jobs started — not backlog total.<br/>AR over 60 days — not total collections.<br/>Estimates turned around in 48 hours — not win rate.`) +
-    p(`If you could only look at 5 numbers every Monday morning to know if your business had a good week, what would they be?`) +
-    p(`Answer that question, and you've built the foundation of a real operating system.`) +
-    p(`Reply "SCORECARD" if you want me to walk you through how to build one for your company.`) +
-    sig()
-  ),
+  subject: (_fn) => `double down on the winner`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "When something is working, feed it harder.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`The opposite mistake is just as common.`) +
+      p(`A signal shows up that something is working and the owner does not feed it aggressively enough.`) +
+      pShort(`A marketing angle starts hitting.`) +
+      pShort(`A salesperson starts separating.`) +
+      pShort(`A service line has better margins.`) +
+      pShort(`A process improvement starts creating leverage.`) +
+      p(`A certain type of client becomes obviously better.`) +
+      p(`And instead of doubling down, they hedge.`) +
+      p(`They diversify too early.`) +
+      p(`They keep funding mediocrity because it feels safer.`) +
+      p(`That is weak operating.`) +
+      p(`The quarter should tell you what deserves more:`) +
+      pShort(`more attention`) +
+      pShort(`more resources`) +
+      pShort(`more focus`) +
+      p(`more standards`) +
+      p(`That is one of the reasons businesses stall.`) +
+      p(`They keep equal energy on things that are not producing equal results.`) +
+      p(`You do not need balance right now.`) +
+      p(`You need accuracy.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nYour P&L tells you what already happened. It's a rearview mirror.\n\nBy the time your financials show a problem, the problem happened 60-90 days ago. If your margins are thin this quarter, the estimating mistakes that caused it were made last quarter. If cash flow is tight this month, the billing delays that caused it started two months ago.\n\nThat's why the most important tool in the Q1/Q2 framework isn't the goal-setting section. It's the scorecard.\n\nA scorecard is 5-15 weekly numbers that tell you whether your business is on track BEFORE the P&L shows it. Leading indicators, not lagging ones.\n\nProposals sent — not revenue closed.\nJobs started — not backlog total.\nAR over 60 days — not total collections.\nEstimates turned around in 48 hours — not win rate.\n\nIf you could only look at 5 numbers every Monday morning to know if your business had a good week, what would they be?\n\nAnswer that question, and you've built the foundation of a real operating system.\n\nReply "SCORECARD" if you want me to walk you through how to build one for your company.\n\nMarshall`,
+    `Hey ${fn} —\n\nThe opposite mistake is just as common.\n\nA signal shows up that something is working and the owner does not feed it aggressively enough.\n\nA marketing angle starts hitting.\nA salesperson starts separating.\nA service line has better margins.\nA process improvement starts creating leverage.\nA certain type of client becomes obviously better.\n\nAnd instead of doubling down, they hedge.\nThey diversify too early.\nThey keep funding mediocrity because it feels safer.\n\nThat is weak operating.\n\nThe quarter should tell you what deserves more:\nmore attention\nmore resources\nmore focus\nmore standards\n\nThat is one of the reasons businesses stall.\nThey keep equal energy on things that are not producing equal results.\n\nYou do not need balance right now.\nYou need accuracy.\n\nMarshall`,
 };
 
 const Q1Q2_5: DripEmailDef = {
   sequenceId: "q1q2_single",
   stepNumber: 5,
-  subject: (_fn) => `Last thing from me on this`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I've sent you a few emails since you downloaded the Q1/Q2 Planning Framework. Hope they've given you something to think about. This is the last one in this series.`) +
-    p(`Here's the bottom line:`) +
-    p(`If you downloaded a planning framework, it's because you know your business needs more structure. You're right — it does. But a framework on its own doesn't change anything. Implementation does. Accountability does. Having someone in your corner who's done this at a $2.5 billion level does.`) +
-    p(`I work with contractors in two ways:`) +
-    p(`Contractor Circle — $497/mo. The full operating system. Live coaching, EOS implementation, accountability frameworks, and a community of contractors who are building real companies. Founding rate locks in forever. ${link("alpcontractorcircle.com", CIRCLE_URL)}`) +
-    p(`1-on-1 Strategy Session — $1,000. We dig into your specific business — org chart, cash flow, estimating, scaling — and build a plan built for you. Reply "SESSION" and I'll send the application.`) +
-    p(`Either way, the only thing that matters to me is that you win.`) +
-    p(`You're in my ecosystem now. Welcome to the NFL.`) +
-    sigFull()
-  ),
+  subject: (_fn) => `willpower is not the answer`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "If the system is broken, effort just turns into exhaustion.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Most contractors try to muscle their way through the quarter.`) +
+      p(`That works for a little while.`) +
+      p(`Then they hit the wall.`) +
+      p(`Because goals are not achieved by intensity alone.`) +
+      p(`They are achieved by systems.`) +
+      pShort(`If your meetings are loose, the quarter will be loose.`) +
+      pShort(`If accountability is weak, the quarter will be weak.`) +
+      pShort(`If handoffs are sloppy, the quarter will get sloppy.`) +
+      p(`If estimating, sales, or operations are still living in your head, the quarter will keep exposing that.`) +
+      p(`That is why "try harder" is such bad advice.`) +
+      p(`It sounds noble.`) +
+      p(`It just does not scale.`) +
+      p(`The framework tells you to fix one system this week for a reason:`) +
+      pShort(`a corrected system compounds`) +
+      p(`willpower does not`) +
+      p(`That is also why people eventually need more than free content.`) +
+      p(`They need a room where systems, standards, and correction are part of the environment.`) +
+      p(`That is what Contractor Circle is.`) +
+      p(link("See Contractor Circle", "https://alpcontractorcircle.com/join")) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI've sent you a few emails since you downloaded the Q1/Q2 Planning Framework. Hope they've given you something to think about. This is the last one in this series.\n\nHere's the bottom line:\n\nIf you downloaded a planning framework, it's because you know your business needs more structure. You're right — it does. But a framework on its own doesn't change anything. Implementation does. Accountability does. Having someone in your corner who's done this at a $2.5 billion level does.\n\nI work with contractors in two ways:\n\nContractor Circle — $497/mo. The full operating system. Live coaching, EOS implementation, accountability frameworks, and a community of contractors who are building real companies. Founding rate locks in forever. alpcontractorcircle.com\n\n1-on-1 Strategy Session — $1,000. We dig into your specific business — org chart, cash flow, estimating, scaling — and build a plan built for you. Reply "SESSION" and I'll send the application.\n\nEither way, the only thing that matters to me is that you win.\n\nYou're in my ecosystem now. Welcome to the NFL.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    `Hey ${fn} —\n\nMost contractors try to muscle their way through the quarter.\n\nThat works for a little while.\n\nThen they hit the wall.\n\nBecause goals are not achieved by intensity alone.\nThey are achieved by systems.\n\nIf your meetings are loose, the quarter will be loose.\nIf accountability is weak, the quarter will be weak.\nIf handoffs are sloppy, the quarter will get sloppy.\nIf estimating, sales, or operations are still living in your head, the quarter will keep exposing that.\n\nThat is why "try harder" is such bad advice.\n\nIt sounds noble.\nIt just does not scale.\n\nThe framework tells you to fix one system this week for a reason:\na corrected system compounds\nwillpower does not\n\nThat is also why people eventually need more than free content.\nThey need a room where systems, standards, and correction are part of the environment.\n\nThat is what Contractor Circle is.\n\nhttps://alpcontractorcircle.com/join\n\nMarshall`,
+};
+
+const Q1Q2_6: DripEmailDef = {
+  sequenceId: "q1q2_single",
+  stepNumber: 6,
+  subject: (_fn) => `free content does not hold the line`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "Most owners do not fail from ignorance. They fail from drift.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`A lot of owners already know what is wrong.`) +
+      p(`That is not the issue.`) +
+      pShort(`They know the meetings are weak.`) +
+      pShort(`They know the systems are loose.`) +
+      pShort(`They know the priorities are muddy.`) +
+      pShort(`They know the team standards are inconsistent.`) +
+      p(`They know they are still carrying too much.`) +
+      p(`And then what happens?`) +
+      p(`Drift.`) +
+      pShort(`The quarter starts.`) +
+      pShort(`The noise begins.`) +
+      pShort(`The calendar fills up.`) +
+      pShort(`The same habits come back.`) +
+      pShort(`The same excuses reappear.`) +
+      p(`And the same quarter gets repeated with slightly different wallpaper.`) +
+      p(`That is why free frameworks help, but usually do not finish the job.`) +
+      p(`They can wake you up.`) +
+      p(`They do not hold the line.`) +
+      p(`A stronger environment holds the line.`) +
+      pShort(`That means real accountability.`) +
+      pShort(`Real operator conversations.`) +
+      p(`Real proximity to people who are also trying to tighten the business.`) +
+      p(`That is Contractor Circle.`) +
+      sig(),
+    cta: { buttonText: "CLAIM YOUR FOUNDING SPOT →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nA lot of owners already know what is wrong.\n\nThat is not the issue.\n\nThey know the meetings are weak.\nThey know the systems are loose.\nThey know the priorities are muddy.\nThey know the team standards are inconsistent.\nThey know they are still carrying too much.\n\nAnd then what happens?\n\nDrift.\n\nThe quarter starts.\nThe noise begins.\nThe calendar fills up.\nThe same habits come back.\nThe same excuses reappear.\nAnd the same quarter gets repeated with slightly different wallpaper.\n\nThat is why free frameworks help, but usually do not finish the job.\n\nThey can wake you up.\nThey do not hold the line.\n\nA stronger environment holds the line.\n\nThat means real accountability.\nReal operator conversations.\nReal proximity to people who are also trying to tighten the business.\n\nThat is Contractor Circle.\n\nhttps://alpcontractorcircle.com/join\n\nMarshall`,
+};
+
+const Q1Q2_7: DripEmailDef = {
+  sequenceId: "q1q2_single",
+  stepNumber: 7,
+  subject: (_fn) => `this is what correction looks like`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "This is not theory. This is what happens when operators get in the right environment.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`I want to show you why this matters.`) +
+      p(`There are real contractors inside this ecosystem making serious moves.`) +
+      pShort(`Not because they got a magic sentence from me.`) +
+      pShort(`Not because they bought inspiration.`) +
+      p(`Not because they got lucky.`) +
+      p(`Because they got in a better environment.`) +
+      pShort(`A place with stronger standards.`) +
+      pShort(`A place with clearer thinking.`) +
+      pShort(`A place where operator-level conversations happen regularly.`) +
+      p(`A place where business problems actually get challenged instead of just tolerated.`) +
+      p(`That is when people start tightening things up.`) +
+      p(`That is when the quarter stops running them.`) +
+      p(`That is when revenue, professionalism, clarity, and execution start moving in the right direction.`) +
+      p(`If you want to see what that looks like, go look at the join page.`) +
+      sig(),
+    cta: { buttonText: "SEE THE PROOF →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI want to show you why this matters.\n\nThere are real contractors inside this ecosystem making serious moves.\n\nNot because they got a magic sentence from me.\nNot because they bought inspiration.\nNot because they got lucky.\n\nBecause they got in a better environment.\n\nA place with stronger standards.\nA place with clearer thinking.\nA place where operator-level conversations happen regularly.\nA place where business problems actually get challenged instead of just tolerated.\n\nThat is when people start tightening things up.\nThat is when the quarter stops running them.\nThat is when revenue, professionalism, clarity, and execution start moving in the right direction.\n\nIf you want to see what that looks like, go look at the join page.\n\nhttps://alpcontractorcircle.com/join\n\nMarshall`,
+};
+
+const Q1Q2_8: DripEmailDef = {
+  sequenceId: "q1q2_single",
+  stepNumber: 8,
+  subject: (_fn) => `here is what you are joining`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "This is for the contractor who is done winging the quarter.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Let me make this simple.`) +
+      p(`If you are serious about the next quarter being different, you need more than a framework.`) +
+      p(`You need an operating environment.`) +
+      p(`Inside Contractor Circle, you are getting:`) +
+      bulletList([
+        "Bi-weekly live calls with me",
+        "Monthly deal reviews",
+        "Monthly bootcamp",
+        "Private Discord access",
+        "Full template library",
+        "Complete replay library",
+      ]) +
+      p(`It is $497 per month.`) +
+      p(`You can cancel anytime.`) +
+      p(`If you come in at the founding rate, that price is locked in forever.`) +
+      p(`This is not for everybody.`) +
+      p(`It is for the contractor who is tired of repeating loose quarters, carrying the whole business alone, and trying to self-correct without enough pressure around him.`) +
+      sig(),
+    cta: { buttonText: "JOIN CONTRACTOR CIRCLE →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nLet me make this simple.\n\nIf you are serious about the next quarter being different, you need more than a framework.\n\nYou need an operating environment.\n\nInside Contractor Circle, you are getting:\n• Bi-weekly live calls with me\n• Monthly deal reviews\n• Monthly bootcamp\n• Private Discord access\n• Full template library\n• Complete replay library\n\nIt is $497 per month.\nYou can cancel anytime.\nIf you come in at the founding rate, that price is locked in forever.\n\nThis is not for everybody.\n\nIt is for the contractor who is tired of repeating loose quarters, carrying the whole business alone, and trying to self-correct without enough pressure around him.\n\nhttps://alpcontractorcircle.com/join\n\nMarshall`,
+};
+
+const Q1Q2_9: DripEmailDef = {
+  sequenceId: "q1q2_single",
+  stepNumber: 9,
+  subject: (_fn) => `do not repeat the quarter`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "If nothing changes, the next quarter will tell the same story.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Here is the truth.`) +
+      p(`If you do not make a real correction, the next quarter will probably tell the same story.`) +
+      pShort(`Maybe with a different excuse.`) +
+      pShort(`Maybe with a different market condition.`) +
+      pShort(`Maybe with a different employee issue.`) +
+      p(`Maybe with a different level of stress.`) +
+      p(`But the same core story.`) +
+      pShort(`Loose priorities.`) +
+      pShort(`Loose systems.`) +
+      pShort(`Loose accountability.`) +
+      p(`Loose correction.`) +
+      p(`That is what repeats the quarter.`) +
+      p(`At some point, the issue stops being information and becomes decision.`) +
+      p(`You have the framework.`) +
+      p(`You have the lens.`) +
+      p(`You know more now than you did before you downloaded it.`) +
+      p(`The question is whether you are going to use that awareness to make a move.`) +
+      p(`If you want the next quarter to be tighter, cleaner, and more controlled, join us.`) +
+      sig(),
+    cta: { buttonText: "JOIN THE CIRCLE →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nHere is the truth.\n\nIf you do not make a real correction, the next quarter will probably tell the same story.\n\nMaybe with a different excuse.\nMaybe with a different market condition.\nMaybe with a different employee issue.\nMaybe with a different level of stress.\n\nBut the same core story.\n\nLoose priorities.\nLoose systems.\nLoose accountability.\nLoose correction.\n\nThat is what repeats the quarter.\n\nAt some point, the issue stops being information and becomes decision.\n\nYou have the framework.\nYou have the lens.\nYou know more now than you did before you downloaded it.\n\nThe question is whether you are going to use that awareness to make a move.\n\nIf you want the next quarter to be tighter, cleaner, and more controlled, join us.\n\nhttps://alpcontractorcircle.com/join\n\nMarshall`,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SEQUENCE 3: DOUBLE-DIPPERS (3 emails)
+// SEQUENCE 3: DOUBLE-DIPPERS → CONTRACTOR CIRCLE (6 emails)
+// Strategy: Shorter, sharper, more direct — these people showed repeated intent
+// Cadence: Day 0,1,3,5,7,10
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DD_1: DripEmailDef = {
   sequenceId: "double_dipper",
   stepNumber: 1,
-  subject: (fn) => `${fn} — I noticed something`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`That Estimating Checklist is the real deal — it's how I was trained and comes directly from $2.5 billion in construction. If you've checked it out, you already know it's not fluff. Use it and start benefiting.`) +
-    p(`When you're ready to get in the saddle and truly fix and optimize the business, I want to welcome you to the Contractor Circle group or roll up my sleeves with you on some serious 1-on-1 deep dives. If you want to learn more about these, reply "Contractor Circle" or "Session" and I'll get you more information.`) +
-    p(`The only thing that matters to me is that you win. You're in my ecosystem now. Welcome to the NFL.`) +
-    sigFull()
-  ),
+  subject: (fn) => `${fn}, you came back for a reason`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "You do not download multiple resources by accident.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`You downloaded more than one resource from me.`) +
+      p(`That tells me something.`) +
+      pShort(`You are not casually scrolling.`) +
+      pShort(`You are not just killing time.`) +
+      p(`You are not randomly collecting PDFs.`) +
+      p(`You are looking for something.`) +
+      pShort(`More clarity.`) +
+      pShort(`More control.`) +
+      pShort(`More structure.`) +
+      pShort(`A better way to run the business.`) +
+      p(`A way to stop carrying so much of it in your own head.`) +
+      p(`That is why this matters.`) +
+      p(`People do not come back for a second resource unless the first one hit a nerve.`) +
+      p(`So let's just call it what it is:`) +
+      pShort(`something in your business feels loose`) +
+      pShort(`something in your business needs tightening`) +
+      p(`and part of you already knows free information is not the whole answer`) +
+      p(`The real question now is not whether the content is helpful.`) +
+      p(`It is whether you are going to keep circling the solution or step into it.`) +
+      p(link("See Contractor Circle", "https://alpcontractorcircle.com/join")) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nThat Estimating Checklist is the real deal — it's how I was trained and comes directly from $2.5 billion in construction. If you've checked it out, you already know it's not fluff. Use it and start benefiting.\n\nWhen you're ready to get in the saddle and truly fix and optimize the business, I want to welcome you to the Contractor Circle group or roll up my sleeves with you on some serious 1-on-1 deep dives. If you want to learn more about these, reply "Contractor Circle" or "Session" and I'll get you more information.\n\nThe only thing that matters to me is that you win. You're in my ecosystem now. Welcome to the NFL.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    `Hey ${fn} —
+
+You downloaded more than one resource from me.
+
+That tells me something.
+
+You are not casually scrolling.
+You are not just killing time.
+You are not randomly collecting PDFs.
+
+You are looking for something.
+
+More clarity.
+More control.
+More structure.
+A better way to run the business.
+A way to stop carrying so much of it in your own head.
+
+That is why this matters.
+
+People do not come back for a second resource unless the first one hit a nerve.
+
+So let's just call it what it is:
+
+something in your business feels loose
+something in your business needs tightening
+and part of you already knows free information is not the whole answer
+
+The real question now is not whether the content is helpful.
+
+It is whether you are going to keep circling the solution or step into it.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
 };
 
 const DD_2: DripEmailDef = {
   sequenceId: "double_dipper",
   stepNumber: 2,
-  subject: (fn) => `${fn}, quick question`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`You grabbed both the Estimating Checklist and the Q1/Q2 Planning Framework. That tells me you're serious about building a real business, not just running a crew.`) +
-    p(`Quick question: what's the single biggest problem in your business right now? Cash flow? Scaling? Team? Estimating? Just reply with one word and I'll point you in the right direction.`) +
-    sig()
-  ),
+  subject: (_fn) => `you probably do not need another PDF`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "The issue is no longer awareness. It is implementation.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`By now, you have seen enough of my thinking to know whether it resonates.`) +
+      pShort(`You have downloaded multiple resources.`) +
+      pShort(`You have spent time with the frameworks.`) +
+      p(`You have pulled on more than one problem inside your business.`) +
+      p(`That is good.`) +
+      p(`But let me say this plainly:`) +
+      p(`You probably do not need another free PDF.`) +
+      p(`Not because free is bad.`) +
+      p(`Because free has already done its job.`) +
+      pShort(`It got your attention.`) +
+      pShort(`It helped you see some things more clearly.`) +
+      p(`It probably gave you language for problems you were already feeling.`) +
+      p(`Good.`) +
+      p(`Now what?`) +
+      p(`That is the part where most contractors stall.`) +
+      pShort(`They keep consuming.`) +
+      pShort(`They keep agreeing.`) +
+      pShort(`They keep collecting.`) +
+      p(`They keep telling themselves they are "working on it."`) +
+      p(`But they never actually change the environment around them.`) +
+      p(`And because they do not change the environment, they do not change the business.`) +
+      p(`That is the gap Contractor Circle closes.`) +
+      p(link("Claim Your Founding Spot", "https://alpcontractorcircle.com/join")) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nYou grabbed both the Estimating Checklist and the Q1/Q2 Planning Framework. That tells me you're serious about building a real business, not just running a crew.\n\nQuick question: what's the single biggest problem in your business right now? Cash flow? Scaling? Team? Estimating? Just reply with one word and I'll point you in the right direction.\n\nMarshall`,
+    `Hey ${fn} —
+
+By now, you have seen enough of my thinking to know whether it resonates.
+
+You have downloaded multiple resources.
+You have spent time with the frameworks.
+You have pulled on more than one problem inside your business.
+
+That is good.
+
+But let me say this plainly:
+
+You probably do not need another free PDF.
+
+Not because free is bad.
+Because free has already done its job.
+
+It got your attention.
+It helped you see some things more clearly.
+It probably gave you language for problems you were already feeling.
+
+Good.
+
+Now what?
+
+That is the part where most contractors stall.
+
+They keep consuming.
+They keep agreeing.
+They keep collecting.
+They keep telling themselves they are "working on it."
+
+But they never actually change the environment around them.
+
+And because they do not change the environment, they do not change the business.
+
+That is the gap Contractor Circle closes.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
 };
 
 const DD_3: DripEmailDef = {
   sequenceId: "double_dipper",
   stepNumber: 3,
-  subject: (_fn) => `The offer stands`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`Just circling back. The tools I gave you are good — but tools without implementation are just PDFs sitting in a downloads folder.`) +
-    p(`If you're ready to actually build the system:`) +
-    p(`Reply "CIRCLE" for Contractor Circle — $497/mo, founding rate locked forever.`) +
-    p(`Reply "SESSION" for a 1-on-1 strategy call — $1,000, we roll up the sleeves.`) +
-    p(`Either way, I'm here when you're ready.`) +
-    sig()
-  ),
+  subject: (_fn) => `your pattern is telling on you`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "If you keep downloading the content, the pattern already says a lot.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Let's be honest about what your behavior is saying.`) +
+      p(`If you downloaded the Estimating Checklist, then the Q1/Q2 Framework...`) +
+      p(`or the Three Silos...`) +
+      p(`or some combination of them...`) +
+      p(`you are not looking for entertainment.`) +
+      p(`You are looking for leverage.`) +
+      pShort(`You want the business to tighten up.`) +
+      pShort(`You want cleaner decisions.`) +
+      pShort(`You want stronger systems.`) +
+      pShort(`You want more control.`) +
+      pShort(`You want less waste.`) +
+      pShort(`You want less confusion.`) +
+      p(`You want a better operating rhythm.`) +
+      p(`That is what you are actually chasing.`) +
+      p(`And that is exactly why staying at the free level forever makes no sense.`) +
+      pShort(`Free content can point.`) +
+      pShort(`It cannot stay in the trench with you.`) +
+      pShort(`It cannot challenge your blind spots in real time.`) +
+      pShort(`It cannot pressure better decisions out of you.`) +
+      p(`It cannot create accountability.`) +
+      p(`A stronger room does that.`) +
+      p(`That room is Contractor Circle.`) +
+      sig(),
+    cta: { buttonText: "JOIN CONTRACTOR CIRCLE →" },
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nJust circling back. The tools I gave you are good — but tools without implementation are just PDFs sitting in a downloads folder.\n\nIf you're ready to actually build the system:\n\nReply "CIRCLE" for Contractor Circle — $497/mo, founding rate locked forever.\nReply "SESSION" for a 1-on-1 strategy call — $1,000, we roll up the sleeves.\n\nEither way, I'm here when you're ready.\n\nMarshall`,
+    `Hey ${fn} —
+
+Let's be honest about what your behavior is saying.
+
+If you downloaded the Estimating Checklist, then the Q1/Q2 Framework...
+or the Three Silos...
+or some combination of them...
+
+you are not looking for entertainment.
+
+You are looking for leverage.
+
+You want the business to tighten up.
+You want cleaner decisions.
+You want stronger systems.
+You want more control.
+You want less waste.
+You want less confusion.
+You want a better operating rhythm.
+
+That is what you are actually chasing.
+
+And that is exactly why staying at the free level forever makes no sense.
+
+Free content can point.
+It cannot stay in the trench with you.
+It cannot challenge your blind spots in real time.
+It cannot pressure better decisions out of you.
+It cannot create accountability.
+
+A stronger room does that.
+
+That room is Contractor Circle.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const DD_4: DripEmailDef = {
+  sequenceId: "double_dipper",
+  stepNumber: 4,
+  subject: (_fn) => `real contractors are already in the room`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "You do not need more internet ideas. You need a stronger environment.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`One of the biggest mistakes contractors make is thinking they need more information.`) +
+      p(`Most of the time, they do not.`) +
+      p(`They need a stronger environment.`) +
+      p(`A place where:`) +
+      pShort(`the standard is higher`) +
+      pShort(`the conversations are sharper`) +
+      pShort(`the accountability is real`) +
+      pShort(`the operators are serious`) +
+      p(`the ideas actually get implemented`) +
+      p(`That is what makes Contractor Circle different.`) +
+      pShort(`This is not some theory club.`) +
+      pShort(`This is not vague motivation.`) +
+      p(`This is not generic coaching language.`) +
+      p(`There are real contractors inside this ecosystem making real moves.`) +
+      pShort(`You can see that in the proof.`) +
+      pShort(`You can see it in the testimonials.`) +
+      pShort(`You can see it in the before-and-after outcomes.`) +
+      p(`You can feel the difference between passive content and a real room.`) +
+      p(`If you have already come back for multiple resources, you are probably a better fit than you think.`) +
+      sig(),
+    cta: { buttonText: "SEE THE PROOF →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+One of the biggest mistakes contractors make is thinking they need more information.
+
+Most of the time, they do not.
+
+They need a stronger environment.
+
+A place where:
+the standard is higher
+the conversations are sharper
+the accountability is real
+the operators are serious
+the ideas actually get implemented
+
+That is what makes Contractor Circle different.
+
+This is not some theory club.
+This is not vague motivation.
+This is not generic coaching language.
+
+There are real contractors inside this ecosystem making real moves.
+
+You can see that in the proof.
+You can see it in the testimonials.
+You can see it in the before-and-after outcomes.
+You can feel the difference between passive content and a real room.
+
+If you have already come back for multiple resources, you are probably a better fit than you think.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const DD_5: DripEmailDef = {
+  sequenceId: "double_dipper",
+  stepNumber: 5,
+  subject: (_fn) => `what you are actually joining`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "This is what sits on the other side of all the free content.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Let me make the offer simple.`) +
+      p(`Contractor Circle is for the contractor who is done trying to self-correct in isolation.`) +
+      p(`Inside, you get:`) +
+      bulletList([
+        "Bi-weekly live calls with me",
+        "Monthly deal reviews",
+        "Monthly bootcamp",
+        "Private Discord access",
+        "Full template library",
+        "Complete replay library",
+      ]) +
+      p(`It is $497 per month.`) +
+      p(`You can cancel anytime.`) +
+      p(`If you join at the founding rate, that price is locked in forever.`) +
+      p(`That is not expensive if you are serious.`) +
+      pShort(`Not compared to what weak decisions cost.`) +
+      pShort(`Not compared to what loose systems cost.`) +
+      p(`Not compared to what one bad estimate, one bad hire, one soft quarter, or one avoidable mistake costs.`) +
+      p(`If you are still here, still opening, still downloading, still paying attention, then the fit is probably there.`) +
+      sig(),
+    cta: { buttonText: "JOIN THE CIRCLE →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+Let me make the offer simple.
+
+Contractor Circle is for the contractor who is done trying to self-correct in isolation.
+
+Inside, you get:
+• Bi-weekly live calls with me
+• Monthly deal reviews
+• Monthly bootcamp
+• Private Discord access
+• Full template library
+• Complete replay library
+
+It is $497 per month.
+You can cancel anytime.
+If you join at the founding rate, that price is locked in forever.
+
+That is not expensive if you are serious.
+
+Not compared to what weak decisions cost.
+Not compared to what loose systems cost.
+Not compared to what one bad estimate, one bad hire, one soft quarter, or one avoidable mistake costs.
+
+If you are still here, still opening, still downloading, still paying attention, then the fit is probably there.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const DD_6: DripEmailDef = {
+  sequenceId: "double_dipper",
+  stepNumber: 6,
+  subject: (_fn) => `you keep coming back — that means something`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "At some point, the issue stops being information and becomes decision.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`You came back more than once.`) +
+      p(`That means something.`) +
+      pShort(`You saw the content.`) +
+      pShort(`You downloaded the resources.`) +
+      pShort(`You stayed engaged.`) +
+      p(`You kept pulling on the same thread.`) +
+      p(`So I'll leave you with this:`) +
+      p(`Do not confuse repeated interest with progress.`) +
+      p(`A lot of contractors do that.`) +
+      pShort(`They keep consuming and mistake that for movement.`) +
+      pShort(`They keep agreeing and mistake that for change.`) +
+      p(`They keep watching and mistake that for execution.`) +
+      p(`That is not how businesses tighten up.`) +
+      p(`Businesses tighten up when the owner gets serious enough to step into a better environment and let that environment sharpen him.`) +
+      p(`If that is where you are, join us.`) +
+      p(`If not, no issue.`) +
+      p(`Keep the resources.`) +
+      p(`Use them.`) +
+      p(`They will help.`) +
+      p(`But if you already know you need more than free, here is the move:`) +
+      sig(),
+    cta: { buttonText: "CLAIM YOUR FOUNDING SPOT →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+You came back more than once.
+
+That means something.
+
+You saw the content.
+You downloaded the resources.
+You stayed engaged.
+You kept pulling on the same thread.
+
+So I'll leave you with this:
+
+Do not confuse repeated interest with progress.
+
+A lot of contractors do that.
+
+They keep consuming and mistake that for movement.
+They keep agreeing and mistake that for change.
+They keep watching and mistake that for execution.
+
+That is not how businesses tighten up.
+
+Businesses tighten up when the owner gets serious enough to step into a better environment and let that environment sharpen him.
+
+If that is where you are, join us.
+
+If not, no issue.
+Keep the resources.
+Use them.
+They will help.
+
+But if you already know you need more than free, here is the move:
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -646,109 +1231,550 @@ const HP_3: DripEmailDef = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SEQUENCE 5: THREE SILOS FRAMEWORK SINGLE-DIPPERS (5 emails)
+// SEQUENCE 5: THREE SILOS / HOLY GRAIL OF SCALING → CONTRACTOR CIRCLE (8 emails)
+// Strategy: Simplify the chaos into a diagnosis — Attention, People, Process
+// Cadence: Day 0,1,2,3,4,5,8,10 (daily for 6, then spaced)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TS_1: DripEmailDef = {
   sequenceId: "three_silos_single",
   stepNumber: 1,
-  subject: (fn) => `${fn}, which silo is broken?`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`Hope you've had a chance to read through the Three Silos Framework. If you haven't yet, do it today — it's 5 pages and it will change how you think about your business.`) +
-    p(`Here's the question I want you to sit with: which silo is your weakest?`) +
-    p(`Most contractors I work with think their problem is "not enough work" — that's an Attention problem. But when I dig in, it's almost never that. It's usually a People problem disguised as a revenue problem. They can't scale because they can't delegate. They can't delegate because they don't have the right people. And they don't have the right people because nobody knows who they are.`) +
-    p(`See how the silos connect? That's the flywheel. When one breaks, they all slow down.`) +
-    p(`Go back to the diagnostic checklist on page 4. Be brutally honest. The boxes you can't check — that's where the real work is.`) +
-    sig()
-  ),
+  subject: (fn) => `${fn}, here is the holy grail of scaling`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "Most businesses are more complicated than they need to be.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`You downloaded this because part of you already knows the business has gotten too complicated.`) +
+      pShort(`Too many moving parts.`) +
+      pShort(`Too many problems.`) +
+      p(`Too many things pulling on you at once.`) +
+      p(`That is exactly why I made this framework.`) +
+      p(`When you strip all the noise out of business, most of what matters falls into three buckets:`) +
+      pShort(`Attention.`) +
+      pShort(`People.`) +
+      p(`Process.`) +
+      p(`That is it.`) +
+      p(`Most owners get buried in tactics because they never step back far enough to see the chessboard.`) +
+      p(`They keep trying to solve surface-level issues without identifying the actual broken silo.`) +
+      p(`That is how smart contractors stay stuck.`) +
+      p(`Read it slowly.`) +
+      p(`Do not just skim it and tell yourself you "get it."`) +
+      p(`Use it to diagnose where your business is actually breaking down.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nHope you've had a chance to read through the Three Silos Framework. If you haven't yet, do it today — it's 5 pages and it will change how you think about your business.\n\nHere's the question I want you to sit with: which silo is your weakest?\n\nMost contractors I work with think their problem is "not enough work" — that's an Attention problem. But when I dig in, it's almost never that. It's usually a People problem disguised as a revenue problem.\n\nGo back to the diagnostic checklist on page 4. Be brutally honest. The boxes you can't check — that's where the real work is.\n\nMarshall`,
+    `Hey ${fn} —
+
+You downloaded this because part of you already knows the business has gotten too complicated.
+
+Too many moving parts.
+Too many problems.
+Too many things pulling on you at once.
+
+That is exactly why I made this framework.
+
+When you strip all the noise out of business, most of what matters falls into three buckets:
+
+Attention.
+People.
+Process.
+
+That is it.
+
+Most owners get buried in tactics because they never step back far enough to see the chessboard.
+
+They keep trying to solve surface-level issues without identifying the actual broken silo.
+
+That is how smart contractors stay stuck.
+
+Read it slowly.
+
+Do not just skim it and tell yourself you "get it."
+Use it to diagnose where your business is actually breaking down.
+
+Marshall`,
 };
 
 const TS_2: DripEmailDef = {
   sequenceId: "three_silos_single",
   stepNumber: 2,
-  subject: (_fn) => `The $6M contractor who couldn't leave for a week`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I worked with a contractor doing $6M a year. Profitable on paper. But he couldn't take a week off without the whole thing falling apart.`) +
-    p(`His Attention silo was strong — he had a reputation, referrals came in. His People silo was decent — good crews, loyal guys. But his Process silo was nonexistent. Nothing was documented. Nothing was systematized. Every decision ran through him.`) +
-    p(`He was the bottleneck. And he didn't even realize it because he was too busy being the bottleneck.`) +
-    p(`We spent 90 days building three things: a documented estimating process, a project handoff system, and a weekly accountability rhythm. That's it. Three processes.`) +
-    p(`Within 6 months he took two weeks off and revenue didn't dip. Within a year he was at $9M. Not because he worked harder — because the system worked without him.`) +
-    p(`That's what Process does. It's the silo that sets you free.`) +
-    sig()
-  ),
+  subject: (_fn) => `most contractors misdiagnose the problem`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "The issue is usually not effort. It is misdiagnosis.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Most business owners are not dealing with twenty real problems.`) +
+      p(`They are usually dealing with one real bottleneck and nineteen downstream symptoms.`) +
+      p(`But because they never slow down and diagnose properly, they treat symptoms like causes.`) +
+      pShort(`They blame the team.`) +
+      pShort(`They blame lead flow.`) +
+      pShort(`They blame the economy.`) +
+      pShort(`They blame pricing.`) +
+      p(`They blame motivation.`) +
+      p(`Sometimes those things matter.`) +
+      p(`But most of the time, the real problem is that one of the three silos is weak:`) +
+      pShort(`Attention`) +
+      pShort(`People`) +
+      p(`Process`) +
+      p(`If Attention is weak, the pipeline is inconsistent and the market barely knows you exist.`) +
+      p(`If People are weak, the owner carries everything and the team cannot execute at a high level.`) +
+      p(`If Process is weak, everything depends on memory, hustle, and recovery.`) +
+      p(`That is why the framework matters.`) +
+      p(`It helps you stop guessing.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI worked with a contractor doing $6M a year. Profitable on paper. But he couldn't take a week off without the whole thing falling apart.\n\nHis Process silo was nonexistent. Nothing was documented. Every decision ran through him.\n\nWe spent 90 days building three things: a documented estimating process, a project handoff system, and a weekly accountability rhythm.\n\nWithin 6 months he took two weeks off and revenue didn't dip. Within a year he was at $9M.\n\nThat's what Process does. It's the silo that sets you free.\n\nMarshall`,
+    `Hey ${fn} —
+
+Most business owners are not dealing with twenty real problems.
+
+They are usually dealing with one real bottleneck and nineteen downstream symptoms.
+
+But because they never slow down and diagnose properly, they treat symptoms like causes.
+
+They blame the team.
+They blame lead flow.
+They blame the economy.
+They blame pricing.
+They blame motivation.
+
+Sometimes those things matter.
+
+But most of the time, the real problem is that one of the three silos is weak:
+
+Attention
+People
+Process
+
+If Attention is weak, the pipeline is inconsistent and the market barely knows you exist.
+
+If People are weak, the owner carries everything and the team cannot execute at a high level.
+
+If Process is weak, everything depends on memory, hustle, and recovery.
+
+That is why the framework matters.
+
+It helps you stop guessing.
+
+Marshall`,
 };
 
 const TS_3: DripEmailDef = {
   sequenceId: "three_silos_single",
   stepNumber: 3,
-  subject: (_fn) => `"We don't need marketing — we get all our work from referrals"`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I hear this constantly. And every time I hear it, I know exactly what's going to happen next.`) +
-    p(`Referrals dry up. A big client moves on. The phone stops ringing for two months. And suddenly you're scrambling, cutting prices, taking bad jobs just to keep the lights on.`) +
-    p(`Referrals are great. But they're not a system. They're a byproduct of doing good work — and they're completely outside your control.`) +
-    p(`The Attention silo isn't about running ads or posting on social media. It's about building a predictable, repeatable way to generate interest in your company. So that when referrals slow down — and they will — you're not starting from zero.`) +
-    p(`The data backs this up: 35% of business failures come from having no market demand. Translation: nobody knew they existed.`) +
-    p(`You don't need to become a marketing guru. You need one consistent channel that works. That's it.`) +
-    sig()
-  ),
+  subject: (_fn) => `which silo is broken?`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "If you cannot name the broken silo, you cannot fix the business.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Here is the question that matters:`) +
+      p(`Which silo is actually breaking your flywheel right now?`) +
+      pShort(`Not which one annoys you.`) +
+      pShort(`Not which one sounds good to talk about.`) +
+      p(`Which one is truly holding the business back?`) +
+      p(`Is it Attention?`) +
+      p(`Meaning:`) +
+      pShort(`you are not visible enough`) +
+      pShort(`lead flow is inconsistent`) +
+      pShort(`recruiting is harder because nobody knows who you are`) +
+      p(`the market has no real awareness of you`) +
+      p(`Is it People?`) +
+      p(`Meaning:`) +
+      pShort(`you do not trust the team`) +
+      pShort(`you are still the decision-maker on everything`) +
+      pShort(`you cannot scale because the bench is weak`) +
+      p(`you are surrounded by bodies, not operators`) +
+      p(`Is it Process?`) +
+      p(`Meaning:`) +
+      pShort(`everything lives in your head`) +
+      pShort(`execution is inconsistent`) +
+      pShort(`handoffs are loose`) +
+      p(`the business only works when you are pushing on it`) +
+      p(`Most owners need to answer that question more honestly than they currently do.`) +
+      p(`The framework gives you the lens.`) +
+      p(`But the diagnosis only helps if you tell yourself the truth.`) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI hear this constantly: "We don't need marketing — we get all our work from referrals."\n\nReferrals are great. But they're not a system. They're completely outside your control.\n\nThe Attention silo isn't about running ads. It's about building a predictable way to generate interest. So when referrals slow down, you're not starting from zero.\n\n35% of business failures come from having no market demand. Translation: nobody knew they existed.\n\nYou don't need to become a marketing guru. You need one consistent channel that works.\n\nMarshall`,
+    `Hey ${fn} —
+
+Here is the question that matters:
+
+Which silo is actually breaking your flywheel right now?
+
+Not which one annoys you.
+Not which one sounds good to talk about.
+Which one is truly holding the business back?
+
+Is it Attention?
+you are not visible enough
+lead flow is inconsistent
+recruiting is harder because nobody knows who you are
+the market has no real awareness of you
+
+Is it People?
+you do not trust the team
+you are still the decision-maker on everything
+you cannot scale because the bench is weak
+you are surrounded by bodies, not operators
+
+Is it Process?
+everything lives in your head
+execution is inconsistent
+handoffs are loose
+the business only works when you are pushing on it
+
+Most owners need to answer that question more honestly than they currently do.
+
+The framework gives you the lens.
+But the diagnosis only helps if you tell yourself the truth.
+
+Marshall`,
 };
 
 const TS_4: DripEmailDef = {
   sequenceId: "three_silos_single",
   stepNumber: 4,
-  subject: (_fn) => `The flywheel is either spinning or it's not`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`By now you've had the Three Silos Framework for about a week. Let me ask you something direct:`) +
-    p(`Is your flywheel spinning?`) +
-    p(`More Attention brings more revenue and attracts better talent. Better People deliver a superior product and build more effective processes. Stronger Processes create the capacity to handle more attention and onboard more people. And the cycle repeats.`) +
-    p(`If any one of those three is broken, the whole thing stalls. And here's what most people don't realize: you can't fix all three at once. You pick the weakest one and you fix that first.`) +
-    p(`If nobody knows you exist → fix Attention.`) +
-    p(`If you can't keep good people → fix People.`) +
-    p(`If everything depends on you → fix Process.`) +
-    p(`One silo. One quarter. Full focus. That's how you get the flywheel moving.`) +
-    sig()
-  ),
+  subject: (_fn) => `why most owners stay stuck`,
+  buildHtml: (fn) => buildCCSimpleEmail({
+    preheaderText: "Most contractors stay stuck because they keep adding instead of correcting.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`The reason most contractors stay stuck is not lack of effort.`) +
+      p(`It is lack of correction.`) +
+      p(`They add more instead of tightening what is already loose.`) +
+      pShort(`Another app.`) +
+      pShort(`Another hire.`) +
+      pShort(`Another marketing idea.`) +
+      pShort(`Another meeting.`) +
+      p(`Another random tactic.`) +
+      p(`Meanwhile, the actual bottleneck stays right where it is.`) +
+      p(`That is why business starts to feel heavy.`) +
+      p(`Not because it is impossible.`) +
+      p(`Because it is being run without enough clarity, standards, and correction.`) +
+      p(`Free frameworks can wake you up.`) +
+      p(`They can help you see the board differently.`) +
+      pShort(`But they do not create pressure.`) +
+      pShort(`They do not challenge your blind spots.`) +
+      pShort(`They do not hold the line when you drift.`) +
+      p(`They do not force implementation.`) +
+      p(`That is where most owners break down.`) +
+      p(`They know.`) +
+      p(`But they do not execute long enough or hard enough to change.`) +
+      p(`That is the gap Contractor Circle closes.`) +
+      p(link("See Contractor Circle", "https://alpcontractorcircle.com/join")) +
+      sig(),
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nIs your flywheel spinning?\n\nMore Attention → Better People → Stronger Processes → cycle repeats.\n\nIf any one is broken, the whole thing stalls. You can't fix all three at once. Pick the weakest one first.\n\nIf nobody knows you exist → fix Attention.\nIf you can't keep good people → fix People.\nIf everything depends on you → fix Process.\n\nOne silo. One quarter. Full focus.\n\nMarshall`,
+    `Hey ${fn} —
+
+The reason most contractors stay stuck is not lack of effort.
+
+It is lack of correction.
+
+They add more instead of tightening what is already loose.
+
+Another app.
+Another hire.
+Another marketing idea.
+Another meeting.
+Another random tactic.
+
+Meanwhile, the actual bottleneck stays right where it is.
+
+That is why business starts to feel heavy.
+
+Not because it is impossible.
+Because it is being run without enough clarity, standards, and correction.
+
+Free frameworks can wake you up.
+They can help you see the board differently.
+
+But they do not create pressure.
+They do not challenge your blind spots.
+They do not hold the line when you drift.
+They do not force implementation.
+
+That is where most owners break down.
+
+They know.
+But they do not execute long enough or hard enough to change.
+
+That is the gap Contractor Circle closes.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
 };
 
 const TS_5: DripEmailDef = {
   sequenceId: "three_silos_single",
   stepNumber: 5,
-  subject: (_fn) => `Last thing from me on this`,
-  buildHtml: (fn) => wrapEmail(
-    p(`Hey ${fn} —`) +
-    p(`I've sent you a few emails since you downloaded the Three Silos Framework. I hope they've been useful. This is the last one in this series.`) +
-    p(`Here's what I know after $2.5 billion in construction: the contractors who win aren't the ones with the most talent, the best equipment, or the lowest prices. They're the ones who build a system that works without them.`) +
-    p(`Attention. People. Process. That's the whole game.`) +
-    p(`If you're ready to stop being the bottleneck and actually build the system, I've got two ways to help:`) +
-    p(`<strong>The Contractor Circle</strong> — live coaching, battle-tested frameworks, and a community of operators who are actually building. $497/mo, founding rate locked forever.`) +
-    p(link("alpcontractorcircle.com", CIRCLE_URL)) +
-    p(`Or reply to this email and tell me what you're working on. I read every reply.`) +
-    p(`The only thing that matters to me is that you win.`) +
-    sigFull()
-  ),
+  subject: (_fn) => `this is not theory`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "This is built on real operators, not guru fantasy.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`I want to make something very clear.`) +
+      p(`This is not theory I cooked up to sound smart.`) +
+      p(`This is built around real contractors, real businesses, real pressure, and real outcomes.`) +
+      p(`On the Contractor Circle side, there is proof from people inside the ecosystem who tightened their thinking, sharpened their operations, and made serious moves.`) +
+      pShort(`You can see examples of real revenue growth.`) +
+      pShort(`You can see member feedback.`) +
+      p(`You can see what happens when somebody gets in the right room and starts operating differently.`) +
+      p(`That matters because a lot of business content sounds good but never translates into actual movement.`) +
+      p(`This does.`) +
+      p(`And the reason it does is simple:`) +
+      p(`it is grounded in real businesses with real consequences.`) +
+      p(`If you have been reading the framework and seeing yourself in it, go look at what Contractor Circle actually is.`) +
+      sig(),
+    cta: { buttonText: "SEE THE PROOF →" },
+  }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI've sent you a few emails since you downloaded the Three Silos Framework. I hope they've been useful. This is the last one in this series.\n\nHere's what I know after $2.5 billion in construction: the contractors who win aren't the ones with the most talent, the best equipment, or the lowest prices. They're the ones who build a system that works without them.\n\nAttention. People. Process. That's the whole game.\n\nIf you're ready to stop being the bottleneck:\n\nThe Contractor Circle — live coaching, battle-tested frameworks, $497/mo founding rate locked forever.\nalpcontractorcircle.com\n\nOr reply to this email and tell me what you're working on. I read every reply.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    `Hey ${fn} —
+
+I want to make something very clear.
+
+This is not theory I cooked up to sound smart.
+
+This is built around real contractors, real businesses, real pressure, and real outcomes.
+
+On the Contractor Circle side, there is proof from people inside the ecosystem who tightened their thinking, sharpened their operations, and made serious moves.
+
+You can see examples of real revenue growth.
+You can see member feedback.
+You can see what happens when somebody gets in the right room and starts operating differently.
+
+That matters because a lot of business content sounds good but never translates into actual movement.
+
+This does.
+
+And the reason it does is simple:
+it is grounded in real businesses with real consequences.
+
+If you have been reading the framework and seeing yourself in it, go look at what Contractor Circle actually is.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const TS_6: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 6,
+  subject: (_fn) => `watching is not the same as building`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "At some point, the issue is no longer awareness. It is decision.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`A lot of people stay in the same pattern for years.`) +
+      pShort(`They follow the content.`) +
+      pShort(`They agree with the message.`) +
+      pShort(`They save the posts.`) +
+      pShort(`They download the free stuff.`) +
+      p(`They nod their head.`) +
+      p(`And nothing really changes.`) +
+      p(`Why?`) +
+      p(`Because information is not the same as environment.`) +
+      p(`Free content gives you awareness.`) +
+      p(`A real room gives you proximity, correction, pressure, and repetition.`) +
+      p(`That is the difference.`) +
+      p(`You can follow me on Instagram forever and still stay exactly where you are.`) +
+      p(`Or you can step into a place where the standard is higher and the conversations are different.`) +
+      p(`That is what Contractor Circle is.`) +
+      bulletList([
+        "Bi-weekly live calls",
+        "Monthly deal reviews",
+        "Monthly bootcamp",
+        "Private Discord",
+        "Templates",
+        "Replay library",
+        "Founding member pricing locked in forever",
+        "Cancel anytime",
+      ]) +
+      p(`That is a real operating environment.`) +
+      sig(),
+    cta: { buttonText: "CLAIM YOUR FOUNDING SPOT →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+A lot of people stay in the same pattern for years.
+
+They follow the content.
+They agree with the message.
+They save the posts.
+They download the free stuff.
+They nod their head.
+
+And nothing really changes.
+
+Why?
+
+Because information is not the same as environment.
+
+Free content gives you awareness.
+A real room gives you proximity, correction, pressure, and repetition.
+
+That is the difference.
+
+You can follow me on Instagram forever and still stay exactly where you are.
+
+Or you can step into a place where the standard is higher and the conversations are different.
+
+That is what Contractor Circle is.
+
+• Bi-weekly live calls
+• Monthly deal reviews
+• Monthly bootcamp
+• Private Discord
+• Templates
+• Replay library
+• Founding member pricing locked in forever
+• Cancel anytime
+
+That is a real operating environment.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const TS_7: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 7,
+  subject: (_fn) => `Contractor Circle in plain English`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "This is for contractors who want structure, not just inspiration.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`Let me make this simple.`) +
+      p(`Contractor Circle is for the contractor who knows the business cannot keep running off instinct, scattered effort, and random correction.`) +
+      p(`It is for the owner who wants:`) +
+      bulletList([
+        "better decisions",
+        "tighter systems",
+        "real accountability",
+        "clearer thinking",
+        "operator-level conversations",
+        "a stronger environment",
+      ]) +
+      p(`Inside, you are getting:`) +
+      bulletList([
+        "Bi-weekly live calls with me",
+        "Monthly deal reviews",
+        "Monthly bootcamp",
+        "Private Discord access",
+        "Full template library",
+        "Complete replay library",
+      ]) +
+      p(`It is $497 per month.`) +
+      p(`You can cancel anytime.`) +
+      p(`If you join at the founding rate, that rate is locked in forever.`) +
+      p(`If you have been consuming the free side of the ecosystem and know you need more than content, this is the next step.`) +
+      sig(),
+    cta: { buttonText: "JOIN CONTRACTOR CIRCLE →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+Let me make this simple.
+
+Contractor Circle is for the contractor who knows the business cannot keep running off instinct, scattered effort, and random correction.
+
+It is for the owner who wants:
+• better decisions
+• tighter systems
+• real accountability
+• clearer thinking
+• operator-level conversations
+• a stronger environment
+
+Inside, you are getting:
+• Bi-weekly live calls with me
+• Monthly deal reviews
+• Monthly bootcamp
+• Private Discord access
+• Full template library
+• Complete replay library
+
+It is $497 per month.
+You can cancel anytime.
+If you join at the founding rate, that rate is locked in forever.
+
+If you have been consuming the free side of the ecosystem and know you need more than content, this is the next step.
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
+};
+
+const TS_8: DripEmailDef = {
+  sequenceId: "three_silos_single",
+  stepNumber: 8,
+  subject: (_fn) => `you already know where the problem is`,
+  buildHtml: (fn) => buildCCEmail({
+    preheaderText: "You do not need more awareness. You need a decision.",
+    bodyHtml:
+      p(`Hey ${fn} —`) +
+      p(`By now, you probably have a pretty good sense of where the business is breaking.`) +
+      pShort(`Maybe it is Attention.`) +
+      pShort(`Maybe it is People.`) +
+      p(`Maybe it is Process.`) +
+      p(`Maybe, if you are honest, it is more than one.`) +
+      p(`But at this point, the issue is probably not lack of insight.`) +
+      p(`It is whether you are going to do something with it.`) +
+      p(`That is the line.`) +
+      pShort(`Some owners collect frameworks.`) +
+      p(`Some owners make a decision and step into a better environment.`) +
+      p(`If you are serious about fixing the bottleneck, tightening the business, and surrounding yourself with stronger conversations, then join us.`) +
+      p(`If not, keep the framework.`) +
+      p(`Use it.`) +
+      p(`It will help.`) +
+      p(`But if you are ready for more than free, here is the move:`) +
+      sig(),
+    cta: { buttonText: "JOIN THE CIRCLE →" },
+  }),
+  buildText: (fn) =>
+    `Hey ${fn} —
+
+By now, you probably have a pretty good sense of where the business is breaking.
+
+Maybe it is Attention.
+Maybe it is People.
+Maybe it is Process.
+
+Maybe, if you are honest, it is more than one.
+
+But at this point, the issue is probably not lack of insight.
+
+It is whether you are going to do something with it.
+
+That is the line.
+
+Some owners collect frameworks.
+Some owners make a decision and step into a better environment.
+
+If you are serious about fixing the bottleneck, tightening the business, and surrounding yourself with stronger conversations, then join us.
+
+If not, keep the framework.
+Use it.
+It will help.
+
+But if you are ready for more than free, here is the move:
+
+https://alpcontractorcircle.com/join
+
+Marshall`,
 };
 
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 export const ALL_DRIP_EMAILS: DripEmailDef[] = [
   EST_1, EST_2, EST_3, EST_4, EST_5, EST_6, EST_7, EST_8, EST_9,
-  Q1Q2_1, Q1Q2_2, Q1Q2_3, Q1Q2_4, Q1Q2_5,
-  TS_1, TS_2, TS_3, TS_4, TS_5,
-  DD_1, DD_2, DD_3,
+  Q1Q2_1, Q1Q2_2, Q1Q2_3, Q1Q2_4, Q1Q2_5, Q1Q2_6, Q1Q2_7, Q1Q2_8, Q1Q2_9,
+  TS_1, TS_2, TS_3, TS_4, TS_5, TS_6, TS_7, TS_8,
+  DD_1, DD_2, DD_3, DD_4, DD_5, DD_6,
   HP_1, HP_2, HP_3,
 ];
 
@@ -772,13 +1798,17 @@ export function getMaxStep(sequenceId: string): number {
 
 /** Day gaps between emails for each sequence (index = step number) */
 const SCHEDULE: Record<string, number[]> = {
-  // index 0 = delivery email (step 0), index 1 = step 1, etc.
-  // Estimating: Day 0, 1, 1, 1, 1, 1, 1, 2, 2 (daily for 7, then spaced)
-  estimating_single: [0, 1, 1, 1, 1, 1, 1, 2, 2, 2], // Day 0,1,2,3,4,5,6,8,10
-  q1q2_single: [0, 2, 2, 3, 3, 4],       // same
-  three_silos_single: [0, 2, 2, 3, 3, 4], // Day 0, 2, 4, 7, 10, 14
-  double_dipper: [0, 0, 3, 3],            // Day 0, 0(immediate), 3, 6
-  homepage_only: [0, 1, 2, 2],            // Day 0, 1, 3, 5
+  // index 0 = delivery email (step 0), index N = gap before step N
+  // Estimating: Day 0,1,2,3,4,5,6,8,10 (daily for 7, then spaced)
+  estimating_single: [0, 1, 1, 1, 1, 1, 1, 2, 2, 2],
+  // Q1/Q2: Day 0,1,2,3,4,5,6,8,10 (daily for 7, then spaced)
+  q1q2_single: [0, 1, 1, 1, 1, 1, 1, 2, 2, 2],
+  // Three Silos: Day 0,1,2,3,4,5,8,10 (daily for 6, then spaced)
+  three_silos_single: [0, 1, 1, 1, 1, 1, 3, 2, 2],
+  // Double Dipper: Day 0,1,3,5,7,10 (tighter cadence for warm leads)
+  double_dipper: [0, 1, 2, 2, 2, 3, 3],
+  // Homepage: Day 0,1,3,5
+  homepage_only: [0, 1, 2, 2],
 };
 
 export function getNextSendDate(
