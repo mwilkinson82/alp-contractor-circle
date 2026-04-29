@@ -18,7 +18,7 @@ import {
   TrendingUp,
   ChevronDown,
   Crosshair,
-TrendingDown, UsersRound, ExternalLink, Brain, BarChart3, RefreshCw, ChevronRight, ShieldCheck,
+TrendingDown, UsersRound, ExternalLink, Brain, BarChart3, RefreshCw, ChevronLeft, ChevronRight, ShieldCheck,
 Building2, Home, Hammer, Trophy, Star, Lock, Rocket, Target, Activity, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
@@ -117,6 +117,7 @@ const notForYou = [
   "You avoid pressure",
   "You want shortcuts",
   "You are unwilling to implement",
+  "You prefer to stay in your comfort zone",
 ];
 
 const objections = [
@@ -2134,6 +2135,65 @@ function ProofSection() {
 // SECTION 6: THE DIFFERENCE — Premium comparison with VS badge
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function MobilePillarScroll({ pillars }: { pillars: { icon: any; label: string; sub: string }[] }) {
+  const [showHint, setShowHint] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => setShowHint(false);
+    el.addEventListener('scroll', onScroll, { once: true });
+    const timer = setTimeout(() => setShowHint(false), 4000);
+    return () => { el.removeEventListener('scroll', onScroll); clearTimeout(timer); };
+  }, []);
+  return (
+    <div className="sm:hidden relative">
+      {/* Fade edges to hint at more content */}
+      <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-dark to-transparent z-[5] pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-dark to-transparent z-[5] pointer-events-none" />
+      {/* Arrow indicators overlaid on edges */}
+      <motion.div
+        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: showHint ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <ChevronLeft size={16} className="text-ember animate-pulse" />
+      </motion.div>
+      <motion.div
+        className="absolute right-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: showHint ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <ChevronRight size={16} className="text-ember animate-pulse" />
+      </motion.div>
+      <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2 px-8 scrollbar-hide">
+        {pillars.map((p, i) => (
+          <div key={i} className="flex flex-col items-center text-center gap-2 shrink-0" style={{ minWidth: '72px' }}>
+            <div className="w-10 h-10 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
+              <p.icon size={16} className="text-ember" />
+            </div>
+            <p className="text-[9px] font-bold text-cream uppercase tracking-wider leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+              {p.label}
+            </p>
+          </div>
+        ))}
+      </div>
+      {/* Swipe hint text */}
+      <motion.p
+        className="text-center text-[10px] text-cream/40 mt-1 tracking-wider uppercase"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: showHint ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ fontFamily: "'Sora', sans-serif" }}
+      >
+        ← Swipe to explore →
+      </motion.p>
+    </div>
+  );
+}
+
 function ComparisonSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
@@ -2222,19 +2282,8 @@ function ComparisonSection() {
               </div>
             ))}
           </div>
-          {/* Mobile: horizontal scroll row */}
-          <div className="sm:hidden flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-            {pillars.map((p, i) => (
-              <div key={i} className="flex flex-col items-center text-center gap-2 shrink-0" style={{ minWidth: '72px' }}>
-                <div className="w-10 h-10 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
-                  <p.icon size={16} className="text-ember" />
-                </div>
-                <p className="text-[9px] font-bold text-cream uppercase tracking-wider leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
-                  {p.label}
-                </p>
-              </div>
-            ))}
-          </div>
+          {/* Mobile: horizontal scroll row with scroll indicator */}
+          <MobilePillarScroll pillars={pillars} />
         </motion.div>
 
         {/* Comparison Panel */}
@@ -2527,95 +2576,160 @@ function ComparisonSection() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function QualificationSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const headerY = useTransform(scrollYProgress, [0, 0.3], [60, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.25], [0, 1]);
+  const leftCardX = useTransform(scrollYProgress, [0.1, 0.35], [-40, 0]);
+  const leftCardOpacity = useTransform(scrollYProgress, [0.1, 0.35], [0, 1]);
+  const rightCardX = useTransform(scrollYProgress, [0.15, 0.4], [40, 0]);
+  const rightCardOpacity = useTransform(scrollYProgress, [0.15, 0.4], [0, 1]);
+  const ctaY = useTransform(scrollYProgress, [0.35, 0.55], [30, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.35, 0.55], [0, 1]);
 
   return (
-    <section ref={ref} className="relative py-24 sm:py-32 px-6">
-      <div className="max-w-4xl mx-auto">
+    <section ref={sectionRef} className="relative py-24 sm:py-32 px-4 sm:px-6 overflow-hidden">
+      {/* Construction silhouette background */}
+      <div className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200'%3E%3Cpath d='M0 200 L0 120 L50 120 L50 80 L55 80 L55 40 L60 40 L60 80 L80 80 L80 100 L120 100 L120 60 L125 60 L125 30 L130 30 L130 60 L150 60 L150 100 L200 100 L200 140 L300 140 L300 100 L350 100 L350 80 L400 80 L400 120 L500 120 L500 140 L600 140 L600 100 L650 100 L650 60 L655 60 L655 20 L660 20 L660 60 L700 60 L700 100 L800 100 L800 130 L900 130 L900 100 L950 100 L950 70 L1000 70 L1000 100 L1050 100 L1050 130 L1100 130 L1100 150 L1200 150 L1200 200 Z' fill='%23D97706'/%3E%3C/svg%3E")`,
+          backgroundPosition: 'top center',
+          backgroundRepeat: 'repeat-x',
+          backgroundSize: '100% 200px',
+        }}
+      />
+
+      <div className="max-w-5xl mx-auto relative z-10">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-          className="text-center mb-16"
+          style={{ y: headerY, opacity: headerOpacity }}
+          className="text-center mb-14 sm:mb-16"
         >
+          <p className="text-xs sm:text-sm font-bold text-ember uppercase tracking-[0.25em] mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>
+            THIS IS FOR
+          </p>
           <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-cream leading-[1.15]"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             This is for contractors
             <br />
-            <span className="text-cream/50">who are done guessing.</span>
+            <span className="text-ember" style={{ textDecoration: 'underline', textDecorationColor: '#D97706', textUnderlineOffset: '8px', textDecorationThickness: '3px' }}>who are done guessing.</span>
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* For you */}
+        {/* Two-column cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 mb-8">
+          {/* FOR YOU IF card */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, ease, delay: 0.15 }}
-            className="p-7 sm:p-8 rounded-2xl glass-card border-ember/15"
+            style={{ x: leftCardX, opacity: leftCardOpacity }}
+            className="relative p-6 sm:p-8 rounded-2xl border border-ember/30 bg-gradient-to-br from-[#1a1400]/80 to-[#0d0d0d]/90 backdrop-blur-sm"
           >
-            <div className="flex items-center gap-2 mb-7">
-              <div className="w-6 h-6 rounded-full bg-ember/15 flex items-center justify-center">
-                <Check size={12} className="text-ember" />
+            {/* Ember glow on left edge */}
+            <div className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-gradient-to-b from-transparent via-ember to-transparent" />
+
+            {/* Header with hexagonal check icon */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-ember/15 border border-ember/40 rounded-lg" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+                <Check size={18} className="text-ember" strokeWidth={3} />
               </div>
-              <p className="text-xs font-bold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
-                For you if
+              <p className="text-sm sm:text-base font-bold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                FOR YOU IF
               </p>
             </div>
-            <div className="space-y-4">
+
+            {/* Divider */}
+            <div className="h-px bg-gradient-to-r from-ember/40 to-transparent mb-6" />
+
+            {/* Items */}
+            <div className="space-y-4 sm:space-y-5">
               {forYou.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.4, ease, delay: 0.3 + i * 0.06 }}
-                  className="flex items-start gap-3"
-                >
-                  <Check size={15} className="text-ember mt-0.5 shrink-0" />
-                  <span className="text-sm text-cream/70" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    {item}
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check size={12} className="text-ember" strokeWidth={3} />
+                  </div>
+                  <span className="text-sm sm:text-base text-cream/90" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {item.split(/(\*\*.*?\*\*)/g).length > 1
+                      ? item.split(' ').map((word, wi) => {
+                          const boldWords = ['better estimating', 'systems,', 'direct access', 'serious contractor', 'actively trying'];
+                          const isBold = boldWords.some(bw => bw.includes(word.toLowerCase().replace(',', '')));
+                          return isBold
+                            ? <span key={wi} className="text-ember font-semibold">{word} </span>
+                            : <span key={wi}>{word} </span>;
+                        })
+                      : item
+                    }
                   </span>
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>
 
-          {/* Not for you */}
+          {/* NOT FOR YOU IF card */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, ease, delay: 0.25 }}
-            className="p-7 sm:p-8 rounded-2xl glass-card"
+            style={{ x: rightCardX, opacity: rightCardOpacity }}
+            className="relative p-6 sm:p-8 rounded-2xl border border-cream/10 bg-gradient-to-br from-[#111]/80 to-[#0a0a0a]/90 backdrop-blur-sm"
           >
-            <div className="flex items-center gap-2 mb-7">
-              <div className="w-6 h-6 rounded-full bg-cream/[0.06] flex items-center justify-center">
-                <X size={12} className="text-cream/30" />
+            {/* Header with X icon */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-cream/[0.06] border border-cream/20 rounded-lg" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+                <X size={18} className="text-cream/50" strokeWidth={3} />
               </div>
-              <p className="text-xs font-bold text-cream/35 uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
-                Not for you if
+              <p className="text-sm sm:text-base font-bold text-cream/50 uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                NOT FOR YOU IF
               </p>
             </div>
-            <div className="space-y-4">
+
+            {/* Divider */}
+            <div className="h-px bg-cream/10 mb-6" />
+
+            {/* Items */}
+            <div className="space-y-4 sm:space-y-5">
               {notForYou.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.4, ease, delay: 0.35 + i * 0.06 }}
-                  className="flex items-start gap-3"
-                >
-                  <X size={15} className="text-cream/20 mt-0.5 shrink-0" />
-                  <span className="text-sm text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-cream/[0.04] border border-cream/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <X size={12} className="text-cream/40" strokeWidth={3} />
+                  </div>
+                  <span className="text-sm sm:text-base text-cream/50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {item}
                   </span>
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>
         </div>
+
+        {/* Bottom CTA bar — "You either want to grow..." */}
+        <motion.div
+          style={{ y: ctaY, opacity: ctaOpacity }}
+          className="relative p-5 sm:p-6 rounded-xl border border-ember/30 bg-gradient-to-r from-[#1a1400]/60 to-[#0d0d0d]/80 backdrop-blur-sm"
+        >
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            {/* Target icon */}
+            <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-ember/15 border border-ember/40 rounded-xl shrink-0">
+              <Target size={24} className="text-ember" />
+            </div>
+
+            {/* Text */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 flex-1">
+              <p className="text-base sm:text-lg text-cream/90 text-center sm:text-left" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                You either want to <span className="text-ember font-semibold">grow</span>,
+                <br className="sm:hidden" />{" "}or you want to <span className="text-ember font-semibold">stay where you are.</span>
+              </p>
+
+              {/* Vertical divider (desktop) */}
+              <div className="hidden sm:block w-px h-10 bg-ember/30" />
+
+              <p className="text-sm sm:text-base text-cream/70 text-center sm:text-left" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Contractor Circle is for<br />the ones who <span className="text-ember font-semibold">choose growth.</span>
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

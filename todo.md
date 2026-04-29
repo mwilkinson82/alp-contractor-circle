@@ -3444,3 +3444,12 @@
 - [x] Add scroll-linked animations to comparison panel and individual rows (stagger in as you scroll)
 - [x] Fix mobile pillar bar — 5 items bleeding into each other, need better spacing/wrapping
 - [x] Replace plain "C" letter in CTA bar with Contractor Circle icon/logo
+
+## Mobile Pillar Bar — Scroll Indicator (April 29)
+- [x] Add left/right arrow indicator to mobile pillar bar so users know it's horizontally scrollable
+- [x] Fade out indicator after user interacts with the scroll
+
+## Qualification Section Rebuild — "This Is For" (April 29)
+- [x] Rebuild QualificationSection matching Marshall's mockups: construction silhouette bg, hexagonal check/X icons, ember glow left card, bottom CTA bar with Target icon, scroll-linked animations
+- [x] Added 5th notForYou item: "You prefer to stay in your comfort zone"
+- [x] Updated tests to match new uppercase headings

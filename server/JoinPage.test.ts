@@ -135,8 +135,8 @@ describe("JoinPage", () => {
   // ── Qualification section tests ──────────────────────────────────────
 
   it("has for/not-for qualification lists", () => {
-    expect(joinPageSource).toContain("For you if");
-    expect(joinPageSource).toContain("Not for you if");
+    expect(joinPageSource).toContain("FOR YOU IF");
+    expect(joinPageSource).toContain("NOT FOR YOU IF");
     expect(joinPageSource).toContain("You want passive content only");
     expect(joinPageSource).toContain("You are actively trying to scale");
   });
