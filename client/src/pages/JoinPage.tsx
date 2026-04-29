@@ -19,6 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
+import { trpc } from "@/lib/trpc";
 
 // ─── CDN Assets ────────────────────────────────────────────────────────────────
 
@@ -354,7 +355,35 @@ function SectionDivider() {
 // SECTION 1: HERO — Cinematic parallax with word-by-word reveal
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function useNextCallInfo() {
+  const { data } = trpc.member.getSettings.useQuery(undefined, {
+    staleTime: 120_000,
+    retry: false,
+  });
+  const settings = data?.settings || {};
+
+  const callDate = settings.next_call_date || settings.bootcamp_date || "";
+  const callTime = settings.next_call_time || settings.bootcamp_time || "17:00";
+  const callDayLabel = settings.next_call_day_label || settings.bootcamp_day_label || "Sunday";
+  const monthFocus = settings.next_call_month_focus || "Systems & Processes \u00b7 Attention, People Process Framework";
+
+  let formattedDate = "Sunday, May 10 \u00b7 5 PM ET";
+  if (callDate) {
+    const d = new Date(callDate + "T12:00:00Z");
+    const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+    const dayNum = d.getUTCDate();
+    const [h, m] = callTime.split(":");
+    const hour24 = parseInt(h);
+    const ampm = hour24 >= 12 ? "PM" : "AM";
+    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+    formattedDate = `${callDayLabel}, ${month} ${dayNum} \u00b7 ${hour12}:${m} ${ampm} ET`;
+  }
+
+  return { formattedDate, monthFocus };
+}
+
 function HeroSection() {
+  const { formattedDate, monthFocus } = useNextCallInfo();
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -701,13 +730,13 @@ function HeroSection() {
               className="text-[13px] text-[#F5F0E8]/75 font-medium mb-1"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Sunday, May 10 · 5 PM ET
+              {formattedDate}
             </p>
             <p
               className="text-[10px] text-cream/30 leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Systems & Processes · Attention, People Process Framework
+              {monthFocus}
             </p>
           </div>
         </motion.div>
@@ -764,7 +793,7 @@ function HeroSection() {
             className="text-sm text-cream/75 font-medium mb-3"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Sunday, May 10 · 5 PM ET
+            {formattedDate}
           </p>
           <div className="border-t border-cream/[0.06] pt-2.5">
             <span
@@ -777,7 +806,7 @@ function HeroSection() {
               className="text-xs text-cream/50 mt-1 leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Systems & Processes · Attention, People Process Framework
+              {monthFocus}
             </p>
           </div>
         </div>
@@ -822,63 +851,208 @@ function BridgeSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
+  const pillars = [
+    { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", label: "LEAD FLOW", desc: "Generate the right opportunities." },
+    { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "SALES PROCESS", desc: "Convert more leads into profitable jobs." },
+    { icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4", label: "PROJECT DELIVERY", desc: "Deliver projects on time, on budget, every time.", active: true },
+    { icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z", label: "FINANCIAL CONTROL", desc: "Know your numbers. Increase profitability." },
+    { icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6", label: "SCALE", desc: "Build a company that runs without you." },
+  ];
+
+  const systems = [
+    { icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", label: "TEMPLATES", desc: "Plug-and-play tools that work." },
+    { icon: "M4 6h16M4 10h16M4 14h16M4 18h16", label: "SOPs", desc: "Standard operating procedures." },
+    { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "SCORECARDS", desc: "Track what matters. Improve what counts." },
+    { icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", label: "MEETINGS", desc: "Weekly rhythms that drive results." },
+    { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", label: "ACCOUNTABILITY", desc: "Stay on track. Get it done." },
+    { icon: "M13 10V3L4 14h7v7l9-11h-7z", label: "DECISION-MAKING", desc: "Clarity to make better decisions faster." },
+  ];
+
+  const rhythm = [
+    { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", label: "Weekly Coaching" },
+    { icon: "M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9", label: "Monthly Bootcamps" },
+    { icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064", label: "Real-World Application" },
+    { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "Measurable Results" },
+  ];
+
   return (
     <section ref={ref} className="relative py-24 sm:py-32 px-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Eyebrow */}
-        <motion.p
-          initial={{ opacity: 0, letterSpacing: "0.5em" }}
-          animate={isInView ? { opacity: 1, letterSpacing: "0.2em" } : {}}
-          transition={{ duration: 1, ease }}
-          className="text-xs font-semibold uppercase text-ember mb-8 text-center"
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          From Tool to System
-        </motion.p>
-
-        {/* Pull-quote headline */}
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.1 }}
-          className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-10 text-center"
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          <span className="text-cream">A checklist can help.</span>
-          <br />
-          <span className="text-ember">A system changes the company.</span>
-        </motion.h2>
-
-        {/* Editorial body — left-aligned for readability */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.2 }}
-          className="relative pl-6 sm:pl-8 border-l-2 border-ember/20"
-        >
-          <div
-            className="space-y-6 text-base sm:text-lg leading-[1.8]"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          {/* Left column — editorial */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8, ease }}
           >
-            <p className="text-cream/55">
-              You may have come here through the{" "}
-              <span className="text-cream/80 font-medium">Estimator's Checklist</span>, the{" "}
-              <span className="text-cream/80 font-medium">Q2 Framework</span>, or the{" "}
-              <span className="text-cream/80 font-medium">Holy Grail of Scaling</span>.
+            <p
+              className="text-xs font-semibold uppercase text-ember mb-6 tracking-[0.2em]"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              From Tool to System
             </p>
-            <p className="text-cream/55">
-              Each one gives you a piece of the machine.
-            </p>
-            <p className="text-cream/80 font-semibold text-lg sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-              But a piece is not the machine.
-            </p>
-            <p className="text-cream/55">
-              Inside Contractor Circle, those pieces get connected into a live operating rhythm:
-              estimating, scorecards, meetings, templates, accountability, decision-making,
-              planning, and execution.
-            </p>
-          </div>
-        </motion.div>
+            <div className="w-12 h-0.5 bg-ember/40 mb-8" />
+
+            <h2
+              className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold leading-[1.15] mb-8"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              <span className="text-cream">A checklist can help.</span>
+              <br />
+              <span className="text-cream">A </span>
+              <span className="text-ember relative">
+                system
+                <svg className="absolute -bottom-1 left-0 w-full h-2 text-ember/30" viewBox="0 0 100 8" preserveAspectRatio="none">
+                  <path d="M0 7 Q25 0 50 4 T100 2" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+              </span>
+              <span className="text-cream"> changes</span>
+              <br />
+              <span className="text-cream">the company.</span>
+            </h2>
+
+            <div
+              className="space-y-5 text-base sm:text-[17px] leading-[1.8]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              <p className="text-cream/55">
+                You may have come here through the{" "}
+                <span className="text-cream/80 font-semibold">Estimator's Checklist</span>,
+                the <span className="text-cream/80 font-semibold">Q2 Framework</span>, or the{" "}
+                <span className="text-cream/80 font-semibold">Holy Grail of Scaling</span>.
+              </p>
+              <p className="text-cream/55">
+                Each one gives you a piece of the machine.
+              </p>
+              <p className="text-ember font-bold text-lg sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
+                But a piece is not the machine.
+              </p>
+              <p className="text-cream/55">
+                Inside Contractor Circle, those pieces get connected into
+                a live operating rhythm: estimating, scorecards, meetings,
+                templates, accountability, decision-making, planning,
+                and execution.
+              </p>
+            </div>
+
+            {/* Pull-quote */}
+            <div className="mt-8 pl-5 border-l-2 border-ember/30">
+              <p className="text-cream/70 text-base italic" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                This is where isolated tools become
+              </p>
+              <p className="text-ember font-semibold text-lg" style={{ fontFamily: "'Sora', sans-serif" }}>
+                a company-wide operating system.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Right column — Operating System diagram */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.2 }}
+            className="relative"
+          >
+            <div
+              className="rounded-2xl border border-cream/[0.08] overflow-hidden"
+              style={{
+                background: "linear-gradient(180deg, oklch(0.14 0.01 270 / 0.9) 0%, oklch(0.10 0.01 270 / 0.95) 100%)",
+                boxShadow: "0 24px 64px oklch(0 0 0 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.03)",
+              }}
+            >
+              {/* Header */}
+              <div className="text-center pt-6 pb-4 border-b border-cream/[0.06]">
+                <p className="text-[10px] tracking-[0.2em] uppercase text-cream/30 font-medium mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  The Contractor Circle
+                </p>
+                <h3 className="text-lg sm:text-xl font-bold text-cream tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  OPERATING SYSTEM
+                </h3>
+              </div>
+
+              {/* Pillar flow */}
+              <div className="px-4 py-5">
+                <div className="flex items-center justify-between gap-1">
+                  {pillars.map((p, i) => (
+                    <div key={i} className="flex items-center gap-1 flex-1">
+                      <div className={`flex flex-col items-center text-center flex-1 py-3 px-1 rounded-lg ${p.active ? "border border-ember/40 bg-ember/[0.06]" : ""}`}>
+                        <svg className={`w-5 h-5 mb-1.5 ${p.active ? "text-ember" : "text-cream/40"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={p.icon} />
+                        </svg>
+                        <span className={`text-[7px] sm:text-[8px] font-bold uppercase tracking-wider leading-tight ${p.active ? "text-ember" : "text-cream/50"}`} style={{ fontFamily: "'Sora', sans-serif" }}>
+                          {p.label}
+                        </span>
+                        <span className="text-[7px] text-cream/25 mt-0.5 leading-tight hidden sm:block" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                          {p.desc}
+                        </span>
+                      </div>
+                      {i < pillars.length - 1 && (
+                        <svg className="w-3 h-3 text-ember/40 flex-shrink-0" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Connected Systems grid */}
+              <div className="px-4 pb-4">
+                <p className="text-[9px] tracking-[0.18em] uppercase text-cream/25 font-semibold mb-3 text-center" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Powered by Connected Systems
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {systems.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center text-center py-3 px-1 rounded-lg border border-cream/[0.06] bg-cream/[0.02]"
+                    >
+                      <svg className="w-4 h-4 text-ember/60 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
+                      </svg>
+                      <span className="text-[7px] font-bold uppercase text-cream/50 tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                        {s.label}
+                      </span>
+                      <span className="text-[6px] text-cream/20 mt-0.5 leading-tight hidden sm:block" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {s.desc}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Implementation Rhythm bar */}
+              <div className="mx-4 mb-4 px-4 py-3 rounded-xl border border-cream/[0.06] bg-cream/[0.02]">
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-cream/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase text-cream/60 tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                      Live Implementation Rhythm
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[8px] uppercase text-emerald-400/80 font-semibold tracking-wider">Active</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  {rhythm.map((r, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <svg className="w-3 h-3 text-cream/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d={r.icon} />
+                      </svg>
+                      <span className="text-[8px] sm:text-[9px] text-cream/40 font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {r.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

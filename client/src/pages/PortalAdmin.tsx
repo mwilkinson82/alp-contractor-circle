@@ -99,6 +99,179 @@ const BOOTCAMP_STATUS_CONFIG: Record<string, { label: string; color: string; bg:
   not_selected: { label: "Not Selected", color: "text-cream-muted/50", bg: "bg-white/5" },
 };
 
+function NextCallSettingsPanel() {
+  const { data: settingsData, isLoading, refetch } = trpc.member.getSettings.useQuery(undefined, { retry: false });
+  const updateSettings = trpc.member.updateSettings.useMutation({
+    onSuccess: () => {
+      refetch();
+      toast.success("Next call settings updated!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const settings = settingsData?.settings || {};
+
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [dayLabel, setDayLabel] = useState("");
+  const [focus, setFocus] = useState("");
+  const [initialized, setInitialized] = useState(false);
+
+  if (settingsData && !initialized) {
+    setDate(settings.next_call_date || "");
+    setTime(settings.next_call_time || "17:00");
+    setDayLabel(settings.next_call_day_label || "Sunday");
+    setFocus(settings.next_call_month_focus || "Systems & Processes \u00b7 Attention, People Process Framework");
+    setInitialized(true);
+  }
+
+  function handleDateChange(newDate: string) {
+    setDate(newDate);
+    if (newDate) {
+      const d = new Date(newDate + "T12:00:00Z");
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      setDayLabel(days[d.getUTCDay()]);
+    }
+  }
+
+  function formatTimeDisplay(t: string): string {
+    if (!t) return "";
+    const [h, m] = t.split(":");
+    const hour24 = parseInt(h);
+    const ampm = hour24 >= 12 ? "PM" : "AM";
+    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+    return `${hour12}:${m} ${ampm} ET`;
+  }
+
+  function handleSave() {
+    updateSettings.mutate({
+      settings: {
+        next_call_date: date,
+        next_call_time: time,
+        next_call_day_label: dayLabel,
+        next_call_month_focus: focus,
+      },
+    });
+  }
+
+  const hasChanges = initialized && (
+    date !== (settings.next_call_date || "") ||
+    time !== (settings.next_call_time || "") ||
+    dayLabel !== (settings.next_call_day_label || "") ||
+    focus !== (settings.next_call_month_focus || "")
+  );
+
+  const previewDisplay = date && dayLabel && time
+    ? (() => {
+        const d = new Date(date + "T12:00:00Z");
+        const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+        const dayNum = d.getUTCDate();
+        return `${dayLabel}, ${month} ${dayNum} at ${formatTimeDisplay(time)}`;
+      })()
+    : "";
+
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="p-6 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <CalendarDays className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-cream">Next Live Call</h2>
+            <p className="text-cream-muted text-xs mt-0.5">
+              Update the next call date, time, and monthly focus. Shown on the /join page hero and member dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-cream-muted text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading settings...
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  Call Date
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => handleDateChange(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-cream text-sm focus:outline-none focus:border-ember/40 [color-scheme:dark]"
+                />
+                {dayLabel && (
+                  <p className="text-xs text-cream-muted/60 mt-1.5">
+                    Auto-detected: <span className="text-cream">{dayLabel}</span>
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                  <Clock className="w-3.5 h-3.5" />
+                  Time (Eastern)
+                </label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={e => setTime(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-cream text-sm focus:outline-none focus:border-ember/40 [color-scheme:dark]"
+                />
+                {time && (
+                  <p className="text-xs text-cream-muted/60 mt-1.5">
+                    Displays as: <span className="text-cream">{formatTimeDisplay(time)}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
+                <Settings className="w-3.5 h-3.5" />
+                This Month's Focus
+              </label>
+              <input
+                type="text"
+                value={focus}
+                onChange={e => setFocus(e.target.value)}
+                placeholder="Systems & Processes \u00b7 Attention, People Process Framework"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-cream text-sm placeholder:text-cream-muted/40 focus:outline-none focus:border-ember/40"
+              />
+            </div>
+
+            {previewDisplay && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15">
+                <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">Join Page Preview</p>
+                <p className="text-cream text-sm font-medium">{previewDisplay}</p>
+                <p className="text-cream-muted text-xs mt-1">{focus}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges || updateSettings.isPending}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {updateSettings.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {updateSettings.isPending ? "Saving..." : "Save Next Call Settings"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BootcampSettingsPanel() {
   const { data: settingsData, isLoading, refetch } = trpc.member.getSettings.useQuery(undefined, { retry: false });
   const updateSettings = trpc.member.updateSettings.useMutation({
@@ -626,6 +799,9 @@ export default function PortalAdmin() {
 
       {/* Questions Review Section */}
       <QuestionsReviewPanel />
+
+      {/* Next Live Call Settings */}
+      <NextCallSettingsPanel />
 
       {/* Bootcamp Settings */}
       <BootcampSettingsPanel />

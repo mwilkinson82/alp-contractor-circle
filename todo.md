@@ -3360,3 +3360,17 @@
 
 ## Next Live Call Card — Update Focus Text
 - [x] Change "This Month's Focus" content to "Systems & Processes" and "Attention, People Process Framework"
+
+## Dynamic Next Live Call Date
+- [x] Reuse existing admin_settings table with keys: next_call_date, next_call_time, next_call_day_label, next_call_month_focus
+- [x] Uses existing trpc.member.getSettings public procedure
+- [x] JoinPage hero cards (mobile + desktop) pull from useNextCallInfo() hook via API
+- [x] NextCallSettingsPanel added to PortalAdmin (/portal/admin)
+
+## Rebuild "From Tool to System" Bridge Section
+- [x] Left side: "FROM TOOL TO SYSTEM" label, headline "A checklist can help. A system changes the company.", lead magnet references, "But a piece is not the machine." callout, closing quote
+- [x] Right side: Operating System diagram — 5 pillars (Lead Flow, Sales Process, Project Delivery, Financial Control, Scale) with arrows
+- [x] "POWERED BY CONNECTED SYSTEMS" grid — Templates, SOPs, Scorecards, Meetings, Accountability, Decision-Making
+- [x] "LIVE IMPLEMENTATION RHYTHM" bar — Weekly Coaching, Monthly Bootcamps, Real-World Application, Measurable Results with green ACTIVE dot
+- [x] Ultra polished glass-card aesthetic matching the dark cinematic brand
+- [x] Mobile responsive version
