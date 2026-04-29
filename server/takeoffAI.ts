@@ -254,8 +254,14 @@ function repairTruncatedJSON(raw: string): any | null {
 
 // ─── Pass 1: Extract ─────────────────────────────────────────────────────────────────────
 
-async function extractPass(imageUrl: string): Promise<TakeoffExtractionResult> {
-  const EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
+async function extractPass(imageUrl: string, scopeText?: string | null): Promise<TakeoffExtractionResult> {
+  let EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
+
+  // Inject scope context so the AI prioritizes relevant work
+  if (scopeText && scopeText.trim().length > 0) {
+    EXTRACT_PROMPT += `\n\n## PROJECT SCOPE CONTEXT:\nThe user described this project's scope as: "${scopeText.trim()}"\nPrioritize extracting items that match this scope. Still extract all visible items, but pay special attention to items within the described scope and flag items that may be outside it in the notes field.`;
+    console.log(`[Takeoff AI] Scope injected into extraction prompt: "${scopeText.trim().substring(0, 80)}..."`);
+  }
 
   // Try high detail first, fall back to low detail on 500 (token limit exceeded)
   for (const detail of ["high", "low"] as const) {
@@ -467,7 +473,7 @@ export async function processDrawingSheet(
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
     console.log(`[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}${_retryAttempt > 0 ? ` (auto-retry #${_retryAttempt})` : ''}...`);
-    const extracted = await extractPass(imageUrl);
+    const extracted = await extractPass(imageUrl, _scopeText);
     console.log(`[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`);
 
     console.log(`[Takeoff AI] Pass 2 — Verifying sheet ${sheetId}...`);
@@ -629,8 +635,10 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         processDrawingSheet(
           sheet.id,
           sheet.imageUrl!,
-          projectId
-          // No context params passed — clean two-pass extraction
+          projectId,
+          null, // selectedDivisions — filtering done in post-processing
+          null, // currency
+          project.scopeText || null // scopeText — injected into extraction prompt
         )
       )
     );

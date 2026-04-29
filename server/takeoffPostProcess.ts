@@ -1019,6 +1019,32 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
 }
 
 /**
+ * Division filter: remove items whose CSI division is NOT in the user's selected divisions.
+ * This is the definitive filter — if the user selected Division 03 only, everything else gets removed.
+ * Runs BEFORE consolidation to reduce item count early.
+ */
+export function filterBySelectedDivisions(items: RawItem[], selectedDivisions: string[] | null): RawItem[] {
+  if (!selectedDivisions || selectedDivisions.length === 0) {
+    console.log(`[DivisionFilter] No divisions selected (all divisions mode) — skipping filter`);
+    return items;
+  }
+
+  const allowedSet = new Set(selectedDivisions.map(d => d.trim()));
+  const before = items.length;
+
+  const filtered = items.filter(item => {
+    const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "").trim();
+    // Always keep items with unknown/empty division codes (let user review them)
+    if (!div || div === "99") return true;
+    return allowedSet.has(div);
+  });
+
+  const removed = before - filtered.length;
+  console.log(`[DivisionFilter] Selected divisions: [${selectedDivisions.join(", ")}] → kept ${filtered.length} items, removed ${removed} out-of-scope items`);
+  return filtered;
+}
+
+/**
  * Remove specification notes that were incorrectly extracted as line items.
  * These are items with $0-$1 cost, LS unit, and descriptions that read like spec notes.
  */
@@ -1202,10 +1228,26 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 
   console.log(`[PostProcess] Starting post-processing pipeline for project ${projectId} (${originalCount} items, ${lsBefore} LS)...`);
 
-  // Step 0: Hard programmatic filters BEFORE LLM consolidation
+  // Step 0: Hard programmatic filters BEFORE consolidation
   let filteredItems = hardScopeFilter(rawItems, project.scopeText);
   filteredItems = removeSpecNotes(filteredItems);
   console.log(`[PostProcess] After hard filters: ${originalCount} → ${filteredItems.length} items (${originalCount - filteredItems.length} removed)`);
+
+  // Step 0.5: Division filter — remove items outside user's selected divisions
+  let parsedDivisions: string[] | null = null;
+  if (project.selectedDivisions) {
+    try {
+      const parsed = JSON.parse(project.selectedDivisions);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        parsedDivisions = parsed;
+      }
+    } catch { /* ignore parse errors */ }
+  }
+  const beforeDivFilter = filteredItems.length;
+  filteredItems = filterBySelectedDivisions(filteredItems, parsedDivisions);
+  if (parsedDivisions) {
+    console.log(`[PostProcess] Division filter: ${beforeDivFilter} → ${filteredItems.length} items (${beforeDivFilter - filteredItems.length} removed)`);
+  }
 
   // Step 1: Consolidate items across sheets (also handles scope enforcement)
   console.log(`[PostProcess] Step 1/6: Consolidating items...`);

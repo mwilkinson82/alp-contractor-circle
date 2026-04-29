@@ -18,6 +18,7 @@ import {
   getRegionGroupsForCurrency,
 } from "../shared/costRegions";
 import { CURRENCIES, getCurrency, formatCurrencyAmount } from "../shared/currencies";
+import { filterBySelectedDivisions } from "./takeoffPostProcess";
 
 describe("Division Selector", () => {
   it("should have all expected CSI divisions", () => {
@@ -305,5 +306,130 @@ describe("Integration: Division + Region", () => {
 
     expect(mepPreset?.codes.length).toBeGreaterThan(0);
     expect(getRegionMultiplier(costRegion)).toBeGreaterThan(0);
+  });
+});
+
+describe("filterBySelectedDivisions (post-extraction filter)", () => {
+
+  // Helper to create mock items
+  function mockItem(csiDivision: string, description: string, csiCode?: string) {
+    return {
+      id: Math.floor(Math.random() * 10000),
+      projectId: 1,
+      sheetId: 1,
+      csiDivision,
+      csiCode: csiCode || `${csiDivision} 00 00`,
+      description,
+      quantity: "10.00",
+      unit: "SF",
+      unitCost: 100,
+      extendedCost: 1000,
+      confidence: 85,
+      notes: null,
+      reviewed: false,
+    };
+  }
+
+  it("should return all items when selectedDivisions is null", () => {
+    const items = [mockItem("03", "Concrete slab"), mockItem("05", "Steel beam")];
+    const result = filterBySelectedDivisions(items, null);
+    expect(result.length).toBe(2);
+  });
+
+  it("should return all items when selectedDivisions is empty array", () => {
+    const items = [mockItem("03", "Concrete slab"), mockItem("05", "Steel beam")];
+    const result = filterBySelectedDivisions(items, []);
+    expect(result.length).toBe(2);
+  });
+
+  it("should filter to only Division 03 when selected", () => {
+    const items = [
+      mockItem("03", "Concrete slab 4\""),
+      mockItem("03", "Footing F1"),
+      mockItem("05", "Steel beam W12x26"),
+      mockItem("31", "Earthwork excavation"),
+      mockItem("09", "Drywall partition"),
+    ];
+    const result = filterBySelectedDivisions(items, ["03"]);
+    expect(result.length).toBe(2);
+    expect(result.every((i: any) => i.csiDivision === "03")).toBe(true);
+  });
+
+  it("should support multiple selected divisions", () => {
+    const items = [
+      mockItem("03", "Concrete slab"),
+      mockItem("05", "Steel beam"),
+      mockItem("31", "Earthwork"),
+      mockItem("09", "Drywall"),
+    ];
+    const result = filterBySelectedDivisions(items, ["03", "31"]);
+    expect(result.length).toBe(2);
+    expect(result.map((i: any) => i.csiDivision).sort()).toEqual(["03", "31"]);
+  });
+
+  it("should keep items with unknown division code (99)", () => {
+    const items = [
+      mockItem("03", "Concrete slab"),
+      mockItem("99", "Unknown item"),
+      mockItem("05", "Steel beam"),
+    ];
+    const result = filterBySelectedDivisions(items, ["03"]);
+    expect(result.length).toBe(2);
+    expect(result.map((i: any) => i.csiDivision).sort()).toEqual(["03", "99"]);
+  });
+
+  it("should keep items with empty/null division code when csiCode also empty", () => {
+    const items = [
+      mockItem("03", "Concrete slab"),
+      { ...mockItem("", "No division assigned"), csiCode: "" },
+      { ...mockItem("", "Null division"), csiDivision: null, csiCode: null },
+    ];
+    const result = filterBySelectedDivisions(items, ["03"]);
+    // 03 kept, empty div+code kept (safety), null div+code kept (safety)
+    expect(result.length).toBe(3);
+  });
+
+  it("should filter by csiCode prefix when csiDivision is empty but csiCode has a division", () => {
+    const items = [
+      { ...mockItem("", "Concrete item"), csiCode: "03 30 00" },
+      { ...mockItem("", "Steel item"), csiCode: "05 12 00" },
+    ];
+    // Empty csiDivision → falls back to csiCode prefix
+    // "03 30 00" → prefix "03" → matches selected → kept
+    // "05 12 00" → prefix "05" → not in selected → removed
+    const result = filterBySelectedDivisions(items, ["03"]);
+    expect(result.length).toBe(1);
+    expect(result[0].description).toBe("Concrete item");
+  });
+
+
+
+  it("should handle MEP package preset (divisions 21-26)", () => {
+    const items = [
+      mockItem("03", "Concrete slab"),
+      mockItem("21", "Fire suppression"),
+      mockItem("22", "Plumbing rough-in"),
+      mockItem("23", "HVAC ductwork"),
+      mockItem("26", "Electrical conduit"),
+      mockItem("09", "Drywall"),
+    ];
+    const result = filterBySelectedDivisions(items, ["21", "22", "23", "26"]);
+    expect(result.length).toBe(4);
+    expect(result.every((i: any) => ["21", "22", "23", "26"].includes(i.csiDivision))).toBe(true);
+  });
+
+  it("should handle Concrete Sub preset (division 03 only)", () => {
+    const items = [
+      mockItem("03", "Concrete slab 4\""),
+      mockItem("03", "Footing F1 - 24\"x12\""),
+      mockItem("03", "Grade beam GB1"),
+      mockItem("05", "Steel beam W12x26"),
+      mockItem("31", "Earthwork excavation"),
+      mockItem("04", "CMU wall"),
+      mockItem("07", "Waterproofing"),
+    ];
+    const result = filterBySelectedDivisions(items, ["03"]);
+    expect(result.length).toBe(3);
+    expect(result.every((i: any) => i.csiDivision === "03")).toBe(true);
   });
 });

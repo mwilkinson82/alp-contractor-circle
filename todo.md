@@ -3266,3 +3266,16 @@
 - [x] Update templates.test.ts (count 34→35, added ID + URL)
 - [x] Run tests — 454 passed, 0 failed
 - [x] Save checkpoint and deploy
+
+## Estimating Takeoff Bugs (Darian Betancourt report)
+- [ ] Division filter not working — selecting Division 3 runs takeoff on ALL divisions
+- [ ] Scope description not being captured/used in takeoff
+- [ ] CSI codes not showing in takeoff results
+
+## Takeoff Division Filter + Scope Injection Fix
+- [x] Add post-extraction division filter in takeoffPostProcess.ts (filterBySelectedDivisions function)
+- [x] Inject scope text into AI extraction prompt (extractPass now receives scopeText)
+- [x] Pass scopeText from project record through processAllPendingSheets → processDrawingSheet → extractPass
+- [x] Wire division filter into postProcessTakeoff pipeline (Step 0.5, after hardScopeFilter)
+- [x] Write 10 tests for division filtering — 463 tests passing, 0 failed
+- [ ] Save checkpoint and deploy
