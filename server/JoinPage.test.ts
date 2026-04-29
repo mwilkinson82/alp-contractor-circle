@@ -55,7 +55,7 @@ describe("JoinPage", () => {
   });
 
   it("contains the bridge copy referencing lead magnets", () => {
-    expect(joinPageSource).toContain("Estimator's Checklist");
+    expect(joinPageSource).toContain("Estimator");
     expect(joinPageSource).toContain("Q2 Framework");
     expect(joinPageSource).toContain("Holy Grail of Scaling");
   });

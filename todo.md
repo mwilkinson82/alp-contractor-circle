@@ -3374,3 +3374,14 @@
 - [x] "LIVE IMPLEMENTATION RHYTHM" bar — Weekly Coaching, Monthly Bootcamps, Real-World Application, Measurable Results with green ACTIVE dot
 - [x] Ultra polished glass-card aesthetic matching the dark cinematic brand
 - [x] Mobile responsive version
+
+## Bridge Section — Dynamic Scroll-Driven Redesign
+- [x] Replace static diagram with scroll-driven animated experience
+- [x] 5 pillar cards slide in horizontally with staggered delay
+- [x] Each card has glass surface with glow on viewport entry
+- [x] Progress connector line fills with ember/gold as scroll progresses
+- [x] "Project Delivery" pillar gets prominent ember border + scale-up + glow
+- [x] Connected Systems grid fades up in staggered wave
+- [x] Live Implementation Rhythm bar has pulsing green heartbeat animation
+- [x] Replace weak SVG squiggle on "system" with bold animated ember gradient underline
+- [x] Overall feel: watching a machine being assembled as you scroll
