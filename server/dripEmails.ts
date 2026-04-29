@@ -96,100 +96,192 @@ export interface DripEmailDef {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SEQUENCE 1: ESTIMATING CHECKLIST SINGLE-DIPPERS (5 emails)
+// SEQUENCE 1: ESTIMATING CHECKLIST → CONTRACTOR CIRCLE (9 emails)
+// Strategy: Controlled escalation from estimating pain → operator problems → Circle
+// Cadence: Day 0,1,2,3,4,5,6,8,10 (7 daily then 2 spaced)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Email 1 (Day 0): Deliver the checklist and frame the problem correctly
 const EST_1: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 1,
-  subject: (fn) => `${fn}, one thing most estimators get wrong`,
+  subject: (fn) => `${fn}, your checklist is ready`,
   buildHtml: (fn) => wrapEmail(
     p(`Hey ${fn} —`) +
-    p(`Hope you've had a chance to dig into the Estimating Checklist. If you haven't yet, do it today — it's built from $2.5 billion in actual construction, not a textbook.`) +
-    p(`Here's the one thing I see most contractors get wrong with estimating: they treat it like math. It's not math. It's risk management.`) +
-    p(`Every line item on your estimate is a bet. You're betting that the material costs hold, that your labor production rates are accurate, that the sub who gave you a number will actually honor it, and that nothing in the field is going to surprise you.`) +
-    p(`The contractors who consistently win profitable work aren't better at math — they're better at identifying where the risk lives and pricing for it.`) +
-    p(`That's what the checklist is designed to do. It forces you through every phase so you're not just calculating — you're evaluating.`) +
-    p(`Go back through Phase 3 (Exclusions &amp; Clarifications) and Phase 10 (The Sanity Check) one more time. Those two phases alone will save you more money than anything else in that document.`) +
+    p(`Your Estimating Checklist is attached. But before you file it away, I need to tell you something most people won't.`) +
+    p(`The reason most contractors lose money on jobs isn't because they can't estimate. It's because they estimate casually.`) +
+    p(`They pull numbers from memory. They skip the exclusions. They don't scope-level subs. They round down because they're afraid of losing the bid. And then they wonder why they're working 60-hour weeks with nothing to show for it.`) +
+    p(`This checklist is built from $2.5 billion in actual construction. Every phase exists because I've watched a contractor lose money by skipping it.`) +
+    p(`Here's what I want you to do: pull up your last estimate — the one you already submitted — and run it against this checklist. Not your next bid. Your last one. See what you missed.`) +
+    p(`That exercise alone will tell you more about your business than any YouTube video or podcast ever will.`) +
     sig()
   ),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nHope you've had a chance to dig into the Estimating Checklist. If you haven't yet, do it today — it's built from $2.5 billion in actual construction, not a textbook.\n\nHere's the one thing I see most contractors get wrong with estimating: they treat it like math. It's not math. It's risk management.\n\nEvery line item on your estimate is a bet. You're betting that the material costs hold, that your labor production rates are accurate, that the sub who gave you a number will actually honor it, and that nothing in the field is going to surprise you.\n\nThe contractors who consistently win profitable work aren't better at math — they're better at identifying where the risk lives and pricing for it.\n\nThat's what the checklist is designed to do. It forces you through every phase so you're not just calculating — you're evaluating.\n\nGo back through Phase 3 (Exclusions & Clarifications) and Phase 10 (The Sanity Check) one more time. Those two phases alone will save you more money than anything else in that document.\n\nMarshall`,
+    `Hey ${fn} —\n\nYour Estimating Checklist is attached. But before you file it away, I need to tell you something most people won't.\n\nThe reason most contractors lose money on jobs isn't because they can't estimate. It's because they estimate casually.\n\nThey pull numbers from memory. They skip the exclusions. They don't scope-level subs. They round down because they're afraid of losing the bid. And then they wonder why they're working 60-hour weeks with nothing to show for it.\n\nThis checklist is built from $2.5 billion in actual construction. Every phase exists because I've watched a contractor lose money by skipping it.\n\nHere's what I want you to do: pull up your last estimate — the one you already submitted — and run it against this checklist. Not your next bid. Your last one. See what you missed.\n\nThat exercise alone will tell you more about your business than any YouTube video or podcast ever will.\n\nMarshall`,
 };
 
+// Email 2 (Day 1): Agitate the cost of estimating from memory
 const EST_2: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 2,
-  subject: (_fn) => `The $340K mistake I caught before it was too late`,
+  subject: (_fn) => `your estimate is leaking margin`,
   buildHtml: (fn) => wrapEmail(
     p(`Hey ${fn} —`) +
-    p(`Let me tell you about a job that almost went sideways.`) +
-    p(`A contractor I was advising had a $4.2M bid ready to submit. Everything looked right. The takeoffs were solid, the sub numbers were in, the markup was reasonable. He was ready to hit send.`) +
-    p(`I asked him one question: "Did you scope-level the mechanical sub?"`) +
-    p(`He hadn't. He had two quotes — one at $680K and one at $410K. He was going to use the $410K number because it was lower. The problem? The $410K sub had excluded all ductwork insulation, all testing and balancing, and the building automation tie-in. That's $340K in missing scope.`) +
-    p(`If he had submitted that bid with the $410K number, he would have won the job — and lost $340K on it. He would have been underwater before the first shovel hit the ground.`) +
-    p(`That's Phase 6 in the checklist. Scope-leveling isn't optional. It's the difference between a profitable job and a disaster.`) +
-    p(`How many of your sub bids have you actually scope-leveled line by line?`) +
+    p(`Quick question: on your last bid, how many line items did you price from memory?`) +
+    p(`Be honest. I'm not judging. I'm diagnosing.`) +
+    p(`Because here's what happens when you estimate from memory: you use last job's numbers. You round labor hours. You assume the sub's price includes things it doesn't. You skip the general conditions because "we always figure that out." You forget to account for mobilization, winter conditions, or the fact that the job site has no laydown area.`) +
+    p(`Every one of those shortcuts is margin leakage. Not dramatic, blow-up-the-job leakage. Slow, invisible, death-by-a-thousand-cuts leakage. The kind where you finish a job and think "we should have made more on that" but you can't point to exactly where it went.`) +
+    p(`It went into the gaps between what you assumed and what actually happened.`) +
+    p(`Pull up your last estimate. Open the checklist. Run Phase 3 (Exclusions &amp; Clarifications) and Phase 6 (Subcontractor Scope Leveling) against it.`) +
+    p(`I guarantee you'll find money you left on the table.`) +
     sig()
   ),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nLet me tell you about a job that almost went sideways.\n\nA contractor I was advising had a $4.2M bid ready to submit. Everything looked right. The takeoffs were solid, the sub numbers were in, the markup was reasonable. He was ready to hit send.\n\nI asked him one question: "Did you scope-level the mechanical sub?"\n\nHe hadn't. He had two quotes — one at $680K and one at $410K. He was going to use the $410K number because it was lower. The problem? The $410K sub had excluded all ductwork insulation, all testing and balancing, and the building automation tie-in. That's $340K in missing scope.\n\nIf he had submitted that bid with the $410K number, he would have won the job — and lost $340K on it. He would have been underwater before the first shovel hit the ground.\n\nThat's Phase 6 in the checklist. Scope-leveling isn't optional. It's the difference between a profitable job and a disaster.\n\nHow many of your sub bids have you actually scope-leveled line by line?\n\nMarshall`,
+    `Hey ${fn} —\n\nQuick question: on your last bid, how many line items did you price from memory?\n\nBe honest. I'm not judging. I'm diagnosing.\n\nBecause here's what happens when you estimate from memory: you use last job's numbers. You round labor hours. You assume the sub's price includes things it doesn't. You skip the general conditions because "we always figure that out." You forget to account for mobilization, winter conditions, or the fact that the job site has no laydown area.\n\nEvery one of those shortcuts is margin leakage. Not dramatic, blow-up-the-job leakage. Slow, invisible, death-by-a-thousand-cuts leakage. The kind where you finish a job and think "we should have made more on that" but you can't point to exactly where it went.\n\nIt went into the gaps between what you assumed and what actually happened.\n\nPull up your last estimate. Open the checklist. Run Phase 3 (Exclusions & Clarifications) and Phase 6 (Subcontractor Scope Leveling) against it.\n\nI guarantee you'll find money you left on the table.\n\nMarshall`,
 };
 
+// Email 3 (Day 2): This is not just an estimating problem — widen the diagnosis
 const EST_3: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 3,
-  subject: (_fn) => `Unpopular opinion about estimating`,
+  subject: (_fn) => `this is not just an estimating issue`,
   buildHtml: (fn) => wrapEmail(
     p(`Hey ${fn} —`) +
-    p(`Here's something that's going to piss off a lot of people: the reason most contractors lose money isn't because they're bad at building. It's because they're desperate.`) +
-    p(`They underbid work because they need the revenue. They skip the exclusions because they're afraid of losing the job. They don't scope-level subs because they don't have time. They use last job's numbers because it's faster.`) +
-    p(`And then they wonder why their margins are razor thin and they're working 70 hours a week with nothing to show for it.`) +
-    p(`The best job you'll ever get might be the one you don't take.`) +
-    p(`Every underbid job steals bandwidth from the projects that actually have margin. You're robbing your good jobs to babysit your bad ones. And the cycle never stops until you decide it stops.`) +
-    p(`The checklist I gave you isn't just a process for estimating. It's a filter. It forces you to be disciplined about what you pursue, how you price it, and whether it's worth your time.`) +
-    p(`Use it as a filter, not just a calculator.`) +
+    p(`I want to be straight with you about something.`) +
+    p(`If your estimating is sloppy, your estimating is probably not the only thing that's sloppy.`) +
+    p(`When I work with contractors, I almost never find that estimating is an isolated problem. It's a symptom. If a contractor is estimating from memory, they're usually also selling without a process, handing off jobs without a formal turnover, running projects without weekly cost tracking, and billing late because nobody owns the schedule of values.`) +
+    p(`The estimate is just the first place the cracks show up — because that's where the money enters the business. But the same lack of discipline that produces a sloppy estimate produces sloppy ops, sloppy project management, and sloppy financials.`) +
+    p(`Here's a quick diagnostic. Answer honestly:`) +
+    p(`Do you have a documented sales process, or do you just "talk to people"?<br/>Do your PMs get a formal job turnover with the estimate backup, or do they figure it out?<br/>Do you track job costs weekly against the estimate, or just at the end?<br/>Is your billing current within 30 days, or are you always chasing money?`) +
+    p(`If you answered "no" to more than one of those, the checklist helped — but the checklist isn't enough.`) +
     sig()
   ),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nHere's something that's going to piss off a lot of people: the reason most contractors lose money isn't because they're bad at building. It's because they're desperate.\n\nThey underbid work because they need the revenue. They skip the exclusions because they're afraid of losing the job. They don't scope-level subs because they don't have time. They use last job's numbers because it's faster.\n\nAnd then they wonder why their margins are razor thin and they're working 70 hours a week with nothing to show for it.\n\nThe best job you'll ever get might be the one you don't take.\n\nEvery underbid job steals bandwidth from the projects that actually have margin. You're robbing your good jobs to babysit your bad ones. And the cycle never stops until you decide it stops.\n\nThe checklist I gave you isn't just a process for estimating. It's a filter. It forces you to be disciplined about what you pursue, how you price it, and whether it's worth your time.\n\nUse it as a filter, not just a calculator.\n\nMarshall`,
+    `Hey ${fn} —\n\nI want to be straight with you about something.\n\nIf your estimating is sloppy, your estimating is probably not the only thing that's sloppy.\n\nWhen I work with contractors, I almost never find that estimating is an isolated problem. It's a symptom. If a contractor is estimating from memory, they're usually also selling without a process, handing off jobs without a formal turnover, running projects without weekly cost tracking, and billing late because nobody owns the schedule of values.\n\nThe estimate is just the first place the cracks show up — because that's where the money enters the business. But the same lack of discipline that produces a sloppy estimate produces sloppy ops, sloppy project management, and sloppy financials.\n\nHere's a quick diagnostic. Answer honestly:\n\nDo you have a documented sales process, or do you just "talk to people"?\nDo your PMs get a formal job turnover with the estimate backup, or do they figure it out?\nDo you track job costs weekly against the estimate, or just at the end?\nIs your billing current within 30 days, or are you always chasing money?\n\nIf you answered "no" to more than one of those, the checklist helped — but the checklist isn't enough.\n\nMarshall`,
 };
 
+// Email 4 (Day 3): Why most contractors stay stuck — introduce the bigger worldview
 const EST_4: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 4,
-  subject: (_fn) => `You've got the checklist — now what?`,
+  subject: (_fn) => `why most contractors stay stuck`,
   buildHtml: (fn) => wrapEmail(
     p(`Hey ${fn} —`) +
-    p(`The Estimating Checklist is a tool. A good one. But a tool without a system around it is just a piece of paper.`) +
-    p(`Here's what I mean: estimating doesn't exist in a vacuum. It connects to everything — your sales pipeline, your project management, your cash flow, your schedule, your team structure.`) +
-    p(`You can have the most accurate estimate in the world, but if your billing is 60 days behind and your schedule of values isn't front-loaded, you're still going to have a cash flow problem. If your PM doesn't understand how you priced the job, they're going to manage it differently than you estimated it. If you don't have a weekly scorecard tracking your win rate, your margins, and your backlog, you're flying blind.`) +
-    p(`That's what I teach in the Contractor Circle — not just individual tools, but the full operating system for running a construction business. Estimating, planning, accountability, execution, measurement — all of it connected.`) +
-    p(`If you've gotten value from the checklist and you're ready to go deeper, I want to hear from you. Reply to this email with "CIRCLE" and I'll tell you how it works.`) +
+    p(`I've worked with hundreds of contractors. Built over $2.5 billion in construction. And I can tell you the number one reason contractors stay stuck:`) +
+    p(`They keep looking for the one thing.`) +
+    p(`One better spreadsheet. One new estimator. One hire that'll fix everything. One piece of software. One trick from a YouTube video.`) +
+    p(`And every time they find it, it helps for a week. Maybe two. Then they're back to the same problems — because the problem was never the tool. The problem is they don't have an operating system.`) +
+    p(`An operating system is the full machine: how you sell, how you estimate, how you hand off, how you manage projects, how you track money, how you hold people accountable, how you make decisions. All of it connected. All of it measured. All of it reviewed every single week.`) +
+    p(`That's what I built the ${link("Contractor Circle", CIRCLE_URL)} to deliver. Not one tool. Not one trick. The full system — with live coaching, frameworks, templates, and a room full of contractors who are actually building.`) +
+    p(`If you're tired of collecting tools and ready to build the machine, take a look: ${link("alpcontractorcircle.com", CIRCLE_URL)}`) +
     sig()
   ),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nThe Estimating Checklist is a tool. A good one. But a tool without a system around it is just a piece of paper.\n\nHere's what I mean: estimating doesn't exist in a vacuum. It connects to everything — your sales pipeline, your project management, your cash flow, your schedule, your team structure.\n\nYou can have the most accurate estimate in the world, but if your billing is 60 days behind and your schedule of values isn't front-loaded, you're still going to have a cash flow problem. If your PM doesn't understand how you priced the job, they're going to manage it differently than you estimated it. If you don't have a weekly scorecard tracking your win rate, your margins, and your backlog, you're flying blind.\n\nThat's what I teach in the Contractor Circle — not just individual tools, but the full operating system for running a construction business. Estimating, planning, accountability, execution, measurement — all of it connected.\n\nIf you've gotten value from the checklist and you're ready to go deeper, I want to hear from you. Reply to this email with "CIRCLE" and I'll tell you how it works.\n\nMarshall`,
+    `Hey ${fn} —\n\nI've worked with hundreds of contractors. Built over $2.5 billion in construction. And I can tell you the number one reason contractors stay stuck:\n\nThey keep looking for the one thing.\n\nOne better spreadsheet. One new estimator. One hire that'll fix everything. One piece of software. One trick from a YouTube video.\n\nAnd every time they find it, it helps for a week. Maybe two. Then they're back to the same problems — because the problem was never the tool. The problem is they don't have an operating system.\n\nAn operating system is the full machine: how you sell, how you estimate, how you hand off, how you manage projects, how you track money, how you hold people accountable, how you make decisions. All of it connected. All of it measured. All of it reviewed every single week.\n\nThat's what I built the Contractor Circle to deliver. Not one tool. Not one trick. The full system — with live coaching, frameworks, templates, and a room full of contractors who are actually building.\n\nIf you're tired of collecting tools and ready to build the machine, take a look: alpcontractorcircle.com\n\nMarshall`,
 };
 
+// Email 5 (Day 4): Proof and transformation
 const EST_5: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 5,
-  subject: (_fn) => `Last thing from me on this`,
+  subject: (_fn) => `$600K to $20M in 18 months`,
   buildHtml: (fn) => wrapEmail(
     p(`Hey ${fn} —`) +
-    p(`I've sent you a few emails since you downloaded the Estimating Checklist. I hope they've been useful. This is the last one in this series.`) +
+    p(`I don't talk theory. I don't sell motivation. So let me just show you what happens when contractors stop guessing and start operating.`) +
+    p(`<strong>CNY Group</strong> — went from $600K to $20M in 18 months. Not because they found some magic marketing hack. Because they built systems for estimating, selling, and delivering work that actually scaled.`) +
+    p(`<strong>Trojan Roofing</strong> — $300K to $10M in their first year working with me. They had the talent. They had the work ethic. What they didn't have was structure. We built it.`) +
+    p(`<strong>Davis Contracting</strong> — $1M to $4M in 6 months. The owner went from doing everything himself to running a company with clear roles, weekly accountability, and real financial visibility.`) +
+    p(`<strong>Sage Construction</strong> — $2M revenue in their first year as a contractor. Not because the market was easy. Because they started with the operating system instead of trying to bolt one on later.`) +
+    p(`These aren't unicorns. These are regular contractors who decided to stop running their business from their truck and start running it like a real company.`) +
+    p(`That's what the ${link("Contractor Circle", CIRCLE_URL)} is built to do. See what's inside: ${link("alpcontractorcircle.com", CIRCLE_URL)}`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI don't talk theory. I don't sell motivation. So let me just show you what happens when contractors stop guessing and start operating.\n\nCNY Group — went from $600K to $20M in 18 months. Not because they found some magic marketing hack. Because they built systems for estimating, selling, and delivering work that actually scaled.\n\nTrojan Roofing — $300K to $10M in their first year working with me. They had the talent. They had the work ethic. What they didn't have was structure. We built it.\n\nDavis Contracting — $1M to $4M in 6 months. The owner went from doing everything himself to running a company with clear roles, weekly accountability, and real financial visibility.\n\nSage Construction — $2M revenue in their first year as a contractor. Not because the market was easy. Because they started with the operating system instead of trying to bolt one on later.\n\nThese aren't unicorns. These are regular contractors who decided to stop running their business from their truck and start running it like a real company.\n\nThat's what the Contractor Circle is built to do. See what's inside: alpcontractorcircle.com\n\nMarshall`,
+};
+
+// Email 6 (Day 5): Handle "I can get this free" / Instagram objection
+const EST_6: DripEmailDef = {
+  sequenceId: "estimating_single",
+  stepNumber: 6,
+  subject: (_fn) => `free content won't fix this`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`I know what you might be thinking: "I already follow Marshall on Instagram. I watch the videos. I downloaded the checklist. I'm getting what I need for free."`) +
+    p(`And you're right — you are getting something. You're getting awareness. You're getting ideas. You're getting motivated for about 15 minutes while you scroll on the toilet.`) +
+    p(`But here's what free content does not give you:`) +
+    p(`It doesn't give you pressure. Nobody is checking whether you actually implemented anything.<br/>It doesn't give you proximity. You're watching from the stands, not playing on the field.<br/>It doesn't give you repetition. You see a post, nod your head, and forget it by lunch.<br/>It doesn't give you accountability. There's no one asking "did you do it?"`) +
+    p(`The contractors who are actually scaling — the ones I showed you yesterday — they're not just consuming content. They're in a room. They're on calls. They're being pushed. They're implementing, reporting back, and getting coached on what's not working.`) +
+    p(`That's the difference between information and transformation. And that difference is worth more than $497 a month.`) +
+    p(`${link("See what's inside the Contractor Circle", CIRCLE_URL)}`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI know what you might be thinking: "I already follow Marshall on Instagram. I watch the videos. I downloaded the checklist. I'm getting what I need for free."\n\nAnd you're right — you are getting something. You're getting awareness. You're getting ideas. You're getting motivated for about 15 minutes while you scroll on the toilet.\n\nBut here's what free content does not give you:\n\nIt doesn't give you pressure. Nobody is checking whether you actually implemented anything.\nIt doesn't give you proximity. You're watching from the stands, not playing on the field.\nIt doesn't give you repetition. You see a post, nod your head, and forget it by lunch.\nIt doesn't give you accountability. There's no one asking "did you do it?"\n\nThe contractors who are actually scaling — the ones I showed you yesterday — they're not just consuming content. They're in a room. They're on calls. They're being pushed. They're implementing, reporting back, and getting coached on what's not working.\n\nThat's the difference between information and transformation. And that difference is worth more than $497 a month.\n\nSee what's inside the Contractor Circle: alpcontractorcircle.com\n\nMarshall`,
+};
+
+// Email 7 (Day 6): Handle "I don't have time / I'm not ready" objection
+const EST_7: DripEmailDef = {
+  sequenceId: "estimating_single",
+  stepNumber: 7,
+  subject: (_fn) => `you don't need more time — you need structure`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`The number one thing I hear from contractors who don't join is: "I don't have time right now."`) +
+    p(`I get it. You're buried. You're running jobs, chasing subs, answering calls, putting out fires, trying to get billing done, and somewhere in there you're supposed to also grow the business.`) +
+    p(`But here's the thing: you don't have a time problem. You have a structure problem.`) +
+    p(`The reason you don't have time is because everything runs through you. Every decision. Every problem. Every question. You're the bottleneck — and the bottleneck never has time.`) +
+    p(`The guys who say "later" are almost never less busy later. They're the same level of buried six months from now, twelve months from now, three years from now. Because nothing changes until the system changes.`) +
+    p(`Contractor Circle is two calls a month. 90 minutes each. Plus a Discord community and a template library you access on your own time. That's it. It's not a second job. It's the thing that makes your actual job stop eating you alive.`) +
+    p(`You can keep saying "later." Or you can get in the room and start building the structure that gives you your time back.`) +
+    p(`${link("Join the Contractor Circle", CIRCLE_URL + "/join")} — $497/mo. Founding rate locked while active. Cancel anytime.`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nThe number one thing I hear from contractors who don't join is: "I don't have time right now."\n\nI get it. You're buried. You're running jobs, chasing subs, answering calls, putting out fires, trying to get billing done, and somewhere in there you're supposed to also grow the business.\n\nBut here's the thing: you don't have a time problem. You have a structure problem.\n\nThe reason you don't have time is because everything runs through you. Every decision. Every problem. Every question. You're the bottleneck — and the bottleneck never has time.\n\nThe guys who say "later" are almost never less busy later. They're the same level of buried six months from now, twelve months from now, three years from now. Because nothing changes until the system changes.\n\nContractor Circle is two calls a month. 90 minutes each. Plus a Discord community and a template library you access on your own time. That's it. It's not a second job. It's the thing that makes your actual job stop eating you alive.\n\nYou can keep saying "later." Or you can get in the room and start building the structure that gives you your time back.\n\nJoin the Contractor Circle — $497/mo. Founding rate locked while active. Cancel anytime.\nalpcontractorcircle.com/join\n\nMarshall`,
+};
+
+// Email 8 (Day 8): Make the offer direct and concrete
+const EST_8: DripEmailDef = {
+  sequenceId: "estimating_single",
+  stepNumber: 8,
+  subject: (_fn) => `what Contractor Circle actually does`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`I've been talking about the Contractor Circle for a few days now. Let me just tell you exactly what it is and what you get.`) +
+    p(`<strong>Bi-weekly live coaching calls</strong> — 90 minutes, every other Sunday at 5 PM ET. I teach frameworks, answer questions, and coach contractors through real problems in real time. These are not webinars. These are working sessions.`) +
+    p(`<strong>Private Discord community</strong> — a room full of contractors who are actually building. Not lurkers. Not tire-kickers. Operators who share wins, ask hard questions, and hold each other accountable.`) +
+    p(`<strong>Template &amp; framework library</strong> — estimating checklists, job costing sheets, org charts, sales scripts, SOPs, financial dashboards. Battle-tested tools from $2.5B in construction.`) +
+    p(`<strong>Direct access to me</strong> — not a coaching assistant, not a community manager. Me. Marshall Wilkinson. The guy who's built this, lived this, and is still in the trenches every day.`) +
+    p(`<strong>$497/month.</strong> Founding rate locks in as long as you're active. Cancel anytime. No contracts. No commitments beyond this month.`) +
+    p(`The contractors in this room went from $600K to $20M, from $300K to $10M, from chaos to clarity. Not because they're smarter than you. Because they got in a room that forced better decisions.`) +
+    p(`${link("Join the Contractor Circle", CIRCLE_URL + "/join")}`) +
+    sig()
+  ),
+  buildText: (fn) =>
+    `Hey ${fn} —\n\nI've been talking about the Contractor Circle for a few days now. Let me just tell you exactly what it is and what you get.\n\nBi-weekly live coaching calls — 90 minutes, every other Sunday at 5 PM ET. I teach frameworks, answer questions, and coach contractors through real problems in real time. These are not webinars. These are working sessions.\n\nPrivate Discord community — a room full of contractors who are actually building. Not lurkers. Not tire-kickers. Operators who share wins, ask hard questions, and hold each other accountable.\n\nTemplate & framework library — estimating checklists, job costing sheets, org charts, sales scripts, SOPs, financial dashboards. Battle-tested tools from $2.5B in construction.\n\nDirect access to me — not a coaching assistant, not a community manager. Me. Marshall Wilkinson. The guy who's built this, lived this, and is still in the trenches every day.\n\n$497/month. Founding rate locks in as long as you're active. Cancel anytime. No contracts. No commitments beyond this month.\n\nThe contractors in this room went from $600K to $20M, from $300K to $10M, from chaos to clarity. Not because they're smarter than you. Because they got in a room that forced better decisions.\n\nJoin the Contractor Circle: alpcontractorcircle.com/join\n\nMarshall`,
+};
+
+// Email 9 (Day 10): Final push with consequence framing
+const EST_9: DripEmailDef = {
+  sequenceId: "estimating_single",
+  stepNumber: 9,
+  subject: (_fn) => `you already know enough`,
+  buildHtml: (fn) => wrapEmail(
+    p(`Hey ${fn} —`) +
+    p(`This is the last email in this series. I'm not going to pitch you again after this.`) +
     p(`Here's where I'll leave it:`) +
-    p(`If you're a contractor doing $2M–$15M and you feel like you're stuck — working harder but not growing, winning work but not making money, running the company but the company is also running you — that's not a construction problem. That's an entrepreneurial problem. And it's fixable.`) +
-    p(`I work with contractors in two ways:`) +
-    p(`Contractor Circle — $497/mo. The full system. Live coaching, frameworks, templates, and a community of operators who are actually building. Founding rate locks in forever. ${link("alpcontractorcircle.com", CIRCLE_URL)}`) +
-    p(`1-on-1 Strategy Session — $1,000. We roll up the sleeves, dig into your specific situation, and build a plan. Reply "SESSION" and I'll send the application.`) +
-    p(`Either way, the only thing that matters to me is that you win.`) +
-    p(`You're in my ecosystem now. Welcome to the NFL.`) +
+    p(`You downloaded the Estimating Checklist because something in your business isn't working the way you want it to. Maybe it's margins. Maybe it's volume. Maybe it's the feeling that you're working harder than you should be for what you're getting.`) +
+    p(`I've shown you that estimating is just the surface. The real issue is deeper — it's how you run the business. And I've shown you that contractors who fix the system, not just the symptoms, get dramatically different results.`) +
+    p(`You have two options from here:`) +
+    p(`<strong>Option 1:</strong> Keep collecting free resources. Save the checklist. Maybe download another PDF next month. Watch some more Instagram content. Hope that eventually something clicks and the business starts running itself.`) +
+    p(`<strong>Option 2:</strong> Get in a room with contractors who are actually building. Get on calls where someone pushes you. Get the systems, the frameworks, and the accountability that turns a contracting company into a real business.`) +
+    p(`That room is the ${link("Contractor Circle", CIRCLE_URL + "/join")}. $497/mo. Founding rate locked. Cancel anytime.`) +
+    p(`You either want to grow, or you want to stay where you are. I can't make that decision for you. But if you're ready, the door is open.`) +
     sigFull()
   ),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nI've sent you a few emails since you downloaded the Estimating Checklist. I hope they've been useful. This is the last one in this series.\n\nHere's where I'll leave it:\n\nIf you're a contractor doing $2M-$15M and you feel like you're stuck — working harder but not growing, winning work but not making money, running the company but the company is also running you — that's not a construction problem. That's an entrepreneurial problem. And it's fixable.\n\nI work with contractors in two ways:\n\nContractor Circle — $497/mo. The full system. Live coaching, frameworks, templates, and a community of operators who are actually building. Founding rate locks in forever. alpcontractorcircle.com\n\n1-on-1 Strategy Session — $1,000. We roll up the sleeves, dig into your specific situation, and build a plan. Reply "SESSION" and I'll send the application.\n\nEither way, the only thing that matters to me is that you win.\n\nYou're in my ecosystem now. Welcome to the NFL.\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
+    `Hey ${fn} —\n\nThis is the last email in this series. I'm not going to pitch you again after this.\n\nHere's where I'll leave it:\n\nYou downloaded the Estimating Checklist because something in your business isn't working the way you want it to. Maybe it's margins. Maybe it's volume. Maybe it's the feeling that you're working harder than you should be for what you're getting.\n\nI've shown you that estimating is just the surface. The real issue is deeper — it's how you run the business. And I've shown you that contractors who fix the system, not just the symptoms, get dramatically different results.\n\nYou have two options from here:\n\nOption 1: Keep collecting free resources. Save the checklist. Maybe download another PDF next month. Watch some more Instagram content. Hope that eventually something clicks and the business starts running itself.\n\nOption 2: Get in a room with contractors who are actually building. Get on calls where someone pushes you. Get the systems, the frameworks, and the accountability that turns a contracting company into a real business.\n\nThat room is the Contractor Circle. $497/mo. Founding rate locked. Cancel anytime.\n\nYou either want to grow, or you want to stay where you are. I can't make that decision for you. But if you're ready, the door is open.\n\nalpcontractorcircle.com/join\n\nMarshall Wilkinson\nFounder & CEO, ALP`,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -496,7 +588,7 @@ const TS_5: DripEmailDef = {
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 export const ALL_DRIP_EMAILS: DripEmailDef[] = [
-  EST_1, EST_2, EST_3, EST_4, EST_5,
+  EST_1, EST_2, EST_3, EST_4, EST_5, EST_6, EST_7, EST_8, EST_9,
   Q1Q2_1, Q1Q2_2, Q1Q2_3, Q1Q2_4, Q1Q2_5,
   TS_1, TS_2, TS_3, TS_4, TS_5,
   DD_1, DD_2, DD_3,
@@ -524,7 +616,8 @@ export function getMaxStep(sequenceId: string): number {
 /** Day gaps between emails for each sequence (index = step number) */
 const SCHEDULE: Record<string, number[]> = {
   // index 0 = delivery email (step 0), index 1 = step 1, etc.
-  estimating_single: [0, 2, 2, 3, 3, 4], // Day 0, 2, 4, 7, 10, 14
+  // Estimating: Day 0, 1, 1, 1, 1, 1, 1, 2, 2 (daily for 7, then spaced)
+  estimating_single: [0, 1, 1, 1, 1, 1, 1, 2, 2, 2], // Day 0,1,2,3,4,5,6,8,10
   q1q2_single: [0, 2, 2, 3, 3, 4],       // same
   three_silos_single: [0, 2, 2, 3, 3, 4], // Day 0, 2, 4, 7, 10, 14
   double_dipper: [0, 0, 3, 3],            // Day 0, 0(immediate), 3, 6

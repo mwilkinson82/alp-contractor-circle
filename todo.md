@@ -3470,3 +3470,11 @@
 
 ## Next Call Date Fix — April 29
 - [x] Fix Join page to pull correct next_call_date (May 10) matching portal dashboard — now uses same bi-weekly cycle calculation
+
+## Drip Campaign: Estimator's Checklist → Contractor Circle (April 29)
+- [x] Review existing drip campaign schema and API
+- [x] Replace 5-email estimating_single with new 9-email sequence
+- [x] Write all 9 email copies matching strategy doc narrative arc
+- [x] Update cadence: Day 0,1,2,3,4,5,6,8,10 (daily for 7 then spaced)
+- [x] Exit conditions verified: CC membership auto-converts, unsubscribe works
+- [x] Write 12 tests for new sequence (all passing)
