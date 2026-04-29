@@ -3385,3 +3385,9 @@
 - [x] Live Implementation Rhythm bar has pulsing green heartbeat animation
 - [x] Replace weak SVG squiggle on "system" with bold animated ember gradient underline
 - [x] Overall feel: watching a machine being assembled as you scroll
+
+## Bridge Section — Fix Scroll Animation + Scale
+- [x] Replace useInView once:true with true scroll-linked transforms (useScroll + useTransform)
+- [x] Scale up right column — bigger pillar cards, bigger icons, more visual weight
+- [x] Add background glow behind operating system panel
+- [x] Stronger card borders and contrast

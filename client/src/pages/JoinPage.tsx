@@ -849,14 +849,37 @@ function HeroSection() {
 
 function BridgeSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ["start 0.8", "end 0.2"],
+    offset: ["start 0.9", "end 0.1"],
   });
 
-  // Progress line fill
-  const progressWidth = useTransform(scrollYProgress, [0, 0.6], ["0%", "100%"]);
+  // Scroll-linked transforms for pillar cards — they slide in from the right as you scroll
+  const pillarX1 = useTransform(scrollYProgress, [0, 0.25], [120, 0]);
+  const pillarX2 = useTransform(scrollYProgress, [0.03, 0.3], [150, 0]);
+  const pillarX3 = useTransform(scrollYProgress, [0.06, 0.35], [180, 0]);
+  const pillarX4 = useTransform(scrollYProgress, [0.09, 0.4], [210, 0]);
+  const pillarX5 = useTransform(scrollYProgress, [0.12, 0.45], [240, 0]);
+  const pillarXValues = [pillarX1, pillarX2, pillarX3, pillarX4, pillarX5];
+
+  const pillarOpacity1 = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
+  const pillarOpacity2 = useTransform(scrollYProgress, [0.03, 0.25], [0, 1]);
+  const pillarOpacity3 = useTransform(scrollYProgress, [0.06, 0.3], [0, 1]);
+  const pillarOpacity4 = useTransform(scrollYProgress, [0.09, 0.35], [0, 1]);
+  const pillarOpacity5 = useTransform(scrollYProgress, [0.12, 0.4], [0, 1]);
+  const pillarOpacityValues = [pillarOpacity1, pillarOpacity2, pillarOpacity3, pillarOpacity4, pillarOpacity5];
+
+  // Progress line fill — scroll-linked
+  const progressWidth = useTransform(scrollYProgress, [0.1, 0.5], ["0%", "100%"]);
+
+  // Connected systems — scroll-linked stagger
+  const sysOpacity = useTransform(scrollYProgress, [0.35, 0.55], [0, 1]);
+  const sysY = useTransform(scrollYProgress, [0.35, 0.55], [30, 0]);
+
+  // Rhythm bar — scroll-linked
+  const rhythmOpacity = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
+  const rhythmY = useTransform(scrollYProgress, [0.5, 0.65], [20, 0]);
 
   const pillars = [
     { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", label: "LEAD FLOW", desc: "Generate the right opportunities.", active: false },
@@ -876,15 +899,15 @@ function BridgeSection() {
   ];
 
   return (
-    <section ref={sectionRef} className="relative py-28 sm:py-36 overflow-hidden">
-      {/* Subtle radial glow behind the section */}
+    <section ref={sectionRef} className="relative py-32 sm:py-40 overflow-hidden">
+      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.04)_0%,transparent_70%)]" />
+        <div className="absolute top-1/3 right-1/4 w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.06)_0%,transparent_60%)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-10 relative z-10">
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-start">
 
           {/* LEFT COLUMN — Editorial */}
           <motion.div
@@ -903,12 +926,9 @@ function BridgeSection() {
               <span className="text-[#f5f0e8]">A </span>
               <span className="relative inline-block">
                 <span className="text-[#e8870c] font-extrabold">system</span>
-                {/* Animated gradient underline */}
                 <motion.span
-                  className="absolute -bottom-1 left-0 h-[3px] bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c] rounded-full"
-                  initial={{ width: 0 }}
-                  animate={isInView ? { width: "100%" } : {}}
-                  transition={{ duration: 1.2, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute -bottom-2 left-0 h-[4px] bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c] rounded-full"
+                  style={{ width: useTransform(scrollYProgress, [0, 0.3], ["0%", "100%"]) }}
                 />
               </span>
               <span className="text-[#f5f0e8]"> changes</span>
@@ -929,7 +949,6 @@ function BridgeSection() {
               </p>
             </div>
 
-            {/* Pull-quote */}
             <motion.div
               className="mt-10 pl-5 border-l-2 border-[#e8870c]/60"
               initial={{ opacity: 0, y: 20 }}
@@ -941,130 +960,143 @@ function BridgeSection() {
             </motion.div>
           </motion.div>
 
-          {/* RIGHT COLUMN — Scroll-Driven Operating System */}
+          {/* RIGHT COLUMN — Scroll-Driven Operating System Panel */}
           <div className="relative">
-            {/* Header */}
-            <motion.div
-              className="text-center mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#a8a090] mb-1">The Contractor Circle</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-[#f5f0e8] tracking-tight">OPERATING SYSTEM</h3>
-            </motion.div>
+            {/* Glow behind the panel */}
+            <div className="absolute -inset-4 bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.08)_0%,transparent_70%)] pointer-events-none rounded-3xl" />
 
-            {/* Pillar Cards — Horizontal scroll-linked slider */}
-            <div className="relative mb-8">
-              {/* Progress connector line */}
-              <div className="absolute top-[52px] left-[10%] right-[10%] h-[2px] bg-[#1a1a1a] z-0 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c]"
-                  style={{ width: progressWidth }}
-                />
+            {/* Main panel container */}
+            <div className="relative rounded-2xl border border-[#1f1f1f] bg-gradient-to-b from-[#0d0d0d] to-[#080808] p-6 sm:p-8 shadow-2xl">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <p className="text-[10px] tracking-[0.3em] uppercase text-[#6b6560] mb-2">The Contractor Circle</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-[#f5f0e8] tracking-tight">OPERATING SYSTEM</h3>
+                <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#e8870c] to-transparent mx-auto mt-3" />
               </div>
 
-              {/* Pillar cards */}
-              <div className="flex gap-2 sm:gap-3 relative z-10 justify-center">
-                {pillars.map((pillar, i) => (
+              {/* Pillar Cards — Scroll-linked slide-in */}
+              <div className="relative mb-8">
+                {/* Progress connector line */}
+                <div className="absolute top-[44px] left-[8%] right-[8%] h-[2px] bg-[#1a1a1a] z-0 rounded-full overflow-hidden">
                   <motion.div
-                    key={pillar.label}
-                    className={`flex flex-col items-center text-center px-2 sm:px-3 py-4 rounded-xl w-[18%] min-w-[90px] ${
-                      pillar.active
-                        ? "bg-gradient-to-b from-[#e8870c]/20 to-[#0d0d0d] border border-[#e8870c]/60 shadow-[0_0_30px_rgba(232,135,12,0.15)]"
-                        : "bg-[#0d0d0d]/80 border border-[#1f1f1f]"
-                    }`}
-                    initial={{ opacity: 0, x: 60, scale: 0.85 }}
-                    animate={isInView ? { opacity: 1, x: 0, scale: pillar.active ? 1.05 : 1 } : {}}
-                    transition={{ duration: 0.7, delay: 0.4 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 ${
-                      pillar.active ? "bg-[#e8870c]/20" : "bg-[#1a1a1a]"
-                    }`}>
-                      <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${pillar.active ? "text-[#e8870c]" : "text-[#a8a090]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} />
+                    className="h-full bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c]"
+                    style={{ width: progressWidth }}
+                  />
+                </div>
+
+                {/* Arrow connectors between pillars */}
+                <div className="absolute top-[42px] left-[8%] right-[8%] z-[1] flex justify-between px-[15%]">
+                  {[0, 1, 2, 3].map((i) => (
+                    <motion.svg
+                      key={i}
+                      className="w-3 h-3 text-[#e8870c]/50"
+                      fill="currentColor"
+                      viewBox="0 0 12 12"
+                      style={{ opacity: useTransform(scrollYProgress, [0.15 + i * 0.05, 0.25 + i * 0.05], [0, 1]) }}
+                    >
+                      <path d="M2 6l3-3v2h4V3l3 3-3 3V7H5v2z" />
+                    </motion.svg>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 sm:gap-4 relative z-10 justify-center">
+                  {pillars.map((pillar, i) => (
+                    <motion.div
+                      key={pillar.label}
+                      className={`flex flex-col items-center text-center px-2 sm:px-4 py-5 sm:py-6 rounded-xl flex-1 ${
+                        pillar.active
+                          ? "bg-gradient-to-b from-[#e8870c]/25 to-[#0d0d0d] border-2 border-[#e8870c]/70 shadow-[0_0_40px_rgba(232,135,12,0.2),0_0_80px_rgba(232,135,12,0.08)]"
+                          : "bg-[#0d0d0d]/80 border border-[#1f1f1f] hover:border-[#2a2a2a]"
+                      }`}
+                      style={{
+                        x: pillarXValues[i],
+                        opacity: pillarOpacityValues[i],
+                        scale: pillar.active ? 1.05 : 1,
+                      }}
+                    >
+                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 ${
+                        pillar.active ? "bg-[#e8870c]/20 ring-1 ring-[#e8870c]/30" : "bg-[#1a1a1a]"
+                      }`}>
+                        <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${pillar.active ? "text-[#e8870c]" : "text-[#a8a090]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} />
+                        </svg>
+                      </div>
+                      <p className={`text-[10px] sm:text-xs font-bold tracking-wider uppercase leading-tight mb-1.5 ${
+                        pillar.active ? "text-[#e8870c]" : "text-[#f5f0e8]"
+                      }`}>{pillar.label}</p>
+                      <p className="text-[9px] sm:text-[10px] text-[#6b6560] leading-tight">{pillar.desc}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-6" />
+
+              {/* Connected Systems — Scroll-linked reveal */}
+              <motion.div className="mb-6" style={{ opacity: sysOpacity, y: sysY }}>
+                <p className="text-[10px] tracking-[0.25em] uppercase text-[#6b6560] text-center mb-4 font-semibold">
+                  Powered by Connected Systems
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+                  {systems.map((sys) => (
+                    <div
+                      key={sys.label}
+                      className="flex flex-col items-center text-center p-3 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#e8870c]/30 transition-colors duration-300 group"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#141414] flex items-center justify-center mb-2 group-hover:bg-[#e8870c]/10 transition-colors">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#e8870c]/60 group-hover:text-[#e8870c] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={sys.icon} />
+                        </svg>
+                      </div>
+                      <p className="text-[8px] sm:text-[10px] font-semibold text-[#a8a090] uppercase tracking-wider leading-tight">{sys.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-5" />
+
+              {/* Live Implementation Rhythm — Pulsing status bar */}
+              <motion.div
+                className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]/90 p-4 sm:p-5"
+                style={{ opacity: rhythmOpacity, y: rhythmY }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#141414] flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#a8a090]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className={`text-[9px] sm:text-[10px] font-bold tracking-wider uppercase leading-tight mb-1 ${
-                      pillar.active ? "text-[#e8870c]" : "text-[#f5f0e8]"
-                    }`}>{pillar.label}</p>
-                    <p className="text-[8px] sm:text-[9px] text-[#6b6560] leading-tight hidden sm:block">{pillar.desc}</p>
-                  </motion.div>
-                ))}
-              </div>
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#f5f0e8]">Live Implementation Rhythm</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-green-400 uppercase tracking-wider">Active</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {["Weekly Coaching", "Monthly Bootcamps", "Real-World Application", "Measurable Results"].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#e8870c]/60" />
+                      <span className="text-[10px] sm:text-xs text-[#a8a090]">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             </div>
-
-            {/* Connected Systems — Staggered wave reveal */}
-            <motion.div
-              className="mb-6"
-              initial={{ opacity: 0 }}
-              animate={isInView ? { opacity: 1 } : {}}
-              transition={{ duration: 0.5, delay: 1.0 }}
-            >
-              <p className="text-[9px] tracking-[0.25em] uppercase text-[#6b6560] text-center mb-4 font-semibold">
-                Powered by Connected Systems
-              </p>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {systems.map((sys, i) => (
-                  <motion.div
-                    key={sys.label}
-                    className="flex flex-col items-center text-center p-3 rounded-lg bg-[#0d0d0d]/60 border border-[#1f1f1f] hover:border-[#e8870c]/30 transition-colors duration-300"
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-                    transition={{ duration: 0.5, delay: 1.2 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <svg className="w-4 h-4 text-[#e8870c]/70 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={sys.icon} />
-                    </svg>
-                    <p className="text-[8px] sm:text-[9px] font-semibold text-[#a8a090] uppercase tracking-wider leading-tight">{sys.label}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Live Implementation Rhythm — Pulsing status bar */}
-            <motion.div
-              className="rounded-xl border border-[#1f1f1f] bg-[#0a0a0a]/90 p-4 backdrop-blur-sm"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 1.6 }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#a8a090]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#f5f0e8]">Live Implementation Rhythm</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-semibold text-green-400 uppercase tracking-wider">Active</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {["Weekly Coaching", "Monthly Bootcamps", "Real-World Application", "Measurable Results"].map((item, i) => (
-                  <motion.div
-                    key={item}
-                    className="flex items-center gap-1.5"
-                    initial={{ opacity: 0 }}
-                    animate={isInView ? { opacity: 1 } : {}}
-                    transition={{ duration: 0.4, delay: 1.8 + i * 0.1 }}
-                  >
-                    <span className="w-1 h-1 rounded-full bg-[#e8870c]/60" />
-                    <span className="text-[9px] sm:text-[10px] text-[#a8a090]">{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
           </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 3: WHAT THE CIRCLE IS — Glass cards with numbered badges
