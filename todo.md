@@ -3357,3 +3357,6 @@
 - [x] Slim down Next Live Call card — gold top accent only, thinner padding, smaller text
 - [x] Reduce spacing between elements (mb-3, mb-2.5, mb-4 throughout)
 - [x] Tighten icon row — shortened labels (Coaching, Systems, Network, Support)
+
+## Next Live Call Card — Update Focus Text
+- [x] Change "This Month's Focus" content to "Systems & Processes" and "Attention, People Process Framework"

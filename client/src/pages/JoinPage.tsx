@@ -707,7 +707,7 @@ function HeroSection() {
               className="text-[10px] text-cream/30 leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              This Month's Focus: Sales Process → Project Delivery → Financial Control
+              Systems & Processes · Attention, People Process Framework
             </p>
           </div>
         </motion.div>
@@ -777,7 +777,7 @@ function HeroSection() {
               className="text-xs text-cream/50 mt-1 leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Sales Process → Project Delivery → Financial Control
+              Systems & Processes · Attention, People Process Framework
             </p>
           </div>
         </div>
