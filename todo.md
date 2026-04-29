@@ -3278,4 +3278,31 @@
 - [x] Pass scopeText from project record through processAllPendingSheets → processDrawingSheet → extractPass
 - [x] Wire division filter into postProcessTakeoff pipeline (Step 0.5, after hardScopeFilter)
 - [x] Write 10 tests for division filtering — 463 tests passing, 0 failed
+- [x] Save checkpoint and deploy
+
+## Drip Campaign Overhaul
+- [ ] Build /join conversion page (Hero → Problem → Mechanism → What's Included → Proof → Objections → Founding Member Lock → CTA)
+- [ ] Rewrite Estimating Checklist drip sequence (8 emails, Day 0/1/2/4/6/8/10/14)
+- [ ] Build multi-download escalation sequence (5 emails, Day 0/1/3/5/7)
+- [ ] Adapt Q1-Q2 → Contractor Circle sequence (8 emails)
+- [ ] Adapt Three Silos → Contractor Circle sequence (8 emails)
+- [ ] Update all thank-you pages CTAs to /join
+- [ ] Update drip scheduling config for new cadences
+- [ ] Write tests for new sequences
 - [ ] Save checkpoint and deploy
+
+## /join Conversion Page (Drip Campaign Traffic)
+- [x] Build JoinPage.tsx — 10-section conversion continuation page (Concept 1+3 hybrid)
+- [x] Section 1: Hero — "Build the operating system your contracting business is missing"
+- [x] Section 2: Bridge — Free tool → paid system transition
+- [x] Section 3: What the Circle Is — 8 feature cards (live calls, bootcamps, Discord, templates, replays, AI takeoff, Q submission, Marshall)
+- [x] Section 4: Why Now — "The problems do not go away because you downloaded the PDF"
+- [x] Section 5: Proof — Revenue cards (CNY, Trojan, Davis, Sage, ARC) + testimonials
+- [x] Section 6: What Makes This Different — Passive Program vs Contractor Circle comparison
+- [x] Section 7: Who It's For / Not For — Qualification section
+- [x] Section 8: Objection Handling — 5 direct objection responses
+- [x] Section 9: Pricing — $497/mo founding member card with useCircleCheckout
+- [x] Section 10: Final Close — "Stop collecting tools. Start building the machine."
+- [x] Register /join route in App.tsx
+- [x] Write vitest tests for /join page (17 passing)
+- [ ] Save checkpoint
