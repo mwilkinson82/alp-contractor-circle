@@ -3467,3 +3467,6 @@
 - [x] Remove "APPLICATION REQUIRED" text still showing in Proof section CTA bar
 - [x] Fix oversized/fat mobile CTA buttons — make consistent smaller sizing across all sections
 - [x] Fix background image not showing on "Stop collecting tools" final CTA section (re-uploaded, increased opacity to 0.45, reduced overlay)
+
+## Next Call Date Fix — April 29
+- [x] Fix Join page to pull correct next_call_date (May 10) matching portal dashboard — now uses same bi-weekly cycle calculation

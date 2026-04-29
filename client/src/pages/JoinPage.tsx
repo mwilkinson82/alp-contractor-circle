@@ -370,31 +370,37 @@ function SectionDivider() {
 // SECTION 1: HERO — Cinematic parallax with word-by-word reveal
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function getNextCallDate(): { formatted: string; iso: string } {
+  // Bi-weekly Sundays at 5 PM ET, anchored to March 30, 2025 — same logic as PortalDashboard
+  const ANCHOR = new Date(Date.UTC(2025, 2, 30)); // March 30, 2025 UTC (Sunday)
+  const now = new Date();
+  const msSinceAnchor = now.getTime() - ANCHOR.getTime();
+  const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));
+  const cyclesPassed = daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
+  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
+  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
+  const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
+  const formatted = nextCall.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  return { formatted: `${formatted} \u00b7 5:00 PM ET`, iso: nextCall.toISOString().split("T")[0] };
+}
+
 function useNextCallInfo() {
   const { data } = trpc.member.getSettings.useQuery(undefined, {
     staleTime: 120_000,
     retry: false,
   });
   const settings = data?.settings || {};
-
-  const callDate = settings.next_call_date || settings.bootcamp_date || "";
-  const callTime = settings.next_call_time || settings.bootcamp_time || "17:00";
-  const callDayLabel = settings.next_call_day_label || settings.bootcamp_day_label || "Sunday";
   const monthFocus = settings.next_call_month_focus || "Systems & Processes \u00b7 Attention, People Process Framework";
 
-  let formattedDate = "Sunday, May 11 \u00b7 5:00 PM ET";
-  if (callDate) {
-    const d = new Date(callDate + "T12:00:00Z");
-    const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
-    const dayNum = d.getUTCDate();
-    const [h, m] = callTime.split(":");
-    const hour24 = parseInt(h);
-    const ampm = hour24 >= 12 ? "PM" : "AM";
-    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
-    formattedDate = `${callDayLabel}, ${month} ${dayNum} \u00b7 ${hour12}:${m} ${ampm} ET`;
-  }
+  // Use the bi-weekly cycle calculation (same as portal dashboard)
+  const { formatted } = getNextCallDate();
 
-  return { formattedDate, monthFocus };
+  return { formattedDate: formatted, monthFocus };
 }
 
 function HeroSection() {
