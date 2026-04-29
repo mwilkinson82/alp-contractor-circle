@@ -46,6 +46,10 @@ export interface DripEmailDef {
 // Email 1 (Day 0): Deliver the checklist and frame the problem correctly
 // ─── Estimating Sequence (Marshall's revised copy — April 2026) ─────────
 
+const ESTIMATING_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_8888fab8.pdf";
+const Q2_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle_8578e990.pdf";
+const THREE_SILOS_PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_fixed_1add3fd9.pdf";
+
 const EST_1: DripEmailDef = {
   sequenceId: "estimating_single",
   stepNumber: 1,
@@ -55,6 +59,7 @@ const EST_1: DripEmailDef = {
     bodyHtml:
       p(`Hey ${fn} —`) +
       p(`Your Estimating Checklist is ready.`) +
+      ctaModule({ headline: "Download Your Checklist", subtext: "The Estimator's Checklist — use it on your last estimate before you use it on your next one.", buttonText: "DOWNLOAD CHECKLIST →", buttonUrl: ESTIMATING_PDF_URL }) +
       p(`But before you file it away, I need to tell you something most people won't.`) +
       p(`The reason most contractors lose money on jobs is not because they can't estimate.`) +
       p(`It's because they estimate casually.`) +
@@ -76,7 +81,7 @@ const EST_1: DripEmailDef = {
       sig(),
   }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nYour Estimating Checklist is ready.\n\nBut before you file it away, I need to tell you something most people won't.\n\nThe reason most contractors lose money on jobs is not because they can't estimate.\n\nIt's because they estimate casually.\n\nThey pull numbers from memory.\nThey skip exclusions.\nThey don't scope-level subs.\nThey round down because they're afraid of losing the bid.\nThey forget general conditions.\nThey trust assumptions that should have been verified.\n\nThen they wonder why they're working 60-hour weeks with less profit than they expected.\n\nThis checklist exists to force discipline into the estimating process.\n\nHere's what I want you to do:\n\nDo not wait for your next bid.\n\nPull up your last estimate — the one you already submitted — and run it against the checklist.\n\nSee what you missed.\nSee where you guessed.\nSee where the money may have leaked before the job even started.\n\nThat exercise alone will tell you more about your business than another YouTube video ever will.\n\nMarshall`,
+    `Hey ${fn} —\n\nYour Estimating Checklist is ready.\n\nDownload it here: ${ESTIMATING_PDF_URL}\n\nBut before you file it away, I need to tell you something most people won't.\n\nThe reason most contractors lose money on jobs is not because they can't estimate.\n\nIt's because they estimate casually.\n\nThey pull numbers from memory.\nThey skip exclusions.\nThey don't scope-level subs.\nThey round down because they're afraid of losing the bid.\nThey forget general conditions.\nThey trust assumptions that should have been verified.\n\nThen they wonder why they're working 60-hour weeks with less profit than they expected.\n\nThis checklist exists to force discipline into the estimating process.\n\nHere's what I want you to do:\n\nDo not wait for your next bid.\n\nPull up your last estimate — the one you already submitted — and run it against the checklist.\n\nSee what you missed.\nSee where you guessed.\nSee where the money may have leaked before the job even started.\n\nThat exercise alone will tell you more about your business than another YouTube video ever will.\n\nMarshall`,
 };
 
 const EST_2: DripEmailDef = {
@@ -459,6 +464,8 @@ const Q1Q2_1: DripEmailDef = {
     preheaderText: "The quarter already told you what is working and what is broken.",
     bodyHtml:
       p(`Hey ${fn} —`) +
+      p(`Your Q1/Q2 Framework is ready.`) +
+      ctaModule({ headline: "Download Your Framework", subtext: "The Q1/Q2 Framework — use it to diagnose what the quarter actually told you.", buttonText: "DOWNLOAD FRAMEWORK →", buttonUrl: Q2_PDF_URL }) +
       p(`You downloaded this because the quarter gave you information.`) +
       p(`Maybe not the information you wanted.`) +
       p(`But information.`) +
@@ -484,7 +491,7 @@ const Q1Q2_1: DripEmailDef = {
       sig(),
   }),
   buildText: (fn) =>
-    `Hey ${fn} —\n\nYou downloaded this because the quarter gave you information.\n\nMaybe not the information you wanted.\nBut information.\n\nThat is what most contractors miss.\n\nThey treat the end of a quarter like a calendar event.\nIt is not.\nIt is a diagnostic event.\n\nQ1 gave you data.\nQ2 demands a decision.\n\nWhat worked?\nWhat stalled?\nWhat got ignored?\nWhat should have been killed?\nWhat should have been doubled down on?\nWhat system stayed broken because nobody forced the correction?\n\nThat is what this framework is for.\n\nNot motivation.\nNot theory.\nCorrection.\n\nRead it honestly.\nNot like content.\nLike a mirror.\n\nMarshall`,
+    `Hey ${fn} —\n\nYour Q1/Q2 Framework is ready.\n\nDownload it here: ${Q2_PDF_URL}\n\nYou downloaded this because the quarter gave you information.\n\nMaybe not the information you wanted.\nBut information.\n\nThat is what most contractors miss.\n\nThey treat the end of a quarter like a calendar event.\nIt is not.\nIt is a diagnostic event.\n\nQ1 gave you data.\nQ2 demands a decision.\n\nWhat worked?\nWhat stalled?\nWhat got ignored?\nWhat should have been killed?\nWhat should have been doubled down on?\nWhat system stayed broken because nobody forced the correction?\n\nThat is what this framework is for.\n\nNot motivation.\nNot theory.\nCorrection.\n\nRead it honestly.\nNot like content.\nLike a mirror.\n\nMarshall`,
 };
 
 const Q1Q2_2: DripEmailDef = {
@@ -1244,6 +1251,8 @@ const TS_1: DripEmailDef = {
     preheaderText: "Most businesses are more complicated than they need to be.",
     bodyHtml:
       p(`Hey ${fn} —`) +
+      p(`Your Three Silos Framework is ready.`) +
+      ctaModule({ headline: "Download Your Framework", subtext: "The Three Silos — Attention, People, Process. The holy grail of scaling.", buttonText: "DOWNLOAD FRAMEWORK →", buttonUrl: THREE_SILOS_PDF_URL }) +
       p(`You downloaded this because part of you already knows the business has gotten too complicated.`) +
       pShort(`Too many moving parts.`) +
       pShort(`Too many problems.`) +
@@ -1263,11 +1272,7 @@ const TS_1: DripEmailDef = {
       sig(),
   }),
   buildText: (fn) =>
-    `Hey ${fn} —
-
-You downloaded this because part of you already knows the business has gotten too complicated.
-
-Too many moving parts.
+    `Hey ${fn} —\n\nYour Three Silos Framework is ready.\n\nDownload it here: ${THREE_SILOS_PDF_URL}\n\nYou downloaded this because part of you already knows the business has gotten too complicated.Too many moving parts.
 Too many problems.
 Too many things pulling on you at once.
 

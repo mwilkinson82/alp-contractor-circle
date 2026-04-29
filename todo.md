@@ -3509,3 +3509,15 @@
 - [x] Reset 345 enrollments to Day 0 (skipped 1 unsubscribed + 1 converted)
 - [x] Cleared 1,370 sent email records (duplicate guard reset)
 - [x] 345 enrollments ready to send immediately on deploy
+
+## URGENT FIX: Email 1 Missing Lead Magnet PDF (April 29)
+- [ ] Fix Email 1 in all sequences to include the actual PDF download link
+- [ ] Determine recovery plan for 345 emails already sent without lead magnet
+- [ ] Deploy fix immediately
+
+## Email 1 PDF Link Fix (April 29)
+- [x] Add PDF download button to Estimating Email 1 (DOWNLOAD CHECKLIST)
+- [x] Add PDF download button to Q1/Q2 Email 1 (DOWNLOAD FRAMEWORK)
+- [x] Add PDF download button to Three Silos Email 1 (DOWNLOAD FRAMEWORK)
+- [x] 492 tests passing
+- [ ] Deploy fix
