@@ -3424,3 +3424,8 @@
 - [x] "PROVEN. REPEATABLE. REAL." CTA bar with shield icon and Apply to Join button
 - [x] Mobile layout: stacked cards, "What Members Are Saying" divider, feature icons
 - [x] Scroll-linked animations (useScroll + useTransform) consistent with other sections
+
+## Verified Member Results — Mobile Card Fix (April 29)
+- [x] Fix mobile revenue cards: content getting cut off, not fitting cards
+- [x] Ensure all company names, multiplier badges, revenue figures, and periods display fully
+- [x] Test on mobile viewport (forced visible at desktop, all content fits)

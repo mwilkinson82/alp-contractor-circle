@@ -1905,143 +1905,95 @@ function ProofSection() {
         </div>
 
         {/* ── Mobile/Tablet Revenue Cards ── */}
-        <div className="lg:hidden mt-12 mb-10">
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            {proofCards.slice(0, 3).map((card, i) => {
-              const Icon = companyIcons[i];
-              const color = companyColors[i];
-              return (
-                <ScrollCard key={i} index={i} scrollYProgress={scrollYProgress}
-                  className="rounded-xl overflow-hidden"
-                  style={{
-                    background: "oklch(0.15 0.01 250 / 0.6)",
-                    border: "1px solid oklch(1 0 0 / 0.06)",
-                  }}
-                >
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: `${color.replace(")", " / 0.12)")}`, border: `1px solid ${color.replace(")", " / 0.25)")}` }}
-                      >
-                        <Icon size={14} style={{ color }} />
+        <div className="lg:hidden mt-12 mb-10 space-y-3">
+          {proofCards.map((card, i) => {
+            const Icon = companyIcons[i];
+            const color = companyColors[i];
+            return (
+              <ScrollCard key={i} index={i} scrollYProgress={scrollYProgress}
+                className="rounded-xl overflow-hidden"
+                style={{
+                  background: "oklch(0.15 0.01 250 / 0.6)",
+                  border: "1px solid oklch(1 0 0 / 0.06)",
+                }}
+              >
+                <div className="p-4">
+                  {/* Top row: icon + company name + badge */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: `${color.replace(")", " / 0.12)")}`, border: `1px solid ${color.replace(")", " / 0.25)")}` }}
+                    >
+                      <Icon size={18} style={{ color }} />
+                    </div>
+                    <span className="text-sm font-bold text-cream uppercase tracking-wide" style={{ fontFamily: "'Sora', sans-serif" }}>
+                      {card.company}
+                    </span>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto shrink-0"
+                      style={{
+                        background: `${color.replace(")", " / 0.15)")}`,
+                        color,
+                        border: `1px solid ${color.replace(")", " / 0.3)")}`,
+                      }}
+                    >
+                      {card.multiplier}
+                    </span>
+                  </div>
+                  {/* Bottom row: revenue growth */}
+                  <div className="flex items-center gap-4 pl-[52px]">
+                    <div>
+                      <p className="text-[9px] text-cream/30 uppercase tracking-[0.1em] mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                        Grew From
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-cream/40">{card.before}</span>
+                        <ArrowRight size={12} className="text-ember/50" />
+                        <span className="text-3xl font-black text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
+                          {card.after}
+                        </span>
                       </div>
-                      <span className="text-[10px] sm:text-xs font-bold text-cream uppercase leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
-                        {card.company}
-                      </span>
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto shrink-0"
-                        style={{
-                          background: `${color.replace(")", " / 0.15)")}`,
-                          color,
-                          border: `1px solid ${color.replace(")", " / 0.3)")}`,
-                        }}
-                      >
-                        {card.multiplier}
-                      </span>
                     </div>
-                    <p className="text-[9px] text-cream/30 uppercase tracking-[0.1em] mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
-                      Grew From
-                    </p>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="text-xs text-cream/35">{card.before}</span>
-                      <ArrowRight size={10} className="text-ember/50" />
-                      <span className="text-xl sm:text-2xl font-black text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
-                        {card.after}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="ml-auto flex items-center gap-1.5">
                       <Calendar size={10} className="text-cream/25" />
                       <p className="text-[9px] text-cream/30 uppercase tracking-[0.1em]" style={{ fontFamily: "'Sora', sans-serif" }}>
                         {card.period} with ALP
                       </p>
                     </div>
                   </div>
-                </ScrollCard>
-              );
-            })}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {proofCards.slice(3).map((card, i) => {
-              const idx = i + 3;
-              const Icon = companyIcons[idx];
-              const color = companyColors[idx];
-              return (
-                <ScrollCard key={idx} index={idx} scrollYProgress={scrollYProgress}
-                  className="rounded-xl overflow-hidden"
-                  style={{
-                    background: "oklch(0.15 0.01 250 / 0.6)",
-                    border: "1px solid oklch(1 0 0 / 0.06)",
-                  }}
-                >
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: `${color.replace(")", " / 0.12)")}`, border: `1px solid ${color.replace(")", " / 0.25)")}` }}
-                      >
-                        <Icon size={14} style={{ color }} />
-                      </div>
-                      <span className="text-[10px] sm:text-xs font-bold text-cream uppercase leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
-                        {card.company}
-                      </span>
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto shrink-0"
-                        style={{
-                          background: `${color.replace(")", " / 0.15)")}`,
-                          color,
-                          border: `1px solid ${color.replace(")", " / 0.3)")}`,
-                        }}
-                      >
-                        {card.multiplier}
-                      </span>
-                    </div>
-                    <p className="text-[9px] text-cream/30 uppercase tracking-[0.1em] mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
-                      Grew From
-                    </p>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="text-xs text-cream/35">{card.before}</span>
-                      <ArrowRight size={10} className="text-ember/50" />
-                      <span className="text-xl sm:text-2xl font-black text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
-                        {card.after}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar size={10} className="text-cream/25" />
-                      <p className="text-[9px] text-cream/30 uppercase tracking-[0.1em]" style={{ fontFamily: "'Sora', sans-serif" }}>
-                        {card.period} with ALP
-                      </p>
-                    </div>
-                  </div>
-                </ScrollCard>
-              );
-            })}
-            {/* Stats summary card (mobile) */}
-            <ScrollCard index={5} scrollYProgress={scrollYProgress}
-              className="rounded-xl overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.15 0.02 55 / 0.6), oklch(0.12 0.01 250 / 0.6))",
-                border: "1px solid oklch(0.72 0.12 55 / 0.2)",
-              }}
-            >
-              <div className="p-3 sm:p-4 flex flex-col items-center justify-center text-center h-full">
-                <Trophy size={20} className="text-ember mb-2" />
-                <p className="text-xl font-black text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
+                </div>
+              </ScrollCard>
+            );
+          })}
+          {/* Stats summary card (mobile) */}
+          <ScrollCard index={5} scrollYProgress={scrollYProgress}
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.15 0.02 55 / 0.6), oklch(0.12 0.01 250 / 0.6))",
+              border: "1px solid oklch(0.72 0.12 55 / 0.2)",
+            }}
+          >
+            <div className="p-5 flex items-center justify-around text-center">
+              <div>
+                <Trophy size={22} className="text-ember mx-auto mb-2" />
+                <p className="text-2xl font-black text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
                   $100M+
                 </p>
-                <p className="text-[8px] text-cream/40 uppercase tracking-[0.1em] leading-relaxed mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
-                  Revenue generated
-                </p>
-                <div className="w-8 h-px bg-ember/25 mb-2" />
-                <p className="text-lg font-black text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
-                  $2.5B+
-                </p>
-                <p className="text-[8px] text-cream/40 uppercase tracking-[0.1em] leading-relaxed" style={{ fontFamily: "'Sora', sans-serif" }}>
-                  Experience behind the room
+                <p className="text-[9px] text-cream/40 uppercase tracking-[0.1em] leading-relaxed" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Revenue generated across<br />ALP member outcomes
                 </p>
               </div>
-            </ScrollCard>
-          </div>
+              <div className="w-px h-16 bg-ember/20" />
+              <div>
+                <p className="text-2xl font-black text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  $2.5B+
+                </p>
+                <p className="text-[9px] text-cream/40 uppercase tracking-[0.1em] leading-relaxed" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Construction experience<br />behind the room
+                </p>
+              </div>
+            </div>
+          </ScrollCard>
         </div>
 
         {/* ── "What Members Are Saying" divider (mobile) ── */}
