@@ -18,6 +18,7 @@ import {
   TrendingUp,
   ChevronDown,
   Crosshair,
+TrendingDown, UsersRound, ExternalLink, Brain, BarChart3, RefreshCw, ChevronRight, ShieldCheck,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 import { trpc } from "@/lib/trpc";
@@ -56,6 +57,16 @@ const painPoints = [
   "Growth still depends too heavily on you.",
   "The same issues keep returning every week.",
 ];
+
+const painPointsData = [
+  { num: "01", title: "Bad estimates still leak margin.", desc: "Every missed detail costs you money.", icon: TrendingDown, color: "oklch(0.65 0.15 25)" },
+  { num: "02", title: "People issues still stay vague.", desc: "Without clarity, accountability disappears.", icon: UsersRound, color: "oklch(0.72 0.12 55)" },
+  { num: "03", title: "Referrals are still not a system.", desc: "Opportunities slip through the cracks.", icon: ExternalLink, color: "oklch(0.65 0.15 145)" },
+  { num: "04", title: "Processes still live in your head.", desc: "You're the bottleneck for every decision.", icon: Brain, color: "oklch(0.72 0.12 55)", highlight: true },
+  { num: "05", title: "Growth still depends too heavily on you.", desc: "Your time is limited. The business isn't.", icon: BarChart3, color: "oklch(0.65 0.15 25)" },
+  { num: "06", title: "The same issues keep returning every week.", desc: "Without a system, nothing truly changes.", icon: RefreshCw, color: "oklch(0.65 0.12 220)" },
+];
+
 
 const proofCards = [
   { company: "CNY Group", before: "$600K", after: "$20M", multiplier: "33×", period: "18 Months" },
@@ -1390,21 +1401,49 @@ function WhatIsSection() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SECTION 4: WHY NOW — Progressive urgency with animated reveals
+// SECTION 4: WHY NOW — Cost of Waiting with numbered pain-point cards
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function WhyNowSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.3"] });
+
+  // Header
+  const headerY = useTransform(scrollYProgress, [0, 0.12], [50, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.12], [0, 1]);
+
+  // CTA bar
+  const ctaY = useTransform(scrollYProgress, [0.65, 0.8], [40, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.65, 0.8], [0, 1]);
+
+  // Closing message
+  const closeY = useTransform(scrollYProgress, [0.75, 0.88], [30, 0]);
+  const closeOpacity = useTransform(scrollYProgress, [0.75, 0.88], [0, 1]);
+
+  // Card colors for desktop grid
+  const cardColors = [
+    "oklch(0.65 0.15 25)",    // 01 red/coral
+    "oklch(0.72 0.12 55)",    // 02 ember/gold
+    "oklch(0.65 0.15 145)",   // 03 green
+    "oklch(0.72 0.12 55)",    // 04 ember/gold (highlighted)
+    "oklch(0.65 0.15 25)",    // 05 red/coral
+    "oklch(0.65 0.12 220)",   // 06 blue
+  ];
 
   return (
     <section ref={ref} className="relative py-24 sm:py-32 px-6">
-      <div className="max-w-3xl mx-auto">
+      {/* Ambient glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at 50% 30%, oklch(0.72 0.12 55 / 0.03), transparent 60%)",
+        }}
+      />
+      <div className="max-w-6xl mx-auto relative">
+        {/* Header — scroll-linked */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-          className="text-center mb-14"
+          style={{ y: headerY, opacity: headerOpacity }}
+          className="text-center mb-6"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -1412,54 +1451,242 @@ function WhyNowSection() {
           >
             The Cost of Waiting
           </p>
+          <div className="w-12 h-0.5 bg-ember mx-auto mb-6" />
           <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight mb-6"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             The problems do not go away
             <br />
-            <span className="text-cream/50">because you downloaded the PDF.</span>
+            because{" "}
+            <span className="italic" style={{ background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.8 0.1 70))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              you downloaded the PDF.
+            </span>
           </h2>
+          <p
+            className="text-cream/45 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Delaying implementation doesn't just slow progress—
+            <br className="hidden sm:block" />
+            it compounds the cost to your business, your team, and your future.
+          </p>
         </motion.div>
 
-        <div className="space-y-0 mb-14">
-          {painPoints.map((point, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -30 }}
-              animate={isInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.5, ease, delay: 0.15 + i * 0.08 }}
-              className="group flex items-center gap-5 py-4 border-b border-cream/[0.04] last:border-b-0"
-            >
-              <span
-                className="text-[10px] font-bold text-cream/15 tabular-nums w-5 shrink-0"
-                style={{ fontFamily: "'Sora', monospace" }}
+        {/* ── Desktop: 3-column grid (2 rows of 3) ── */}
+        <div className="hidden lg:grid grid-cols-3 gap-4 mt-14 mb-10">
+          {painPointsData.map((p, i) => {
+            const start = 0.12 + i * 0.05;
+            const end = start + 0.18;
+            return (
+              <ScrollCard key={i} index={i} scrollYProgress={scrollYProgress}
+                className="relative rounded-xl overflow-hidden"
+                style={{
+                  background: p.highlight ? "oklch(0.15 0.02 55 / 0.7)" : "oklch(0.15 0.01 250 / 0.6)",
+                  border: p.highlight ? "1px solid oklch(0.72 0.12 55 / 0.35)" : "1px solid oklch(1 0 0 / 0.06)",
+                }}
               >
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-ember/50 shrink-0 group-hover:bg-ember group-hover:shadow-[0_0_8px_oklch(0.72_0.12_55/0.4)] transition-all duration-300" />
-              <p
-                className="text-base sm:text-lg text-cream/55 group-hover:text-cream/80 transition-colors duration-300"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                {point}
-              </p>
-            </motion.div>
-          ))}
+                <div className="p-5 flex items-start gap-4">
+                  {/* Number + Icon */}
+                  <div className="flex flex-col items-center gap-3 shrink-0">
+                    <span
+                      className="text-lg font-bold"
+                      style={{ fontFamily: "'Sora', sans-serif", color: p.color }}
+                    >
+                      {p.num}
+                    </span>
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{
+                        border: `2px solid ${p.color}`,
+                        background: `${p.color.replace(")", " / 0.08)")}`,
+                      }}
+                    >
+                      <p.icon size={20} style={{ color: p.color }} />
+                    </div>
+                    <ChevronRight size={14} style={{ color: p.color, opacity: 0.5 }} />
+                  </div>
+                  {/* Text */}
+                  <div className="pt-1">
+                    <h3
+                      className="text-sm font-bold text-cream mb-1.5 leading-snug"
+                      style={{ fontFamily: "'Sora', sans-serif" }}
+                    >
+                      {p.title}
+                    </h3>
+                    <p
+                      className="text-xs text-cream/40 leading-relaxed"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {p.desc}
+                    </p>
+                  </div>
+                </div>
+              </ScrollCard>
+            );
+          })}
         </div>
 
+        {/* ── Tablet: 2-column grid ── */}
+        <div className="hidden sm:grid lg:hidden grid-cols-2 gap-4 mt-14 mb-10">
+          {painPointsData.map((p, i) => {
+            return (
+              <ScrollCard key={i} index={i} scrollYProgress={scrollYProgress}
+                className="relative rounded-xl overflow-hidden"
+                style={{
+                  background: p.highlight ? "oklch(0.15 0.02 55 / 0.7)" : "oklch(0.15 0.01 250 / 0.6)",
+                  border: p.highlight ? "1px solid oklch(0.72 0.12 55 / 0.35)" : "1px solid oklch(1 0 0 / 0.06)",
+                }}
+              >
+                <div className="p-5 flex items-start gap-4">
+                  <div className="flex flex-col items-center gap-3 shrink-0">
+                    <span className="text-lg font-bold" style={{ fontFamily: "'Sora', sans-serif", color: p.color }}>
+                      {p.num}
+                    </span>
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{ border: `2px solid ${p.color}`, background: `${p.color.replace(")", " / 0.08)")}` }}
+                    >
+                      <p.icon size={20} style={{ color: p.color }} />
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <h3 className="text-sm font-bold text-cream mb-1.5 leading-snug" style={{ fontFamily: "'Sora', sans-serif" }}>
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-cream/40 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {p.desc}
+                    </p>
+                  </div>
+                </div>
+              </ScrollCard>
+            );
+          })}
+        </div>
+
+        {/* ── Mobile: Vertical timeline ── */}
+        <div className="sm:hidden mt-12 mb-10">
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[52px] top-0 bottom-0 w-px bg-cream/[0.06]" />
+
+            {painPointsData.map((p, i) => {
+              const mStart = 0.12 + i * 0.08;
+              const mEnd = mStart + 0.15;
+              return (
+                <ScrollCard key={i} index={i} scrollYProgress={scrollYProgress}
+                  className="relative mb-3"
+                >
+                  <div
+                    className="rounded-xl p-4 flex items-center gap-4"
+                    style={{
+                      background: p.highlight ? "oklch(0.15 0.02 55 / 0.7)" : "oklch(0.15 0.01 250 / 0.6)",
+                      border: p.highlight ? "1px solid oklch(0.72 0.12 55 / 0.35)" : "1px solid oklch(1 0 0 / 0.06)",
+                    }}
+                  >
+                    {/* Number */}
+                    <span
+                      className="text-base font-bold w-8 shrink-0 text-center"
+                      style={{ fontFamily: "'Sora', sans-serif", color: p.color }}
+                    >
+                      {p.num}
+                    </span>
+                    {/* Dot on timeline */}
+                    <div className="relative shrink-0">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: p.highlight ? p.color : "oklch(0.72 0.12 55 / 0.5)" }}
+                      />
+                    </div>
+                    {/* Icon */}
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        border: `2px solid ${p.color}`,
+                        background: `${p.color.replace(")", " / 0.08)")}`,
+                      }}
+                    >
+                      <p.icon size={18} style={{ color: p.color }} />
+                    </div>
+                    {/* Text */}
+                    <div className="min-w-0">
+                      <h3
+                        className="text-xs font-bold text-cream leading-snug"
+                        style={{ fontFamily: "'Sora', sans-serif" }}
+                      >
+                        {p.title}
+                      </h3>
+                      <p
+                        className="text-[10px] text-cream/40 leading-relaxed mt-0.5"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                      >
+                        {p.desc}
+                      </p>
+                    </div>
+                  </div>
+                </ScrollCard>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── "Get in the room" CTA Bar ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease, delay: 0.7 }}
-          className="text-center"
+          style={{ y: ctaY, opacity: ctaOpacity }}
+          className="text-center mb-6"
         >
-          <CTAButton label="Get in the room" variant="outline" />
+          <CTAButton label="Get in the room" variant="primary" />
+        </motion.div>
+
+        {/* ── Closing Message Bar ── */}
+        <motion.div
+          style={{ y: closeY, opacity: closeOpacity, background: "oklch(0.15 0.01 250 / 0.6)", border: "1px solid oklch(0.72 0.12 55 / 0.12)" }}
+          className="rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5"
+        >
+          {/* Left: Shield icon + message */}
+          <div className="flex items-center gap-4 sm:flex-1">
+            <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                background: "oklch(0.72 0.12 55 / 0.12)",
+                border: "1px solid oklch(0.72 0.12 55 / 0.25)",
+              }}
+            >
+              <ShieldCheck size={28} className="text-ember" />
+            </div>
+            <div>
+              <p className="text-base sm:text-lg font-bold text-cream leading-snug" style={{ fontFamily: "'Sora', sans-serif" }}>
+                You don't have to keep figuring it out{" "}
+                <span className="text-ember">on your own.</span>
+              </p>
+              <p className="text-xs sm:text-sm text-cream/45 mt-1 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Join a private community of contractors who are building better businesses—together.
+              </p>
+            </div>
+          </div>
+          {/* Right: Stats (desktop only) */}
+          <div className="hidden sm:flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-lg font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>$2.5B+</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>in construction<br/>experience</p>
+            </div>
+            <div className="w-px h-10 bg-cream/10" />
+            <div className="text-center">
+              <p className="text-lg font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>Hundreds</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>of contractors<br/>helped</p>
+            </div>
+            <div className="w-px h-10 bg-cream/10" />
+            <div className="text-center">
+              <p className="text-lg font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>Proven</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>systems. Real<br/>world results.</p>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 5: PROOF — Revenue cards with animated counters + testimonials

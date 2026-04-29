@@ -3409,3 +3409,10 @@
 - [x] Stagger card reveals tied to scroll progress (row 1 first, row 2 second)
 - [x] ONE GOAL bar slides up from scroll progress
 - [x] Tagline bar fades in last as scroll completes
+
+## Cost of Waiting Section Rebuild (April 29)
+- [x] Rebuild WhyNow section: 3x2 grid of numbered pain-point cards with colored icon rings (desktop)
+- [x] Mobile layout: vertical stacked timeline with dots, highlighted card #04
+- [x] Add "Get in the room" CTA bar with stats ($2.5B+, Hundreds, Proven)
+- [x] Closing message: "You don't have to keep figuring it out on your own"
+- [x] Scroll-linked animations (useScroll + useTransform) consistent with other sections
