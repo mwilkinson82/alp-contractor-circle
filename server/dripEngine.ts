@@ -63,7 +63,7 @@ export async function processDripSends(options?: { dryRun?: boolean }): Promise<
        AND nextSendAt IS NOT NULL
        AND nextSendAt <= NOW()
      ORDER BY nextSendAt ASC
-     LIMIT 200`
+     LIMIT 500`
   ) as [Enrollment[], any];
 
   console.log(`[DripEngine] Found ${rows.length} enrollments due for sending${dryRun ? " (DRY RUN)" : ""}`);

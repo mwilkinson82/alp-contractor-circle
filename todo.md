@@ -3498,3 +3498,14 @@
 - [x] Verified lead magnet PDF delivery emails still fire correctly (PDF sends first, drip enrolls after)
 - [x] Built admin re-enrollment feature (Re-Enroll tab in Drip Campaigns: dry run preview + confirm + safety gate)
 - [x] Updated threeSilos test for new 8-email sequence (491 tests passing)
+
+## Email Sender Standardization (April 29)
+- [x] Standardize FROM_ADDRESS display name to "Marshall Wilkinson | ALP" across all email functions (email.ts + dripEmails.ts)
+- [x] Both use notifications.marshallwilkinson.com domain (verified in Resend)
+
+## Email Sender Standardization + Full Reset (April 29)
+- [x] Standardize FROM_ADDRESS to "Marshall Wilkinson | ALP" across all email functions
+- [x] Bump drip engine batch limit from 200 to 500
+- [x] Reset 345 enrollments to Day 0 (skipped 1 unsubscribed + 1 converted)
+- [x] Cleared 1,370 sent email records (duplicate guard reset)
+- [x] 345 enrollments ready to send immediately on deploy

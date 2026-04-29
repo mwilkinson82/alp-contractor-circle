@@ -18,7 +18,7 @@ import {
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM_ADDRESS = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
+const FROM_ADDRESS = "Marshall Wilkinson | ALP <marshall@notifications.marshallwilkinson.com>";
 const CIRCLE_URL = "https://alpcontractorcircle.com";
 
 // ─── Backward-compat wrapper for non-estimating sequences ────────────────────
