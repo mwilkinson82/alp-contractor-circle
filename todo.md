@@ -3453,3 +3453,12 @@
 - [x] Rebuild QualificationSection matching Marshall's mockups: construction silhouette bg, hexagonal check/X icons, ember glow left card, bottom CTA bar with Target icon, scroll-linked animations
 - [x] Added 5th notForYou item: "You prefer to stay in your comfort zone"
 - [x] Updated tests to match new uppercase headings
+
+## Batch Fixes — April 29 (Marshall's feedback)
+- [x] Upload boardroom background image for Bridge section ("Stop collecting tools, start building the machine")
+- [x] Remove all "Apply" language — change to "Join" everywhere (buttons, CTAs, text)
+- [x] Fix mobile scroll animations on Bridge/operating system section (converted to scroll-linked)
+- [x] Fix "See what's new" / "Explore the Program" button to actually scroll to content (added id=what-you-get)
+- [x] Pull Next Live Call date dynamically from portal admin data (falls back to bootcamp_date from DB)
+- [x] Fix footer: "ALP Contractor Circle, all rights reserved" (both JoinPage and circle/Footer.tsx)
+- [x] Fix all broken links throughout the page (Explore the Program scrolls to #what-you-get)

@@ -12,7 +12,7 @@ export function Footer() {
           className="text-xs text-cream-muted/30"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          &copy; 2026 Altitude Logic Pressure. All rights reserved.
+          &copy; {new Date().getFullYear()} ALP Contractor Circle. All rights reserved.
         </motion.p>
         <motion.div
           initial={{ opacity: 0 }}

@@ -31,7 +31,7 @@ const HERO_BG =
 const HERO_MOBILE =
   "/manus-storage/join-hero-mobile_c1aaf379.png";
 const FINAL_CTA_BG =
-  "/manus-storage/join-final-cta-bg_d1083a57.jpg";
+  "/manus-storage/bridge-boardroom-bg_c2e57c87.png";
 
 // ─── Easing ────────────────────────────────────────────────────────────────────
 
@@ -382,7 +382,7 @@ function useNextCallInfo() {
   const callDayLabel = settings.next_call_day_label || settings.bootcamp_day_label || "Sunday";
   const monthFocus = settings.next_call_month_focus || "Systems & Processes \u00b7 Attention, People Process Framework";
 
-  let formattedDate = "Sunday, May 10 \u00b7 5 PM ET";
+  let formattedDate = "Sunday, May 11 \u00b7 5:00 PM ET";
   if (callDate) {
     const d = new Date(callDate + "T12:00:00Z");
     const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
@@ -589,7 +589,7 @@ function HeroSection() {
           transition={{ duration: 0.9, ease, delay: 1.45 }}
           className="flex flex-row items-start gap-3 mb-5"
         >
-          <CTAButton label="Apply to Join" />
+          <CTAButton label="Join The Circle" />
           <button
             onClick={scrollToProgram}
             className="inline-flex items-center gap-2 px-6 py-4 text-cream/60 hover:text-cream font-medium text-sm transition-all duration-300 group"
@@ -694,7 +694,7 @@ function HeroSection() {
           transition={{ duration: 0.9, ease, delay: 1.2 }}
           className="mb-2.5"
         >
-          <CTAButton label="Apply to Join" />
+          <CTAButton label="Join The Circle" />
         </motion.div>
 
         {/* Secondary CTA */}
@@ -888,6 +888,16 @@ function BridgeSection() {
   const rhythmY = useTransform(scrollYProgress, [0.5, 0.65], [20, 0]);
   const systemUnderlineWidth = useTransform(scrollYProgress, [0, 0.3], ["0%", "100%"]);
 
+  // Mobile scroll-linked transforms
+  const mobileHeaderY = useTransform(scrollYProgress, [0, 0.15], [40, 0]);
+  const mobileHeaderOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1]);
+  const mobileTextY = useTransform(scrollYProgress, [0.05, 0.2], [30, 0]);
+  const mobileTextOpacity = useTransform(scrollYProgress, [0.05, 0.2], [0, 1]);
+  const mobilePanelY = useTransform(scrollYProgress, [0.12, 0.35], [50, 0]);
+  const mobilePanelOpacity = useTransform(scrollYProgress, [0.12, 0.35], [0, 1]);
+  const mobileQuoteY = useTransform(scrollYProgress, [0.3, 0.45], [30, 0]);
+  const mobileQuoteOpacity = useTransform(scrollYProgress, [0.3, 0.45], [0, 1]);
+
   const pillars = [
     { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", label: "LEAD FLOW", desc: "Generate the right opportunities.", active: false },
     { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "SALES PROCESS", desc: "Convert more leads into profitable jobs.", active: false },
@@ -1014,7 +1024,7 @@ function BridgeSection() {
 
         {/* MOBILE LAYOUT (< lg) */}
         <div className="lg:hidden">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }} className="text-center mb-10">
+          <motion.div style={{ y: mobileHeaderY, opacity: mobileHeaderOpacity }} className="text-center mb-10">
             <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[#e8870c] mb-4">From Tool to System</p>
             <div className="w-12 h-[2px] bg-gradient-to-r from-[#e8870c] to-transparent mx-auto mb-6" />
             <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] tracking-tight mb-6">
@@ -1023,7 +1033,7 @@ function BridgeSection() {
               <span className="text-[#f5f0e8]">the company.</span>
             </h2>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.2 }} className="space-y-4 text-[#a8a090] text-[15px] leading-relaxed mb-10">
+          <motion.div style={{ y: mobileTextY, opacity: mobileTextOpacity }} className="space-y-4 text-[#a8a090] text-[15px] leading-relaxed mb-10">
             <p>You may have come here through the <strong className="text-[#f5f0e8]">Estimator&apos;s Checklist</strong>, the <strong className="text-[#f5f0e8]">Q2 Framework</strong>, or the <strong className="text-[#f5f0e8]">Holy Grail of Scaling</strong>.</p>
             <p>Each one gives you a piece of the machine.</p>
             <p className="text-[#e8870c] font-bold text-lg">But a piece is not the machine.</p>
@@ -1031,7 +1041,7 @@ function BridgeSection() {
           </motion.div>
 
           {/* Mobile Operating System Panel */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.8, delay: 0.4 }} className="relative">
+          <motion.div style={{ y: mobilePanelY, opacity: mobilePanelOpacity }} className="relative">
             <div className="absolute -inset-3 bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.06)_0%,transparent_70%)] pointer-events-none rounded-2xl" />
             <div className="relative rounded-2xl border border-[#1f1f1f] bg-gradient-to-b from-[#0d0d0d] to-[#080808] p-5 shadow-2xl">
               <div className="text-center mb-6">
@@ -1103,7 +1113,7 @@ function BridgeSection() {
           </motion.div>
 
           {/* Mobile closing quote */}
-          <motion.div className="mt-8 pl-4 border-l-2 border-[#e8870c]/60" initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.6 }}>
+          <motion.div className="mt-8 pl-4 border-l-2 border-[#e8870c]/60" style={{ y: mobileQuoteY, opacity: mobileQuoteOpacity }}>
             <p className="italic text-[#a8a090] text-sm">This is where isolated tools become</p>
             <p className="text-[#e8870c] font-semibold text-base">a company-wide operating system.</p>
           </motion.div>
@@ -1175,7 +1185,7 @@ function WhatIsSection() {
   ];
 
   return (
-    <section ref={ref} className="relative py-24 sm:py-32 px-6">
+    <section ref={ref} id="what-you-get" className="relative py-24 sm:py-32 px-6">
       {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -2080,7 +2090,7 @@ function ProofSection() {
                 Join contractors who are building stronger companies, better teams, and bigger legacies.
               </p>
             </div>
-            <CTAButton label="Apply to Join" variant="primary" />
+            <CTAButton label="Join The Circle" variant="primary" />
           </div>
           {/* Mobile layout */}
           <div className="sm:hidden">
@@ -2101,7 +2111,7 @@ function ProofSection() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <CTAButton label="Apply to Join" variant="primary" />
+              <CTAButton label="Join The Circle" variant="primary" />
               <div className="flex items-center gap-1 text-cream/30">
                 <Lock size={10} />
                 <span className="text-[9px] uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>Application Required</span>
@@ -2523,11 +2533,11 @@ function ComparisonSection() {
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                Apply to Join the Circle
+                Join The Circle
                 <ArrowRight size={16} />
               </button>
               <p className="text-[10px] text-cream/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                Spots are limited · Application required
+                Spots are limited · Founding rate locked
               </p>
             </div>
           </div>
@@ -2559,11 +2569,11 @@ function ComparisonSection() {
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-              Apply to Join the Circle
+              Join The Circle
               <ArrowRight size={16} />
             </button>
             <p className="text-[10px] text-cream/25 text-center mt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Spots are limited · Application required
+              Spots are limited · Founding rate locked
             </p>
           </div>
         </motion.div>
@@ -3075,7 +3085,7 @@ function JoinFooter() {
     <footer className="py-10 px-6 border-t border-cream/[0.04]">
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-xs text-cream/20" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          &copy; {new Date().getFullYear()} ALP — Altitude Logic Pressure. All rights reserved.
+          &copy; {new Date().getFullYear()} ALP Contractor Circle. All rights reserved.
         </p>
         <div className="flex items-center gap-6">
           <a href="/" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>

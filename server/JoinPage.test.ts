@@ -162,7 +162,7 @@ describe("JoinPage", () => {
   it("uses CDN URLs for hero and CTA background images", () => {
     expect(joinPageSource).toContain("/manus-storage/");
     expect(joinPageSource).toContain("join-hero-marshall-office");
-    expect(joinPageSource).toContain("join-final-cta-bg");
+    expect(joinPageSource).toContain("bridge-boardroom-bg");
   });
 
   // ── Footer tests ─────────────────────────────────────────────────────
