@@ -3439,3 +3439,8 @@
 - [x] CTA bar: "THIS ISN'T JUST COACHING. THIS IS A DIFFERENT LEVEL." with feature icons + Apply button
 - [x] Mobile layout: stacked two-column comparison with VS divider
 - [x] Scroll-linked animations (useScroll + useTransform)
+
+## The Difference — Polish Fixes (April 29)
+- [x] Add scroll-linked animations to comparison panel and individual rows (stagger in as you scroll)
+- [x] Fix mobile pillar bar — 5 items bleeding into each other, need better spacing/wrapping
+- [x] Replace plain "C" letter in CTA bar with Contractor Circle icon/logo

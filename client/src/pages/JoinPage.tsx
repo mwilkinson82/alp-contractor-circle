@@ -2142,8 +2142,29 @@ function ComparisonSection() {
   const headerOp = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
   const pillarOp = useTransform(scrollYProgress, [0.08, 0.22], [0, 1]);
   const pillarY = useTransform(scrollYProgress, [0.08, 0.22], [40, 0]);
-  const compOp = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
-  const compY = useTransform(scrollYProgress, [0.15, 0.3], [50, 0]);
+  // Comparison panel header animates in first
+  const compOp = useTransform(scrollYProgress, [0.15, 0.28], [0, 1]);
+  const compY = useTransform(scrollYProgress, [0.15, 0.28], [50, 0]);
+  // Individual row animations — stagger each row as user scrolls
+  const row0Op = useTransform(scrollYProgress, [0.22, 0.32], [0, 1]);
+  const row0Y = useTransform(scrollYProgress, [0.22, 0.32], [30, 0]);
+  const row1Op = useTransform(scrollYProgress, [0.27, 0.37], [0, 1]);
+  const row1Y = useTransform(scrollYProgress, [0.27, 0.37], [30, 0]);
+  const row2Op = useTransform(scrollYProgress, [0.32, 0.42], [0, 1]);
+  const row2Y = useTransform(scrollYProgress, [0.32, 0.42], [30, 0]);
+  const row3Op = useTransform(scrollYProgress, [0.37, 0.47], [0, 1]);
+  const row3Y = useTransform(scrollYProgress, [0.37, 0.47], [30, 0]);
+  const row4Op = useTransform(scrollYProgress, [0.42, 0.52], [0, 1]);
+  const row4Y = useTransform(scrollYProgress, [0.42, 0.52], [30, 0]);
+  const row5Op = useTransform(scrollYProgress, [0.47, 0.57], [0, 1]);
+  const row5Y = useTransform(scrollYProgress, [0.47, 0.57], [30, 0]);
+  const summaryOp = useTransform(scrollYProgress, [0.52, 0.62], [0, 1]);
+  const summaryY = useTransform(scrollYProgress, [0.52, 0.62], [30, 0]);
+  const rowAnimations = [
+    { opacity: row0Op, y: row0Y }, { opacity: row1Op, y: row1Y },
+    { opacity: row2Op, y: row2Y }, { opacity: row3Op, y: row3Y },
+    { opacity: row4Op, y: row4Y }, { opacity: row5Op, y: row5Y },
+  ];
   const ctaOp = useTransform(scrollYProgress, [0.6, 0.75], [0, 1]);
   const ctaY = useTransform(scrollYProgress, [0.6, 0.75], [40, 0]);
 
@@ -2183,20 +2204,34 @@ function ComparisonSection() {
           style={{ y: pillarY, opacity: pillarOp }}
           className="mb-12 sm:mb-16 rounded-xl border border-cream/10 bg-cream/[0.03] backdrop-blur-sm p-4 sm:p-6"
         >
-          <div className="grid grid-cols-5 gap-2 sm:gap-4">
+          {/* Desktop: 5-column grid */}
+          <div className="hidden sm:grid grid-cols-5 gap-4">
             {pillars.map((p, i) => (
-              <div key={i} className="flex flex-col items-center text-center gap-2 sm:gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
-                  <p.icon size={18} className="text-ember sm:w-5 sm:h-5" />
+              <div key={i} className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
+                  <p.icon size={20} className="text-ember" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs font-bold text-cream uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <p className="text-xs font-bold text-cream uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
                     {p.label}
                   </p>
-                  <p className="text-[9px] sm:text-[11px] text-cream/40 mt-0.5 hidden sm:block" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <p className="text-[11px] text-cream/40 mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {p.sub}
                   </p>
                 </div>
+              </div>
+            ))}
+          </div>
+          {/* Mobile: horizontal scroll row */}
+          <div className="sm:hidden flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+            {pillars.map((p, i) => (
+              <div key={i} className="flex flex-col items-center text-center gap-2 shrink-0" style={{ minWidth: '72px' }}>
+                <div className="w-10 h-10 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
+                  <p.icon size={16} className="text-ember" />
+                </div>
+                <p className="text-[9px] font-bold text-cream uppercase tracking-wider leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  {p.label}
+                </p>
               </div>
             ))}
           </div>
@@ -2218,7 +2253,7 @@ function ComparisonSection() {
               </div>
               <div className="space-y-5">
                 {comparisonRows.map((row, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <motion.div key={i} style={{ opacity: rowAnimations[i]?.opacity, y: rowAnimations[i]?.y }} className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-full border border-cream/10 bg-cream/[0.04] flex items-center justify-center shrink-0 mt-0.5">
                       <X size={13} className="text-cream/20" />
                     </div>
@@ -2230,11 +2265,11 @@ function ComparisonSection() {
                         {row.passiveSub}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
               {/* Summary */}
-              <div className="mt-8 pt-6 border-t border-cream/[0.06] flex items-center gap-3">
+              <motion.div style={{ opacity: summaryOp, y: summaryY }} className="mt-8 pt-6 border-t border-cream/[0.06] flex items-center gap-3">
                 <BarChart3 size={18} className="text-cream/15 shrink-0" />
                 <div>
                   <p className="text-sm text-cream/30 font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -2244,7 +2279,7 @@ function ComparisonSection() {
                     Nothing changes.
                   </p>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* VS Badge */}
@@ -2266,7 +2301,7 @@ function ComparisonSection() {
               </div>
               <div className="space-y-5">
                 {comparisonRows.map((row, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <motion.div key={i} style={{ opacity: rowAnimations[i]?.opacity, y: rowAnimations[i]?.y }} className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-full border border-ember/30 bg-ember/[0.12] flex items-center justify-center shrink-0 mt-0.5">
                       <Check size={13} className="text-ember" />
                     </div>
@@ -2278,11 +2313,11 @@ function ComparisonSection() {
                         {row.circleSub}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
               {/* Summary */}
-              <div className="mt-8 pt-6 border-t border-ember/15 flex items-center gap-3">
+              <motion.div style={{ opacity: summaryOp, y: summaryY }} className="mt-8 pt-6 border-t border-ember/15 flex items-center gap-3">
                 <Rocket size={18} className="text-ember shrink-0" />
                 <div>
                   <p className="text-sm text-ember/80 font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -2292,7 +2327,7 @@ function ComparisonSection() {
                     You get results.
                   </p>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
 
@@ -2401,8 +2436,8 @@ function ComparisonSection() {
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center justify-between gap-8">
             <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-full border-2 border-ember/30 bg-ember/[0.08] flex items-center justify-center">
-                <span className="text-2xl font-black text-ember" style={{ fontFamily: "'Playfair Display', serif" }}>C</span>
+              <div className="w-14 h-14 rounded-lg border-2 border-ember/40 bg-gradient-to-br from-ember/15 to-amber-500/10 flex items-center justify-center shadow-[0_0_20px_rgba(217,119,6,0.15)]" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+                <Zap size={22} className="text-ember" fill="currentColor" />
               </div>
               <div>
                 <p className="text-xs text-cream/40 uppercase tracking-wider font-semibold" style={{ fontFamily: "'Sora', sans-serif" }}>
@@ -2451,8 +2486,8 @@ function ComparisonSection() {
           {/* Mobile CTA */}
           <div className="lg:hidden">
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 rounded-full border-2 border-ember/30 bg-ember/[0.08] flex items-center justify-center shrink-0">
-                <span className="text-xl font-black text-ember" style={{ fontFamily: "'Playfair Display', serif" }}>C</span>
+              <div className="w-12 h-12 rounded-lg border-2 border-ember/40 bg-gradient-to-br from-ember/15 to-amber-500/10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(217,119,6,0.15)]" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+                <Zap size={18} className="text-ember" fill="currentColor" />
               </div>
               <div>
                 <p className="text-[10px] text-cream/40 uppercase tracking-wider font-semibold" style={{ fontFamily: "'Sora', sans-serif" }}>
