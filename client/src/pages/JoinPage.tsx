@@ -842,11 +842,7 @@ function HeroSection() {
   );
 }
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2: BRIDGE — Editorial pull-quote style
-// ═══════════════════════════════════════════════════════════════════════════════
-
 function BridgeSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
@@ -855,7 +851,7 @@ function BridgeSection() {
     offset: ["start 0.9", "end 0.1"],
   });
 
-  // Scroll-linked transforms for pillar cards — they slide in from the right as you scroll
+  // Scroll-linked transforms for pillar cards
   const pillarX1 = useTransform(scrollYProgress, [0, 0.25], [120, 0]);
   const pillarX2 = useTransform(scrollYProgress, [0.03, 0.3], [150, 0]);
   const pillarX3 = useTransform(scrollYProgress, [0.06, 0.35], [180, 0]);
@@ -870,16 +866,12 @@ function BridgeSection() {
   const pillarOpacity5 = useTransform(scrollYProgress, [0.12, 0.4], [0, 1]);
   const pillarOpacityValues = [pillarOpacity1, pillarOpacity2, pillarOpacity3, pillarOpacity4, pillarOpacity5];
 
-  // Progress line fill — scroll-linked
   const progressWidth = useTransform(scrollYProgress, [0.1, 0.5], ["0%", "100%"]);
-
-  // Connected systems — scroll-linked stagger
   const sysOpacity = useTransform(scrollYProgress, [0.35, 0.55], [0, 1]);
   const sysY = useTransform(scrollYProgress, [0.35, 0.55], [30, 0]);
-
-  // Rhythm bar — scroll-linked
   const rhythmOpacity = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
   const rhythmY = useTransform(scrollYProgress, [0.5, 0.65], [20, 0]);
+  const systemUnderlineWidth = useTransform(scrollYProgress, [0, 0.3], ["0%", "100%"]);
 
   const pillars = [
     { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", label: "LEAD FLOW", desc: "Generate the right opportunities.", active: false },
@@ -890,16 +882,16 @@ function BridgeSection() {
   ];
 
   const systems = [
-    { icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", label: "TEMPLATES" },
+    { icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", label: "Templates" },
     { icon: "M4 6h16M4 10h16M4 14h16M4 18h16", label: "SOPs" },
-    { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "SCORECARDS" },
-    { icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", label: "MEETINGS" },
-    { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", label: "ACCOUNTABILITY" },
-    { icon: "M13 10V3L4 14h7v7l9-11h-7z", label: "DECISION-MAKING" },
+    { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "Scorecards" },
+    { icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", label: "Meetings" },
+    { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", label: "Accountability" },
+    { icon: "M13 10V3L4 14h7v7l9-11h-7z", label: "Decisions" },
   ];
 
   return (
-    <section ref={sectionRef} className="relative py-32 sm:py-40 overflow-hidden">
+    <section ref={sectionRef} className="relative py-24 sm:py-32 lg:py-40 overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 right-1/4 w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.06)_0%,transparent_60%)]" />
@@ -907,195 +899,205 @@ function BridgeSection() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-10 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-start">
-
-          {/* LEFT COLUMN — Editorial */}
+        {/* DESKTOP LAYOUT (lg+) */}
+        <div className="hidden lg:grid lg:grid-cols-2 gap-12 items-start">
+          {/* LEFT COLUMN */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[#e8870c] mb-6">
-              From Tool to System
-            </p>
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[#e8870c] mb-6">From Tool to System</p>
             <div className="w-12 h-[2px] bg-gradient-to-r from-[#e8870c] to-transparent mb-8" />
-
-            <h2 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-bold leading-[1.1] tracking-tight mb-10">
-              <span className="text-[#f5f0e8]">A checklist can help.</span>
-              <br />
+            <h2 className="text-[3.4rem] font-bold leading-[1.1] tracking-tight mb-10">
+              <span className="text-[#f5f0e8]">A checklist can help.</span><br />
               <span className="text-[#f5f0e8]">A </span>
               <span className="relative inline-block">
                 <span className="text-[#e8870c] font-extrabold">system</span>
-                <motion.span
-                  className="absolute -bottom-2 left-0 h-[4px] bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c] rounded-full"
-                  style={{ width: useTransform(scrollYProgress, [0, 0.3], ["0%", "100%"]) }}
-                />
+                <motion.span className="absolute -bottom-2 left-0 h-[4px] bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c] rounded-full" style={{ width: systemUnderlineWidth }} />
               </span>
-              <span className="text-[#f5f0e8]"> changes</span>
-              <br />
+              <span className="text-[#f5f0e8]"> changes</span><br />
               <span className="text-[#f5f0e8]">the company.</span>
             </h2>
-
             <div className="space-y-5 text-[#a8a090] text-base leading-relaxed max-w-lg">
-              <p>
-                You may have come here through the <strong className="text-[#f5f0e8]">Estimator&apos;s Checklist</strong>, the{" "}
-                <strong className="text-[#f5f0e8]">Q2 Framework</strong>, or the{" "}
-                <strong className="text-[#f5f0e8]">Holy Grail of Scaling</strong>.
-              </p>
+              <p>You may have come here through the <strong className="text-[#f5f0e8]">Estimator&apos;s Checklist</strong>, the <strong className="text-[#f5f0e8]">Q2 Framework</strong>, or the <strong className="text-[#f5f0e8]">Holy Grail of Scaling</strong>.</p>
               <p>Each one gives you a piece of the machine.</p>
               <p className="text-[#e8870c] font-bold text-lg">But a piece is not the machine.</p>
-              <p>
-                Inside Contractor Circle, those pieces get connected into a live operating rhythm: estimating, scorecards, meetings, templates, accountability, decision-making, planning, and execution.
-              </p>
+              <p>Inside Contractor Circle, those pieces get connected into a live operating rhythm: estimating, scorecards, meetings, templates, accountability, decision-making, planning, and execution.</p>
             </div>
-
-            <motion.div
-              className="mt-10 pl-5 border-l-2 border-[#e8870c]/60"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, delay: 0.8 }}
-            >
+            <motion.div className="mt-10 pl-5 border-l-2 border-[#e8870c]/60" initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.8 }}>
               <p className="italic text-[#a8a090] text-sm">This is where isolated tools become</p>
               <p className="text-[#e8870c] font-semibold text-base">a company-wide operating system.</p>
             </motion.div>
           </motion.div>
 
-          {/* RIGHT COLUMN — Scroll-Driven Operating System Panel */}
+          {/* RIGHT COLUMN — Operating System Panel (Desktop) */}
           <div className="relative">
-            {/* Glow behind the panel */}
             <div className="absolute -inset-4 bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.08)_0%,transparent_70%)] pointer-events-none rounded-3xl" />
-
-            {/* Main panel container */}
-            <div className="relative rounded-2xl border border-[#1f1f1f] bg-gradient-to-b from-[#0d0d0d] to-[#080808] p-6 sm:p-8 shadow-2xl">
-              {/* Header */}
+            <div className="relative rounded-2xl border border-[#1f1f1f] bg-gradient-to-b from-[#0d0d0d] to-[#080808] p-8 shadow-2xl">
               <div className="text-center mb-8">
                 <p className="text-[10px] tracking-[0.3em] uppercase text-[#6b6560] mb-2">The Contractor Circle</p>
-                <h3 className="text-2xl sm:text-3xl font-bold text-[#f5f0e8] tracking-tight">OPERATING SYSTEM</h3>
+                <h3 className="text-3xl font-bold text-[#f5f0e8] tracking-tight">OPERATING SYSTEM</h3>
                 <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#e8870c] to-transparent mx-auto mt-3" />
               </div>
-
-              {/* Pillar Cards — Scroll-linked slide-in */}
+              {/* Pillar Cards */}
               <div className="relative mb-8">
-                {/* Progress connector line */}
                 <div className="absolute top-[44px] left-[8%] right-[8%] h-[2px] bg-[#1a1a1a] z-0 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c]"
-                    style={{ width: progressWidth }}
-                  />
+                  <motion.div className="h-full bg-gradient-to-r from-[#e8870c] via-[#f5a623] to-[#e8870c]" style={{ width: progressWidth }} />
                 </div>
-
-                {/* Arrow connectors between pillars */}
-                <div className="absolute top-[42px] left-[8%] right-[8%] z-[1] flex justify-between px-[15%]">
-                  {[0, 1, 2, 3].map((i) => (
-                    <motion.svg
-                      key={i}
-                      className="w-3 h-3 text-[#e8870c]/50"
-                      fill="currentColor"
-                      viewBox="0 0 12 12"
-                      style={{ opacity: useTransform(scrollYProgress, [0.15 + i * 0.05, 0.25 + i * 0.05], [0, 1]) }}
-                    >
-                      <path d="M2 6l3-3v2h4V3l3 3-3 3V7H5v2z" />
-                    </motion.svg>
-                  ))}
-                </div>
-
-                <div className="flex gap-3 sm:gap-4 relative z-10 justify-center">
+                <div className="flex gap-2.5 relative z-10 justify-center">
                   {pillars.map((pillar, i) => (
-                    <motion.div
-                      key={pillar.label}
-                      className={`flex flex-col items-center text-center px-2 sm:px-4 py-5 sm:py-6 rounded-xl flex-1 ${
-                        pillar.active
-                          ? "bg-gradient-to-b from-[#e8870c]/25 to-[#0d0d0d] border-2 border-[#e8870c]/70 shadow-[0_0_40px_rgba(232,135,12,0.2),0_0_80px_rgba(232,135,12,0.08)]"
-                          : "bg-[#0d0d0d]/80 border border-[#1f1f1f] hover:border-[#2a2a2a]"
-                      }`}
-                      style={{
-                        x: pillarXValues[i],
-                        opacity: pillarOpacityValues[i],
-                        scale: pillar.active ? 1.05 : 1,
-                      }}
-                    >
-                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 ${
-                        pillar.active ? "bg-[#e8870c]/20 ring-1 ring-[#e8870c]/30" : "bg-[#1a1a1a]"
-                      }`}>
-                        <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${pillar.active ? "text-[#e8870c]" : "text-[#a8a090]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} />
-                        </svg>
+                    <motion.div key={pillar.label} className={`flex flex-col items-center text-center px-2 py-5 rounded-xl flex-1 min-w-0 ${pillar.active ? "bg-gradient-to-b from-[#e8870c]/25 to-[#0d0d0d] border-2 border-[#e8870c]/70 shadow-[0_0_40px_rgba(232,135,12,0.2)]" : "bg-[#0d0d0d]/80 border border-[#1f1f1f]"}`} style={{ x: pillarXValues[i], opacity: pillarOpacityValues[i], scale: pillar.active ? 1.05 : 1 }}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 ${pillar.active ? "bg-[#e8870c]/20 ring-1 ring-[#e8870c]/30" : "bg-[#1a1a1a]"}`}>
+                        <svg className={`w-5 h-5 ${pillar.active ? "text-[#e8870c]" : "text-[#a8a090]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} /></svg>
                       </div>
-                      <p className={`text-[10px] sm:text-xs font-bold tracking-wider uppercase leading-tight mb-1.5 ${
-                        pillar.active ? "text-[#e8870c]" : "text-[#f5f0e8]"
-                      }`}>{pillar.label}</p>
-                      <p className="text-[9px] sm:text-[10px] text-[#6b6560] leading-tight">{pillar.desc}</p>
+                      <p className={`text-[8px] xl:text-[9px] font-bold tracking-wider uppercase leading-tight mb-1 ${pillar.active ? "text-[#e8870c]" : "text-[#f5f0e8]"}`}>{pillar.label}</p>
+                      <p className="text-[7px] xl:text-[8px] text-[#6b6560] leading-tight hidden xl:block">{pillar.desc}</p>
                     </motion.div>
                   ))}
                 </div>
               </div>
-
-              {/* Divider */}
               <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-6" />
-
-              {/* Connected Systems — Scroll-linked reveal */}
+              {/* Connected Systems */}
               <motion.div className="mb-6" style={{ opacity: sysOpacity, y: sysY }}>
-                <p className="text-[10px] tracking-[0.25em] uppercase text-[#6b6560] text-center mb-4 font-semibold">
-                  Powered by Connected Systems
-                </p>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+                <p className="text-[10px] tracking-[0.25em] uppercase text-[#6b6560] text-center mb-4 font-semibold">Powered by Connected Systems</p>
+                <div className="grid grid-cols-6 gap-2">
                   {systems.map((sys) => (
-                    <div
-                      key={sys.label}
-                      className="flex flex-col items-center text-center p-3 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#e8870c]/30 transition-colors duration-300 group"
-                    >
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#141414] flex items-center justify-center mb-2 group-hover:bg-[#e8870c]/10 transition-colors">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#e8870c]/60 group-hover:text-[#e8870c] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d={sys.icon} />
-                        </svg>
+                    <div key={sys.label} className="flex flex-col items-center text-center p-2.5 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#e8870c]/30 transition-colors duration-300 group">
+                      <div className="w-8 h-8 rounded-lg bg-[#141414] flex items-center justify-center mb-1.5 group-hover:bg-[#e8870c]/10 transition-colors">
+                        <svg className="w-4 h-4 text-[#e8870c]/60 group-hover:text-[#e8870c] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={sys.icon} /></svg>
                       </div>
-                      <p className="text-[8px] sm:text-[10px] font-semibold text-[#a8a090] uppercase tracking-wider leading-tight">{sys.label}</p>
+                      <p className="text-[8px] font-semibold text-[#a8a090] tracking-wider leading-tight">{sys.label}</p>
                     </div>
                   ))}
                 </div>
               </motion.div>
-
-              {/* Divider */}
               <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-5" />
-
-              {/* Live Implementation Rhythm — Pulsing status bar */}
-              <motion.div
-                className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]/90 p-4 sm:p-5"
-                style={{ opacity: rhythmOpacity, y: rhythmY }}
-              >
+              {/* Rhythm Bar */}
+              <motion.div className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]/90 p-5" style={{ opacity: rhythmOpacity, y: rhythmY }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-[#141414] flex items-center justify-center">
-                      <svg className="w-4 h-4 text-[#a8a090]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                      <svg className="w-4 h-4 text-[#a8a090]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
-                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#f5f0e8]">Live Implementation Rhythm</span>
+                    <span className="text-sm font-bold uppercase tracking-wider text-[#f5f0e8]">Live Implementation Rhythm</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-semibold text-green-400 uppercase tracking-wider">Active</span>
+                    <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
+                    <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">Active</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   {["Weekly Coaching", "Monthly Bootcamps", "Real-World Application", "Measurable Results"].map((item) => (
-                    <div key={item} className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#e8870c]/60" />
-                      <span className="text-[10px] sm:text-xs text-[#a8a090]">{item}</span>
-                    </div>
+                    <div key={item} className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#e8870c]/60" /><span className="text-xs text-[#a8a090]">{item}</span></div>
                   ))}
                 </div>
               </motion.div>
             </div>
           </div>
         </div>
+
+        {/* MOBILE LAYOUT (< lg) */}
+        <div className="lg:hidden">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }} className="text-center mb-10">
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[#e8870c] mb-4">From Tool to System</p>
+            <div className="w-12 h-[2px] bg-gradient-to-r from-[#e8870c] to-transparent mx-auto mb-6" />
+            <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] tracking-tight mb-6">
+              <span className="text-[#f5f0e8]">A checklist can help.</span><br />
+              <span className="text-[#f5f0e8]">A </span><span className="text-[#e8870c] font-extrabold">system</span><span className="text-[#f5f0e8]"> changes</span><br />
+              <span className="text-[#f5f0e8]">the company.</span>
+            </h2>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.2 }} className="space-y-4 text-[#a8a090] text-[15px] leading-relaxed mb-10">
+            <p>You may have come here through the <strong className="text-[#f5f0e8]">Estimator&apos;s Checklist</strong>, the <strong className="text-[#f5f0e8]">Q2 Framework</strong>, or the <strong className="text-[#f5f0e8]">Holy Grail of Scaling</strong>.</p>
+            <p>Each one gives you a piece of the machine.</p>
+            <p className="text-[#e8870c] font-bold text-lg">But a piece is not the machine.</p>
+            <p>Inside Contractor Circle, those pieces get connected into a live operating rhythm — and that rhythm is what changes the company.</p>
+          </motion.div>
+
+          {/* Mobile Operating System Panel */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.8, delay: 0.4 }} className="relative">
+            <div className="absolute -inset-3 bg-[radial-gradient(ellipse_at_center,rgba(232,135,12,0.06)_0%,transparent_70%)] pointer-events-none rounded-2xl" />
+            <div className="relative rounded-2xl border border-[#1f1f1f] bg-gradient-to-b from-[#0d0d0d] to-[#080808] p-5 shadow-2xl">
+              <div className="text-center mb-6">
+                <p className="text-[9px] tracking-[0.3em] uppercase text-[#6b6560] mb-1.5">The Contractor Circle</p>
+                <h3 className="text-xl font-bold text-[#f5f0e8] tracking-tight">OPERATING SYSTEM</h3>
+                <div className="w-12 h-[2px] bg-gradient-to-r from-transparent via-[#e8870c] to-transparent mx-auto mt-2" />
+              </div>
+
+              {/* Featured: Project Delivery */}
+              <div className="mb-3 p-4 rounded-xl bg-gradient-to-b from-[#e8870c]/20 to-[#0d0d0d] border-2 border-[#e8870c]/60 shadow-[0_0_30px_rgba(232,135,12,0.15)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8870c]/20 ring-1 ring-[#e8870c]/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-[#e8870c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold tracking-wider uppercase text-[#e8870c]">Project Delivery</p>
+                    <p className="text-[11px] text-[#a8a090] mt-0.5">Deliver projects on time, on budget, every time.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other 4 pillars in 2x2 grid */}
+              <div className="grid grid-cols-2 gap-2.5 mb-5">
+                {pillars.filter(p => !p.active).map((pillar) => (
+                  <div key={pillar.label} className="flex flex-col items-center text-center p-3 rounded-xl bg-[#0d0d0d]/80 border border-[#1f1f1f]">
+                    <div className="w-9 h-9 rounded-lg bg-[#1a1a1a] flex items-center justify-center mb-2">
+                      <svg className="w-4 h-4 text-[#a8a090]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} /></svg>
+                    </div>
+                    <p className="text-[10px] font-bold tracking-wider uppercase text-[#f5f0e8] leading-tight">{pillar.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-5" />
+
+              {/* Mobile Connected Systems — 3x2 grid */}
+              <div className="mb-5">
+                <p className="text-[9px] tracking-[0.25em] uppercase text-[#6b6560] text-center mb-3 font-semibold">Connected Systems</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {systems.map((sys) => (
+                    <div key={sys.label} className="flex flex-col items-center text-center p-2.5 rounded-lg bg-[#0a0a0a] border border-[#1a1a1a]">
+                      <div className="w-7 h-7 rounded-md bg-[#141414] flex items-center justify-center mb-1.5">
+                        <svg className="w-3.5 h-3.5 text-[#e8870c]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={sys.icon} /></svg>
+                      </div>
+                      <p className="text-[9px] font-semibold text-[#a8a090] leading-tight">{sys.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-[#1f1f1f] to-transparent mb-4" />
+
+              {/* Mobile Rhythm Bar */}
+              <div className="rounded-lg border border-[#1a1a1a] bg-[#0a0a0a]/90 p-3.5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#f5f0e8]">Live Implementation Rhythm</span>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span></span>
+                    <span className="text-[9px] font-semibold text-green-400 uppercase">Active</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  {["Weekly Coaching", "Monthly Bootcamps", "Real-World Application", "Measurable Results"].map((item) => (
+                    <div key={item} className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-[#e8870c]/60" /><span className="text-[10px] text-[#a8a090]">{item}</span></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Mobile closing quote */}
+          <motion.div className="mt-8 pl-4 border-l-2 border-[#e8870c]/60" initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.6 }}>
+            <p className="italic text-[#a8a090] text-sm">This is where isolated tools become</p>
+            <p className="text-[#e8870c] font-semibold text-base">a company-wide operating system.</p>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
 }
+
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1965,25 +1967,19 @@ function JoinFooter() {
 export default function JoinPage() {
   return (
     <div className="min-h-screen bg-background text-foreground grain-overlay">
-      {/* Ambient background blobs */}
+      {/* Ambient background blobs — static CSS to prevent flickering */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <motion.div
+        <div
           className="absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full blur-[200px]"
-          style={{ background: "oklch(0.72 0.12 55 / 0.04)" }}
-          animate={{ scale: [1, 1.1, 1], opacity: [0.04, 0.06, 0.04] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          style={{ background: "oklch(0.72 0.12 55 / 0.05)" }}
         />
-        <motion.div
+        <div
           className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-[200px]"
-          style={{ background: "oklch(0.65 0.12 240 / 0.03)" }}
-          animate={{ scale: [1, 0.9, 1], opacity: [0.03, 0.05, 0.03] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          style={{ background: "oklch(0.65 0.12 240 / 0.04)" }}
         />
-        <motion.div
+        <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[250px]"
-          style={{ background: "oklch(0.72 0.12 55 / 0.02)" }}
-          animate={{ scale: [1, 1.05, 1], opacity: [0.02, 0.04, 0.02] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          style={{ background: "oklch(0.72 0.12 55 / 0.03)" }}
         />
       </div>
 

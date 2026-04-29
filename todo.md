@@ -3391,3 +3391,8 @@
 - [x] Scale up right column — bigger pillar cards, bigger icons, more visual weight
 - [x] Add background glow behind operating system panel
 - [x] Stronger card borders and contrast
+
+## Bridge Section — Polish & Mobile (April 29)
+- [x] Fix text overflow: "ACCOUNTABILITY" and "DECISION-MAKING" labels don't fit in connected systems grid cards
+- [x] Investigate and fix page flickering (animation re-trigger / HMR loop issue)
+- [x] Build dedicated mobile layout for Bridge section (stacked, impactful, responsive)
