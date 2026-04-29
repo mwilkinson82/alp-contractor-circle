@@ -1105,11 +1105,48 @@ function BridgeSection() {
 // SECTION 3: WHAT THE CIRCLE IS — Glass cards with numbered badges
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function ScrollCard({ children, index, scrollYProgress, className, style: extraStyle }: {
+  children: React.ReactNode;
+  index: number;
+  scrollYProgress: import("framer-motion").MotionValue<number>;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  // Each card gets a staggered window within the scroll progress
+  // Row 1 (0-3): animate between 0.15-0.45, Row 2 (4-7): animate between 0.35-0.65
+  const row = index < 4 ? 0 : 1;
+  const colInRow = index % 4;
+  const baseStart = row === 0 ? 0.12 : 0.32;
+  const stagger = colInRow * 0.04;
+  const start = baseStart + stagger;
+  const end = start + 0.18;
+
+  const y = useTransform(scrollYProgress, [start, end], [60, 0]);
+  const opacity = useTransform(scrollYProgress, [start, end], [0, 1]);
+  const scale = useTransform(scrollYProgress, [start, end], [0.92, 1]);
+
+  return (
+    <motion.div className={className} style={{ y, opacity, scale, ...extraStyle }}>
+      {children}
+    </motion.div>
+  );
+}
+
 function WhatIsSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const headerY = useTransform(scrollYProgress, [0, 0.3], [40, 0]);
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.25], [0, 1]);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.3"] });
+
+  // Header: fades in first as section enters
+  const headerY = useTransform(scrollYProgress, [0, 0.12], [50, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.12], [0, 1]);
+
+  // ONE GOAL bar: after cards
+  const goalY = useTransform(scrollYProgress, [0.55, 0.72], [40, 0]);
+  const goalOpacity = useTransform(scrollYProgress, [0.55, 0.72], [0, 1]);
+
+  // Tagline bar: last element
+  const taglineY = useTransform(scrollYProgress, [0.68, 0.82], [30, 0]);
+  const taglineOpacity = useTransform(scrollYProgress, [0.68, 0.82], [0, 1]);
 
   // Color palette for each card's icon ring
   const cardColors = [
@@ -1133,7 +1170,7 @@ function WhatIsSection() {
         }}
       />
       <div className="max-w-6xl mx-auto relative">
-        {/* Header */}
+        {/* Header — scroll-linked */}
         <motion.div
           style={{ y: headerY, opacity: headerOpacity }}
           className="text-center mb-6"
@@ -1158,7 +1195,7 @@ function WhatIsSection() {
           </h2>
         </motion.div>
 
-        {/* Subheadline */}
+        {/* Subheadline — scroll-linked */}
         <motion.p
           style={{ opacity: headerOpacity, fontFamily: "'DM Sans', sans-serif" }}
           className="text-center text-cream/50 text-sm sm:text-base max-w-xl mx-auto mb-16 leading-relaxed"
@@ -1168,17 +1205,15 @@ function WhatIsSection() {
           Everything inside Contractor Circle is built to help your business run sharper, cleaner, and more profitable.
         </motion.p>
 
-        {/* 4x2 Feature Grid — Desktop */}
+        {/* 4x2 Feature Grid — Desktop: scroll-linked stagger */}
         <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {features.map((f, i) => {
             const color = cardColors[i];
             return (
-              <motion.div
+              <ScrollCard
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, ease, delay: i * 0.06 }}
+                index={i}
+                scrollYProgress={scrollYProgress}
                 className="relative p-5 sm:p-6 rounded-xl overflow-hidden text-center"
                 style={{
                   background: "oklch(0.15 0.01 250 / 0.6)",
@@ -1218,22 +1253,25 @@ function WhatIsSection() {
                 >
                   {f.desc}
                 </p>
-              </motion.div>
+              </ScrollCard>
             );
           })}
         </div>
 
-        {/* 2-column Feature Grid — Mobile */}
+        {/* 2-column Feature Grid — Mobile: scroll-linked stagger */}
         <div className="grid grid-cols-2 gap-3 sm:hidden mb-8">
           {features.map((f, i) => {
             const color = cardColors[i];
+            // Mobile: 4 rows of 2, stagger by row
+            const mobileRow = Math.floor(i / 2);
+            const mobileCol = i % 2;
+            const mStart = 0.12 + mobileRow * 0.1 + mobileCol * 0.03;
+            const mEnd = mStart + 0.15;
             return (
-              <motion.div
+              <ScrollCard
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.4, ease, delay: i * 0.05 }}
+                index={i}
+                scrollYProgress={scrollYProgress}
                 className="relative p-4 rounded-xl overflow-hidden text-center"
                 style={{
                   background: "oklch(0.15 0.01 250 / 0.6)",
@@ -1273,22 +1311,15 @@ function WhatIsSection() {
                 >
                   {f.desc}
                 </p>
-              </motion.div>
+              </ScrollCard>
             );
           })}
         </div>
 
-        {/* ONE GOAL Summary Bar */}
+        {/* ONE GOAL Summary Bar — scroll-linked */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6, ease }}
+          style={{ y: goalY, opacity: goalOpacity, background: "oklch(0.15 0.01 250 / 0.6)", border: "1px solid oklch(0.72 0.12 55 / 0.15)" }}
           className="rounded-xl p-5 sm:p-6 mb-4 flex flex-col sm:flex-row items-center gap-6"
-          style={{
-            background: "oklch(0.15 0.01 250 / 0.6)",
-            border: "1px solid oklch(0.72 0.12 55 / 0.15)",
-          }}
         >
           {/* Left: Goal statement */}
           <div className="flex items-center gap-4 sm:flex-1">
@@ -1330,17 +1361,10 @@ function WhatIsSection() {
           </div>
         </motion.div>
 
-        {/* Built in the Field Tagline Bar */}
+        {/* Built in the Field Tagline Bar — scroll-linked */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease, delay: 0.1 }}
+          style={{ y: taglineY, opacity: taglineOpacity, background: "oklch(0.15 0.01 250 / 0.6)", border: "1px solid oklch(1 0 0 / 0.06)" }}
           className="rounded-xl p-4 sm:p-5 flex items-center gap-4"
-          style={{
-            background: "oklch(0.15 0.01 250 / 0.6)",
-            border: "1px solid oklch(1 0 0 / 0.06)",
-          }}
         >
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"

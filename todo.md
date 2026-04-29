@@ -3403,3 +3403,9 @@
 - [x] Add "Built in the field" closing tagline bar
 - [x] Responsive mobile layout (2-column grid on mobile, stacked summary bar)
 - [x] Scroll-linked animations consistent with Bridge section style
+
+## What You Get — Scroll Animations (April 29)
+- [x] Replace static whileInView with true scroll-linked transforms (useScroll + useTransform) for all cards
+- [x] Stagger card reveals tied to scroll progress (row 1 first, row 2 second)
+- [x] ONE GOAL bar slides up from scroll progress
+- [x] Tagline bar fades in last as scroll completes
