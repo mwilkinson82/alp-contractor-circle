@@ -1,5 +1,5 @@
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import {
   ArrowRight,
   Check,
@@ -16,30 +16,32 @@ import {
   MessageSquare,
   Compass,
   TrendingUp,
-  AlertTriangle,
-  ChevronRight,
-  Quote,
+  ChevronDown,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+// ─── CDN Assets ────────────────────────────────────────────────────────────────
 
 const HERO_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/join-hero-bg-N2SPQRVr2GxuLMV95ziskK.webp";
+  "/manus-storage/join-hero-marshall-office_08968f32.png";
 const FINAL_CTA_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/join-final-cta-bg-4Tsa58cYXEjotZNA2kyxVp.webp";
+  "/manus-storage/join-final-cta-bg_d1083a57.jpg";
+
+// ─── Easing ────────────────────────────────────────────────────────────────────
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
+// ─── Data ──────────────────────────────────────────────────────────────────────
+
 const features = [
-  { icon: Phone, title: "Bi-weekly live working calls", desc: "Bring the real issue. Leave with the next move." },
-  { icon: Calendar, title: "Monthly implementation bootcamps", desc: "Deep-dive sessions on the systems that move the business." },
-  { icon: Users, title: "Private Discord community", desc: "Daily access to members, questions, wins, and live discussion." },
-  { icon: FileText, title: "35+ template library", desc: "SOPs, contracts, scorecards, and frameworks built from real operating experience." },
-  { icon: Play, title: "Replay library", desc: "Every session recorded and organized for review." },
-  { icon: Bot, title: "AI estimating takeoff tool", desc: "Upload plans, get quantities. Built for contractors." },
-  { icon: MessageSquare, title: "Question submission before calls", desc: "Bring the situation before the call so it can be reviewed with context." },
-  { icon: Compass, title: "Direct strategic guidance from Marshall", desc: "$2.5B+ in construction experience applied to your business live." },
+  { icon: Phone, title: "Bi-weekly live working calls", desc: "Bring the real issue. Leave with the next move.", num: "01" },
+  { icon: Calendar, title: "Monthly implementation bootcamps", desc: "Deep-dive sessions on the systems that move the business.", num: "02" },
+  { icon: Users, title: "Private Discord community", desc: "Daily access to members, questions, wins, and live discussion.", num: "03" },
+  { icon: FileText, title: "35+ template library", desc: "SOPs, contracts, scorecards, and frameworks built from real operating experience.", num: "04" },
+  { icon: Play, title: "Replay library", desc: "Every session recorded and organized for review.", num: "05" },
+  { icon: Bot, title: "AI estimating takeoff tool", desc: "Upload plans, get quantities. Built for contractors.", num: "06" },
+  { icon: MessageSquare, title: "Question submission before calls", desc: "Bring the situation before the call so it can be reviewed with context.", num: "07" },
+  { icon: Compass, title: "Direct strategic guidance from Marshall", desc: "$2.5B+ in construction experience applied to your business live.", num: "08" },
 ];
 
 const painPoints = [
@@ -134,7 +136,133 @@ const pricingIncludes = [
   "Founding rate locked while active",
 ];
 
-// ─── Reusable CTA Button ────────────────────────────────────────────────────
+// Ticker data (duplicated for seamless loop)
+const tickerItems = [
+  { name: "CNY Group", result: "$600K → $20M in 18 months" },
+  { name: "Trojan Roofing", result: "$300K → $10M first year" },
+  { name: "Sage Construction", result: "$2M revenue — 1st year as contractor" },
+  { name: "Davis Contracting", result: "$1M → $4M in 6 months" },
+  { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
+  { name: "CNY Group", result: "$600K → $20M in 18 months" },
+  { name: "Trojan Roofing", result: "$300K → $10M first year" },
+  { name: "Sage Construction", result: "$2M revenue — 1st year as contractor" },
+  { name: "Davis Contracting", result: "$1M → $4M in 6 months" },
+  { name: "ALP Members", result: "$2.5B+ in construction experience behind every call" },
+];
+
+// ─── Animated Word Reveal ──────────────────────────────────────────────────────
+
+function AnimatedWords({
+  text,
+  className,
+  delay = 0,
+  style,
+}: {
+  text: string;
+  className?: string;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
+  const words = text.split(" ");
+  return (
+    <span className={className} style={style}>
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 48, rotateX: 50 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+          transition={{
+            duration: 0.75,
+            delay: delay + i * 0.09,
+            ease,
+          }}
+          className="inline-block mr-[0.22em]"
+          style={{ perspective: "800px" }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
+// ─── Animated Counter ──────────────────────────────────────────────────────────
+
+function AnimatedCounter({ target, prefix = "", suffix = "", duration = 2 }: {
+  target: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start = 0;
+    const step = target / (duration * 60);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 1000 / 60);
+    return () => clearInterval(timer);
+  }, [isInView, target, duration]);
+
+  return (
+    <span ref={ref}>
+      {prefix}{count.toLocaleString()}{suffix}
+    </span>
+  );
+}
+
+// ─── Transformation Ticker ─────────────────────────────────────────────────────
+
+function TransformationTicker() {
+  return (
+    <div className="relative overflow-hidden w-full py-3.5 border-y border-cream/[0.06]">
+      <div
+        className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+        style={{ background: "linear-gradient(90deg, oklch(0.10 0.01 270), transparent)" }}
+      />
+      <div
+        className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+        style={{ background: "linear-gradient(-90deg, oklch(0.10 0.01 270), transparent)" }}
+      />
+      <motion.div
+        className="flex gap-0 whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, ease: "linear", repeat: Infinity }}
+      >
+        {tickerItems.map((t, i) => (
+          <span key={i} className="inline-flex items-center gap-3 px-8">
+            <span
+              className="text-xs font-semibold text-ember/80 tracking-wide"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              {t.name}
+            </span>
+            <span className="text-cream/20 text-xs">—</span>
+            <span
+              className="text-xs text-cream/50"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {t.result}
+            </span>
+            <span className="text-ember/20 text-base ml-4">◆</span>
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── CTA Button ────────────────────────────────────────────────────────────────
 
 function CTAButton({
   label = "Join The Circle",
@@ -150,7 +278,7 @@ function CTAButton({
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="inline-flex items-center gap-2 px-8 py-4 border border-ember/40 text-ember font-semibold rounded-lg hover:bg-ember/10 transition-all duration-300 disabled:opacity-60 cursor-pointer"
+        className="inline-flex items-center gap-2.5 px-8 py-4 border border-ember/30 text-ember font-semibold rounded-xl hover:bg-ember/8 hover:border-ember/50 transition-all duration-300 disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -161,7 +289,7 @@ function CTAButton({
         ) : (
           <>
             {label}
-            <ArrowRight size={16} />
+            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </>
         )}
       </button>
@@ -171,15 +299,15 @@ function CTAButton({
   return (
     <div className="relative inline-block">
       <motion.div
-        className="absolute inset-0 rounded-xl blur-xl"
-        style={{ background: "oklch(0.72 0.12 55 / 0.2)" }}
-        animate={{ opacity: [0.2, 0.4, 0.2] }}
+        className="absolute inset-0 rounded-xl blur-2xl"
+        style={{ background: "oklch(0.72 0.12 55 / 0.28)" }}
+        animate={{ opacity: [0.28, 0.55, 0.28] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-60 cursor-pointer"
+        className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -191,7 +319,7 @@ function CTAButton({
           <>
             <Zap size={18} fill="currentColor" />
             {label}
-            <ArrowRight size={18} />
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </>
         )}
       </button>
@@ -199,197 +327,416 @@ function CTAButton({
   );
 }
 
-// ─── Section Divider ────────────────────────────────────────────────────────
+// ─── Section Divider ───────────────────────────────────────────────────────────
 
 function SectionDivider() {
   return (
-    <div className="flex justify-center py-2">
-      <div
-        className="w-24 h-px"
+    <div className="flex justify-center py-4">
+      <motion.div
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.2, ease }}
+        className="w-32 h-px"
         style={{
           background:
-            "linear-gradient(90deg, transparent, oklch(0.72 0.12 55 / 0.3), transparent)",
+            "linear-gradient(90deg, transparent, oklch(0.72 0.12 55 / 0.25), transparent)",
+          transformOrigin: "center",
         }}
       />
     </div>
   );
 }
 
-// ─── Section 1: Hero ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 1: HERO — Cinematic parallax with word-by-word reveal
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function HeroSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 1]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, -40]);
+
+  const scrollToProgram = () => {
+    document.getElementById("what-you-get")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0">
+    <section ref={ref} className="relative min-h-screen flex flex-col overflow-hidden">
+      {/* Parallax background image */}
+      <motion.div className="absolute inset-0 z-0" style={{ scale: imageScale, y: imageY }}>
         <img
           src={HERO_BG}
-          alt=""
+          alt="Marshall Wilkinson in The Contractor Circle office"
           className="w-full h-full object-cover"
-          style={{ opacity: 0.35 }}
+          style={{ objectPosition: "65% center" }}
         />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, oklch(0.10 0.01 270 / 0.6) 0%, oklch(0.10 0.01 270 / 0.85) 60%, oklch(0.10 0.01 270) 100%)",
-          }}
-        />
+      </motion.div>
+
+      {/* Directional gradient — dark left, transparent right to reveal Marshall */}
+      <motion.div
+        className="absolute inset-0 z-[1]"
+        style={{
+          opacity: overlayOpacity,
+          background: `linear-gradient(105deg,
+            oklch(0.08 0.01 270 / 0.92) 0%,
+            oklch(0.08 0.01 270 / 0.88) 20%,
+            oklch(0.08 0.01 270 / 0.72) 40%,
+            oklch(0.08 0.01 270 / 0.45) 60%,
+            oklch(0.08 0.01 270 / 0.22) 80%,
+            oklch(0.08 0.01 270 / 0.15) 100%
+          )`,
+        }}
+      />
+
+      {/* Bottom gradient for text readability at bottom */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-48 z-[1]"
+        style={{
+          background: "linear-gradient(to top, oklch(0.08 0.01 270 / 0.95), transparent)",
+        }}
+      />
+
+      {/* Subtle vignette */}
+      <div
+        className="absolute inset-0 z-[2] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at 70% 40%, transparent 40%, oklch(0.08 0.01 270 / 0.35) 100%)",
+        }}
+      />
+
+      {/* SVG grain */}
+      <div
+        className="absolute inset-0 z-[3] opacity-[0.02] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
+          backgroundSize: "128px 128px",
+        }}
+      />
+
+      {/* Top nav */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 py-5">
+        <div className="flex items-center gap-2.5">
+          <span className="text-ember font-bold text-lg tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+            ALP
+          </span>
+          <span className="text-cream/25 text-sm hidden sm:inline">|</span>
+          <span className="text-cream/55 text-sm hidden sm:inline" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            Contractor Circle
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="/constructline"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-cream/50 hover:text-ember text-sm font-medium transition-colors"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            ConstructLine
+          </a>
+          <a
+            href="/portal"
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Member Login
+            <ArrowRight size={13} />
+          </a>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-3xl mx-auto px-6 text-center pt-20 pb-24">
-        {/* Eyebrow */}
+      {/* Main content — LEFT ALIGNED */}
+      <motion.div
+        style={{ y: contentY }}
+        className="relative z-10 flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-28 sm:pt-32 pb-12 sm:pb-16 w-full sm:max-w-[58%] lg:max-w-[50%]"
+      >
+        {/* Eyebrow badge — small, institutional */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-          className="mb-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease, delay: 0.15 }}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-ember/25 bg-ember/[0.06] mb-6 sm:mb-8 w-fit"
         >
+          <Zap size={11} className="text-ember/80" fill="currentColor" />
           <span
-            className="inline-block px-5 py-2 rounded-full border border-ember/25 bg-ember/8 text-xs font-semibold tracking-[0.2em] uppercase text-ember"
+            className="text-[9px] sm:text-[10px] font-semibold tracking-[0.18em] uppercase text-ember/80"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             The Contractor Circle
           </span>
         </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 1, ease, delay: 0.15 }}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-cream leading-[1.08] tracking-tight mb-6"
+        {/* Headline — refined, left-aligned, ivory with selective gold */}
+        <h1
+          className="text-2xl sm:text-4xl md:text-[2.8rem] lg:text-[3.4rem] font-bold leading-[1.08] tracking-tight mb-5 sm:mb-6"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          Build the operating system your contracting business is missing.
-        </motion.h1>
+          <AnimatedWords
+            text="Build the"
+            className="text-[#F5F0E8]"
+            delay={0.3}
+          />
+          <br className="hidden sm:block" />
+          <AnimatedWords
+            text="operating system"
+            className="text-ember"
+            delay={0.55}
+          />
+          <br className="hidden sm:block" />
+          <AnimatedWords
+            text="your contracting"
+            className="text-[#F5F0E8]"
+            delay={0.8}
+          />
+          <br className="hidden sm:block" />
+          <AnimatedWords
+            text="business is missing."
+            className="text-[#F5F0E8]"
+            delay={1.0}
+          />
+        </h1>
 
-        {/* Subheadline */}
+        {/* Subtle divider */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.2, delay: 1.35, ease }}
+          className="w-16 h-[1.5px] mb-5 sm:mb-6"
+          style={{
+            background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.72 0.12 55 / 0.2))",
+            transformOrigin: "left",
+          }}
+        />
+
+        {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.3 }}
-          className="text-lg sm:text-xl text-cream/60 max-w-2xl mx-auto mb-10 leading-relaxed"
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease, delay: 1.2 }}
+          className="text-sm sm:text-base lg:text-lg text-cream/65 font-light leading-relaxed mb-7 sm:mb-8 max-w-lg"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
-          The Contractor Circle is Marshall Wilkinson's private implementation environment for
-          contractors who want sharper decisions, better systems, stronger accountability, and a
-          business that does not depend on guesswork.
+          Marshall Wilkinson's private implementation environment for contractors who want sharper
+          decisions, cleaner systems, and a business that no longer depends on guesswork.
         </motion.p>
 
-        {/* CTA */}
+        {/* Dual CTAs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.45 }}
-          className="mb-4"
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease, delay: 1.45 }}
+          className="flex flex-col sm:flex-row items-start gap-3 mb-5"
         >
-          <CTAButton label="Join The Circle" />
+          <CTAButton label="Apply to Join" />
+          <button
+            onClick={scrollToProgram}
+            className="inline-flex items-center gap-2 px-6 py-4 text-cream/60 hover:text-cream font-medium text-sm transition-all duration-300 group"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            Explore the Program
+            <ChevronDown size={15} className="group-hover:translate-y-0.5 transition-transform" />
+          </button>
         </motion.div>
 
         {/* Microcopy */}
         <motion.p
           initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-sm text-cream/35"
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.7, duration: 0.8 }}
+          className="text-[11px] text-cream/25 mb-8"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           $497/mo · Founding rate locked while active · Cancel anytime
         </motion.p>
 
-        {/* Scroll hint */}
+        {/* Credibility bar */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 0.3 } : {}}
-          transition={{ delay: 1.2, duration: 0.8 }}
-          className="mt-16"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.85, duration: 0.8, ease }}
+          className="flex flex-wrap items-center gap-x-4 gap-y-1.5"
         >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-6 h-10 mx-auto rounded-full border border-cream/20 flex items-start justify-center pt-2"
-          >
-            <div className="w-1 h-2 rounded-full bg-cream/40" />
-          </motion.div>
+          {["Strategy", "Sales Process", "Project Delivery", "Financial Control"].map((item, i) => (
+            <span key={i} className="flex items-center gap-2">
+              {i > 0 && <span className="text-ember/30 text-[8px] hidden sm:inline">·</span>}
+              <span
+                className="text-[10px] sm:text-xs tracking-[0.08em] uppercase text-cream/35 font-medium"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                {item}
+              </span>
+            </span>
+          ))}
         </motion.div>
+      </motion.div>
+
+      {/* Floating glass card — lower right, subtle */}
+      <motion.div
+        initial={{ opacity: 0, y: 30, x: 20 }}
+        animate={{ opacity: 1, y: 0, x: 0 }}
+        transition={{ delay: 2.2, duration: 1.2, ease }}
+        className="absolute bottom-28 right-8 sm:right-12 lg:right-16 z-10 hidden md:block"
+      >
+        <div
+          className="px-5 py-4 rounded-xl border border-cream/[0.08] backdrop-blur-md"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.12 0.01 270 / 0.55), oklch(0.10 0.01 270 / 0.35))",
+            boxShadow: "0 8px 32px oklch(0 0 0 / 0.3), inset 0 1px 0 oklch(1 0 0 / 0.04)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span
+              className="text-[9px] tracking-[0.15em] uppercase text-cream/40 font-semibold"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              Next Live Call
+            </span>
+          </div>
+          <p
+            className="text-sm text-cream/75 font-medium mb-3"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Sunday, May 10 · 5 PM ET
+          </p>
+          <div className="border-t border-cream/[0.06] pt-2.5">
+            <span
+              className="text-[9px] tracking-[0.12em] uppercase text-cream/30 font-semibold"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              This Month's Focus
+            </span>
+            <p
+              className="text-xs text-cream/50 mt-1 leading-relaxed"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Sales Process → Project Delivery → Financial Control
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Scroll indicator — bottom center */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.5, duration: 1.5 }}
+        className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10"
+      >
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-1.5"
+        >
+          <span
+            className="text-[9px] tracking-[0.3em] uppercase text-cream/15"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            Scroll
+          </span>
+          <div className="w-[1px] h-6 bg-gradient-to-b from-cream/15 to-transparent" />
+        </motion.div>
+      </motion.div>
+
+      {/* Transformation ticker at bottom */}
+      <div className="relative z-10 mt-auto">
+        <TransformationTicker />
       </div>
     </section>
   );
 }
 
-// ─── Section 2: Bridge ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 2: BRIDGE — Editorial pull-quote style
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function BridgeSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
-      <div className="max-w-3xl mx-auto text-center">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
+      <div className="max-w-3xl mx-auto">
+        {/* Eyebrow */}
         <motion.p
           initial={{ opacity: 0, letterSpacing: "0.5em" }}
           animate={isInView ? { opacity: 1, letterSpacing: "0.2em" } : {}}
           transition={{ duration: 1, ease }}
-          className="text-xs font-semibold uppercase text-ember mb-6"
+          className="text-xs font-semibold uppercase text-ember mb-8 text-center"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
           From Tool to System
         </motion.p>
 
+        {/* Pull-quote headline */}
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.1 }}
-          className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight mb-8"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-10 text-center"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          A checklist can help.
+          <span className="text-cream">A checklist can help.</span>
           <br />
           <span className="text-ember">A system changes the company.</span>
         </motion.h2>
 
+        {/* Editorial body — left-aligned for readability */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.2 }}
-          className="space-y-5 text-base sm:text-lg text-cream/55 leading-relaxed"
-          style={{ fontFamily: "'DM Sans', sans-serif" }}
+          className="relative pl-6 sm:pl-8 border-l-2 border-ember/20"
         >
-          <p>
-            You may have come here through the Estimator's Checklist, the Q2 Framework, or the
-            Holy Grail of Scaling. Each one gives you a piece of the machine.
-          </p>
-          <p className="text-cream/70 font-medium">But a piece is not the machine.</p>
-          <p>
-            Inside Contractor Circle, those pieces get connected into a live operating rhythm:
-            estimating, scorecards, meetings, templates, accountability, decision-making,
-            planning, and execution.
-          </p>
+          <div
+            className="space-y-6 text-base sm:text-lg leading-[1.8]"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            <p className="text-cream/55">
+              You may have come here through the{" "}
+              <span className="text-cream/80 font-medium">Estimator's Checklist</span>, the{" "}
+              <span className="text-cream/80 font-medium">Q2 Framework</span>, or the{" "}
+              <span className="text-cream/80 font-medium">Holy Grail of Scaling</span>.
+            </p>
+            <p className="text-cream/55">
+              Each one gives you a piece of the machine.
+            </p>
+            <p className="text-cream/80 font-semibold text-lg sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
+              But a piece is not the machine.
+            </p>
+            <p className="text-cream/55">
+              Inside Contractor Circle, those pieces get connected into a live operating rhythm:
+              estimating, scorecards, meetings, templates, accountability, decision-making,
+              planning, and execution.
+            </p>
+          </div>
         </motion.div>
       </div>
     </section>
   );
 }
 
-// ─── Section 3: What the Circle Is ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 3: WHAT THE CIRCLE IS — Glass cards with numbered badges
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function WhatIsSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 30%, oklch(0.72 0.12 55 / 0.03), transparent 60%)",
+          background: "radial-gradient(ellipse at 50% 20%, oklch(0.72 0.12 55 / 0.04), transparent 60%)",
         }}
       />
 
@@ -398,7 +745,7 @@ function WhatIsSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-14"
+          className="text-center mb-16"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -412,22 +759,40 @@ function WhatIsSection() {
           >
             This is not a course.
             <br />
-            It is a live implementation room.
+            <span className="text-cream/60">It is a live implementation room.</span>
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((f, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, ease, delay: 0.1 + i * 0.06 }}
-              className="group p-6 rounded-xl border border-cream/[0.06] bg-cream/[0.02] hover:bg-cream/[0.04] hover:border-ember/15 transition-all duration-300"
+              className="group relative p-6 rounded-2xl glass-card hover:border-ember/20 transition-all duration-500 overflow-hidden"
             >
-              <div className="w-10 h-10 rounded-lg bg-ember/10 border border-ember/20 flex items-center justify-center mb-4 group-hover:bg-ember/15 transition-colors">
+              {/* Hover glow */}
+              <div
+                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: "radial-gradient(circle at 50% 0%, oklch(0.72 0.12 55 / 0.08), transparent 70%)",
+                }}
+              />
+
+              {/* Number */}
+              <span
+                className="text-[10px] font-bold tracking-[0.2em] text-ember/40 uppercase mb-4 block"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                {f.num}
+              </span>
+
+              {/* Icon */}
+              <div className="w-10 h-10 rounded-lg bg-ember/10 border border-ember/20 flex items-center justify-center mb-4 group-hover:bg-ember/15 group-hover:border-ember/30 transition-all duration-300">
                 <f.icon size={18} className="text-ember" />
               </div>
+
               <h3
                 className="text-sm font-bold text-cream mb-2 leading-snug"
                 style={{ fontFamily: "'Sora', sans-serif" }}
@@ -448,20 +813,22 @@ function WhatIsSection() {
   );
 }
 
-// ─── Section 4: Why Now ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 4: WHY NOW — Progressive urgency with animated reveals
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function WhyNowSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-12"
+          className="text-center mb-14"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -473,22 +840,30 @@ function WhyNowSection() {
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            The problems do not go away because you downloaded the PDF.
+            The problems do not go away
+            <br />
+            <span className="text-cream/50">because you downloaded the PDF.</span>
           </h2>
         </motion.div>
 
-        <div className="space-y-4 mb-12">
+        <div className="space-y-0 mb-14">
           {painPoints.map((point, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -30 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.5, ease, delay: 0.15 + i * 0.07 }}
-              className="flex items-start gap-4 group"
+              transition={{ duration: 0.5, ease, delay: 0.15 + i * 0.08 }}
+              className="group flex items-center gap-5 py-4 border-b border-cream/[0.04] last:border-b-0"
             >
-              <div className="w-2 h-2 rounded-full bg-ember/60 mt-2.5 shrink-0 group-hover:bg-ember transition-colors" />
+              <span
+                className="text-[10px] font-bold text-cream/15 tabular-nums w-5 shrink-0"
+                style={{ fontFamily: "'Sora', monospace" }}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-ember/50 shrink-0 group-hover:bg-ember group-hover:shadow-[0_0_8px_oklch(0.72_0.12_55/0.4)] transition-all duration-300" />
               <p
-                className="text-base sm:text-lg text-cream/60 group-hover:text-cream/80 transition-colors"
+                className="text-base sm:text-lg text-cream/55 group-hover:text-cream/80 transition-colors duration-300"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
                 {point}
@@ -500,7 +875,7 @@ function WhyNowSection() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease, delay: 0.6 }}
+          transition={{ duration: 0.6, ease, delay: 0.7 }}
           className="text-center"
         >
           <CTAButton label="Get in the room" variant="outline" />
@@ -510,19 +885,20 @@ function WhyNowSection() {
   );
 }
 
-// ─── Section 5: Proof ───────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 5: PROOF — Revenue cards with animated counters + testimonials
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function ProofSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 30%, oklch(0.72 0.12 55 / 0.04), transparent 60%)",
+          background: "radial-gradient(ellipse at 50% 30%, oklch(0.72 0.12 55 / 0.04), transparent 60%)",
         }}
       />
 
@@ -531,7 +907,7 @@ function ProofSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-14"
+          className="text-center mb-16"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -547,32 +923,28 @@ function ProofSection() {
           </h2>
         </motion.div>
 
-        {/* Proof cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+        {/* Proof cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
           {proofCards.map((card, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, ease, delay: 0.1 + i * 0.08 }}
-              className="p-6 rounded-xl border border-ember/15 bg-gradient-to-br from-ember/[0.05] to-transparent relative overflow-hidden group"
+              className="group relative p-6 rounded-2xl glass-card hover:border-ember/20 transition-all duration-500 overflow-hidden"
             >
-              {/* Corner glow */}
+              {/* Corner glow on hover */}
               <div
-                className="absolute top-0 right-0 w-32 h-32 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                className="absolute top-0 right-0 w-40 h-40 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
-                  background:
-                    "radial-gradient(circle at top right, oklch(0.72 0.12 55 / 0.15), transparent 70%)",
+                  background: "radial-gradient(circle at top right, oklch(0.72 0.12 55 / 0.12), transparent 70%)",
                 }}
               />
 
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                  <TrendingUp size={14} className="text-ember" />
-                  <span
-                    className="text-sm font-bold text-cream"
-                    style={{ fontFamily: "'Sora', sans-serif" }}
-                  >
+                  <TrendingUp size={14} className="text-ember/60" />
+                  <span className="text-sm font-bold text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
                     {card.company}
                   </span>
                 </div>
@@ -584,19 +956,16 @@ function ProofSection() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-sm text-cream/35 line-through">{card.before}</span>
-                <ArrowRight size={12} className="text-ember/60" />
-                <span
-                  className="text-2xl font-bold text-ember"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-sm text-cream/30 line-through">{card.before}</span>
+                <ArrowRight size={12} className="text-ember/50" />
+                <span className="text-2xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
                   {card.after}
                 </span>
               </div>
 
               <p
-                className="text-xs text-cream/35 uppercase tracking-wider"
+                className="text-[10px] text-cream/30 uppercase tracking-[0.15em]"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {card.period} with ALP
@@ -604,58 +973,61 @@ function ProofSection() {
             </motion.div>
           ))}
 
-          {/* Summary card */}
+          {/* Summary stat card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease, delay: 0.5 }}
-            className="p-6 rounded-xl border border-cream/[0.08] bg-cream/[0.02] flex flex-col justify-center text-center sm:col-span-2 lg:col-span-1"
+            className="relative p-6 rounded-2xl glass-card flex flex-col justify-center text-center sm:col-span-2 lg:col-span-1"
           >
-            <p
-              className="text-4xl font-black text-cream mb-2"
-              style={{ fontFamily: "'Sora', sans-serif" }}
-            >
-              $100M+
+            <p className="text-4xl font-black text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+              $<AnimatedCounter target={100} suffix="M+" />
             </p>
-            <p className="text-sm text-cream/45" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-sm text-cream/40 mb-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Revenue generated across ALP member outcomes
             </p>
-            <div className="w-12 h-px bg-ember/30 mx-auto my-4" />
-            <p
-              className="text-3xl font-black text-cream mb-2"
-              style={{ fontFamily: "'Sora', sans-serif" }}
-            >
+            <div className="w-12 h-px bg-ember/25 mx-auto mb-5" />
+            <p className="text-3xl font-black text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
               $2.5B+
             </p>
-            <p className="text-sm text-cream/45" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-sm text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Construction experience behind the room
             </p>
           </motion.div>
         </div>
 
         {/* Testimonials */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {testimonials.map((t, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, ease, delay: 0.6 + i * 0.1 }}
-              className="p-6 rounded-xl border border-cream/[0.06] bg-cream/[0.02]"
+              className="relative p-6 sm:p-7 rounded-2xl glass-card"
             >
-              <Quote size={16} className="text-ember/40 mb-3" />
+              {/* Decorative quote mark */}
+              <div
+                className="absolute top-5 left-6 text-5xl font-serif text-ember/10 leading-none select-none pointer-events-none"
+                style={{ fontFamily: "Georgia, serif" }}
+              >
+                "
+              </div>
               <p
-                className="text-sm text-cream/60 leading-relaxed mb-4"
+                className="text-sm text-cream/55 leading-relaxed mb-5 pt-6"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
-                "{t.quote}"
+                {t.quote}
               </p>
-              <p
-                className="text-xs font-bold text-ember tracking-wider uppercase"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
-                — {t.name}
-              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-px bg-ember/30" />
+                <p
+                  className="text-xs font-bold text-ember tracking-wider uppercase"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  {t.name}
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -664,20 +1036,22 @@ function ProofSection() {
   );
 }
 
-// ─── Section 6: What Makes This Different ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 6: COMPARISON — Animated row reveals
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function ComparisonSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-14"
+          className="text-center mb-16"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -700,23 +1074,17 @@ function ComparisonSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.15 }}
-          className="rounded-xl border border-cream/[0.08] overflow-hidden"
+          className="rounded-2xl glass-card overflow-hidden"
         >
           {/* Header */}
-          <div className="grid grid-cols-2 bg-cream/[0.04]">
-            <div className="p-4 sm:p-5 border-r border-cream/[0.06]">
-              <p
-                className="text-xs font-bold text-cream/40 uppercase tracking-wider"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
+          <div className="grid grid-cols-2">
+            <div className="p-5 sm:p-6 border-r border-cream/[0.06]">
+              <p className="text-xs font-bold text-cream/35 uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
                 Passive Program
               </p>
             </div>
-            <div className="p-4 sm:p-5">
-              <p
-                className="text-xs font-bold text-ember uppercase tracking-wider"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
+            <div className="p-5 sm:p-6">
+              <p className="text-xs font-bold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
                 Contractor Circle
               </p>
             </div>
@@ -724,29 +1092,26 @@ function ComparisonSection() {
 
           {/* Rows */}
           {comparisonRows.map((row, i) => (
-            <div
+            <motion.div
               key={i}
-              className="grid grid-cols-2 border-t border-cream/[0.06]"
+              initial={{ opacity: 0, x: -15 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.5, ease, delay: 0.25 + i * 0.08 }}
+              className="grid grid-cols-2 border-t border-cream/[0.04]"
             >
-              <div className="p-4 sm:p-5 border-r border-cream/[0.06] flex items-center gap-3">
-                <X size={14} className="text-cream/20 shrink-0" />
-                <span
-                  className="text-sm text-cream/40"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
+              <div className="p-5 sm:p-6 border-r border-cream/[0.06] flex items-center gap-3">
+                <X size={14} className="text-cream/15 shrink-0" />
+                <span className="text-sm text-cream/35" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   {row.passive}
                 </span>
               </div>
-              <div className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="p-5 sm:p-6 flex items-center gap-3">
                 <Check size={14} className="text-ember shrink-0" />
-                <span
-                  className="text-sm text-cream/75 font-medium"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
+                <span className="text-sm text-cream/75 font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   {row.circle}
                 </span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
       </div>
@@ -754,54 +1119,63 @@ function ComparisonSection() {
   );
 }
 
-// ─── Section 7: Who It's For ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 7: QUALIFICATION — For / Not For with premium badges
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function QualificationSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-14"
+          className="text-center mb-16"
         >
           <h2
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            This is for contractors who are done guessing.
+            This is for contractors
+            <br />
+            <span className="text-cream/50">who are done guessing.</span>
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* For you */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, ease, delay: 0.15 }}
-            className="p-8 rounded-xl border border-ember/15 bg-ember/[0.03]"
+            className="p-7 sm:p-8 rounded-2xl glass-card border-ember/15"
           >
-            <p
-              className="text-xs font-bold text-ember uppercase tracking-wider mb-6"
-              style={{ fontFamily: "'Sora', sans-serif" }}
-            >
-              For you if
-            </p>
+            <div className="flex items-center gap-2 mb-7">
+              <div className="w-6 h-6 rounded-full bg-ember/15 flex items-center justify-center">
+                <Check size={12} className="text-ember" />
+              </div>
+              <p className="text-xs font-bold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                For you if
+              </p>
+            </div>
             <div className="space-y-4">
               {forYou.map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <Check size={16} className="text-ember mt-0.5 shrink-0" />
-                  <span
-                    className="text-sm text-cream/70"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.4, ease, delay: 0.3 + i * 0.06 }}
+                  className="flex items-start gap-3"
+                >
+                  <Check size={15} className="text-ember mt-0.5 shrink-0" />
+                  <span className="text-sm text-cream/70" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {item}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
@@ -811,25 +1185,30 @@ function QualificationSection() {
             initial={{ opacity: 0, x: 20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, ease, delay: 0.25 }}
-            className="p-8 rounded-xl border border-cream/[0.06] bg-cream/[0.02]"
+            className="p-7 sm:p-8 rounded-2xl glass-card"
           >
-            <p
-              className="text-xs font-bold text-cream/40 uppercase tracking-wider mb-6"
-              style={{ fontFamily: "'Sora', sans-serif" }}
-            >
-              Not for you if
-            </p>
+            <div className="flex items-center gap-2 mb-7">
+              <div className="w-6 h-6 rounded-full bg-cream/[0.06] flex items-center justify-center">
+                <X size={12} className="text-cream/30" />
+              </div>
+              <p className="text-xs font-bold text-cream/35 uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                Not for you if
+              </p>
+            </div>
             <div className="space-y-4">
               {notForYou.map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <X size={16} className="text-cream/25 mt-0.5 shrink-0" />
-                  <span
-                    className="text-sm text-cream/45"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.4, ease, delay: 0.35 + i * 0.06 }}
+                  className="flex items-start gap-3"
+                >
+                  <X size={15} className="text-cream/20 mt-0.5 shrink-0" />
+                  <span className="text-sm text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {item}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
@@ -839,14 +1218,67 @@ function QualificationSection() {
   );
 }
 
-// ─── Section 8: Objection Handling ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 8: OBJECTION HANDLING — Accordion style
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ObjectionItem({ obj, index }: { obj: typeof objections[0]; index: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-20px" }}
+      transition={{ duration: 0.5, ease, delay: index * 0.06 }}
+      className="border-b border-cream/[0.05] last:border-b-0"
+    >
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-5 sm:py-6 text-left group cursor-pointer"
+      >
+        <span
+          className="text-base sm:text-lg font-semibold text-cream/80 group-hover:text-cream transition-colors duration-200 pr-4"
+          style={{ fontFamily: "'Sora', sans-serif" }}
+        >
+          "{obj.q}"
+        </span>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="shrink-0"
+        >
+          <ChevronDown size={18} className="text-cream/25 group-hover:text-ember transition-colors" />
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease }}
+            className="overflow-hidden"
+          >
+            <p
+              className="text-sm sm:text-base text-ember/90 font-medium leading-relaxed pb-6 pl-0"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {obj.a}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
 
 function ObjectionSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section ref={ref} className="relative py-24 sm:py-32 px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -868,33 +1300,9 @@ function ObjectionSection() {
           </h2>
         </motion.div>
 
-        <div className="space-y-5">
+        <div className="rounded-2xl glass-card p-6 sm:p-8">
           {objections.map((obj, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, ease, delay: 0.1 + i * 0.08 }}
-              className="p-6 rounded-xl border border-cream/[0.06] bg-cream/[0.02] hover:border-ember/15 transition-colors duration-300"
-            >
-              <div className="flex items-start gap-4">
-                <AlertTriangle size={16} className="text-cream/25 mt-1 shrink-0" />
-                <div>
-                  <p
-                    className="text-base font-bold text-cream/80 mb-2"
-                    style={{ fontFamily: "'Sora', sans-serif" }}
-                  >
-                    "{obj.q}"
-                  </p>
-                  <p
-                    className="text-sm text-ember/80 font-medium"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    {obj.a}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+            <ObjectionItem key={i} obj={obj} index={i} />
           ))}
         </div>
       </div>
@@ -902,7 +1310,9 @@ function ObjectionSection() {
   );
 }
 
-// ─── Section 9: Pricing ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 9: PRICING — Floating card with animated gradient border
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function PricingSection() {
   const ref = useRef<HTMLDivElement>(null);
@@ -910,14 +1320,14 @@ function PricingSection() {
   const { startCheckout, isLoading } = useCircleCheckout();
 
   return (
-    <section id="pricing" ref={ref} className="relative py-20 sm:py-28 px-6">
+    <section id="pricing" ref={ref} className="relative py-24 sm:py-32 px-6">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-center mb-12"
+          className="text-center mb-14"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -935,10 +1345,9 @@ function PricingSection() {
             initial={{ scaleX: 0 }}
             animate={isInView ? { scaleX: 1 } : {}}
             transition={{ duration: 1, delay: 0.3, ease }}
-            className="w-16 h-[2px] mx-auto mt-5"
+            className="w-16 h-[2px] mx-auto mt-6"
             style={{
-              background:
-                "linear-gradient(90deg, transparent, oklch(0.72 0.12 55), transparent)",
+              background: "linear-gradient(90deg, transparent, oklch(0.72 0.12 55), transparent)",
               transformOrigin: "center",
             }}
           />
@@ -951,7 +1360,7 @@ function PricingSection() {
           transition={{ duration: 1, ease, delay: 0.2 }}
           className="relative"
         >
-          {/* Glow border */}
+          {/* Rotating gradient border */}
           <motion.div
             className="absolute -inset-[1px] rounded-2xl opacity-60"
             style={{
@@ -970,7 +1379,9 @@ function PricingSection() {
             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
           />
 
-          <div className="absolute -inset-8 rounded-3xl blur-3xl pointer-events-none"
+          {/* Ambient glow behind card */}
+          <div
+            className="absolute -inset-10 rounded-3xl blur-3xl pointer-events-none"
             style={{ background: "radial-gradient(ellipse at center, oklch(0.72 0.12 55 / 0.06), transparent 70%)" }}
           />
 
@@ -992,23 +1403,20 @@ function PricingSection() {
             </div>
 
             {/* Price */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-3">
               <div className="flex items-baseline justify-center gap-1">
-                <span
-                  className="text-5xl sm:text-6xl lg:text-7xl font-bold text-cream"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
+                <span className="text-5xl sm:text-6xl lg:text-7xl font-bold text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
                   $497
                 </span>
                 <span className="text-xl text-cream/40">/mo</span>
               </div>
-              <p
-                className="text-sm text-cream/40 mt-3"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
+              <p className="text-sm text-cream/40 mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 Cancel anytime. Founding rate locked while your membership stays active.
               </p>
             </div>
+
+            {/* Divider */}
+            <div className="w-full h-px bg-cream/[0.06] my-8" />
 
             {/* Includes */}
             <div className="space-y-3.5 mb-10">
@@ -1023,10 +1431,7 @@ function PricingSection() {
                   <div className="w-5 h-5 rounded-full bg-ember/15 flex items-center justify-center shrink-0">
                     <Check size={12} className="text-ember" />
                   </div>
-                  <span
-                    className="text-sm sm:text-base text-cream/75"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
+                  <span className="text-sm sm:text-base text-cream/70" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {item}
                   </span>
                 </motion.div>
@@ -1049,7 +1454,7 @@ function PricingSection() {
               <button
                 onClick={startCheckout}
                 disabled={isLoading}
-                className="relative flex items-center justify-center gap-3 w-full py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 cursor-pointer"
+                className="relative flex items-center justify-center gap-3 w-full py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 cursor-pointer group"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {isLoading ? (
@@ -1061,7 +1466,7 @@ function PricingSection() {
                   <>
                     <Zap size={18} fill="currentColor" />
                     Claim Founding Access
-                    <ArrowRight size={18} />
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
@@ -1073,35 +1478,42 @@ function PricingSection() {
   );
 }
 
-// ─── Section 10: Final Close ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 10: FINAL CLOSE — Cinematic parallax background
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function FinalCloseSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
 
   return (
-    <section ref={ref} className="relative py-24 sm:py-32 px-6 overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0">
+    <section ref={ref} className="relative py-28 sm:py-36 px-6 overflow-hidden">
+      {/* Parallax background */}
+      <motion.div className="absolute inset-0" style={{ y: bgY }}>
         <img src={FINAL_CTA_BG} alt="" className="w-full h-full object-cover" style={{ opacity: 0.2 }} />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, oklch(0.10 0.01 270) 0%, oklch(0.10 0.01 270 / 0.7) 50%, oklch(0.10 0.01 270) 100%)",
-          }}
-        />
-      </div>
+      </motion.div>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, oklch(0.10 0.01 270) 0%, oklch(0.10 0.01 270 / 0.65) 50%, oklch(0.10 0.01 270) 100%)",
+        }}
+      />
 
       <div className="relative z-10 max-w-3xl mx-auto text-center">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease }}
-          className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight mb-6"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          Stop collecting tools.
+          <span className="text-cream">Stop collecting tools.</span>
           <br />
           <span className="text-ember">Start building the machine.</span>
         </motion.h2>
@@ -1139,38 +1551,27 @@ function FinalCloseSection() {
   );
 }
 
-// ─── Footer ─────────────────────────────────────────────────────────────────
+// ─── Footer ────────────────────────────────────────────────────────────────────
 
 function JoinFooter() {
   return (
-    <footer className="py-10 px-6 border-t border-cream/[0.06]">
+    <footer className="py-10 px-6 border-t border-cream/[0.04]">
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p
-          className="text-xs text-cream/25"
-          style={{ fontFamily: "'DM Sans', sans-serif" }}
-        >
+        <p className="text-xs text-cream/20" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           &copy; {new Date().getFullYear()} ALP — Altitude Logic Pressure. All rights reserved.
         </p>
         <div className="flex items-center gap-6">
-          <a
-            href="/"
-            className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
+          <a href="/" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Home
           </a>
-          <a
-            href="/portal"
-            className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
+          <a href="/portal" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Member Login
           </a>
           <a
             href="https://instagram.com/realmarshallwilkinson"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-cream/30 hover:text-cream/60 transition-colors"
+            className="text-xs text-cream/25 hover:text-cream/50 transition-colors"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             Instagram
@@ -1181,20 +1582,32 @@ function JoinFooter() {
   );
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function JoinPage() {
   return (
     <div className="min-h-screen bg-background text-foreground grain-overlay">
-      {/* Ambient background */}
+      {/* Ambient background blobs */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div
-          className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full blur-[200px]"
+        <motion.div
+          className="absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full blur-[200px]"
           style={{ background: "oklch(0.72 0.12 55 / 0.04)" }}
+          animate={{ scale: [1, 1.1, 1], opacity: [0.04, 0.06, 0.04] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
-        <div
-          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[200px]"
+        <motion.div
+          className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-[200px]"
           style={{ background: "oklch(0.65 0.12 240 / 0.03)" }}
+          animate={{ scale: [1, 0.9, 1], opacity: [0.03, 0.05, 0.03] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[250px]"
+          style={{ background: "oklch(0.72 0.12 55 / 0.02)" }}
+          animate={{ scale: [1, 1.05, 1], opacity: [0.02, 0.04, 0.02] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 

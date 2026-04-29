@@ -3306,3 +3306,29 @@
 - [x] Register /join route in App.tsx
 - [x] Write vitest tests for /join page (17 passing)
 - [ ] Save checkpoint
+
+## /join Page — Premium Polish Pass
+- [ ] Hero: larger type scale, staggered word animations, cinematic gradient overlays, floating particle/grain effect
+- [ ] Bridge: editorial pull-quote styling, dramatic line breaks, more breathing room
+- [ ] What the Circle Is: glassmorphism cards with hover depth, icon glow effects, staggered reveal
+- [ ] Why Now: animated counter-style pain points, progressive reveal with urgency
+- [ ] Proof: revenue arc visualization, animated number counters, premium card depth with inner glow
+- [ ] Comparison: animated row reveals, stronger visual contrast between columns
+- [ ] Qualification: premium badge styling, animated check/x marks
+- [ ] Objection Handling: accordion-style expand, editorial formatting
+- [ ] Pricing: floating card with animated border gradient, premium badge, urgency element
+- [ ] Final Close: parallax background, dramatic typography, pulsing CTA
+- [ ] Global: consistent section spacing rhythm, scroll-triggered animations, ambient light effects
+- [ ] Mobile: verify all sections look premium on mobile viewports
+
+## /join Hero Rebuild — Cinematic Advisory Layout
+- [x] Move headline/copy to left 45%, let Marshall occupy right 55%
+- [x] Replace centered layout with left-aligned cinematic advisory feel
+- [x] Add directional dark gradient (left dark → right transparent) instead of uniform overlay
+- [x] Reduce headline size, use ivory not pure white, gold only on "operating system"
+- [x] Refine badge — smaller, letter-spaced, gold outline, positioned above headline on left
+- [x] Add dual CTAs: "Apply to Join" + "Explore the Program"
+- [x] Add credibility bar under CTAs (Strategy · Sales Process · Project Delivery · Financial Control)
+- [x] Add subtle floating glass card (Next Live Call + This Month's Focus)
+- [x] Keep Marshall visible and slightly brighter on right side
+- [x] Update tests for new hero structure (17 passing)

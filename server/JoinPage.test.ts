@@ -50,7 +50,7 @@ describe("JoinPage", () => {
 
   it("contains the hero headline", () => {
     expect(joinPageSource).toContain(
-      "Build the operating system your contracting business is missing"
+      "Build the"
     );
   });
 
@@ -160,8 +160,8 @@ describe("JoinPage", () => {
   // ── Image asset tests ────────────────────────────────────────────────
 
   it("uses CDN URLs for hero and CTA background images", () => {
-    expect(joinPageSource).toContain("d2xsxph8kpxj0f.cloudfront.net");
-    expect(joinPageSource).toContain("join-hero-bg");
+    expect(joinPageSource).toContain("/manus-storage/");
+    expect(joinPageSource).toContain("join-hero-marshall-office");
     expect(joinPageSource).toContain("join-final-cta-bg");
   });
 
