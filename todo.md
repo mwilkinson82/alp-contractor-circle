@@ -3462,3 +3462,8 @@
 - [x] Pull Next Live Call date dynamically from portal admin data (falls back to bootcamp_date from DB)
 - [x] Fix footer: "ALP Contractor Circle, all rights reserved" (both JoinPage and circle/Footer.tsx)
 - [x] Fix all broken links throughout the page (Explore the Program scrolls to #what-you-get)
+
+## More Fixes — April 29 (Marshall's mobile screenshot feedback)
+- [x] Remove "APPLICATION REQUIRED" text still showing in Proof section CTA bar
+- [x] Fix oversized/fat mobile CTA buttons — make consistent smaller sizing across all sections
+- [x] Fix background image not showing on "Stop collecting tools" final CTA section (re-uploaded, increased opacity to 0.45, reduced overlay)

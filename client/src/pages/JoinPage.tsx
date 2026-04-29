@@ -31,7 +31,7 @@ const HERO_BG =
 const HERO_MOBILE =
   "/manus-storage/join-hero-mobile_c1aaf379.png";
 const FINAL_CTA_BG =
-  "/manus-storage/bridge-boardroom-bg_c2e57c87.png";
+  "/manus-storage/bridge-boardroom-bg_d5f13e11.png";
 
 // ─── Easing ────────────────────────────────────────────────────────────────────
 
@@ -296,7 +296,7 @@ function CTAButton({
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="inline-flex items-center gap-2 px-5 py-3 sm:px-8 sm:py-4 sm:gap-2.5 border border-ember/30 text-ember font-semibold text-sm sm:text-base rounded-xl hover:bg-ember/8 hover:border-ember/50 transition-all duration-300 disabled:opacity-60 cursor-pointer group"
+        className="inline-flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 sm:gap-2.5 border border-ember/30 text-ember font-semibold text-xs sm:text-sm rounded-xl hover:bg-ember/8 hover:border-ember/50 transition-all duration-300 disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -325,7 +325,7 @@ function CTAButton({
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="relative inline-flex items-center gap-2.5 px-6 py-3.5 sm:px-10 sm:py-5 sm:gap-3 bg-ember hover:bg-ember-light text-midnight font-bold text-sm sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-60 cursor-pointer group"
+        className="relative inline-flex items-center gap-2 px-5 py-2.5 sm:px-8 sm:py-3.5 sm:gap-2.5 bg-ember hover:bg-ember-light text-midnight font-bold text-xs sm:text-sm rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -2112,10 +2112,7 @@ function ProofSection() {
             </div>
             <div className="flex items-center justify-between">
               <CTAButton label="Join The Circle" variant="primary" />
-              <div className="flex items-center gap-1 text-cream/30">
-                <Lock size={10} />
-                <span className="text-[9px] uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>Application Required</span>
-              </div>
+
             </div>
             {/* Feature icons row */}
             <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-cream/[0.06]">
@@ -2529,7 +2526,7 @@ function ComparisonSection() {
               <button
                 onClick={() => startCheckout()}
                 disabled={isLoading}
-                className="px-8 py-3 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-sm uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-xs uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center gap-2"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
@@ -2565,7 +2562,7 @@ function ComparisonSection() {
             <button
               onClick={() => startCheckout()}
               disabled={isLoading}
-              className="w-full px-6 py-3.5 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-sm uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center justify-center gap-2"
+              className="w-full px-5 py-2.5 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-xs uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center justify-center gap-2"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
@@ -2981,7 +2978,7 @@ function PricingSection() {
               <button
                 onClick={startCheckout}
                 disabled={isLoading}
-                className="relative flex items-center justify-center gap-3 w-full py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 cursor-pointer group"
+                className="relative flex items-center justify-center gap-2.5 w-full py-3.5 bg-ember hover:bg-ember-light text-midnight font-bold text-sm sm:text-base rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_30px_oklch(0.72_0.12_55/0.15)] disabled:opacity-70 cursor-pointer group"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {isLoading ? (
@@ -2992,7 +2989,7 @@ function PricingSection() {
                 ) : (
                   <>
                     <Zap size={18} fill="currentColor" />
-                    Claim Founding Access
+                    Join The Circle
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -3022,13 +3019,13 @@ function FinalCloseSection() {
     <section ref={ref} className="relative py-28 sm:py-36 px-6 overflow-hidden">
       {/* Parallax background */}
       <motion.div className="absolute inset-0" style={{ y: bgY }}>
-        <img src={FINAL_CTA_BG} alt="" className="w-full h-full object-cover" style={{ opacity: 0.2 }} />
+        <img src={FINAL_CTA_BG} alt="" className="w-full h-full object-cover" style={{ opacity: 0.45 }} />
       </motion.div>
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, oklch(0.10 0.01 270) 0%, oklch(0.10 0.01 270 / 0.65) 50%, oklch(0.10 0.01 270) 100%)",
+            "linear-gradient(to bottom, oklch(0.10 0.01 270 / 0.7) 0%, oklch(0.10 0.01 270 / 0.4) 50%, oklch(0.10 0.01 270 / 0.7) 100%)",
         }}
       />
 
