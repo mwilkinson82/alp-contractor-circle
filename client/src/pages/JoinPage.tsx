@@ -17,6 +17,7 @@ import {
   Compass,
   TrendingUp,
   ChevronDown,
+  Crosshair,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 import { trpc } from "@/lib/trpc";
@@ -1106,7 +1107,21 @@ function BridgeSection() {
 
 function WhatIsSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const headerY = useTransform(scrollYProgress, [0, 0.3], [40, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.25], [0, 1]);
+
+  // Color palette for each card's icon ring
+  const cardColors = [
+    { ring: "oklch(0.72 0.12 55)", bg: "oklch(0.72 0.12 55 / 0.08)" },   // 01 ember/gold
+    { ring: "oklch(0.65 0.12 220)", bg: "oklch(0.65 0.12 220 / 0.08)" },  // 02 teal
+    { ring: "oklch(0.65 0.15 145)", bg: "oklch(0.65 0.15 145 / 0.08)" },  // 03 green
+    { ring: "oklch(0.65 0.12 300)", bg: "oklch(0.65 0.12 300 / 0.08)" },  // 04 purple
+    { ring: "oklch(0.65 0.15 25)", bg: "oklch(0.65 0.15 25 / 0.08)" },    // 05 red/coral
+    { ring: "oklch(0.65 0.12 200)", bg: "oklch(0.65 0.12 200 / 0.08)" },  // 06 cyan
+    { ring: "oklch(0.65 0.10 230)", bg: "oklch(0.65 0.10 230 / 0.08)" },  // 07 steel blue
+    { ring: "oklch(0.72 0.12 55)", bg: "oklch(0.72 0.12 55 / 0.08)" },    // 08 ember/gold
+  ];
 
   return (
     <section ref={ref} className="relative py-24 sm:py-32 px-6">
@@ -1117,13 +1132,11 @@ function WhatIsSection() {
           background: "radial-gradient(ellipse at 50% 20%, oklch(0.72 0.12 55 / 0.04), transparent 60%)",
         }}
       />
-
-      <div className="max-w-5xl mx-auto relative">
+      <div className="max-w-6xl mx-auto relative">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-          className="text-center mb-16"
+          style={{ y: headerY, opacity: headerOpacity }}
+          className="text-center mb-6"
         >
           <p
             className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
@@ -1131,61 +1144,222 @@ function WhatIsSection() {
           >
             What You Get
           </p>
+          <div className="w-12 h-0.5 bg-ember mx-auto mb-6" />
           <h2
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             This is not a course.
             <br />
-            <span className="text-cream/60">It is a live implementation room.</span>
+            It is a{" "}
+            <span className="italic" style={{ background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.8 0.1 70))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              live implementation room.
+            </span>
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease, delay: 0.1 + i * 0.06 }}
-              className="group relative p-6 rounded-2xl glass-card hover:border-ember/20 transition-all duration-500 overflow-hidden"
-            >
-              {/* Hover glow */}
-              <div
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        {/* Subheadline */}
+        <motion.p
+          style={{ opacity: headerOpacity, fontFamily: "'DM Sans', sans-serif" }}
+          className="text-center text-cream/50 text-sm sm:text-base max-w-xl mx-auto mb-16 leading-relaxed"
+        >
+          Real problems. Real answers. Real results.
+          <br />
+          Everything inside Contractor Circle is built to help your business run sharper, cleaner, and more profitable.
+        </motion.p>
+
+        {/* 4x2 Feature Grid — Desktop */}
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {features.map((f, i) => {
+            const color = cardColors[i];
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5, ease, delay: i * 0.06 }}
+                className="relative p-5 sm:p-6 rounded-xl overflow-hidden text-center"
                 style={{
-                  background: "radial-gradient(circle at 50% 0%, oklch(0.72 0.12 55 / 0.08), transparent 70%)",
+                  background: "oklch(0.15 0.01 250 / 0.6)",
+                  border: `1px solid oklch(1 0 0 / 0.06)`,
                 }}
-              />
-
-              {/* Number */}
-              <span
-                className="text-[10px] font-bold tracking-[0.2em] text-ember/40 uppercase mb-4 block"
-                style={{ fontFamily: "'Sora', sans-serif" }}
               >
-                {f.num}
-              </span>
-
-              {/* Icon */}
-              <div className="w-10 h-10 rounded-lg bg-ember/10 border border-ember/20 flex items-center justify-center mb-4 group-hover:bg-ember/15 group-hover:border-ember/30 transition-all duration-300">
-                <f.icon size={18} className="text-ember" />
-              </div>
-
-              <h3
-                className="text-sm font-bold text-cream mb-2 leading-snug"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
-                {f.title}
-              </h3>
-              <p
-                className="text-xs text-cream/45 leading-relaxed"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                {f.desc}
-              </p>
-            </motion.div>
-          ))}
+                {/* Number */}
+                <span
+                  className="text-xs font-bold tracking-[0.15em] mb-4 block text-left"
+                  style={{ fontFamily: "'Sora', sans-serif", color: color.ring }}
+                >
+                  {f.num}
+                </span>
+                {/* Icon with colored ring */}
+                <div
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{
+                    border: `2px solid ${color.ring}`,
+                    background: color.bg,
+                  }}
+                >
+                  <f.icon size={24} style={{ color: color.ring }} />
+                </div>
+                {/* Title */}
+                <h3
+                  className="text-sm sm:text-base font-bold text-cream mb-3 leading-snug"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  {f.title}
+                </h3>
+                {/* Divider */}
+                <div className="w-8 h-0.5 mx-auto mb-3" style={{ background: color.ring, opacity: 0.4 }} />
+                {/* Description */}
+                <p
+                  className="text-xs sm:text-sm text-cream/45 leading-relaxed"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {f.desc}
+                </p>
+              </motion.div>
+            );
+          })}
         </div>
+
+        {/* 2-column Feature Grid — Mobile */}
+        <div className="grid grid-cols-2 gap-3 sm:hidden mb-8">
+          {features.map((f, i) => {
+            const color = cardColors[i];
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.4, ease, delay: i * 0.05 }}
+                className="relative p-4 rounded-xl overflow-hidden text-center"
+                style={{
+                  background: "oklch(0.15 0.01 250 / 0.6)",
+                  border: `1px solid oklch(1 0 0 / 0.06)`,
+                }}
+              >
+                {/* Number */}
+                <span
+                  className="text-[10px] font-bold tracking-[0.15em] mb-3 block text-left"
+                  style={{ fontFamily: "'Sora', sans-serif", color: color.ring }}
+                >
+                  {f.num}
+                </span>
+                {/* Icon with colored ring */}
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+                  style={{
+                    border: `2px solid ${color.ring}`,
+                    background: color.bg,
+                  }}
+                >
+                  <f.icon size={20} style={{ color: color.ring }} />
+                </div>
+                {/* Title */}
+                <h3
+                  className="text-xs font-bold text-cream mb-2 leading-snug"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  {f.title}
+                </h3>
+                {/* Divider */}
+                <div className="w-6 h-0.5 mx-auto mb-2" style={{ background: color.ring, opacity: 0.4 }} />
+                {/* Description */}
+                <p
+                  className="text-[10px] text-cream/45 leading-relaxed"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {f.desc}
+                </p>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* ONE GOAL Summary Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease }}
+          className="rounded-xl p-5 sm:p-6 mb-4 flex flex-col sm:flex-row items-center gap-6"
+          style={{
+            background: "oklch(0.15 0.01 250 / 0.6)",
+            border: "1px solid oklch(0.72 0.12 55 / 0.15)",
+          }}
+        >
+          {/* Left: Goal statement */}
+          <div className="flex items-center gap-4 sm:flex-1">
+            <div
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                background: "oklch(0.72 0.12 55 / 0.12)",
+                border: "1px solid oklch(0.72 0.12 55 / 0.25)",
+              }}
+            >
+              <Crosshair size={28} className="text-ember" />
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-ember mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                One Goal:
+              </p>
+              <p className="text-base sm:text-lg font-bold text-cream leading-snug" style={{ fontFamily: "'Sora', sans-serif" }}>
+                Build a company that runs{" "}
+                <span className="text-ember">without you.</span>
+              </p>
+            </div>
+          </div>
+          {/* Right: Stats */}
+          <div className="flex items-center gap-6 sm:gap-8">
+            <div className="text-center">
+              <p className="text-lg sm:text-xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>$2.5B+</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>in construction<br/>experience</p>
+            </div>
+            <div className="w-px h-10 bg-cream/10" />
+            <div className="text-center">
+              <p className="text-lg sm:text-xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>Hundreds</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>of contractors<br/>helped</p>
+            </div>
+            <div className="w-px h-10 bg-cream/10" />
+            <div className="text-center">
+              <p className="text-lg sm:text-xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>Proven</p>
+              <p className="text-[10px] text-cream/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>systems. Real<br/>world results.</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Built in the Field Tagline Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease, delay: 0.1 }}
+          className="rounded-xl p-4 sm:p-5 flex items-center gap-4"
+          style={{
+            background: "oklch(0.15 0.01 250 / 0.6)",
+            border: "1px solid oklch(1 0 0 / 0.06)",
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+            style={{
+              background: "oklch(0.72 0.12 55 / 0.1)",
+              border: "1px solid oklch(0.72 0.12 55 / 0.2)",
+            }}
+          >
+            <Calendar size={18} className="text-ember" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              This is not theory. This is what works right now.
+            </p>
+            <p className="text-xs sm:text-sm font-bold text-cream leading-relaxed" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Built in the field. Tested in the real world. Implemented with you.
+            </p>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

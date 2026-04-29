@@ -3396,3 +3396,10 @@
 - [x] Fix text overflow: "ACCOUNTABILITY" and "DECISION-MAKING" labels don't fit in connected systems grid cards
 - [x] Investigate and fix page flickering (animation re-trigger / HMR loop issue)
 - [x] Build dedicated mobile layout for Bridge section (stacked, impactful, responsive)
+
+## What You Get Section Rebuild (April 29)
+- [x] Rebuild WhatYouGet section to match mockup: numbered cards with colored icon rings in 4x2 grid
+- [x] Add "ONE GOAL: Build a company that runs without you" summary bar with stats
+- [x] Add "Built in the field" closing tagline bar
+- [x] Responsive mobile layout (2-column grid on mobile, stacked summary bar)
+- [x] Scroll-linked animations consistent with Bridge section style
