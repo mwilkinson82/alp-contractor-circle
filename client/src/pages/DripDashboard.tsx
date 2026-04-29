@@ -19,6 +19,10 @@ import {
   AlertCircle,
   RefreshCw,
   ChevronDown,
+  Eye,
+  X,
+  FileText,
+  ChevronRight,
 } from "lucide-react";
 
 const SEQUENCE_LABELS: Record<string, string> = {
@@ -42,6 +46,11 @@ export default function DripDashboard() {
   const [selectedSequence, setSelectedSequence] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState<"dashboard" | "preview">("dashboard");
+  const [previewSeq, setPreviewSeq] = useState<string>("");
+  const [previewStep, setPreviewStep] = useState<number>(0);
+  const [previewName, setPreviewName] = useState<string>("Contractor");
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Check admin access
   if (member?.memberRole !== "admin") {
@@ -57,6 +66,15 @@ export default function DripDashboard() {
       </div>
     );
   }
+
+  // Fetch email list for preview
+  const { data: emailList } = trpc.drip.listEmails.useQuery();
+
+  // Fetch preview when requested
+  const { data: previewData, isLoading: previewLoading } = trpc.drip.preview.useQuery(
+    { sequenceId: previewSeq, stepNumber: previewStep, firstName: previewName || "Contractor" },
+    { enabled: showPreviewModal && !!previewSeq && previewStep > 0 }
+  );
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = trpc.drip.status.useQuery();
@@ -125,6 +143,147 @@ export default function DripDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-1 bg-white/[0.03] rounded-xl p-1 border border-white/5">
+        <button
+          onClick={() => setActiveTab("dashboard")}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            activeTab === "dashboard"
+              ? "bg-ember/20 text-ember border border-ember/30"
+              : "text-cream-muted hover:text-cream hover:bg-white/5"
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab("preview")}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            activeTab === "preview"
+              ? "bg-ember/20 text-ember border border-ember/30"
+              : "text-cream-muted hover:text-cream hover:bg-white/5"
+          }`}
+        >
+          <Eye className="w-4 h-4" />
+          Email Preview
+        </button>
+      </div>
+
+      {/* Email Preview Tab */}
+      {activeTab === "preview" && (
+        <div className="space-y-4">
+          {/* Preview Name Input */}
+          <div className="glass-card rounded-2xl p-4 border border-white/5">
+            <label className="text-xs text-cream-muted block mb-2">Preview with name:</label>
+            <input
+              type="text"
+              value={previewName}
+              onChange={(e) => setPreviewName(e.target.value)}
+              placeholder="Contractor"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-cream w-full max-w-xs focus:outline-none focus:border-ember/50"
+            />
+          </div>
+
+          {/* Sequence List */}
+          {emailList?.map((seq) => (
+            <div key={seq.sequenceId} className="glass-card rounded-2xl p-6 border border-white/5">
+              <h3 className="font-heading text-lg font-semibold text-cream mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-ember" />
+                {SEQUENCE_LABELS[seq.sequenceId] || seq.sequenceId}
+                <span className="text-xs text-cream-muted font-normal ml-2">{seq.emails.length} emails</span>
+              </h3>
+              <div className="space-y-2">
+                {seq.emails.map((email) => (
+                  <button
+                    key={email.stepNumber}
+                    onClick={() => {
+                      setPreviewSeq(seq.sequenceId);
+                      setPreviewStep(email.stepNumber);
+                      setShowPreviewModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-ember/20 hover:bg-white/[0.04] transition-all text-left group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-ember/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-ember">{email.stepNumber}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-cream truncate">{email.subject}</div>
+                      <div className="text-xs text-cream-muted">Email #{email.stepNumber} of {seq.emails.length}</div>
+                    </div>
+                    <Eye className="w-4 h-4 text-cream-muted group-hover:text-ember transition-colors shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-cream-muted group-hover:text-ember transition-colors shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Email Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1a1a1e] rounded-2xl border border-white/10 w-full max-w-3xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+              <div>
+                <div className="text-sm text-cream-muted">
+                  {SEQUENCE_LABELS[previewSeq] || previewSeq} — Email #{previewStep}
+                </div>
+                <div className="text-lg font-semibold text-cream mt-1">
+                  {previewLoading ? "Loading..." : previewData?.found ? `Subject: ${previewData.subject}` : "Email not found"}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Nav arrows */}
+                <button
+                  onClick={() => setPreviewStep(Math.max(1, previewStep - 1))}
+                  disabled={previewStep <= 1}
+                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-cream-muted hover:text-cream disabled:opacity-30 text-sm"
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={() => setPreviewStep(previewStep + 1)}
+                  disabled={!previewData?.found}
+                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-cream-muted hover:text-cream disabled:opacity-30 text-sm"
+                >
+                  Next →
+                </button>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-cream-muted hover:text-cream"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            {/* Modal Body — rendered email */}
+            <div className="flex-1 overflow-auto p-1">
+              {previewLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 text-ember animate-spin" />
+                </div>
+              ) : previewData?.found ? (
+                <iframe
+                  srcDoc={previewData.html}
+                  title="Email Preview"
+                  className="w-full border-0 rounded-xl"
+                  style={{ minHeight: "600px", height: "100%", background: "#0B0C0E" }}
+                />
+              ) : (
+                <div className="flex items-center justify-center py-20 text-cream-muted">
+                  No email found for this step.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "dashboard" && (<>
+
 
       {/* Top Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -385,6 +544,7 @@ export default function DripDashboard() {
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }

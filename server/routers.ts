@@ -14,6 +14,7 @@ import { feedbackRouter } from "./feedbackRouter";
 import { presenceRouter } from "./presenceRouter";
 import { subscribeEmail, getAllActiveMembers, createLead, saveSheetMarkup, getSheetMarkup, deleteSheetMarkup } from "./db";
 import { processDripSends } from "./dripEngine";
+import { getDripEmail, getMaxStep, ALL_DRIP_EMAILS } from "./dripEmails";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
 import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail, sendThreeSilosEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
@@ -437,6 +438,45 @@ export const appRouter = router({
         const result = await processDripSends({ dryRun: input.dryRun });
         return result;
       }),
+
+    /** Preview a single drip email (rendered HTML + metadata) */
+    preview: publicProcedure
+      .input(z.object({
+        sequenceId: z.string(),
+        stepNumber: z.number(),
+        firstName: z.string().default("Contractor"),
+      }))
+      .query(({ input }) => {
+        const emailDef = getDripEmail(input.sequenceId, input.stepNumber);
+        if (!emailDef) {
+          return { found: false as const, html: "", text: "", subject: "" };
+        }
+        return {
+          found: true as const,
+          subject: emailDef.subject(input.firstName),
+          html: emailDef.buildHtml(input.firstName),
+          text: emailDef.buildText(input.firstName),
+        };
+      }),
+
+    /** List all available drip email definitions (for the admin preview panel) */
+    listEmails: publicProcedure.query(() => {
+      const sequences = new Map<string, { stepNumber: number; subject: string }[]>();
+      for (const def of ALL_DRIP_EMAILS) {
+        if (!sequences.has(def.sequenceId)) {
+          sequences.set(def.sequenceId, []);
+        }
+        sequences.get(def.sequenceId)!.push({
+          stepNumber: def.stepNumber,
+          subject: def.subject("{{firstName}}"),
+        });
+      }
+      const result: { sequenceId: string; emails: { stepNumber: number; subject: string }[] }[] = [];
+      sequences.forEach((emails, sequenceId) => {
+        result.push({ sequenceId, emails: emails.sort((a: { stepNumber: number }, b: { stepNumber: number }) => a.stepNumber - b.stepNumber) });
+      });
+      return result;
+    }),
    }),
 
   // ─── Sheet Markups (Drawing Annotations) ─────────────────────────────────────

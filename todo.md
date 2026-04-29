@@ -3478,3 +3478,13 @@
 - [x] Update cadence: Day 0,1,2,3,4,5,6,8,10 (daily for 7 then spaced)
 - [x] Exit conditions verified: CC membership auto-converts, unsubscribe works
 - [x] Write 12 tests for new sequence (all passing)
+
+## Reusable Email Template + Drip Copy Update + Admin Preview (April 29)
+- [x] Build reusable Contractor Circle HTML email template (Gmail-safe, modular, dark-luxury memo style)
+- [x] Template modules: header, hero/memo block, body, pull quote, CTA/offer block, footer
+- [x] Color palette: #0B0C0E bg, #151619 card, #F7F2EA body text, #C9C1B8 secondary, #D99A4A gold accent, #E6A348 gold button
+- [x] Typography: Playfair Display Bold headings (Georgia fallback), Inter body (Arial/Helvetica fallback)
+- [x] Replace all 9 drip emails with Marshall's revised copy using the new template
+- [x] All CTAs point to /join (not homepage)
+- [x] Build email preview feature in admin panel drip campaigns section (Dashboard/Preview tabs, modal with Prev/Next nav)
+- [x] Make template reusable for all Contractor Circle communications (buildCCEmail, buildCCSimpleEmail exports)
