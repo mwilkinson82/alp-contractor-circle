@@ -3349,3 +3349,11 @@
 - [x] Desktop hero layout unchanged (left-aligned with floating glass card on right)
 - [x] "missing." gets gold accent on mobile headline per mockup
 - [x] Verify mobile and desktop rendering
+
+## /join Hero Mobile — Tighten Proportions
+- [x] Reduce "Apply to Join" button padding (px-6 py-3.5 on mobile, full size on sm+)
+- [x] Reduce "See What's Inside" button padding (px-5 py-2.5, text-xs, rounded-lg)
+- [x] Tighten headline — 3 lines: "Build the operating" / "system your contracting" / "business is missing."
+- [x] Slim down Next Live Call card — gold top accent only, thinner padding, smaller text
+- [x] Reduce spacing between elements (mb-3, mb-2.5, mb-4 throughout)
+- [x] Tighten icon row — shortened labels (Coaching, Systems, Network, Support)

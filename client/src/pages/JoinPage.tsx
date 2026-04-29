@@ -280,7 +280,7 @@ function CTAButton({
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="inline-flex items-center gap-2.5 px-8 py-4 border border-ember/30 text-ember font-semibold rounded-xl hover:bg-ember/8 hover:border-ember/50 transition-all duration-300 disabled:opacity-60 cursor-pointer group"
+        className="inline-flex items-center gap-2 px-5 py-3 sm:px-8 sm:py-4 sm:gap-2.5 border border-ember/30 text-ember font-semibold text-sm sm:text-base rounded-xl hover:bg-ember/8 hover:border-ember/50 transition-all duration-300 disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -309,7 +309,7 @@ function CTAButton({
       <button
         onClick={startCheckout}
         disabled={isLoading}
-        className="relative inline-flex items-center gap-3 px-10 py-5 bg-ember hover:bg-ember-light text-midnight font-bold text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-60 cursor-pointer group"
+        className="relative inline-flex items-center gap-2.5 px-6 py-3.5 sm:px-10 sm:py-5 sm:gap-3 bg-ember hover:bg-ember-light text-midnight font-bold text-sm sm:text-lg rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-[0_0_40px_oklch(0.72_0.12_55/0.25)] disabled:opacity-60 cursor-pointer group"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {isLoading ? (
@@ -598,11 +598,11 @@ function HeroSection() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.15 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-ember/25 bg-ember/[0.06] mb-5 w-fit"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-ember/25 bg-ember/[0.06] mb-3 w-fit"
         >
-          <Zap size={10} className="text-ember/80" fill="currentColor" />
+          <Zap size={9} className="text-ember/80" fill="currentColor" />
           <span
-            className="text-[9px] font-semibold tracking-[0.18em] uppercase text-ember/80"
+            className="text-[8px] font-semibold tracking-[0.18em] uppercase text-ember/80"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             The Contractor Circle
@@ -611,16 +611,12 @@ function HeroSection() {
 
         {/* Headline — mobile: "missing." in gold */}
         <h1
-          className="text-[1.75rem] font-bold leading-[1.12] tracking-tight mb-4"
+          className="text-[1.55rem] font-bold leading-[1.14] tracking-tight mb-3"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          <AnimatedWords text="Build the" className="text-[#F5F0E8]" delay={0.3} />
-          {" "}
-          <AnimatedWords text="operating system" className="text-ember" delay={0.5} />
-          {" "}
-          <AnimatedWords text="your contracting business is" className="text-[#F5F0E8]" delay={0.7} />
-          {" "}
-          <AnimatedWords text="missing." className="text-ember" delay={0.95} />
+          <AnimatedWords text="Build the" className="text-[#F5F0E8]" delay={0.3} />{" "}<AnimatedWords text="operating" className="text-ember" delay={0.5} /><br />
+          <AnimatedWords text="system" className="text-ember" delay={0.6} />{" "}<AnimatedWords text="your contracting" className="text-[#F5F0E8]" delay={0.7} /><br />
+          <AnimatedWords text="business is" className="text-[#F5F0E8]" delay={0.85} />{" "}<AnimatedWords text="missing." className="text-ember" delay={0.95} />
         </h1>
 
         {/* Subtle divider */}
@@ -628,7 +624,7 @@ function HeroSection() {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 1.2, delay: 1.1, ease }}
-          className="w-12 h-[1.5px] mb-4"
+          className="w-10 h-[1px] mb-3"
           style={{
             background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.72 0.12 55 / 0.2))",
             transformOrigin: "left",
@@ -640,7 +636,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease, delay: 1.0 }}
-          className="text-[13px] text-cream/60 font-light leading-relaxed mb-6 max-w-[85%]"
+          className="text-[12px] text-cream/55 font-light leading-relaxed mb-4 max-w-[85%]"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           Marshall Wilkinson's private implementation environment for contractors who want sharper
@@ -652,7 +648,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease, delay: 1.2 }}
-          className="mb-3"
+          className="mb-2.5"
         >
           <CTAButton label="Apply to Join" />
         </motion.div>
@@ -662,11 +658,11 @@ function HeroSection() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 1.35 }}
-          className="mb-5"
+          className="mb-4"
         >
           <button
             onClick={scrollToProgram}
-            className="inline-flex items-center gap-2 px-6 py-3.5 border border-cream/15 text-cream/65 hover:text-cream font-medium text-sm rounded-xl transition-all duration-300 group"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-cream/12 text-cream/55 hover:text-cream font-medium text-xs rounded-lg transition-all duration-300 group"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             See What's Inside
@@ -679,35 +675,36 @@ function HeroSection() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.55, duration: 0.9, ease }}
-          className="mb-5"
+          className="mb-4"
         >
           <div
-            className="px-4 py-3.5 rounded-lg backdrop-blur-md"
+            className="px-3.5 py-3 rounded-lg backdrop-blur-md"
             style={{
-              background: "linear-gradient(135deg, oklch(0.10 0.01 270 / 0.6), oklch(0.08 0.01 270 / 0.4))",
-              borderTop: "1px solid oklch(0.72 0.12 55 / 0.3)",
-              border: "1px solid oklch(1 0 0 / 0.06)",
-              borderTopColor: "oklch(0.72 0.12 55 / 0.35)",
-              boxShadow: "0 4px 24px oklch(0 0 0 / 0.25), inset 0 1px 0 oklch(1 0 0 / 0.03)",
+              background: "linear-gradient(135deg, oklch(0.10 0.01 270 / 0.55), oklch(0.08 0.01 270 / 0.35))",
+              borderTop: "1.5px solid oklch(0.72 0.12 55 / 0.3)",
+              borderLeft: "1px solid oklch(1 0 0 / 0.04)",
+              borderRight: "1px solid oklch(1 0 0 / 0.04)",
+              borderBottom: "1px solid oklch(1 0 0 / 0.04)",
+              boxShadow: "0 2px 16px oklch(0 0 0 / 0.2)",
             }}
           >
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-1.5 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span
-                className="text-[9px] tracking-[0.15em] uppercase text-cream/45 font-semibold"
+                className="text-[8px] tracking-[0.14em] uppercase text-cream/40 font-semibold"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 Next Live Call
               </span>
             </div>
             <p
-              className="text-sm text-[#F5F0E8]/80 font-medium mb-1.5"
+              className="text-[13px] text-[#F5F0E8]/75 font-medium mb-1"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
               Sunday, May 10 · 5 PM ET
             </p>
             <p
-              className="text-[11px] text-cream/35 leading-relaxed"
+              className="text-[10px] text-cream/30 leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
               This Month's Focus: Sales Process → Project Delivery → Financial Control
@@ -720,17 +717,17 @@ function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.75, duration: 0.8, ease }}
-          className="flex items-center justify-between gap-2 px-1"
+          className="flex items-center justify-between gap-1 px-0"
         >
           {[
             { label: "Live Coaching" },
-            { label: "Battle-Tested Systems" },
-            { label: "Private Network" },
-            { label: "Implementation Support" },
+            { label: "Systems" },
+            { label: "Network" },
+            { label: "Support" },
           ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
+            <div key={i} className="flex flex-col items-center flex-1">
               <span
-                className="text-[7px] tracking-[0.06em] uppercase text-cream/30 font-medium text-center leading-tight"
+                className="text-[7px] tracking-[0.08em] uppercase text-cream/25 font-medium text-center leading-tight"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {item.label}
