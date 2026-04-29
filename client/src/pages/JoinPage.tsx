@@ -19,7 +19,7 @@ import {
   ChevronDown,
   Crosshair,
 TrendingDown, UsersRound, ExternalLink, Brain, BarChart3, RefreshCw, ChevronRight, ShieldCheck,
-Building2, Home, Hammer, Trophy, Star, Lock,
+Building2, Home, Hammer, Trophy, Star, Lock, Rocket, Target, Activity, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 import { trpc } from "@/lib/trpc";
@@ -96,11 +96,12 @@ const testimonials = [
 ];
 
 const comparisonRows = [
-  { passive: "Watch content alone", circle: "Bring real problems into the room" },
-  { passive: "Take notes", circle: "Get decisions pressure-tested" },
-  { passive: "Generic advice", circle: "Contractor-specific implementation" },
-  { passive: "No accountability", circle: "Live rhythm, community, and follow-through" },
-  { passive: "Theory", circle: "$2.5B construction perspective" },
+  { passive: "Watch content alone", passiveSub: "No real-world context", circle: "Bring real problems into the room", circleSub: "Get feedback from proven operators" },
+  { passive: "Take notes", passiveSub: "But rarely take action", circle: "Get decisions pressure-tested", circleSub: "Make the right call with confidence" },
+  { passive: "Generic advice", passiveSub: "One-size-fits-none", circle: "Contractor-specific implementation", circleSub: "Done-for-you frameworks + systems" },
+  { passive: "No accountability", passiveSub: "No one pushing you", circle: "Live rhythm, community, and follow-through", circleSub: "You'll never do it alone again" },
+  { passive: "Theory", passiveSub: "Stays in your head", circle: "$2.5B construction perspective", circleSub: "Lessons from the biggest in the game" },
+  { passive: "Hope for results", passiveSub: "And hope it works out", circle: "Results you can measure", circleSub: "More profit, better teams, bigger impact" },
 ];
 
 const forYou = [
@@ -2130,89 +2131,363 @@ function ProofSection() {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SECTION 6: COMPARISON — Animated row reveals
+// SECTION 6: THE DIFFERENCE — Premium comparison with VS badge
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ComparisonSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
+
+  const headerY = useTransform(scrollYProgress, [0, 0.2], [60, 0]);
+  const headerOp = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
+  const pillarOp = useTransform(scrollYProgress, [0.08, 0.22], [0, 1]);
+  const pillarY = useTransform(scrollYProgress, [0.08, 0.22], [40, 0]);
+  const compOp = useTransform(scrollYProgress, [0.15, 0.3], [0, 1]);
+  const compY = useTransform(scrollYProgress, [0.15, 0.3], [50, 0]);
+  const ctaOp = useTransform(scrollYProgress, [0.6, 0.75], [0, 1]);
+  const ctaY = useTransform(scrollYProgress, [0.6, 0.75], [40, 0]);
+
+  const pillars = [
+    { icon: Target, label: "Real Problems", sub: "brought to the room" },
+    { icon: CheckCircle2, label: "Real Decisions", sub: "pressure-tested" },
+    { icon: Users, label: "Real Implementation", sub: "built for your business" },
+    { icon: Activity, label: "Real Rhythm", sub: "community + follow-through" },
+    { icon: BarChart3, label: "Real Results", sub: "from $2.5B+ perspective" },
+  ];
+
+  const { startCheckout, isLoading } = useCircleCheckout();
 
   return (
-    <section ref={ref} className="relative py-24 sm:py-32 px-6">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-          className="text-center mb-16"
-        >
-          <p
-            className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]"
-            style={{ fontFamily: "'Sora', sans-serif" }}
-          >
+    <section ref={sectionRef} className="relative py-24 sm:py-32 px-6 overflow-visible">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <motion.div style={{ y: headerY, opacity: headerOp }} className="text-center mb-12 sm:mb-16">
+          <p className="text-xs font-semibold uppercase text-ember mb-4 tracking-[0.2em]" style={{ fontFamily: "'Sora', sans-serif" }}>
             The Difference
           </p>
-          <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-cream leading-tight"
-            style={{ fontFamily: "'Sora', sans-serif" }}
-          >
+          <div className="w-12 h-[2px] bg-ember mx-auto mb-6" />
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-cream leading-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
             Most coaching gives you information.
             <br />
-            <span className="text-ember">The Circle gives you operating pressure.</span>
+            <span className="text-ember" style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}>
+              The Circle gives you operating pressure.
+            </span>
           </h2>
+          <p className="text-cream/50 mt-6 text-base sm:text-lg max-w-xl mx-auto" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            See the shift from passive learning to proven execution.
+          </p>
         </motion.div>
 
-        {/* Comparison table */}
+        {/* 5-Pillar Bar */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.15 }}
-          className="rounded-2xl glass-card overflow-hidden"
+          style={{ y: pillarY, opacity: pillarOp }}
+          className="mb-12 sm:mb-16 rounded-xl border border-cream/10 bg-cream/[0.03] backdrop-blur-sm p-4 sm:p-6"
         >
-          {/* Header */}
-          <div className="grid grid-cols-2">
-            <div className="p-5 sm:p-6 border-r border-cream/[0.06]">
-              <p className="text-xs font-bold text-cream/35 uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
-                Passive Program
-              </p>
+          <div className="grid grid-cols-5 gap-2 sm:gap-4">
+            {pillars.map((p, i) => (
+              <div key={i} className="flex flex-col items-center text-center gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-ember/30 bg-ember/[0.08] flex items-center justify-center">
+                  <p.icon size={18} className="text-ember sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs font-bold text-cream uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    {p.label}
+                  </p>
+                  <p className="text-[9px] sm:text-[11px] text-cream/40 mt-0.5 hidden sm:block" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {p.sub}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Comparison Panel */}
+        <motion.div style={{ y: compY, opacity: compOp }} className="relative">
+          {/* Desktop: side-by-side */}
+          <div className="hidden lg:grid lg:grid-cols-[1fr_auto_1fr] gap-0 items-stretch">
+            {/* Passive Program */}
+            <div className="rounded-xl border border-cream/10 bg-cream/[0.03] p-6 sm:p-8">
+              <div className="text-center mb-8 pb-6 border-b border-cream/[0.06]">
+                <h3 className="text-lg font-bold text-cream/40 uppercase tracking-[0.15em]" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Passive Program
+                </h3>
+                <p className="text-sm text-cream/25 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Information without pressure
+                </p>
+              </div>
+              <div className="space-y-5">
+                {comparisonRows.map((row, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full border border-cream/10 bg-cream/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                      <X size={13} className="text-cream/20" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-cream/45" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.passive}
+                      </p>
+                      <p className="text-xs text-cream/25 mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.passiveSub}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Summary */}
+              <div className="mt-8 pt-6 border-t border-cream/[0.06] flex items-center gap-3">
+                <BarChart3 size={18} className="text-cream/15 shrink-0" />
+                <div>
+                  <p className="text-sm text-cream/30 font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    You stay stuck in knowledge.
+                  </p>
+                  <p className="text-xs text-cream/20" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Nothing changes.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="p-5 sm:p-6">
-              <p className="text-xs font-bold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
-                Contractor Circle
+
+            {/* VS Badge */}
+            <div className="flex items-center justify-center px-4 relative z-10">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ember via-amber-500 to-ember border-2 border-ember/60 flex items-center justify-center shadow-[0_0_30px_rgba(217,119,6,0.4)]">
+                <span className="text-sm font-black text-charcoal tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>VS</span>
+              </div>
+            </div>
+
+            {/* Contractor Circle */}
+            <div className="rounded-xl border border-ember/30 bg-ember/[0.04] p-6 sm:p-8 shadow-[0_0_40px_rgba(217,119,6,0.08)]">
+              <div className="text-center mb-8 pb-6 border-b border-ember/15">
+                <h3 className="text-lg font-bold text-ember uppercase tracking-[0.15em]" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Contractor Circle
+                </h3>
+                <p className="text-sm text-ember/60 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Pressure that creates progress
+                </p>
+              </div>
+              <div className="space-y-5">
+                {comparisonRows.map((row, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full border border-ember/30 bg-ember/[0.12] flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={13} className="text-ember" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-cream/80" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.circle}
+                      </p>
+                      <p className="text-xs text-cream/40 mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.circleSub}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Summary */}
+              <div className="mt-8 pt-6 border-t border-ember/15 flex items-center gap-3">
+                <Rocket size={18} className="text-ember shrink-0" />
+                <div>
+                  <p className="text-sm text-ember/80 font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    You get pressure. You take action.
+                  </p>
+                  <p className="text-sm text-ember font-bold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    You get results.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: stacked two-column comparison */}
+          <div className="lg:hidden">
+            {/* Headers */}
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-0 mb-0">
+              <div className="rounded-tl-xl border border-cream/10 bg-cream/[0.03] p-4 text-center">
+                <h3 className="text-xs font-bold text-cream/40 uppercase tracking-[0.12em]" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Passive Program
+                </h3>
+                <p className="text-[10px] text-cream/20 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Information without pressure
+                </p>
+              </div>
+              <div className="flex items-center justify-center px-2 relative z-10">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ember via-amber-500 to-ember border border-ember/60 flex items-center justify-center shadow-[0_0_20px_rgba(217,119,6,0.35)]">
+                  <span className="text-[10px] font-black text-charcoal tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>VS</span>
+                </div>
+              </div>
+              <div className="rounded-tr-xl border border-ember/30 bg-ember/[0.04] p-4 text-center">
+                <h3 className="text-xs font-bold text-ember uppercase tracking-[0.12em]" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  Contractor Circle
+                </h3>
+                <p className="text-[10px] text-ember/50 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Pressure that creates progress
+                </p>
+              </div>
+            </div>
+
+            {/* Rows */}
+            {comparisonRows.map((row, i) => (
+              <div key={i} className="grid grid-cols-[1fr_auto_1fr] gap-0">
+                <div className={`border border-t-0 border-cream/10 bg-cream/[0.03] p-3 sm:p-4 ${i === comparisonRows.length - 1 ? "rounded-bl-xl" : ""}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full border border-cream/10 bg-cream/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                      <X size={10} className="text-cream/20" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-cream/40 leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.passive}
+                      </p>
+                      <p className="text-[10px] text-cream/20 mt-0.5 leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.passiveSub}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-[1px] bg-cream/[0.06]" />
+                <div className={`border border-t-0 border-ember/20 bg-ember/[0.04] p-3 sm:p-4 ${i === comparisonRows.length - 1 ? "rounded-br-xl" : ""}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full border border-ember/30 bg-ember/[0.12] flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={10} className="text-ember" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-cream/75 leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.circle}
+                      </p>
+                      <p className="text-[10px] text-cream/35 mt-0.5 leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        {row.circleSub}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Mobile Summary Row */}
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-0 mt-0">
+              <div className="rounded-bl-xl border border-t-0 border-cream/10 bg-cream/[0.03] p-3 sm:p-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={14} className="text-cream/15 shrink-0" />
+                  <div>
+                    <p className="text-[11px] text-cream/30 font-medium leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      You stay stuck in knowledge.
+                    </p>
+                    <p className="text-[10px] text-cream/20 leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      Nothing changes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="w-[1px] bg-cream/[0.06]" />
+              <div className="rounded-br-xl border border-t-0 border-ember/20 bg-ember/[0.04] p-3 sm:p-4">
+                <div className="flex items-center gap-2">
+                  <Rocket size={14} className="text-ember shrink-0" />
+                  <div>
+                    <p className="text-[11px] text-ember/70 font-medium leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      You get pressure. You take action.
+                    </p>
+                    <p className="text-[11px] text-ember font-bold leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      You get results.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* CTA Bar */}
+        <motion.div
+          style={{ y: ctaY, opacity: ctaOp }}
+          className="mt-12 sm:mt-16 rounded-xl border border-cream/10 bg-cream/[0.03] backdrop-blur-sm p-6 sm:p-8"
+        >
+          {/* Desktop CTA */}
+          <div className="hidden lg:flex items-center justify-between gap-8">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-full border-2 border-ember/30 bg-ember/[0.08] flex items-center justify-center">
+                <span className="text-2xl font-black text-ember" style={{ fontFamily: "'Playfair Display', serif" }}>C</span>
+              </div>
+              <div>
+                <p className="text-xs text-cream/40 uppercase tracking-wider font-semibold" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  This isn't just coaching.
+                </p>
+                <p className="text-xl font-bold text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  This is a different level.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              {[
+                { icon: Users, label: "Real Operators", sub: "Active in the Circle" },
+                { icon: Sparkles, label: "Proven Systems", sub: "That drive results" },
+                { icon: Star, label: "Elite Accountability", sub: "That keeps you moving" },
+                { icon: TrendingUp, label: "Measurable Growth", sub: "Month after month" },
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col items-center text-center gap-1">
+                  <item.icon size={16} className="text-ember/60" />
+                  <p className="text-[10px] font-bold text-cream/60 uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    {item.label}
+                  </p>
+                  <p className="text-[9px] text-cream/30" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {item.sub}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => startCheckout()}
+                disabled={isLoading}
+                className="px-8 py-3 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-sm uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center gap-2"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                Apply to Join the Circle
+                <ArrowRight size={16} />
+              </button>
+              <p className="text-[10px] text-cream/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Spots are limited · Application required
               </p>
             </div>
           </div>
 
-          {/* Rows */}
-          {comparisonRows.map((row, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -15 }}
-              animate={isInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.5, ease, delay: 0.25 + i * 0.08 }}
-              className="grid grid-cols-2 border-t border-cream/[0.04]"
+          {/* Mobile CTA */}
+          <div className="lg:hidden">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-12 h-12 rounded-full border-2 border-ember/30 bg-ember/[0.08] flex items-center justify-center shrink-0">
+                <span className="text-xl font-black text-ember" style={{ fontFamily: "'Playfair Display', serif" }}>C</span>
+              </div>
+              <div>
+                <p className="text-[10px] text-cream/40 uppercase tracking-wider font-semibold" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  This isn't just coaching.
+                </p>
+                <p className="text-lg font-bold text-cream" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  This is a different level.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <p className="text-sm text-cream/50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Join Contractor Circle and operate at the highest level of construction.
+              </p>
+            </div>
+            <button
+              onClick={() => startCheckout()}
+              disabled={isLoading}
+              className="w-full px-6 py-3.5 bg-gradient-to-r from-ember to-amber-500 text-charcoal font-bold text-sm uppercase tracking-wider rounded-lg hover:shadow-[0_0_25px_rgba(217,119,6,0.4)] transition-all flex items-center justify-center gap-2"
+              style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              <div className="p-5 sm:p-6 border-r border-cream/[0.06] flex items-center gap-3">
-                <X size={14} className="text-cream/15 shrink-0" />
-                <span className="text-sm text-cream/35" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  {row.passive}
-                </span>
-              </div>
-              <div className="p-5 sm:p-6 flex items-center gap-3">
-                <Check size={14} className="text-ember shrink-0" />
-                <span className="text-sm text-cream/75 font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  {row.circle}
-                </span>
-              </div>
-            </motion.div>
-          ))}
+              {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+              Apply to Join the Circle
+              <ArrowRight size={16} />
+            </button>
+            <p className="text-[10px] text-cream/25 text-center mt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Spots are limited · Application required
+            </p>
+          </div>
         </motion.div>
       </div>
     </section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 7: QUALIFICATION — For / Not For with premium badges
 // ═══════════════════════════════════════════════════════════════════════════════
 

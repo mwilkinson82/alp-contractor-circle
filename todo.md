@@ -3429,3 +3429,13 @@
 - [x] Fix mobile revenue cards: content getting cut off, not fitting cards
 - [x] Ensure all company names, multiplier badges, revenue figures, and periods display fully
 - [x] Test on mobile viewport (forced visible at desktop, all content fits)
+
+## The Difference Section Rebuild (April 29)
+- [x] Rebuild DifferenceSection: 5-pillar bar (Real Problems, Decisions, Implementation, Rhythm, Results)
+- [x] Side-by-side comparison: Passive Program (X icons, muted) vs Contractor Circle (checkmarks, ember glow)
+- [x] Glowing VS badge in center between the two panels
+- [x] 6 comparison rows with title + subtitle on each side
+- [x] Summary row: "You stay stuck" vs "You get results"
+- [x] CTA bar: "THIS ISN'T JUST COACHING. THIS IS A DIFFERENT LEVEL." with feature icons + Apply button
+- [x] Mobile layout: stacked two-column comparison with VS divider
+- [x] Scroll-linked animations (useScroll + useTransform)
