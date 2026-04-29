@@ -3332,3 +3332,20 @@
 - [x] Add subtle floating glass card (Next Live Call + This Month's Focus)
 - [x] Keep Marshall visible and slightly brighter on right side
 - [x] Update tests for new hero structure (17 passing)
+
+## /join Hero — Mobile 9:16 Image
+- [x] Upload 9:16 portrait hero image to CDN
+- [x] Update hero to serve portrait image on mobile (<sm) and landscape on desktop (sm+)
+- [x] Adjust mobile hero layout — text overlaid on bottom portion of portrait image
+- [x] Verify mobile and desktop rendering
+- [x] Update tests and save checkpoint
+
+## /join Hero — Mobile Layout with Next Live Call Card
+- [x] Add HERO_MOBILE constant with 9:16 portrait CDN URL
+- [x] Show portrait image on mobile (<sm), landscape on desktop (sm+)
+- [x] Mobile element order: Badge → Headline → Subheadline → Primary CTA → Secondary CTA → Next Live Call card → Icon row
+- [x] Compact glass "Next Live Call" card: dark glass, thin gold top accent, green dot, ivory text, muted gray supporting
+- [x] Icon row kept compact below call card
+- [x] Desktop hero layout unchanged (left-aligned with floating glass card on right)
+- [x] "missing." gets gold accent on mobile headline per mockup
+- [x] Verify mobile and desktop rendering

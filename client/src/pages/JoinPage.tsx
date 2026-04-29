@@ -24,6 +24,8 @@ import { useCircleCheckout } from "@/hooks/useCircleCheckout";
 
 const HERO_BG =
   "/manus-storage/join-hero-marshall-office_08968f32.png";
+const HERO_MOBILE =
+  "/manus-storage/join-hero-mobile_c1aaf379.png";
 const FINAL_CTA_BG =
   "/manus-storage/join-final-cta-bg_d1083a57.jpg";
 
@@ -369,8 +371,8 @@ function HeroSection() {
 
   return (
     <section ref={ref} className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* Parallax background image */}
-      <motion.div className="absolute inset-0 z-0" style={{ scale: imageScale, y: imageY }}>
+      {/* Parallax background — desktop landscape */}
+      <motion.div className="absolute inset-0 z-0 hidden sm:block" style={{ scale: imageScale, y: imageY }}>
         <img
           src={HERO_BG}
           alt="Marshall Wilkinson in The Contractor Circle office"
@@ -379,9 +381,19 @@ function HeroSection() {
         />
       </motion.div>
 
-      {/* Directional gradient — dark left, transparent right to reveal Marshall */}
+      {/* Parallax background — mobile portrait 9:16 */}
+      <motion.div className="absolute inset-0 z-0 sm:hidden" style={{ scale: imageScale, y: imageY }}>
+        <img
+          src={HERO_MOBILE}
+          alt="Marshall Wilkinson in The Contractor Circle office"
+          className="w-full h-full object-cover"
+          style={{ objectPosition: "center 30%" }}
+        />
+      </motion.div>
+
+      {/* Directional gradient — desktop: dark left → transparent right */}
       <motion.div
-        className="absolute inset-0 z-[1]"
+        className="absolute inset-0 z-[1] hidden sm:block"
         style={{
           opacity: overlayOpacity,
           background: `linear-gradient(105deg,
@@ -395,7 +407,23 @@ function HeroSection() {
         }}
       />
 
-      {/* Bottom gradient for text readability at bottom */}
+      {/* Mobile gradient — bottom-heavy for text readability, lighter at top to show Marshall + logo */}
+      <motion.div
+        className="absolute inset-0 z-[1] sm:hidden"
+        style={{
+          opacity: overlayOpacity,
+          background: `linear-gradient(180deg,
+            oklch(0.08 0.01 270 / 0.15) 0%,
+            oklch(0.08 0.01 270 / 0.25) 25%,
+            oklch(0.08 0.01 270 / 0.55) 45%,
+            oklch(0.08 0.01 270 / 0.82) 65%,
+            oklch(0.08 0.01 270 / 0.92) 80%,
+            oklch(0.08 0.01 270 / 0.96) 100%
+          )`,
+        }}
+      />
+
+      {/* Bottom gradient for text readability */}
       <div
         className="absolute inset-x-0 bottom-0 h-48 z-[1]"
         style={{
@@ -422,7 +450,7 @@ function HeroSection() {
       />
 
       {/* Top nav */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 py-5">
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-5 sm:px-10 py-4 sm:py-5">
         <div className="flex items-center gap-2.5">
           <span className="text-ember font-bold text-lg tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
             ALP
@@ -451,55 +479,39 @@ function HeroSection() {
         </div>
       </div>
 
-      {/* Main content — LEFT ALIGNED */}
+      {/* ═══ DESKTOP CONTENT — left-aligned advisory layout ═══ */}
       <motion.div
         style={{ y: contentY }}
-        className="relative z-10 flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-28 sm:pt-32 pb-12 sm:pb-16 w-full sm:max-w-[58%] lg:max-w-[50%]"
+        className="relative z-10 flex-1 hidden sm:flex flex-col justify-center px-10 lg:px-16 pt-32 pb-16 max-w-[58%] lg:max-w-[50%]"
       >
-        {/* Eyebrow badge — small, institutional */}
+        {/* Eyebrow badge */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.15 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-ember/25 bg-ember/[0.06] mb-6 sm:mb-8 w-fit"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-ember/25 bg-ember/[0.06] mb-8 w-fit"
         >
           <Zap size={11} className="text-ember/80" fill="currentColor" />
           <span
-            className="text-[9px] sm:text-[10px] font-semibold tracking-[0.18em] uppercase text-ember/80"
+            className="text-[10px] font-semibold tracking-[0.18em] uppercase text-ember/80"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
             The Contractor Circle
           </span>
         </motion.div>
 
-        {/* Headline — refined, left-aligned, ivory with selective gold */}
+        {/* Headline */}
         <h1
-          className="text-2xl sm:text-4xl md:text-[2.8rem] lg:text-[3.4rem] font-bold leading-[1.08] tracking-tight mb-5 sm:mb-6"
+          className="text-4xl md:text-[2.8rem] lg:text-[3.4rem] font-bold leading-[1.08] tracking-tight mb-6"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          <AnimatedWords
-            text="Build the"
-            className="text-[#F5F0E8]"
-            delay={0.3}
-          />
-          <br className="hidden sm:block" />
-          <AnimatedWords
-            text="operating system"
-            className="text-ember"
-            delay={0.55}
-          />
-          <br className="hidden sm:block" />
-          <AnimatedWords
-            text="your contracting"
-            className="text-[#F5F0E8]"
-            delay={0.8}
-          />
-          <br className="hidden sm:block" />
-          <AnimatedWords
-            text="business is missing."
-            className="text-[#F5F0E8]"
-            delay={1.0}
-          />
+          <AnimatedWords text="Build the" className="text-[#F5F0E8]" delay={0.3} />
+          <br />
+          <AnimatedWords text="operating system" className="text-ember" delay={0.55} />
+          <br />
+          <AnimatedWords text="your contracting" className="text-[#F5F0E8]" delay={0.8} />
+          <br />
+          <AnimatedWords text="business is missing." className="text-[#F5F0E8]" delay={1.0} />
         </h1>
 
         {/* Subtle divider */}
@@ -507,7 +519,7 @@ function HeroSection() {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 1.2, delay: 1.35, ease }}
-          className="w-16 h-[1.5px] mb-5 sm:mb-6"
+          className="w-16 h-[1.5px] mb-6"
           style={{
             background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.72 0.12 55 / 0.2))",
             transformOrigin: "left",
@@ -519,7 +531,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease, delay: 1.2 }}
-          className="text-sm sm:text-base lg:text-lg text-cream/65 font-light leading-relaxed mb-7 sm:mb-8 max-w-lg"
+          className="text-base lg:text-lg text-cream/65 font-light leading-relaxed mb-8 max-w-lg"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           Marshall Wilkinson's private implementation environment for contractors who want sharper
@@ -531,7 +543,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease, delay: 1.45 }}
-          className="flex flex-col sm:flex-row items-start gap-3 mb-5"
+          className="flex flex-row items-start gap-3 mb-5"
         >
           <CTAButton label="Apply to Join" />
           <button
@@ -564,9 +576,9 @@ function HeroSection() {
         >
           {["Strategy", "Sales Process", "Project Delivery", "Financial Control"].map((item, i) => (
             <span key={i} className="flex items-center gap-2">
-              {i > 0 && <span className="text-ember/30 text-[8px] hidden sm:inline">·</span>}
+              {i > 0 && <span className="text-ember/30 text-[8px]">·</span>}
               <span
-                className="text-[10px] sm:text-xs tracking-[0.08em] uppercase text-cream/35 font-medium"
+                className="text-xs tracking-[0.08em] uppercase text-cream/35 font-medium"
                 style={{ fontFamily: "'Sora', sans-serif" }}
               >
                 {item}
@@ -576,7 +588,159 @@ function HeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* Floating glass card — lower right, subtle */}
+      {/* ═══ MOBILE CONTENT — full-width, bottom-anchored over portrait image ═══ */}
+      <motion.div
+        style={{ y: contentY }}
+        className="relative z-10 flex-1 flex sm:hidden flex-col justify-end px-5 pt-20 pb-6"
+      >
+        {/* Eyebrow badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease, delay: 0.15 }}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-ember/25 bg-ember/[0.06] mb-5 w-fit"
+        >
+          <Zap size={10} className="text-ember/80" fill="currentColor" />
+          <span
+            className="text-[9px] font-semibold tracking-[0.18em] uppercase text-ember/80"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            The Contractor Circle
+          </span>
+        </motion.div>
+
+        {/* Headline — mobile: "missing." in gold */}
+        <h1
+          className="text-[1.75rem] font-bold leading-[1.12] tracking-tight mb-4"
+          style={{ fontFamily: "'Sora', sans-serif" }}
+        >
+          <AnimatedWords text="Build the" className="text-[#F5F0E8]" delay={0.3} />
+          {" "}
+          <AnimatedWords text="operating system" className="text-ember" delay={0.5} />
+          {" "}
+          <AnimatedWords text="your contracting business is" className="text-[#F5F0E8]" delay={0.7} />
+          {" "}
+          <AnimatedWords text="missing." className="text-ember" delay={0.95} />
+        </h1>
+
+        {/* Subtle divider */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.2, delay: 1.1, ease }}
+          className="w-12 h-[1.5px] mb-4"
+          style={{
+            background: "linear-gradient(90deg, oklch(0.72 0.12 55), oklch(0.72 0.12 55 / 0.2))",
+            transformOrigin: "left",
+          }}
+        />
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease, delay: 1.0 }}
+          className="text-[13px] text-cream/60 font-light leading-relaxed mb-6 max-w-[85%]"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Marshall Wilkinson's private implementation environment for contractors who want sharper
+          decisions, better systems, and a business that does not depend on guesswork.
+        </motion.p>
+
+        {/* Primary CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease, delay: 1.2 }}
+          className="mb-3"
+        >
+          <CTAButton label="Apply to Join" />
+        </motion.div>
+
+        {/* Secondary CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease, delay: 1.35 }}
+          className="mb-5"
+        >
+          <button
+            onClick={scrollToProgram}
+            className="inline-flex items-center gap-2 px-6 py-3.5 border border-cream/15 text-cream/65 hover:text-cream font-medium text-sm rounded-xl transition-all duration-300 group"
+            style={{ fontFamily: "'Sora', sans-serif" }}
+          >
+            See What's Inside
+            <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" />
+          </button>
+        </motion.div>
+
+        {/* ─── Next Live Call card — compact, premium glass ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.55, duration: 0.9, ease }}
+          className="mb-5"
+        >
+          <div
+            className="px-4 py-3.5 rounded-lg backdrop-blur-md"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.10 0.01 270 / 0.6), oklch(0.08 0.01 270 / 0.4))",
+              borderTop: "1px solid oklch(0.72 0.12 55 / 0.3)",
+              border: "1px solid oklch(1 0 0 / 0.06)",
+              borderTopColor: "oklch(0.72 0.12 55 / 0.35)",
+              boxShadow: "0 4px 24px oklch(0 0 0 / 0.25), inset 0 1px 0 oklch(1 0 0 / 0.03)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span
+                className="text-[9px] tracking-[0.15em] uppercase text-cream/45 font-semibold"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Next Live Call
+              </span>
+            </div>
+            <p
+              className="text-sm text-[#F5F0E8]/80 font-medium mb-1.5"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Sunday, May 10 · 5 PM ET
+            </p>
+            <p
+              className="text-[11px] text-cream/35 leading-relaxed"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              This Month's Focus: Sales Process → Project Delivery → Financial Control
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Icon/value row — compact, single line */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.75, duration: 0.8, ease }}
+          className="flex items-center justify-between gap-2 px-1"
+        >
+          {[
+            { label: "Live Coaching" },
+            { label: "Battle-Tested Systems" },
+            { label: "Private Network" },
+            { label: "Implementation Support" },
+          ].map((item, i) => (
+            <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
+              <span
+                className="text-[7px] tracking-[0.06em] uppercase text-cream/30 font-medium text-center leading-tight"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Floating glass card — desktop only, lower right */}
       <motion.div
         initial={{ opacity: 0, y: 30, x: 20 }}
         animate={{ opacity: 1, y: 0, x: 0 }}
@@ -622,12 +786,12 @@ function HeroSection() {
         </div>
       </motion.div>
 
-      {/* Scroll indicator — bottom center */}
+      {/* Scroll indicator — desktop only */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2.5, duration: 1.5 }}
-        className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10"
+        className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 hidden sm:block"
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}
@@ -651,6 +815,7 @@ function HeroSection() {
     </section>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECTION 2: BRIDGE — Editorial pull-quote style
