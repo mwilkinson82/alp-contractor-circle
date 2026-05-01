@@ -108,7 +108,14 @@ function getScaleLabel(ratio: number): string {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
-import { getScopeStatusFromNotes, isScopeExcludedItem, sumScopeIncludedExtendedCost } from "../../../shared/scopeCost";
+import {
+  getScopeMaterialUnitCost,
+  getScopeStatusFromNotes,
+  isScopeExcludedItem,
+  sumScopeIncludedExtendedCost,
+  sumScopeIncludedLaborCost,
+  sumScopeIncludedMaterialCost,
+} from "../../../shared/scopeCost";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,11 +136,7 @@ function formatCurrency(cents: number, currencyCode: string = "USD"): string {
 }
 
 function getTakeoffMaterialUnitCost(item: any): number {
-  const material = Number(item.materialCost) || 0;
-  if (material > 0) return material;
-  const installed = Number(item.unitCost) || 0;
-  const labor = Number(item.laborCost) || 0;
-  return installed > labor ? installed - labor : installed;
+  return getScopeMaterialUnitCost(item);
 }
 
 function getScopeReviewStatus(item: any): "included" | "review" | "excluded" {
@@ -1125,7 +1128,9 @@ export default function TakeoffDetail() {
             </TabsTrigger>
             <TabsTrigger value="items" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
               <DollarSign className="w-4 h-4 mr-2" />
-              Quantity Takeoff ({items?.length || 0})
+              <span className="hidden sm:inline">Quantity Takeoff</span>
+              <span className="sm:hidden">Takeoff</span>
+              <span className="ml-1 text-xs opacity-75">({activeItems.length} active)</span>
             </TabsTrigger>
             <TabsTrigger value="estimate" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
               <Calculator className="w-4 h-4 mr-2" />
@@ -1458,10 +1463,15 @@ export default function TakeoffDetail() {
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Stats */}
                     <div className="flex items-center gap-3 sm:gap-5 text-sm text-cream-muted shrink-0">
-                      <span className="whitespace-nowrap">{items.length} items</span>
+                      <span className="whitespace-nowrap">
+                        {activeItems.length} active item{activeItems.length !== 1 ? "s" : ""}
+                        {excludedItems.length > 0 && (
+                          <span className="text-red-300/80"> · {excludedItems.length} excluded/boundary item{excludedItems.length !== 1 ? "s" : ""}</span>
+                        )}
+                      </span>
                       <span className="hidden sm:inline whitespace-nowrap">{Object.keys(groupedItems).length} CSI divisions</span>
                       <span className="whitespace-nowrap">
-                        {items.filter((i: any) => i.reviewed).length} reviewed
+                        {activeItems.filter((i: any) => i.reviewed).length} reviewed
                       </span>
                       {project?.lastAnalyzedAt && (
                         <span className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60" title={new Date(project.lastAnalyzedAt).toLocaleString()}>
@@ -1739,19 +1749,16 @@ export default function TakeoffDetail() {
 
                 {/* ─── Summary Breakdown Bar ───────────────────────────────────────── */}
                 {(items && items.length > 0) && (() => {
-                  const materialSubtotal = (items || []).reduce((sum: number, item: any) => {
-                    const qty = parseFloat(item.quantity) || 0;
-                    const matCost = getTakeoffMaterialUnitCost(item);
-                    return sum + (qty * matCost);
-                  }, 0);
-                  const laborSubtotal = (items || []).reduce((sum: number, item: any) => {
-                    const qty = parseFloat(item.quantity) || 0;
-                    const labCost = (item.laborCost || 0); // in cents
-                    return sum + (qty * labCost);
-                  }, 0);
+                  const materialSubtotal = sumScopeIncludedMaterialCost(activeItems);
+                  const laborSubtotal = sumScopeIncludedLaborCost(activeItems);
                   const curr = project?.currency || "USD";
                   return (
                     <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
+                      {excludedItems.length > 0 && (
+                        <p className="mb-3 text-xs text-red-200/80">
+                          {excludedItems.length} likely excluded/boundary item{excludedItems.length !== 1 ? "s are" : " is"} visible below for review and not counted in these totals.
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {/* Material Subtotal */}
                         <div className="flex flex-col">
