@@ -18,9 +18,17 @@ export function isScopeExcludedItem(item: ScopeCostItem): boolean {
   return getScopeStatusFromNotes(item.notes) === "excluded";
 }
 
+export function isScopeReviewItem(item: ScopeCostItem): boolean {
+  return getScopeStatusFromNotes(item.notes) === "review";
+}
+
+export function isScopeIncludedItem(item: ScopeCostItem): boolean {
+  return getScopeStatusFromNotes(item.notes) === "included";
+}
+
 export function sumScopeIncludedExtendedCost(items: ScopeCostItem[]): number {
   return items.reduce((sum, item) => {
-    if (isScopeExcludedItem(item)) return sum;
+    if (!isScopeIncludedItem(item)) return sum;
     const cost = typeof item.extendedCost === "number"
       ? item.extendedCost
       : Number(item.extendedCost || 0);
@@ -43,14 +51,14 @@ export function getScopeMaterialUnitCost(item: ScopeCostItem): number {
 
 export function sumScopeIncludedMaterialCost(items: ScopeCostItem[]): number {
   return items.reduce((sum, item) => {
-    if (isScopeExcludedItem(item)) return sum;
+    if (!isScopeIncludedItem(item)) return sum;
     return sum + numeric(item.quantity) * getScopeMaterialUnitCost(item);
   }, 0);
 }
 
 export function sumScopeIncludedLaborCost(items: ScopeCostItem[]): number {
   return items.reduce((sum, item) => {
-    if (isScopeExcludedItem(item)) return sum;
+    if (!isScopeIncludedItem(item)) return sum;
     return sum + numeric(item.quantity) * numeric(item.laborCost);
   }, 0);
 }
