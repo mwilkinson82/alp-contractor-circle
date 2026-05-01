@@ -141,6 +141,12 @@ function getScopeReviewStatus(item: any): "included" | "review" | "excluded" {
   return "included";
 }
 
+function formatScopeReviewStatus(status: "included" | "review" | "excluded"): string {
+  if (status === "review") return "Needs scope review";
+  if (status === "excluded") return "Likely excluded";
+  return "Included in scope";
+}
+
 const SHEET_STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Pending", color: "bg-gray-500/20 text-gray-300", icon: Clock },
   processing: { label: "Analyzing...", color: "bg-amber-500/20 text-amber-300", icon: Loader2 },
@@ -263,6 +269,16 @@ export default function TakeoffDetail() {
     () => buildScopeIntent(project?.scopeText || null, selectedDivisionList),
     [project?.scopeText, selectedDivisionList]
   );
+  const activeRateProfile = useMemo(
+    () => rateProfiles?.find((profile: any) => profile.id === project?.rateProfileId) || null,
+    [rateProfiles, project?.rateProfileId]
+  );
+  const enableResidentialQa = useMemo(() => {
+    if (scopeIntent.hasScope) return false;
+    if (activeRateProfile?.projectType) return activeRateProfile.projectType === "residential";
+    const projectText = `${project?.name || ""} ${project?.description || ""}`.toLowerCase();
+    return /\b(residential|custom home|single family|single-family|house|home)\b/.test(projectText);
+  }, [scopeIntent.hasScope, activeRateProfile?.projectType, project?.name, project?.description]);
   const scopeReviewCount = useMemo(
     () => (items || []).filter((item: any) => getScopeReviewStatus(item) === "review").length,
     [items]
@@ -674,7 +690,7 @@ export default function TakeoffDetail() {
           (parseFloat(item.unitCost) || 0) / 100,
           extCost,
           item.confidence || 0,
-          getScopeReviewStatus(item),
+          formatScopeReviewStatus(getScopeReviewStatus(item)),
           item.reviewed ? "Yes" : "No",
           item.notes || "",
         ]);
@@ -778,7 +794,7 @@ export default function TakeoffDetail() {
           ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
           extCost.toFixed(2),
           item.confidence || 0,
-          getScopeReviewStatus(item),
+          formatScopeReviewStatus(getScopeReviewStatus(item)),
           item.reviewed ? "Yes" : "No",
           `"${(item.notes || "").replace(/"/g, '""')}"`,
         ].join(","));
@@ -1977,7 +1993,7 @@ export default function TakeoffDetail() {
                                               : "bg-red-500/15 text-red-300 border-red-500/25"
                                           }`}>
                                             <Flag className="w-2.5 h-2.5 mr-0.5" />
-                                            {scopeStatus === "review" ? "Scope Review" : "Possible Exclusion"}
+                                            {formatScopeReviewStatus(scopeStatus)}
                                           </Badge>
                                         </div>
                                       )}
@@ -2262,6 +2278,7 @@ export default function TakeoffDetail() {
               }}
               currency={project.currency || "USD"}
               costRegion={project.costRegion}
+              enableResidentialQa={enableResidentialQa}
             />
           </TabsContent>
         </Tabs>

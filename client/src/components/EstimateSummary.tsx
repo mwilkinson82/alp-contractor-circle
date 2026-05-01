@@ -114,9 +114,10 @@ interface EstimateSummaryProps {
   onAddAllowance?: (allowance: { description: string; amount: number }) => void;
   currency: string;
   costRegion?: string | null;
+  enableResidentialQa?: boolean;
 }
 
-export default function EstimateSummary({ projectId, projectName, projectDescription, items, allowances = [], onAddAllowance, currency, costRegion }: EstimateSummaryProps) {
+export default function EstimateSummary({ projectId, projectName, projectDescription, items, allowances = [], onAddAllowance, currency, costRegion, enableResidentialQa = false }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } = trpc.estimate.getMarkups.useQuery({ projectId });
   const { data: crewsData } = trpc.tradeRates.getCrews.useQuery();
@@ -177,6 +178,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     onSuccess: (result) => {
       if (result.success) {
         const reviewedTasks = result.tasks.map((task: any) => {
+          if (!enableResidentialQa) return task;
           const itemReasons = task.items
             .map((item: any) => reviewResidentialLaborMatch(item).reasons)
             .flat();
@@ -393,7 +395,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       // Labor: look up activity productivity for this item
       const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
       const activity = activityMap.get(descKey);
-      const laborReview = reviewResidentialLaborMatch(item);
+      const laborReview = enableResidentialQa
+        ? reviewResidentialLaborMatch(item)
+        : { blockAutomaticLabor: false, reasons: [] };
       const libraryLaborUnit = parseCents(item.laborCost);
       let itemLabor = 0;
       let laborEstimate: ItemLaborEstimate;
@@ -486,13 +490,14 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       itemLaborEstimates,
       totalItems: items.length,
     };
-  }, [items, allowances, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap]);
+  }, [items, allowances, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap, enableResidentialQa]);
 
   const handleSave = () => {
     saveMutation.mutate({ projectId, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct });
   };
 
   const residentialQaFindings = useMemo(() => {
+    if (!enableResidentialQa) return [];
     if (!calculations) return [];
     return analyzeResidentialEstimateQa({
       items,
@@ -501,7 +506,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       allowances,
       ...parseResidentialSquareFootage(`${projectName || ""} ${projectDescription || ""}`),
     });
-  }, [items, calculations, allowances, projectName, projectDescription]);
+  }, [enableResidentialQa, items, calculations, allowances, projectName, projectDescription]);
 
   const handleExportEstimate = () => {
     if (!calculations) return;
@@ -532,7 +537,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Estimate Summary");
-    if (residentialQaFindings.length > 0) {
+    if (enableResidentialQa && residentialQaFindings.length > 0) {
       const qaRows = residentialQaFindings.map(finding => ({
         "Severity": finding.severity.toUpperCase(),
         "Type": finding.kind,
@@ -611,7 +616,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             <strong className="text-emerald-300">Crew labor is active</strong> for {calculations.laborItemsMatched} item{calculations.laborItemsMatched !== 1 ? "s" : ""}.
             {calculations.laborItemsDefaulted > 0 ? ` ${calculations.laborItemsDefaulted} item${calculations.laborItemsDefaulted !== 1 ? "s are" : " is"} using Cost Library / Default Labor until you replace it with crew labor.` : ""}
             {calculations.laborItemsWithoutLabor > 0 ? ` ${calculations.laborItemsWithoutLabor} item${calculations.laborItemsWithoutLabor !== 1 ? "s have" : " has"} no labor source yet.` : ""}
-            {calculations.laborItemsHeldForReview > 0
+            {enableResidentialQa && calculations.laborItemsHeldForReview > 0
               ? ` ${calculations.laborItemsHeldForReview} risky residential item${calculations.laborItemsHeldForReview !== 1 ? "s were" : " was"} held out for review.`
               : ""}
           </p>
@@ -651,19 +656,21 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         </div>
       )}
 
-      <ResidentialQaPanel
-        findings={residentialQaFindings}
-        currency={currency}
-        allowanceCount={allowances.length}
-        onAddAllowance={onAddAllowance}
-      />
+      {enableResidentialQa && (
+        <ResidentialQaPanel
+          findings={residentialQaFindings}
+          currency={currency}
+          allowanceCount={allowances.length}
+          onAddAllowance={onAddAllowance}
+        />
+      )}
 
       <div className="bg-navy-medium/35 border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3">
         <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="text-sm text-cream font-medium">One labor source per item</p>
           <p className="text-xs text-cream-muted">
-            The Estimate tab is the live bid number. Each line uses My Crew Labor when matched, Cost Library / Default Labor as the starting fallback, or Held for Review when residential QA blocks automatic labor. Labor sources are not stacked, so labor is not counted twice.
+            The Estimate tab is the live bid number. Each line uses My Crew Labor when matched or Cost Library / Default Labor as the starting fallback. Labor sources are not stacked, so labor is not counted twice.
           </p>
         </div>
       </div>
