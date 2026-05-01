@@ -21,6 +21,7 @@
 
 import { getDb } from "./db";
 import { expandedCostLibrary, expandedLaborLibrary } from "../drizzle/schema";
+import { normalizeRebarUnitAndReview } from "../shared/rebarSanity";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -614,8 +615,9 @@ function normalizeForRebarCheck(text: string): string {
 }
 
 export function validateRebarQuantities(items: TakeoffItem[]): TakeoffItem[] {
+  const normalizedItems = items.map((item) => normalizeRebarUnitAndReview(item));
   // Find slab area
-  const slabItems = items.filter(i => {
+  const slabItems = normalizedItems.filter(i => {
     const desc = normalizeForRebarCheck(i.description);
     return desc.includes("slab") && !desc.includes("rebar") && !desc.includes("formwork");
   });
@@ -624,10 +626,10 @@ export function validateRebarQuantities(items: TakeoffItem[]): TakeoffItem[] {
     if (unit === "SF") return sum + (i.quantity || 0);
     return sum;
   }, 0);
-  if (totalSlabSF === 0) return items;
+  if (totalSlabSF === 0) return normalizedItems;
   // Max rebar for slab: SF × 2.2 (12" O.C. both ways with 10% lap)
   const maxSlabRebarLF = totalSlabSF * 2.2;
-  return items.map(item => {
+  return normalizedItems.map(item => {
     const desc = normalizeForRebarCheck(item.description);
     const unit = (item.unit || "").toUpperCase();
     if (unit === "LF" && (desc.includes("rebar") || desc.includes("reinforc")) && desc.includes("slab")) {

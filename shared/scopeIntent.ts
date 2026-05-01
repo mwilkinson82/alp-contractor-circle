@@ -5,6 +5,7 @@ export interface ScopeIntent {
   originalText: string;
   normalizedText: string;
   summary: string;
+  presetIds: string[];
   includeKeywords: string[];
   excludeKeywords: string[];
   needsReviewKeywords: string[];
@@ -34,8 +35,8 @@ const SCOPE_PRESETS: ScopePreset[] = [
     patterns: [
       /underground.*concrete.*below[-\s]?grade.*waterproof/i,
       /below[-\s]?grade.*waterproof.*underground.*concrete/i,
-      /foundation.*concrete.*below[-\s]?grade.*waterproof/i,
-      /below[-\s]?grade.*waterproof.*foundation.*concrete/i,
+      /foundation\s+concrete.*below[-\s]?grade.*waterproof/i,
+      /below[-\s]?grade.*waterproof.*foundation\s+concrete/i,
     ],
     summary: "Underground concrete plus below-grade waterproofing",
     includeKeywords: [
@@ -59,9 +60,16 @@ const SCOPE_PRESETS: ScopePreset[] = [
     includeKeywords: [
       "below grade", "waterproof", "waterproofing", "dampproof", "damp proof",
       "vapor barrier", "vapor retarder", "membrane", "protection board",
-      "drainage board", "foundation drain", "waterstop", "sealant", "bentonite",
+      "drainage board", "foundation drain", "waterstop", "keyway waterstop",
+      "below-grade barrier", "below grade barrier", "sealant", "bentonite",
     ],
-    excludeKeywords: ["roof", "roofing", "siding", "window", "door", "interior finish", "paint", "drywall"],
+    excludeKeywords: [
+      "general concrete", "slab on grade", "slab-on-grade", "footing", "footings",
+      "rebar", "reinforcing", "formwork", "concrete", "cmu", "masonry",
+      "structural steel", "mep", "plumbing", "hvac", "electrical", "roof",
+      "roofing", "eifs", "batt insulation", "above-grade envelope", "siding",
+      "window", "door", "interior finish", "paint", "drywall",
+    ],
     needsReviewKeywords: ["insulation", "flashing", "sheet metal", "joint", "penetration"],
     focusDivisions: ["07", "31", "33"],
     excludedDivisions: ["03", "04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
@@ -143,6 +151,7 @@ export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: 
       originalText: "",
       normalizedText: "",
       summary: "Full drawing set",
+      presetIds: [],
       includeKeywords: [],
       excludeKeywords: [],
       needsReviewKeywords: [],
@@ -169,6 +178,7 @@ export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: 
     originalText,
     normalizedText,
     summary: matched.length > 0 ? matched.map((preset) => preset.summary).join("; ") : "Custom contractor scope",
+    presetIds: matched.map((preset) => preset.id),
     includeKeywords: unique(matched.flatMap((preset) => preset.includeKeywords)),
     excludeKeywords: unique(matched.flatMap((preset) => preset.excludeKeywords)),
     needsReviewKeywords: unique(matched.flatMap((preset) => preset.needsReviewKeywords || [])),
@@ -185,8 +195,29 @@ export function classifyScopeMatch(
 
   const division = (item.csiDivision || item.csiCode?.slice(0, 2) || "").trim();
   const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  const allowsConcrete = intent.presetIds.some((id) =>
+    id === "underground_concrete_below_grade_waterproofing" ||
+    id === "foundations" ||
+    id === "piles_deep_foundations"
+  ) || /\b(underground|trench)\s+concrete\b|\bfoundations?\s+(?:only|scope|package|concrete|walls?|work)\b|\bpits?\b/.test(intent.normalizedText);
+  const explicitlyExcludesGeneralConcrete = /\b(exclude|no)\s+(?:general\s+)?concrete\b/.test(intent.normalizedText);
+
+  if (explicitlyExcludesGeneralConcrete && division === "03" && !/\b(waterstop|vapor barrier|vapor retarder)\b/.test(text)) {
+    return "excluded";
+  }
 
   if (ROOFING_SCOPE_EXCLUDE_PATTERNS.some((pattern) => pattern.test(text))) {
+    return "excluded";
+  }
+
+  if (!allowsConcrete &&
+    /\b(general concrete|cast[-\s]?in[-\s]?place|concrete|slab(?:-on-grade| on grade)?|sog|footings?|rebar|reinforcing|formwork|trench concrete|pit concrete)\b/.test(text) &&
+    !/\b(waterproof|waterstop|vapor barrier|vapor retarder|protection board|drainage board|foundation drain)\b/.test(text)
+  ) {
+    return "excluded";
+  }
+
+  if (/\b(cmu|masonry|masonry veneer|structural steel|eifs|batt insulation|above-grade envelope|plumbing|hvac|electrical|mep)\b/.test(text)) {
     return "excluded";
   }
 

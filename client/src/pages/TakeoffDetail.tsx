@@ -108,6 +108,7 @@ function getScaleLabel(ratio: number): string {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
+import { getScopeStatusFromNotes, isScopeExcludedItem, sumScopeIncludedExtendedCost } from "../../../shared/scopeCost";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -136,10 +137,7 @@ function getTakeoffMaterialUnitCost(item: any): number {
 }
 
 function getScopeReviewStatus(item: any): "included" | "review" | "excluded" {
-  const notes = String(item?.notes || "").toLowerCase();
-  if (notes.includes("[scope: excluded]")) return "excluded";
-  if (notes.includes("[scope: review]")) return "review";
-  return "included";
+  return getScopeStatusFromNotes(item?.notes);
 }
 
 function formatScopeReviewStatus(status: "included" | "review" | "excluded"): string {
@@ -647,7 +645,7 @@ export default function TakeoffDetail() {
 
     // Group items by CSI division
     const divGroups: Record<string, any[]> = {};
-    for (const item of items as any[]) {
+    for (const item of (items as any[]).filter((item) => !isScopeExcludedItem(item))) {
       const div = item.csiDivision || "00";
       if (!divGroups[div]) divGroups[div] = [];
       divGroups[div].push(item);
@@ -753,7 +751,7 @@ export default function TakeoffDetail() {
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
-    for (const item of items as any[]) {
+    for (const item of (items as any[]).filter((item) => !isScopeExcludedItem(item))) {
       const div = item.csiDivision || "00";
       if (!divGroups[div]) divGroups[div] = [];
       divGroups[div].push(item);
@@ -925,16 +923,19 @@ export default function TakeoffDetail() {
 
   // ─── Grouped Items ──────────────────────────────────────────────────
 
+  const activeItems = useMemo(() => (items || []).filter((item: any) => !isScopeExcludedItem(item)), [items]);
+  const excludedItems = useMemo(() => (items || []).filter((item: any) => isScopeExcludedItem(item)), [items]);
+
   const groupedItems = useMemo(() => {
-    if (!items) return {};
+    if (!activeItems) return {};
     const groups: Record<string, typeof items> = {};
-    for (const item of items) {
+    for (const item of activeItems) {
       const div = (item as any).csiDivision || "00";
       if (!groups[div]) groups[div] = [];
       groups[div].push(item);
     }
     return groups;
-  }, [items]);
+  }, [activeItems]);
 
   const toggleDivision = (div: string) => {
     setCollapsedDivisions((prev) => {
@@ -972,7 +973,7 @@ export default function TakeoffDetail() {
   // Parse project allowances
   const projectAllowances = parseProjectAllowances(project.allowances);
   const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
-  const itemsCost = project.totalEstimatedCost || 0;
+  const itemsCost = sumScopeIncludedExtendedCost(activeItems);
   const totalCost = itemsCost + allowancesTotal;
 
   return (
@@ -2161,8 +2162,56 @@ export default function TakeoffDetail() {
                           </div>
                         )}
                        </div>
-                    );
-                  })}
+	                    );
+	                  })}
+
+                {excludedItems.length > 0 && (
+                  <div className="border border-red-500/25 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 bg-red-500/10">
+                      <div className="flex items-center gap-2">
+                        <Flag className="w-4 h-4 text-red-300" />
+                        <span className="text-red-200 font-semibold">Excluded / Scope Boundary Review</span>
+                        <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
+                          {excludedItems.length} likely excluded
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-red-100/70">Not counted in takeoff or estimate totals</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <th className="text-left px-4 py-2 w-12">CSI</th>
+                            <th className="text-left px-4 py-2">Description</th>
+                            <th className="text-right px-4 py-2 w-20">Qty</th>
+                            <th className="text-left px-4 py-2 w-14">Unit</th>
+                            <th className="text-right px-4 py-2 w-28">Ref Total</th>
+                            <th className="text-center px-4 py-2 w-20">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {excludedItems.map((item: any) => (
+                            <tr key={item.id} className="border-t border-white/5 bg-red-500/5 hover:bg-red-500/10 cursor-pointer" onClick={() => setSelectedItem(item)}>
+                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">{item.csiCode || item.csiDivision}</td>
+                              <td className="px-4 py-2 text-cream max-w-lg">
+                                <p className="line-clamp-2">{item.description}</p>
+                                {item.notes && <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">{item.notes}</p>}
+                              </td>
+                              <td className="px-4 py-2 text-right text-cream font-mono">{parseFloat(item.quantity || "0").toLocaleString()}</td>
+                              <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
+                              <td className="px-4 py-2 text-right text-red-200/70 font-mono">{formatCurrency(item.extendedCost || 0, project?.currency || "USD")}</td>
+                              <td className="px-4 py-2 text-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400" onClick={() => setSelectedItem(item)} title="View details">
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {/* ─── Consolidation Diff: Summary Banner ─────────────────── */}
                 {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
@@ -2261,7 +2310,7 @@ export default function TakeoffDetail() {
               projectId={project.id}
               projectName={project.name}
               projectDescription={project.description || undefined}
-              items={items || []}
+              items={activeItems || []}
               allowances={projectAllowances}
               onAddAllowance={(allowance) => {
                 const existing = projectAllowances.some(a =>
