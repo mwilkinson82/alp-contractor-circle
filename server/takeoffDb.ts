@@ -15,6 +15,7 @@ import {
 } from "../drizzle/schema";
 
 import { getDb as _getDb } from "./db";
+import { sumScopeIncludedExtendedCost } from "../shared/scopeCost";
 
 async function getDb() {
   return await _getDb();
@@ -190,7 +191,7 @@ export async function recalculateProjectTotal(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
   const items = await getTakeoffItemsByProject(projectId);
-  const total = items.reduce((sum: number, item: { extendedCost: number | null }) => sum + (item.extendedCost || 0), 0);
+  const total = sumScopeIncludedExtendedCost(items);
   await db
     .update(takeoffProjects)
     .set({ totalEstimatedCost: total })

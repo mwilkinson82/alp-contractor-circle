@@ -79,4 +79,36 @@ describe("scope intent", () => {
       expect(classifyScopeMatch(item, intent)).toBe("included");
     }
   });
+
+  it("excludes broad adjacent work from below-grade waterproofing only", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "General concrete slab-on-grade" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar reinforcing for foundation walls" },
+      { csiDivision: "04", csiCode: "04 22 00", description: "CMU masonry wall" },
+      { csiDivision: "22", csiCode: "22 11 00", description: "Plumbing pipe rough-in" },
+      { csiDivision: "23", csiCode: "23 05 00", description: "HVAC ductwork" },
+      { csiDivision: "26", csiCode: "26 05 00", description: "Electrical conduit" },
+      { csiDivision: "07", csiCode: "07 54 00", description: "Roofing membrane" },
+      { csiDivision: "07", csiCode: "07 24 00", description: "EIFS above-grade envelope" },
+      { csiDivision: "07", csiCode: "07 21 00", description: "Batt insulation" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("keeps waterstop vapor barrier and foundation drain included for below-grade waterproofing", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains.");
+
+    for (const item of [
+      { csiDivision: "07", csiCode: "07 13 00", description: "Waterproofing membrane below grade" },
+      { csiDivision: "07", csiCode: "07 13 00", description: "Protection board at foundation wall" },
+      { csiDivision: "03", csiCode: "03 15 13", description: "Keyway waterstop at construction joint" },
+      { csiDivision: "07", csiCode: "07 26 00", description: "Vapor barrier below slab" },
+      { csiDivision: "33", csiCode: "33 46 00", description: "Foundation drain with drainage board" },
+    ]) {
+      expect(classifyScopeMatch(item, intent)).toBe("included");
+    }
+  });
 });

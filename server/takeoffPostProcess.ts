@@ -33,6 +33,7 @@ import {
   classifyScopeMatch,
   type ScopeIntent,
 } from "../shared/scopeIntent";
+import { normalizeRebarUnitAndReview } from "../shared/rebarSanity";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -672,9 +673,6 @@ function parseToFeet(val: string, isFeet: boolean): number {
 const REBAR_WEIGHT_PER_FT: Record<string, number> = {
   "#3": 0.376, "#4": 0.668, "#5": 1.043, "#6": 1.502, "#7": 2.044, "#8": 2.670,
 };
-const REBAR_COST_PER_LF_CENTS: Record<string, number> = {
-  "#3": 95, "#4": 125, "#5": 165, "#6": 205, "#7": 250, "#8": 300,
-};
 // Standard residential rebar ratios (LF of rebar per unit of concrete member)
 const REBAR_RATIOS = {
   slab_sf: 2.0,       // #4 @ 12" OC each way = ~2.0 LF rebar per SF of slab
@@ -768,24 +766,23 @@ function enhanceRebar(
   const barSizeMatch = rebarItems.map(r => r.description.match(/#([3-8])/)).find(m => m);
   const barSize = barSizeMatch ? `#${barSizeMatch[1]}` : "#4";
   const weightPerFt = REBAR_WEIGHT_PER_FT[barSize] || 0.668;
-  const costPerLFCents = REBAR_COST_PER_LF_CENTS[barSize] || 125;
   const totalWeightLbs = Math.round(totalRebarLF * weightPerFt);
 
   // Replace LS/qty=0 rebar items with calculated quantities
   const enhancedItems = items.map(item => {
     if (!needsEnhancement.includes(item)) return item;
-    return {
+    return normalizeRebarUnitAndReview({
       ...item,
-      quantity: totalRebarLF,
-      unit: "LF",
-      unitCost: costPerLFCents,
-      extendedCost: totalRebarLF * costPerLFCents,
-      materialCost: Math.round(totalRebarLF * costPerLFCents * 0.6), // ~60% material
-      laborCost: Math.round(totalRebarLF * costPerLFCents * 0.4),    // ~40% labor
+      quantity: totalWeightLbs,
+      unit: "LB",
+      unitCost: 85,
+      extendedCost: totalWeightLbs * 85,
+      materialCost: Math.round(totalWeightLbs * 85 * 0.6),
+      laborCost: Math.round(totalWeightLbs * 85 * 0.4),
       confidence: 75,
       wasEnhanced: true,
       notes: `[Enhanced] ${barSize} rebar, ${totalWeightLbs} lbs total (incl. 10% lap/waste). Calc: ${breakdowns.join("; ")}`,
-    };
+    });
   });
 
   console.log(`[PostProcess] Rebar enhanced: ${needsEnhancement.length} items → ${totalRebarLF} LF (${totalWeightLbs} lbs) of ${barSize}`);
@@ -975,6 +972,11 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
   
   if (!isFoundationOnly && !isConcreteOnly && !isStructuralOnly && !noVertical && !hasIntentFilter) {
     console.log(`[HardFilter] No restrictive scope pattern detected, skipping hard filter`);
+    return items;
+  }
+
+  if (hasIntentFilter) {
+    console.log(`[HardFilter] Scope intent detected; keeping boundary items visible for scope review tagging.`);
     return items;
   }
   
@@ -1368,7 +1370,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
     unitCost: item.unitCost / 100, // cents to dollars for lookup
     confidence: item.confidence,
     notes: item.notes,
-  }));
+  })).map((item) => normalizeRebarUnitAndReview(item));
 
   // Load member's personal cost library overrides (cents → dollars)
   const memberLibraryRaw = await getCostLibraryByMember(project.memberId).catch(() => []);
@@ -1404,6 +1406,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
       consolidated[i].materialCost = Math.round(matC * 100); // dollars to cents
       consolidated[i].laborCost = Math.round(labC * 100); // dollars to cents
       consolidated[i].quantity = priced.quantity; // may have been adjusted by rebar validation
+      consolidated[i].unit = priced.unit || consolidated[i].unit;
       if (priced.notes && priced.notes !== consolidated[i].notes) {
         consolidated[i].notes = priced.notes;
       }
