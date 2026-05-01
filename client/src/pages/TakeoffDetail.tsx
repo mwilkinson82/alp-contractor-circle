@@ -998,7 +998,7 @@ export default function TakeoffDetail() {
                 <span className="text-emerald-400 font-bold text-lg">
                   {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
-                <span className="text-emerald-400/60 text-xs">estimated</span>
+                <span className="text-emerald-400/60 text-xs">installed takeoff</span>
               </div>
             )}
             <div data-tour="takeoff-settings">
