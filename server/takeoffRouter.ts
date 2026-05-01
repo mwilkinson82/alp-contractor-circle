@@ -46,8 +46,10 @@ import { logActivity } from "./activityLogDb";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 import { normalizeTakeoffProjectType } from "../shared/projectType";
+import { normalizeTakeoffBidMode } from "../shared/bidMode";
 
 const takeoffProjectTypeSchema = z.enum(["commercial", "residential", "civil_sitework", "other"]);
+const takeoffBidModeSchema = z.enum(["full_gc", "trade_package", "fast_scope_check"]);
 
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
@@ -162,6 +164,8 @@ export const takeoffRouter = router({
         costRegion: z.string().max(64).optional(),
         /** Broad project context for QA and allowance defaults */
         projectType: takeoffProjectTypeSchema.optional(),
+        /** Bid workflow mode */
+        bidMode: takeoffBidModeSchema.optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -196,6 +200,7 @@ export const takeoffRouter = router({
         description: input.description || null,
         currency: input.currency || "USD",
         projectType: normalizeTakeoffProjectType(input.projectType),
+        bidMode: normalizeTakeoffBidMode(input.bidMode),
         selectedDivisions: divisionsJson,
         costRegion,
         costMultiplier,
@@ -217,6 +222,7 @@ export const takeoffRouter = router({
         costRegion: z.string().max(64).nullable().optional(),
         rateProfileId: z.number().nullable().optional(),
         projectType: takeoffProjectTypeSchema.optional(),
+        bidMode: takeoffBidModeSchema.optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -230,6 +236,7 @@ export const takeoffRouter = router({
       if (input.description !== undefined) updates.description = input.description;
       if (input.rateProfileId !== undefined) updates.rateProfileId = input.rateProfileId;
       if (input.projectType !== undefined) updates.projectType = normalizeTakeoffProjectType(input.projectType);
+      if (input.bidMode !== undefined) updates.bidMode = normalizeTakeoffBidMode(input.bidMode);
 
       // Handle division update
       if (input.selectedDivisions !== undefined) {
@@ -393,6 +400,7 @@ export const takeoffRouter = router({
       scopeText: z.string().max(2000).nullable().optional(),
       selectedSpecialties: z.array(z.string()).nullable().optional(),
       projectType: takeoffProjectTypeSchema.optional(),
+      bidMode: takeoffBidModeSchema.optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
@@ -421,6 +429,10 @@ export const takeoffRouter = router({
 
       if (input.projectType !== undefined) {
         updates.projectType = normalizeTakeoffProjectType(input.projectType);
+      }
+
+      if (input.bidMode !== undefined) {
+        updates.bidMode = normalizeTakeoffBidMode(input.bidMode);
       }
 
       if (input.selectedSpecialties !== undefined) {
@@ -525,7 +537,8 @@ export const takeoffRouter = router({
         selectedSpecialties,
         Number.isFinite(savedScaleRatio) && savedScaleRatio && savedScaleRatio > 0 ? savedScaleRatio : null,
         savedScaleUnit,
-        project.projectType || "commercial"
+        project.projectType || "commercial",
+        project.bidMode || "trade_package"
       )
         .then(() => recalculateProjectTotal(input.projectId))
         .catch((err) => {
@@ -794,6 +807,7 @@ export const takeoffRouter = router({
         costRegion: z.string().max(64).nullable().optional(),
         currency: z.enum(["USD", "GBP", "AUD"]).optional(),
         projectType: takeoffProjectTypeSchema.optional(),
+        bidMode: takeoffBidModeSchema.optional(),
         selectedSpecialties: z.array(z.string()).nullable().optional(),
         scopeText: z.string().max(2000).nullable().optional(),
         /** Contractor-entered allowance items (residential selections etc.) */
@@ -822,6 +836,10 @@ export const takeoffRouter = router({
 
       if (input.projectType !== undefined) {
         updates.projectType = normalizeTakeoffProjectType(input.projectType);
+      }
+
+      if (input.bidMode !== undefined) {
+        updates.bidMode = normalizeTakeoffBidMode(input.bidMode);
       }
 
       // Handle scopeText update (null = clear the scope description)

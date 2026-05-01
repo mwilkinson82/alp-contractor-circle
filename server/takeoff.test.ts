@@ -106,6 +106,65 @@ describe("Takeoff AI Pipeline", () => {
     expect(decision.shouldVerify).toBe(true);
     expect(decision.reason).toContain("lump-sum");
   });
+
+  it("should keep Fast Scope Check speed-first by skipping extra QA for usable reads", async () => {
+    const mod = await import("./takeoffAI");
+    const decision = mod.shouldVerifyExtractionForBidMode({
+      sheetName: "A1.1 Floor Plan",
+      sheetType: "floor_plan",
+      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
+      items: [
+        {
+          csiDivision: "07",
+          csiCode: "07 13 00",
+          description: "Below-grade waterproofing membrane",
+          quantity: 1200,
+          unit: "SF",
+          unitCost: 1,
+          confidence: 76,
+          notes: "Measured from plan",
+        },
+      ],
+    }, "fast_scope_check", null);
+
+    expect(decision.shouldVerify).toBe(false);
+    expect(decision.reason).toContain("fast scope check");
+  });
+
+  it("should score scope-relevant sheets higher for Trade Package Takeoff", async () => {
+    const mod = await import("./takeoffAI");
+    const waterproofingScore = mod.scoreSheetForBidMode({
+      sheetId: 1,
+      pageNumber: 5,
+      sheetName: "A5.1 Foundation Waterproofing Details",
+      sheetType: "detail",
+      discipline: "architectural",
+      dimensions: [],
+      elements: [
+        {
+          type: "waterproofing",
+          description: "Below-grade waterproofing membrane and protection board at foundation wall",
+          count: null,
+          dimensionRefs: [],
+          rebarCallouts: [],
+          concreteStrength: null,
+        },
+      ],
+      summary: "Waterproofing membrane, drainage board, and foundation drain details.",
+    }, "trade_package", "Below-grade waterproofing only. Include membrane and protection board.", ["07"]);
+    const electricalScore = mod.scoreSheetForBidMode({
+      sheetId: 2,
+      pageNumber: 20,
+      sheetName: "E2.1 Lighting Plan",
+      sheetType: "electrical_plan",
+      discipline: "electrical",
+      dimensions: [],
+      elements: [],
+      summary: "Lighting fixture layout and switching.",
+    }, "trade_package", "Below-grade waterproofing only. Include membrane and protection board.", ["07"]);
+
+    expect(waterproofingScore).toBeGreaterThan(electricalScore);
+  });
 });
 
 // ─── Test the database helpers ────────────────────────────────────────────────

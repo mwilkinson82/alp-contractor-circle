@@ -7,6 +7,7 @@ import {
   Building2,
   ClipboardList,
   DollarSign,
+  Gauge,
   Loader2,
   MapPin,
   Plus,
@@ -27,6 +28,13 @@ import RegionSelector from "@/components/RegionSelector";
 import SpecialtySelector from "@/components/SpecialtySelector";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import {
+  BID_MODE_BEHAVIORS,
+  TAKEOFF_BID_MODES,
+  getBidModeBehavior,
+  normalizeTakeoffBidMode,
+  type TakeoffBidMode,
+} from "../../../shared/bidMode";
+import {
   getAllowancePresetsForProjectType,
   getTakeoffProjectTypeLabel,
   normalizeTakeoffProjectType,
@@ -43,6 +51,7 @@ export interface AllowanceItem {
 }
 
 interface PreAnalysisSettings {
+  bidMode: TakeoffBidMode;
   currency: "USD" | "GBP" | "AUD";
   projectType: TakeoffProjectType;
   selectedDivisions: string[];
@@ -53,6 +62,7 @@ interface PreAnalysisSettings {
 }
 
 const DEFAULT_SETTINGS: PreAnalysisSettings = {
+  bidMode: "trade_package",
   currency: "USD",
   projectType: "commercial",
   selectedDivisions: [],
@@ -103,6 +113,7 @@ interface PreAnalysisModalProps {
   existingScopeText?: string | null;
   existingSpecialties?: string[] | null;
   existingProjectType?: string | null;
+  existingBidMode?: string | null;
   detectedSpecialties?: string[] | null;
   preferredCurrency?: string;
   uncalibratedSheetCount?: number;
@@ -121,12 +132,16 @@ export default function PreAnalysisModal({
   existingScopeText,
   existingSpecialties,
   existingProjectType,
+  existingBidMode,
   detectedSpecialties,
   preferredCurrency,
   uncalibratedSheetCount = 0,
   onSetScale,
 }: PreAnalysisModalProps) {
   const saved = useMemo(() => loadSavedSettings(), []);
+  const [bidMode, setBidMode] = useState<TakeoffBidMode>(
+    normalizeTakeoffBidMode(existingBidMode || saved.bidMode)
+  );
   const [currency, setCurrency] = useState<"USD" | "GBP" | "AUD">(
     (existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD"
   );
@@ -141,6 +156,7 @@ export default function PreAnalysisModal({
 
   useEffect(() => {
     if (!open) return;
+    setBidMode(normalizeTakeoffBidMode(existingBidMode || saved.bidMode));
     setCurrency((existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD");
     setProjectType(normalizeTakeoffProjectType(existingProjectType || saved.projectType));
     setSelectedDivisions(existingDivisions || saved.selectedDivisions || []);
@@ -148,12 +164,13 @@ export default function PreAnalysisModal({
     setScopeText(existingScopeText || saved.scopeText || "");
     setSelectedSpecialties(existingSpecialties || saved.selectedSpecialties || []);
     setAllowances(saved.allowances || []);
-  }, [open, existingCurrency, preferredCurrency, existingProjectType, existingDivisions, existingRegion, existingScopeText, existingSpecialties, saved]);
+  }, [open, existingCurrency, preferredCurrency, existingProjectType, existingBidMode, existingDivisions, existingRegion, existingScopeText, existingSpecialties, saved]);
 
   const scopeIntent = useMemo(
-    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null),
-    [scopeText, selectedDivisions]
+    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null, bidMode),
+    [scopeText, selectedDivisions, bidMode]
   );
+  const bidModeBehavior = useMemo(() => getBidModeBehavior(bidMode), [bidMode]);
   const allowancePresets = useMemo(() => getAllowancePresetsForProjectType(projectType), [projectType]);
 
   const addAllowance = () => {
@@ -162,6 +179,7 @@ export default function PreAnalysisModal({
 
   const handleConfirm = () => {
     const settings: PreAnalysisSettings = {
+      bidMode,
       currency,
       projectType,
       selectedDivisions,
@@ -214,6 +232,38 @@ export default function PreAnalysisModal({
           <section className="space-y-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-amber-500" />
+                <Label className="text-base font-semibold text-cream">Pick your bid mode</Label>
+              </div>
+              <p className="text-xs text-cream-muted">
+                ConstructLine builds the right review surface for the bid you are building.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {TAKEOFF_BID_MODES.map((mode) => {
+                  const option = BID_MODE_BEHAVIORS[mode];
+                  const selected = bidMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setBidMode(mode)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        selected
+                          ? "border-amber-500/60 bg-amber-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-sm font-semibold text-cream">{option.label}</span>
+                      <p className="mt-1 text-[11px] leading-snug text-cream-muted">{option.description}</p>
+                      <p className="mt-2 text-[10px] leading-snug text-amber-300/85">{option.reviewSurface}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-500" />
                 <Label className="text-sm font-semibold text-cream">Project Type</Label>
               </div>
@@ -238,17 +288,25 @@ export default function PreAnalysisModal({
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-amber-500" />
+                <Gauge className="w-4 h-4 text-amber-500" />
                 <Label className="text-base font-semibold text-cream">What scope are you bidding?</Label>
               </div>
               <p className="text-xs text-cream-muted">
-                Add the trade package, inclusions, exclusions, and boundary items. Leave blank for a full drawing-set takeoff.
+                {bidMode === "full_gc"
+                  ? "Optional: add known exclusions or GC pricing priorities. Broad trade work stays active."
+                  : bidMode === "fast_scope_check"
+                    ? "Add the bid question or scope you want checked first. Boundary items stay visible for a quick read."
+                    : "Add the trade package, inclusions, exclusions, and boundary items. Only active scope counts in totals."}
               </p>
             </div>
             <Textarea
               value={scopeText}
               onChange={(e) => setScopeText(e.target.value)}
-              placeholder="Example: Underground concrete plus below-grade waterproofing. Include trench pits, correlator pit, rebar, formwork, concrete, vapor barrier, waterproofing, protection board, direct excavation and backfill. Exclude roofing and above-grade envelope."
+              placeholder={bidMode === "full_gc"
+                ? "Example: Full GC estimate. Call out site, structure, envelope, interiors, MEP, and allowances. Exclude owner-furnished equipment."
+                : bidMode === "fast_scope_check"
+                  ? "Example: Quick bid/no-bid read for below-grade waterproofing and drainage risk. Flag concrete, excavation, and MEP interfaces for review."
+                  : "Example: Underground concrete plus below-grade waterproofing. Include trench pits, correlator pit, rebar, formwork, concrete, vapor barrier, waterproofing, protection board, direct excavation and backfill. Exclude roofing and above-grade envelope."}
               className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 min-h-[170px] resize-none text-sm"
               maxLength={2000}
             />
@@ -263,13 +321,13 @@ export default function PreAnalysisModal({
             {scopeIntent.hasScope && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-amber-300">Interpreted Scope</span>
+                  <span className="text-xs font-semibold text-amber-300">Review Surface</span>
                   <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
-                    {scopeIntent.summary}
+                    {bidModeBehavior.shortLabel}
                   </Badge>
                 </div>
                 <p className="text-xs text-cream-muted">
-                  Boundary items remain visible as Needs scope review so you can include, edit, or delete them before pricing.
+                  {scopeIntent.summary}. {bidModeBehavior.reviewSurface}
                 </p>
               </div>
             )}
@@ -290,8 +348,8 @@ export default function PreAnalysisModal({
             <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs">
               <span className="font-semibold text-cream">Setup Summary</span>
               <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-cream-muted">
+                <span>Bid mode: <strong className="text-cream">{bidModeBehavior.label}</strong></span>
                 <span>Project type: <strong className="text-cream">{getTakeoffProjectTypeLabel(projectType)}</strong></span>
-                <span>Scope: <strong className="text-cream">{scopeText.trim() ? scopeIntent.summary : "Full drawing set"}</strong></span>
                 <span>Currency: <strong className="text-cream">{currency}</strong></span>
               </div>
             </div>

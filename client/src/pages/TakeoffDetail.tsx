@@ -108,6 +108,7 @@ function getScaleLabel(ratio: number): string {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
+import { normalizeTakeoffBidMode } from "../../../shared/bidMode";
 import {
   getScopeMaterialUnitCost,
   getScopeStatusFromNotes,
@@ -270,8 +271,8 @@ export default function TakeoffDetail() {
     }
   }, [project?.selectedDivisions]);
   const scopeIntent = useMemo(
-    () => buildScopeIntent(project?.scopeText || null, selectedDivisionList),
-    [project?.scopeText, selectedDivisionList]
+    () => buildScopeIntent(project?.scopeText || null, selectedDivisionList, project?.bidMode),
+    [project?.scopeText, selectedDivisionList, project?.bidMode]
   );
   const projectType = normalizeTakeoffProjectType(project?.projectType);
   const enableResidentialQa = useMemo(() => {
@@ -1065,13 +1066,14 @@ export default function TakeoffDetail() {
               currentRegion={project.costRegion}
               currentCurrency={project.currency}
               currentProjectType={projectType}
+              currentBidMode={project.bidMode}
               currentScopeText={project.scopeText}
               currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
               detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
               currentRateProfileId={project.rateProfileId ?? null}
               currentAllowances={project.allowances ? (typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances) : null}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances, settingsProjectType) => {
+              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances, settingsProjectType, bidMode) => {
                 // Save rateProfileId separately via updateProject if it changed
                 if (rateProfileId !== undefined) {
                   await new Promise<void>((resolve, reject) => {
@@ -1092,6 +1094,7 @@ export default function TakeoffDetail() {
                       ...(specialties !== undefined ? { selectedSpecialties: specialties } : {}),
                       ...(allowances !== undefined ? { allowances } : {}),
                       ...(settingsProjectType !== undefined ? { projectType: settingsProjectType } : {}),
+                      ...(bidMode !== undefined ? { bidMode } : {}),
                     },
                     {
                       onSuccess: (result) => resolve(result),
@@ -1110,6 +1113,7 @@ export default function TakeoffDetail() {
                   selectedDivisions: divisions || [],
                   currency: (project.currency || "USD") as "USD" | "GBP" | "AUD",
                   projectType,
+                  bidMode: normalizeTakeoffBidMode(project.bidMode),
                   costRegion: project.costRegion || null,
                   scopeText: project.scopeText || null,
                   selectedSpecialties: project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null,
@@ -1263,6 +1267,7 @@ export default function TakeoffDetail() {
                     costRegion: settings.costRegion,
                     currency: settings.currency as any,
                     projectType: settings.projectType,
+                    bidMode: settings.bidMode,
                     allowances: settings.allowances.map(a => ({ description: a.description, amount: a.amount })),
                   });
                 }
@@ -1270,6 +1275,7 @@ export default function TakeoffDetail() {
                   projectId,
                   currency: settings.currency,
                   projectType: settings.projectType,
+                  bidMode: settings.bidMode,
                   costRegion: settings.costRegion,
                   selectedDivisions: settings.selectedDivisions,
                   scopeText: settings.scopeText || null,
@@ -1282,6 +1288,7 @@ export default function TakeoffDetail() {
               existingRegion={project.costRegion}
               existingCurrency={project.currency}
               existingProjectType={projectType}
+              existingBidMode={project.bidMode}
               preferredCurrency={preferredCurrencyQuery.data?.currency}
               existingScopeText={project.scopeText}
               existingSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
