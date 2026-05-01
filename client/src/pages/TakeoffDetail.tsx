@@ -275,11 +275,6 @@ export default function TakeoffDetail() {
   const enableResidentialQa = useMemo(() => {
     return shouldRunResidentialQa(projectType);
   }, [projectType]);
-  const scopeReviewCount = useMemo(
-    () => (items || []).filter((item: any) => getScopeReviewStatus(item) === "review").length,
-    [items]
-  );
-
   // ─── Measurement Rollup Query ──────────────────────────────────────────
   const { data: projectMarkups } = trpc.takeoff.getProjectMarkups.useQuery(
     { projectId },
@@ -928,6 +923,7 @@ export default function TakeoffDetail() {
 
   const activeItems = useMemo(() => (items || []).filter((item: any) => !isScopeExcludedItem(item)), [items]);
   const excludedItems = useMemo(() => (items || []).filter((item: any) => isScopeExcludedItem(item)), [items]);
+  const scopeReviewCount = useMemo(() => activeItems.filter((item: any) => getScopeReviewStatus(item) === "review").length, [activeItems]);
 
   const groupedItems = useMemo(() => {
     if (!activeItems) return {};
@@ -1462,17 +1458,13 @@ export default function TakeoffDetail() {
                   {/* Row 1: Stats + Total + Primary Actions */}
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Stats */}
-                    <div className="flex items-center gap-3 sm:gap-5 text-sm text-cream-muted shrink-0">
-                      <span className="whitespace-nowrap">
-                        {activeItems.length} active item{activeItems.length !== 1 ? "s" : ""}
-                        {excludedItems.length > 0 && (
-                          <span className="text-red-300/80"> · {excludedItems.length} excluded/boundary item{excludedItems.length !== 1 ? "s" : ""}</span>
-                        )}
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
+                      <span className="whitespace-normal">
+                        <span className="text-cream">{activeItems.length} active</span>
+                        <span className="text-red-300/80"> • {excludedItems.length} excluded/boundary</span>
+                        <span className={scopeReviewCount > 0 ? "text-amber-300/90" : "text-cream-muted"}> • {scopeReviewCount} need review</span>
                       </span>
                       <span className="hidden sm:inline whitespace-nowrap">{Object.keys(groupedItems).length} CSI divisions</span>
-                      <span className="whitespace-nowrap">
-                        {activeItems.filter((i: any) => i.reviewed).length} reviewed
-                      </span>
                       {project?.lastAnalyzedAt && (
                         <span className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60" title={new Date(project.lastAnalyzedAt).toLocaleString()}>
                           Last analyzed: {new Date(project.lastAnalyzedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1488,7 +1480,7 @@ export default function TakeoffDetail() {
                     </div>
                   </div>
                   {/* Row 2: Action Buttons — compact with overflow dropdown */}
-                  <div className="flex items-center gap-2 border-t border-white/5 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-white/5 pt-2">
                     {/* Re-run Analysis — manual re-trigger of full post-processing pipeline */}
                     <div className="relative group">
                       <Button
@@ -1504,7 +1496,7 @@ export default function TakeoffDetail() {
                         ) : (
                           <RefreshCw className="w-3.5 h-3.5" />
                         )}
-                        <span className="hidden sm:inline">Re-run Analysis</span>
+                        <span className="hidden sm:inline">Re-run Scope Analysis</span>
                         <span className="sm:hidden">Re-run</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
@@ -1570,17 +1562,6 @@ export default function TakeoffDetail() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {/* Import */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => importFileRef.current?.click()}
-                      className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                      title="Import from Excel (.xlsx)"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Import</span>
-                    </Button>
                     <input
                       ref={importFileRef}
                       type="file"
@@ -1630,6 +1611,10 @@ export default function TakeoffDetail() {
                         >
                           <FileText className="w-4 h-4 text-amber-400" />
                           Edit Scope
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => importFileRef.current?.click()}>
+                          <Upload className="w-4 h-4 text-amber-400" />
+                          Import Excel
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

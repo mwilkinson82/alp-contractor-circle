@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
@@ -19,6 +20,7 @@ import {
 import {
   TRADES, getBaseWage,
   DEFAULT_BURDENS, calculateBurdenedRate,
+  DEFAULT_CREWS,
   type LaborType,
 } from "../../../shared/tradeRates";
 import { COST_REGION_GROUPS } from "../../../shared/costRegions";
@@ -124,6 +126,12 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
   const { data: activityData } = trpc.tradeRates.getActivityProductivity.useQuery();
   const { data: burdenData } = trpc.tradeRates.getBurdenConfigs.useQuery();
   const { data: userRatesData } = trpc.tradeRates.getTradeRates.useQuery();
+  const defaultCrewNames = useMemo(() => new Set(DEFAULT_CREWS.map((crew) => crew.crewName)), []);
+  const userCrews = useMemo(
+    () => (crewsData || []).filter((crew: any) => !defaultCrewNames.has(crew.crewName)),
+    [crewsData, defaultCrewNames]
+  );
+  const hasUserCrews = userCrews.length > 0;
 
   const utils = trpc.useUtils();
 
@@ -202,8 +210,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
   });
 
   const handleCalculateLabor = () => {
-    if (!crewsData || crewsData.length === 0) {
-      toast.error("No crews defined yet. Go to Trade Rate Library → Crew Builder to set up your crews first.");
+    if (!hasUserCrews) {
+      toast.error("Set up your real crews in the Labor Database before applying crew labor to this estimate.");
+      window.location.href = "/portal/labor-library?tab=crews";
       return;
     }
     // Use task-based grouping as the primary method
@@ -217,6 +226,14 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         notes: i.notes || "",
       })),
     });
+  };
+
+  const handleLaborCta = () => {
+    if (!hasUserCrews) {
+      window.location.href = "/portal/labor-library?tab=crews";
+      return;
+    }
+    handleCalculateLabor();
   };
 
   const handleConfirmAssignments = () => {
@@ -593,7 +610,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             Estimate Summary
           </h2>
           <p className="text-cream-muted text-xs mt-1">
-            Live estimate from takeoff quantities, one active labor source per item, allowances, and configurable markups
+            Live estimate from takeoff quantities, placeholder default labor, your crew labor when assigned, allowances, and configurable markups
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -614,7 +631,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Users className="w-4 h-4 text-emerald-400 shrink-0" />
           <p className="text-emerald-200/80 text-xs flex-1">
             <strong className="text-emerald-300">Crew labor is active</strong> for {calculations.laborItemsMatched} item{calculations.laborItemsMatched !== 1 ? "s" : ""}.
-            {calculations.laborItemsDefaulted > 0 ? ` ${calculations.laborItemsDefaulted} item${calculations.laborItemsDefaulted !== 1 ? "s are" : " is"} using Cost Library / Default Labor until you replace it with crew labor.` : ""}
+            {calculations.laborItemsDefaulted > 0 ? ` ${calculations.laborItemsDefaulted} item${calculations.laborItemsDefaulted !== 1 ? "s are" : " is"} still using Cost Library / Default Labor as a placeholder until you assign one of your crews.` : ""}
             {calculations.laborItemsWithoutLabor > 0 ? ` ${calculations.laborItemsWithoutLabor} item${calculations.laborItemsWithoutLabor !== 1 ? "s have" : " has"} no labor source yet.` : ""}
             {enableResidentialQa && calculations.laborItemsHeldForReview > 0
               ? ` ${calculations.laborItemsHeldForReview} risky residential item${calculations.laborItemsHeldForReview !== 1 ? "s were" : " was"} held out for review.`
@@ -622,14 +639,14 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           </p>
           <Button
             variant="outline" size="sm"
-            onClick={handleCalculateLabor}
+            onClick={handleLaborCta}
             disabled={inferByTasksMutation.isPending}
             className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5 shrink-0"
           >
             {inferByTasksMutation.isPending ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping tasks...</>
             ) : (
-              <><Layers className="w-3.5 h-3.5" />Rebuild Crew Labor</>
+              <><Layers className="w-3.5 h-3.5" />Review Labor Assignments</>
             )}
           </Button>
         </div>
@@ -638,19 +655,21 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Info className="w-4 h-4 text-blue-400 shrink-0" />
           <div className="flex-1">
             <p className="text-blue-200/80 text-xs">
-              <strong className="text-blue-300">Cost Library / Default Labor is the current starting point.</strong> Build crew labor when you want this estimate to use your crews and productivity instead. Each item will use one labor source only.
+              <strong className="text-blue-300">Cost Library / Default Labor is a placeholder starting point.</strong> For accurate labor, set up your real crews in the Labor Database, then apply those crews to this estimate. Starter/demo crews are for setup only and should be reviewed before bidding.
             </p>
           </div>
           <Button
             size="sm"
-            onClick={handleCalculateLabor}
+            onClick={handleLaborCta}
             disabled={inferByTasksMutation.isPending}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white gap-1.5 shrink-0"
           >
             {inferByTasksMutation.isPending ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping{items.length > 20 ? ` ${items.length} items` : ''} into tasks...</>
+            ) : !hasUserCrews ? (
+              <><Users className="w-3.5 h-3.5" />Set Up Crews</>
             ) : (
-              <><Layers className="w-3.5 h-3.5" />Build Crew Labor Estimate</>
+              <><Layers className="w-3.5 h-3.5" />Review Labor Assignments</>
             )}
           </Button>
         </div>
@@ -670,7 +689,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         <div className="space-y-1">
           <p className="text-sm text-cream font-medium">One labor source per item</p>
           <p className="text-xs text-cream-muted">
-            The Estimate tab is the live bid number. Each line uses My Crew Labor when matched or Cost Library / Default Labor as the starting fallback. Labor sources are not stacked, so labor is not counted twice.
+            The Estimate tab is the live bid number. Each line uses your assigned crew labor when matched, or Cost Library / Default Labor as a placeholder. Build and review crews in the Labor Database before treating labor as bid-ready.
           </p>
         </div>
       </div>
@@ -877,16 +896,41 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                     </button>
 
                     {/* Inline crew selector */}
-                    <select
-                      value={task.crewId ?? ""}
-                      onChange={e => updateTaskCrew(taskIdx, e.target.value ? parseInt(e.target.value) : null)}
-                      className="text-xs bg-navy-medium border border-white/10 rounded px-2 py-1.5 text-cream focus:border-indigo-400/50 focus:outline-none min-w-0 max-w-[180px] shrink-0"
+                    <Select
+                      value={task.crewId ? String(task.crewId) : "unassigned"}
+                      onValueChange={(value) => updateTaskCrew(taskIdx, value === "unassigned" ? null : parseInt(value))}
+                      disabled={task._excluded}
                     >
-                      <option value="">unassigned</option>
-                      {(crewsData || []).map((c: any) => (
-                        <option key={c.id} value={c.id}>{c.crewName}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger
+                        size="sm"
+                        className="h-8 w-[260px] max-w-[32vw] shrink-0 border-indigo-400/25 bg-navy-deep text-xs text-cream hover:bg-indigo-500/10 hover:border-indigo-300/40 focus-visible:border-indigo-300 focus-visible:ring-indigo-400/20 disabled:opacity-50"
+                      >
+                        <SelectValue placeholder="Select crew" />
+                      </SelectTrigger>
+                      <SelectContent
+                        align="end"
+                        className="w-[320px] max-h-72 border-indigo-400/20 bg-navy-deep text-cream shadow-2xl"
+                      >
+                        <SelectItem value="unassigned" className="text-cream-muted focus:bg-indigo-500/15 focus:text-white">
+                          Unassigned
+                        </SelectItem>
+                        {(crewsData || []).map((c: any) => {
+                          const isStarterCrew = defaultCrewNames.has(c.crewName);
+                          return (
+                            <SelectItem
+                              key={c.id}
+                              value={String(c.id)}
+                              className="pr-8 text-cream focus:bg-indigo-500/15 focus:text-white data-[state=checked]:bg-indigo-500/20 data-[state=checked]:text-indigo-100"
+                            >
+                              <span className="flex min-w-0 flex-col">
+                                <span className="truncate">{c.crewName}</span>
+                                {isStarterCrew && <span className="text-[10px] text-amber-300/80">Starter crew - review before bidding</span>}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Expanded item list */}
@@ -934,7 +978,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
 
           <div className="px-4 py-2.5 border-t border-indigo-500/20 flex items-center justify-between">
             <p className="text-xs text-cream-muted/60">
-              Select a crew for each task. Expand tasks to edit per-item productivity. Toggle ✓/✕ to include or exclude.
+              Select your real crew for each task. Expand tasks to edit per-item productivity. Toggle ✓/✕ to include or exclude. These assignments are a review workflow, not an automatic labor guarantee.
             </p>
             <Button
               size="sm"
