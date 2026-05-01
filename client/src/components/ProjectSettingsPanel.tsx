@@ -597,22 +597,24 @@ export default function ProjectSettingsPanel({
               />
               </div>
               {scopeIntent.hasScope && (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 min-w-0 overflow-hidden">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start min-w-0">
-                    <Badge className="w-fit max-w-full whitespace-normal break-words bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] leading-relaxed">
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-3 min-w-0 w-full">
+                  <div className="min-w-0 w-full">
+                    <Badge className="inline-block max-w-full whitespace-normal break-words bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] leading-relaxed mb-2">
                       {scopeIntent.summary}
                     </Badge>
-                    <span className="min-w-0 flex-1 text-xs text-cream-muted break-words">Items outside this intent may be removed or tagged for review on re-analysis.</span>
+                    <p className="text-xs text-cream-muted break-words leading-relaxed">
+                      Items outside this intent may be removed or tagged for review on re-analysis.
+                    </p>
                   </div>
                   {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
-                    <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
                       {scopeIntent.focusDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`focus-${division}`} className="whitespace-normal bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                        <Badge key={`focus-${division}`} className="whitespace-nowrap bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
                           Include Div {division}
                         </Badge>
                       ))}
                       {scopeIntent.excludedDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`exclude-${division}`} className="whitespace-normal bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
+                        <Badge key={`exclude-${division}`} className="whitespace-nowrap bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
                           Usually excludes Div {division}
                         </Badge>
                       ))}
