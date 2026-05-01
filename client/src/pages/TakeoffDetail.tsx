@@ -63,6 +63,7 @@ import {
   MoreHorizontal,
   FileText,
   ClipboardList,
+  Info,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -121,6 +122,14 @@ function formatCurrency(cents: number, currencyCode: string = "USD"): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);
+}
+
+function getTakeoffMaterialUnitCost(item: any): number {
+  const material = Number(item.materialCost) || 0;
+  if (material > 0) return material;
+  const installed = Number(item.unitCost) || 0;
+  const labor = Number(item.laborCost) || 0;
+  return installed > labor ? installed - labor : installed;
 }
 
 const SHEET_STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -611,7 +620,7 @@ export default function TakeoffDetail() {
     // Build rows with branding header and CSI division headers and subtotals
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Cost Library Labor (${currencySymbol})`, `Installed Unit (${currencySymbol})`, `Installed Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
     const aoa: any[][] = [
       ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", ""],
       [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", ""],
@@ -633,7 +642,7 @@ export default function TakeoffDetail() {
           item.description || "",
           parseFloat(item.quantity) || 0,
           item.unit || "",
-          (parseFloat(item.materialCost) || 0) / 100,
+          getTakeoffMaterialUnitCost(item) / 100,
           (parseFloat(item.laborCost) || 0) / 100,
           (parseFloat(item.unitCost) || 0) / 100,
           extCost,
@@ -701,7 +710,7 @@ export default function TakeoffDetail() {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Cost Library Labor (${currencySymbol})`, `Installed Unit (${currencySymbol})`, `Installed Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
@@ -735,7 +744,7 @@ export default function TakeoffDetail() {
           `"${(item.description || "").replace(/"/g, '""')}"`,
           parseFloat(item.quantity) || 0,
           item.unit || "",
-          ((parseFloat(item.materialCost) || 0) / 100).toFixed(2),
+          (getTakeoffMaterialUnitCost(item) / 100).toFixed(2),
           ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
           ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
           extCost.toFixed(2),
@@ -998,7 +1007,7 @@ export default function TakeoffDetail() {
                 <span className="text-emerald-400 font-bold text-lg">
                   {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
-                <span className="text-emerald-400/60 text-xs">installed takeoff</span>
+                <span className="text-emerald-400/60 text-xs">pricing reference</span>
               </div>
             )}
             <div data-tour="takeoff-settings">
@@ -1414,7 +1423,7 @@ export default function TakeoffDetail() {
                     </div>
                     {/* Right: Total */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-cream-muted text-sm hidden sm:inline">Total:</span>
+                      <span className="text-cream-muted text-sm hidden sm:inline">Pricing ref:</span>
                       <span className="text-amber-400 font-bold text-lg sm:text-xl tabular-nums">
                         {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
@@ -1532,21 +1541,6 @@ export default function TakeoffDetail() {
                     >
                       <PlusCircle className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Add Item</span>
-                    </Button>
-                    {/* Bid Calculator */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowMarkup(!showMarkup)}
-                      className={`h-7 text-xs gap-1.5 ${
-                        showMarkup
-                          ? "border-amber-500/50 text-amber-400 bg-amber-500/10"
-                          : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
-                      }`}
-                      title="Bid Markup Calculator"
-                    >
-                      <Calculator className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Bid Calc</span>
                     </Button>
                     {/* More dropdown — Measurements + Show Diff */}
                     <DropdownMenu>
@@ -1699,7 +1693,7 @@ export default function TakeoffDetail() {
                 {(items && items.length > 0) && (() => {
                   const materialSubtotal = (items || []).reduce((sum: number, item: any) => {
                     const qty = parseFloat(item.quantity) || 0;
-                    const matCost = (item.materialCost || 0); // in cents
+                    const matCost = getTakeoffMaterialUnitCost(item);
                     return sum + (qty * matCost);
                   }, 0);
                   const laborSubtotal = (items || []).reduce((sum: number, item: any) => {
@@ -1720,11 +1714,11 @@ export default function TakeoffDetail() {
                         </div>
                         {/* Cost-library labor subtotal */}
                         <div className="flex flex-col">
-                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Cost Library Labor</span>
+                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Default Labor</span>
                           <span className="text-cyan-400 font-mono font-semibold text-lg">
                             {formatCurrency(laborSubtotal, curr)}
                           </span>
-                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Embedded in installed takeoff total</span>
+                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Used as estimate fallback until crew labor replaces it</span>
                         </div>
                         {/* Allowances Subtotal */}
                         <div className="flex flex-col">
@@ -1735,7 +1729,7 @@ export default function TakeoffDetail() {
                         </div>
                         {/* Grand Total */}
                         <div className="flex flex-col border-l border-white/10 pl-4">
-                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Installed Takeoff Total</span>
+                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Pricing Reference</span>
                           <span className="text-emerald-400 font-mono font-bold text-lg">
                             {formatCurrency(totalCost, curr)}
                           </span>
@@ -1744,6 +1738,13 @@ export default function TakeoffDetail() {
                     </div>
                   );
                 })()}
+
+                <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
+                  <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-100/75 leading-relaxed">
+                    Quantity Takeoff is the review surface for quantities, material pricing, default labor assumptions, source drawings, and confidence. The Estimate tab is the live estimate total and chooses one labor source per item so labor is not double-counted.
+                  </p>
+                </div>
 
                 {/* Allowances Section — shown before CSI divisions */}
                 {projectAllowances.length > 0 && (
@@ -1881,9 +1882,9 @@ export default function TakeoffDetail() {
                                   <th className="text-right px-4 py-2 w-20">Qty</th>
                                   <th className="text-left px-4 py-2 w-14">Unit</th>
                                   <th className="text-right px-4 py-2 w-20">Material</th>
-                                  <th className="text-right px-4 py-2 w-24">Library Labor</th>
-                                  <th className="text-right px-4 py-2 w-24">Installed Unit</th>
-                                  <th className="text-right px-4 py-2 w-28">Extended</th>
+                                  <th className="text-right px-4 py-2 w-24">Default Labor</th>
+                                  <th className="text-right px-4 py-2 w-24">Ref Unit</th>
+                                  <th className="text-right px-4 py-2 w-28">Ref Total</th>
                                   <th className="text-center px-4 py-2 w-16">Conf.</th>
                                   <th className="text-center px-4 py-2 w-16">Verified</th>
                                   <th className="text-center px-4 py-2 w-20">Actions</th>
@@ -1960,7 +1961,7 @@ export default function TakeoffDetail() {
                                       {isConsolidating ? (
                                         <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
                                       ) : (
-                                        formatCurrency(item.materialCost || 0, project?.currency || "USD")
+                                        formatCurrency(getTakeoffMaterialUnitCost(item), project?.currency || "USD")
                                       )}
                                     </td>
                                     {/* Labor Cost */}
@@ -2258,7 +2259,14 @@ export default function TakeoffDetail() {
             onSave={(data) => {
               updateItemMutation.mutate(data);
               // Update selectedItem in place so modal reflects changes
-              setSelectedItem((prev: any) => prev ? { ...prev, ...data, unitCost: data.unitCost, extendedCost: Math.round(parseFloat(data.quantity || "0") * (data.unitCost || 0)) } : null);
+              setSelectedItem((prev: any) => prev ? {
+                ...prev,
+                ...data,
+                unitCost: data.unitCost,
+                materialCost: data.materialCost,
+                laborCost: data.laborCost,
+                extendedCost: Math.round(parseFloat(data.quantity || "0") * (data.unitCost || 0)),
+              } : null);
             }}
             onDelete={(data) => {
               deleteItemMutation.mutate(data);

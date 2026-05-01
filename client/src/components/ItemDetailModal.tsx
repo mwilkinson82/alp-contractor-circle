@@ -99,8 +99,11 @@ interface TakeoffItem {
   unit?: string;
   unitCost: number;
   extendedCost: number;
+  materialCost?: number;
+  laborCost?: number;
   confidence: number;
   reviewed?: boolean;
+  needsMeasurement?: boolean;
   sheetId?: number;
   sheetName?: string;
   pageNumber?: number;
@@ -1148,6 +1151,8 @@ export default function ItemDetailModal({
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [unitCost, setUnitCost] = useState("");
+  const [materialUnitCost, setMaterialUnitCost] = useState("");
+  const [defaultLaborUnitCost, setDefaultLaborUnitCost] = useState("");
   const [notes, setNotes] = useState("");
 
   const symbol = CURRENCY_SYMBOLS[currencyCode] || "$";
@@ -1168,6 +1173,8 @@ export default function ItemDetailModal({
       setQuantity(parseFloat(item.quantity as string)?.toString() || "0");
       setUnit(item.unit || "EA");
       setUnitCost(((item.unitCost || 0) / 100).toFixed(2));
+      setMaterialUnitCost((((item.materialCost && item.materialCost > 0 ? item.materialCost : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0)))) / 100).toFixed(2));
+      setDefaultLaborUnitCost(((item.laborCost || 0) / 100).toFixed(2));
       setNotes(item.notes || "");
       setIsEditing(false);
       setIsFullscreen(false);
@@ -1194,9 +1201,14 @@ export default function ItemDetailModal({
 
   if (!item) return null;
 
-  const extendedCost = Math.round(
-    parseFloat(quantity || "0") * parseFloat(unitCost || "0") * 100
-  );
+  const materialUnitCostCents = Math.round(parseFloat(materialUnitCost || "0") * 100);
+  const defaultLaborUnitCostCents = Math.round(parseFloat(defaultLaborUnitCost || "0") * 100);
+  const referenceUnitCostCents = materialUnitCostCents + defaultLaborUnitCostCents;
+  const extendedCost = Math.round(parseFloat(quantity || "0") * referenceUnitCostCents);
+  const displayMaterialUnitCost = item.materialCost && item.materialCost > 0
+    ? item.materialCost
+    : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0));
+  const displayDefaultLaborUnitCost = item.laborCost || 0;
 
   const confidenceColor =
     item.confidence >= 80
@@ -1212,7 +1224,9 @@ export default function ItemDetailModal({
       description,
       quantity,
       unit,
-      unitCost: Math.round(parseFloat(unitCost || "0") * 100),
+      unitCost: referenceUnitCostCents,
+      materialCost: materialUnitCostCents,
+      laborCost: defaultLaborUnitCostCents,
       notes: notes || undefined,
       reviewed: true,
     });
@@ -1398,7 +1412,7 @@ export default function ItemDetailModal({
               </div>
 
               {/* Quantity / Unit / Cost Grid */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5">
                     <Hash className="w-3 h-3 text-amber-400" />
@@ -1434,37 +1448,98 @@ export default function ItemDetailModal({
                     <p className="text-cream text-base font-semibold">{item.unit || "EA"}</p>
                   )}
                 </div>
+              </div>
 
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3 text-amber-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Unit Cost</Label>
+                    <DollarSign className="w-3 h-3 text-emerald-400" />
+                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Material Unit</Label>
                   </div>
                   {isEditing ? (
                     <Input
                       type="number"
                       step="0.01"
-                      value={unitCost}
-                      onChange={(e) => setUnitCost(e.target.value)}
+                      value={materialUnitCost}
+                      onChange={(e) => setMaterialUnitCost(e.target.value)}
                       className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
                     />
                   ) : (
                     <p className="text-cream font-mono text-base font-semibold">
-                      {formatCurrency(item.unitCost, currencyCode)}
+                      {formatCurrency(displayMaterialUnitCost, currencyCode)}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="w-3 h-3 text-cyan-400" />
+                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Default Labor</Label>
+                  </div>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={defaultLaborUnitCost}
+                      onChange={(e) => setDefaultLaborUnitCost(e.target.value)}
+                      className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                    />
+                  ) : (
+                    <p className="text-cream font-mono text-base font-semibold">
+                      {displayDefaultLaborUnitCost > 0 ? formatCurrency(displayDefaultLaborUnitCost, currencyCode) : "—"}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <Sigma className="w-3 h-3 text-amber-400" />
+                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Ref Unit</Label>
+                  </div>
+                  <p className="text-cream font-mono text-base font-semibold">
+                    {formatCurrency(isEditing ? referenceUnitCostCents : item.unitCost, currencyCode)}
+                  </p>
                 </div>
               </div>
 
               {/* Extended Cost */}
               <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-cream-muted text-sm">Extended Cost</span>
+                  <span className="text-cream-muted text-sm">Reference Total</span>
                   <span className="text-amber-400 font-bold text-xl font-mono">
                     {isEditing
                       ? formatCurrency(extendedCost, currencyCode)
                       : formatCurrency(item.extendedCost, currencyCode)}
                   </span>
+                </div>
+                <p className="text-[10px] text-cream-muted/55 mt-1">
+                  Quantity Takeoff reference = material unit + default labor unit. The Estimate tab chooses the active labor source for the live total.
+                </p>
+              </div>
+
+              {/* Audit Trail */}
+              <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <History className="w-3.5 h-3.5 text-amber-400" />
+                  <Label className="text-cream-muted text-xs uppercase tracking-wider">Audit Trail</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-cream-muted/60">Quantity source</p>
+                    <p className="text-cream">{measurementHistory.data?.length ? "Verified measurement" : item.needsMeasurement ? "Needs measurement" : "AI takeoff"}</p>
+                  </div>
+                  <div>
+                    <p className="text-cream-muted/60">Drawing reference</p>
+                    <p className="text-cream">{hasDrawing ? sheetLabel : "No linked sheet"}</p>
+                  </div>
+                  <div>
+                    <p className="text-cream-muted/60">Labor source</p>
+                    <p className="text-cream">{displayDefaultLaborUnitCost > 0 ? "Cost Library / Default Labor" : "No default labor"}</p>
+                  </div>
+                  <div>
+                    <p className="text-cream-muted/60">Confidence</p>
+                    <p className="text-cream">{item.confidence}%</p>
+                  </div>
                 </div>
               </div>
 

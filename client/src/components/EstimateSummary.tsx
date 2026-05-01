@@ -3,7 +3,7 @@
  * (computed from crews + activity productivity), and configurable markups.
  * Renders as a tab inside TakeoffDetail.
  */
-import { useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,10 +56,39 @@ function parseCents(value: unknown): number {
 
 function getMaterialUnitCost(item: any): number {
   const materialCost = parseCents(item.materialCost);
-  if (item.materialCost !== undefined && item.materialCost !== null && item.materialCost !== "") {
+  if (materialCost > 0) {
     return materialCost;
   }
+  const installedUnit = parseCents(item.unitCost);
+  const defaultLaborUnit = parseCents(item.laborCost);
+  if (installedUnit > defaultLaborUnit) return installedUnit - defaultLaborUnit;
   return parseCents(item.unitCost);
+}
+
+type ItemLaborSource = "my_crew" | "cost_library" | "manual" | "held_for_review" | "none";
+
+interface ItemLaborEstimate {
+  laborCost: number;
+  laborSource: ItemLaborSource;
+  laborSourceLabel: string;
+  laborNote: string;
+  crewName?: string;
+  productivityPerCrewHr?: number;
+}
+
+function getLaborSourceBadgeClass(source: ItemLaborSource): string {
+  switch (source) {
+    case "my_crew":
+      return "bg-blue-500/15 text-blue-300 border-blue-500/25";
+    case "cost_library":
+      return "bg-cyan-500/15 text-cyan-300 border-cyan-500/25";
+    case "manual":
+      return "bg-purple-500/15 text-purple-300 border-purple-500/25";
+    case "held_for_review":
+      return "bg-amber-500/15 text-amber-300 border-amber-500/25";
+    default:
+      return "bg-white/5 text-cream-muted border-white/10";
+  }
 }
 
 function parseResidentialSquareFootage(text?: string | null): { livingSf?: number; totalSf?: number } {
@@ -342,10 +371,13 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     if (!items || items.length === 0) return null;
 
     const byDivision: Record<string, { items: any[]; materialTotal: number; laborTotal: number }> = {};
+    const itemLaborEstimates = new Map<number, ItemLaborEstimate>();
     let totalMaterial = 0;
     let totalLabor = 0;
     let laborItemsMatched = 0;
     let laborItemsHeldForReview = 0;
+    let laborItemsDefaulted = 0;
+    let laborItemsWithoutLabor = 0;
     const allowancesTotal = allowances.reduce((sum, allowance) => sum + parseCents(allowance.amount), 0);
 
     for (const item of items) {
@@ -362,10 +394,18 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
       const activity = activityMap.get(descKey);
       const laborReview = reviewResidentialLaborMatch(item);
+      const libraryLaborUnit = parseCents(item.laborCost);
       let itemLabor = 0;
+      let laborEstimate: ItemLaborEstimate;
 
       if (laborReview.blockAutomaticLabor) {
         laborItemsHeldForReview++;
+        laborEstimate = {
+          laborCost: 0,
+          laborSource: "held_for_review",
+          laborSourceLabel: "Held for Review",
+          laborNote: laborReview.reasons.join(" "),
+        };
       } else if (activity && activity.crewId && activity.productivityPerCrewHr > 0) {
         const crewInfo = crewCostMap.get(activity.crewId);
         if (crewInfo) {
@@ -373,9 +413,52 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           const crewHours = qty / activity.productivityPerCrewHr;
           itemLabor = Math.round(crewHours * crewInfo.costPerHr);
           laborItemsMatched++;
+          laborEstimate = {
+            laborCost: itemLabor,
+            laborSource: "my_crew",
+            laborSourceLabel: "My Crew Labor",
+            laborNote: `${crewInfo.name} at ${activity.productivityPerCrewHr.toLocaleString()} ${item.unit || "units"} per crew-hour.`,
+            crewName: crewInfo.name,
+            productivityPerCrewHr: activity.productivityPerCrewHr,
+          };
+        } else if (libraryLaborUnit > 0) {
+          itemLabor = Math.round(qty * libraryLaborUnit);
+          laborItemsDefaulted++;
+          laborEstimate = {
+            laborCost: itemLabor,
+            laborSource: "cost_library",
+            laborSourceLabel: "Cost Library / Default Labor",
+            laborNote: "No matching crew rate was found yet, so the estimate is using the takeoff cost-library labor unit.",
+          };
+        } else {
+          laborItemsWithoutLabor++;
+          laborEstimate = {
+            laborCost: 0,
+            laborSource: "none",
+            laborSourceLabel: "No Labor",
+            laborNote: "No labor source is available for this item yet.",
+          };
         }
+      } else if (libraryLaborUnit > 0) {
+        itemLabor = Math.round(qty * libraryLaborUnit);
+        laborItemsDefaulted++;
+        laborEstimate = {
+          laborCost: itemLabor,
+          laborSource: "cost_library",
+          laborSourceLabel: "Cost Library / Default Labor",
+          laborNote: "Using the default labor from the takeoff cost library until crew labor is configured.",
+        };
+      } else {
+        laborItemsWithoutLabor++;
+        laborEstimate = {
+          laborCost: 0,
+          laborSource: "none",
+          laborSourceLabel: "No Labor",
+          laborNote: "No labor source is available for this item yet.",
+        };
       }
 
+      itemLaborEstimates.set(item.id, laborEstimate);
       byDivision[div].laborTotal += itemLabor;
       totalLabor += itemLabor;
     }
@@ -398,6 +481,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       divisionOrder: Object.keys(byDivision).sort(),
       laborItemsMatched,
       laborItemsHeldForReview,
+      laborItemsDefaulted,
+      laborItemsWithoutLabor,
+      itemLaborEstimates,
       totalItems: items.length,
     };
   }, [items, allowances, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap]);
@@ -426,7 +512,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       rows.push({
         "CSI Division": `Div ${div} — ${divName}`,
         "Material Cost": (data.materialTotal / 100).toFixed(2),
-        "Crew Labor Cost": (data.laborTotal / 100).toFixed(2),
+        "Active Labor Cost": (data.laborTotal / 100).toFixed(2),
         "Subtotal": ((data.materialTotal + data.laborTotal) / 100).toFixed(2),
       });
     }
@@ -434,7 +520,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     if (calculations.allowancesTotal > 0) {
       rows.push({ "CSI Division": "ALLOWANCES", "Subtotal": (calculations.allowancesTotal / 100).toFixed(2) });
     }
-    rows.push({ "CSI Division": "DIRECT COSTS", "Material Cost": (calculations.totalMaterial / 100).toFixed(2), "Crew Labor Cost": (calculations.totalLabor / 100).toFixed(2), "Subtotal": (calculations.directCost / 100).toFixed(2) });
+    rows.push({ "CSI Division": "DIRECT COSTS", "Material Cost": (calculations.totalMaterial / 100).toFixed(2), "Active Labor Cost": (calculations.totalLabor / 100).toFixed(2), "Subtotal": (calculations.directCost / 100).toFixed(2) });
     rows.push({ "CSI Division": `General Conditions (${pctToDisplay(generalConditionsPct)}%)`, "Subtotal": (calculations.generalConditions / 100).toFixed(2) });
     rows.push({ "CSI Division": `Overhead (${pctToDisplay(overheadPct)}%)`, "Subtotal": (calculations.overhead / 100).toFixed(2) });
     rows.push({ "CSI Division": `Profit (${pctToDisplay(profitPct)}%)`, "Subtotal": (calculations.profit / 100).toFixed(2) });
@@ -502,7 +588,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             Estimate Summary
           </h2>
           <p className="text-cream-muted text-xs mt-1">
-            Material base from takeoff + crew/productivity labor + allowances + configurable markups
+            Live estimate from takeoff quantities, one active labor source per item, allowances, and configurable markups
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -522,9 +608,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
           <Users className="w-4 h-4 text-emerald-400 shrink-0" />
           <p className="text-emerald-200/80 text-xs flex-1">
-            <strong className="text-emerald-300">Labor calculated</strong> for {calculations.laborItemsMatched} of {calculations.totalItems} items
-            using your crew definitions and activity productivity factors. This crew labor replaces the Quantity Takeoff cost-library labor for estimate pricing.
-            Items without matching crew productivity data show "—" in the crew labor column.
+            <strong className="text-emerald-300">Crew labor is active</strong> for {calculations.laborItemsMatched} item{calculations.laborItemsMatched !== 1 ? "s" : ""}.
+            {calculations.laborItemsDefaulted > 0 ? ` ${calculations.laborItemsDefaulted} item${calculations.laborItemsDefaulted !== 1 ? "s are" : " is"} using Cost Library / Default Labor until you replace it with crew labor.` : ""}
+            {calculations.laborItemsWithoutLabor > 0 ? ` ${calculations.laborItemsWithoutLabor} item${calculations.laborItemsWithoutLabor !== 1 ? "s have" : " has"} no labor source yet.` : ""}
             {calculations.laborItemsHeldForReview > 0
               ? ` ${calculations.laborItemsHeldForReview} risky residential item${calculations.laborItemsHeldForReview !== 1 ? "s were" : " was"} held out for review.`
               : ""}
@@ -547,8 +633,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Info className="w-4 h-4 text-blue-400 shrink-0" />
           <div className="flex-1">
             <p className="text-blue-200/80 text-xs">
-              <strong className="text-blue-300">Crew labor is not configured yet.</strong> Quantity Takeoff already has a cost-library labor split.
-              Use this step when you want to replace that split with your own crews and productivity rates.
+              <strong className="text-blue-300">Cost Library / Default Labor is the current starting point.</strong> Build crew labor when you want this estimate to use your crews and productivity instead. Each item will use one labor source only.
             </p>
           </div>
           <Button
@@ -576,9 +661,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       <div className="bg-navy-medium/35 border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3">
         <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="text-sm text-cream font-medium">How labor is handled here</p>
+          <p className="text-sm text-cream font-medium">One labor source per item</p>
           <p className="text-xs text-cream-muted">
-            Quantity Takeoff shows the cost-library installed split: material plus library labor. This Estimate tab uses only the material base from takeoff, then adds crew/productivity labor from your crew database so labor is not counted twice.
+            The Estimate tab is the live bid number. Each line uses My Crew Labor when matched, Cost Library / Default Labor as the starting fallback, or Held for Review when residential QA blocks automatic labor. Labor sources are not stacked, so labor is not counted twice.
           </p>
         </div>
       </div>
@@ -876,7 +961,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                 <tr className="bg-navy-medium/70 border-b border-white/10">
                   <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider">Division</th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Material</th>
-                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Crew Labor</th>
+                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Active Labor</th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Subtotal</th>
                 </tr>
               </thead>
@@ -887,22 +972,48 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                   const divTotal = data.materialTotal + data.laborTotal;
 
                   return (
-                    <tr key={div}
-                      className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
-                      onClick={() => toggleDivision(div)}
-                    >
-                      <td className="px-4 py-2.5 text-cream">
-                        <div className="flex items-center gap-2">
-                          {collapsedDivisions.has(div) ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />}
-                          <span className="font-mono text-amber-400/80 text-xs">{div}</span>
-                          <span>{divName}</span>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px] ml-1">{data.items.length}</Badge>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">{formatCurrency(data.materialTotal, currency)}</td>
-                      <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">{data.laborTotal > 0 ? formatCurrency(data.laborTotal, currency) : <span className="text-cream-muted/40">—</span>}</td>
-                      <td className="px-4 py-2.5 text-right text-cream font-mono text-xs font-medium">{formatCurrency(divTotal, currency)}</td>
-                    </tr>
+                    <Fragment key={div}>
+                      <tr key={div}
+                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => toggleDivision(div)}
+                      >
+                        <td className="px-4 py-2.5 text-cream">
+                          <div className="flex items-center gap-2">
+                            {collapsedDivisions.has(div) ? <ChevronRight className="w-3.5 h-3.5 text-cream-muted" /> : <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />}
+                            <span className="font-mono text-amber-400/80 text-xs">{div}</span>
+                            <span>{divName}</span>
+                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px] ml-1">{data.items.length}</Badge>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">{formatCurrency(data.materialTotal, currency)}</td>
+                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">{data.laborTotal > 0 ? formatCurrency(data.laborTotal, currency) : <span className="text-cream-muted/40">—</span>}</td>
+                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs font-medium">{formatCurrency(divTotal, currency)}</td>
+                      </tr>
+                      {!collapsedDivisions.has(div) && data.items.map((item: any) => {
+                        const labor = calculations.itemLaborEstimates.get(item.id);
+                        const qty = parseFloat(item.quantity) || 0;
+                        const materialTotal = Math.round(qty * getMaterialUnitCost(item));
+                        const laborTotal = labor?.laborCost || 0;
+                        return (
+                          <tr key={`${div}-${item.id}`} className="border-b border-white/5 bg-navy-deep/20">
+                            <td className="px-8 py-2 text-cream/75">
+                              <p className="text-xs line-clamp-1">{item.description}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge className={`text-[10px] border ${getLaborSourceBadgeClass(labor?.laborSource || "none")}`}>
+                                  {labor?.laborSourceLabel || "No Labor"}
+                                </Badge>
+                                {labor?.laborNote && (
+                                  <span className="text-[10px] text-cream-muted/55 line-clamp-1">{labor.laborNote}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">{formatCurrency(materialTotal, currency)}</td>
+                            <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">{laborTotal > 0 ? formatCurrency(laborTotal, currency) : "—"}</td>
+                            <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">{formatCurrency(materialTotal + laborTotal, currency)}</td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
                   );
                 })}
                 {calculations.allowancesTotal > 0 && (

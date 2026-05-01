@@ -547,6 +547,8 @@ export const takeoffRouter = router({
         quantity: z.string().optional(),
         unit: z.string().optional(),
         unitCost: z.number().optional(),
+        materialCost: z.number().optional(),
+        laborCost: z.number().optional(),
         csiDivision: z.string().optional(),
         csiCode: z.string().optional(),
         notes: z.string().optional(),
@@ -565,6 +567,8 @@ export const takeoffRouter = router({
       if (input.quantity !== undefined) updates.quantity = input.quantity;
       if (input.unit !== undefined) updates.unit = input.unit;
       if (input.unitCost !== undefined) updates.unitCost = input.unitCost;
+      if (input.materialCost !== undefined) updates.materialCost = input.materialCost;
+      if (input.laborCost !== undefined) updates.laborCost = input.laborCost;
       if (input.csiDivision !== undefined) updates.csiDivision = input.csiDivision;
       if (input.csiCode !== undefined) updates.csiCode = input.csiCode;
       if (input.notes !== undefined) updates.notes = input.notes;
