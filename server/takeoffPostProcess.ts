@@ -27,6 +27,12 @@ import { getDb } from "./db";
 import { takeoffItems } from "../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 import type { InsertTakeoffItem } from "../drizzle/schema";
+import {
+  appendScopeReviewNote,
+  buildScopeIntent,
+  classifyScopeMatch,
+  type ScopeIntent,
+} from "../shared/scopeIntent";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -957,6 +963,7 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
   if (!scopeText || scopeText.trim().length === 0) return items;
 
   const scope = scopeText.toLowerCase();
+  const scopeIntent = buildScopeIntent(scopeText);
   
   // Detect scope patterns
   const isFoundationOnly = /foundation|footing|slab.on.grade|sog|below.grade/i.test(scope) && 
@@ -964,14 +971,15 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
   const isConcreteOnly = /concrete.only/i.test(scope);
   const isStructuralOnly = /structural.only/i.test(scope);
   const noVertical = /none.of.the.vertical|no.vertical|not.vertical/i.test(scope);
+  const hasIntentFilter = scopeIntent.excludedDivisions.length > 0 || scopeIntent.includeKeywords.length > 0;
   
-  if (!isFoundationOnly && !isConcreteOnly && !isStructuralOnly && !noVertical) {
+  if (!isFoundationOnly && !isConcreteOnly && !isStructuralOnly && !noVertical && !hasIntentFilter) {
     console.log(`[HardFilter] No restrictive scope pattern detected, skipping hard filter`);
     return items;
   }
   
   // Define which divisions to EXCLUDE based on scope
-  const excludeDivisions = new Set<string>();
+  const excludeDivisions = new Set<string>(scopeIntent.excludedDivisions);
   
   if (isFoundationOnly || noVertical) {
     // Foundation/SOG scope: exclude above-grade divisions
@@ -1007,7 +1015,13 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
   const before = items.length;
   const filtered = items.filter(item => {
     const div = (item.csiDivision || item.csiCode?.substring(0, 2) || "").trim();
-    if (excludeDivisions.has(div)) {
+    const status = classifyScopeMatch(item, scopeIntent);
+
+    if (status === "excluded" && scopeIntent.includeKeywords.length > 0) {
+      return false;
+    }
+
+    if (excludeDivisions.has(div) && status === "excluded") {
       return false;
     }
     return true;
@@ -1016,6 +1030,29 @@ export function hardScopeFilter(items: RawItem[], scopeText: string | null): Raw
   const removed = before - filtered.length;
   console.log(`[HardFilter] Scope: "${scope.substring(0, 80)}..." → removed ${removed} items from excluded divisions: ${Array.from(excludeDivisions).join(", ")}`);
   return filtered;
+}
+
+function annotateScopeReview(items: ConsolidatedItem[], intent: ScopeIntent): ConsolidatedItem[] {
+  if (!intent.hasScope) return items;
+
+  let reviewCount = 0;
+  let excludedCount = 0;
+  const annotated = items.map((item) => {
+    const status = classifyScopeMatch(item, intent);
+    if (status === "included") return item;
+    if (status === "review") reviewCount++;
+    if (status === "excluded") excludedCount++;
+    return {
+      ...item,
+      notes: appendScopeReviewNote(item.notes, status),
+      confidence: status === "review" ? Math.min(item.confidence, 74) : item.confidence,
+    };
+  });
+
+  if (reviewCount > 0 || excludedCount > 0) {
+    console.log(`[ScopeIntent] Tagged ${reviewCount} item(s) for scope review and ${excludedCount} item(s) as possible exclusions.`);
+  }
+  return annotated;
 }
 
 /**
@@ -1184,6 +1221,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 }> {
   const project = await getTakeoffProject(projectId);
   if (!project) throw new Error(`Project ${projectId} not found`);
+  const projectScopeIntent = buildScopeIntent(project.scopeText);
 
   const sheets = await getDrawingSheetsByProject(projectId);
   const sheetContexts: SheetContext[] = sheets.map((s: any) => ({
@@ -1373,6 +1411,8 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   }
 
   console.log(`[PostProcess] Cost table pricing applied to ${consolidated.length} items`);
+
+  consolidated = annotateScopeReview(consolidated, projectScopeIntent);
 
   console.log(`[PostProcess] Step 6/6: Saving results...`);
   await updateTakeoffProject(projectId, { postProcessStep: 'saving' } as any).catch(() => {});

@@ -9,7 +9,7 @@
  * - Shows current settings with badges
  * - "Re-Analyze" option when divisions change so user doesn't have to re-upload drawings
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 import { CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS } from "../../../shared/residentialEstimateQa";
+import { buildScopeIntent } from "../../../shared/scopeIntent";
 import { trpc } from "@/lib/trpc";
 
 const CURRENCIES = [
@@ -106,6 +107,10 @@ export default function ProjectSettingsPanel({
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
   const [selectedRateProfileId, setSelectedRateProfileId] = useState<number | null>(currentRateProfileId ?? null);
   const [allowances, setAllowances] = useState<AllowanceItem[]>(currentAllowances || []);
+  const scopeIntent = useMemo(
+    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null),
+    [scopeText, selectedDivisions]
+  );
   const [saving, setSaving] = useState(false);
 
   const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
@@ -302,8 +307,11 @@ export default function ProjectSettingsPanel({
             {/* Division Selector */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-cream">
-                CSI Divisions
+                Bid Package Divisions
               </div>
+              <p className="text-xs text-cream-muted">
+                Use divisions as the broad trade boundary, then use Scope Description for narrower subcontract scopes.
+              </p>
               <DivisionSelector
                 value={selectedDivisions}
                 onChange={setSelectedDivisions}
@@ -572,21 +580,45 @@ export default function ProjectSettingsPanel({
             <div className="space-y-2">
               <div className="text-sm font-medium text-cream flex items-center gap-2">
                 <FileText className="w-4 h-4 text-amber-400" />
-                Scope Description
-                <span className="text-xs text-cream-muted">(optional — guides <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analysis)</span>
+                Scope Intent
+                <span className="text-xs text-cream-muted">(optional bid package instructions)</span>
               </div>
               <div ref={scopeRef}>
               <Textarea
                 value={scopeText}
                 onChange={(e) => setScopeText(e.target.value)}
-                placeholder="e.g. Focus on structural steel and concrete for the main building only. Exclude site work and landscaping."
+                placeholder="e.g. Below-grade waterproofing only. Include membrane, protection board, waterstops, foundation drains, and vapor barrier. Exclude roofing and above-grade envelope."
                 className="min-h-[80px] bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 resize-none"
                 maxLength={2000}
               />
               </div>
+              {scopeIntent.hasScope && (
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                      {scopeIntent.summary}
+                    </Badge>
+                    <span className="text-xs text-cream-muted">Items outside this intent may be removed or tagged for review on re-analysis.</span>
+                  </div>
+                  {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {scopeIntent.focusDivisions.slice(0, 6).map((division) => (
+                        <Badge key={`focus-${division}`} className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                          Include Div {division}
+                        </Badge>
+                      ))}
+                      {scopeIntent.excludedDivisions.slice(0, 6).map((division) => (
+                        <Badge key={`exclude-${division}`} className="bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
+                          Usually excludes Div {division}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-cream-muted/50">
-                  Leave blank to analyze all drawings without scope filtering.
+                  Upload full drawings, then describe only the work you are bidding.
                 </p>
                 <span className="text-[10px] text-cream-muted/40">{scopeText.length}/2000</span>
               </div>
