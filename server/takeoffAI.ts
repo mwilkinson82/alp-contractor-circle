@@ -795,7 +795,8 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
           projectContextSummary,
           selectedSpecialties,
           savedScale?.ratio ?? null,
-          savedScale?.unit ?? null
+          savedScale?.unit ?? null,
+          project.projectType || "commercial"
         );
       })
     );

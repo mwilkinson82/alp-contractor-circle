@@ -407,6 +407,13 @@
       "when": 1777290207569,
       "tag": "0057_lean_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "5",
+      "when": 1777291200000,
+      "tag": "0058_add_takeoff_project_type",
+      "breakpoints": true
     }
   ]
 }

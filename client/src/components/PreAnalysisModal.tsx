@@ -26,6 +26,13 @@ import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
 import SpecialtySelector from "@/components/SpecialtySelector";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
+import {
+  getAllowancePresetsForProjectType,
+  getTakeoffProjectTypeLabel,
+  normalizeTakeoffProjectType,
+  TAKEOFF_PROJECT_TYPE_OPTIONS,
+  type TakeoffProjectType,
+} from "../../../shared/projectType";
 
 const STORAGE_KEY = "alp-takeoff-preanalysis-prefs";
 
@@ -37,6 +44,7 @@ export interface AllowanceItem {
 
 interface PreAnalysisSettings {
   currency: "USD" | "GBP" | "AUD";
+  projectType: TakeoffProjectType;
   selectedDivisions: string[];
   costRegion: string | null;
   scopeText: string;
@@ -46,6 +54,7 @@ interface PreAnalysisSettings {
 
 const DEFAULT_SETTINGS: PreAnalysisSettings = {
   currency: "USD",
+  projectType: "commercial",
   selectedDivisions: [],
   costRegion: null,
   scopeText: "",
@@ -93,6 +102,7 @@ interface PreAnalysisModalProps {
   existingCurrency?: string | null;
   existingScopeText?: string | null;
   existingSpecialties?: string[] | null;
+  existingProjectType?: string | null;
   detectedSpecialties?: string[] | null;
   preferredCurrency?: string;
   uncalibratedSheetCount?: number;
@@ -110,6 +120,7 @@ export default function PreAnalysisModal({
   existingCurrency,
   existingScopeText,
   existingSpecialties,
+  existingProjectType,
   detectedSpecialties,
   preferredCurrency,
   uncalibratedSheetCount = 0,
@@ -118,6 +129,9 @@ export default function PreAnalysisModal({
   const saved = useMemo(() => loadSavedSettings(), []);
   const [currency, setCurrency] = useState<"USD" | "GBP" | "AUD">(
     (existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD"
+  );
+  const [projectType, setProjectType] = useState<TakeoffProjectType>(
+    normalizeTakeoffProjectType(existingProjectType || saved.projectType)
   );
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(existingDivisions || saved.selectedDivisions || []);
   const [costRegion, setCostRegion] = useState<string | null>(existingRegion ?? saved.costRegion ?? null);
@@ -128,17 +142,19 @@ export default function PreAnalysisModal({
   useEffect(() => {
     if (!open) return;
     setCurrency((existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD");
+    setProjectType(normalizeTakeoffProjectType(existingProjectType || saved.projectType));
     setSelectedDivisions(existingDivisions || saved.selectedDivisions || []);
     setCostRegion(existingRegion ?? saved.costRegion ?? null);
     setScopeText(existingScopeText || saved.scopeText || "");
     setSelectedSpecialties(existingSpecialties || saved.selectedSpecialties || []);
     setAllowances(saved.allowances || []);
-  }, [open, existingCurrency, preferredCurrency, existingDivisions, existingRegion, existingScopeText, existingSpecialties, saved]);
+  }, [open, existingCurrency, preferredCurrency, existingProjectType, existingDivisions, existingRegion, existingScopeText, existingSpecialties, saved]);
 
   const scopeIntent = useMemo(
     () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null),
     [scopeText, selectedDivisions]
   );
+  const allowancePresets = useMemo(() => getAllowancePresetsForProjectType(projectType), [projectType]);
 
   const addAllowance = () => {
     setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: "", amount: 0 }]);
@@ -147,6 +163,7 @@ export default function PreAnalysisModal({
   const handleConfirm = () => {
     const settings: PreAnalysisSettings = {
       currency,
+      projectType,
       selectedDivisions,
       costRegion,
       scopeText: scopeText.trim(),
@@ -195,6 +212,30 @@ export default function PreAnalysisModal({
           )}
 
           <section className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-500" />
+                <Label className="text-sm font-semibold text-cream">Project Type</Label>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                {TAKEOFF_PROJECT_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setProjectType(option.value)}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      projectType === option.value
+                        ? "border-amber-500/50 bg-amber-500/10"
+                        : "border-white/10 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="text-xs font-semibold text-cream">{option.label}</span>
+                    <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-amber-500" />
@@ -244,6 +285,14 @@ export default function PreAnalysisModal({
                     {example}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs">
+              <span className="font-semibold text-cream">Setup Summary</span>
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-cream-muted">
+                <span>Project type: <strong className="text-cream">{getTakeoffProjectTypeLabel(projectType)}</strong></span>
+                <span>Scope: <strong className="text-cream">{scopeText.trim() ? scopeIntent.summary : "Full drawing set"}</strong></span>
+                <span>Currency: <strong className="text-cream">{currency}</strong></span>
               </div>
             </div>
           </section>
@@ -307,11 +356,35 @@ export default function PreAnalysisModal({
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-amber-500" />
-                  <Label className="text-sm font-semibold text-cream">Allowances</Label>
-                </div>
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-amber-500" />
+                <Label className="text-sm font-semibold text-cream">Allowances</Label>
+                <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">
+                  {getTakeoffProjectTypeLabel(projectType)}
+                </Badge>
+              </div>
                 <div className="space-y-2">
+                  {allowancePresets.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {allowancePresets
+                        .filter((preset) => !allowances.some((a) => a.description.toLowerCase() === preset.label.toLowerCase()))
+                        .map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: preset.label, amount: preset.amount }])}
+                            className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  {projectType === "other" && (
+                    <p className="text-xs text-cream-muted">
+                      Quick-add presets are hidden for Other / Not sure. Add manual allowances as needed.
+                    </p>
+                  )}
                   {allowances.map((item) => (
                     <div key={item.id} className="flex items-center gap-2">
                       <Input
