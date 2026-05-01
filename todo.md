@@ -3521,3 +3521,4 @@
 - [x] Add PDF download button to Three Silos Email 1 (DOWNLOAD FRAMEWORK)
 - [x] 492 tests passing
 - [ ] Deploy fix
+- [x] Fix Discord bot unhandled WebSocket error crashing entire server (causing tRPC HTML responses)
