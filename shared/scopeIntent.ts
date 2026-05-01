@@ -30,6 +30,29 @@ const FOUNDATION_EXCLUDED_DIVISIONS = [
 
 const SCOPE_PRESETS: ScopePreset[] = [
   {
+    id: "underground_concrete_below_grade_waterproofing",
+    patterns: [
+      /underground.*concrete.*below[-\s]?grade.*waterproof/i,
+      /below[-\s]?grade.*waterproof.*underground.*concrete/i,
+      /foundation.*concrete.*below[-\s]?grade.*waterproof/i,
+      /below[-\s]?grade.*waterproof.*foundation.*concrete/i,
+    ],
+    summary: "Underground concrete plus below-grade waterproofing",
+    includeKeywords: [
+      "underground concrete", "foundation concrete", "structural concrete",
+      "trench pit", "trenches", "pit", "pits", "correlator pit",
+      "footing", "footings", "grade beam", "foundation wall", "slab on grade",
+      "sog", "rebar", "reinforcing", "formwork", "forms", "concrete",
+      "vapor barrier", "vapor retarder", "waterproof", "waterproofing",
+      "below grade", "membrane", "protection board", "drainage board",
+      "foundation drain", "waterstop", "excavation", "backfill", "trench",
+    ],
+    excludeKeywords: ["roof", "roofing", "siding", "window", "door", "interior finish", "paint", "drywall", "masonry veneer"],
+    needsReviewKeywords: ["utility", "dewatering", "insulation", "flashing", "penetration", "sheet metal"],
+    focusDivisions: ["03", "07", "31", "33"],
+    excludedDivisions: ["04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
+  },
+  {
     id: "below_grade_waterproofing",
     patterns: [/below[-\s]?grade.*waterproof/i, /waterproof.*below[-\s]?grade/i, /dampproof/i, /waterproofing/i],
     summary: "Below-grade waterproofing and moisture protection",
@@ -40,8 +63,8 @@ const SCOPE_PRESETS: ScopePreset[] = [
     ],
     excludeKeywords: ["roof", "roofing", "siding", "window", "door", "interior finish", "paint", "drywall"],
     needsReviewKeywords: ["insulation", "flashing", "sheet metal", "joint", "penetration"],
-    focusDivisions: ["07", "03", "31", "33"],
-    excludedDivisions: ["04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
+    focusDivisions: ["07", "31", "33"],
+    excludedDivisions: ["03", "04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
   },
   {
     id: "piles_deep_foundations",
@@ -59,7 +82,7 @@ const SCOPE_PRESETS: ScopePreset[] = [
   },
   {
     id: "foundations",
-    patterns: [/foundation/i, /footing/i, /grade beam/i, /slab.on.grade/i, /\bsog\b/i],
+    patterns: [/\bfoundations?\s+(?:only|concrete|walls?|work|package|scope)\b/i, /footing/i, /grade beam/i, /slab.on.grade/i, /\bsog\b/i],
     summary: "Foundations, footings, slabs-on-grade, and directly related below-grade work",
     includeKeywords: [
       "foundation", "footing", "footings", "grade beam", "pile cap", "slab on grade",
@@ -98,6 +121,19 @@ function unique(values: string[]): string[] {
 function containsAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
 }
+
+const ROOFING_SCOPE_EXCLUDE_PATTERNS = [
+  /\broofs?\b/i,
+  /\broofing\b/i,
+  /\broof\s+membrane\b/i,
+  /\broofing\s+membrane\b/i,
+  /\btpo\b/i,
+  /\bepdm\b/i,
+  /\bpvc\s+roof\b/i,
+  /\broof\s+underlayment\b/i,
+  /\broof\s+insulation\b/i,
+  /\broof\s+flashing\b/i,
+];
 
 export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: string[] | null): ScopeIntent {
   const originalText = (scopeText || "").trim();
@@ -149,6 +185,10 @@ export function classifyScopeMatch(
 
   const division = (item.csiDivision || item.csiCode?.slice(0, 2) || "").trim();
   const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+
+  if (ROOFING_SCOPE_EXCLUDE_PATTERNS.some((pattern) => pattern.test(text))) {
+    return "excluded";
+  }
 
   if (division && intent.excludedDivisions.includes(division) && !containsAny(text, intent.includeKeywords)) {
     if (intent.needsReviewKeywords.length > 0 && containsAny(text, intent.needsReviewKeywords)) {
@@ -212,6 +252,7 @@ export function buildScopeIntentPrompt(intent: ScopeIntent, selectedDivisions?: 
   }
 
   lines.push("Classify scope in each item note when scope is provided: start notes with [Scope: included], [Scope: excluded], or [Scope: review].");
+  lines.push("Treat [Scope: included] as Included in scope, [Scope: review] as Needs scope review, and [Scope: excluded] as Likely excluded.");
   lines.push("Return clearly included items. Skip clearly excluded items unless they are ambiguous or needed for a contractor to review scope boundaries.");
   lines.push("Use [Scope: review] for interface items such as waterproofing tied to foundations, underslab utilities, dewatering, or cross-division items that may belong to another trade.");
 

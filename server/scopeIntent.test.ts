@@ -36,4 +36,47 @@ describe("scope intent", () => {
       description: "Underslab drainage connection",
     }, intent)).toBe("review");
   });
+
+  it("does not include roofing membrane in below-grade waterproofing scope", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only - include membrane and protection board");
+
+    expect(classifyScopeMatch({
+      csiDivision: "07",
+      csiCode: "07 54 00",
+      description: "TPO roofing membrane at low-slope roof",
+    }, intent)).toBe("excluded");
+  });
+
+  it("does not let foundation drains imply broad foundation concrete", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only - include foundation drains and drainage board");
+
+    expect(classifyScopeMatch({
+      csiDivision: "33",
+      csiCode: "33 46 00",
+      description: "Foundation drain pipe with drainage board",
+    }, intent)).toBe("included");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Cast-in-place foundation walls with reinforcing and formwork",
+    }, intent)).toBe("excluded");
+  });
+
+  it("includes underground concrete plus below-grade waterproofing scope for car wash pits", () => {
+    const intent = buildScopeIntent("Underground concrete plus below-grade waterproofing - include trench pits, correlator pit, rebar, formwork, concrete, vapor barrier, waterproofing, protection board, direct excavation and backfill");
+
+    expect(intent.summary).toContain("Underground concrete");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Cast-in-place concrete trench pit walls" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar reinforcing at correlator pit" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Formwork for underground pit concrete" },
+      { csiDivision: "07", csiCode: "07 26 00", description: "Vapor barrier below slab-on-grade" },
+      { csiDivision: "07", csiCode: "07 13 00", description: "Below-grade waterproofing membrane and protection board" },
+      { csiDivision: "31", csiCode: "31 23 00", description: "Direct excavation and backfill for trench pit" },
+    ]) {
+      expect(classifyScopeMatch(item, intent)).toBe("included");
+    }
+  });
 });
