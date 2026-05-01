@@ -29,6 +29,7 @@ import {
   getPendingSheets,
   getTakeoffProject,
   getDrawingSheetsByProject,
+  getProjectMarkups,
 } from "./takeoffDb";
 import { postProcessTakeoff } from "./takeoffPostProcess";
 import { indexAllSheets } from "./takeoffSheetIndex";
@@ -180,6 +181,50 @@ interface TakeoffExtractionResult {
   detectedScale?: DetectedScale;
 }
 
+export function shouldVerifyExtraction(
+  extracted: TakeoffExtractionResult,
+  scaleRatio?: number | null
+): { shouldVerify: boolean; reason: string } {
+  if (extracted.sheetType === "cover") {
+    return { shouldVerify: false, reason: "cover sheet" };
+  }
+  if (!Array.isArray(extracted.items) || extracted.items.length === 0) {
+    return { shouldVerify: false, reason: "no extracted items" };
+  }
+
+  const confidences = extracted.items.map((item) => item.confidence || 0);
+  const minConfidence = Math.min(...confidences);
+  const avgConfidence = confidences.reduce((sum, value) => sum + value, 0) / confidences.length;
+  const units = extracted.items.map((item) => item.unit.toUpperCase().trim());
+  const hasLumpSum = units.includes("LS");
+  const hasInvalidQuantity = extracted.items.some((item) => !Number.isFinite(item.quantity) || item.quantity <= 0);
+  const hasSavedScale = Number.isFinite(scaleRatio) && !!scaleRatio && scaleRatio > 0;
+  const hasDetectedScale = !!extracted.detectedScale?.found && extracted.detectedScale.drawingUnitsPerRealUnit > 0;
+  const hasScale = hasSavedScale || hasDetectedScale;
+  const measurementUnits = new Set(["SF", "LF", "CY", "CF", "SY", "SQ", "BF"]);
+  const hasMeasuredQuantities = units.some((unit) => measurementUnits.has(unit));
+  const isCountOnly = units.every((unit) => unit === "EA");
+
+  if (hasInvalidQuantity) return { shouldVerify: true, reason: "invalid quantity" };
+  if (hasLumpSum) return { shouldVerify: true, reason: "lump-sum quantity needs QA" };
+  if (minConfidence < 70) return { shouldVerify: true, reason: "low-confidence item" };
+  if (avgConfidence < 85) return { shouldVerify: true, reason: "average confidence below threshold" };
+  if (hasMeasuredQuantities && !hasScale) {
+    return { shouldVerify: true, reason: "measured quantities without scale context" };
+  }
+  if (extracted.items.length > 60) {
+    return { shouldVerify: true, reason: "large item set needs QA" };
+  }
+  if (isCountOnly && avgConfidence >= 85 && minConfidence >= 75) {
+    return { shouldVerify: false, reason: "high-confidence count-only extraction" };
+  }
+  if (hasScale && avgConfidence >= 88 && minConfidence >= 75) {
+    return { shouldVerify: false, reason: "high-confidence extraction with scale context" };
+  }
+
+  return { shouldVerify: true, reason: "standard QA required" };
+}
+
 // ─── JSON Repair Helper ────────────────────────────────────────────────────────────────
 
 /**
@@ -254,13 +299,49 @@ function repairTruncatedJSON(raw: string): any | null {
 
 // ─── Pass 1: Extract ─────────────────────────────────────────────────────────────────────
 
-async function extractPass(imageUrl: string, scopeText?: string | null): Promise<TakeoffExtractionResult> {
+function truncateContext(context: string, maxChars: number): string {
+  if (context.length <= maxChars) return context;
+  return `${context.slice(0, maxChars)}\n\n[Context truncated to keep the AI request within limits.]`;
+}
+
+export function buildScaleCalibrationContext(
+  scaleRatio?: number | null,
+  scaleUnit?: string | null
+): string | null {
+  if (!Number.isFinite(scaleRatio) || !scaleRatio || scaleRatio <= 0) return null;
+
+  const unit = scaleUnit?.trim() || "ft";
+  const roundedRatio = Number(scaleRatio.toFixed(2));
+  return [
+    "## USER-CALIBRATED DRAWING SCALE:",
+    `The user calibrated this sheet at ${roundedRatio} image pixels per 1 ${unit}.`,
+    `Use this calibration when estimating unlabeled lengths and areas: real length = image pixels / ${roundedRatio} ${unit}; real area = image square pixels / ${roundedRatio}^2 ${unit}^2.`,
+    "Prefer explicit dimension labels on the drawing when they are available. Use calibration as the fallback for visible but unlabeled measurable quantities.",
+  ].join("\n");
+}
+
+async function extractPass(
+  imageUrl: string,
+  scopeText?: string | null,
+  projectContext?: string | null,
+  scaleRatio?: number | null,
+  scaleUnit?: string | null
+): Promise<TakeoffExtractionResult> {
   let EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
+
+  if (projectContext && projectContext.trim().length > 0) {
+    EXTRACT_PROMPT += `\n\n${truncateContext(projectContext.trim(), 8000)}`;
+  }
 
   // Inject scope context so the AI prioritizes relevant work
   if (scopeText && scopeText.trim().length > 0) {
     EXTRACT_PROMPT += `\n\n## PROJECT SCOPE CONTEXT:\nThe user described this project's scope as: "${scopeText.trim()}"\nPrioritize extracting items that match this scope. Still extract all visible items, but pay special attention to items within the described scope and flag items that may be outside it in the notes field.`;
     console.log(`[Takeoff AI] Scope injected into extraction prompt: "${scopeText.trim().substring(0, 80)}..."`);
+  }
+
+  const scaleContext = buildScaleCalibrationContext(scaleRatio, scaleUnit);
+  if (scaleContext) {
+    EXTRACT_PROMPT += `\n\n${scaleContext}`;
   }
 
   // Try high detail first, fall back to low detail on 500 (token limit exceeded)
@@ -338,7 +419,9 @@ async function extractPass(imageUrl: string, scopeText?: string | null): Promise
 
 async function verifyPass(
   imageUrl: string,
-  extracted: TakeoffExtractionResult
+  extracted: TakeoffExtractionResult,
+  scaleRatio?: number | null,
+  scaleUnit?: string | null
 ): Promise<TakeoffExtractionResult> {
   // Skip verification for cover sheets or empty extractions
   if (extracted.sheetType === "cover" || extracted.items.length === 0) {
@@ -351,6 +434,7 @@ async function verifyPass(
   const compactSummary = extracted.items
     .map((item, i) => `${i + 1}. [${item.csiDivision}] ${item.description} — ${item.quantity} ${item.unit}`)
     .join("\n");
+  const scaleContext = buildScaleCalibrationContext(scaleRatio, scaleUnit);
 
   // Try high detail first, fall back to low detail on 500/token errors
   for (const detail of ["high", "low"] as const) {
@@ -366,7 +450,7 @@ async function verifyPass(
             content: [
               {
                 type: "text",
-                text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
+                text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})${scaleContext ? `\n\n${scaleContext}` : ""}\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
               },
               {
                 type: "image_url",
@@ -473,12 +557,18 @@ export async function processDrawingSheet(
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
     console.log(`[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}${_retryAttempt > 0 ? ` (auto-retry #${_retryAttempt})` : ''}...`);
-    const extracted = await extractPass(imageUrl, _scopeText);
+    const extracted = await extractPass(imageUrl, _scopeText, _projectContext, _scaleRatio, _scaleUnit);
     console.log(`[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`);
 
-    console.log(`[Takeoff AI] Pass 2 — Verifying sheet ${sheetId}...`);
-    const result = await verifyPass(imageUrl, extracted);
-    console.log(`[Takeoff AI] Pass 2 complete: ${result.items.length} items final`);
+    const verificationDecision = shouldVerifyExtraction(extracted, _scaleRatio);
+    let result = extracted;
+    if (verificationDecision.shouldVerify) {
+      console.log(`[Takeoff AI] Pass 2 — Verifying sheet ${sheetId} (${verificationDecision.reason})...`);
+      result = await verifyPass(imageUrl, extracted, _scaleRatio, _scaleUnit);
+      console.log(`[Takeoff AI] Pass 2 complete: ${result.items.length} items final`);
+    } else {
+      console.log(`[Takeoff AI] Pass 2 skipped for sheet ${sheetId}: ${verificationDecision.reason}`);
+    }
 
     // Delete any existing items for this sheet (reprocessing)
     await deleteTakeoffItemsBySheet(sheetId);
@@ -565,28 +655,55 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
 
   const pipelineStart = Date.now();
   const timings: Record<string, number> = {};
+  const pendingSheets = await getPendingSheets(projectId);
 
   // ─── PASS 1: Index All Sheets (classify types, detect cover sheets) ──────────
-  // We still run indexing to classify sheet types so we can skip cover sheets.
-  // The context summary is NOT injected into extraction prompts.
-  try {
-    const pass1Start = Date.now();
-    console.log(`[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (type classification only) ===`);
-    await indexAllSheets(projectId);
-    timings.pass1_indexing_sec = Math.round((Date.now() - pass1Start) / 1000);
-    console.log(`[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`);
-  } catch (indexError: any) {
-    timings.pass1_indexing_sec = Math.round((Date.now() - pipelineStart) / 1000);
-    console.warn(`[Takeoff AI] Pass 1 (indexing) failed — proceeding without sheet type classification:`, indexError.message);
+  // We run indexing to classify sheet types, skip cover sheets, and provide
+  // compact project context to each sheet extraction.
+  let projectContextSummary: string | null = null;
+  if (pendingSheets.length > 0) {
+    try {
+      const pass1Start = Date.now();
+      console.log(`[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (type classification only) ===`);
+      const projectContext = await indexAllSheets(projectId);
+      projectContextSummary = projectContext.contextSummary;
+      timings.pass1_indexing_sec = Math.round((Date.now() - pass1Start) / 1000);
+      console.log(`[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`);
+    } catch (indexError: any) {
+      timings.pass1_indexing_sec = Math.round((Date.now() - pipelineStart) / 1000);
+      console.warn(`[Takeoff AI] Pass 1 (indexing) failed — proceeding without sheet type classification:`, indexError.message);
+    }
+  } else {
+    timings.pass1_indexing_sec = 0;
+    console.log(`[Takeoff AI] No pending sheets for project ${projectId}; skipping indexing/extraction and running post-processing only.`);
   }
 
   // ─── PASS 2: Extract + Verify (parallel, concurrency=6) ──────────────────────
   const pass2Start = Date.now();
   console.log(`[Takeoff AI] === PASS 2: Two-pass extraction for project ${projectId} (parallel, concurrency=6) ===`);
 
-  const pendingSheets = await getPendingSheets(projectId);
   let processedCount = project.processedSheets || 0;
   let hasError = false;
+  const savedScalesBySheetId = new Map<number, { ratio: number; unit: string }>();
+  if (project.memberId) {
+    try {
+      const markups = await getProjectMarkups(projectId, project.memberId);
+      for (const markup of markups) {
+        const ratio = parseFloat(markup.scaleRatio as unknown as string);
+        if (Number.isFinite(ratio) && ratio > 0) {
+          savedScalesBySheetId.set(markup.sheetId, {
+            ratio,
+            unit: markup.scaleUnit || "ft",
+          });
+        }
+      }
+      if (savedScalesBySheetId.size > 0) {
+        console.log(`[Takeoff AI] Loaded saved scale calibration for ${savedScalesBySheetId.size} sheet(s).`);
+      }
+    } catch (scaleError: any) {
+      console.warn(`[Takeoff AI] Failed to load saved scale calibration — proceeding without it:`, scaleError.message);
+    }
+  }
 
   // Skip cover sheets — they have no measurable quantities
   const CONTEXT_ONLY_SHEET_TYPES = new Set(["cover"]);
@@ -631,16 +748,21 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     );
 
     const results = await Promise.allSettled(
-      batch.map((sheet) =>
-        processDrawingSheet(
+      batch.map((sheet) => {
+        const savedScale = savedScalesBySheetId.get(sheet.id);
+        return processDrawingSheet(
           sheet.id,
           sheet.imageUrl!,
           projectId,
           null, // selectedDivisions — filtering done in post-processing
           null, // currency
-          project.scopeText || null // scopeText — injected into extraction prompt
-        )
-      )
+          project.scopeText || null, // scopeText — injected into extraction prompt
+          projectContextSummary,
+          null, // specialtyIds
+          savedScale?.ratio ?? null,
+          savedScale?.unit ?? null
+        );
+      })
     );
 
     for (const result of results) {

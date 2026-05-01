@@ -486,8 +486,23 @@ export const takeoffRouter = router({
       // Reset sheet status and clear previous error
       await updateDrawingSheet(input.sheetId, { status: "pending" as any, errorMessage: null });
 
+      const markup = await getSheetMarkup(input.sheetId, member.id);
+      const savedScaleRatio = markup ? parseFloat(markup.scaleRatio as unknown as string) : null;
+      const savedScaleUnit = markup?.scaleUnit || null;
+
       // Process in background
-      processDrawingSheet(input.sheetId, sheet.imageUrl, input.projectId, selectedDivisions)
+      processDrawingSheet(
+        input.sheetId,
+        sheet.imageUrl,
+        input.projectId,
+        selectedDivisions,
+        project.currency || null,
+        project.scopeText || null,
+        null,
+        null,
+        Number.isFinite(savedScaleRatio) && savedScaleRatio && savedScaleRatio > 0 ? savedScaleRatio : null,
+        savedScaleUnit
+      )
         .then(() => recalculateProjectTotal(input.projectId))
         .catch((err) => {
           console.error(`[Takeoff] Reprocess error for sheet ${input.sheetId}:`, err);

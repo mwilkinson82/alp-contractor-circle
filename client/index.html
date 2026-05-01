@@ -164,10 +164,20 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <script>
+      (() => {
+        const endpoint = "%VITE_ANALYTICS_ENDPOINT%";
+        const websiteId = "%VITE_ANALYTICS_WEBSITE_ID%";
+        if (!endpoint || endpoint.startsWith("%") || !websiteId || websiteId.startsWith("%")) {
+          return;
+        }
+        const script = document.createElement("script");
+        script.defer = true;
+        script.src = `${endpoint.replace(/\/$/, "")}/umami`;
+        script.dataset.websiteId = websiteId;
+        document.body.appendChild(script);
+      })();
+    </script>
   </body>
 
 </html>

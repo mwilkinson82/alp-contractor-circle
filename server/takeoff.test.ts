@@ -40,6 +40,72 @@ describe("Takeoff AI Pipeline", () => {
     const mod = await import("./takeoffAI");
     expect(typeof mod.processAllPendingSheets).toBe("function");
   });
+
+  it("should build scale calibration context for AI extraction", async () => {
+    const mod = await import("./takeoffAI");
+    const context = mod.buildScaleCalibrationContext(24.567, "ft");
+
+    expect(context).toContain("USER-CALIBRATED DRAWING SCALE");
+    expect(context).toContain("24.57 image pixels per 1 ft");
+    expect(context).toContain("real length = image pixels / 24.57 ft");
+    expect(context).toContain("Prefer explicit dimension labels");
+  });
+
+  it("should skip invalid scale calibration context", async () => {
+    const mod = await import("./takeoffAI");
+
+    expect(mod.buildScaleCalibrationContext(0, "ft")).toBeNull();
+    expect(mod.buildScaleCalibrationContext(null, "ft")).toBeNull();
+    expect(mod.buildScaleCalibrationContext(Number.NaN, "ft")).toBeNull();
+  });
+
+  it("should skip verification for high-confidence scaled extractions", async () => {
+    const mod = await import("./takeoffAI");
+    const decision = mod.shouldVerifyExtraction({
+      sheetName: "A1.1 Floor Plan",
+      sheetType: "floor_plan",
+      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
+      items: [
+        {
+          csiDivision: "09",
+          csiCode: "09 29 00",
+          description: "Gypsum board partitions",
+          quantity: 1250,
+          unit: "SF",
+          unitCost: 1,
+          confidence: 92,
+          notes: "Measured with calibrated scale",
+        },
+      ],
+    }, 24);
+
+    expect(decision.shouldVerify).toBe(false);
+    expect(decision.reason).toContain("scale context");
+  });
+
+  it("should require verification for risky measured extractions", async () => {
+    const mod = await import("./takeoffAI");
+    const decision = mod.shouldVerifyExtraction({
+      sheetName: "S1.1 Foundation Plan",
+      sheetType: "structural",
+      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
+      items: [
+        {
+          csiDivision: "03",
+          csiCode: "03 30 00",
+          description: "Concrete slab",
+          quantity: 1,
+          unit: "LS",
+          unitCost: 1,
+          confidence: 91,
+          notes: "Placeholder",
+        },
+      ],
+    }, null);
+
+    expect(decision.shouldVerify).toBe(true);
+    expect(decision.reason).toContain("lump-sum");
+  });
 });
 
 // ─── Test the database helpers ────────────────────────────────────────────────
