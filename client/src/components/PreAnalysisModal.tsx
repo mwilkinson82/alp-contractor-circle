@@ -46,6 +46,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 import { CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS } from "../../../shared/residentialEstimateQa";
+import { buildScopeIntent } from "../../../shared/scopeIntent";
 
 const STORAGE_KEY = "alp-takeoff-preanalysis-prefs";
 
@@ -115,10 +116,11 @@ const CURRENCIES = [
 ];
 
 const SCOPE_EXAMPLES = [
-  "Foundations only — spread footings and grade beams",
-  "Structural steel framing — beams, columns, and connections",
-  "Interior framing and drywall only — no exterior",
-  "Mechanical ductwork and equipment — no piping",
+  "Below-grade waterproofing only — include membrane, protection board, waterstops, and foundation drains",
+  "Piles and pile caps only — include excavation, reinforcing, concrete, and spoils",
+  "Foundations only — spread footings, grade beams, slab-on-grade, and vapor barrier",
+  "Division 03 partial scope — foundations up through slab-on-grade, no vertical concrete walls",
+  "Structural steel framing — beams, columns, connections, and embeds only",
   "Site utilities — storm and sanitary sewer only",
 ];
 
@@ -180,6 +182,10 @@ export default function PreAnalysisModal({
     existingSpecialties || saved.selectedSpecialties || []
   );
   const [allowances, setAllowances] = useState<AllowanceItem[]>(saved.allowances || []);
+  const scopeIntent = useMemo(
+    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null),
+    [scopeText, selectedDivisions]
+  );
 
   // Reset step when modal opens
   useEffect(() => {
@@ -222,10 +228,10 @@ export default function PreAnalysisModal({
         <DialogHeader>
           <DialogTitle className="text-xl text-cream flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
-            Configure Analysis
+            Configure Bid Scope
           </DialogTitle>
           <DialogDescription className="text-cream-muted">
-            Set your preferences before <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analyzes {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
+            Upload the full drawing set, then tell <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> which bid scope to take off from {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -333,10 +339,10 @@ export default function PreAnalysisModal({
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-2 mb-1">
               <Building2 className="w-4 h-4 text-amber-500" />
-              <Label className="text-sm font-semibold text-cream">CSI Divisions</Label>
+              <Label className="text-sm font-semibold text-cream">Bid Package Divisions</Label>
             </div>
             <p className="text-xs text-cream-muted -mt-2">
-              Select which CSI divisions to include. Leave all selected for a full takeoff.
+              Select the broad CSI divisions your scope can touch. For narrow work like below-grade waterproofing or piles, keep related support divisions selected and narrow the actual scope on the next step.
             </p>
             <DivisionSelector
               value={selectedDivisions}
@@ -402,7 +408,7 @@ export default function PreAnalysisModal({
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-amber-500" />
-              <Label className="text-sm font-semibold text-cream">Narrow Your Scope</Label>
+              <Label className="text-sm font-semibold text-cream">Scope Intent</Label>
               <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Optional</Badge>
             </div>
 
@@ -414,9 +420,9 @@ export default function PreAnalysisModal({
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-cream font-medium">Leave this blank to take off everything</p>
+                <p className="text-sm text-cream font-medium">Use a full drawing set for a partial bid scope</p>
                 <p className="text-xs text-cream-muted mt-0.5">
-                  <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will extract all quantities from every drawing in the CSI divisions you selected. Only fill this in if you want to focus on a specific part of the work.
+                  Type the subcontract scope, trade package, inclusions, and exclusions. <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> will focus extraction on included work and flag boundary items for review when they may belong to another trade.
                 </p>
               </div>
             </div>
@@ -424,10 +430,37 @@ export default function PreAnalysisModal({
             <Textarea
               value={scopeText}
               onChange={(e) => setScopeText(e.target.value)}
-              placeholder="Leave blank for full takeoff — or type a specific scope like 'Foundations only' or 'Structural steel framing'"
+              placeholder="Example: Below-grade waterproofing only. Include membrane, protection board, waterstops, foundation drains, and vapor barrier. Exclude roofing and above-grade envelope."
               className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 min-h-[100px] resize-none"
               maxLength={2000}
             />
+            {scopeIntent.hasScope && (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-amber-300">Interpreted Scope</span>
+                  <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                    {scopeIntent.summary}
+                  </Badge>
+                </div>
+                <p className="text-xs text-cream-muted">
+                  Review items will stay visible in Quantity Takeoff with a scope-review note so you can include, edit, or delete them before pricing the bid.
+                </p>
+                {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {scopeIntent.focusDivisions.slice(0, 8).map((division) => (
+                      <Badge key={`focus-${division}`} className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                        Include Div {division}
+                      </Badge>
+                    ))}
+                    {scopeIntent.excludedDivisions.slice(0, 8).map((division) => (
+                      <Badge key={`exclude-${division}`} className="bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
+                        Usually excludes Div {division}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-cream-muted/50">{scopeText.length}/2000</span>
               {scopeText.trim() && (
@@ -625,7 +658,7 @@ export default function PreAnalysisModal({
                 <div>
                   <span className="text-cream-muted">Scope:</span>{" "}
                   <span className="text-cream font-medium">
-                    {scopeText.trim() ? "Custom" : "Full"}
+                    {scopeText.trim() ? scopeIntent.summary : "Full drawing set"}
                   </span>
                 </div>
                 <div>

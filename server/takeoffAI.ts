@@ -34,6 +34,8 @@ import {
 import { postProcessTakeoff } from "./takeoffPostProcess";
 import { indexAllSheets } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
+import { buildScopeIntent, buildScopeIntentPrompt } from "../shared/scopeIntent";
+import { TRADE_SPECIALTIES } from "../shared/tradeSpecialties";
 
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
@@ -325,18 +327,31 @@ async function extractPass(
   scopeText?: string | null,
   projectContext?: string | null,
   scaleRatio?: number | null,
-  scaleUnit?: string | null
+  scaleUnit?: string | null,
+  selectedDivisions?: string[] | null,
+  specialtyIds?: string[] | null
 ): Promise<TakeoffExtractionResult> {
-  let EXTRACT_PROMPT = "Analyze this construction drawing. Extract every measurable quantity you can see. Be thorough — include every item visible on this sheet. Return your analysis as JSON.";
+  const scopeIntent = buildScopeIntent(scopeText, selectedDivisions);
+  let EXTRACT_PROMPT = "Analyze this construction drawing for a contractor's bid package. Extract measurable quantities that fit the configured scope. Return your analysis as JSON.";
 
   if (projectContext && projectContext.trim().length > 0) {
     EXTRACT_PROMPT += `\n\n${truncateContext(projectContext.trim(), 8000)}`;
   }
 
-  // Inject scope context so the AI prioritizes relevant work
-  if (scopeText && scopeText.trim().length > 0) {
-    EXTRACT_PROMPT += `\n\n## PROJECT SCOPE CONTEXT:\nThe user described this project's scope as: "${scopeText.trim()}"\nPrioritize extracting items that match this scope. Still extract all visible items, but pay special attention to items within the described scope and flag items that may be outside it in the notes field.`;
-    console.log(`[Takeoff AI] Scope injected into extraction prompt: "${scopeText.trim().substring(0, 80)}..."`);
+  if (scopeIntent.hasScope || selectedDivisions?.length) {
+    EXTRACT_PROMPT += `\n\n## BID SCOPE INTENT:\n${buildScopeIntentPrompt(scopeIntent, selectedDivisions)}`;
+    console.log(`[Takeoff AI] Scope intent injected: "${scopeIntent.summary}"`);
+  }
+
+  const selectedSpecialties = (specialtyIds || [])
+    .map((id) => TRADE_SPECIALTIES[id])
+    .filter(Boolean);
+  if (selectedSpecialties.length > 0) {
+    EXTRACT_PROMPT += `\n\n## TRADE SPECIALTY FOCUS:\nThe user selected these specialty scopes. Think like these subcontractors and prioritize their scope:\n${selectedSpecialties.map((s) => {
+      const signals = s.detectionSignals.slice(0, 10).join(", ");
+      const notes = s.constructionNotes.slice(0, 4).join(" ");
+      return `- ${s.name} (${s.csiSubCode || s.divisionCode}): ${s.description}. Signals: ${signals}. ${notes}`;
+    }).join("\n")}`;
   }
 
   const scaleContext = buildScaleCalibrationContext(scaleRatio, scaleUnit);
@@ -557,7 +572,15 @@ export async function processDrawingSheet(
     await updateDrawingSheet(sheetId, { status: "processing" as any });
 
     console.log(`[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}${_retryAttempt > 0 ? ` (auto-retry #${_retryAttempt})` : ''}...`);
-    const extracted = await extractPass(imageUrl, _scopeText, _projectContext, _scaleRatio, _scaleUnit);
+    const extracted = await extractPass(
+      imageUrl,
+      _scopeText,
+      _projectContext,
+      _scaleRatio,
+      _scaleUnit,
+      _selectedDivisions,
+      _specialtyIds
+    );
     console.log(`[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`);
 
     const verificationDecision = shouldVerifyExtraction(extracted, _scaleRatio);
@@ -652,6 +675,18 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   if (!project) throw new Error(`Project ${projectId} not found`);
 
   await updateTakeoffProject(projectId, { status: "processing" });
+
+  const parseJsonArray = (raw: string | null | undefined): string[] | null => {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : null;
+    } catch {
+      return null;
+    }
+  };
+  const selectedDivisions = parseJsonArray(project.selectedDivisions);
+  const selectedSpecialties = parseJsonArray(project.selectedSpecialties);
 
   const pipelineStart = Date.now();
   const timings: Record<string, number> = {};
@@ -754,11 +789,11 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
           sheet.id,
           sheet.imageUrl!,
           projectId,
-          null, // selectedDivisions — filtering done in post-processing
+          selectedDivisions,
           null, // currency
           project.scopeText || null, // scopeText — injected into extraction prompt
           projectContextSummary,
-          null, // specialtyIds
+          selectedSpecialties,
           savedScale?.ratio ?? null,
           savedScale?.unit ?? null
         );

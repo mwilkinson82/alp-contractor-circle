@@ -483,6 +483,16 @@ export const takeoffRouter = router({
         } catch { /* ignore */ }
       }
 
+      let selectedSpecialties: string[] | null = null;
+      if (project.selectedSpecialties) {
+        try {
+          const parsed = JSON.parse(project.selectedSpecialties);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            selectedSpecialties = parsed.filter((value) => typeof value === "string");
+          }
+        } catch { /* ignore */ }
+      }
+
       // Reset sheet status and clear previous error
       await updateDrawingSheet(input.sheetId, { status: "pending" as any, errorMessage: null });
 
@@ -499,7 +509,7 @@ export const takeoffRouter = router({
         project.currency || null,
         project.scopeText || null,
         null,
-        null,
+        selectedSpecialties,
         Number.isFinite(savedScaleRatio) && savedScaleRatio && savedScaleRatio > 0 ? savedScaleRatio : null,
         savedScaleUnit
       )

@@ -64,6 +64,7 @@ import {
   FileText,
   ClipboardList,
   Info,
+  Flag,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -105,6 +106,7 @@ function getScaleLabel(ratio: number): string {
   return bestLabel;
 }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildScopeIntent } from "../../../shared/scopeIntent";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -130,6 +132,13 @@ function getTakeoffMaterialUnitCost(item: any): number {
   const installed = Number(item.unitCost) || 0;
   const labor = Number(item.laborCost) || 0;
   return installed > labor ? installed - labor : installed;
+}
+
+function getScopeReviewStatus(item: any): "included" | "review" | "excluded" {
+  const notes = String(item?.notes || "").toLowerCase();
+  if (notes.includes("[scope: excluded]")) return "excluded";
+  if (notes.includes("[scope: review]")) return "review";
+  return "included";
 }
 
 const SHEET_STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -240,6 +249,23 @@ export default function TakeoffDetail() {
   const { data: items, refetch: refetchItems } = trpc.takeoff.getItems.useQuery(
     { projectId },
     { enabled: projectId > 0 }
+  );
+  const selectedDivisionList = useMemo(() => {
+    if (!project?.selectedDivisions) return null;
+    try {
+      const parsed = JSON.parse(project.selectedDivisions);
+      return Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : null;
+    } catch {
+      return null;
+    }
+  }, [project?.selectedDivisions]);
+  const scopeIntent = useMemo(
+    () => buildScopeIntent(project?.scopeText || null, selectedDivisionList),
+    [project?.scopeText, selectedDivisionList]
+  );
+  const scopeReviewCount = useMemo(
+    () => (items || []).filter((item: any) => getScopeReviewStatus(item) === "review").length,
+    [items]
   );
 
   // ─── Measurement Rollup Query ──────────────────────────────────────────
@@ -620,10 +646,11 @@ export default function TakeoffDetail() {
     // Build rows with branding header and CSI division headers and subtotals
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
     const aoa: any[][] = [
-      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", ""],
-      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", ""],
+      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", "", ""],
+      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", "", ""],
+      [`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`, "", "", "", "", "", "", "", "", "", "", ""],
       [], // blank separator
       headers,
     ];
@@ -632,7 +659,7 @@ export default function TakeoffDetail() {
     for (const div of sortedDivs) {
       const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
       // Division header row
-      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", "", "", ""]);
+      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", "", "", "", ""]);
       let divTotal = 0;
       for (const item of divGroups[div]) {
         const extCost = (parseFloat(item.extendedCost) || 0) / 100;
@@ -647,12 +674,13 @@ export default function TakeoffDetail() {
           (parseFloat(item.unitCost) || 0) / 100,
           extCost,
           item.confidence || 0,
+          getScopeReviewStatus(item),
           item.reviewed ? "Yes" : "No",
           item.notes || "",
         ]);
       }
       // Division subtotal row
-      aoa.push(["", `Subtotal — ${divName}`, "", "", "", "", "", divTotal, "", "", ""]);
+      aoa.push(["", `Subtotal — ${divName}`, "", "", "", "", "", divTotal, "", "", "", ""]);
       // Blank separator row
       aoa.push([]);
       grandTotal += divTotal;
@@ -661,20 +689,20 @@ export default function TakeoffDetail() {
     const projectAllowances = parseProjectAllowances((project as any)?.allowances);
     let allowancesTotal = 0;
     if (projectAllowances.length > 0) {
-      aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", ""]);
+      aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", "", ""]);
       for (const allowance of projectAllowances) {
         const amt = (allowance.amount || 0) / 100;
         allowancesTotal += amt;
-        aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "", ""]);
+        aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "", "", ""]);
       }
-      aoa.push(["", "Subtotal — Allowances", "", "", "", "", "", allowancesTotal, "", "", ""]);
+      aoa.push(["", "Subtotal — Allowances", "", "", "", "", "", allowancesTotal, "", "", "", ""]);
       aoa.push([]);
     }
     // Grand total row (includes allowances)
-    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal + allowancesTotal, "", "", ""]);
+    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal + allowancesTotal, "", "", "", ""]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 40 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 40 }];
 
     // Style branding rows
     const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
@@ -683,11 +711,11 @@ export default function TakeoffDetail() {
     if (ws[projCell]) ws[projCell].s = { font: { bold: true, sz: 11 } };
     const dateCell = XLSX.utils.encode_cell({ r: 1, c: 3 });
     if (ws[dateCell]) ws[dateCell].s = { font: { sz: 11 } };
-    const currCell = XLSX.utils.encode_cell({ r: 1, c: 6 });
+    const currCell = XLSX.utils.encode_cell({ r: 1, c: 7 });
     if (ws[currCell]) ws[currCell].s = { font: { sz: 11 } };
 
     // Style division headers and subtotals (bold via cell formatting)
-    let rowIdx = 4; // skip branding (0), project info (1), blank (2), headers (3)
+    let rowIdx = 5; // skip branding (0), project info (1), scope (2), blank (3), headers (4)
     for (const div of sortedDivs) {
       // Division header row
       const headerCell = XLSX.utils.encode_cell({ r: rowIdx, c: 0 });
@@ -704,13 +732,13 @@ export default function TakeoffDetail() {
     const fileName = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
     toast.success("Exported to Excel — grouped by CSI division");
-  }, [items, project]);
+  }, [items, project, scopeIntent]);
 
   const handleExportCsv = useCallback(() => {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
@@ -724,8 +752,9 @@ export default function TakeoffDetail() {
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const csvRows: string[] = [
-      `"ConstructLine | Powered by ALP","","","","","","","","","",""`,
-      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","","Currency: ${currencyCode}","","",""`,
+      `"ConstructLine | Powered by ALP","","","","","","","","","","",""`,
+      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","","Currency: ${currencyCode}","","","",""`,
+      `"Scope: ${(scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set").replace(/"/g, '""')}","","","","","","","","","","",""`,
       "",
       headers.join(","),
     ];
@@ -734,7 +763,7 @@ export default function TakeoffDetail() {
     for (const div of sortedDivs) {
       const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
       // Division header row
-      csvRows.push(`"${div} — ${divName}","","","","","","","","","",""`);
+      csvRows.push(`"${div} — ${divName}","","","","","","","","","","",""`);
       let divTotal = 0;
       for (const item of divGroups[div]) {
         const extCost = (parseFloat(item.extendedCost) || 0) / 100;
@@ -749,12 +778,13 @@ export default function TakeoffDetail() {
           ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
           extCost.toFixed(2),
           item.confidence || 0,
+          getScopeReviewStatus(item),
           item.reviewed ? "Yes" : "No",
           `"${(item.notes || "").replace(/"/g, '""')}"`,
         ].join(","));
       }
       // Division subtotal
-      csvRows.push(`"","Subtotal — ${divName}","","","","","",${divTotal.toFixed(2)},"","",""`);
+      csvRows.push(`"","Subtotal — ${divName}","","","","","",${divTotal.toFixed(2)},"","","",""`);
       csvRows.push(""); // blank separator
       grandTotal += divTotal;
     }
@@ -762,16 +792,16 @@ export default function TakeoffDetail() {
     const csvAllowances = parseProjectAllowances((project as any)?.allowances);
     let csvAllowancesTotal = 0;
     if (csvAllowances.length > 0) {
-      csvRows.push(`"ALLOWANCES","","","","","","","","","",""`);
+      csvRows.push(`"ALLOWANCES","","","","","","","","","","",""`);
       for (const allowance of csvAllowances) {
         const amt = (allowance.amount || 0) / 100;
         csvAllowancesTotal += amt;
-        csvRows.push(`"","${(allowance.description || 'Allowance').replace(/"/g, '""')}","","LS","","","",${amt.toFixed(2)},"","",""`);
+        csvRows.push(`"","${(allowance.description || 'Allowance').replace(/"/g, '""')}","","LS","","","",${amt.toFixed(2)},"","","",""`);
       }
-      csvRows.push(`"","Subtotal — Allowances","","","","","",${csvAllowancesTotal.toFixed(2)},"","",""`);
+      csvRows.push(`"","Subtotal — Allowances","","","","","",${csvAllowancesTotal.toFixed(2)},"","","",""`);
       csvRows.push("");
     }
-    csvRows.push(`"","GRAND TOTAL","","","","","",${(grandTotal + csvAllowancesTotal).toFixed(2)},"","",""`);
+    csvRows.push(`"","GRAND TOTAL","","","","","",${(grandTotal + csvAllowancesTotal).toFixed(2)},"","","",""`);
 
     const csv = csvRows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -782,7 +812,7 @@ export default function TakeoffDetail() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Exported to CSV \u2014 grouped by CSI division");
-  }, [items, project]);
+  }, [items, project, scopeIntent]);
 
   // ─── Excel Import ──────────────────────────────────────────────────────
   const importExcelMutation = (trpc.takeoff as any).importExcel.useMutation({
@@ -1746,6 +1776,36 @@ export default function TakeoffDetail() {
                   </p>
                 </div>
 
+                {scopeIntent.hasScope && (
+                  <div className="bg-amber-500/8 border border-amber-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
+                    <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-amber-300">Bid Scope</span>
+                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                          {scopeIntent.summary}
+                        </Badge>
+                        {scopeReviewCount > 0 && (
+                          <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-[10px]">
+                            {scopeReviewCount} review item{scopeReviewCount !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-amber-100/75 leading-relaxed mt-1 line-clamp-2">
+                        {scopeIntent.originalText}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpenSettingsToScope(true)}
+                      className="h-7 text-xs border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                    >
+                      Edit Scope
+                    </Button>
+                  </div>
+                )}
+
                 {/* Allowances Section — shown before CSI divisions */}
                 {projectAllowances.length > 0 && (
                   <div className="bg-navy-medium/30 border border-amber-500/20 rounded-lg overflow-hidden">
@@ -1891,12 +1951,14 @@ export default function TakeoffDetail() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(divItems as any[]).map((item: any) => (
+                                {(divItems as any[]).map((item: any) => {
+                                  const scopeStatus = getScopeReviewStatus(item);
+                                  return (
                                   <tr
                                     key={item.id}
                                     className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
                                       item.reviewed ? "bg-emerald-500/5" : ""
-                                    }`}
+                                    } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
                                     onClick={() => setSelectedItem(item)}
                                   >
                                     <td className="px-4 py-2 text-cream-muted font-mono text-xs">
@@ -1907,6 +1969,18 @@ export default function TakeoffDetail() {
                                     </td>
                                     <td className="px-4 py-2 text-cream max-w-xs">
                                       <p className="line-clamp-2">{item.description}</p>
+                                      {scopeStatus !== "included" && (
+                                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                                          <Badge className={`text-[10px] ${
+                                            scopeStatus === "review"
+                                              ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                                              : "bg-red-500/15 text-red-300 border-red-500/25"
+                                          }`}>
+                                            <Flag className="w-2.5 h-2.5 mr-0.5" />
+                                            {scopeStatus === "review" ? "Scope Review" : "Possible Exclusion"}
+                                          </Badge>
+                                        </div>
+                                      )}
                                       {/* Consolidation diff annotations */}
                                       {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
                                         const ann = consolidationDiff.itemAnnotations[item.id];
@@ -2063,7 +2137,8 @@ export default function TakeoffDetail() {
                                       </div>
                                     </td>
                                   </tr>
-                                ))}
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
