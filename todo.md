@@ -3522,3 +3522,6 @@
 - [x] 492 tests passing
 - [ ] Deploy fix
 - [x] Fix Discord bot unhandled WebSocket error crashing entire server (causing tRPC HTML responses)
+- [x] Fix stale scope label in UI — exclude-clause words no longer trigger profiles (roofing, foundations, etc.)
+- [x] Fix formwork/rebar trench-wall rows being active when they should be excluded/review for waterproofing-only scope
+- [x] Add regression tests for formwork trench-wall items and scope label (7 new tests, 47 total passing)

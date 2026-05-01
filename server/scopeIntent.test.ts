@@ -404,7 +404,65 @@ describe("Crystal Car Wash explicit exclusion override regression", () => {
     expect(intent.summary).not.toContain("Foundations");
     expect(intent.summary).not.toContain("footings");
     expect(intent.summary).not.toContain("slabs-on-grade");
+    expect(intent.summary).not.toContain("directly related concrete work");
     expect(intent.presetIds).not.toContain("foundations");
     expect(intent.presetIds).not.toContain("underground_concrete_below_grade_waterproofing");
+    expect(intent.presetIds).not.toContain("roofing");
+  });
+
+  it("does not activate roofing profile from 'Exclude roofing' clause", () => {
+    const intent = buildScopeIntent(SCOPE);
+    expect(intent.presetIds).not.toContain("roofing");
+    expect(intent.summary).not.toContain("Roofing");
+  });
+
+  it("classifies 'Formwork for #4 @ 16 O.C. Typ. (Trench Walls)' as not active", () => {
+    const intent = buildScopeIntent(SCOPE);
+    const result = classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 10 00",
+      description: "Formwork for #4 @ 16\" O.C. Typ. (Trench Walls)",
+    }, intent);
+    expect(["excluded", "review"]).toContain(result);
+  });
+
+  it("classifies 'Formwork for #4 @ 12 O.C. Cont. (Trench Walls)' as not active", () => {
+    const intent = buildScopeIntent(SCOPE);
+    const result = classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 10 00",
+      description: "Formwork for #4 @ 12\" O.C. Cont. (Trench Walls)",
+    }, intent);
+    expect(["excluded", "review"]).toContain(result);
+  });
+
+  it("classifies 'Formwork for Keyway Joint and Waterstop, PVC, at Trench Walls' as not active", () => {
+    const intent = buildScopeIntent(SCOPE);
+    const result = classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 10 00",
+      description: "Formwork for Keyway Joint and Waterstop, PVC, at Trench Walls",
+    }, intent);
+    expect(["excluded", "review"]).toContain(result);
+  });
+
+  it("classifies 'Formwork for Non-shrink grout at column base plate' as not active", () => {
+    const intent = buildScopeIntent(SCOPE);
+    const result = classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 10 00",
+      description: "Formwork for Non-shrink grout at column base plate",
+    }, intent);
+    expect(["excluded", "review"]).toContain(result);
+  });
+
+  it("keeps 'Keyway Joint and Waterstop, PVC' active or review (not excluded)", () => {
+    const intent = buildScopeIntent(SCOPE);
+    const result = classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 15 13",
+      description: "Keyway Joint and Waterstop, PVC",
+    }, intent);
+    expect(["included", "review"]).toContain(result);
   });
 });

@@ -314,7 +314,9 @@ export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: 
   const explicitIncludes = parseExplicitIncludes(normalizedText);
   const explicitExcludes = parseExplicitExcludes(normalizedText);
   const supportWorkAllowed = supportFamiliesAllowed(normalizedText, explicitIncludes);
-  const matched = TRADE_PROFILES.filter((profile) => profile.patterns.some((pattern) => pattern.test(originalText)));
+  // Only match profiles against include/scope clauses, not exclude clauses
+  const includeClauseText = originalText.replace(/\bexclude[^.;]*/gi, "").replace(/\bnot including[^.;]*/gi, "").replace(/\bno\s+[^.;]*/gi, "");
+  const matched = TRADE_PROFILES.filter((profile) => profile.patterns.some((pattern) => pattern.test(includeClauseText)));
   const filteredMatched = matched.filter((profile) => {
     const profileFamilies = unique([...profile.includedFamilies, ...profile.reviewFamilies]) as TermFamily[];
     const hasIncludedProfileSignal = profileFamilies.some((family) => explicitIncludes.includes(family));
@@ -412,6 +414,16 @@ export function classifyScopeMatch(
   if (allNonSupportExcluded && !hasExplicitInclude) return "excluded";
 
   if (hasExplicitInclude) {
+    // If the item is primarily support work (formwork/rebar) that merely references an included item
+    // (e.g. "Formwork for Keyway Waterstop"), the support family should drive classification, not the included reference.
+    // But if the support families themselves are explicitly included (e.g. "Include rebar, formwork"), let them through.
+    const supportFamiliesExplicitlyIncluded = supportFamilies.every((f) => containsFamily(intent.explicitIncludes, f) || containsFamily(intent.supportWorkAllowed, f) || profiles.some((p) => p.includedFamilies.includes(f)));
+    if (!supportFamiliesExplicitlyIncluded && supportFamilies.length > 0) {
+      const primaryFamilies = families.filter((f) => !SUPPORT_FAMILIES.includes(f));
+      const supportOnly = primaryFamilies.length === 0;
+      const supportWithIncludedRef = primaryFamilies.length > 0 && primaryFamilies.every((f) => containsFamily(intent.explicitIncludes, f));
+      if (supportOnly || supportWithIncludedRef) return "review";
+    }
     if (hasUnownedSupport) return "review";
     if (families.includes("belowGradeInsulation")) return "review";
     if (hasProfileInclude) return "included";
