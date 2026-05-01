@@ -112,6 +112,8 @@ import {
   getScopeMaterialUnitCost,
   getScopeStatusFromNotes,
   isScopeExcludedItem,
+  isScopeIncludedItem,
+  isScopeReviewItem,
   sumScopeIncludedExtendedCost,
   sumScopeIncludedLaborCost,
   sumScopeIncludedMaterialCost,
@@ -643,7 +645,7 @@ export default function TakeoffDetail() {
 
     // Group items by CSI division
     const divGroups: Record<string, any[]> = {};
-    for (const item of (items as any[]).filter((item) => !isScopeExcludedItem(item))) {
+    for (const item of (items as any[]).filter((item) => isScopeIncludedItem(item))) {
       const div = item.csiDivision || "00";
       if (!divGroups[div]) divGroups[div] = [];
       divGroups[div].push(item);
@@ -749,7 +751,7 @@ export default function TakeoffDetail() {
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
-    for (const item of (items as any[]).filter((item) => !isScopeExcludedItem(item))) {
+    for (const item of (items as any[]).filter((item) => isScopeIncludedItem(item))) {
       const div = item.csiDivision || "00";
       if (!divGroups[div]) divGroups[div] = [];
       divGroups[div].push(item);
@@ -921,9 +923,14 @@ export default function TakeoffDetail() {
 
   // ─── Grouped Items ──────────────────────────────────────────────────
 
-  const activeItems = useMemo(() => (items || []).filter((item: any) => !isScopeExcludedItem(item)), [items]);
+  const activeItems = useMemo(() => (items || []).filter((item: any) => isScopeIncludedItem(item)), [items]);
+  const reviewItems = useMemo(() => (items || []).filter((item: any) => isScopeReviewItem(item)), [items]);
   const excludedItems = useMemo(() => (items || []).filter((item: any) => isScopeExcludedItem(item)), [items]);
-  const scopeReviewCount = useMemo(() => activeItems.filter((item: any) => getScopeReviewStatus(item) === "review").length, [activeItems]);
+  const scopeReviewCount = reviewItems.length;
+  const reviewItemsCost = useMemo(
+    () => reviewItems.reduce((sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0), 0),
+    [reviewItems]
+  );
 
   const groupedItems = useMemo(() => {
     if (!activeItems) return {};
@@ -1616,13 +1623,6 @@ export default function TakeoffDetail() {
                           <Upload className="w-4 h-4 text-amber-400" />
                           Import Excel
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setShowConsolidationDiff(!showConsolidationDiff)}
-                        >
-                          <GitCompareArrows className={`w-4 h-4 ${showConsolidationDiff ? "text-cyan-400" : "text-cyan-400/60"}`} />
-                          {showConsolidationDiff ? "Hide Consolidation Diff" : "Show Consolidation Diff"}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -1739,9 +1739,12 @@ export default function TakeoffDetail() {
                   const curr = project?.currency || "USD";
                   return (
                     <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
-                      {excludedItems.length > 0 && (
-                        <p className="mb-3 text-xs text-red-200/80">
-                          {excludedItems.length} likely excluded/boundary item{excludedItems.length !== 1 ? "s are" : " is"} visible below for review and not counted in these totals.
+                      {(reviewItems.length > 0 || excludedItems.length > 0) && (
+                        <p className="mb-3 text-xs text-amber-100/80">
+                          {reviewItems.length > 0 ? `${reviewItems.length} needs-review item${reviewItems.length !== 1 ? "s are" : " is"} held out of totals` : ""}
+                          {reviewItems.length > 0 && excludedItems.length > 0 ? " and " : ""}
+                          {excludedItems.length > 0 ? `${excludedItems.length} excluded/boundary item${excludedItems.length !== 1 ? "s are" : " is"} visible below` : ""}
+                          . Only included scope items count in these totals.
                         </p>
                       )}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2156,6 +2159,87 @@ export default function TakeoffDetail() {
                        </div>
 	                    );
 	                  })}
+
+                {reviewItems.length > 0 && (
+                  <div className="border border-amber-500/25 rounded-lg overflow-hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-amber-500/10">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Flag className="w-4 h-4 text-amber-300" />
+                        <span className="text-amber-100 font-semibold">Needs Scope Review</span>
+                        <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
+                          {reviewItems.length} not counted
+                        </Badge>
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          Review subtotal {formatCurrency(reviewItemsCost, project?.currency || "USD")}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-amber-100/70">Open an item and mark it included before it counts in takeoff or estimate totals</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <th className="text-left px-4 py-2 w-12">CSI</th>
+                            <th className="text-left px-4 py-2">Description</th>
+                            <th className="text-right px-4 py-2 w-20">Qty</th>
+                            <th className="text-left px-4 py-2 w-14">Unit</th>
+                            <th className="text-right px-4 py-2 w-28">Review Total</th>
+                            <th className="text-center px-4 py-2 w-20">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reviewItems.map((item: any) => (
+                            <tr key={item.id} className="border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer" onClick={() => setSelectedItem(item)}>
+                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">{item.csiCode || item.csiDivision}</td>
+                              <td className="px-4 py-2 text-cream max-w-lg">
+                                <p className="line-clamp-2">{item.description}</p>
+                                {item.notes && <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">{item.notes}</p>}
+                              </td>
+                              <td className="px-4 py-2 text-right text-cream font-mono">{parseFloat(item.quantity || "0").toLocaleString()}</td>
+                              <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
+                              <td className="px-4 py-2 text-right text-amber-100/70 font-mono">{formatCurrency(item.extendedCost || 0, project?.currency || "USD")}</td>
+                              <td className="px-4 py-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      const notes = String(item.notes || "");
+                                      updateItemMutation.mutate({
+                                        id: item.id,
+                                        projectId,
+                                        notes: notes.includes("[Scope: review]")
+                                          ? notes.replace("[Scope: review]", "[Scope: included]")
+                                          : `[Scope: included] ${notes}`.trim(),
+                                      });
+                                    }}
+                                    title="Include in active total"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setSelectedItem(item);
+                                    }}
+                                    title="View details"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {excludedItems.length > 0 && (
                   <div className="border border-red-500/25 rounded-lg overflow-hidden">

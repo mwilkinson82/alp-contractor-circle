@@ -11,17 +11,28 @@ describe("scope cost totals", () => {
       { extendedCost: 10000, notes: "[Scope: included] Waterproofing membrane" },
       { extendedCost: 25000, notes: "[Scope: review] Verify drainage interface" },
       { extendedCost: 900000, notes: "[Scope: excluded] General concrete slab-on-grade" },
-    ])).toBe(35000);
+    ])).toBe(10000);
   });
 
-  it("does not count likely excluded material or default labor in summary totals", () => {
+  it("does not count needs-review or likely excluded material and default labor in summary totals", () => {
     const items = [
       { quantity: 10, materialCost: 100, laborCost: 50, notes: "[Scope: included] Waterproofing membrane" },
       { quantity: 5, unitCost: 300, laborCost: 100, notes: "[Scope: review] Drainage interface" },
       { quantity: 1000, materialCost: 200, laborCost: 175, notes: "[Scope: excluded] General concrete slab-on-grade" },
     ];
 
-    expect(sumScopeIncludedMaterialCost(items)).toBe(2000);
-    expect(sumScopeIncludedLaborCost(items)).toBe(1000);
+    expect(sumScopeIncludedMaterialCost(items)).toBe(1000);
+    expect(sumScopeIncludedLaborCost(items)).toBe(500);
+  });
+
+  it("keeps estimate direct costs tied to active included rows only", () => {
+    const activeIncludedRows = [
+      { extendedCost: 12000, notes: "[Scope: included] Waterproofing membrane" },
+      { extendedCost: 8000, notes: "[Scope: included] Protection board" },
+      { extendedCost: 70000, notes: "[Scope: review] Reinforcing Steel for Trench Pit and Correlator Pit" },
+      { extendedCost: 150000, notes: "[Scope: excluded] Concrete car wash trench" },
+    ];
+
+    expect(sumScopeIncludedExtendedCost(activeIncludedRows)).toBe(20000);
   });
 });

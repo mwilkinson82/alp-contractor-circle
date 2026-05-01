@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildScopeIntent, classifyScopeMatch } from "../shared/scopeIntent";
 
 const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.";
+const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
 
 describe("scope intent", () => {
   it("recognizes below-grade waterproofing as a narrow scope", () => {
@@ -182,5 +183,58 @@ describe("scope intent", () => {
     ]) {
       expect(activeStatuses, item.description).toContain(classifyScopeMatch(item, intent));
     }
+  });
+
+  it("excludes latest Crystal Car Wash concrete rebar and trench rows from commercial waterproofing-only scope", () => {
+    const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE);
+
+    expect(intent.summary).toBe("Below-grade waterproofing and drainage at foundation/trench conditions");
+    expect(intent.presetIds).toEqual(["below_grade_waterproofing"]);
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 20 00", description: "Reinforcing Steel for Trench Pit and Correlator Pit" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete Footing for Enclosure Wall" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete car wash trench" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Footing formwork rows" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Footing rebar rows" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Trench concrete / pit concrete" },
+      { csiDivision: "31", csiCode: "31 23 23", description: "Compacted base course under slab" },
+      { csiDivision: "31", csiCode: "31 23 16", description: "Broad excavation for continuous footings" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("keeps latest Crystal Car Wash waterproofing and direct drainage installation active", () => {
+    const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE);
+
+    for (const item of [
+      { csiDivision: "07", csiCode: "07 13 00", description: "Waterproofing membrane at below-grade wall" },
+      { csiDivision: "07", csiCode: "07 14 00", description: "Fluid-applied below-grade waterproofing" },
+      { csiDivision: "07", csiCode: "07 13 00", description: "Protection board over waterproofing membrane" },
+      { csiDivision: "03", csiCode: "03 15 13", description: "Keyway waterstop at construction joint" },
+      { csiDivision: "07", csiCode: "07 26 00", description: "Vapor barrier below slab" },
+      { csiDivision: "33", csiCode: "33 46 00", description: "Foundation drains with drainage board" },
+      { csiDivision: "31", csiCode: "31 23 00", description: "Minor excavation and backfill directly required for foundation drain installation" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("does not automatically include rigid insulation in commercial waterproofing-only scope", () => {
+    const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE);
+
+    expect(classifyScopeMatch({
+      csiDivision: "07",
+      csiCode: "07 21 13",
+      description: "Rigid insulation board at below-grade wall",
+    }, intent)).toBe("excluded");
+
+    const withInsulation = buildScopeIntent(`${CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE} Include below-grade insulation.`);
+    expect(classifyScopeMatch({
+      csiDivision: "07",
+      csiCode: "07 21 13",
+      description: "Rigid insulation board at below-grade wall",
+    }, withInsulation)).toBe("review");
   });
 });

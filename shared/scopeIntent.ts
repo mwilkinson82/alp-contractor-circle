@@ -238,7 +238,7 @@ export function classifyScopeMatch(
   }
 
   if (isBelowGradeWaterproofingOnly) {
-    if (/\b(general concrete|cast[-\s]?in[-\s]?place|concrete|slab(?:-on-grade| on grade)?|sog|footings?|wf footing|wall footing|spread footing|equipment pole foundations?|rebar|reinforcing|structural reinforcing|formwork|trench concrete|pit concrete|foundation wall|grade beam)\b/.test(text) &&
+    if (/\b(general concrete|cast[-\s]?in[-\s]?place|concrete|car wash trench|trench(?:es)?|correlator pit|pit(?:s)?|slab(?:-on-grade| on grade)?|sog|footings?|continuous footings?|wf footing|wall footing|spread footing|equipment pole foundations?|rebar|reinforcing|reinforcing steel|structural reinforcing|formwork|trench concrete|pit concrete|foundation wall|grade beam)\b/.test(text) &&
       !/\b(waterstop|keyway waterstop|vapor barrier|vapor retarder|waterproofing membrane|fluid-applied|fluid applied|protection board|drainage board|foundation drain)\b/.test(text)
     ) {
       return "excluded";
