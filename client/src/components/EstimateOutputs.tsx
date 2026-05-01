@@ -43,6 +43,7 @@ interface EstimateCalcs {
   divisionOrder: string[];
   totalMaterial: number;
   totalLabor: number;
+  allowancesTotal?: number;
   directCost: number;
   generalConditions: number;
   overhead: number;
@@ -132,10 +133,13 @@ export default function EstimateOutputs({
           fmtCurrency(data.materialTotal + data.laborTotal),
         ];
       });
+      if ((calculations.allowancesTotal || 0) > 0) {
+        divRows.push(["Allowances", "—", "—", fmtCurrency(calculations.allowancesTotal || 0)]);
+      }
 
       autoTable(doc, {
         startY: y,
-        head: [["CSI Division", "Material", "Labor", "Subtotal"]],
+        head: [["CSI Division", "Material", "Crew Labor", "Subtotal"]],
         body: divRows,
         foot: [["DIRECT COSTS TOTAL", fmtCurrency(calculations.totalMaterial), fmtCurrency(calculations.totalLabor), fmtCurrency(calculations.directCost)]],
         theme: "grid",
@@ -275,7 +279,7 @@ export default function EstimateOutputs({
       autoTable(doc, {
         startY: y,
         body: [
-          ["Direct Costs (Material + Labor)", fmtCurrency(calculations.directCost)],
+          ["Direct Costs (Material + Crew Labor + Allowances)", fmtCurrency(calculations.directCost)],
           [`General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`, fmtCurrency(calculations.generalConditions)],
           ["Overhead & Profit", fmtCurrency(calculations.overhead + calculations.profit)],
           [`Contingency (${pctDisplay(markups.contingencyPct)}%)`, fmtCurrency(calculations.contingency)],
@@ -465,6 +469,23 @@ export default function EstimateOutputs({
           "0%", // % complete
           divTotal, // Balance to finish
           0, // Retainage
+        ]);
+      }
+
+      if ((calculations.allowancesTotal || 0) > 0) {
+        const allowanceTotal = fmtNum(calculations.allowancesTotal || 0);
+        totalScheduled += allowanceTotal;
+        g703Data.push([
+          itemNum++,
+          "Allowances",
+          allowanceTotal,
+          0,
+          0,
+          0,
+          0,
+          "0%",
+          allowanceTotal,
+          0,
         ]);
       }
 

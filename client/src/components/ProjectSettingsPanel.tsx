@@ -21,6 +21,7 @@ import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
+import { CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS } from "../../../shared/residentialEstimateQa";
 import { trpc } from "@/lib/trpc";
 
 const CURRENCIES = [
@@ -452,11 +453,7 @@ export default function ProjectSettingsPanel({
                   <span className="text-xs text-cream-muted">Residential</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {[
-                      { label: "Kitchen Cabinets", amount: 1500000 },
-                      { label: "Countertops", amount: 800000 },
-                      { label: "Flooring", amount: 1200000 },
-                      { label: "Appliances", amount: 1000000 },
-                      { label: "Tile", amount: 600000 },
+                      ...CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS.map(preset => ({ label: preset.description, amount: preset.amount })),
                     ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
                       <button
                         key={preset.label}

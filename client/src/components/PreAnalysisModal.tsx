@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
+import { CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS } from "../../../shared/residentialEstimateQa";
 
 const STORAGE_KEY = "alp-takeoff-preanalysis-prefs";
 
@@ -488,11 +489,7 @@ export default function PreAnalysisModal({
               <span className="text-xs text-cream-muted">Quick Add — Residential</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "Kitchen Cabinets", amount: 1500000 },
-                  { label: "Countertops", amount: 800000 },
-                  { label: "Flooring", amount: 1200000 },
-                  { label: "Appliances", amount: 1000000 },
-                  { label: "Tile", amount: 600000 },
+                  ...CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS.map(preset => ({ label: preset.description, amount: preset.amount })),
                 ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
                   <button
                     key={preset.label}

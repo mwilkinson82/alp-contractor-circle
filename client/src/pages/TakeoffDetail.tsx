@@ -69,6 +69,22 @@ import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
 // Scale calibration prompt removed — not used in AI pipeline
 import { DRAWING_SCALES, PAPER_SIZES, pxPerFt } from "@/components/ScaleCalibrationPrompt";
 
+function parseProjectAllowances(raw: unknown): Array<{ description: string; amount: number }> {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed)
+      ? parsed
+        .map((a: any) => ({
+          description: String(a.description || "").trim(),
+          amount: Number(a.amount) || 0,
+        }))
+        .filter(a => a.description && a.amount > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Reverse-lookup: given a px/ft ratio, find the closest matching human-readable scale label */
 function getScaleLabel(ratio: number): string {
   let bestLabel = `${Math.round(ratio)} px/ft`;
@@ -595,7 +611,7 @@ export default function TakeoffDetail() {
     // Build rows with branding header and CSI division headers and subtotals
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Labor (${currencySymbol})`, `Installed (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Cost Library Labor (${currencySymbol})`, `Installed Unit (${currencySymbol})`, `Installed Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
     const aoa: any[][] = [
       ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", ""],
       [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", ""],
@@ -633,9 +649,9 @@ export default function TakeoffDetail() {
       grandTotal += divTotal;
     }
     // Allowances section
-    const projectAllowances = (project as any)?.allowances;
+    const projectAllowances = parseProjectAllowances((project as any)?.allowances);
     let allowancesTotal = 0;
-    if (projectAllowances && Array.isArray(projectAllowances) && projectAllowances.length > 0) {
+    if (projectAllowances.length > 0) {
       aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", ""]);
       for (const allowance of projectAllowances) {
         const amt = (allowance.amount || 0) / 100;
@@ -685,7 +701,7 @@ export default function TakeoffDetail() {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Labor (${currencySymbol})`, `Installed (${currencySymbol})`, `Extended Cost (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
+    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Cost Library Labor (${currencySymbol})`, `Installed Unit (${currencySymbol})`, `Installed Total (${currencySymbol})`, "Confidence %", "Reviewed", "Notes"];
 
     // Group by CSI division
     const divGroups: Record<string, any[]> = {};
@@ -734,9 +750,9 @@ export default function TakeoffDetail() {
       grandTotal += divTotal;
     }
     // Allowances section
-    const csvAllowances = (project as any)?.allowances;
+    const csvAllowances = parseProjectAllowances((project as any)?.allowances);
     let csvAllowancesTotal = 0;
-    if (csvAllowances && Array.isArray(csvAllowances) && csvAllowances.length > 0) {
+    if (csvAllowances.length > 0) {
       csvRows.push(`"ALLOWANCES","","","","","","","","","",""`);
       for (const allowance of csvAllowances) {
         const amt = (allowance.amount || 0) / 100;
@@ -904,13 +920,7 @@ export default function TakeoffDetail() {
   const isProcessing = progress?.status === "processing" || progress?.status === "post_processing";
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
   // Parse project allowances
-  const projectAllowances: Array<{ description: string; amount: number }> = (() => {
-    try {
-      if (!project.allowances) return [];
-      const raw = typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances;
-      return Array.isArray(raw) ? raw.filter((a: any) => a.description && a.amount > 0) : [];
-    } catch { return []; }
-  })();
+  const projectAllowances = parseProjectAllowances(project.allowances);
   const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
   const itemsCost = project.totalEstimatedCost || 0;
   const totalCost = itemsCost + allowancesTotal;
@@ -1708,26 +1718,24 @@ export default function TakeoffDetail() {
                             {formatCurrency(materialSubtotal, curr)}
                           </span>
                         </div>
-                        {/* Labor Subtotal */}
+                        {/* Cost-library labor subtotal */}
                         <div className="flex flex-col">
-                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Labor</span>
+                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Cost Library Labor</span>
                           <span className="text-cyan-400 font-mono font-semibold text-lg">
                             {formatCurrency(laborSubtotal, curr)}
                           </span>
+                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Embedded in installed takeoff total</span>
                         </div>
                         {/* Allowances Subtotal */}
                         <div className="flex flex-col">
                           <span className="text-amber-400/60 text-xs uppercase tracking-wider mb-1">Allowances</span>
                           <span className="text-amber-400 font-mono font-semibold text-lg">
-                            {allowancesTotal > 0 ? new Intl.NumberFormat(
-                              CURRENCY_LOCALE[curr] || "en-US",
-                              { style: "currency", currency: curr, minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                            ).format(allowancesTotal) : formatCurrency(0, curr)}
+                            {formatCurrency(allowancesTotal, curr)}
                           </span>
                         </div>
                         {/* Grand Total */}
                         <div className="flex flex-col border-l border-white/10 pl-4">
-                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Total Estimate</span>
+                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Installed Takeoff Total</span>
                           <span className="text-emerald-400 font-mono font-bold text-lg">
                             {formatCurrency(totalCost, curr)}
                           </span>
@@ -1873,8 +1881,8 @@ export default function TakeoffDetail() {
                                   <th className="text-right px-4 py-2 w-20">Qty</th>
                                   <th className="text-left px-4 py-2 w-14">Unit</th>
                                   <th className="text-right px-4 py-2 w-20">Material</th>
-                                  <th className="text-right px-4 py-2 w-20">Labor</th>
-                                  <th className="text-right px-4 py-2 w-24">Installed</th>
+                                  <th className="text-right px-4 py-2 w-24">Library Labor</th>
+                                  <th className="text-right px-4 py-2 w-24">Installed Unit</th>
                                   <th className="text-right px-4 py-2 w-28">Extended</th>
                                   <th className="text-center px-4 py-2 w-16">Conf.</th>
                                   <th className="text-center px-4 py-2 w-16">Verified</th>
@@ -2162,6 +2170,20 @@ export default function TakeoffDetail() {
               projectDescription={project.description || undefined}
               items={items || []}
               allowances={projectAllowances}
+              onAddAllowance={(allowance) => {
+                const existing = projectAllowances.some(a =>
+                  (a.description || "").toLowerCase() === allowance.description.toLowerCase()
+                );
+                if (existing) {
+                  toast.info("Allowance already exists");
+                  return;
+                }
+                settingsMutation.mutate({
+                  projectId,
+                  allowances: [...projectAllowances, allowance],
+                });
+                toast.success("Allowance added");
+              }}
               currency={project.currency || "USD"}
               costRegion={project.costRegion}
             />

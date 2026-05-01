@@ -16,6 +16,7 @@ interface TakeoffItem {
   unit: string;
   quantity: number;
   csiDivision: string;
+  notes?: string;
 }
 
 interface CrewDef {
@@ -46,6 +47,7 @@ export interface TaskGroup {
     description: string;
     unit: string;
     csiDivision: string;
+    notes?: string;
     productivityPerCrewHr: number;
   }>;
   reasoning: string;
@@ -88,6 +90,7 @@ ${JSON.stringify(items.map((item, idx) => ({
   unit: item.unit,
   quantity: item.quantity,
   csiDivision: item.csiDivision,
+  notes: item.notes || "",
 })), null, 2)}
 
 INSTRUCTIONS:
@@ -170,6 +173,7 @@ Return a JSON object with a "tasks" array.`;
             description: item.description,
             unit: item.unit,
             csiDivision: item.csiDivision,
+            notes: item.notes || "",
             productivityPerCrewHr: Math.max(0.1, ti.productivityPerCrewHr || 1),
           };
         })
@@ -200,6 +204,7 @@ Return a JSON object with a "tasks" array.`;
           description: item.description,
           unit: item.unit,
           csiDivision: item.csiDivision,
+          notes: item.notes || "",
           productivityPerCrewHr: 1,
         })),
         reasoning: "These items could not be grouped automatically",
@@ -224,6 +229,7 @@ function fallbackToItemLevel(items: TakeoffItem[], _crews: CrewDef[]): TaskGroup
       description: item.description,
       unit: item.unit,
       csiDivision: item.csiDivision,
+      notes: item.notes || "",
       productivityPerCrewHr: 1,
     }],
     reasoning: "Task grouping failed — please assign a crew manually",

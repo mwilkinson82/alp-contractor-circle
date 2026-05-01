@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeResidentialEstimateQa } from "../shared/residentialEstimateQa";
+import { analyzeResidentialEstimateQa, reviewResidentialLaborMatch } from "../shared/residentialEstimateQa";
 
 describe("analyzeResidentialEstimateQa", () => {
   it("flags missing residential allowance categories", () => {
@@ -71,5 +71,48 @@ describe("analyzeResidentialEstimateQa", () => {
 
     expect(findings.some(f => f.id === "scope-risk-inferred-demo")).toBe(true);
     expect(findings.some(f => f.kind === "detail_anchor")).toBe(true);
+  });
+
+  it("marks inferred and detail-derived items as review before labor", () => {
+    const inferred = reviewResidentialLaborMatch({
+      csiDivision: "02",
+      description: "Site clearing / demolition",
+      quantity: 1,
+      unitCost: 3500000,
+      notes: "inferred from vacant lot",
+    });
+    const detail = reviewResidentialLaborMatch({
+      csiDivision: "03",
+      description: "Rebar at grade beam per detail",
+      quantity: 5000,
+      unitCost: 900,
+      notes: "typical detail spacing 12 inch O.C.",
+    });
+    const safe = reviewResidentialLaborMatch({
+      csiDivision: "06",
+      description: "Wood wall framing",
+      quantity: 1000,
+      unitCost: 450,
+    });
+
+    expect(inferred.blockAutomaticLabor).toBe(true);
+    expect(detail.blockAutomaticLabor).toBe(true);
+    expect(safe.status).toBe("safe_to_match");
+  });
+
+  it("adds per-square-foot benchmark findings when project size is available", () => {
+    const findings = analyzeResidentialEstimateQa({
+      items: [
+        { csiDivision: "03", description: "Concrete Slab", quantity: 1, unitCost: 100000000 },
+      ],
+      byDivision: {
+        "03": { materialTotal: 100000000, laborTotal: 0 },
+      },
+      directCostCents: 100000000,
+      livingSf: 1200,
+      allowances: [],
+    });
+
+    expect(findings.some(f => f.id === "benchmark-direct-cost-high-per-sf")).toBe(true);
   });
 });

@@ -109,6 +109,7 @@ export const estimateRouter = router({
         unit: z.string(),
         quantity: z.number(),
         csiDivision: z.string(),
+        notes: z.string().optional(),
       })),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -148,6 +149,7 @@ export const estimateRouter = router({
         unit: z.string(),
         quantity: z.number(),
         csiDivision: z.string(),
+        notes: z.string().optional(),
       })),
     }))
     .mutation(async ({ ctx, input }) => {

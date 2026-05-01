@@ -24,6 +24,7 @@ import {
 import { COST_REGION_GROUPS } from "../../../shared/costRegions";
 import {
   analyzeResidentialEstimateQa,
+  reviewResidentialLaborMatch,
   type ResidentialQaItem,
 } from "../../../shared/residentialEstimateQa";
 import EstimateOutputs from "./EstimateOutputs";
@@ -48,17 +49,45 @@ function formatCurrency(cents: number, currencyCode: string = "USD"): string {
 function pctToDisplay(bps: number): string { return (bps / 100).toFixed(2); }
 function displayToPct(str: string): number { return Math.round(parseFloat(str || "0") * 100); }
 
+function parseCents(value: unknown): number {
+  const parsed = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getMaterialUnitCost(item: any): number {
+  const materialCost = parseCents(item.materialCost);
+  if (item.materialCost !== undefined && item.materialCost !== null && item.materialCost !== "") {
+    return materialCost;
+  }
+  return parseCents(item.unitCost);
+}
+
+function parseResidentialSquareFootage(text?: string | null): { livingSf?: number; totalSf?: number } {
+  const source = (text || "").toLowerCase();
+  if (!source) return {};
+  const numberPattern = String.raw`([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,6})`;
+  const cleanNumber = (value: string) => parseInt(value.replace(/,/g, ""), 10);
+  const livingMatch = source.match(new RegExp(`${numberPattern}\\s*(?:living|conditioned|heated)\\s*(?:sf|sq\\.?\\s*ft|square feet)`));
+  const totalMatch = source.match(new RegExp(`${numberPattern}\\s*(?:total|under roof|gross)\\s*(?:sf|sq\\.?\\s*ft|square feet)`));
+  const fallbackMatch = source.match(new RegExp(`${numberPattern}\\s*(?:sf|sq\\.?\\s*ft|square feet)`));
+  return {
+    livingSf: livingMatch ? cleanNumber(livingMatch[1]) : undefined,
+    totalSf: totalMatch ? cleanNumber(totalMatch[1]) : fallbackMatch ? cleanNumber(fallbackMatch[1]) : undefined,
+  };
+}
+
 interface EstimateSummaryProps {
   projectId: number;
   projectName?: string;
   projectDescription?: string;
   items: any[];
   allowances?: Array<{ description?: string | null; amount?: number | null }>;
+  onAddAllowance?: (allowance: { description: string; amount: number }) => void;
   currency: string;
   costRegion?: string | null;
 }
 
-export default function EstimateSummary({ projectId, projectName, projectDescription, items, allowances = [], currency, costRegion }: EstimateSummaryProps) {
+export default function EstimateSummary({ projectId, projectName, projectDescription, items, allowances = [], onAddAllowance, currency, costRegion }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } = trpc.estimate.getMarkups.useQuery({ projectId });
   const { data: crewsData } = trpc.tradeRates.getCrews.useQuery();
@@ -118,10 +147,22 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
   const inferByTasksMutation = trpc.estimate.inferLaborByTasks.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        setTaskGroups(result.tasks);
+        const reviewedTasks = result.tasks.map((task: any) => {
+          const itemReasons = task.items
+            .map((item: any) => reviewResidentialLaborMatch(item).reasons)
+            .flat();
+          return itemReasons.length > 0
+            ? {
+                ...task,
+                _excluded: true,
+                safetyReason: Array.from(new Set(itemReasons)).join(" "),
+              }
+            : task;
+        });
+        setTaskGroups(reviewedTasks);
         setShowTaskPanel(true);
-        setExpandedTasks(new Set(result.tasks.map((_: any, i: number) => i)));
-        toast.success(`ConstructLine grouped items into ${result.tasks.length} installation tasks — review and edit crews before confirming.`);
+        setExpandedTasks(new Set(reviewedTasks.map((_: any, i: number) => i)));
+        toast.success(`ConstructLine grouped items into ${reviewedTasks.length} installation tasks — review and edit crews before confirming.`);
       } else {
         toast.error(result.message);
       }
@@ -142,6 +183,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         unit: i.unit || "",
         quantity: parseFloat(i.quantity) || 0,
         csiDivision: i.csiDivision || "00",
+        notes: i.notes || "",
       })),
     });
   };
@@ -303,6 +345,8 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     let totalMaterial = 0;
     let totalLabor = 0;
     let laborItemsMatched = 0;
+    let laborItemsHeldForReview = 0;
+    const allowancesTotal = allowances.reduce((sum, allowance) => sum + parseCents(allowance.amount), 0);
 
     for (const item of items) {
       const div = item.csiDivision || "00";
@@ -310,17 +354,19 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       byDivision[div].items.push(item);
 
       const qty = parseFloat(item.quantity) || 0;
-      const unitCost = parseFloat(item.unitCost) || 0;
-      const itemMaterial = qty * unitCost;
+      const itemMaterial = qty * getMaterialUnitCost(item);
       byDivision[div].materialTotal += itemMaterial;
       totalMaterial += itemMaterial;
 
       // Labor: look up activity productivity for this item
       const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
       const activity = activityMap.get(descKey);
+      const laborReview = reviewResidentialLaborMatch(item);
       let itemLabor = 0;
 
-      if (activity && activity.crewId && activity.productivityPerCrewHr > 0) {
+      if (laborReview.blockAutomaticLabor) {
+        laborItemsHeldForReview++;
+      } else if (activity && activity.crewId && activity.productivityPerCrewHr > 0) {
         const crewInfo = crewCostMap.get(activity.crewId);
         if (crewInfo) {
           // Labor = (qty / productivity_per_crew_hr) × crew_cost_per_hr
@@ -334,7 +380,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       totalLabor += itemLabor;
     }
 
-    const directCost = totalMaterial + totalLabor;
+    const directCost = totalMaterial + totalLabor + allowancesTotal;
     const generalConditions = Math.round(directCost * generalConditionsPct / 10000);
     const subtotalWithGC = directCost + generalConditions;
     const overhead = Math.round(subtotalWithGC * overheadPct / 10000);
@@ -347,13 +393,14 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     const grandTotal = subtotalWithContingency + bond + tax;
 
     return {
-      byDivision, totalMaterial, totalLabor, directCost,
+      byDivision, totalMaterial, totalLabor, allowancesTotal, directCost,
       generalConditions, overhead, profit, contingency, bond, tax, grandTotal,
       divisionOrder: Object.keys(byDivision).sort(),
       laborItemsMatched,
+      laborItemsHeldForReview,
       totalItems: items.length,
     };
-  }, [items, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap]);
+  }, [items, allowances, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct, activityMap, crewCostMap]);
 
   const handleSave = () => {
     saveMutation.mutate({ projectId, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct });
@@ -366,8 +413,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       byDivision: calculations.byDivision,
       directCostCents: calculations.directCost,
       allowances,
+      ...parseResidentialSquareFootage(`${projectName || ""} ${projectDescription || ""}`),
     });
-  }, [items, calculations, allowances]);
+  }, [items, calculations, allowances, projectName, projectDescription]);
 
   const handleExportEstimate = () => {
     if (!calculations) return;
@@ -378,12 +426,15 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
       rows.push({
         "CSI Division": `Div ${div} — ${divName}`,
         "Material Cost": (data.materialTotal / 100).toFixed(2),
-        "Labor Cost": (data.laborTotal / 100).toFixed(2),
+        "Crew Labor Cost": (data.laborTotal / 100).toFixed(2),
         "Subtotal": ((data.materialTotal + data.laborTotal) / 100).toFixed(2),
       });
     }
     rows.push({});
-    rows.push({ "CSI Division": "DIRECT COSTS", "Material Cost": (calculations.totalMaterial / 100).toFixed(2), "Labor Cost": (calculations.totalLabor / 100).toFixed(2), "Subtotal": (calculations.directCost / 100).toFixed(2) });
+    if (calculations.allowancesTotal > 0) {
+      rows.push({ "CSI Division": "ALLOWANCES", "Subtotal": (calculations.allowancesTotal / 100).toFixed(2) });
+    }
+    rows.push({ "CSI Division": "DIRECT COSTS", "Material Cost": (calculations.totalMaterial / 100).toFixed(2), "Crew Labor Cost": (calculations.totalLabor / 100).toFixed(2), "Subtotal": (calculations.directCost / 100).toFixed(2) });
     rows.push({ "CSI Division": `General Conditions (${pctToDisplay(generalConditionsPct)}%)`, "Subtotal": (calculations.generalConditions / 100).toFixed(2) });
     rows.push({ "CSI Division": `Overhead (${pctToDisplay(overheadPct)}%)`, "Subtotal": (calculations.overhead / 100).toFixed(2) });
     rows.push({ "CSI Division": `Profit (${pctToDisplay(profitPct)}%)`, "Subtotal": (calculations.profit / 100).toFixed(2) });
@@ -401,8 +452,10 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         "Type": finding.kind,
         "Issue": finding.title,
         "Amount": finding.amountCents ? (finding.amountCents / 100).toFixed(2) : "",
+        "Labor status": finding.laborMatchStatus === "review_before_labor" ? "Review before labor" : "",
         "Why it matters": finding.message,
         "Recommended action": finding.action,
+        "One-click allowance preset": finding.allowancePreset ? `${finding.allowancePreset.description} — ${(finding.allowancePreset.amount / 100).toFixed(2)}` : "",
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(qaRows), "Residential QA");
     }
@@ -449,7 +502,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             Estimate Summary
           </h2>
           <p className="text-cream-muted text-xs mt-1">
-            Material costs from takeoff + labor from crews/productivity + configurable markups
+            Material base from takeoff + crew/productivity labor + allowances + configurable markups
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -470,8 +523,11 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Users className="w-4 h-4 text-emerald-400 shrink-0" />
           <p className="text-emerald-200/80 text-xs flex-1">
             <strong className="text-emerald-300">Labor calculated</strong> for {calculations.laborItemsMatched} of {calculations.totalItems} items
-            using your crew definitions and activity productivity factors.
-            Items without matching productivity data show "—" in the labor column.
+            using your crew definitions and activity productivity factors. This crew labor replaces the Quantity Takeoff cost-library labor for estimate pricing.
+            Items without matching crew productivity data show "—" in the crew labor column.
+            {calculations.laborItemsHeldForReview > 0
+              ? ` ${calculations.laborItemsHeldForReview} risky residential item${calculations.laborItemsHeldForReview !== 1 ? "s were" : " was"} held out for review.`
+              : ""}
           </p>
           <Button
             variant="outline" size="sm"
@@ -482,7 +538,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             {inferByTasksMutation.isPending ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping tasks...</>
             ) : (
-              <><Layers className="w-3.5 h-3.5" />Re-calculate Labor</>
+              <><Layers className="w-3.5 h-3.5" />Rebuild Crew Labor</>
             )}
           </Button>
         </div>
@@ -491,8 +547,8 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           <Info className="w-4 h-4 text-blue-400 shrink-0" />
           <div className="flex-1">
             <p className="text-blue-200/80 text-xs">
-              <strong className="text-blue-300">Labor costs not yet configured.</strong> Use ConstructLine to automatically match
-              your takeoff items to crews and estimate productivity rates, or manually set them in Trade Rate Library.
+              <strong className="text-blue-300">Crew labor is not configured yet.</strong> Quantity Takeoff already has a cost-library labor split.
+              Use this step when you want to replace that split with your own crews and productivity rates.
             </p>
           </div>
           <Button
@@ -504,7 +560,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
             {inferByTasksMutation.isPending ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" />Grouping{items.length > 20 ? ` ${items.length} items` : ''} into tasks...</>
             ) : (
-              <><Layers className="w-3.5 h-3.5" />ConstructLine Labor Analysis</>
+              <><Layers className="w-3.5 h-3.5" />Build Crew Labor Estimate</>
             )}
           </Button>
         </div>
@@ -514,7 +570,18 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
         findings={residentialQaFindings}
         currency={currency}
         allowanceCount={allowances.length}
+        onAddAllowance={onAddAllowance}
       />
+
+      <div className="bg-navy-medium/35 border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3">
+        <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm text-cream font-medium">How labor is handled here</p>
+          <p className="text-xs text-cream-muted">
+            Quantity Takeoff shows the cost-library installed split: material plus library labor. This Estimate tab uses only the material base from takeoff, then adds crew/productivity labor from your crew database so labor is not counted twice.
+          </p>
+        </div>
+      </div>
 
       {/* ─── Labor Inference Review Panel ──────────────────────────────── */}
       {showReviewPanel && reviewAssignments && (
@@ -710,6 +777,9 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                         {task.taskDescription && (
                           <p className="text-xs text-cream-muted/60 truncate">{task.taskDescription}</p>
                         )}
+                        {task.safetyReason && (
+                          <p className="text-xs text-amber-300/80 truncate">{task.safetyReason}</p>
+                        )}
                       </div>
                       <span className="text-xs text-cream-muted/50 shrink-0">{task.items.length} item{task.items.length !== 1 ? "s" : ""}</span>
                     </button>
@@ -806,7 +876,7 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                 <tr className="bg-navy-medium/70 border-b border-white/10">
                   <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider">Division</th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Material</th>
-                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Labor</th>
+                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Crew Labor</th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">Subtotal</th>
                 </tr>
               </thead>
@@ -835,6 +905,24 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
                     </tr>
                   );
                 })}
+                {calculations.allowancesTotal > 0 && (
+                  <tr className="border-b border-white/5 bg-amber-500/[0.03]">
+                    <td className="px-4 py-2.5 text-cream">
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Allowances</span>
+                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] ml-1">
+                          {allowances.length}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-cream-muted/40 font-mono text-xs">—</td>
+                    <td className="px-4 py-2.5 text-right text-cream-muted/40 font-mono text-xs">—</td>
+                    <td className="px-4 py-2.5 text-right text-amber-300 font-mono text-xs font-medium">
+                      {formatCurrency(calculations.allowancesTotal, currency)}
+                    </td>
+                  </tr>
+                )}
                 <tr className="bg-navy-medium/50 border-t border-white/15">
                   <td className="px-4 py-3 text-cream font-semibold">Direct Costs Total</td>
                   <td className="px-4 py-3 text-right text-emerald-400 font-mono text-sm font-semibold">{formatCurrency(calculations.totalMaterial, currency)}</td>
@@ -896,10 +984,11 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function ResidentialQaPanel({ findings, currency, allowanceCount }: {
+function ResidentialQaPanel({ findings, currency, allowanceCount, onAddAllowance }: {
   findings: ResidentialQaItem[];
   currency: string;
   allowanceCount: number;
+  onAddAllowance?: (allowance: { description: string; amount: number }) => void;
 }) {
   const highCount = findings.filter(f => f.severity === "high").length;
   const mediumCount = findings.filter(f => f.severity === "medium").length;
@@ -966,6 +1055,29 @@ function ResidentialQaPanel({ findings, currency, allowanceCount }: {
               <p className="text-sm text-cream font-medium">{finding.title}</p>
               <p className="text-xs text-cream-muted mt-0.5">{finding.message}</p>
               <p className="text-xs text-amber-200/80 mt-1">{finding.action}</p>
+              {finding.laborMatchStatus === "review_before_labor" && (
+                <Badge className="bg-indigo-500/12 text-indigo-300 border-indigo-500/25 text-[10px] mt-2">
+                  Review before labor match
+                </Badge>
+              )}
+              {finding.allowancePreset && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <p className="text-xs text-emerald-200/75">
+                    Suggested allowance: {finding.allowancePreset.description} ({formatCurrency(finding.allowancePreset.amount, currency)})
+                  </p>
+                  {onAddAllowance && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onAddAllowance(finding.allowancePreset!)}
+                      className="h-6 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 text-[10px] px-2"
+                    >
+                      Add allowance
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
             {finding.amountCents ? (
               <span className="font-mono text-xs text-cream text-right md:pt-0.5">
