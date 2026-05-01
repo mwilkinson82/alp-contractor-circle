@@ -152,7 +152,7 @@ const TRADE_PROFILES: TradeProfile[] = [
   },
   {
     id: "foundations",
-    patterns: [/\bfoundations?\s+(?:only|concrete|walls?|work|package|scope)\b/i, /\bfootings?\b/i, /\bgrade beams?\b/i, /\bslab(?:-on-grade| on grade)?\b/i, /\bsog\b/i],
+    patterns: [/\bfoundations?\s+(?:only|concrete|walls?|work|package|scope)\b/i, /\bfootings?\s+(?:only|concrete|work|package|scope)\b/i, /\bgrade beams?\b/i, /\bslab(?:-on-grade| on grade)\s+(?:only|concrete|work|package|scope)\b/i, /\bsog\b/i],
     summary: "Foundations, footings, slabs-on-grade, and directly related concrete work",
     focusDivisions: ["03", "07", "31"],
     excludedDivisions: ["04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "33"],
@@ -406,6 +406,11 @@ export function classifyScopeMatch(
   if (hasExplicitExclude && !hasExplicitInclude) return "excluded";
   if (hasProfileExclude && hasUnincludedHardExcludedFamily) return "excluded";
 
+  // Explicit excludes override profile includes — if the item's families are all excluded, it cannot be active
+  const nonSupportFamilies = families.filter((family) => !SUPPORT_FAMILIES.includes(family));
+  const allNonSupportExcluded = nonSupportFamilies.length > 0 && nonSupportFamilies.every((family) => containsFamily(intent.explicitExcludes, family));
+  if (allNonSupportExcluded && !hasExplicitInclude) return "excluded";
+
   if (hasExplicitInclude) {
     if (hasUnownedSupport) return "review";
     if (families.includes("belowGradeInsulation")) return "review";
@@ -426,6 +431,10 @@ export function classifyScopeMatch(
   }
 
   if (hasProfileInclude) {
+    // Double-check: if the item's primary families are all in explicitExcludes, exclude it even if a profile says include
+    const itemPrimaryFamilies = families.filter((f) => !SUPPORT_FAMILIES.includes(f));
+    const allPrimaryExcluded = itemPrimaryFamilies.length > 0 && itemPrimaryFamilies.every((f) => containsFamily(intent.explicitExcludes, f));
+    if (allPrimaryExcluded) return "excluded";
     return "included";
   }
 

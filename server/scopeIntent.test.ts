@@ -341,3 +341,70 @@ describe("scope intent", () => {
     }, glazingWithoutConcrete)).toBe("excluded");
   });
 });
+
+describe("Crystal Car Wash explicit exclusion override regression", () => {
+  const SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
+
+  it("excludes 'Concrete for slab-on-grade (4 inch thick)' when concrete and slabs are explicitly excluded", () => {
+    const intent = buildScopeIntent(SCOPE);
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete for slab-on-grade (4 inch thick)",
+    }, intent)).toBe("excluded");
+  });
+
+  it("excludes any slab-on-grade concrete item", () => {
+    const intent = buildScopeIntent(SCOPE);
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "4 inch slab-on-grade concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Slab on grade at wash bay" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete slab at equipment area" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("excludes all broad concrete/rebar/footing/trench/pit items", () => {
+    const intent = buildScopeIntent(SCOPE);
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete for continuous footings" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar for slab-on-grade" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Structural reinforcing at footing" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Trench concrete for car wash equipment" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Pit concrete at correlator" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Formwork for footings" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "WF footing concrete" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("keeps waterproofing and drainage items active", () => {
+    const intent = buildScopeIntent(SCOPE);
+
+    for (const item of [
+      { csiDivision: "07", csiCode: "07 13 00", description: "Protection board at foundation" },
+      { csiDivision: "07", csiCode: "07 14 00", description: "Fluid-applied waterproofing membrane" },
+      { csiDivision: "07", csiCode: "07 26 00", description: "Vapor barrier below slab" },
+      { csiDivision: "33", csiCode: "33 46 00", description: "Foundation drain and drainage board" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("does not infer underground concrete from below-grade slab conditions or foundation walls or trench pits", () => {
+    const intent = buildScopeIntent(SCOPE);
+
+    expect(intent.summary).toBe("Below-grade waterproofing and drainage at foundation/trench conditions");
+    expect(intent.summary).not.toContain("concrete");
+    expect(intent.summary).not.toContain("Foundations");
+    expect(intent.summary).not.toContain("footings");
+    expect(intent.summary).not.toContain("slabs-on-grade");
+    expect(intent.presetIds).not.toContain("foundations");
+    expect(intent.presetIds).not.toContain("underground_concrete_below_grade_waterproofing");
+  });
+});
