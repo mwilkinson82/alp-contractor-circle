@@ -215,10 +215,15 @@ describe("scope intent", () => {
       { csiDivision: "03", csiCode: "03 15 13", description: "Keyway waterstop at construction joint" },
       { csiDivision: "07", csiCode: "07 26 00", description: "Vapor barrier below slab" },
       { csiDivision: "33", csiCode: "33 46 00", description: "Foundation drains with drainage board" },
-      { csiDivision: "31", csiCode: "31 23 00", description: "Minor excavation and backfill directly required for foundation drain installation" },
-    ]) {
+    ].slice(0, 6)) {
       expect(classifyScopeMatch(item, intent), item.description).toBe("included");
     }
+
+    expect(classifyScopeMatch({
+      csiDivision: "31",
+      csiCode: "31 23 00",
+      description: "Minor excavation and backfill directly required for foundation drain installation",
+    }, intent)).toBe("review");
   });
 
   it("does not automatically include rigid insulation in commercial waterproofing-only scope", () => {
@@ -236,5 +241,103 @@ describe("scope intent", () => {
       csiCode: "07 21 13",
       description: "Rigid insulation board at below-grade wall",
     }, withInsulation)).toBe("review");
+  });
+
+  it("uses general waterproofing rules so adjacent foundation trench and slab terms do not include concrete assemblies", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing at foundation walls, trench pits, and slab conditions. Include membrane and waterstops. Exclude concrete, rebar, slabs, and footings.");
+
+    expect(intent.explicitIncludes).toContain("waterproofing");
+    expect(intent.explicitExcludes).toEqual(expect.arrayContaining(["concrete", "rebar", "slab", "footing"]));
+    expect(intent.boundaryTerms).toEqual(expect.arrayContaining(["footing", "concrete", "slab"]));
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete at trench pits" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar at foundation walls" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Slab-on-grade at slab conditions" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Footing concrete at foundation walls" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("keeps piles scope narrow and holds unclear support work for review", () => {
+    const intent = buildScopeIntent("Piles only. Include drilled piers and pile caps.");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Drilled pier concrete pile cap",
+    }, intent)).toBe("included");
+
+    for (const item of [
+      { csiDivision: "31", csiCode: "31 23 16", description: "Excavation for pile caps" },
+      { csiDivision: "31", csiCode: "31 23 23", description: "Spoils handling from drilled piers" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar for pile caps" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("review");
+    }
+  });
+
+  it("allows foundations-only scope to include concrete rebar and formwork when explicitly requested", () => {
+    const intent = buildScopeIntent("Foundations only. Include footings, rebar, formwork, and concrete.");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete footings" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Rebar reinforcing for footings" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Formwork for foundation walls" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("keeps site utilities focused on pipe trench and backfill while excluding building concrete", () => {
+    const intent = buildScopeIntent("Site utilities scope. Include storm pipe, trenching, and backfill.");
+
+    for (const item of [
+      { csiDivision: "33", csiCode: "33 40 00", description: "Storm pipe" },
+      { csiDivision: "31", csiCode: "31 23 00", description: "Utility trench excavation" },
+      { csiDivision: "31", csiCode: "31 23 23", description: "Utility trench backfill" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Building slab and foundation concrete",
+    }, intent)).toBe("excluded");
+  });
+
+  it("lets explicit excludes override inferred trade profile includes", () => {
+    const intent = buildScopeIntent("Foundations only. Include foundation walls. Exclude concrete, rebar, slabs, and footings.");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Foundation wall concrete",
+    }, intent)).toBe("excluded");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 20 00",
+      description: "Foundation wall rebar",
+    }, intent)).toBe("excluded");
+  });
+
+  it("lets explicit includes override default trade exclusions without overriding explicit excludes", () => {
+    const glazingWithBlocking = buildScopeIntent("Glazing scope. Include storefront and blocking.");
+
+    expect(classifyScopeMatch({
+      csiDivision: "06",
+      csiCode: "06 10 00",
+      description: "Wood blocking for storefront anchors",
+    }, glazingWithBlocking)).toBe("review");
+
+    const glazingWithoutConcrete = buildScopeIntent("Glazing scope. Include storefront. Exclude concrete.");
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete equipment support for storefront",
+    }, glazingWithoutConcrete)).toBe("excluded");
   });
 });
