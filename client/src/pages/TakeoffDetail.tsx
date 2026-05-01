@@ -107,6 +107,7 @@ function getScaleLabel(ratio: number): string {
 }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
+import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -269,16 +270,10 @@ export default function TakeoffDetail() {
     () => buildScopeIntent(project?.scopeText || null, selectedDivisionList),
     [project?.scopeText, selectedDivisionList]
   );
-  const activeRateProfile = useMemo(
-    () => rateProfiles?.find((profile: any) => profile.id === project?.rateProfileId) || null,
-    [rateProfiles, project?.rateProfileId]
-  );
+  const projectType = normalizeTakeoffProjectType(project?.projectType);
   const enableResidentialQa = useMemo(() => {
-    if (scopeIntent.hasScope) return false;
-    if (activeRateProfile?.projectType) return activeRateProfile.projectType === "residential";
-    const projectText = `${project?.name || ""} ${project?.description || ""}`.toLowerCase();
-    return /\b(residential|custom home|single family|single-family|house|home)\b/.test(projectText);
-  }, [scopeIntent.hasScope, activeRateProfile?.projectType, project?.name, project?.description]);
+    return shouldRunResidentialQa(projectType);
+  }, [projectType]);
   const scopeReviewCount = useMemo(
     () => (items || []).filter((item: any) => getScopeReviewStatus(item) === "review").length,
     [items]
@@ -1062,13 +1057,14 @@ export default function TakeoffDetail() {
               currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               currentRegion={project.costRegion}
               currentCurrency={project.currency}
+              currentProjectType={projectType}
               currentScopeText={project.scopeText}
               currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
               detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
               currentRateProfileId={project.rateProfileId ?? null}
               currentAllowances={project.allowances ? (typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances) : null}
               hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances) => {
+              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances, settingsProjectType) => {
                 // Save rateProfileId separately via updateProject if it changed
                 if (rateProfileId !== undefined) {
                   await new Promise<void>((resolve, reject) => {
@@ -1088,6 +1084,7 @@ export default function TakeoffDetail() {
                       ...(scopeText !== undefined ? { scopeText } : {}),
                       ...(specialties !== undefined ? { selectedSpecialties: specialties } : {}),
                       ...(allowances !== undefined ? { allowances } : {}),
+                      ...(settingsProjectType !== undefined ? { projectType: settingsProjectType } : {}),
                     },
                     {
                       onSuccess: (result) => resolve(result),
@@ -1105,6 +1102,7 @@ export default function TakeoffDetail() {
                   projectId,
                   selectedDivisions: divisions || [],
                   currency: (project.currency || "USD") as "USD" | "GBP" | "AUD",
+                  projectType,
                   costRegion: project.costRegion || null,
                   scopeText: project.scopeText || null,
                   selectedSpecialties: project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null,
@@ -1255,12 +1253,14 @@ export default function TakeoffDetail() {
                     selectedDivisions: settings.selectedDivisions,
                     costRegion: settings.costRegion,
                     currency: settings.currency as any,
+                    projectType: settings.projectType,
                     allowances: settings.allowances.map(a => ({ description: a.description, amount: a.amount })),
                   });
                 }
                 processMutation.mutate({
                   projectId,
                   currency: settings.currency,
+                  projectType: settings.projectType,
                   costRegion: settings.costRegion,
                   selectedDivisions: settings.selectedDivisions,
                   scopeText: settings.scopeText || null,
@@ -1272,6 +1272,7 @@ export default function TakeoffDetail() {
               existingDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
               existingRegion={project.costRegion}
               existingCurrency={project.currency}
+              existingProjectType={projectType}
               preferredCurrency={preferredCurrencyQuery.data?.currency}
               existingScopeText={project.scopeText}
               existingSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}

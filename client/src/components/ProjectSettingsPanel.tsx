@@ -17,12 +17,18 @@ import { toast } from "sonner";
 import DivisionSelector from "@/components/DivisionSelector";
 import RegionSelector from "@/components/RegionSelector";
 import SpecialtySelector from "@/components/SpecialtySelector";
-import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, X, PlusCircle, Trash2, DollarSign } from "lucide-react";
+import { Loader2, Settings, AlertCircle, RefreshCw, FileText, Wrench, Bookmark, X, PlusCircle, Trash2, DollarSign, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
-import { CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS } from "../../../shared/residentialEstimateQa";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
+import {
+  getAllowancePresetsForProjectType,
+  getTakeoffProjectTypeLabel,
+  normalizeTakeoffProjectType,
+  TAKEOFF_PROJECT_TYPE_OPTIONS,
+  type TakeoffProjectType,
+} from "../../../shared/projectType";
 import { trpc } from "@/lib/trpc";
 
 const CURRENCIES = [
@@ -42,6 +48,7 @@ interface ProjectSettingsPanelProps {
   currentRegion: string | null;
   currentRegionName?: string;
   currentCurrency?: string | null;
+  currentProjectType?: string | null;
   currentScopeText?: string | null;
   currentSpecialties?: string[] | null;
   detectedSpecialties?: string[] | null;
@@ -54,7 +61,8 @@ interface ProjectSettingsPanelProps {
     scopeText?: string | null,
     specialties?: string[] | null,
     rateProfileId?: number | null,
-    allowances?: AllowanceItem[] | null
+    allowances?: AllowanceItem[] | null,
+    projectType?: TakeoffProjectType
   ) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
@@ -73,6 +81,7 @@ export default function ProjectSettingsPanel({
   currentRegion,
   currentRegionName,
   currentCurrency,
+  currentProjectType,
   currentScopeText,
   currentSpecialties,
   detectedSpecialties,
@@ -103,6 +112,7 @@ export default function ProjectSettingsPanel({
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>(currentDivisions || []);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
+  const [selectedProjectType, setSelectedProjectType] = useState<TakeoffProjectType>(normalizeTakeoffProjectType(currentProjectType));
   const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
   const [selectedRateProfileId, setSelectedRateProfileId] = useState<number | null>(currentRateProfileId ?? null);
@@ -121,21 +131,24 @@ export default function ProjectSettingsPanel({
       setSelectedDivisions(currentDivisions || []);
       setSelectedRegion(currentRegion || null);
       setSelectedCurrency(currentCurrency || "USD");
+      setSelectedProjectType(normalizeTakeoffProjectType(currentProjectType));
       setScopeText(currentScopeText || "");
       setSelectedSpecialties(currentSpecialties || []);
       setSelectedRateProfileId(currentRateProfileId ?? null);
       setAllowances(currentAllowances || []);
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency, currentScopeText, currentSpecialties, currentRateProfileId, currentAllowances]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentProjectType, currentScopeText, currentSpecialties, currentRateProfileId, currentAllowances]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
   const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
+  const projectTypeChanged = selectedProjectType !== normalizeTakeoffProjectType(currentProjectType);
   const scopeChanged = scopeText !== (currentScopeText || "");
   const specialtiesChanged = JSON.stringify([...(selectedSpecialties || [])].sort()) !== JSON.stringify([...(currentSpecialties || [])].sort());
   const rateProfileChanged = selectedRateProfileId !== (currentRateProfileId ?? null);
   const allowancesChanged = JSON.stringify(allowances) !== JSON.stringify(currentAllowances || []);
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged || scopeChanged || specialtiesChanged || rateProfileChanged || allowancesChanged;
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || projectTypeChanged || scopeChanged || specialtiesChanged || rateProfileChanged || allowancesChanged;
+  const allowancePresets = useMemo(() => getAllowancePresetsForProjectType(selectedProjectType), [selectedProjectType]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -148,6 +161,7 @@ export default function ProjectSettingsPanel({
         specialtiesChanged ? (selectedSpecialties.length > 0 ? selectedSpecialties : null) : undefined,
         rateProfileChanged ? selectedRateProfileId : undefined,
         allowancesChanged ? (allowances.length > 0 ? allowances : null) : undefined,
+        projectTypeChanged ? selectedProjectType : undefined,
       );
 
       if (result.regionChanged) {
@@ -207,6 +221,10 @@ export default function ProjectSettingsPanel({
                 <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20">
                   {CURRENCIES.find((c) => c.code === (currentCurrency || "USD"))?.flag}{" "}
                   {currentCurrency || "USD"}
+                </Badge>
+                <Badge className="bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
+                  <Building2 className="w-3 h-3 mr-1" />
+                  {getTakeoffProjectTypeLabel(currentProjectType)}
                 </Badge>
                 {currentDivisions && currentDivisions.length > 0 ? (
                   <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20">
@@ -298,6 +316,35 @@ export default function ProjectSettingsPanel({
                           </svg>
                         </div>
                       )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Project Type Selector */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-cream flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-400" />
+                Project Type
+                <span className="text-xs text-cream-muted">(drives QA and allowance defaults)</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                {TAKEOFF_PROJECT_TYPE_OPTIONS.map((option) => {
+                  const isActive = selectedProjectType === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedProjectType(option.value)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        isActive
+                          ? "border-amber-500/50 bg-amber-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold text-cream">{option.label}</span>
+                      <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
                     </button>
                   );
                 })}
@@ -453,16 +500,15 @@ export default function ProjectSettingsPanel({
               <div className="text-sm font-medium text-cream flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-amber-400" />
                 Allowances
-                <span className="text-xs text-cream-muted">(selections not yet priced — cabinets, countertops, tile, etc.)</span>
+                <span className="text-xs text-cream-muted">({getTakeoffProjectTypeLabel(selectedProjectType)} presets)</span>
               </div>
               {/* Quick-add presets */}
               <div className="space-y-2 mb-2">
-                <div>
-                  <span className="text-xs text-cream-muted">Residential</span>
+                {allowancePresets.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    {[
-                      ...CUSTOM_RESIDENTIAL_ALLOWANCE_PRESETS.map(preset => ({ label: preset.description, amount: preset.amount })),
-                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
+                    {allowancePresets
+                      .filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase()))
+                      .map(preset => (
                       <button
                         key={preset.label}
                         type="button"
@@ -473,51 +519,9 @@ export default function ProjectSettingsPanel({
                       </button>
                     ))}
                   </div>
-                </div>
-                <div>
-                  <span className="text-xs text-cream-muted">Commercial</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {[
-                      { label: "FF&E (Furniture, Fixtures & Equipment)", amount: 2500000 },
-                      { label: "Signage & Wayfinding", amount: 800000 },
-                      { label: "Security Systems", amount: 1500000 },
-                      { label: "Low-Voltage / Data & Communications", amount: 2000000 },
-                      { label: "Specialty Equipment", amount: 3000000 },
-                      { label: "AV Systems", amount: 1200000 },
-                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
-                        className="px-2.5 py-1 text-xs rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-colors"
-                      >
-                        + {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs text-cream-muted">Public Works</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {[
-                      { label: "Traffic Control & MOT", amount: 1500000 },
-                      { label: "Environmental Compliance", amount: 1000000 },
-                      { label: "Temporary Facilities", amount: 800000 },
-                      { label: "Erosion & Sediment Control", amount: 600000 },
-                      { label: "Dewatering", amount: 1200000 },
-                      { label: "Testing & Inspection", amount: 1000000 },
-                    ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
-                        className="px-2.5 py-1 text-xs rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
-                      >
-                        + {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-cream-muted">No quick-add presets shown for Other / Not sure. Add manual allowances as needed.</p>
+                )}
               </div>
               <div className="space-y-2">
                 {allowances.map((item, idx) => (
@@ -640,6 +644,7 @@ export default function ProjectSettingsPanel({
                 setSelectedDivisions(currentDivisions || []);
                 setSelectedRegion(currentRegion || null);
                 setSelectedCurrency(currentCurrency || "USD");
+                setSelectedProjectType(normalizeTakeoffProjectType(currentProjectType));
                 setScopeText(currentScopeText || "");
                 setSelectedSpecialties(currentSpecialties || []);
                 setAllowances(currentAllowances || []);

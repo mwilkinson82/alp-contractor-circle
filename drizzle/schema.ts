@@ -774,6 +774,8 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
   costMultiplier: int("costMultiplier"),
   /** Currency code: USD, GBP, AUD — defaults to USD */
   currency: varchar("currency", { length: 8 }).default("USD"),
+  /** Broad project context for QA and allowance defaults */
+  projectType: varchar("projectType", { length: 32 }).default("commercial"),
   /** Free-text scope description for targeted extraction within a CSI division */
   scopeText: text("scopeText"),
   /** JSON array of manually selected trade specialty IDs, e.g. ["concrete_tilt_up","metals_structural_steel"] */
