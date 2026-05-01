@@ -56,7 +56,7 @@ const SCOPE_PRESETS: ScopePreset[] = [
   {
     id: "below_grade_waterproofing",
     patterns: [/below[-\s]?grade.*waterproof/i, /waterproof.*below[-\s]?grade/i, /dampproof/i, /waterproofing/i],
-    summary: "Below-grade waterproofing and moisture protection",
+    summary: "Below-grade waterproofing and drainage at foundation/trench conditions",
     includeKeywords: [
       "below grade", "waterproof", "waterproofing", "dampproof", "damp proof",
       "vapor barrier", "vapor retarder", "membrane", "protection board",
@@ -130,6 +130,21 @@ function containsAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
 }
 
+function explicitlyAllowsConcreteScope(text: string): boolean {
+  const includeConcretePattern = /\b(include|including|with)\b[^.]*\b(underground concrete|trench concrete|pit concrete|foundation concrete|foundations?(?!\s+drains?)|pits?|rebar|reinforcing|formwork|footings?|slab(?:-on-grade| on grade)?|sog)\b/;
+  if (explicitlyExcludesConcreteScope(text) && !includeConcretePattern.test(text)) {
+    return false;
+  }
+  return includeConcretePattern.test(text) ||
+    /\b(underground|trench|pit|foundation)\s+concrete\b/.test(text) ||
+    /\bfoundations?\s+(?:only|scope|package|concrete|walls?|work)\b/.test(text) ||
+    /\bpits?\b/.test(text);
+}
+
+function explicitlyExcludesConcreteScope(text: string): boolean {
+  return /\b(exclude|no)\b.*\b(?:general\s+)?(?:concrete|slabs?|slab-on-grade|slab on grade|sog|footings?|rebar|reinforcing|structural reinforcing|formwork|trench concrete|pit concrete|foundations?)\b/.test(text);
+}
+
 const ROOFING_SCOPE_EXCLUDE_PATTERNS = [
   /\broofs?\b/i,
   /\broofing\b/i,
@@ -161,7 +176,16 @@ export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: 
   }
 
   const normalizedText = originalText.toLowerCase();
-  const matched = SCOPE_PRESETS.filter((preset) => preset.patterns.some((pattern) => pattern.test(originalText)));
+  const belowGradeWaterproofingOnly = /\bbelow[-\s]?grade\s+waterproofing\s+only\b/i.test(originalText);
+  const narrowWaterproofingWithConcreteExclusions = belowGradeWaterproofingOnly &&
+    explicitlyExcludesConcreteScope(normalizedText) &&
+    !explicitlyAllowsConcreteScope(normalizedText);
+  const matched = SCOPE_PRESETS
+    .filter((preset) => preset.patterns.some((pattern) => pattern.test(originalText)))
+    .filter((preset) => {
+      if (!narrowWaterproofingWithConcreteExclusions) return true;
+      return !["underground_concrete_below_grade_waterproofing", "foundations", "piles_deep_foundations"].includes(preset.id);
+    });
   const focusDivisions = unique([
     ...(selectedDivisions || []),
     ...matched.flatMap((preset) => preset.focusDivisions),
@@ -199,11 +223,11 @@ export function classifyScopeMatch(
     id === "underground_concrete_below_grade_waterproofing" ||
     id === "foundations" ||
     id === "piles_deep_foundations"
-  ) || /\b(underground|trench)\s+concrete\b|\bfoundations?\s+(?:only|scope|package|concrete|walls?|work)\b|\bpits?\b/.test(intent.normalizedText);
+  ) || explicitlyAllowsConcreteScope(intent.normalizedText);
   const explicitlyExcludesGeneralConcrete = /\b(exclude|no)\s+(?:general\s+)?concrete\b/.test(intent.normalizedText);
   const isBelowGradeWaterproofingOnly = intent.presetIds.includes("below_grade_waterproofing") && !allowsConcrete;
-  const explicitlyIncludesBaseFill = /\b(include|including|with)\b.*\b(compacted base|aggregate base|base course|slab fill|structural fill|engineered fill|termite treatment)\b/.test(intent.normalizedText);
-  const explicitlyIncludesInsulation = /\b(include|including|with)\b.*\b(rigid insulation|insulation board|perimeter insulation|below[-\s]?grade insulation)\b/.test(intent.normalizedText);
+  const explicitlyIncludesBaseFill = /\b(include|including|with)\b[^.]*\b(compacted base|aggregate base|base course|slab fill|structural fill|engineered fill|termite treatment)\b/.test(intent.normalizedText);
+  const explicitlyIncludesInsulation = /\b(include|including|with)\b[^.]*\b(rigid insulation|insulation board|perimeter insulation|below[-\s]?grade insulation)\b/.test(intent.normalizedText);
 
   if (explicitlyExcludesGeneralConcrete && division === "03" && !/\b(waterstop|vapor barrier|vapor retarder)\b/.test(text)) {
     return "excluded";
@@ -211,6 +235,14 @@ export function classifyScopeMatch(
 
   if (ROOFING_SCOPE_EXCLUDE_PATTERNS.some((pattern) => pattern.test(text))) {
     return "excluded";
+  }
+
+  if (isBelowGradeWaterproofingOnly) {
+    if (/\b(general concrete|cast[-\s]?in[-\s]?place|concrete|slab(?:-on-grade| on grade)?|sog|footings?|wf footing|wall footing|spread footing|equipment pole foundations?|rebar|reinforcing|structural reinforcing|formwork|trench concrete|pit concrete|foundation wall|grade beam)\b/.test(text) &&
+      !/\b(waterstop|keyway waterstop|vapor barrier|vapor retarder|waterproofing membrane|fluid-applied|fluid applied|protection board|drainage board|foundation drain)\b/.test(text)
+    ) {
+      return "excluded";
+    }
   }
 
   if (!allowsConcrete &&
@@ -221,8 +253,8 @@ export function classifyScopeMatch(
   }
 
   if (isBelowGradeWaterproofingOnly) {
-    if (/\b(termite treatment|compacted base|aggregate base|base course|slab fill|structural fill|engineered fill|granular fill|stone base)\b/.test(text)) {
-      return explicitlyIncludesBaseFill ? "review" : "excluded";
+    if (/\b(termite treatment|compacted base|compacted aggregate base|aggregate base|base course|slab fill|structural fill|engineered fill|granular fill|stone base)\b/.test(text)) {
+      return explicitlyIncludesBaseFill && !explicitlyExcludesGeneralConcrete ? "review" : "excluded";
     }
     if (/\b(rigid insulation|insulation board|perimeter insulation|below[-\s]?grade insulation|foundation insulation)\b/.test(text)) {
       return explicitlyIncludesInsulation ? "review" : "excluded";
