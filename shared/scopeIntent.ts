@@ -70,7 +70,7 @@ const SCOPE_PRESETS: ScopePreset[] = [
       "roofing", "eifs", "batt insulation", "above-grade envelope", "siding",
       "window", "door", "interior finish", "paint", "drywall",
     ],
-    needsReviewKeywords: ["insulation", "flashing", "sheet metal", "joint", "penetration"],
+    needsReviewKeywords: ["flashing", "sheet metal", "joint", "penetration"],
     focusDivisions: ["07", "31", "33"],
     excludedDivisions: ["03", "04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
   },
@@ -201,6 +201,9 @@ export function classifyScopeMatch(
     id === "piles_deep_foundations"
   ) || /\b(underground|trench)\s+concrete\b|\bfoundations?\s+(?:only|scope|package|concrete|walls?|work)\b|\bpits?\b/.test(intent.normalizedText);
   const explicitlyExcludesGeneralConcrete = /\b(exclude|no)\s+(?:general\s+)?concrete\b/.test(intent.normalizedText);
+  const isBelowGradeWaterproofingOnly = intent.presetIds.includes("below_grade_waterproofing") && !allowsConcrete;
+  const explicitlyIncludesBaseFill = /\b(include|including|with)\b.*\b(compacted base|aggregate base|base course|slab fill|structural fill|engineered fill|termite treatment)\b/.test(intent.normalizedText);
+  const explicitlyIncludesInsulation = /\b(include|including|with)\b.*\b(rigid insulation|insulation board|perimeter insulation|below[-\s]?grade insulation)\b/.test(intent.normalizedText);
 
   if (explicitlyExcludesGeneralConcrete && division === "03" && !/\b(waterstop|vapor barrier|vapor retarder)\b/.test(text)) {
     return "excluded";
@@ -215,6 +218,15 @@ export function classifyScopeMatch(
     !/\b(waterproof|waterstop|vapor barrier|vapor retarder|protection board|drainage board|foundation drain)\b/.test(text)
   ) {
     return "excluded";
+  }
+
+  if (isBelowGradeWaterproofingOnly) {
+    if (/\b(termite treatment|compacted base|aggregate base|base course|slab fill|structural fill|engineered fill|granular fill|stone base)\b/.test(text)) {
+      return explicitlyIncludesBaseFill ? "review" : "excluded";
+    }
+    if (/\b(rigid insulation|insulation board|perimeter insulation|below[-\s]?grade insulation|foundation insulation)\b/.test(text)) {
+      return explicitlyIncludesInsulation ? "review" : "excluded";
+    }
   }
 
   if (/\b(cmu|masonry|masonry veneer|structural steel|eifs|batt insulation|above-grade envelope|plumbing|hvac|electrical|mep)\b/.test(text)) {

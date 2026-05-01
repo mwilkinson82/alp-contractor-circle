@@ -111,4 +111,33 @@ describe("scope intent", () => {
       expect(classifyScopeMatch(item, intent)).toBe("included");
     }
   });
+
+  it("excludes broad slab-adjacent items from below-grade waterproofing only", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude general concrete.");
+
+    for (const item of [
+      { csiDivision: "31", csiCode: "31 23 23", description: "General compacted aggregate base below slab" },
+      { csiDivision: "31", csiCode: "31 23 23", description: "Broad slab fill and engineered fill" },
+      { csiDivision: "31", csiCode: "31 31 16", description: "Termite treatment below slab-on-grade" },
+      { csiDivision: "07", csiCode: "07 21 13", description: "Unrelated rigid insulation board at slab edge" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
+  it("moves explicitly requested base fill and rigid insulation to review for below-grade waterproofing", () => {
+    const intent = buildScopeIntent("Below-grade waterproofing only with compacted base and rigid insulation review items.");
+
+    expect(classifyScopeMatch({
+      csiDivision: "31",
+      csiCode: "31 23 23",
+      description: "Compacted base below waterproofing assembly",
+    }, intent)).toBe("review");
+
+    expect(classifyScopeMatch({
+      csiDivision: "07",
+      csiCode: "07 21 13",
+      description: "Below-grade rigid insulation board",
+    }, intent)).toBe("review");
+  });
 });

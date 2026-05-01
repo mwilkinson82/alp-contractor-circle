@@ -1,5 +1,9 @@
 export interface ScopeCostItem {
   notes?: string | null;
+  quantity?: number | string | null;
+  unitCost?: number | string | null;
+  materialCost?: number | string | null;
+  laborCost?: number | string | null;
   extendedCost?: number | string | null;
 }
 
@@ -21,5 +25,32 @@ export function sumScopeIncludedExtendedCost(items: ScopeCostItem[]): number {
       ? item.extendedCost
       : Number(item.extendedCost || 0);
     return sum + (Number.isFinite(cost) ? cost : 0);
+  }, 0);
+}
+
+function numeric(value: number | string | null | undefined): number {
+  const result = Number(value || 0);
+  return Number.isFinite(result) ? result : 0;
+}
+
+export function getScopeMaterialUnitCost(item: ScopeCostItem): number {
+  const material = numeric(item.materialCost);
+  if (material > 0) return material;
+  const installed = numeric(item.unitCost);
+  const labor = numeric(item.laborCost);
+  return installed > labor ? installed - labor : installed;
+}
+
+export function sumScopeIncludedMaterialCost(items: ScopeCostItem[]): number {
+  return items.reduce((sum, item) => {
+    if (isScopeExcludedItem(item)) return sum;
+    return sum + numeric(item.quantity) * getScopeMaterialUnitCost(item);
+  }, 0);
+}
+
+export function sumScopeIncludedLaborCost(items: ScopeCostItem[]): number {
+  return items.reduce((sum, item) => {
+    if (isScopeExcludedItem(item)) return sum;
+    return sum + numeric(item.quantity) * numeric(item.laborCost);
   }, 0);
 }
