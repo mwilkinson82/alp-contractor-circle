@@ -2161,6 +2161,7 @@ export default function TakeoffDetail() {
               projectName={project.name}
               projectDescription={project.description || undefined}
               items={items || []}
+              allowances={projectAllowances}
               currency={project.currency || "USD"}
               costRegion={project.costRegion}
             />

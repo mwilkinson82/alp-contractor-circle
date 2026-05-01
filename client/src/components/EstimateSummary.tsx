@@ -13,7 +13,8 @@ import * as XLSX from "xlsx";
 import {
   Calculator, Save, Download, ChevronDown, ChevronRight,
   DollarSign, HardHat, Percent, TrendingUp, FileSpreadsheet,
-  Users, Info, Sparkles, Loader2, Layers, X,
+  Users, Info, Sparkles, Loader2, Layers, X, AlertTriangle,
+  ClipboardList, ShieldCheck,
 } from "lucide-react";
 import {
   TRADES, getBaseWage,
@@ -21,6 +22,10 @@ import {
   type LaborType,
 } from "../../../shared/tradeRates";
 import { COST_REGION_GROUPS } from "../../../shared/costRegions";
+import {
+  analyzeResidentialEstimateQa,
+  type ResidentialQaItem,
+} from "../../../shared/residentialEstimateQa";
 import EstimateOutputs from "./EstimateOutputs";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
@@ -48,11 +53,12 @@ interface EstimateSummaryProps {
   projectName?: string;
   projectDescription?: string;
   items: any[];
+  allowances?: Array<{ description?: string | null; amount?: number | null }>;
   currency: string;
   costRegion?: string | null;
 }
 
-export default function EstimateSummary({ projectId, projectName, projectDescription, items, currency, costRegion }: EstimateSummaryProps) {
+export default function EstimateSummary({ projectId, projectName, projectDescription, items, allowances = [], currency, costRegion }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } = trpc.estimate.getMarkups.useQuery({ projectId });
   const { data: crewsData } = trpc.tradeRates.getCrews.useQuery();
@@ -353,6 +359,16 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     saveMutation.mutate({ projectId, overheadPct, profitPct, contingencyPct, bondPct, taxPct, generalConditionsPct });
   };
 
+  const residentialQaFindings = useMemo(() => {
+    if (!calculations) return [];
+    return analyzeResidentialEstimateQa({
+      items,
+      byDivision: calculations.byDivision,
+      directCostCents: calculations.directCost,
+      allowances,
+    });
+  }, [items, calculations, allowances]);
+
   const handleExportEstimate = () => {
     if (!calculations) return;
     const rows: any[] = [];
@@ -379,6 +395,17 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Estimate Summary");
+    if (residentialQaFindings.length > 0) {
+      const qaRows = residentialQaFindings.map(finding => ({
+        "Severity": finding.severity.toUpperCase(),
+        "Type": finding.kind,
+        "Issue": finding.title,
+        "Amount": finding.amountCents ? (finding.amountCents / 100).toFixed(2) : "",
+        "Why it matters": finding.message,
+        "Recommended action": finding.action,
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(qaRows), "Residential QA");
+    }
     XLSX.writeFile(wb, `estimate-summary-project-${projectId}.xlsx`);
     toast.success("Estimate exported to Excel");
   };
@@ -482,6 +509,12 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
           </Button>
         </div>
       )}
+
+      <ResidentialQaPanel
+        findings={residentialQaFindings}
+        currency={currency}
+        allowanceCount={allowances.length}
+      />
 
       {/* ─── Labor Inference Review Panel ──────────────────────────────── */}
       {showReviewPanel && reviewAssignments && (
@@ -862,6 +895,95 @@ export default function EstimateSummary({ projectId, projectName, projectDescrip
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function ResidentialQaPanel({ findings, currency, allowanceCount }: {
+  findings: ResidentialQaItem[];
+  currency: string;
+  allowanceCount: number;
+}) {
+  const highCount = findings.filter(f => f.severity === "high").length;
+  const mediumCount = findings.filter(f => f.severity === "medium").length;
+  const topFindings = findings.slice(0, 6);
+
+  if (findings.length === 0) {
+    return (
+      <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-emerald-200 text-sm font-medium">Residential estimate QA looks clean</p>
+          <p className="text-emerald-200/70 text-xs mt-0.5">
+            Required residential categories are represented, and no high-dollar inferred/detail-driven scope was detected.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-amber-500/25 bg-amber-500/6 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-amber-500/20 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <div>
+            <h3 className="text-sm font-semibold text-cream">Residential Estimate QA</h3>
+            <p className="text-xs text-cream-muted">
+              Review scope risks before labor and markups make the estimate feel final.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {allowanceCount > 0 && (
+            <Badge className="bg-emerald-500/12 text-emerald-300 border-emerald-500/25 text-[10px]">
+              <ClipboardList className="w-3 h-3 mr-1" />
+              {allowanceCount} allowance{allowanceCount !== 1 ? "s" : ""}
+            </Badge>
+          )}
+          {highCount > 0 && (
+            <Badge className="bg-red-500/12 text-red-300 border-red-500/25 text-[10px]">
+              {highCount} high
+            </Badge>
+          )}
+          {mediumCount > 0 && (
+            <Badge className="bg-amber-500/12 text-amber-300 border-amber-500/25 text-[10px]">
+              {mediumCount} review
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="divide-y divide-white/5">
+        {topFindings.map((finding) => (
+          <div key={finding.id} className="px-4 py-3 grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-3 items-start">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${
+                finding.severity === "high" ? "bg-red-400" : finding.severity === "medium" ? "bg-amber-400" : "bg-blue-400"
+              }`} />
+              <span className="text-xs uppercase tracking-wider text-cream-muted">
+                {finding.kind.replace("_", " ")}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-cream font-medium">{finding.title}</p>
+              <p className="text-xs text-cream-muted mt-0.5">{finding.message}</p>
+              <p className="text-xs text-amber-200/80 mt-1">{finding.action}</p>
+            </div>
+            {finding.amountCents ? (
+              <span className="font-mono text-xs text-cream text-right md:pt-0.5">
+                {formatCurrency(finding.amountCents, currency)}
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {findings.length > topFindings.length && (
+        <div className="px-4 py-2 border-t border-white/5 text-xs text-cream-muted">
+          {findings.length - topFindings.length} additional QA item{findings.length - topFindings.length !== 1 ? "s" : ""} will export to the Residential QA worksheet.
+        </div>
+      )}
+    </div>
+  );
+}
 
 function MarkupInput({ label, value, onChange, hint }: {
   label: string; value: number; onChange: (v: number) => void; hint: string;

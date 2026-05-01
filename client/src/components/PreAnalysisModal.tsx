@@ -488,11 +488,11 @@ export default function PreAnalysisModal({
               <span className="text-xs text-cream-muted">Quick Add — Residential</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "Kitchen Cabinets", amount: 15000 },
-                  { label: "Countertops", amount: 8000 },
-                  { label: "Flooring", amount: 12000 },
-                  { label: "Appliances", amount: 10000 },
-                  { label: "Tile", amount: 6000 },
+                  { label: "Kitchen Cabinets", amount: 1500000 },
+                  { label: "Countertops", amount: 800000 },
+                  { label: "Flooring", amount: 1200000 },
+                  { label: "Appliances", amount: 1000000 },
+                  { label: "Tile", amount: 600000 },
                 ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
                   <button
                     key={preset.label}
@@ -507,12 +507,12 @@ export default function PreAnalysisModal({
               <span className="text-xs text-cream-muted">Quick Add — Commercial</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "FF&E (Furniture, Fixtures & Equipment)", amount: 25000 },
-                  { label: "Signage & Wayfinding", amount: 8000 },
-                  { label: "Security Systems", amount: 15000 },
-                  { label: "Low-Voltage / Data & Communications", amount: 20000 },
-                  { label: "Specialty Equipment", amount: 30000 },
-                  { label: "AV Systems", amount: 12000 },
+                  { label: "FF&E (Furniture, Fixtures & Equipment)", amount: 2500000 },
+                  { label: "Signage & Wayfinding", amount: 800000 },
+                  { label: "Security Systems", amount: 1500000 },
+                  { label: "Low-Voltage / Data & Communications", amount: 2000000 },
+                  { label: "Specialty Equipment", amount: 3000000 },
+                  { label: "AV Systems", amount: 1200000 },
                 ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
                   <button
                     key={preset.label}
@@ -527,12 +527,12 @@ export default function PreAnalysisModal({
               <span className="text-xs text-cream-muted">Quick Add — Public Works</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "Traffic Control & MOT", amount: 15000 },
-                  { label: "Environmental Compliance", amount: 10000 },
-                  { label: "Temporary Facilities", amount: 8000 },
-                  { label: "Erosion & Sediment Control", amount: 6000 },
-                  { label: "Dewatering", amount: 12000 },
-                  { label: "Testing & Inspection", amount: 10000 },
+                  { label: "Traffic Control & MOT", amount: 1500000 },
+                  { label: "Environmental Compliance", amount: 1000000 },
+                  { label: "Temporary Facilities", amount: 800000 },
+                  { label: "Erosion & Sediment Control", amount: 600000 },
+                  { label: "Dewatering", amount: 1200000 },
+                  { label: "Testing & Inspection", amount: 1000000 },
                 ].filter(preset => !allowances.some(a => a.description.toLowerCase() === preset.label.toLowerCase())).map(preset => (
                   <button
                     key={preset.label}
@@ -559,8 +559,8 @@ export default function PreAnalysisModal({
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-cream-muted text-sm">$</span>
                     <Input
                       type="number"
-                      value={item.amount || ""}
-                      onChange={(e) => updateAllowance(item.id, "amount", parseFloat(e.target.value) || 0)}
+                      value={item.amount ? Math.round(item.amount / 100) : ""}
+                      onChange={(e) => updateAllowance(item.id, "amount", Math.round((parseFloat(e.target.value) || 0) * 100))}
                       placeholder="0"
                       className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 h-9 text-sm pl-6 text-right"
                       min={0}
@@ -589,7 +589,7 @@ export default function PreAnalysisModal({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-cream-muted">Total Allowances:</span>
                   <span className="text-sm font-semibold text-amber-300">
-                    ${allowances.reduce((sum, a) => sum + (a.amount || 0), 0).toLocaleString()}
+                    ${(allowances.reduce((sum, a) => sum + (a.amount || 0), 0) / 100).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -635,7 +635,7 @@ export default function PreAnalysisModal({
                   <span className="text-cream-muted">Allowances:</span>{" "}
                   <span className="text-cream font-medium">
                     {allowances.filter(a => a.description.trim() && a.amount > 0).length > 0
-                      ? `${allowances.filter(a => a.description.trim() && a.amount > 0).length} items ($${allowances.filter(a => a.amount > 0).reduce((s, a) => s + a.amount, 0).toLocaleString()})`
+                      ? `${allowances.filter(a => a.description.trim() && a.amount > 0).length} items ($${(allowances.filter(a => a.amount > 0).reduce((s, a) => s + a.amount, 0) / 100).toLocaleString()})`
                       : "None"}
                   </span>
                 </div>
