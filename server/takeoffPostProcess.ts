@@ -30,8 +30,10 @@ import type { InsertTakeoffItem } from "../drizzle/schema";
 import {
   appendScopeReviewNote,
   buildScopeIntent,
+  classifyTradePackageScopeSafety,
   classifyScopeMatch,
   type ScopeIntent,
+  type ScopeMatchStatus,
 } from "../shared/scopeIntent";
 import { normalizeRebarUnitAndReview } from "../shared/rebarSanity";
 
@@ -1044,7 +1046,8 @@ function annotateScopeReview(items: ConsolidatedItem[], intent: ScopeIntent): Co
   let reviewCount = 0;
   let excludedCount = 0;
   const annotated = items.map((item) => {
-    const status = classifyScopeMatch(item, intent);
+    const baseStatus = classifyScopeMatch(item, intent);
+    const status = classifyTradePackageScopeSafety(item, intent, baseStatus);
     if (status === "included") return item;
     if (status === "review") reviewCount++;
     if (status === "excluded") excludedCount++;
@@ -1059,6 +1062,106 @@ function annotateScopeReview(items: ConsolidatedItem[], intent: ScopeIntent): Co
     console.log(`[ScopeIntent] Tagged ${reviewCount} item(s) for scope review and ${excludedCount} item(s) as possible exclusions.`);
   }
   return annotated;
+}
+
+const DUPLICATE_STOP_WORDS = new Set([
+  "for", "the", "and", "with", "from", "that", "this", "typ", "typical", "concrete",
+  "formwork", "form", "forms", "reinforcing", "reinforcement", "steel", "rebar",
+  "generated", "consolidated", "section", "sections", "system", "scope",
+]);
+
+function scopeStatusFromNotes(notes: string | null | undefined): ScopeMatchStatus {
+  const normalized = String(notes || "").toLowerCase();
+  if (normalized.includes("[scope: excluded]")) return "excluded";
+  if (normalized.includes("[scope: review]")) return "review";
+  return "included";
+}
+
+function duplicateAssemblyKey(item: ConsolidatedItem): string | null {
+  const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  if (!/\b(?:generated|consolidated|fuzzy-merged|enhanced|formwork|reinforc(?:ing|ement)?|rebar|sawcut|control joint|slab[-\s]?on[-\s]?grade|foundation|footing|trench|pit)\b/i.test(text)) {
+    return null;
+  }
+
+  const anchors: Array<[string, RegExp]> = [
+    ["continuous-footing", /\bcontinuous footings?\b|\bwall footings?\b/i],
+    ["isolated-footing", /\bisolated footings?\b|\bspread footings?\b/i],
+    ["trench-drain", /\btrench drains?\b/i],
+    ["trench-pit", /\btrench pits?\b|\bcar wash trench\b/i],
+    ["tire-seal-pit", /\btire seal(?: drainage)? pits?\b/i],
+    ["correlator-pit", /\bcorrelator pits?\b/i],
+    ["gate-post-foundation", /\bgate post foundations?\b/i],
+    ["bollard-foundation", /\bbollard foundations?\b/i],
+    ["equipment-pole-foundation", /\bequipment pole foundations?\b|\bpole foundations?\b/i],
+    ["vacuum-enclosure", /\bvacuum enclosure\b/i],
+    ["trash-enclosure", /\btrash enclosure\b|\bdumpster enclosure\b|\benclosure walls?\b/i],
+    ["slab-on-grade", /\bslab[-\s]?on[-\s]?grade\b|\bsog\b|\bslab\b/i],
+    ["vapor-barrier", /\bvapor barriers?\b/i],
+    ["rigid-insulation", /\brigid insulation\b/i],
+  ];
+  const anchor = anchors.find(([, pattern]) => pattern.test(text))?.[0];
+  if (!anchor) return null;
+
+  const family =
+    /\bformwork|forms?\b/i.test(text) ? "formwork" :
+    /\brebar\b|\breinforcing steel\b|\bsteel reinforcing\b|#[3-8]\b/i.test(text) ? "rebar" :
+    /\bsawcut|control joint/i.test(text) ? "control-joint" :
+    /\bvapor barrier/i.test(text) ? "vapor-barrier" :
+    /\brigid insulation/i.test(text) ? "rigid-insulation" :
+    /\bexcavat|subgrade|compaction|base course|aggregate base/i.test(text) ? "earthwork" :
+    "concrete";
+
+  return `${item.csiDivision || item.csiCode?.slice(0, 2) || "00"}|${anchor}|${family}`;
+}
+
+function duplicateClarityScore(item: ConsolidatedItem): number {
+  const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  let score = item.confidence || 0;
+  if (!/\b(?:generated|enhanced)\b/i.test(text)) score += 12;
+  if (!/\b(?:consolidated|fuzzy-merged|merged)\b/i.test(text)) score += 8;
+  if (!/\b(?:placeholder|quantity set to 1|missing item|assuming|no specific quantity|original quantity was 0)\b/i.test(text)) score += 18;
+  if (/\b(?:continuous footing|isolated footing|trench drain|trench pit|tire seal|correlator|gate post|bollard|equipment pole|vacuum enclosure|trash enclosure|slab-on-grade|vapor barrier|rigid insulation)\b/i.test(text)) score += 16;
+  const meaningfulWords = normalizeDesc(item.description)
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !DUPLICATE_STOP_WORDS.has(word));
+  score += Math.min(12, meaningfulWords.length);
+  return score;
+}
+
+export function holdDuplicateTradePackageAssemblies(items: ConsolidatedItem[], intent: ScopeIntent): ConsolidatedItem[] {
+  if (intent.bidMode !== "trade_package" || intent.scopeStrictness !== "strict" || !intent.hasScope) return items;
+
+  const groups = new Map<string, number[]>();
+  items.forEach((item, index) => {
+    if (scopeStatusFromNotes(item.notes) !== "included") return;
+    const key = duplicateAssemblyKey(item);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(index);
+  });
+
+  const reviewIndexes = new Set<number>();
+  for (const indexes of Array.from(groups.values())) {
+    if (indexes.length <= 1) continue;
+    const ranked = indexes
+      .map((index) => ({ index, score: duplicateClarityScore(items[index]), cost: items[index].extendedCost || 0 }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.cost - a.cost;
+      });
+    for (const duplicate of ranked.slice(1)) reviewIndexes.add(duplicate.index);
+  }
+
+  if (reviewIndexes.size === 0) return items;
+  console.log(`[ScopeIntent] Held ${reviewIndexes.size} duplicate/consolidated trade-package assembl${reviewIndexes.size === 1 ? "y" : "ies"} for scope review.`);
+  return items.map((item, index) => {
+    if (!reviewIndexes.has(index)) return item;
+    return {
+      ...item,
+      notes: `${appendScopeReviewNote(item.notes, "review")} Duplicate/consolidation safety: verify this does not overlap another active assembly before including.`,
+      confidence: Math.min(item.confidence, 74),
+    };
+  });
 }
 
 /**
@@ -1420,6 +1523,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   console.log(`[PostProcess] Cost table pricing applied to ${consolidated.length} items`);
 
   consolidated = annotateScopeReview(consolidated, projectScopeIntent);
+  consolidated = holdDuplicateTradePackageAssemblies(consolidated, projectScopeIntent);
 
   console.log(`[PostProcess] Step 6/6: Saving results...`);
   await updateTakeoffProject(projectId, { postProcessStep: 'saving' } as any).catch(() => {});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildScopeIntent, classifyScopeMatch } from "../shared/scopeIntent";
+import { buildScopeIntent, classifyScopeMatch, classifyTradePackageScopeSafety } from "../shared/scopeIntent";
 
 const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.";
 const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
@@ -45,6 +45,46 @@ describe("scope intent", () => {
       description: "Concrete for correlator pit",
       notes: "Quantity set to 1 - update with actual measurement before bidding",
     }, intent)).toBe("review");
+  });
+
+  it("holds high-dollar generic or weak-evidence trade-package assemblies for review", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    expect(classifyTradePackageScopeSafety({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Sawcut control joints for slab-on-grade",
+      notes: "[Consolidated 4 items from: A-501, A-400] Quantity matches original extraction.",
+      extendedCost: 25_789_782,
+    }, intent)).toBe("review");
+
+    expect(classifyTradePackageScopeSafety({
+      csiDivision: "03",
+      csiCode: "03 20 00",
+      description: "Reinforcing steel, #5 continuous bars (Sections 1, 2, 3, 4, 5, 6)",
+      notes: "[Enhanced] Rebar calculated from multiple concrete members.",
+      extendedCost: 8_472_832,
+    }, intent)).toBe("review");
+
+    expect(classifyTradePackageScopeSafety({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete slab-on-grade, fiber reinforced, 4\" thick",
+      notes: "No specific quantity noted on drawing, assuming original extraction is based on a floor plan not provided.",
+      extendedCost: 9_768_642,
+    }, intent)).toBe("review");
+  });
+
+  it("allows anchored low-risk broad concrete package items to remain active", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    expect(classifyTradePackageScopeSafety({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete for correlator pit",
+      notes: "Measured from S-103 trench detail.",
+      extendedCost: 6_500,
+    }, intent)).toBe("included");
   });
 
   it("still excludes explicit non-package work from the broad concrete package", () => {
