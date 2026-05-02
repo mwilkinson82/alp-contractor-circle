@@ -27,7 +27,9 @@ import {
   Layers,
   MapPin,
   DollarSign,
+  Target,
 } from "lucide-react";
+import { getBidModeBehavior } from "../../../shared/bidMode";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   draft: { label: "Draft", color: "bg-gray-500/20 text-gray-300 border-gray-500/30", icon: FileText },
@@ -206,6 +208,10 @@ export default function TakeoffList() {
                         {project.currency}
                       </Badge>
                     )}
+                    <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-[10px]">
+                      <Target className="w-2.5 h-2.5 mr-1" />
+                      {getBidModeBehavior(project.bidMode).shortLabel}
+                    </Badge>
                     {divCount !== null && (
                       <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">
                         <Layers className="w-2.5 h-2.5 mr-1" />
@@ -272,7 +278,7 @@ export default function TakeoffList() {
           <DialogHeader>
             <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
             <DialogDescription className="text-cream-muted">
-              Name your project, then upload drawings and click "Analyze" to configure currency, divisions, and regional pricing.
+              Name your project, then upload drawings and click "Analyze" to choose the bid mode, scope boundary, currency, and regional pricing.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
@@ -304,7 +310,7 @@ export default function TakeoffList() {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
               <Layers className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-cream-muted">
-                After creating your project, upload your construction drawings and click <strong className="text-amber-400">"Analyze Drawings"</strong> — that's where you'll choose your currency, CSI divisions, and regional pricing.
+                After creating your project, upload your construction drawings and click <strong className="text-amber-400">"Analyze Drawings"</strong>. Start with Full GC Takeoff, Trade Package Takeoff, or Fast Scope Check so the review surface matches the bid.
               </p>
             </div>
           </div>

@@ -1227,7 +1227,6 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 }> {
   const project = await getTakeoffProject(projectId);
   if (!project) throw new Error(`Project ${projectId} not found`);
-  const projectScopeIntent = buildScopeIntent(project.scopeText, null, project.bidMode);
 
   const sheets = await getDrawingSheetsByProject(projectId);
   const sheetContexts: SheetContext[] = sheets.map((s: any) => ({
@@ -1287,6 +1286,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
       }
     } catch { /* ignore parse errors */ }
   }
+  const projectScopeIntent = buildScopeIntent(project.scopeText, parsedDivisions, project.bidMode);
   const beforeDivFilter = filteredItems.length;
   filteredItems = filterBySelectedDivisions(filteredItems, parsedDivisions);
   if (parsedDivisions) {

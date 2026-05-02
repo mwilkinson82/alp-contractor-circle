@@ -108,7 +108,7 @@ function getScaleLabel(ratio: number): string {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
-import { normalizeTakeoffBidMode } from "../../../shared/bidMode";
+import { getBidModeBehavior, normalizeTakeoffBidMode } from "../../../shared/bidMode";
 import {
   getScopeMaterialUnitCost,
   getScopeStatusFromNotes,
@@ -643,6 +643,7 @@ export default function TakeoffDetail() {
 
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+    const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
 
     // Group items by CSI division
     const divGroups: Record<string, any[]> = {};
@@ -660,6 +661,8 @@ export default function TakeoffDetail() {
     const aoa: any[][] = [
       ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", "", ""],
       [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", "", ""],
+      [`Bid mode: ${exportBidModeBehavior.label}`, "", "", "", "", "", "", "", "", "", "", ""],
+      [`Review surface: ${exportBidModeBehavior.reviewSurface}`, "", "", "", "", "", "", "", "", "", "", ""],
       [`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`, "", "", "", "", "", "", "", "", "", "", ""],
       [], // blank separator
       headers,
@@ -725,7 +728,7 @@ export default function TakeoffDetail() {
     if (ws[currCell]) ws[currCell].s = { font: { sz: 11 } };
 
     // Style division headers and subtotals (bold via cell formatting)
-    let rowIdx = 5; // skip branding (0), project info (1), scope (2), blank (3), headers (4)
+    let rowIdx = 7; // skip branding (0), project info (1), bid mode (2), review surface (3), scope (4), blank (5), headers (6)
     for (const div of sortedDivs) {
       // Division header row
       const headerCell = XLSX.utils.encode_cell({ r: rowIdx, c: 0 });
@@ -748,6 +751,7 @@ export default function TakeoffDetail() {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+    const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
 
     // Group by CSI division
@@ -764,6 +768,8 @@ export default function TakeoffDetail() {
     const csvRows: string[] = [
       `"ConstructLine | Powered by ALP","","","","","","","","","","",""`,
       `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","","Currency: ${currencyCode}","","","",""`,
+      `"Bid mode: ${exportBidModeBehavior.label}","","","","","","","","","","",""`,
+      `"Review surface: ${exportBidModeBehavior.reviewSurface.replace(/"/g, '""')}","","","","","","","","","","",""`,
       `"Scope: ${(scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set").replace(/"/g, '""')}","","","","","","","","","","",""`,
       "",
       headers.join(","),
@@ -982,6 +988,7 @@ export default function TakeoffDetail() {
   const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
   const itemsCost = sumScopeIncludedExtendedCost(activeItems);
   const totalCost = itemsCost + allowancesTotal;
+  const bidModeBehavior = getBidModeBehavior(project.bidMode);
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -1796,6 +1803,29 @@ export default function TakeoffDetail() {
                   </p>
                 </div>
 
+                <div className="bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
+                  <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-cream">Bid Mode</span>
+                      <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                        {bidModeBehavior.label}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-cream-muted leading-relaxed mt-1">
+                      {bidModeBehavior.reviewSurface}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setOpenSettingsToScope(true)}
+                    className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                  >
+                    Edit Mode
+                  </Button>
+                </div>
+
                 {scopeIntent.hasScope && (
                   <div className="bg-amber-500/8 border border-amber-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
                     <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -2180,7 +2210,7 @@ export default function TakeoffDetail() {
                           Review subtotal {formatCurrency(reviewItemsCost, project?.currency || "USD")}
                         </Badge>
                       </div>
-                      <span className="text-xs text-amber-100/70">Open an item and mark it included before it counts in takeoff or estimate totals</span>
+                      <span className="text-xs text-amber-100/70">{bidModeBehavior.shortLabel}: mark an item included before it counts in takeoff or estimate totals</span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -2258,7 +2288,7 @@ export default function TakeoffDetail() {
                           {excludedItems.length} likely excluded
                         </Badge>
                       </div>
-                      <span className="text-xs text-red-100/70">Not counted in takeoff or estimate totals</span>
+                      <span className="text-xs text-red-100/70">{bidModeBehavior.shortLabel}: boundary items stay visible and outside totals</span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
