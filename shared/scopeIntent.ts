@@ -1,3 +1,5 @@
+import { getBidModeBehavior, type TakeoffBidMode } from "./bidMode";
+
 export type ScopeMatchStatus = "included" | "excluded" | "review";
 
 type TermFamily =
@@ -35,6 +37,8 @@ type TermFamily =
   | "aboveGradeEnvelope";
 
 export interface ScopeIntent {
+  bidMode: TakeoffBidMode;
+  scopeStrictness: "broad" | "strict" | "review_first";
   hasScope: boolean;
   originalText: string;
   normalizedText: string;
@@ -285,8 +289,11 @@ function boundaryTerms(text: string): string[] {
   return unique(BOUNDARY_FAMILY_PATTERNS.filter(({ pattern }) => pattern.test(text)).map(({ family }) => family));
 }
 
-function noScopeIntent(selectedDivisions?: string[] | null): ScopeIntent {
+function noScopeIntent(selectedDivisions?: string[] | null, bidMode?: TakeoffBidMode | string | null): ScopeIntent {
+  const behavior = getBidModeBehavior(bidMode);
   return {
+    bidMode: behavior.bidMode,
+    scopeStrictness: behavior.scopeStrictness,
     hasScope: false,
     originalText: "",
     normalizedText: "",
@@ -306,9 +313,17 @@ function noScopeIntent(selectedDivisions?: string[] | null): ScopeIntent {
   };
 }
 
-export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: string[] | null): ScopeIntent {
+export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: string[] | null, bidMode?: TakeoffBidMode | string | null): ScopeIntent {
+  const behavior = getBidModeBehavior(bidMode);
   const originalText = (scopeText || "").trim();
-  if (!originalText) return noScopeIntent(selectedDivisions);
+  if (!originalText || behavior.scopeStrictness === "broad") {
+    return {
+      ...noScopeIntent(selectedDivisions, behavior.bidMode),
+      originalText,
+      normalizedText: originalText.toLowerCase(),
+      summary: behavior.scopeStrictness === "broad" ? "Full GC broad coverage" : "Full drawing set",
+    };
+  }
 
   const normalizedText = originalText.toLowerCase();
   const explicitIncludes = parseExplicitIncludes(normalizedText);
@@ -353,6 +368,8 @@ export function buildScopeIntent(scopeText?: string | null, selectedDivisions?: 
   ]);
 
   return {
+    bidMode: behavior.bidMode,
+    scopeStrictness: behavior.scopeStrictness,
     hasScope: true,
     originalText,
     normalizedText,
@@ -376,7 +393,7 @@ export function classifyScopeMatch(
   item: { csiDivision?: string | null; csiCode?: string | null; description?: string | null; notes?: string | null },
   intent: ScopeIntent
 ): ScopeMatchStatus {
-  if (!intent.hasScope) return "included";
+  if (intent.scopeStrictness === "broad" || !intent.hasScope) return "included";
 
   const division = (item.csiDivision || item.csiCode?.slice(0, 2) || "").trim();
   const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
@@ -406,7 +423,9 @@ export function classifyScopeMatch(
 
   if (hasExplicitExclude && !hasProtectiveExplicitInclude) return "excluded";
   if (hasExplicitExclude && !hasExplicitInclude) return "excluded";
-  if (hasProfileExclude && hasUnincludedHardExcludedFamily) return "excluded";
+  if (hasProfileExclude && hasUnincludedHardExcludedFamily) {
+    return intent.scopeStrictness === "review_first" ? "review" : "excluded";
+  }
 
   // Explicit excludes override profile includes — if the item's families are all excluded, it cannot be active
   const nonSupportFamilies = families.filter((family) => !SUPPORT_FAMILIES.includes(family));
@@ -434,12 +453,12 @@ export function classifyScopeMatch(
   }
 
   if (hasUnownedSupport) {
-    if (hasProfileExclude && !hasProfileInclude) return "excluded";
+    if (hasProfileExclude && !hasProfileInclude) return intent.scopeStrictness === "review_first" ? "review" : "excluded";
     return "review";
   }
 
   if (hasProfileExclude && hasHardExcludedFamily) {
-    return "excluded";
+    return intent.scopeStrictness === "review_first" ? "review" : "excluded";
   }
 
   if (hasProfileInclude) {
@@ -451,7 +470,7 @@ export function classifyScopeMatch(
   }
 
   if (hasProfileExclude) {
-    return "excluded";
+    return intent.scopeStrictness === "review_first" ? "review" : "excluded";
   }
 
   if (hasProfileReview) {
@@ -459,7 +478,7 @@ export function classifyScopeMatch(
   }
 
   if (division && intent.excludedDivisions.includes(division)) {
-    return "excluded";
+    return intent.scopeStrictness === "review_first" ? "review" : "excluded";
   }
 
   if (division && intent.focusDivisions.length > 0 && !intent.focusDivisions.includes(division)) {
@@ -479,6 +498,17 @@ export function appendScopeReviewNote(notes: string | null | undefined, status: 
 
 export function buildScopeIntentPrompt(intent: ScopeIntent, selectedDivisions?: string[] | null): string {
   const lines: string[] = [];
+  const behavior = getBidModeBehavior(intent.bidMode);
+
+  lines.push(`Bid mode: ${behavior.label}. ${behavior.reviewSurface}`);
+
+  if (behavior.scopeStrictness === "broad") {
+    lines.push("Extraction stance: broad GC coverage. Do not narrow the takeoff to a specialty package unless CSI divisions are explicitly selected.");
+  } else if (behavior.scopeStrictness === "review_first") {
+    lines.push("Extraction stance: speed-first scope check. Prioritize likely scope and risk items; place uncertain boundary work in [Scope: review] instead of counting it.");
+  } else {
+    lines.push("Extraction stance: trade package. Apply strict bid boundaries; active totals should include only the bidder's likely owned work.");
+  }
 
   if (selectedDivisions?.length) {
     lines.push(`Selected CSI divisions: ${selectedDivisions.join(", ")}. Treat these as the user's bid package boundary.`);

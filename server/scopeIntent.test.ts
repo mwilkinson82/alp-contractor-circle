@@ -5,6 +5,49 @@ const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only.
 const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
 
 describe("scope intent", () => {
+  it("keeps Full GC Takeoff broad instead of excluding adjacent trade work", () => {
+    const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE, null, "full_gc");
+
+    expect(intent.summary).toBe("Full GC broad coverage");
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete footing with rebar and formwork",
+    }, intent)).toBe("included");
+    expect(classifyScopeMatch({
+      csiDivision: "22",
+      csiCode: "22 11 00",
+      description: "Plumbing rough-in piping",
+    }, intent)).toBe("included");
+  });
+
+  it("enforces strict boundaries for Trade Package Takeoff", () => {
+    const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE, null, "trade_package");
+
+    expect(intent.scopeStrictness).toBe("strict");
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete footing with rebar and formwork",
+    }, intent)).toBe("excluded");
+    expect(classifyScopeMatch({
+      csiDivision: "07",
+      csiCode: "07 13 00",
+      description: "Below-grade waterproofing membrane",
+    }, intent)).toBe("included");
+  });
+
+  it("keeps Fast Scope Check boundary items visible for review", () => {
+    const intent = buildScopeIntent("Fast check for below-grade waterproofing. Include membrane, protection board, and foundation drains.", null, "fast_scope_check");
+
+    expect(intent.scopeStrictness).toBe("review_first");
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete footing with rebar and formwork",
+    }, intent)).toBe("review");
+  });
+
   it("recognizes below-grade waterproofing as a narrow scope", () => {
     const intent = buildScopeIntent("Below-grade waterproofing only - include membrane and protection board. Exclude roofing.");
 

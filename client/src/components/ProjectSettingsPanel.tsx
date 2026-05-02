@@ -23,6 +23,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { TRADE_SPECIALTIES } from "../../../shared/tradeSpecialties";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import {
+  BID_MODE_BEHAVIORS,
+  TAKEOFF_BID_MODES,
+  getBidModeBehavior,
+  normalizeTakeoffBidMode,
+  type TakeoffBidMode,
+} from "../../../shared/bidMode";
+import {
   getAllowancePresetsForProjectType,
   getTakeoffProjectTypeLabel,
   normalizeTakeoffProjectType,
@@ -49,6 +56,7 @@ interface ProjectSettingsPanelProps {
   currentRegionName?: string;
   currentCurrency?: string | null;
   currentProjectType?: string | null;
+  currentBidMode?: string | null;
   currentScopeText?: string | null;
   currentSpecialties?: string[] | null;
   detectedSpecialties?: string[] | null;
@@ -62,7 +70,8 @@ interface ProjectSettingsPanelProps {
     specialties?: string[] | null,
     rateProfileId?: number | null,
     allowances?: AllowanceItem[] | null,
-    projectType?: TakeoffProjectType
+    projectType?: TakeoffProjectType,
+    bidMode?: TakeoffBidMode
   ) => Promise<{ regionChanged?: boolean }>;
   /** Called when user wants to re-analyze with new divisions */
   onReAnalyze?: (divisions: string[] | null) => void;
@@ -82,6 +91,7 @@ export default function ProjectSettingsPanel({
   currentRegionName,
   currentCurrency,
   currentProjectType,
+  currentBidMode,
   currentScopeText,
   currentSpecialties,
   detectedSpecialties,
@@ -113,14 +123,16 @@ export default function ProjectSettingsPanel({
   const [selectedRegion, setSelectedRegion] = useState<string | null>(currentRegion || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(currentCurrency || "USD");
   const [selectedProjectType, setSelectedProjectType] = useState<TakeoffProjectType>(normalizeTakeoffProjectType(currentProjectType));
+  const [selectedBidMode, setSelectedBidMode] = useState<TakeoffBidMode>(normalizeTakeoffBidMode(currentBidMode));
   const [scopeText, setScopeText] = useState<string>(currentScopeText || "");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(currentSpecialties || []);
   const [selectedRateProfileId, setSelectedRateProfileId] = useState<number | null>(currentRateProfileId ?? null);
   const [allowances, setAllowances] = useState<AllowanceItem[]>(currentAllowances || []);
   const scopeIntent = useMemo(
-    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null),
-    [scopeText, selectedDivisions]
+    () => buildScopeIntent(scopeText, selectedDivisions.length > 0 ? selectedDivisions : null, selectedBidMode),
+    [scopeText, selectedDivisions, selectedBidMode]
   );
+  const bidModeBehavior = useMemo(() => getBidModeBehavior(selectedBidMode), [selectedBidMode]);
   const [saving, setSaving] = useState(false);
 
   const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
@@ -132,22 +144,24 @@ export default function ProjectSettingsPanel({
       setSelectedRegion(currentRegion || null);
       setSelectedCurrency(currentCurrency || "USD");
       setSelectedProjectType(normalizeTakeoffProjectType(currentProjectType));
+      setSelectedBidMode(normalizeTakeoffBidMode(currentBidMode));
       setScopeText(currentScopeText || "");
       setSelectedSpecialties(currentSpecialties || []);
       setSelectedRateProfileId(currentRateProfileId ?? null);
       setAllowances(currentAllowances || []);
     }
-  }, [open, currentDivisions, currentRegion, currentCurrency, currentProjectType, currentScopeText, currentSpecialties, currentRateProfileId, currentAllowances]);
+  }, [open, currentDivisions, currentRegion, currentCurrency, currentProjectType, currentBidMode, currentScopeText, currentSpecialties, currentRateProfileId, currentAllowances]);
 
   const divisionsChanged = JSON.stringify([...(selectedDivisions || [])].sort()) !== JSON.stringify([...(currentDivisions || [])].sort());
   const regionChanged = selectedRegion !== currentRegion;
   const currencyChanged = selectedCurrency !== (currentCurrency || "USD");
   const projectTypeChanged = selectedProjectType !== normalizeTakeoffProjectType(currentProjectType);
+  const bidModeChanged = selectedBidMode !== normalizeTakeoffBidMode(currentBidMode);
   const scopeChanged = scopeText !== (currentScopeText || "");
   const specialtiesChanged = JSON.stringify([...(selectedSpecialties || [])].sort()) !== JSON.stringify([...(currentSpecialties || [])].sort());
   const rateProfileChanged = selectedRateProfileId !== (currentRateProfileId ?? null);
   const allowancesChanged = JSON.stringify(allowances) !== JSON.stringify(currentAllowances || []);
-  const hasChanges = divisionsChanged || regionChanged || currencyChanged || projectTypeChanged || scopeChanged || specialtiesChanged || rateProfileChanged || allowancesChanged;
+  const hasChanges = divisionsChanged || regionChanged || currencyChanged || projectTypeChanged || bidModeChanged || scopeChanged || specialtiesChanged || rateProfileChanged || allowancesChanged;
   const allowancePresets = useMemo(() => getAllowancePresetsForProjectType(selectedProjectType), [selectedProjectType]);
 
   const handleSave = async () => {
@@ -162,6 +176,7 @@ export default function ProjectSettingsPanel({
         rateProfileChanged ? selectedRateProfileId : undefined,
         allowancesChanged ? (allowances.length > 0 ? allowances : null) : undefined,
         projectTypeChanged ? selectedProjectType : undefined,
+        bidModeChanged ? selectedBidMode : undefined,
       );
 
       if (result.regionChanged) {
@@ -226,6 +241,9 @@ export default function ProjectSettingsPanel({
                   <Building2 className="w-3 h-3 mr-1" />
                   {getTakeoffProjectTypeLabel(currentProjectType)}
                 </Badge>
+                <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20">
+                  {getBidModeBehavior(currentBidMode).shortLabel}
+                </Badge>
                 {currentDivisions && currentDivisions.length > 0 ? (
                   <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20">
                     {currentDivisions.length} divisions
@@ -271,6 +289,35 @@ export default function ProjectSettingsPanel({
                 <div className="mt-1 text-xs text-cream-muted/70 border-t border-white/5 pt-2">
                   <span className="font-medium text-cream-muted">Scope:</span>{" "}
                   <span className="italic">{currentScopeText.length > 120 ? currentScopeText.slice(0, 120) + "..." : currentScopeText}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-cream">Bid Mode</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {TAKEOFF_BID_MODES.map((mode) => {
+                  const option = BID_MODE_BEHAVIORS[mode];
+                  const isActive = selectedBidMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSelectedBidMode(mode)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        isActive ? "border-amber-500/60 bg-amber-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold text-cream">{option.label}</span>
+                      <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              {bidModeChanged && hasProcessedSheets && (
+                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-amber-300">Bid mode changes apply on the next re-analysis.</span>
                 </div>
               )}
             </div>
@@ -597,24 +644,22 @@ export default function ProjectSettingsPanel({
               />
               </div>
               {scopeIntent.hasScope && (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-3 min-w-0 w-full">
-                  <div className="min-w-0 w-full">
-                    <Badge className="inline-block max-w-full whitespace-normal break-words bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] leading-relaxed mb-2">
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 min-w-0 overflow-hidden">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start min-w-0">
+                    <Badge className="w-fit max-w-full whitespace-normal break-words bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] leading-relaxed">
                       {scopeIntent.summary}
                     </Badge>
-                    <p className="text-xs text-cream-muted break-words leading-relaxed">
-                      Items outside this intent may be removed or tagged for review on re-analysis.
-                    </p>
+                    <span className="min-w-0 flex-1 text-xs text-cream-muted break-words">{bidModeBehavior.reviewSurface}</span>
                   </div>
                   {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
-                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
                       {scopeIntent.focusDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`focus-${division}`} className="whitespace-nowrap bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                        <Badge key={`focus-${division}`} className="whitespace-normal bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
                           Include Div {division}
                         </Badge>
                       ))}
                       {scopeIntent.excludedDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`exclude-${division}`} className="whitespace-nowrap bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
+                        <Badge key={`exclude-${division}`} className="whitespace-normal bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
                           Usually excludes Div {division}
                         </Badge>
                       ))}
@@ -647,6 +692,7 @@ export default function ProjectSettingsPanel({
                 setSelectedRegion(currentRegion || null);
                 setSelectedCurrency(currentCurrency || "USD");
                 setSelectedProjectType(normalizeTakeoffProjectType(currentProjectType));
+                setSelectedBidMode(normalizeTakeoffBidMode(currentBidMode));
                 setScopeText(currentScopeText || "");
                 setSelectedSpecialties(currentSpecialties || []);
                 setAllowances(currentAllowances || []);

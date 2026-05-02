@@ -414,6 +414,13 @@
       "when": 1777291200000,
       "tag": "0058_add_takeoff_project_type",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "5",
+      "when": 1777294800000,
+      "tag": "0059_add_takeoff_bid_mode",
+      "breakpoints": true
     }
   ]
 }

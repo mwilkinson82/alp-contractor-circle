@@ -956,11 +956,15 @@ function calculateConcreteVolumes(
  * that are clearly out of scope based on the scope text.
  * This runs BEFORE LLM consolidation to reduce item count.
  */
-export function hardScopeFilter(items: RawItem[], scopeText: string | null): RawItem[] {
+export function hardScopeFilter(items: RawItem[], scopeText: string | null, bidMode?: string | null): RawItem[] {
   if (!scopeText || scopeText.trim().length === 0) return items;
 
   const scope = scopeText.toLowerCase();
-  const scopeIntent = buildScopeIntent(scopeText);
+  const scopeIntent = buildScopeIntent(scopeText, null, bidMode);
+  if (scopeIntent.scopeStrictness !== "strict") {
+    console.log(`[HardFilter] ${scopeIntent.bidMode} mode keeps boundary items visible; skipping hard removals.`);
+    return items;
+  }
   
   // Detect scope patterns
   const isFoundationOnly = /foundation|footing|slab.on.grade|sog|below.grade/i.test(scope) && 
@@ -1223,7 +1227,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 }> {
   const project = await getTakeoffProject(projectId);
   if (!project) throw new Error(`Project ${projectId} not found`);
-  const projectScopeIntent = buildScopeIntent(project.scopeText);
+  const projectScopeIntent = buildScopeIntent(project.scopeText, null, project.bidMode);
 
   const sheets = await getDrawingSheetsByProject(projectId);
   const sheetContexts: SheetContext[] = sheets.map((s: any) => ({
@@ -1269,7 +1273,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   console.log(`[PostProcess] Starting post-processing pipeline for project ${projectId} (${originalCount} items, ${lsBefore} LS)...`);
 
   // Step 0: Hard programmatic filters BEFORE consolidation
-  let filteredItems = hardScopeFilter(rawItems, project.scopeText);
+  let filteredItems = hardScopeFilter(rawItems, project.scopeText, project.bidMode);
   filteredItems = removeSpecNotes(filteredItems);
   console.log(`[PostProcess] After hard filters: ${originalCount} → ${filteredItems.length} items (${originalCount - filteredItems.length} removed)`);
 

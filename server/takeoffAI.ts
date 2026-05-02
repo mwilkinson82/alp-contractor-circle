@@ -32,10 +32,11 @@ import {
   getProjectMarkups,
 } from "./takeoffDb";
 import { postProcessTakeoff } from "./takeoffPostProcess";
-import { indexAllSheets } from "./takeoffSheetIndex";
+import { indexAllSheets, type SheetIndexEntry } from "./takeoffSheetIndex";
 import type { InsertTakeoffItem } from "../drizzle/schema";
 import { buildScopeIntent, buildScopeIntentPrompt } from "../shared/scopeIntent";
 import { TRADE_SPECIALTIES } from "../shared/tradeSpecialties";
+import { getBidModeBehavior } from "../shared/bidMode";
 
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
@@ -227,6 +228,24 @@ export function shouldVerifyExtraction(
   return { shouldVerify: true, reason: "standard QA required" };
 }
 
+export function shouldVerifyExtractionForBidMode(
+  extracted: TakeoffExtractionResult,
+  bidMode?: string | null,
+  scaleRatio?: number | null
+): { shouldVerify: boolean; reason: string } {
+  const behavior = getBidModeBehavior(bidMode);
+  const base = shouldVerifyExtraction(extracted, scaleRatio);
+  if (behavior.verification !== "minimal") return base;
+
+  const hasInvalidQuantity = extracted.items.some((item) => !Number.isFinite(item.quantity) || item.quantity <= 0);
+  const hasLumpSum = extracted.items.some((item) => item.unit.toUpperCase().trim() === "LS");
+  const minConfidence = extracted.items.length > 0
+    ? Math.min(...extracted.items.map((item) => item.confidence || 0))
+    : 0;
+  if (hasInvalidQuantity || hasLumpSum || minConfidence < 60) return base;
+  return { shouldVerify: false, reason: "fast scope check minimal QA" };
+}
+
 // ─── JSON Repair Helper ────────────────────────────────────────────────────────────────
 
 /**
@@ -329,10 +348,21 @@ async function extractPass(
   scaleRatio?: number | null,
   scaleUnit?: string | null,
   selectedDivisions?: string[] | null,
-  specialtyIds?: string[] | null
+  specialtyIds?: string[] | null,
+  bidMode?: string | null
 ): Promise<TakeoffExtractionResult> {
-  const scopeIntent = buildScopeIntent(scopeText, selectedDivisions);
+  const behavior = getBidModeBehavior(bidMode);
+  const scopeIntent = buildScopeIntent(scopeText, selectedDivisions, behavior.bidMode);
   let EXTRACT_PROMPT = "Analyze this construction drawing for a contractor's bid package. Extract measurable quantities that fit the configured scope. Return your analysis as JSON.";
+  EXTRACT_PROMPT += `\n\n## BID MODE\n${behavior.label}: ${behavior.description}\n${behavior.reviewSurface}`;
+
+  if (behavior.extractionStrategy === "broad") {
+    EXTRACT_PROMPT += "\nExtract broad GC coverage across visible trades. Use selected CSI divisions only when provided as an explicit package filter.";
+  } else if (behavior.extractionStrategy === "speed_first") {
+    EXTRACT_PROMPT += "\nPrioritize the highest-signal scope, quantity, and risk items. Keep the output lean: likely bid items, obvious alternates, and visible boundary risks.";
+  } else {
+    EXTRACT_PROMPT += "\nExtract the trade package scope tightly. Boundary and adjacent work should remain visible in notes as review/excluded, not counted as active scope.";
+  }
 
   if (projectContext && projectContext.trim().length > 0) {
     EXTRACT_PROMPT += `\n\n${truncateContext(projectContext.trim(), 8000)}`;
@@ -562,6 +592,7 @@ export async function processDrawingSheet(
   _scaleRatio?: number | null,
   _scaleUnit?: string | null,
   _projectType?: string | null,
+  _bidMode?: string | null,
   _workType?: string | null,
   _region?: string | null,
   _alreadyExtracted?: string | null,
@@ -579,11 +610,12 @@ export async function processDrawingSheet(
       _scaleRatio,
       _scaleUnit,
       _selectedDivisions,
-      _specialtyIds
+      _specialtyIds,
+      _bidMode
     );
     console.log(`[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`);
 
-    const verificationDecision = shouldVerifyExtraction(extracted, _scaleRatio);
+    const verificationDecision = shouldVerifyExtractionForBidMode(extracted, _bidMode, _scaleRatio);
     let result = extracted;
     if (verificationDecision.shouldVerify) {
       console.log(`[Takeoff AI] Pass 2 — Verifying sheet ${sheetId} (${verificationDecision.reason})...`);
@@ -650,7 +682,7 @@ export async function processDrawingSheet(
         sheetId, imageUrl, projectId,
         _selectedDivisions, _currency, _scopeText, _projectContext,
         _specialtyIds, _scaleRatio, _scaleUnit, _projectType,
-        _workType, _region, _alreadyExtracted,
+        _bidMode, _workType, _region, _alreadyExtracted,
         _retryAttempt + 1
       );
     }
@@ -664,6 +696,95 @@ export async function processDrawingSheet(
 }
 
 // ─── Batch Processing ──────────────────────────────────────────────────────────
+
+function sheetText(entry: SheetIndexEntry): string {
+  return [
+    entry.sheetName,
+    entry.sheetType,
+    entry.discipline,
+    entry.summary,
+    ...entry.elements.map((element) => `${element.type} ${element.description} ${element.rebarCallouts.join(" ")}`),
+    ...entry.dimensions.map((dimension) => `${dimension.type} ${dimension.label}`),
+  ].join(" ").toLowerCase();
+}
+
+function divisionDisciplineSignals(divisions: string[] | null): string[] {
+  const signals = new Set<string>();
+  for (const division of divisions || []) {
+    if (["03", "04", "05"].includes(division)) signals.add("structural");
+    if (["06", "07", "08", "09", "10", "11", "12", "13", "14"].includes(division)) signals.add("architectural");
+    if (["21", "22", "23", "26", "27", "28"].includes(division)) signals.add("mep");
+    if (["22"].includes(division)) signals.add("plumbing");
+    if (["23"].includes(division)) signals.add("mechanical");
+    if (["26", "27", "28"].includes(division)) signals.add("electrical");
+    if (["31", "32", "33"].includes(division)) signals.add("civil");
+    if (["32"].includes(division)) signals.add("landscape");
+  }
+  return Array.from(signals);
+}
+
+export function scoreSheetForBidMode(
+  entry: SheetIndexEntry,
+  bidMode?: string | null,
+  scopeText?: string | null,
+  selectedDivisions?: string[] | null
+): number {
+  const behavior = getBidModeBehavior(bidMode);
+  if (entry.sheetType === "cover" || entry.sheetType === "general_notes") return 0;
+  if (behavior.sheetTriage === "all_buildable") return 100;
+
+  const text = sheetText(entry);
+  const scopeIntent = buildScopeIntent(scopeText, selectedDivisions, behavior.bidMode);
+  const signals = [
+    ...divisionDisciplineSignals(scopeIntent.focusDivisions.length > 0 ? scopeIntent.focusDivisions : selectedDivisions || null),
+    ...scopeIntent.includeKeywords,
+    ...scopeIntent.tradeFocus,
+    ...(scopeText || "").toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 5),
+  ];
+
+  let score = 0;
+  if (["floor_plan", "foundation_plan", "site_plan", "structural_plan", "mep_plan", "electrical_plan", "plumbing_plan"].includes(entry.sheetType)) score += 25;
+  if (["structural", "architectural", "civil", "mechanical", "electrical", "plumbing"].includes(entry.discipline)) score += 15;
+  for (const signal of Array.from(new Set(signals))) {
+    if (signal && text.includes(signal.toLowerCase())) score += 12;
+  }
+  if (entry.dimensions.length > 0) score += Math.min(20, entry.dimensions.length * 2);
+  if (entry.elements.length > 0) score += Math.min(20, entry.elements.length * 3);
+
+  if (!scopeIntent.hasScope && !selectedDivisions?.length) {
+    score += ["floor_plan", "site_plan", "structural_plan", "foundation_plan"].includes(entry.sheetType) ? 25 : 5;
+  }
+
+  return score;
+}
+
+function selectSheetsForBidMode(
+  entries: SheetIndexEntry[],
+  pendingSheetIds: Set<number>,
+  bidMode?: string | null,
+  scopeText?: string | null,
+  selectedDivisions?: string[] | null
+): Set<number> | null {
+  const behavior = getBidModeBehavior(bidMode);
+  if (behavior.sheetTriage === "all_buildable") return null;
+
+  const scored = entries
+    .filter((entry) => pendingSheetIds.has(entry.sheetId))
+    .map((entry) => ({
+      sheetId: entry.sheetId,
+      score: scoreSheetForBidMode(entry, behavior.bidMode, scopeText, selectedDivisions),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return null;
+
+  const threshold = behavior.sheetTriage === "highest_signal" ? 35 : 20;
+  const selected = scored.filter((entry) => entry.score >= threshold);
+  const fallback = selected.length > 0 ? selected : scored.slice(0, Math.min(scored.length, behavior.maxFastSheets || 12));
+  const limited = behavior.maxFastSheets ? fallback.slice(0, behavior.maxFastSheets) : fallback;
+  return new Set(limited.map((entry) => entry.sheetId));
+}
 
 /**
  * Process all pending sheets for a takeoff project.
@@ -687,21 +808,40 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   };
   const selectedDivisions = parseJsonArray(project.selectedDivisions);
   const selectedSpecialties = parseJsonArray(project.selectedSpecialties);
+  const bidModeBehavior = getBidModeBehavior(project.bidMode);
 
   const pipelineStart = Date.now();
   const timings: Record<string, number> = {};
   const pendingSheets = await getPendingSheets(projectId);
+  const pendingSheetIds = new Set(pendingSheets.map((sheet: any) => sheet.id));
 
   // ─── PASS 1: Index All Sheets (classify types, detect cover sheets) ──────────
   // We run indexing to classify sheet types, skip cover sheets, and provide
   // compact project context to each sheet extraction.
   let projectContextSummary: string | null = null;
+  let triagedSheetIds: Set<number> | null = null;
+  let contextOnlySheetIds = new Set<number>();
   if (pendingSheets.length > 0) {
     try {
       const pass1Start = Date.now();
-      console.log(`[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (type classification only) ===`);
+      console.log(`[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (${bidModeBehavior.label}) ===`);
       const projectContext = await indexAllSheets(projectId);
       projectContextSummary = projectContext.contextSummary;
+      contextOnlySheetIds = new Set(
+        projectContext.sheets
+          .filter((entry) => entry.sheetType === "cover" || entry.sheetType === "general_notes")
+          .map((entry) => entry.sheetId)
+      );
+      triagedSheetIds = selectSheetsForBidMode(
+        projectContext.sheets,
+        pendingSheetIds,
+        bidModeBehavior.bidMode,
+        project.scopeText || null,
+        selectedDivisions
+      );
+      if (triagedSheetIds) {
+        console.log(`[Takeoff AI] Sheet triage selected ${triagedSheetIds.size}/${pendingSheets.length} sheet(s) for deep extraction (${bidModeBehavior.sheetTriage}).`);
+      }
       timings.pass1_indexing_sec = Math.round((Date.now() - pass1Start) / 1000);
       console.log(`[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`);
     } catch (indexError: any) {
@@ -751,7 +891,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         errorMessage: "No image URL available",
       });
       processedCount++;
-    } else if (CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType)) {
+    } else if (CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType) || contextOnlySheetIds.has(sheet.id)) {
       console.log(`[Takeoff AI] Skipping cover sheet ${sheet.id} (${sheet.sheetName}) — no measurable quantities`);
       await updateDrawingSheet(sheet.id, {
         status: "completed" as any,
@@ -759,6 +899,19 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
         aiRawResponse: JSON.stringify({
           contextOnly: true,
           reason: `Cover sheet — no measurable quantities.`,
+          items: [],
+        }),
+      });
+      processedCount++;
+      await updateTakeoffProject(projectId, { processedSheets: processedCount });
+    } else if (triagedSheetIds && !triagedSheetIds.has(sheet.id)) {
+      console.log(`[Takeoff AI] Holding sheet ${sheet.id} (${sheet.sheetName || sheet.pageNumber}) out of deep extraction for ${bidModeBehavior.label}`);
+      await updateDrawingSheet(sheet.id, {
+        status: "skipped" as any,
+        errorMessage: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
+        aiRawResponse: JSON.stringify({
+          contextOnly: true,
+          reason: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
           items: [],
         }),
       });
@@ -796,7 +949,8 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
           selectedSpecialties,
           savedScale?.ratio ?? null,
           savedScale?.unit ?? null,
-          project.projectType || "commercial"
+          project.projectType || "commercial",
+          bidModeBehavior.bidMode
         );
       })
     );
