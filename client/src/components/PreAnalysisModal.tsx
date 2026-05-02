@@ -264,27 +264,74 @@ export default function PreAnalysisModal({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-amber-500" />
-                <Label className="text-sm font-semibold text-cream">Project Type</Label>
+            <div className="space-y-4 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-amber-500" />
+                  <Label className="text-base font-semibold text-cream">Pricing Setup</Label>
+                </div>
+                <p className="text-xs text-cream-muted">
+                  Required for takeoff pricing. Pick the project type, currency, and cost region before analysis starts.
+                </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                {TAKEOFF_PROJECT_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setProjectType(option.value)}
-                    className={`rounded-lg border p-3 text-left transition-colors ${
-                      projectType === option.value
-                        ? "border-amber-500/50 bg-amber-500/10"
-                        : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="text-xs font-semibold text-cream">{option.label}</span>
-                    <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
-                  </button>
-                ))}
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-amber-500" />
+                  <Label className="text-sm font-semibold text-cream">Project Type</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  {TAKEOFF_PROJECT_TYPE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setProjectType(option.value)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        projectType === option.value
+                          ? "border-amber-500/50 bg-amber-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold text-cream">{option.label}</span>
+                      <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.85fr)] gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-amber-500" />
+                    <Label className="text-sm font-semibold text-cream">Currency</Label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {CURRENCIES.map((c) => (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => {
+                          setCurrency(c.code);
+                          if (c.code !== currency) setCostRegion(null);
+                        }}
+                        className={`p-3 rounded-lg border transition-colors text-left ${
+                          currency === c.code ? "border-amber-500/50 bg-amber-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold text-cream">{c.code}</span>
+                        <p className="text-[10px] text-cream-muted mt-1">{c.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-500" />
+                    <Label className="text-sm font-semibold text-cream">Cost Region</Label>
+                  </div>
+                  <RegionSelector value={costRegion} onChange={setCostRegion} defaultExpanded={false} currency={currency} />
+                </div>
               </div>
             </div>
 
@@ -363,37 +410,18 @@ export default function PreAnalysisModal({
           </section>
 
           <details className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-cream">Advanced optional settings</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-cream">
+              Optional Precision Controls
+              <span className="ml-2 text-xs font-normal text-cream-muted">
+                Use these when you want to narrow sheet triage or trade boundaries.
+              </span>
+            </summary>
             <div className="space-y-5 pt-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-amber-500" />
-                  <Label className="text-sm font-semibold text-cream">Currency</Label>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {CURRENCIES.map((c) => (
-                    <button
-                      key={c.code}
-                      onClick={() => {
-                        setCurrency(c.code);
-                        if (c.code !== currency) setCostRegion(null);
-                      }}
-                      className={`p-3 rounded-lg border transition-colors text-left ${
-                        currency === c.code ? "border-amber-500/50 bg-amber-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
-                      }`}
-                    >
-                      <span className="font-semibold text-cream">{c.flag}</span>
-                      <p className="text-[10px] text-cream-muted mt-1">{c.description}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-amber-500" />
                   <Label className="text-sm font-semibold text-cream">CSI Divisions</Label>
-                  <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Inference aid</Badge>
+                  <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Optional filter</Badge>
                 </div>
                 <DivisionSelector value={selectedDivisions} onChange={setSelectedDivisions} defaultExpanded={false} />
               </div>
@@ -402,7 +430,7 @@ export default function PreAnalysisModal({
                 <div className="flex items-center gap-2">
                   <Wrench className="w-4 h-4 text-amber-500" />
                   <Label className="text-sm font-semibold text-cream">Trade Specialties</Label>
-                  <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Inference aid</Badge>
+                  <Badge className="bg-white/10 text-cream-muted border-white/10 text-[10px] font-normal">Optional filter</Badge>
                 </div>
                 <SpecialtySelector
                   value={selectedSpecialties}
@@ -410,14 +438,6 @@ export default function PreAnalysisModal({
                   selectedDivisions={selectedDivisions}
                   detectedSpecialties={detectedSpecialties || []}
                 />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-amber-500" />
-                  <Label className="text-sm font-semibold text-cream">Regional Cost Factoring</Label>
-                </div>
-                <RegionSelector value={costRegion} onChange={setCostRegion} defaultExpanded={false} currency={currency} />
               </div>
 
               <div className="space-y-3">
