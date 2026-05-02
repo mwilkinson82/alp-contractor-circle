@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildScopeIntent, classifyScopeMatch } from "../shared/scopeIntent";
+import { buildScopeIntent, classifyScopeMatch, scopeSafetyPass } from "../shared/scopeIntent";
 
 const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.";
 const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
@@ -562,5 +562,182 @@ describe("Crystal Car Wash explicit exclusion override regression", () => {
       description: "Keyway Joint and Waterstop, PVC",
     }, intent);
     expect(["included", "review"]).toContain(result);
+  });
+});
+
+describe("Scope-safety pass: named-area gate for broad concrete profile", () => {
+  const BROAD_SCOPE = "Commercial project. Concrete foundations, slab-on-grade, trench/pit systems, and associated drains package. Include mobilization, layout coordination, site preparation, excavation for continuous footings, isolated footings, trench drains, trench pit, tire seal drainage pit, correlator pit, gate post foundations, bollard foundations, equipment pole foundations, vacuum enclosure foundations, trash enclosure foundations, and related slab work. Include subgrade preparation, fine grading, compaction, onsite reuse of suitable excavated material, formwork, reinforcing steel within foundations and pits, dowels required for foundation continuation, concrete placement, finishing, curing, stepped footings, slab edge forms, 10 mil vapor barrier, rigid insulation at occupied slab perimeter areas, fiber-reinforced slab-on-grade, sawcut control joints, trench drain concrete, trench pit concrete, tire seal drainage pit concrete, correlator pit concrete, termite treatment, concrete testing coordination, compaction testing coordination, field supervision, and project management. Exclude CMU masonry work, masonry stem walls, masonry enclosures, structural work above top of foundation, reinforcing steel beyond foundation scope and footing dowels, drive slabs outside the building footprint unless specifically listed, surveying services, dewatering, underground utilities beyond included pits and drains, import/export of fill beyond onsite reuse, control joint sealants, epoxy fillers, joint caulking, car wash equipment, and any work not explicitly listed in this scope.";
+
+  it("demotes generic 'Concrete for slab-on-grade (4 inch thick)' to review in trade_package mode", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    // Generic slab item without named-area tie → review
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete for slab-on-grade (4 inch thick)",
+    }, intent)).toBe("review");
+  });
+
+  it("demotes generic 'Concrete walls' to review in trade_package mode", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete walls at building perimeter",
+    }, intent)).toBe("review");
+  });
+
+  it("demotes generic 'Reinforcing steel' to review in trade_package mode", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 20 00",
+      description: "Reinforcing steel general",
+    }, intent)).toBe("review");
+  });
+
+  it("demotes generic 'Formwork' to review in trade_package mode", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 10 00",
+      description: "Formwork general",
+    }, intent)).toBe("review");
+  });
+
+  it("keeps named-area items active: trench pit concrete, correlator pit, tire seal pit", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Trench pit concrete at car wash trench" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete for correlator pit" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Tire seal drainage pit concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Gate post foundation concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Bollard foundation concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Equipment pole foundation" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Vacuum enclosure foundation concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Trash enclosure foundation" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("keeps named-area items active: continuous footing, isolated footing, grade beam", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 30 00", description: "Continuous footing concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Isolated footing at column" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Grade beam concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Wall footing concrete" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Foundation wall concrete" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("keeps vapor barrier, rigid insulation, termite treatment, control joints active", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "07", csiCode: "07 26 00", description: "10 mil vapor barrier below slab-on-grade" },
+      { csiDivision: "07", csiCode: "07 21 13", description: "Rigid insulation at occupied slab perimeter" },
+      { csiDivision: "31", csiCode: "31 31 16", description: "Termite treatment below slab-on-grade" },
+      { csiDivision: "03", csiCode: "03 35 00", description: "Sawcut control joints" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("keeps supervision, testing, mobilization active", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "01", csiCode: "01 45 00", description: "Concrete testing coordination" },
+      { csiDivision: "01", csiCode: "01 45 00", description: "Compaction testing coordination" },
+      { csiDivision: "01", csiCode: "01 31 00", description: "Field supervision and project management" },
+      { csiDivision: "01", csiCode: "01 50 00", description: "Mobilization and layout coordination" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("demotes 'Broad reinforcing' and 'Consolidated formwork' to review", () => {
+    const intent = buildScopeIntent(BROAD_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "03", csiCode: "03 20 00", description: "Broad reinforcing steel for building" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Consolidated formwork for walls and columns" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Generic concrete for building structure" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("review");
+    }
+  });
+});
+
+describe("Scope-safety pass: scopeSafetyPass function", () => {
+
+  it("demotes high-dollar items without named-area evidence to review", () => {
+    const intent = buildScopeIntent("Concrete foundations and slab-on-grade, trench/pit systems, and associated drains package. Include trench drains, correlator pit.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Trench drain concrete", notes: "", extendedCost: 500_000 },  // $5k — below threshold
+      { id: 2, description: "Generic concrete assembly", notes: "", extendedCost: 2_000_000 },  // $20k — above threshold, no named area
+      { id: 3, description: "Waterproofing membrane", notes: "", extendedCost: 1_500_000 },  // $15k — core scope, should stay
+      { id: 4, description: "Correlator pit concrete", notes: "", extendedCost: 1_200_000 },  // $12k — named area, should stay
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    // Item 2 should be demoted (generic, high-dollar, no named area)
+    expect(result.demotedIds).toContain(2);
+    // Item 3 should NOT be demoted (core waterproofing scope)
+    expect(result.demotedIds).not.toContain(3);
+    // Item 4 should NOT be demoted (named area match)
+    expect(result.demotedIds).not.toContain(4);
+    // Item 1 should NOT be demoted (below threshold)
+    expect(result.demotedIds).not.toContain(1);
+  });
+
+  it("detects duplicate active items and demotes the lower-cost one", () => {
+    const intent = buildScopeIntent("Concrete foundations and trench/pit systems.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Continuous footing concrete placement and finishing", notes: "", extendedCost: 800_000 },
+      { id: 2, description: "Continuous footing concrete placement and curing", notes: "", extendedCost: 600_000 },
+      { id: 3, description: "Trench drain concrete", notes: "", extendedCost: 300_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    // One of the duplicate continuous footing items should be demoted
+    expect(result.demotedIds).toContain(2); // lower cost gets demoted
+    expect(result.demotedIds).not.toContain(1); // higher cost stays
+    expect(result.demotedIds).not.toContain(3); // unique item stays
+  });
+
+  it("does not apply in full_gc (broad) mode", () => {
+    const intent = buildScopeIntent("Full GC scope.", null, "full_gc");
+
+    const items = [
+      { id: 1, description: "Generic concrete assembly", notes: "", extendedCost: 5_000_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    expect(result.demotedCount).toBe(0);
+    expect(result.demotedIds).toEqual([]);
+  });
+
+  it("does not demote items with sheet-level evidence", () => {
+    const intent = buildScopeIntent("Concrete foundations and slab-on-grade.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Generic concrete assembly", notes: "From sheet S-101 detail 4", extendedCost: 2_000_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    expect(result.demotedIds).not.toContain(1);
   });
 });

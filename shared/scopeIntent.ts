@@ -1,4 +1,5 @@
 import { getBidModeBehavior, type TakeoffBidMode } from "./bidMode";
+import { getScopeStatusFromNotes } from "./scopeCost";
 
 export type ScopeMatchStatus = "included" | "excluded" | "review";
 
@@ -122,6 +123,95 @@ const SUPPORT_FAMILIES: TermFamily[] = [
   "excavation", "backfill", "compactedBase", "subgradePrep", "formwork", "rebar", "demo",
   "patching", "blocking", "equipmentSupport", "sleevesEmbeds", "accessWork",
 ];
+
+/**
+ * Named-area patterns for the broad concrete profile.
+ * Only items matching one of these specific assemblies should be classified as 'active'
+ * when the concrete_foundations_sog_pits_drains profile is matched.
+ * Generic slab/wall/concrete/broad rebar/broad formwork without a named-area tie → review.
+ */
+const NAMED_AREA_PATTERNS: RegExp[] = [
+  /\bcontinuous footing/i,
+  /\bisolated footing/i,
+  /\bspread footing/i,
+  /\btrench drain/i,
+  /\btrench pit/i,
+  /\btire seal(?:\s+drainage)?\s*pit/i,
+  /\bcorrelator pit/i,
+  /\bgate post foundation/i,
+  /\bbollard foundation/i,
+  /\bequipment pole foundation/i,
+  /\bvacuum enclosure/i,
+  /\btrash enclosure/i,
+  /\bslab[- ]?on[- ]?grade\b.*\b(?:building|footprint|interior|enclosed)/i,
+  /\binterior slab/i,
+  /\bbuilding slab/i,
+  /\bvapor barrier/i,
+  /\bvapor retarder/i,
+  /\brigid insulation/i,
+  /\btermite treatment/i,
+  /\btermite/i,
+  /\bcar wash trench/i,
+  /\bpit concrete/i,
+  /\btrench concrete/i,
+  /\bgrade beam/i,
+  /\bwall footing/i,
+  /\bwf footing/i,
+  /\bfoundation wall/i,
+  /\bcontrol joint/i,
+  /\bsaw\s*cut/i,
+  /\bcompaction testing/i,
+  /\bconcrete testing/i,
+  /\bsupervision/i,
+  /\bmobilization/i,
+  /\blayout coordination/i,
+  /\bequipment pad/i,
+  /\bequipment support/i,
+  /\bpole foundation/i,
+  /\bmisc(?:ellaneous)? foundation/i,
+  /\bwithin\s+(?:foundations?|pits?|trenches?)/i,
+  /\b(?:for|at|in)\s+(?:foundations?\s+and\s+pits?|pits?\s+and\s+foundations?)/i,
+  /\b(?:for|at|in)\s+(?:continuous|isolated|spread)\s+footing/i,
+  /\b(?:for|at|in)\s+(?:trench|correlator|tire seal)\s+pit/i,
+  /\b(?:for|at|in)\s+(?:gate post|bollard|equipment pole)\s+foundation/i,
+  /\b(?:for|at|in)\s+(?:vacuum|trash)\s+enclosure/i,
+  /\bslab\s+edge\s+form/i,
+  /\bstepped\s+footing/i,
+  /\bfooting\s+dowel/i,
+  /\bfoundation\s+continuation/i,
+  /\bconcrete\s+foundations?/i,
+  /\bfoundation\s+concrete/i,
+  /\bfooting\s+concrete/i,
+  /\bconcrete\s+(?:placement|pour)\s+(?:at|for)\s+(?:foundation|footing)/i,
+  /\bslab[- ]?on[- ]?grade\s+(?:within|at|in)\s+(?:building|footprint)/i,
+  /\bfiber[- ]?reinforced\s+slab/i,
+];
+
+/**
+ * Patterns that indicate an item is generic/broad and should NOT be active
+ * under the broad concrete profile unless it also matches a named area.
+ */
+const GENERIC_CONCRETE_PATTERNS: RegExp[] = [
+  /^concrete\b(?!.*(?:trench|pit|car wash|footing|foundation|grade beam|testing|enclosure))/i,
+  /^slab\b(?!.*(?:on[- ]?grade.*(?:building|interior|enclosed)|interior|building))/i,
+  /^reinforc(?:ing|ement|ed?)\b(?!.*(?:footing|foundation|pit|trench|grade beam|enclosure))/i,
+  /^rebar\b(?!.*(?:footing|foundation|pit|trench|grade beam|enclosure))/i,
+  /^formwork\b(?!.*(?:footing|foundation|pit|trench|grade beam|enclosure))/i,
+  /^forms?\b(?!.*(?:footing|foundation|pit|trench|grade beam|enclosure))/i,
+  /\bgeneric\s+(?:concrete|slab|wall|rebar|reinforcing|formwork)/i,
+  /\bbroad\s+(?:concrete|slab|reinforcing|formwork)/i,
+  /\bconsolidated\s+(?:concrete|slab|reinforcing|formwork)/i,
+  /\bconcrete\s+(?:for|to)\s+(?:slab|wall|column|beam|floor)\b(?!.*(?:footing|foundation|pit|trench|grade beam|enclosure))/i,
+  /\bconcrete\s+(?:walls?|columns?|beams?|floors?)\b(?!.*(?:foundation|pit|trench|grade beam|enclosure))/i,
+];
+
+function matchesNamedArea(text: string): boolean {
+  return NAMED_AREA_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function isGenericConcreteItem(text: string): boolean {
+  return GENERIC_CONCRETE_PATTERNS.some((pattern) => pattern.test(text));
+}
 
 const BOUNDARY_FAMILY_PATTERNS: Array<{ family: TermFamily; pattern: RegExp }> = [
   { family: "footing", pattern: /\bat\s+foundation walls?\b|\bfoundation walls?\b/i },
@@ -500,6 +590,37 @@ export function classifyScopeMatch(
     if (hasUnownedSupport) return "review";
     if (quantityNeedsReview) return "review";
     if (families.includes("belowGradeInsulation") && !hasProfileInclude) return "review";
+
+    // Named-area gate (also applies when item has explicit include via broad families like concrete/rebar/formwork)
+    if (
+      hasBroadConcretePackageProfile &&
+      intent.scopeStrictness === "strict" &&
+      hasProfileInclude
+    ) {
+      const concreteRelatedFamilies: TermFamily[] = ["concrete", "slab", "footing", "rebar", "formwork"];
+      // Determine if the item's DESCRIPTION is primarily about concrete/slab/rebar/formwork.
+      // Use the description alone (not notes) to determine the item's primary nature.
+      const descText = (item.description || "").toLowerCase();
+      const descFamilies = matchingFamilies(descText);
+      const descNonSupport = descFamilies.filter((f) => !SUPPORT_FAMILIES.includes(f));
+      // Item is concrete-related if:
+      // 1. Its description's non-support families are all concrete-related, OR
+      // 2. It's a support-only item (rebar/formwork) with no other primary family (generic support)
+      const descPrimaryIsConcreteRelated = descNonSupport.length > 0 && descNonSupport.every((f) => concreteRelatedFamilies.includes(f));
+      const isGenericSupportOnly = descNonSupport.length === 0 && descFamilies.some((f) => ["rebar", "formwork"].includes(f));
+      // Also check that the item isn't primarily about something else (subgradePrep, excavation, etc.)
+      const hasNonConcreteDescPrimary = descFamilies.some((f) => ["subgradePrep", "excavation", "backfill", "compactedBase"].includes(f) && !concreteRelatedFamilies.includes(f));
+
+      if ((descPrimaryIsConcreteRelated || isGenericSupportOnly) && !hasNonConcreteDescPrimary) {
+        const hasNamedArea = matchesNamedArea(text);
+        const isGeneric = isGenericConcreteItem(descText);
+        if (isGeneric && !hasNamedArea) return "review";
+        if (!hasNamedArea && !families.some((f) => ["trenchPit", "miscFoundations", "vaporBarrier", "belowGradeInsulation", "termiteTreatment", "controlJoint", "testingCoordination", "supervision", "equipmentSupport", "footing"].includes(f))) {
+          return "review";
+        }
+      }
+    }
+
     if (hasProfileInclude) return "included";
     if (hasProfileExclude && hasHardExcludedFamily) return "review";
     if (hasProfileExclude) return "included";
@@ -522,6 +643,32 @@ export function classifyScopeMatch(
     const allPrimaryExcluded = itemPrimaryFamilies.length > 0 && itemPrimaryFamilies.every((f) => containsFamily(intent.explicitExcludes, f));
     if (allPrimaryExcluded) return "excluded";
     if (quantityNeedsReview) return "review";
+
+    // Named-area gate for broad concrete profile in trade_package mode:
+    // Generic concrete/slab/rebar/formwork items without a named-area tie → review
+    if (
+      hasBroadConcretePackageProfile &&
+      intent.scopeStrictness === "strict" &&
+      !hasExplicitInclude
+    ) {
+      const concreteRelatedFamilies: TermFamily[] = ["concrete", "slab", "footing", "rebar", "formwork"];
+      const descText = (item.description || "").toLowerCase();
+      const descFamilies = matchingFamilies(descText);
+      const descNonSupport = descFamilies.filter((f) => !SUPPORT_FAMILIES.includes(f));
+      const descPrimaryIsConcreteRelated = descNonSupport.length > 0 && descNonSupport.every((f) => concreteRelatedFamilies.includes(f));
+      const isGenericSupportOnly = descNonSupport.length === 0 && descFamilies.some((f) => ["rebar", "formwork"].includes(f));
+      const hasNonConcreteDescPrimary = descFamilies.some((f) => ["subgradePrep", "excavation", "backfill", "compactedBase"].includes(f) && !concreteRelatedFamilies.includes(f));
+
+      if ((descPrimaryIsConcreteRelated || isGenericSupportOnly) && !hasNonConcreteDescPrimary) {
+        const hasNamedArea = matchesNamedArea(text);
+        const isGeneric = isGenericConcreteItem(descText);
+        if (isGeneric && !hasNamedArea) return "review";
+        if (!hasNamedArea && !families.some((f) => ["trenchPit", "miscFoundations", "vaporBarrier", "belowGradeInsulation", "termiteTreatment", "controlJoint", "testingCoordination", "supervision", "equipmentSupport", "footing"].includes(f))) {
+          return "review";
+        }
+      }
+    }
+
     return "included";
   }
 
@@ -603,3 +750,144 @@ export function buildScopeIntentPrompt(intent: ScopeIntent, selectedDivisions?: 
 
   return lines.join("\n");
 }
+
+// ─── Scope Safety Pass ─────────────────────────────────────────────────────────
+// Post-classification pass that runs on the full item set to catch over-counting.
+// Returns items with updated notes (scope status tags) where safety rules trigger.
+
+export interface SafetyPassItem {
+  id?: string | number;
+  description?: string | null;
+  notes?: string | null;
+  extendedCost?: number | string | null;
+  csiDivision?: string | null;
+  csiCode?: string | null;
+  quantity?: number | string | null;
+}
+
+export interface SafetyPassResult {
+  items: SafetyPassItem[];
+  demotedCount: number;
+  demotedIds: (string | number)[];
+  warnings: string[];
+}
+
+/**
+ * High-dollar threshold: $10,000 per item (in cents = 1_000_000) OR 10% of active subtotal.
+ * Items exceeding this threshold are demoted to review unless they have strong evidence
+ * (named-area match or explicit include).
+ */
+const HIGH_DOLLAR_ABSOLUTE_CENTS = 1_000_000; // $10,000 in cents
+const HIGH_DOLLAR_PERCENTAGE = 0.10; // 10% of active subtotal
+
+function getExtendedCostCents(item: SafetyPassItem): number {
+  const cost = typeof item.extendedCost === "number" ? item.extendedCost : Number(item.extendedCost || 0);
+  return Number.isFinite(cost) ? cost : 0;
+}
+
+function normalizeDescription(desc: string | null | undefined): string {
+  return (desc || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Scope safety pass — call after initial classification to catch over-counting.
+ * Only applies in trade_package (strict) mode.
+ *
+ * Rules:
+ * 1. High-dollar review: items over $10k or 10% of active subtotal → review
+ *    unless they match a named area or have strong sheet evidence.
+ * 2. Duplicate detection: if multiple items have very similar descriptions and
+ *    are both active, keep the one with clearest evidence, demote others.
+ */
+export function scopeSafetyPass(
+  items: SafetyPassItem[],
+  intent: ScopeIntent
+): SafetyPassResult {
+  // Only apply in trade_package (strict) mode
+  if (intent.scopeStrictness !== "strict") {
+    return { items, demotedCount: 0, demotedIds: [], warnings: [] };
+  }
+
+  const result = items.map((item) => ({ ...item }));
+  const demotedIds: (string | number)[] = [];
+  const warnings: string[] = [];
+
+  // Compute active subtotal (items currently marked as included)
+  const activeSubtotalCents = result.reduce((sum, item) => {
+    const status = getScopeStatusFromNotes(item.notes);
+    return status === "included" ? sum + getExtendedCostCents(item) : sum;
+  }, 0);
+
+  const highDollarThresholdCents = Math.max(
+    HIGH_DOLLAR_ABSOLUTE_CENTS,
+    activeSubtotalCents * HIGH_DOLLAR_PERCENTAGE
+  );
+
+  // Pass 1: High-dollar review
+  for (const item of result) {
+    const status = getScopeStatusFromNotes(item.notes);
+    if (status !== "included") continue;
+
+    const cost = getExtendedCostCents(item);
+    if (cost <= highDollarThresholdCents) continue;
+
+    const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+    // Skip if item has strong evidence (named area, explicit scope match)
+    if (matchesNamedArea(text)) continue;
+    // Skip if item is clearly a core scope item (waterproofing, vapor barrier, etc.)
+    const families = matchingFamilies(text);
+    const isCoreScope = families.some((f) =>
+      ["waterproofing", "vaporBarrier", "waterstop", "protectionBoard", "drainageBoard", "foundationDrain"].includes(f)
+    );
+    if (isCoreScope) continue;
+    // Skip if item has sheet-level evidence markers
+    if (/\bsheet\s+[A-Z]?\d|\bpage\s+\d|\bdwg\b|\bdetail\s+\d/i.test(text)) continue;
+
+    // Demote to review
+    const costDollars = (cost / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+    const note = item.notes || "";
+    if (!note.startsWith("[Scope:")) {
+      item.notes = `[Scope: review] High-dollar item (${costDollars}) held for review. ${note}`.trim();
+    }
+    if (item.id != null) demotedIds.push(item.id);
+  }
+
+  // Pass 2: Duplicate detection
+  const activeItems = result.filter((item) => getScopeStatusFromNotes(item.notes) === "included");
+  const seen = new Map<string, SafetyPassItem>();
+  for (const item of activeItems) {
+    const normalized = normalizeDescription(item.description);
+    if (!normalized || normalized.length < 10) continue;
+
+    // Check for near-duplicates (same first 30 chars)
+    const key = normalized.slice(0, 30);
+    const existing = seen.get(key);
+    if (existing) {
+      // Keep the one with higher cost (more likely to be the detailed one)
+      const existingCost = getExtendedCostCents(existing);
+      const currentCost = getExtendedCostCents(item);
+      const toDemote = currentCost <= existingCost ? item : existing;
+      if (currentCost > existingCost) seen.set(key, item);
+
+      const note = toDemote.notes || "";
+      if (!note.startsWith("[Scope:")) {
+        toDemote.notes = `[Scope: review] Possible duplicate assembly — verify before including. ${note}`.trim();
+      }
+      if (toDemote.id != null) demotedIds.push(toDemote.id);
+    } else {
+      seen.set(key, item);
+    }
+  }
+
+  if (demotedIds.length > 0) {
+    warnings.push(`Scope safety pass demoted ${demotedIds.length} item(s) to review.`);
+  }
+
+  return {
+    items: result,
+    demotedCount: demotedIds.length,
+    demotedIds,
+    warnings,
+  };
+}
+
