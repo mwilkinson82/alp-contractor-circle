@@ -2,6 +2,9 @@ export const TAKEOFF_BID_MODES = ["full_gc", "trade_package", "fast_scope_check"
 
 export type TakeoffBidMode = typeof TAKEOFF_BID_MODES[number];
 
+export const DEFAULT_NEW_TAKEOFF_BID_MODE: TakeoffBidMode = "full_gc";
+export const LEGACY_TAKEOFF_BID_MODE_FALLBACK: TakeoffBidMode = "trade_package";
+
 export interface BidModeBehavior {
   bidMode: TakeoffBidMode;
   label: string;
@@ -52,10 +55,13 @@ export const BID_MODE_BEHAVIORS: Record<TakeoffBidMode, BidModeBehavior> = {
   },
 };
 
-export function normalizeTakeoffBidMode(value?: string | null): TakeoffBidMode {
+export function normalizeTakeoffBidMode(
+  value?: string | null,
+  fallback: TakeoffBidMode = LEGACY_TAKEOFF_BID_MODE_FALLBACK
+): TakeoffBidMode {
   return TAKEOFF_BID_MODES.includes(value as TakeoffBidMode)
     ? (value as TakeoffBidMode)
-    : "trade_package";
+    : fallback;
 }
 
 export function getBidModeBehavior(value?: string | null): BidModeBehavior {

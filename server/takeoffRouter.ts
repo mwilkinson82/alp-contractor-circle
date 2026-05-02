@@ -46,7 +46,7 @@ import { logActivity } from "./activityLogDb";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 import { normalizeTakeoffProjectType } from "../shared/projectType";
-import { normalizeTakeoffBidMode } from "../shared/bidMode";
+import { DEFAULT_NEW_TAKEOFF_BID_MODE, normalizeTakeoffBidMode } from "../shared/bidMode";
 
 const takeoffProjectTypeSchema = z.enum(["commercial", "residential", "civil_sitework", "other"]);
 const takeoffBidModeSchema = z.enum(["full_gc", "trade_package", "fast_scope_check"]);
@@ -200,7 +200,7 @@ export const takeoffRouter = router({
         description: input.description || null,
         currency: input.currency || "USD",
         projectType: normalizeTakeoffProjectType(input.projectType),
-        bidMode: normalizeTakeoffBidMode(input.bidMode),
+        bidMode: normalizeTakeoffBidMode(input.bidMode, DEFAULT_NEW_TAKEOFF_BID_MODE),
         selectedDivisions: divisionsJson,
         costRegion,
         costMultiplier,

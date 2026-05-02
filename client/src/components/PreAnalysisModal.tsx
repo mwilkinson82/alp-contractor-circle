@@ -29,6 +29,7 @@ import SpecialtySelector from "@/components/SpecialtySelector";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
 import {
   BID_MODE_BEHAVIORS,
+  DEFAULT_NEW_TAKEOFF_BID_MODE,
   TAKEOFF_BID_MODES,
   getBidModeBehavior,
   normalizeTakeoffBidMode,
@@ -62,7 +63,7 @@ interface PreAnalysisSettings {
 }
 
 const DEFAULT_SETTINGS: PreAnalysisSettings = {
-  bidMode: "trade_package",
+  bidMode: DEFAULT_NEW_TAKEOFF_BID_MODE,
   currency: "USD",
   projectType: "commercial",
   selectedDivisions: [],
@@ -140,7 +141,7 @@ export default function PreAnalysisModal({
 }: PreAnalysisModalProps) {
   const saved = useMemo(() => loadSavedSettings(), []);
   const [bidMode, setBidMode] = useState<TakeoffBidMode>(
-    normalizeTakeoffBidMode(existingBidMode || saved.bidMode)
+    normalizeTakeoffBidMode(existingBidMode || saved.bidMode, DEFAULT_NEW_TAKEOFF_BID_MODE)
   );
   const [currency, setCurrency] = useState<"USD" | "GBP" | "AUD">(
     (existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD"
@@ -156,7 +157,7 @@ export default function PreAnalysisModal({
 
   useEffect(() => {
     if (!open) return;
-    setBidMode(normalizeTakeoffBidMode(existingBidMode || saved.bidMode));
+    setBidMode(normalizeTakeoffBidMode(existingBidMode || saved.bidMode, DEFAULT_NEW_TAKEOFF_BID_MODE));
     setCurrency((existingCurrency as any) || (preferredCurrency as any) || saved.currency || "USD");
     setProjectType(normalizeTakeoffProjectType(existingProjectType || saved.projectType));
     setSelectedDivisions(existingDivisions || saved.selectedDivisions || []);
@@ -172,6 +173,7 @@ export default function PreAnalysisModal({
   );
   const bidModeBehavior = useMemo(() => getBidModeBehavior(bidMode), [bidMode]);
   const allowancePresets = useMemo(() => getAllowancePresetsForProjectType(projectType), [projectType]);
+  const tradePackageNeedsScope = bidMode === "trade_package" && scopeText.trim().length < 12 && selectedDivisions.length === 0 && selectedSpecialties.length === 0;
 
   const addAllowance = () => {
     setAllowances(prev => [...prev, { id: crypto.randomUUID(), description: "", amount: 0 }]);
@@ -198,10 +200,10 @@ export default function PreAnalysisModal({
         <DialogHeader>
           <DialogTitle className="text-xl text-cream flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
-            Configure Bid Scope
+            Configure Bid Mode
           </DialogTitle>
           <DialogDescription className="text-cream-muted">
-            Tell ConstructLine what scope to take off from {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
+            Pick your bid mode. ConstructLine builds the right review surface for {pendingSheetCount} drawing{pendingSheetCount !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -296,7 +298,7 @@ export default function PreAnalysisModal({
                   ? "Optional: add known exclusions or GC pricing priorities. Broad trade work stays active."
                   : bidMode === "fast_scope_check"
                     ? "Add the bid question or scope you want checked first. Boundary items stay visible for a quick read."
-                    : "Add the trade package, inclusions, exclusions, and boundary items. Only active scope counts in totals."}
+                    : "Add the trade package, inclusions, exclusions, and boundary items. This gives ConstructLine the bid boundary before totals are built."}
               </p>
             </div>
             <Textarea
@@ -329,6 +331,11 @@ export default function PreAnalysisModal({
                 <p className="text-xs text-cream-muted">
                   {scopeIntent.summary}. {bidModeBehavior.reviewSurface}
                 </p>
+              </div>
+            )}
+            {tradePackageNeedsScope && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                Trade Package Takeoff works best with a scope boundary. Add a short scope, select divisions, or choose specialties so review and excluded items stay separated from the active bid.
               </div>
             )}
             <div className="space-y-1.5">
@@ -483,7 +490,7 @@ export default function PreAnalysisModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isSubmitting}
+            disabled={isSubmitting || tradePackageNeedsScope}
             className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}

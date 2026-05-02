@@ -133,6 +133,7 @@ export default function ProjectSettingsPanel({
     [scopeText, selectedDivisions, selectedBidMode]
   );
   const bidModeBehavior = useMemo(() => getBidModeBehavior(selectedBidMode), [selectedBidMode]);
+  const tradePackageNeedsScope = selectedBidMode === "trade_package" && scopeText.trim().length < 12 && selectedDivisions.length === 0 && selectedSpecialties.length === 0;
   const [saving, setSaving] = useState(false);
 
   const profilesQuery = trpc.tradeRates.listRateProfiles.useQuery();
@@ -224,7 +225,7 @@ export default function ProjectSettingsPanel({
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
-              Adjust currency, divisions, specialties, and cost region for this project.
+              Edit bid mode, scope boundary, pricing, and review settings for this project.
             </DialogDescription>
           </DialogHeader>
 
@@ -318,6 +319,12 @@ export default function ProjectSettingsPanel({
                 <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
                   <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                   <span className="text-xs text-amber-300">Bid mode changes apply on the next re-analysis.</span>
+                </div>
+              )}
+              {tradePackageNeedsScope && (
+                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-amber-300">Trade Package Takeoff needs a scope boundary, selected divisions, or specialties for strict review/exclude behavior.</span>
                 </div>
               )}
             </div>
@@ -631,14 +638,18 @@ export default function ProjectSettingsPanel({
             <div className="space-y-2 min-w-0 overflow-hidden">
               <div className="text-sm font-medium text-cream flex flex-wrap items-center gap-2 min-w-0">
                 <FileText className="w-4 h-4 text-amber-400" />
-                <span>Scope Intent</span>
-                <span className="text-xs text-cream-muted break-words">(optional bid package instructions)</span>
+                <span>{selectedBidMode === "full_gc" ? "GC Scope Notes" : selectedBidMode === "fast_scope_check" ? "Scope Check Question" : "Trade Scope Boundary"}</span>
+                <span className="text-xs text-cream-muted break-words">({bidModeBehavior.shortLabel})</span>
               </div>
               <div ref={scopeRef} className="min-w-0">
               <Textarea
                 value={scopeText}
                 onChange={(e) => setScopeText(e.target.value)}
-                placeholder="e.g. Below-grade waterproofing only. Include membrane, protection board, waterstops, foundation drains, and vapor barrier. Exclude roofing and above-grade envelope."
+                placeholder={selectedBidMode === "full_gc"
+                  ? "e.g. Full GC estimate. Include normal trade coverage and call out owner-furnished equipment exclusions."
+                  : selectedBidMode === "fast_scope_check"
+                    ? "e.g. Quick bid/no-bid read for below-grade waterproofing and drainage risk. Flag concrete and MEP interfaces for review."
+                    : "e.g. Below-grade waterproofing only. Include membrane, protection board, waterstops, foundation drains, and vapor barrier. Exclude roofing and above-grade envelope."}
                 className="min-h-[80px] max-h-48 overflow-y-auto bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 resize-y break-words"
                 maxLength={2000}
               />
@@ -669,7 +680,11 @@ export default function ProjectSettingsPanel({
               )}
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-cream-muted/50">
-                  Upload full drawings, then describe only the work you are bidding.
+                  {selectedBidMode === "full_gc"
+                    ? "Broad GC mode keeps normal trade work active unless you explicitly narrow the bid."
+                    : selectedBidMode === "fast_scope_check"
+                      ? "Fast checks prioritize likely scope, high-signal sheets, and visible risk rows."
+                      : "Upload full drawings, then describe only the work you are bidding."}
                 </p>
                 <span className="text-[10px] text-cream-muted/40">{scopeText.length}/2000</span>
               </div>
