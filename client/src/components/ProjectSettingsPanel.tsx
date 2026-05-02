@@ -221,7 +221,7 @@ export default function ProjectSettingsPanel({
 
       {/* Settings Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col min-w-0">
           <DialogHeader>
             <DialogTitle>Project Settings</DialogTitle>
             <DialogDescription>
@@ -229,7 +229,7 @@ export default function ProjectSettingsPanel({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 space-y-6 py-2 overflow-y-auto overscroll-contain min-h-0 pr-1">
+          <div className="flex-1 space-y-6 py-2 overflow-y-auto overflow-x-hidden overscroll-contain min-h-0 min-w-0 pr-1">
             {/* Current Settings Summary */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
               <div className="text-xs font-medium text-cream-muted">Current Settings</div>
@@ -655,12 +655,14 @@ export default function ProjectSettingsPanel({
               />
               </div>
               {scopeIntent.hasScope && (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 min-w-0 overflow-hidden">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start min-w-0">
-                    <Badge className="w-fit max-w-full whitespace-normal break-words bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] leading-relaxed">
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 min-w-0 max-w-full overflow-hidden">
+                  <div className="grid gap-2 min-w-0">
+                    <div className="rounded-md border border-amber-500/25 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-semibold leading-relaxed text-amber-300 whitespace-normal break-words [overflow-wrap:anywhere]">
                       {scopeIntent.summary}
-                    </Badge>
-                    <span className="min-w-0 flex-1 text-xs text-cream-muted break-words">{bidModeBehavior.reviewSurface}</span>
+                    </div>
+                    <p className="min-w-0 text-xs text-cream-muted leading-relaxed whitespace-normal break-words">
+                      {bidModeBehavior.reviewSurface}
+                    </p>
                   </div>
                   {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
                     <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
