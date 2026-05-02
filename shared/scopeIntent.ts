@@ -20,6 +20,13 @@ type TermFamily =
   | "excavation"
   | "backfill"
   | "compactedBase"
+  | "subgradePrep"
+  | "controlJoint"
+  | "trenchPit"
+  | "miscFoundations"
+  | "termiteTreatment"
+  | "testingCoordination"
+  | "supervision"
   | "demo"
   | "patching"
   | "blocking"
@@ -86,7 +93,14 @@ const TERM_PATTERNS: Record<TermFamily, RegExp[]> = {
   structuralSteel: [/\bstructural steel\b/i, /\bsteel beams?\b/i, /\bsteel columns?\b/i],
   excavation: [/\bexcavat(?:e|ion|ing)\b/i, /\bearthwork\b/i, /\bspoils?\b/i],
   backfill: [/\bbackfill(?:ing)?\b/i],
-  compactedBase: [/\bcompacted base\b/i, /\bcompacted aggregate base\b/i, /\baggregate base\b/i, /\bbase course\b/i, /\bslab fill\b/i, /\bstructural fill\b/i, /\bengineered fill\b/i, /\bgranular fill\b/i, /\bstone base\b/i],
+  compactedBase: [/\bcompacted base\b/i, /\bcompacted aggregate base\b/i, /\baggregate base\b/i, /\bbase course\b/i, /\bslab fill\b/i, /\bstructural fill\b/i, /\bengineered fill\b/i, /\bgranular fill\b/i, /\bstone base\b/i, /\bcompaction\b/i],
+  subgradePrep: [/\bsubgrade\b/i, /\bfine grading\b/i, /\bsite preparation\b/i, /\bproof[-\s]?roll(?:ing)?\b/i],
+  controlJoint: [/\bcontrol joints?\b/i, /\bsaw ?cuts?\b/i, /\bsawcut(?:ting)?\b/i],
+  trenchPit: [/\btrench pits?\b/i, /\btrench drains?\b/i, /\btire seal(?: drainage)? pit\b/i, /\bcorrelator pits?\b/i, /\bspecialty pits?\b/i, /\bcar wash trench\b/i],
+  miscFoundations: [/\bgate post foundations?\b/i, /\bbollard foundations?\b/i, /\bequipment pole foundations?\b/i, /\bvacuum enclosure foundations?\b/i, /\btrash enclosure foundations?\b/i, /\benclosure foundations?\b/i, /\bmisc(?:ellaneous)? foundations?\b/i],
+  termiteTreatment: [/\btermite treatment\b/i, /\btermite\b/i],
+  testingCoordination: [/\btesting coordination\b/i, /\bconcrete testing\b/i, /\bcompaction testing\b/i, /\btesting\b/i],
+  supervision: [/\bsupervision\b/i, /\bproject management\b/i, /\bfield supervision\b/i, /\bmobilization\b/i, /\blayout coordination\b/i],
   demo: [/\bdemo(?:lition)?\b/i, /\bremove and dispose\b/i],
   patching: [/\bpatch(?:ing)?\b/i, /\brepair patch\b/i],
   blocking: [/\bblocking\b/i, /\bbacking\b/i],
@@ -105,7 +119,7 @@ const TERM_PATTERNS: Record<TermFamily, RegExp[]> = {
 };
 
 const SUPPORT_FAMILIES: TermFamily[] = [
-  "excavation", "backfill", "compactedBase", "formwork", "rebar", "demo",
+  "excavation", "backfill", "compactedBase", "subgradePrep", "formwork", "rebar", "demo",
   "patching", "blocking", "equipmentSupport", "sleevesEmbeds", "accessWork",
 ];
 
@@ -116,6 +130,28 @@ const BOUNDARY_FAMILY_PATTERNS: Array<{ family: TermFamily; pattern: RegExp }> =
 ];
 
 const TRADE_PROFILES: TradeProfile[] = [
+  {
+    id: "concrete_foundations_sog_pits_drains",
+    patterns: [
+      /concrete foundations?.*slab[-\s]?on[-\s]?grade.*trench\/?pit.*drains?/i,
+      /concrete foundations?.*slab[-\s]?on[-\s]?grade.*pits?.*drains?/i,
+      /foundations?.*slab[-\s]?on[-\s]?grade.*trench.*pits?.*drains?/i,
+      /trench\/pit systems?.*drains? package/i,
+      /foundations?.*trench drains?.*correlator pit/i,
+    ],
+    summary: "Concrete foundations, slab-on-grade, trench/pit systems, and drains package",
+    focusDivisions: ["03", "07", "31", "32", "33"],
+    excludedDivisions: ["04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28"],
+    includedFamilies: [
+      "concrete", "slab", "footing", "rebar", "formwork", "excavation", "backfill",
+      "compactedBase", "subgradePrep", "vaporBarrier", "belowGradeInsulation", "pipe",
+      "utilityStructure", "foundationDrain", "trenchPit", "miscFoundations", "termiteTreatment",
+      "testingCoordination", "supervision", "controlJoint", "equipmentSupport",
+    ],
+    excludedFamilies: ["masonry", "structuralSteel", "roofing", "glazing", "drywall", "framing", "mep", "finishes", "aboveGradeEnvelope"],
+    reviewFamilies: ["waterproofing", "protectionBoard", "drainageBoard", "waterstop", "sleevesEmbeds", "accessWork", "patching", "demo"],
+    supportFamilies: [],
+  },
   {
     id: "underground_concrete_below_grade_waterproofing",
     patterns: [
@@ -139,7 +175,7 @@ const TRADE_PROFILES: TradeProfile[] = [
     focusDivisions: ["07", "31", "33"],
     excludedDivisions: ["03", "04", "05", "06", "08", "09", "10", "11", "12", "13", "14", "21", "22", "23", "26", "27", "28", "32"],
     includedFamilies: ["waterproofing", "protectionBoard", "waterstop", "vaporBarrier", "foundationDrain", "drainageBoard"],
-    excludedFamilies: ["concrete", "slab", "footing", "rebar", "formwork", "masonry", "structuralSteel", "roofing", "glazing", "drywall", "framing", "mep", "finishes", "aboveGradeEnvelope", "belowGradeInsulation"],
+    excludedFamilies: ["concrete", "slab", "footing", "rebar", "formwork", "masonry", "structuralSteel", "roofing", "glazing", "drywall", "framing", "mep", "finishes", "aboveGradeEnvelope", "belowGradeInsulation", "termiteTreatment", "controlJoint"],
     reviewFamilies: ["sleevesEmbeds", "patching"],
     supportFamilies: ["excavation", "backfill", "compactedBase", "formwork", "rebar", "demo", "equipmentSupport", "accessWork"],
   },
@@ -289,6 +325,20 @@ function boundaryTerms(text: string): string[] {
   return unique(BOUNDARY_FAMILY_PATTERNS.filter(({ pattern }) => pattern.test(text)).map(({ family }) => family));
 }
 
+function hasQuantityReviewSignal(text: string): boolean {
+  return /\bneeds?\s+qty\b|\bmissing\s+qty\b|\bquantity\s+(?:set|kept)\s+to\s+1\b|\bplaceholder\b|\bcannot\s+be\s+verified\b|\bupdate(?:d)?\s+with\s+actual\b|\bfield\s+verify\b/i.test(text);
+}
+
+function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boolean {
+  if (/\b(?:control joint sealants?|joint sealants?|epoxy fillers?|joint caulking|caulking)\b/i.test(scopeText)) {
+    if (/\b(?:sealants?|caulking|epoxy fillers?)\b/i.test(itemText)) return true;
+  }
+  if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside the building footprint)\b/i.test(itemText)) {
+    return true;
+  }
+  return false;
+}
+
 function noScopeIntent(selectedDivisions?: string[] | null, bidMode?: TakeoffBidMode | string | null): ScopeIntent {
   const behavior = getBidModeBehavior(bidMode);
   return {
@@ -397,6 +447,7 @@ export function classifyScopeMatch(
   const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
   const profiles = TRADE_PROFILES.filter((profile) => intent.presetIds.includes(profile.id));
   const families = matchingFamilies(text);
+  const hasBroadConcretePackageProfile = profiles.some((profile) => profile.id === "concrete_foundations_sog_pits_drains");
   const hasExplicitInclude = families.some((family) => containsFamily(intent.explicitIncludes, family));
   const hasExplicitExclude = families.some((family) => containsFamily(intent.explicitExcludes, family));
   const supportFamilies = families.filter((family) => SUPPORT_FAMILIES.includes(family));
@@ -419,7 +470,10 @@ export function classifyScopeMatch(
     containsFamily(intent.explicitIncludes, family)
   );
 
-  if (hasExplicitExclude && !hasProtectiveExplicitInclude) return "excluded";
+  const quantityNeedsReview = hasQuantityReviewSignal(text);
+
+  if (matchesExplicitExcludedPhrase(text, intent.normalizedText)) return "excluded";
+  if (hasExplicitExclude && !(hasBroadConcretePackageProfile && hasProfileInclude) && !hasProtectiveExplicitInclude) return "excluded";
   if (hasExplicitExclude && !hasExplicitInclude) return "excluded";
   if (hasProfileExclude && hasUnincludedHardExcludedFamily) {
     return intent.scopeStrictness === "review_first" ? "review" : "excluded";
@@ -427,7 +481,8 @@ export function classifyScopeMatch(
 
   if (hasExplicitInclude) {
     if (hasUnownedSupport) return "review";
-    if (families.includes("belowGradeInsulation")) return "review";
+    if (quantityNeedsReview) return "review";
+    if (families.includes("belowGradeInsulation") && !hasProfileInclude) return "review";
     if (hasProfileInclude) return "included";
     if (hasProfileExclude && hasHardExcludedFamily) return "review";
     if (hasProfileExclude) return "included";
@@ -445,6 +500,7 @@ export function classifyScopeMatch(
   }
 
   if (hasProfileInclude) {
+    if (quantityNeedsReview) return "review";
     return "included";
   }
 

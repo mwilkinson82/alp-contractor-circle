@@ -3,8 +3,63 @@ import { buildScopeIntent, classifyScopeMatch } from "../shared/scopeIntent";
 
 const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.";
 const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
+const CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE = "Commercial project. Concrete foundations, slab-on-grade, trench/pit systems, and associated drains package. Include mobilization, layout coordination, site preparation, excavation for continuous footings, isolated footings, trench drains, trench pit, tire seal drainage pit, correlator pit, gate post foundations, bollard foundations, equipment pole foundations, vacuum enclosure foundations, trash enclosure foundations, and related slab work. Include subgrade preparation, fine grading, compaction, onsite reuse of suitable excavated material, formwork, reinforcing steel within foundations and pits, dowels required for foundation continuation, concrete placement, finishing, curing, stepped footings, slab edge forms, 10 mil vapor barrier, rigid insulation at occupied slab perimeter areas, fiber-reinforced slab-on-grade, sawcut control joints, trench drain concrete, trench pit concrete, tire seal drainage pit concrete, correlator pit concrete, termite treatment, concrete testing coordination, compaction testing coordination, field supervision, and project management. Exclude CMU masonry work, masonry stem walls, masonry enclosures, structural work above top of foundation, reinforcing steel beyond foundation scope and footing dowels, drive slabs outside the building footprint unless specifically listed, surveying services, dewatering, underground utilities beyond included pits and drains, import/export of fill beyond onsite reuse, control joint sealants, epoxy fillers, joint caulking, car wash equipment, and any work not explicitly listed in this scope.";
 
 describe("scope intent", () => {
+  it("recognizes a broad concrete foundations and trench pit subcontract package", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    expect(intent.scopeStrictness).toBe("strict");
+    expect(intent.summary).toContain("Concrete foundations, slab-on-grade, trench/pit systems, and drains package");
+    expect(intent.presetIds).toContain("concrete_foundations_sog_pits_drains");
+    expect(intent.focusDivisions).toEqual(expect.arrayContaining(["03", "07", "31", "33"]));
+  });
+
+  it("keeps broad concrete foundations package work active instead of pushing it to review or excluded", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "31", csiCode: "31 23 16", description: "Excavation for continuous footings" },
+      { csiDivision: "31", csiCode: "31 23 23", description: "Subgrade preparation and compaction below slab-on-grade" },
+      { csiDivision: "03", csiCode: "03 10 00", description: "Formwork for trench pit walls and slab edge forms" },
+      { csiDivision: "03", csiCode: "03 20 00", description: "Reinforcing steel within foundations and pits" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete foundations and slab-on-grade placement" },
+      { csiDivision: "07", csiCode: "07 26 00", description: "10 mil vapor barrier below slab-on-grade" },
+      { csiDivision: "07", csiCode: "07 21 13", description: "Rigid insulation at occupied slab perimeter" },
+      { csiDivision: "33", csiCode: "33 46 00", description: "Trench drains and foundation drain piping at included pits" },
+      { csiDivision: "03", csiCode: "03 30 00", description: "Concrete for correlator pit and tire seal drainage pit" },
+      { csiDivision: "31", csiCode: "31 31 16", description: "Termite treatment below slab-on-grade" },
+      { csiDivision: "01", csiCode: "01 45 00", description: "Concrete testing coordination and compaction testing coordination" },
+      { csiDivision: "01", csiCode: "01 31 00", description: "Field supervision and project management" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("included");
+    }
+  });
+
+  it("reserves review for missing quantity signals inside the broad concrete package", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    expect(classifyScopeMatch({
+      csiDivision: "03",
+      csiCode: "03 30 00",
+      description: "Concrete for correlator pit",
+      notes: "Quantity set to 1 - update with actual measurement before bidding",
+    }, intent)).toBe("review");
+  });
+
+  it("still excludes explicit non-package work from the broad concrete package", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+    for (const item of [
+      { csiDivision: "04", csiCode: "04 22 00", description: "CMU masonry enclosure wall" },
+      { csiDivision: "05", csiCode: "05 12 00", description: "Structural steel above top of foundation" },
+      { csiDivision: "22", csiCode: "22 11 00", description: "Plumbing utilities beyond included pits and drains" },
+      { csiDivision: "07", csiCode: "07 92 00", description: "Control joint sealants and joint caulking" },
+    ]) {
+      expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");
+    }
+  });
+
   it("keeps Full GC Takeoff broad instead of excluding adjacent trade work", () => {
     const intent = buildScopeIntent(CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE, null, "full_gc");
 

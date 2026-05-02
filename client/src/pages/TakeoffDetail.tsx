@@ -644,107 +644,111 @@ export default function TakeoffDetail() {
     const currencyCode = project?.currency || "USD";
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
     const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
-
-    // Group items by CSI division
-    const divGroups: Record<string, any[]> = {};
-    for (const item of (items as any[]).filter((item) => isScopeIncludedItem(item))) {
-      const div = item.csiDivision || "00";
-      if (!divGroups[div]) divGroups[div] = [];
-      divGroups[div].push(item);
-    }
-    const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-    // Build rows with branding header and CSI division headers and subtotals
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
-    const aoa: any[][] = [
+    const allItems = items as any[];
+    const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
+    const reviewBucket = allItems.filter((item) => isScopeReviewItem(item));
+    const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
+    const projectAllowances = parseProjectAllowances((project as any)?.allowances);
+    const allowancesTotal = projectAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
+    const bucketTotal = (bucket: any[]) => bucket.reduce((sum, item) => sum + ((parseFloat(item.extendedCost) || 0) / 100), 0);
+    const activeTotal = bucketTotal(activeBucket) + allowancesTotal;
+    const reviewTotal = bucketTotal(reviewBucket);
+    const excludedTotal = bucketTotal(excludedBucket);
+
+    const baseHeader = (): any[][] => [
       ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", "", ""],
       [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", "", ""],
       [`Bid mode: ${exportBidModeBehavior.label}`, "", "", "", "", "", "", "", "", "", "", ""],
       [`Review surface: ${exportBidModeBehavior.reviewSurface}`, "", "", "", "", "", "", "", "", "", "", ""],
       [`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`, "", "", "", "", "", "", "", "", "", "", ""],
-      [], // blank separator
-      headers,
+      [],
     ];
-    let grandTotal = 0;
 
-    for (const div of sortedDivs) {
-      const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
-      // Division header row
-      aoa.push([`${div} — ${divName}`, "", "", "", "", "", "", "", "", "", "", ""]);
-      let divTotal = 0;
-      for (const item of divGroups[div]) {
-        const extCost = (parseFloat(item.extendedCost) || 0) / 100;
-        divTotal += extCost;
-        aoa.push([
-          item.csiCode || item.csiDivision || "",
-          item.description || "",
-          parseFloat(item.quantity) || 0,
-          item.unit || "",
-          getTakeoffMaterialUnitCost(item) / 100,
-          (parseFloat(item.laborCost) || 0) / 100,
-          (parseFloat(item.unitCost) || 0) / 100,
-          extCost,
-          item.confidence || 0,
-          formatScopeReviewStatus(getScopeReviewStatus(item)),
-          item.reviewed ? "Yes" : "No",
-          item.notes || "",
-        ]);
+    const buildBucketSheet = (bucketName: string, bucketItems: any[], includeAllowances = false): any[][] => {
+      const divGroups: Record<string, any[]> = {};
+      for (const item of bucketItems) {
+        const div = item.csiDivision || "00";
+        if (!divGroups[div]) divGroups[div] = [];
+        divGroups[div].push(item);
       }
-      // Division subtotal row
-      aoa.push(["", `Subtotal — ${divName}`, "", "", "", "", "", divTotal, "", "", "", ""]);
-      // Blank separator row
-      aoa.push([]);
-      grandTotal += divTotal;
-    }
-    // Allowances section
-    const projectAllowances = parseProjectAllowances((project as any)?.allowances);
-    let allowancesTotal = 0;
-    if (projectAllowances.length > 0) {
-      aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", "", ""]);
-      for (const allowance of projectAllowances) {
-        const amt = (allowance.amount || 0) / 100;
-        allowancesTotal += amt;
-        aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "", "", ""]);
+      const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      const aoa: any[][] = [
+        ...baseHeader(),
+        [`Bucket: ${bucketName}`, "", "", "", "", "", "", "", "", "", "", ""],
+        [],
+        headers,
+      ];
+      let grandTotal = 0;
+
+      for (const div of sortedDivs) {
+        const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+        aoa.push([`${div} - ${divName}`, "", "", "", "", "", "", "", "", "", "", ""]);
+        let divTotal = 0;
+        for (const item of divGroups[div]) {
+          const extCost = (parseFloat(item.extendedCost) || 0) / 100;
+          divTotal += extCost;
+          aoa.push([
+            item.csiCode || item.csiDivision || "",
+            item.description || "",
+            parseFloat(item.quantity) || 0,
+            item.unit || "",
+            getTakeoffMaterialUnitCost(item) / 100,
+            (parseFloat(item.laborCost) || 0) / 100,
+            (parseFloat(item.unitCost) || 0) / 100,
+            extCost,
+            item.confidence || 0,
+            formatScopeReviewStatus(getScopeReviewStatus(item)),
+            item.reviewed ? "Yes" : "No",
+            item.notes || "",
+          ]);
+        }
+        aoa.push(["", `Subtotal - ${divName}`, "", "", "", "", "", divTotal, "", "", "", ""]);
+        aoa.push([]);
+        grandTotal += divTotal;
       }
-      aoa.push(["", "Subtotal — Allowances", "", "", "", "", "", allowancesTotal, "", "", "", ""]);
-      aoa.push([]);
-    }
-    // Grand total row (includes allowances)
-    aoa.push(["", "GRAND TOTAL", "", "", "", "", "", grandTotal + allowancesTotal, "", "", "", ""]);
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 14 }, { wch: 55 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 40 }];
+      if (includeAllowances && projectAllowances.length > 0) {
+        aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", "", ""]);
+        for (const allowance of projectAllowances) {
+          const amt = (allowance.amount || 0) / 100;
+          aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "Included", "", ""]);
+        }
+        aoa.push(["", "Subtotal - Allowances", "", "", "", "", "", allowancesTotal, "", "", "", ""]);
+        aoa.push([]);
+      }
+      aoa.push(["", `${bucketName.toUpperCase()} TOTAL`, "", "", "", "", "", grandTotal + (includeAllowances ? allowancesTotal : 0), "", "", "", ""]);
+      return aoa;
+    };
 
-    // Style branding rows
-    const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
-    if (ws[brandCell]) ws[brandCell].s = { font: { bold: true, sz: 16, color: { rgb: "0D1B2A" } } };
-    const projCell = XLSX.utils.encode_cell({ r: 1, c: 0 });
-    if (ws[projCell]) ws[projCell].s = { font: { bold: true, sz: 11 } };
-    const dateCell = XLSX.utils.encode_cell({ r: 1, c: 3 });
-    if (ws[dateCell]) ws[dateCell].s = { font: { sz: 11 } };
-    const currCell = XLSX.utils.encode_cell({ r: 1, c: 7 });
-    if (ws[currCell]) ws[currCell].s = { font: { sz: 11 } };
+    const summaryRows: any[][] = [
+      ...baseHeader(),
+      ["Summary", "Count", `Subtotal (${currencySymbol})`, "", "", "", "", "", "", "", "", ""],
+      ["Active Items", activeBucket.length, activeTotal, "", "", "", "", "", "", "", "", ""],
+      ["Needs Scope Review", reviewBucket.length, reviewTotal, "", "", "", "", "", "", "", "", ""],
+      ["Active + Review Potential", activeBucket.length + reviewBucket.length, activeTotal + reviewTotal, "", "", "", "", "", "", "", "", ""],
+      ["Excluded / Boundary", excludedBucket.length, excludedTotal, "", "", "", "", "", "", "", "", ""],
+      ["Allowances included in Active Total", projectAllowances.length, allowancesTotal, "", "", "", "", "", "", "", "", ""],
+    ];
 
-    // Style division headers and subtotals (bold via cell formatting)
-    let rowIdx = 7; // skip branding (0), project info (1), bid mode (2), review surface (3), scope (4), blank (5), headers (6)
-    for (const div of sortedDivs) {
-      // Division header row
-      const headerCell = XLSX.utils.encode_cell({ r: rowIdx, c: 0 });
-      if (ws[headerCell]) ws[headerCell].s = { font: { bold: true, sz: 12 }, fill: { fgColor: { rgb: "F5F0E8" } } };
-      rowIdx += 1 + divGroups[div].length;
-      // Subtotal row
-      const subtotalCell = XLSX.utils.encode_cell({ r: rowIdx, c: 1 });
-      if (ws[subtotalCell]) ws[subtotalCell].s = { font: { bold: true } };
-      rowIdx += 2; // subtotal + blank
-    }
+    const makeSheet = (aoa: any[][]) => {
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 16 }, { wch: 58 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 46 }];
+      const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+      if (ws[brandCell]) ws[brandCell].s = { font: { bold: true, sz: 16, color: { rgb: "0D1B2A" } } };
+      return ws;
+    };
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Quantity Takeoff");
+    XLSX.utils.book_append_sheet(wb, makeSheet(summaryRows), "Summary");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Active Items", activeBucket, true)), "Active Items");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Needs Scope Review", reviewBucket)), "Needs Scope Review");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Excluded Boundary", excludedBucket)), "Excluded Boundary");
     const fileName = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    toast.success("Exported to Excel — grouped by CSI division");
+    toast.success("Exported all takeoff buckets to Excel");
   }, [items, project, scopeIntent]);
 
   const handleExportCsv = useCallback(() => {
@@ -753,71 +757,89 @@ export default function TakeoffDetail() {
     const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
     const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
+    const allItems = items as any[];
+    const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
+    const reviewBucket = allItems.filter((item) => isScopeReviewItem(item));
+    const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
+    const csvAllowances = parseProjectAllowances((project as any)?.allowances);
+    const csvAllowancesTotal = csvAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
+    const bucketTotal = (bucket: any[]) => bucket.reduce((sum, item) => sum + ((parseFloat(item.extendedCost) || 0) / 100), 0);
+    const activeTotal = bucketTotal(activeBucket) + csvAllowancesTotal;
+    const reviewTotal = bucketTotal(reviewBucket);
+    const excludedTotal = bucketTotal(excludedBucket);
 
-    // Group by CSI division
-    const divGroups: Record<string, any[]> = {};
-    for (const item of (items as any[]).filter((item) => isScopeIncludedItem(item))) {
-      const div = item.csiDivision || "00";
-      if (!divGroups[div]) divGroups[div] = [];
-      divGroups[div].push(item);
-    }
-    const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
+    const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const projectName = (project as any)?.name || "Takeoff";
     const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const csvRows: string[] = [
-      `"ConstructLine | Powered by ALP","","","","","","","","","","",""`,
-      `"Project: ${projectName.replace(/"/g, '""')}","","","Date: ${exportDate}","","","","Currency: ${currencyCode}","","","",""`,
-      `"Bid mode: ${exportBidModeBehavior.label}","","","","","","","","","","",""`,
-      `"Review surface: ${exportBidModeBehavior.reviewSurface.replace(/"/g, '""')}","","","","","","","","","","",""`,
-      `"Scope: ${(scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set").replace(/"/g, '""')}","","","","","","","","","","",""`,
+      [escapeCsv("ConstructLine | Powered by ALP")].join(","),
+      [escapeCsv(`Project: ${projectName}`), "", "", escapeCsv(`Date: ${exportDate}`), "", "", "", escapeCsv(`Currency: ${currencyCode}`)].join(","),
+      [escapeCsv(`Bid mode: ${exportBidModeBehavior.label}`)].join(","),
+      [escapeCsv(`Review surface: ${exportBidModeBehavior.reviewSurface}`)].join(","),
+      [escapeCsv(`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`)].join(","),
+      "",
+      ["Summary", "Count", `Subtotal (${currencySymbol})`].join(","),
+      ["Active Items", activeBucket.length, activeTotal.toFixed(2)].join(","),
+      ["Needs Scope Review", reviewBucket.length, reviewTotal.toFixed(2)].join(","),
+      ["Active + Review Potential", activeBucket.length + reviewBucket.length, (activeTotal + reviewTotal).toFixed(2)].join(","),
+      ["Excluded / Boundary", excludedBucket.length, excludedTotal.toFixed(2)].join(","),
+      ["Allowances included in Active Total", csvAllowances.length, csvAllowancesTotal.toFixed(2)].join(","),
       "",
       headers.join(","),
     ];
-    let grandTotal = 0;
 
-    for (const div of sortedDivs) {
-      const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
-      // Division header row
-      csvRows.push(`"${div} — ${divName}","","","","","","","","","","",""`);
-      let divTotal = 0;
-      for (const item of divGroups[div]) {
-        const extCost = (parseFloat(item.extendedCost) || 0) / 100;
-        divTotal += extCost;
-        csvRows.push([
-          item.csiCode || item.csiDivision || "",
-          `"${(item.description || "").replace(/"/g, '""')}"`,
-          parseFloat(item.quantity) || 0,
-          item.unit || "",
-          (getTakeoffMaterialUnitCost(item) / 100).toFixed(2),
-          ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
-          ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
-          extCost.toFixed(2),
-          item.confidence || 0,
-          formatScopeReviewStatus(getScopeReviewStatus(item)),
-          item.reviewed ? "Yes" : "No",
-          `"${(item.notes || "").replace(/"/g, '""')}"`,
-        ].join(","));
-      }
-      // Division subtotal
-      csvRows.push(`"","Subtotal — ${divName}","","","","","",${divTotal.toFixed(2)},"","","",""`);
-      csvRows.push(""); // blank separator
-      grandTotal += divTotal;
-    }
-    // Allowances section
-    const csvAllowances = parseProjectAllowances((project as any)?.allowances);
-    let csvAllowancesTotal = 0;
-    if (csvAllowances.length > 0) {
-      csvRows.push(`"ALLOWANCES","","","","","","","","","","",""`);
-      for (const allowance of csvAllowances) {
-        const amt = (allowance.amount || 0) / 100;
-        csvAllowancesTotal += amt;
-        csvRows.push(`"","${(allowance.description || 'Allowance').replace(/"/g, '""')}","","LS","","","",${amt.toFixed(2)},"","","",""`);
-      }
-      csvRows.push(`"","Subtotal — Allowances","","","","","",${csvAllowancesTotal.toFixed(2)},"","","",""`);
+    const appendBucket = (bucketName: string, bucketItems: any[], includeAllowances = false) => {
       csvRows.push("");
-    }
-    csvRows.push(`"","GRAND TOTAL","","","","","",${(grandTotal + csvAllowancesTotal).toFixed(2)},"","","",""`);
+      csvRows.push(escapeCsv(bucketName));
+      const divGroups: Record<string, any[]> = {};
+      for (const item of bucketItems) {
+        const div = item.csiDivision || "00";
+        if (!divGroups[div]) divGroups[div] = [];
+        divGroups[div].push(item);
+      }
+      const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      let grandTotal = 0;
+      for (const div of sortedDivs) {
+        const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+        csvRows.push([escapeCsv(`${div} - ${divName}`)].join(","));
+        let divTotal = 0;
+        for (const item of divGroups[div]) {
+          const extCost = (parseFloat(item.extendedCost) || 0) / 100;
+          divTotal += extCost;
+          csvRows.push([
+            item.csiCode || item.csiDivision || "",
+            escapeCsv(item.description || ""),
+            parseFloat(item.quantity) || 0,
+            item.unit || "",
+            (getTakeoffMaterialUnitCost(item) / 100).toFixed(2),
+            ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
+            ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
+            extCost.toFixed(2),
+            item.confidence || 0,
+            formatScopeReviewStatus(getScopeReviewStatus(item)),
+            item.reviewed ? "Yes" : "No",
+            escapeCsv(item.notes || ""),
+          ].join(","));
+        }
+        csvRows.push(["", escapeCsv(`Subtotal - ${divName}`), "", "", "", "", "", divTotal.toFixed(2), "", "", "", ""].join(","));
+        csvRows.push("");
+        grandTotal += divTotal;
+      }
+      if (includeAllowances && csvAllowances.length > 0) {
+        csvRows.push(escapeCsv("ALLOWANCES"));
+        for (const allowance of csvAllowances) {
+          const amt = (allowance.amount || 0) / 100;
+          csvRows.push(["", escapeCsv(allowance.description || "Allowance"), "", "LS", "", "", "", amt.toFixed(2), "", "Included", "", ""].join(","));
+        }
+        csvRows.push(["", escapeCsv("Subtotal - Allowances"), "", "", "", "", "", csvAllowancesTotal.toFixed(2), "", "", "", ""].join(","));
+        csvRows.push("");
+      }
+      csvRows.push(["", escapeCsv(`${bucketName} Total`), "", "", "", "", "", (grandTotal + (includeAllowances ? csvAllowancesTotal : 0)).toFixed(2), "", "", "", ""].join(","));
+    };
+
+    appendBucket("Active Items", activeBucket, true);
+    appendBucket("Needs Scope Review", reviewBucket);
+    appendBucket("Excluded / Boundary", excludedBucket);
 
     const csv = csvRows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -827,7 +849,7 @@ export default function TakeoffDetail() {
     a.download = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Exported to CSV \u2014 grouped by CSI division");
+    toast.success("Exported all takeoff buckets to CSV");
   }, [items, project, scopeIntent]);
 
   // ─── Excel Import ──────────────────────────────────────────────────────
@@ -938,6 +960,10 @@ export default function TakeoffDetail() {
     () => reviewItems.reduce((sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0), 0),
     [reviewItems]
   );
+  const excludedItemsCost = useMemo(
+    () => excludedItems.reduce((sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0), 0),
+    [excludedItems]
+  );
 
   const groupedItems = useMemo(() => {
     if (!activeItems) return {};
@@ -988,6 +1014,7 @@ export default function TakeoffDetail() {
   const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
   const itemsCost = sumScopeIncludedExtendedCost(activeItems);
   const totalCost = itemsCost + allowancesTotal;
+  const potentialTotal = totalCost + reviewItemsCost;
   const bidModeBehavior = getBidModeBehavior(project.bidMode);
 
   return (
@@ -1761,7 +1788,7 @@ export default function TakeoffDetail() {
                           . Only included scope items count in these totals.
                         </p>
                       )}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                         {/* Material Subtotal */}
                         <div className="flex flex-col">
                           <span className="text-cream-muted text-xs uppercase tracking-wider mb-1">Material</span>
@@ -1784,14 +1811,35 @@ export default function TakeoffDetail() {
                             {formatCurrency(allowancesTotal, curr)}
                           </span>
                         </div>
-                        {/* Grand Total */}
+                        {/* Active Total */}
                         <div className="flex flex-col border-l border-white/10 pl-4">
-                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Pricing Reference</span>
+                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Active Total</span>
                           <span className="text-emerald-400 font-mono font-bold text-lg">
                             {formatCurrency(totalCost, curr)}
                           </span>
                         </div>
+                        {/* Review Subtotal */}
+                        <div className="flex flex-col">
+                          <span className="text-amber-300/70 text-xs uppercase tracking-wider mb-1">Needs Review</span>
+                          <span className="text-amber-300 font-mono font-semibold text-lg">
+                            {formatCurrency(reviewItemsCost, curr)}
+                          </span>
+                          <span className="text-cream-muted/50 text-[10px] mt-0.5">{reviewItems.length} held for estimator decision</span>
+                        </div>
+                        {/* Potential Total */}
+                        <div className="flex flex-col">
+                          <span className="text-blue-300/70 text-xs uppercase tracking-wider mb-1">Potential Total</span>
+                          <span className="text-blue-300 font-mono font-bold text-lg">
+                            {formatCurrency(potentialTotal, curr)}
+                          </span>
+                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Active plus accepted review items</span>
+                        </div>
                       </div>
+                      {excludedItems.length > 0 && (
+                        <p className="mt-3 text-[11px] text-red-200/70">
+                          Excluded / boundary reference: {formatCurrency(excludedItemsCost, curr)} outside active totals.
+                        </p>
+                      )}
                     </div>
                   );
                 })()}
