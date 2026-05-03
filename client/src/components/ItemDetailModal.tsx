@@ -59,6 +59,7 @@ import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
 import { renderAllShapes } from "@/components/markup/renderShapes";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { getScopeStatusFromNotes } from "../../../shared/scopeCost";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1500,6 +1501,12 @@ export default function ItemDetailModal({
 
   if (!item) return null;
 
+  const scopeStatus = getScopeStatusFromNotes(item.notes);
+  const includeButtonLabel =
+    scopeStatus === "excluded" ? "Restore to Scope" : "Include in Scope";
+  const holdButtonLabel =
+    scopeStatus === "excluded" ? "Move to Review" : "Hold";
+
   const materialUnitCostCents = Math.round(
     parseFloat(materialUnitCost || "0") * 100
   );
@@ -2023,11 +2030,19 @@ export default function ItemDetailModal({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <Button
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                        variant={
+                          scopeStatus === "excluded" ? "outline" : "default"
+                        }
+                        className={
+                          scopeStatus === "excluded"
+                            ? "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+                            : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                        }
                         onClick={() => onScopeDecision(item, "included")}
                         disabled={isPending}
                       >
-                        <Check className="w-4 h-4 mr-1.5" /> Include in Scope
+                        <Check className="w-4 h-4 mr-1.5" />{" "}
+                        {includeButtonLabel}
                       </Button>
                       <Button
                         size="sm"
@@ -2036,7 +2051,8 @@ export default function ItemDetailModal({
                         onClick={() => onScopeDecision(item, "review")}
                         disabled={isPending}
                       >
-                        <AlertTriangle className="w-4 h-4 mr-1.5" /> Hold
+                        <AlertTriangle className="w-4 h-4 mr-1.5" />{" "}
+                        {holdButtonLabel}
                       </Button>
                       <Button
                         size="sm"

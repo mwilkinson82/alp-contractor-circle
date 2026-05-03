@@ -266,6 +266,244 @@ function getEstimatorCue(item: any): { label: string; className: string } {
   };
 }
 
+type AssemblyBundleDecision = "include" | "review" | "exclude";
+
+interface AssemblyBundle {
+  key: string;
+  title: string;
+  drawingGroup: string;
+  items: any[];
+  primaryItem: any;
+  alternateItems: any[];
+  recommendedDecision: AssemblyBundleDecision;
+  reason: string;
+  currentIncludedCost: number;
+  reviewCost: number;
+  excludedCost: number;
+  openReviewCount: number;
+  highImpact: boolean;
+  sourceDrawings: string[];
+}
+
+const ASSEMBLY_RULES: Array<{
+  key: string;
+  title: string;
+  terms: string[];
+  divisions?: string[];
+}> = [
+  {
+    key: "foundation-reinforcing",
+    title: "Foundation reinforcing package",
+    divisions: ["03", "05"],
+    terms: ["rebar", "reinforc", "dowell", "dowel", "mesh", "wwf", "wwm"],
+  },
+  {
+    key: "slab-on-grade",
+    title: "Slab-on-grade package",
+    divisions: ["03"],
+    terms: [
+      "slab",
+      "sog",
+      "vapor",
+      "termite",
+      "finish floor",
+      "floor concrete",
+    ],
+  },
+  {
+    key: "trench-pit-concrete",
+    title: "Trench/pit concrete, form, and rebar package",
+    divisions: ["03", "31"],
+    terms: [
+      "trench",
+      "pit",
+      "grade beam",
+      "footing",
+      "wall footing",
+      "formed",
+      "formwork",
+    ],
+  },
+  {
+    key: "drain-pit",
+    title: "Drain/pit package",
+    divisions: ["03", "22", "31", "33"],
+    terms: ["drain", "sump", "catch basin", "cleanout", "storm", "pipe", "pit"],
+  },
+  {
+    key: "exterior-boundary",
+    title: "Exterior/boundary package",
+    divisions: ["02", "31", "32", "33"],
+    terms: [
+      "exterior",
+      "pavement",
+      "curb",
+      "sidewalk",
+      "landscape",
+      "fence",
+      "site",
+    ],
+  },
+  {
+    key: "excluded-masonry-cmu",
+    title: "Excluded masonry/CMU boundary package",
+    divisions: ["04"],
+    terms: ["cmu", "masonry", "block", "brick", "veneer", "lintel"],
+  },
+  {
+    key: "general-requirements",
+    title: "General requirements and soft-cost package",
+    divisions: ["01"],
+    terms: [
+      "supervision",
+      "general requirement",
+      "mobilization",
+      "testing",
+      "layout",
+      "survey",
+      "cleanup",
+    ],
+  },
+];
+
+function getItemSearchText(item: any): string {
+  return `${item?.description || ""} ${item?.notes || ""} ${item?.csiCode || ""} ${item?.csiDivision || ""}`.toLowerCase();
+}
+
+function getAssemblyRule(item: any) {
+  const text = getItemSearchText(item);
+  const division = String(item?.csiDivision || "").padStart(2, "0");
+  const termRule = ASSEMBLY_RULES.find(rule =>
+    rule.terms.some(term => text.includes(term))
+  );
+  if (termRule) return termRule;
+
+  if (division === "01") return ASSEMBLY_RULES[6];
+  if (division === "04") return ASSEMBLY_RULES[5];
+  if (["31", "32", "33"].includes(division)) return ASSEMBLY_RULES[4];
+
+  return {
+    key: `division-${division || "00"}`,
+    title: `${CSI_DIVISION_NAMES[division] || `Division ${division || "00"}`} package`,
+    terms: [],
+    divisions: [division],
+  };
+}
+
+function getSheetLabel(sheet: any): string {
+  if (!sheet) return "Unlinked drawing";
+  return sheet.sheetName || `Page ${sheet.pageNumber || "?"}`;
+}
+
+function buildAssemblyBundles(
+  allItems: any[],
+  sheets: any[]
+): AssemblyBundle[] {
+  const sheetById = new Map(
+    (sheets || []).map((sheet: any) => [sheet.id, sheet])
+  );
+  const groups = new Map<string, any[]>();
+
+  for (const item of allItems || []) {
+    const rule = getAssemblyRule(item);
+    const sheet = item.sheetId ? sheetById.get(item.sheetId) : null;
+    const drawingGroup = getSheetLabel(sheet);
+    const key = `${drawingGroup}::${rule.key}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(item);
+  }
+
+  return Array.from(groups.entries())
+    .map(([key, bundleItems]) => {
+      const sortedItems = sortByExtendedCostDesc(bundleItems);
+      const primaryItem = sortedItems[0];
+      const sourceDrawings = Array.from(
+        new Set(
+          bundleItems.map(item =>
+            getSheetLabel(item.sheetId ? sheetById.get(item.sheetId) : null)
+          )
+        )
+      );
+      const rule = getAssemblyRule(primaryItem);
+      const currentIncludedCost = bundleItems
+        .filter(item => isScopeIncludedItem(item))
+        .reduce((sum, item) => sum + Number(item.extendedCost || 0), 0);
+      const reviewItemsForBundle = bundleItems.filter(item =>
+        isScopeReviewItem(item)
+      );
+      const excludedItemsForBundle = bundleItems.filter(item =>
+        isScopeExcludedItem(item)
+      );
+      const reviewCost = reviewItemsForBundle.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      );
+      const excludedCost = excludedItemsForBundle.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      );
+      const openReviewCount = reviewItemsForBundle.filter(
+        item => !item.reviewed
+      ).length;
+      const hasRiskCue = bundleItems.some(item => {
+        const cue = getEstimatorCue(item).label;
+        return [
+          "Scope conflict",
+          "Possible duplicate",
+          "Generated quantity",
+          "Needs quantity",
+          "Low confidence",
+        ].includes(cue);
+      });
+      const highImpact =
+        currentIncludedCost + reviewCost >= 1_000_000 ||
+        reviewItemsForBundle.length > 0 ||
+        hasRiskCue;
+      const recommendedDecision: AssemblyBundleDecision =
+        reviewItemsForBundle.length > 0
+          ? "review"
+          : excludedItemsForBundle.length > bundleItems.length / 2
+            ? "exclude"
+            : "include";
+      const reason =
+        reviewItemsForBundle.length > 0
+          ? `${reviewItemsForBundle.length} row${reviewItemsForBundle.length !== 1 ? "s need" : " needs"} estimator decision before pricing.`
+          : hasRiskCue
+            ? "Verify generated, low-confidence, or duplicate evidence before relying on this package."
+            : excludedItemsForBundle.length > 0
+              ? "Boundary rows are visible but held outside active pricing."
+              : "Rows are currently accepted; spot-check drawing evidence as needed.";
+
+      return {
+        key,
+        title: rule.title,
+        drawingGroup: sourceDrawings[0] || "Unlinked drawing",
+        items: sortedItems,
+        primaryItem,
+        alternateItems: sortedItems.slice(1),
+        recommendedDecision,
+        reason,
+        currentIncludedCost,
+        reviewCost,
+        excludedCost,
+        openReviewCount,
+        highImpact,
+        sourceDrawings,
+      };
+    })
+    .sort((a, b) => {
+      if (a.openReviewCount !== b.openReviewCount) {
+        return b.openReviewCount - a.openReviewCount;
+      }
+      if (a.highImpact !== b.highImpact) return a.highImpact ? -1 : 1;
+      return (
+        b.currentIncludedCost +
+        b.reviewCost -
+        (a.currentIncludedCost + a.reviewCost)
+      );
+    });
+}
+
 const SHEET_STATUS_CONFIG: Record<
   string,
   { label: string; color: string; icon: any }
@@ -329,6 +567,9 @@ export default function TakeoffDetail() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(
+    new Set()
+  );
+  const [expandedBundles, setExpandedBundles] = useState<Set<string>>(
     new Set()
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1644,6 +1885,22 @@ export default function TakeoffDetail() {
       ),
     [excludedItems]
   );
+  const assemblyBundles = useMemo(
+    () => buildAssemblyBundles(items || [], project?.sheets || []),
+    [items, project?.sheets]
+  );
+  const highImpactOpenBundles = useMemo(
+    () =>
+      assemblyBundles.filter(
+        bundle => bundle.highImpact && bundle.openReviewCount > 0
+      ),
+    [assemblyBundles]
+  );
+  const highImpactOpenBundleCost = useMemo(
+    () =>
+      highImpactOpenBundles.reduce((sum, bundle) => sum + bundle.reviewCost, 0),
+    [highImpactOpenBundles]
+  );
 
   const groupedItems = useMemo(() => {
     if (!activeItems) return {};
@@ -1665,6 +1922,15 @@ export default function TakeoffDetail() {
     });
   };
 
+  const toggleBundle = (bundleKey: string) => {
+    setExpandedBundles(prev => {
+      const next = new Set(prev);
+      if (next.has(bundleKey)) next.delete(bundleKey);
+      else next.add(bundleKey);
+      return next;
+    });
+  };
+
   const applyScopeDecision = useCallback(
     (
       item: any,
@@ -1677,6 +1943,32 @@ export default function TakeoffDetail() {
         notes: scopeDecisionNotes(item.notes, status),
         reviewed,
       });
+    },
+    [projectId, updateItemMutation]
+  );
+
+  const applyBundleDecision = useCallback(
+    (bundle: AssemblyBundle, status: "included" | "review" | "excluded") => {
+      const targetItems =
+        status === "included"
+          ? bundle.items.filter(item => !isScopeIncludedItem(item))
+          : status === "review"
+            ? bundle.items.filter(item => !isScopeReviewItem(item))
+            : bundle.items.filter(item => !isScopeExcludedItem(item));
+
+      if (targetItems.length === 0) {
+        toast.info("Bundle is already in that state");
+        return;
+      }
+
+      for (const item of targetItems) {
+        updateItemMutation.mutate({
+          id: item.id,
+          projectId,
+          notes: scopeDecisionNotes(item.notes, status),
+          reviewed: status !== "review",
+        });
+      }
     },
     [projectId, updateItemMutation]
   );
@@ -1722,20 +2014,11 @@ export default function TakeoffDetail() {
   const bidModeBehavior = getBidModeBehavior(project.bidMode);
   const openReviewItems = reviewItems.filter((item: any) => !item.reviewed);
   const reviewedReviewItems = reviewItems.length - openReviewItems.length;
-  const highPriorityReviewItems = reviewItems.filter((item: any) => {
-    const cue = getEstimatorCue(item).label;
-    return (
-      Number(item.extendedCost || 0) >= 1_000_000 ||
-      cue === "Scope conflict" ||
-      cue === "Possible duplicate" ||
-      cue === "Generated quantity"
-    );
-  });
   const reviewProgressPct =
     reviewItems.length > 0
       ? Math.round((reviewedReviewItems / reviewItems.length) * 100)
       : 100;
-  const readyToPrice = reviewItems.length === 0;
+  const readyToPrice = highImpactOpenBundles.length === 0;
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -2901,7 +3184,7 @@ export default function TakeoffDetail() {
                           >
                             {readyToPrice
                               ? "Ready to price"
-                              : `${openReviewItems.length} decisions open`}
+                              : `${highImpactOpenBundles.length} high-impact bundle${highImpactOpenBundles.length !== 1 ? "s" : ""} open`}
                           </Badge>
                         </div>
                         <p className="text-xs text-cream-muted mt-1">
@@ -2915,7 +3198,7 @@ export default function TakeoffDetail() {
                         variant="outline"
                         onClick={() =>
                           document
-                            .getElementById("scope-review-queue")
+                            .getElementById("assembly-review")
                             ?.scrollIntoView({
                               behavior: "smooth",
                               block: "start",
@@ -2924,7 +3207,7 @@ export default function TakeoffDetail() {
                         className="h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
                       >
                         <Flag className="w-3.5 h-3.5 mr-1.5" />
-                        Review Decisions
+                        Review Bundles
                       </Button>
                     </div>
                     <div className="grid md:grid-cols-3">
@@ -2980,13 +3263,253 @@ export default function TakeoffDetail() {
                           <AlertCircle className="w-4 h-4 text-blue-300" />
                         </div>
                         <p className="mt-2 text-2xl font-mono font-bold text-blue-300">
-                          {highPriorityReviewItems.length}
+                          {highImpactOpenBundles.length}
                         </p>
                         <p className="text-xs text-cream-muted">
-                          high-dollar, generated, duplicate, or conflict rows
-                          first
+                          high-impact assembly bundles before row cleanup
                         </p>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {assemblyBundles.length > 0 && (
+                  <div
+                    id="assembly-review"
+                    className="border border-amber-500/25 rounded-lg overflow-hidden bg-navy-medium/25"
+                  >
+                    <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Layers className="w-4 h-4 text-amber-300" />
+                          <h2 className="text-sm font-semibold text-amber-100">
+                            Assembly Review
+                          </h2>
+                          <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
+                            {assemblyBundles.length} bundle
+                            {assemblyBundles.length !== 1 ? "s" : ""}
+                          </Badge>
+                          {highImpactOpenBundles.length > 0 && (
+                            <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
+                              {highImpactOpenBundles.length} high-impact open
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-amber-100/70 mt-1">
+                          Review by drawing and package first. Raw rows stay
+                          expandable for audit, measurement, and cleanup.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-white/10">
+                      {assemblyBundles.map(bundle => {
+                        const expanded = expandedBundles.has(bundle.key);
+                        const recommendedLabel =
+                          bundle.recommendedDecision === "include"
+                            ? "Accept"
+                            : bundle.recommendedDecision === "exclude"
+                              ? "Exclude"
+                              : "Review";
+                        const totalReference =
+                          bundle.currentIncludedCost +
+                          bundle.reviewCost +
+                          bundle.excludedCost;
+                        return (
+                          <div key={bundle.key} className="bg-white/[0.02]">
+                            <div className="px-4 py-4">
+                              <div className="flex flex-col xl:flex-row xl:items-start gap-4">
+                                <button
+                                  className="flex-1 min-w-0 text-left"
+                                  onClick={() => toggleBundle(bundle.key)}
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {expanded ? (
+                                      <ChevronDown className="w-4 h-4 text-cream-muted" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4 text-cream-muted" />
+                                    )}
+                                    <Badge className="bg-blue-500/15 text-blue-200 border-blue-500/25 text-[10px]">
+                                      <FileImage className="w-3 h-3 mr-1" />
+                                      {bundle.drawingGroup}
+                                    </Badge>
+                                    <span className="text-cream font-semibold">
+                                      {bundle.title}
+                                    </span>
+                                    {bundle.highImpact && (
+                                      <Badge className="bg-purple-500/15 text-purple-200 border-purple-500/25 text-[10px]">
+                                        High impact
+                                      </Badge>
+                                    )}
+                                    {bundle.openReviewCount > 0 && (
+                                      <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-[10px]">
+                                        {bundle.openReviewCount} open
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="mt-2 text-sm text-cream-muted line-clamp-2">
+                                    Primary:{" "}
+                                    <span className="text-cream">
+                                      {bundle.primaryItem?.description}
+                                    </span>
+                                  </p>
+                                  <p className="mt-1 text-xs text-cream-muted/80">
+                                    {bundle.reason}
+                                  </p>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cream-muted/70">
+                                    <span>
+                                      Sources:{" "}
+                                      {bundle.sourceDrawings.join(", ")}
+                                    </span>
+                                    <span>
+                                      {bundle.alternateItems.length} duplicate /
+                                      alternate row
+                                      {bundle.alternateItems.length !== 1
+                                        ? "s"
+                                        : ""}
+                                    </span>
+                                  </div>
+                                </button>
+
+                                <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
+                                  <div className="rounded-md border border-emerald-500/20 bg-emerald-500/8 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-emerald-300/70">
+                                      Included
+                                    </p>
+                                    <p className="mt-1 text-sm font-mono font-semibold text-emerald-300">
+                                      {formatCurrency(
+                                        bundle.currentIncludedCost,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border border-amber-500/20 bg-amber-500/8 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-amber-200/70">
+                                      Review
+                                    </p>
+                                    <p className="mt-1 text-sm font-mono font-semibold text-amber-200">
+                                      {formatCurrency(
+                                        bundle.reviewCost,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      Ref.
+                                    </p>
+                                    <p className="mt-1 text-sm font-mono font-semibold text-cream">
+                                      {formatCurrency(
+                                        totalReference,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div
+                                  className="flex flex-wrap xl:justify-end gap-2"
+                                  onClick={event => event.stopPropagation()}
+                                >
+                                  <Badge className="h-7 bg-white/5 text-cream-muted border-white/10">
+                                    Recommended: {recommendedLabel}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white"
+                                    onClick={() =>
+                                      applyBundleDecision(bundle, "included")
+                                    }
+                                  >
+                                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                                    Accept Bundle
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                    onClick={() =>
+                                      applyBundleDecision(bundle, "excluded")
+                                    }
+                                  >
+                                    <X className="w-3.5 h-3.5 mr-1.5" />
+                                    Exclude Bundle
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                    onClick={() =>
+                                      applyBundleDecision(bundle, "review")
+                                    }
+                                  >
+                                    <Square className="w-3.5 h-3.5 mr-1.5" />
+                                    Hold
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 text-cream-muted hover:text-amber-300"
+                                    onClick={() =>
+                                      setSelectedItem(bundle.primaryItem)
+                                    }
+                                  >
+                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                    Open Evidence
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            {expanded && (
+                              <div className="border-t border-white/10 bg-navy-deep/35 px-4 py-3">
+                                <div className="grid gap-2">
+                                  {bundle.items.map(item => {
+                                    const status = getScopeReviewStatus(item);
+                                    const cue = getEstimatorCue(item);
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        className="w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05]"
+                                        onClick={() => setSelectedItem(item)}
+                                      >
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                                            {item.csiCode || item.csiDivision}
+                                          </Badge>
+                                          <Badge
+                                            className={`text-[10px] ${
+                                              status === "included"
+                                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                                : status === "review"
+                                                  ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
+                                                  : "bg-red-500/15 text-red-200 border-red-500/25"
+                                            }`}
+                                          >
+                                            {formatScopeReviewStatus(status)}
+                                          </Badge>
+                                          <Badge
+                                            className={`text-[10px] ${cue.className}`}
+                                          >
+                                            {cue.label}
+                                          </Badge>
+                                          <span className="ml-auto font-mono text-xs text-amber-300">
+                                            {formatCurrency(
+                                              item.extendedCost || 0,
+                                              project?.currency || "USD"
+                                            )}
+                                          </span>
+                                        </div>
+                                        <p className="mt-1 text-sm text-cream line-clamp-1">
+                                          {item.description}
+                                        </p>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -3806,14 +4329,27 @@ export default function TakeoffDetail() {
                                 <div className="flex items-center justify-end gap-2">
                                   <Button
                                     size="sm"
-                                    className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
+                                    variant="outline"
+                                    className="h-7 border-blue-500/25 text-blue-200 hover:bg-blue-500/10 px-2.5 text-xs"
+                                    onClick={() =>
+                                      applyScopeDecision(item, "review", false)
+                                    }
+                                    title="Move back to review queue"
+                                  >
+                                    <Flag className="w-3 h-3 mr-1" />
+                                    Move to Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-emerald-300 hover:bg-emerald-500/10 px-2.5 text-xs"
                                     onClick={() =>
                                       applyScopeDecision(item, "included")
                                     }
-                                    title="Include in active total"
+                                    title="Restore to active total"
                                   >
                                     <Check className="w-3 h-3 mr-1" />
-                                    Include
+                                    Restore
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -4001,8 +4537,8 @@ export default function TakeoffDetail() {
               currency={project.currency || "USD"}
               costRegion={project.costRegion}
               enableResidentialQa={enableResidentialQa}
-              reviewQueueCount={openReviewItems.length}
-              reviewQueueCost={reviewItemsCost}
+              reviewQueueCount={highImpactOpenBundles.length}
+              reviewQueueCost={highImpactOpenBundleCost}
               excludedBoundaryCount={excludedItems.length}
             />
           </TabsContent>

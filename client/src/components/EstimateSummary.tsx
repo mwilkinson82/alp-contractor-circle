@@ -878,11 +878,11 @@ export default function EstimateSummary({
               Draft estimate from accepted scope
             </p>
             <p className="text-xs text-amber-100/75 mt-0.5">
-              {reviewQueueCount} scope decision
+              {reviewQueueCount} high-impact assembly bundle
               {reviewQueueCount !== 1 ? "s are" : " is"} still open and{" "}
               {formatCurrency(reviewQueueCost, currency)} is held out of this
-              bid number. Finish the review queue before treating the estimate
-              as ready.
+              bid number. Finish assembly review before treating the estimate as
+              ready.
             </p>
           </div>
           <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25">
