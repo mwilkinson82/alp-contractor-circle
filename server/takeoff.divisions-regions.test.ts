@@ -18,7 +18,12 @@ import {
   getRegionGroupsForCurrency,
 } from "../shared/costRegions";
 import { CURRENCIES, getCurrency, formatCurrencyAmount } from "../shared/currencies";
-import { filterBySelectedDivisions } from "./takeoffPostProcess";
+import { buildScopeIntent } from "../shared/scopeIntent";
+import {
+  filterBySelectedDivisions,
+  holdDuplicateGeneratedQuantityAssemblies,
+  holdDuplicateTradePackageAssemblies,
+} from "./takeoffPostProcess";
 
 describe("Division Selector", () => {
   it("should have all expected CSI divisions", () => {
@@ -76,6 +81,172 @@ describe("Division Selector", () => {
     expect(mepPreset?.codes).toContain("22");
     expect(mepPreset?.codes).toContain("23");
     expect(mepPreset?.codes).toContain("26");
+  });
+});
+
+describe("trade-package duplicate assembly safety", () => {
+  it("keeps the clearest duplicate active and moves overlapping assemblies to scope review", () => {
+    const intent = buildScopeIntent(
+      "Commercial project. Concrete foundations, slab-on-grade, trench/pit systems, and associated drains package. Include slab-on-grade, trench pit, vapor barrier, and formwork.",
+      null,
+      "trade_package"
+    );
+    const items = [
+      {
+        csiDivision: "03",
+        csiCode: "03 30 00",
+        description: "Concrete slab-on-grade, fiber reinforced, 4\" thick",
+        quantity: 14178,
+        unit: "SF",
+        unitCost: 689,
+        extendedCost: 9_768_642,
+        materialCost: 450,
+        laborCost: 239,
+        confidence: 100,
+        notes: "Measured from A-200 slab plan.",
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: false,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing steel for slab-on-grade",
+        quantity: 13600,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 2_774_400,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 90,
+        notes: "[Consolidated 2 items from: S-102, S-102] Original quantity seems reasonable.",
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: true,
+        wasEnhanced: false,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing steel, #5 continuous bars for slab-on-grade",
+        quantity: 46048,
+        unit: "LB",
+        unitCost: 184,
+        extendedCost: 8_472_832,
+        materialCost: 110,
+        laborCost: 74,
+        confidence: 75,
+        notes: "[Enhanced] #5 rebar calculated from slab-on-grade and wall quantities.",
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 30 00",
+        description: "Concrete for correlator pit",
+        quantity: 12,
+        unit: "CY",
+        unitCost: 18721,
+        extendedCost: 224_652,
+        materialCost: 16975,
+        laborCost: 1746,
+        confidence: 95,
+        notes: "Measured from S-103 trench detail.",
+        sourceSheetIds: [2],
+        sourceItemIds: [2],
+        wasConsolidated: false,
+        wasEnhanced: false,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+    ];
+
+    const result = holdDuplicateTradePackageAssemblies(items as any, intent);
+
+    expect(result[0].notes).not.toContain("[Scope: review]");
+    expect(result[1].notes).not.toContain("[Scope: review]");
+    expect(result[2].notes).toContain("[Scope: review]");
+    expect(result[2].notes).toContain("Duplicate/consolidation safety");
+    expect(result[3].notes).not.toContain("[Scope: review]");
+  });
+
+  it("keeps one generated quantity basis active across scopes and moves duplicate enhanced rows to review", () => {
+    const sharedCalc = "[Enhanced] #6 rebar, 26845 lbs total (incl. 10% lap/waste). Calc: Wall 892 SF × 1.5 = 1338 LF; Slab 4650 SF × 2 = 9300 LF; Pier 1 EA × 40 = 40 LF";
+    const items = [
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Dowels Required for Foundation Continuation",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 267,
+        extendedCost: 7_167_615,
+        materialCost: 160,
+        laborCost: 107,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Rebar, footing reinforcement at step",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 223,
+        extendedCost: 5_986_435,
+        materialCost: 134,
+        laborCost: 89,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [2],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing Steel within Foundations and Pits",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 5_476_380,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [3],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+    ];
+
+    const result = holdDuplicateGeneratedQuantityAssemblies(items as any);
+
+    expect(result[0].notes).toContain("[Scope: review]");
+    expect(result[0].notes).toContain("Generated quantity safety");
+    expect(result[1].notes).toContain("[Scope: review]");
+    expect(result[2].notes).not.toContain("[Scope: review]");
   });
 });
 

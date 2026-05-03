@@ -3,6 +3,8 @@ import { getScopeStatusFromNotes } from "./scopeCost";
 
 export type ScopeMatchStatus = "included" | "excluded" | "review";
 
+export const TRADE_PACKAGE_SCOPE_REVIEW_COST_CENTS = 1_000_000;
+
 type TermFamily =
   | "waterproofing"
   | "foundationDrain"
@@ -63,6 +65,18 @@ export interface ScopeIntent {
   supportWorkAllowed: string[];
   boundaryTerms: string[];
   reviewTerms: string[];
+}
+
+export interface ScopeSafetyItem {
+  csiDivision?: string | null;
+  csiCode?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  quantity?: number | string | null;
+  unit?: string | null;
+  unitCost?: number | string | null;
+  extendedCost?: number | string | null;
+  confidence?: number | string | null;
 }
 
 interface TradeProfile {
@@ -419,9 +433,63 @@ function hasQuantityReviewSignal(text: string): boolean {
   return /\bneeds?\s+qty\b|\bmissing\s+qty\b|\bquantity\s+(?:set|kept)\s+to\s+1\b|\bplaceholder\b|\bcannot\s+be\s+verified\b|\bupdate(?:d)?\s+with\s+actual\b|\bfield\s+verify\b/i.test(text);
 }
 
+function numeric(value: number | string | null | undefined): number {
+  const result = Number(value || 0);
+  return Number.isFinite(result) ? result : 0;
+}
+
+function hasNamedIncludedWorkArea(text: string): boolean {
+  return [
+    /\bcontinuous footings?\b/i,
+    /\bisolated footings?\b/i,
+    /\bspread footings?\b/i,
+    /\btrench drains?\b/i,
+    /\btrench pits?\b/i,
+    /\btire seal(?: drainage)? pits?\b/i,
+    /\bcorrelator pits?\b/i,
+    /\bgate post foundations?\b/i,
+    /\bbollard foundations?\b/i,
+    /\bequipment pole foundations?\b/i,
+    /\bvacuum enclosure (?:foundations?|slabs?)\b/i,
+    /\btrash enclosure (?:foundations?|slabs?)\b/i,
+    /\bdumpster enclosure (?:foundations?|slabs?)\b/i,
+    /\bslab[-\s]?on[-\s]?grade\b/i,
+    /\bsog\b/i,
+    /\bbuilding footprint\b/i,
+    /\boccupied slab perimeter\b/i,
+    /\b10 mil vapor barrier\b/i,
+    /\bvapor barriers?\b/i,
+    /\brigid insulation\b/i,
+    /\btermite treatment\b/i,
+  ].some((pattern) => pattern.test(text));
+}
+
+function hasBroadAssemblyOnly(text: string): boolean {
+  if (hasNamedIncludedWorkArea(text)) return false;
+  return /\b(?:generic|typ(?:ical)?|general|related)\b.*\b(?:concrete|slabs?|foundations?|formwork|reinforc(?:ing|ement)?|rebar)\b/i.test(text) ||
+    /\b(?:concrete|slabs?|foundations?|formwork|reinforc(?:ing|ement)?|rebar|control joints?|sawcuts?)\b/i.test(text);
+}
+
+function hasWeakSheetEvidence(text: string): boolean {
+  return /\b(?:no specific quantity|assuming|placeholder|quantity set to 1|original quantity was 0|missing item|typical detail|not provided|cannot be verified|field verify|update with actual|visually estimating)\b/i.test(text);
+}
+
+function isGeneratedOrConsolidated(text: string): boolean {
+  return /\[(?:generated|enhanced|consolidated|fuzzy-merged|merged|ls.)|\b(?:generated|consolidated|fuzzy-merged|unit resolved from cost library)\b/i.test(text);
+}
+
+function isObviousRepeatedAssembly(text: string): boolean {
+  return /\b(?:sections?\s+\d|typ(?:ical)?|each side|at .*faces|from:\s*[^]]*,\s*[^]]*,|consolidated \d+ items)\b/i.test(text);
+}
+
 function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boolean {
   if (/\b(?:control joint sealants?|joint sealants?|epoxy fillers?|joint caulking|caulking)\b/i.test(scopeText)) {
     if (/\b(?:sealants?|caulking|epoxy fillers?)\b/i.test(itemText)) return true;
+  }
+  if (/\bdewatering\b/i.test(scopeText) && /\bdewatering\b/i.test(itemText)) return true;
+  if (/\bsurveying(?:\s+services)?\b/i.test(scopeText) && /\bsurvey(?:ing)?\b/i.test(itemText)) return true;
+  if (/\bimport\/export of fill\b|\bimport\s+or\s+export of fill\b|\bexport of fill\b|\bimport of fill\b/i.test(scopeText)) {
+    if (/\bimport\b|\bexport\b|\boff[-\s]?site haul\b|\bhaul[-\s]?off\b/i.test(itemText)) return true;
   }
   if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside the building footprint)\b/i.test(itemText)) {
     return true;
@@ -691,11 +759,41 @@ export function classifyScopeMatch(
   return intent.includeKeywords.length > 0 ? "review" : "included";
 }
 
+export function classifyTradePackageScopeSafety(
+  item: ScopeSafetyItem,
+  intent: ScopeIntent,
+  currentStatus: ScopeMatchStatus = classifyScopeMatch(item, intent)
+): ScopeMatchStatus {
+  if (currentStatus !== "included") return currentStatus;
+  if (intent.bidMode !== "trade_package" || intent.scopeStrictness !== "strict" || !intent.hasScope) return currentStatus;
+
+  const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  const extendedCost = numeric(item.extendedCost);
+  const isHighDollar = extendedCost >= TRADE_PACKAGE_SCOPE_REVIEW_COST_CENTS;
+  const generatedOrConsolidated = isGeneratedOrConsolidated(text);
+  const weakEvidence = hasWeakSheetEvidence(text);
+  const broadOnly = hasBroadAssemblyOnly(text);
+  const repeatedAssembly = isObviousRepeatedAssembly(text);
+  const namedAnchor = hasNamedIncludedWorkArea(text);
+  const highDollarControlJoint = isHighDollar && /\b(?:sawcuts?|control joints?)\b/i.test(text);
+
+  if (highDollarControlJoint) return "review";
+  if (weakEvidence) return "review";
+  if (broadOnly) return "review";
+  if (generatedOrConsolidated && !namedAnchor) return "review";
+  if (isHighDollar && (generatedOrConsolidated || repeatedAssembly) && (!namedAnchor || weakEvidence)) return "review";
+  if (isHighDollar && broadOnly) return "review";
+
+  return currentStatus;
+}
+
 export function appendScopeReviewNote(notes: string | null | undefined, status: ScopeMatchStatus): string {
   const base = (notes || "").trim();
   if (status === "included") return base;
   const prefix = status === "excluded" ? "[Scope: excluded]" : "[Scope: review]";
-  if (base.startsWith("[Scope:")) return base;
+  if (base.startsWith(prefix)) return base;
+  if (status === "review" && base.startsWith("[Scope: excluded]")) return base;
+  if (base.startsWith("[Scope:")) return base.replace(/^\[Scope: (?:included|review|excluded)\]\s*/, `${prefix} `).trim();
   return `${prefix}${base ? ` ${base}` : ""}`.trim();
 }
 

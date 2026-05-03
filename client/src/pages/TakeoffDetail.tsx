@@ -153,6 +153,10 @@ function formatScopeReviewStatus(status: "included" | "review" | "excluded"): st
   return "Included in scope";
 }
 
+function sortByExtendedCostDesc<T extends { extendedCost?: number | string | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Number(b.extendedCost || 0) - Number(a.extendedCost || 0));
+}
+
 const SHEET_STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Pending", color: "bg-gray-500/20 text-gray-300", icon: Clock },
   processing: { label: "Analyzing...", color: "bg-amber-500/20 text-amber-300", icon: Loader2 },
@@ -650,7 +654,7 @@ export default function TakeoffDetail() {
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
     const allItems = items as any[];
     const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
-    const reviewBucket = allItems.filter((item) => isScopeReviewItem(item));
+    const reviewBucket = sortByExtendedCostDesc(allItems.filter((item) => isScopeReviewItem(item)));
     const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
     const projectAllowances = parseProjectAllowances((project as any)?.allowances);
     const allowancesTotal = projectAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
@@ -760,7 +764,7 @@ export default function TakeoffDetail() {
     const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
     const allItems = items as any[];
     const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
-    const reviewBucket = allItems.filter((item) => isScopeReviewItem(item));
+    const reviewBucket = sortByExtendedCostDesc(allItems.filter((item) => isScopeReviewItem(item)));
     const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
     const csvAllowances = parseProjectAllowances((project as any)?.allowances);
     const csvAllowancesTotal = csvAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
@@ -954,7 +958,7 @@ export default function TakeoffDetail() {
   // ─── Grouped Items ──────────────────────────────────────────────────
 
   const activeItems = useMemo(() => (items || []).filter((item: any) => isScopeIncludedItem(item)), [items]);
-  const reviewItems = useMemo(() => (items || []).filter((item: any) => isScopeReviewItem(item)), [items]);
+  const reviewItems = useMemo(() => sortByExtendedCostDesc((items || []).filter((item: any) => isScopeReviewItem(item))), [items]);
   const excludedItems = useMemo(() => (items || []).filter((item: any) => isScopeExcludedItem(item)), [items]);
   const scopeReviewCount = reviewItems.length;
   const reviewItemsCost = useMemo(
