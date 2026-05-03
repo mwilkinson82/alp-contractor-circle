@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getScopeStatusFromNotes,
   sumScopeIncludedExtendedCost,
   sumScopeIncludedLaborCost,
   sumScopeIncludedMaterialCost,
@@ -34,5 +35,13 @@ describe("scope cost totals", () => {
     ];
 
     expect(sumScopeIncludedExtendedCost(activeIncludedRows)).toBe(20000);
+  });
+
+  it("treats include/exclude conflicts as needs review instead of excluded or active", () => {
+    expect(getScopeStatusFromNotes("[Scope: excluded] [Scope: included] Continuous footing concrete")).toBe("review");
+    expect(sumScopeIncludedExtendedCost([
+      { extendedCost: 10000, notes: "[Scope: included] Vapor barrier" },
+      { extendedCost: 50000, notes: "[Scope: excluded] [Scope: included] Continuous footing concrete" },
+    ])).toBe(10000);
   });
 });

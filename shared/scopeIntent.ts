@@ -524,11 +524,17 @@ function hasBroadCalcBasis(text: string): boolean {
   const notesSection = text.includes("[enhanced]") || text.includes("[generated]") ? text : "";
   const checkText = calcSection || notesSection;
   if (!checkText) return false;
+  const itemLabel = text.split(/(?:calc:|basis:|generated from|enhanced from|calculation:)/i)[0] || text;
+  const isFoundationOrPitRebar =
+    /\breinforc(?:ing|ement)|\brebar\b/i.test(itemLabel) &&
+    /\b(?:footings?|foundations?|foundation continuation|pits?|trench)\b/i.test(itemLabel) &&
+    !/\bslab[- ]?on[- ]?grade\b|\bslab\b/i.test(itemLabel);
+  if (isFoundationOrPitRebar && /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i.test(checkText)) return true;
   // Count how many broad assembly categories are referenced
   const broadCategories = [
     /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i,
     /\b(?:beams?|grade beams?)\b/i,
-    /\b(?:columns?|pilasters?)\b/i,
+    /\b(?:columns?|pilasters?|piers?)\b/i,
     /\b(?:walls?|stem walls?|retaining walls?)\b/i,
     /\b(?:floors?|elevated (?:slab|deck))\b/i,
     /\b(?:footings?|foundations?)\b/i,
@@ -1109,4 +1115,3 @@ export function scopeSafetyPass(
     warnings,
   };
 }
-

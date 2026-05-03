@@ -1072,8 +1072,9 @@ const DUPLICATE_STOP_WORDS = new Set([
 
 function scopeStatusFromNotes(notes: string | null | undefined): ScopeMatchStatus {
   const normalized = String(notes || "").toLowerCase();
-  if (normalized.includes("[scope: excluded]")) return "excluded";
   if (normalized.includes("[scope: review]")) return "review";
+  if (normalized.includes("[scope: excluded]") && normalized.includes("[scope: included]")) return "review";
+  if (normalized.includes("[scope: excluded]")) return "excluded";
   return "included";
 }
 
@@ -1163,19 +1164,25 @@ function generatedQuantityClarityScore(item: ConsolidatedItem): number {
   // Penalize items where the description mentions a specific named work area
   // but the calc basis references broad unrelated assemblies (calc-basis mismatch)
   const descText = (item.description || "").toLowerCase();
-  const hasSpecificNamedArea = /\b(?:gate post|bollard|equipment pole|vacuum enclosure|trash enclosure|correlator|tire seal)\b/i.test(descText);
+  const hasSpecificNamedArea = /\b(?:continuous footing|isolated footing|wall footing|foundation|gate post|bollard|equipment pole|vacuum enclosure|trash enclosure|correlator|tire seal|trench pit|trench drain)\b/i.test(descText);
   if (hasSpecificNamedArea) {
     const calcSection = text.match(/(?:calc:|basis:|generated from|enhanced from|calculation:)\s*(.+)/i)?.[1] || "";
     const checkText = calcSection || text;
     const broadCategories = [
       /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i,
       /\b(?:beams?|grade beams?)\b/i,
-      /\b(?:columns?|pilasters?)\b/i,
+      /\b(?:columns?|pilasters?|piers?)\b/i,
       /\b(?:walls?|stem walls?|retaining walls?)\b/i,
       /\b(?:floors?|elevated (?:slab|deck))\b/i,
     ];
     const broadCount = broadCategories.filter(p => p.test(checkText)).length;
-    if (broadCount >= 2) score -= 50; // Heavy penalty: calc doesn't match named area
+    const isFoundationOrPitRebar =
+      /\breinforc(?:ing|ement)|\brebar\b/i.test(descText) &&
+      /\b(?:footings?|foundations?|foundation continuation|pits?|trench)\b/i.test(descText) &&
+      !/\bslab[- ]?on[- ]?grade\b|\bslab\b/i.test(descText);
+    if (broadCount >= 2 || (isFoundationOrPitRebar && /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i.test(checkText))) {
+      score -= 50; // Heavy penalty: calc doesn't match named area
+    }
   }
   return score;
 }

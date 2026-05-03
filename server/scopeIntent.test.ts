@@ -946,6 +946,26 @@ describe("scope-safety: high-dollar explicitly included items stay Active", () =
     };
     expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
   });
+
+  it("high-dollar foundation rebar with slab-derived generated calc goes to review", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Reinforcing steel for continuous footings (various sizes)",
+      notes: "[Scope: included] [Enhanced] #5 rebar, 25922 lbs total. Calc: Footing 345 LF × 6 = 2070 LF; Pier 1 EA × 40 = 40 LF; Slab 4323 SF × 2 = 8646 LF; Slab 2735 SF × 2 = 5470 LF",
+      extendedCost: 5_288_088,
+    };
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
+  });
+
+  it("direct foundation rebar without slab-derived generated calc stays Active", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Reinforcing steel for continuous footings",
+      notes: "[Scope: included] Sheet S-100 footing schedule WF-1/WF-2/WF-3. Calc: continuous footings 345 LF × #5 bars from footing schedule = 2,070 LF",
+      extendedCost: 2_500_000,
+    };
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
 });
 
 describe("scope-safety: explicit includes not excluded", () => {

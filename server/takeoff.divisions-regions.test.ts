@@ -302,6 +302,56 @@ describe("Generated rebar dedup: mislabeled named-area row with broad calc basis
     // Aggregate row should remain active
     expect(result[1].notes).not.toContain("[Scope: review]");
   });
+
+  it("penalizes foundation rebar rows when the generated calc basis includes slab quantities", () => {
+    const mixedCalc = "[Enhanced] #5 rebar, 25922 lbs total. Calc: Footing 345 LF × 6 = 2070 LF; Pier 1 EA × 40 = 40 LF; Slab 4323 SF × 2 = 8646 LF; Slab 2735 SF × 2 = 5470 LF";
+    const items = [
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing steel for continuous footings (various sizes)",
+        quantity: 25922,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 5_288_088,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: mixedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing Steel within Foundations and Pits",
+        quantity: 25922,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 5_288_088,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: mixedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [2],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+    ];
+
+    const result = holdDuplicateGeneratedQuantityAssemblies(items as any);
+
+    expect(result[0].notes).toContain("[Scope: review]");
+    expect(result[0].notes).toContain("Generated quantity safety");
+    expect(result[1].notes).not.toContain("[Scope: review]");
+  });
 });
 
 describe("Regional Cost Factors", () => {

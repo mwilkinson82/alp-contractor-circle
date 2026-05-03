@@ -9,8 +9,9 @@ export interface ScopeCostItem {
 
 export function getScopeStatusFromNotes(notes?: string | null): "included" | "review" | "excluded" {
   const normalized = String(notes || "").toLowerCase();
-  if (normalized.includes("[scope: excluded]")) return "excluded";
   if (normalized.includes("[scope: review]")) return "review";
+  if (normalized.includes("[scope: excluded]") && normalized.includes("[scope: included]")) return "review";
+  if (normalized.includes("[scope: excluded]")) return "excluded";
   return "included";
 }
 
