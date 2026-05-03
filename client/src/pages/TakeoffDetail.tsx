@@ -3604,7 +3604,7 @@ export default function TakeoffDetail() {
                             <th className="text-right px-4 py-2 w-28">
                               Review Total
                             </th>
-                            <th className="text-center px-4 py-2 w-28">
+                            <th className="text-right px-4 py-2 min-w-[260px]">
                               Decision
                             </th>
                           </tr>
@@ -3672,53 +3672,54 @@ export default function TakeoffDetail() {
                                   )}
                                 </td>
                                 <td
-                                  className="px-4 py-2 text-center"
+                                  className="px-4 py-2"
                                   onClick={event => event.stopPropagation()}
                                 >
-                                  <div className="flex items-center justify-center gap-1">
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
                                     <Button
-                                      variant="ghost"
                                       size="sm"
-                                      className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                      className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
                                       onClick={() =>
                                         applyScopeDecision(item, "included")
                                       }
                                       title="Include in active total"
                                     >
-                                      <Check className="w-3 h-3" />
+                                      <Check className="w-3 h-3 mr-1" />
+                                      Include
                                     </Button>
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
-                                      className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
+                                      className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
                                       onClick={() =>
                                         applyScopeDecision(item, "excluded")
                                       }
                                       title="Exclude from active total"
                                     >
-                                      <X className="w-3 h-3" />
+                                      <X className="w-3 h-3 mr-1" />
+                                      Exclude
                                     </Button>
-                                    {!item.reviewed && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
-                                        onClick={() =>
-                                          applyScopeDecision(item, "review")
-                                        }
-                                        title="Hold for later"
-                                      >
-                                        <Square className="w-3 h-3" />
-                                      </Button>
-                                    )}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
+                                      onClick={() =>
+                                        applyScopeDecision(item, "review")
+                                      }
+                                      title="Keep in review queue"
+                                    >
+                                      <Square className="w-3 h-3 mr-1" />
+                                      Hold
+                                    </Button>
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                      className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
                                       onClick={() => setSelectedItem(item)}
                                       title="View details"
                                     >
-                                      <Eye className="w-3 h-3" />
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      Details
                                     </Button>
                                   </div>
                                 </td>
@@ -3759,7 +3760,7 @@ export default function TakeoffDetail() {
                             <th className="text-right px-4 py-2 w-28">
                               Ref Total
                             </th>
-                            <th className="text-center px-4 py-2 w-20">
+                            <th className="text-right px-4 py-2 w-40">
                               Actions
                             </th>
                           </tr>
@@ -3799,29 +3800,30 @@ export default function TakeoffDetail() {
                                 )}
                               </td>
                               <td
-                                className="px-4 py-2 text-center"
+                                className="px-4 py-2"
                                 onClick={event => event.stopPropagation()}
                               >
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-end gap-2">
                                   <Button
-                                    variant="ghost"
                                     size="sm"
-                                    className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                    className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
                                     onClick={() =>
                                       applyScopeDecision(item, "included")
                                     }
                                     title="Include in active total"
                                   >
-                                    <Check className="w-3 h-3" />
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Include
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                    className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
                                     onClick={() => setSelectedItem(item)}
                                     title="View details"
                                   >
-                                    <Eye className="w-3 h-3" />
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    Details
                                   </Button>
                                 </div>
                               </td>
@@ -3999,6 +4001,9 @@ export default function TakeoffDetail() {
               currency={project.currency || "USD"}
               costRegion={project.costRegion}
               enableResidentialQa={enableResidentialQa}
+              reviewQueueCount={openReviewItems.length}
+              reviewQueueCost={reviewItemsCost}
+              excludedBoundaryCount={excludedItems.length}
             />
           </TabsContent>
         </Tabs>
@@ -4097,6 +4102,18 @@ export default function TakeoffDetail() {
               updateItemMutation.mutate(data);
               setSelectedItem((prev: any) =>
                 prev ? { ...prev, reviewed: true } : null
+              );
+            }}
+            onScopeDecision={(item, status) => {
+              applyScopeDecision(item, status);
+              setSelectedItem((prev: any) =>
+                prev
+                  ? {
+                      ...prev,
+                      notes: scopeDecisionNotes(prev.notes, status),
+                      reviewed: true,
+                    }
+                  : null
               );
             }}
             isPending={updateItemMutation.isPending}

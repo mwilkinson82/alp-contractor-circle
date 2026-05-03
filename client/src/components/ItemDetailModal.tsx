@@ -46,7 +46,14 @@ import { MarkupToolbar } from "@/components/markup/MarkupToolbar";
 import { TextInputOverlay } from "@/components/markup/TextInputOverlay";
 import { useMarkupHistory } from "@/components/markup/useMarkupHistory";
 import { exportToPng } from "@/components/markup/exportToPng";
-import type { ToolType, Point, Shape, CountShape, LineShape, PolygonShape } from "@/components/markup/types";
+import type {
+  ToolType,
+  Point,
+  Shape,
+  CountShape,
+  LineShape,
+  PolygonShape,
+} from "@/components/markup/types";
 import { ScaleCalibrationDialog } from "@/components/markup/ScaleCalibrationDialog";
 import { MeasurementSummary } from "@/components/markup/MeasurementSummary";
 import { renderAllShapes } from "@/components/markup/renderShapes";
@@ -124,7 +131,15 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onSave: (data: any) => void;
   onDelete: (data: { id: number; projectId: number }) => void;
-  onMarkReviewed: (data: { id: number; projectId: number; reviewed: boolean }) => void;
+  onMarkReviewed: (data: {
+    id: number;
+    projectId: number;
+    reviewed: boolean;
+  }) => void;
+  onScopeDecision?: (
+    item: TakeoffItem,
+    status: "included" | "review" | "excluded"
+  ) => void;
   isPending: boolean;
   onPrev?: () => void;
   onNext?: () => void;
@@ -139,7 +154,17 @@ const ZOOM_LEVELS = [1, 1.5, 2.5, 4];
 
 // ─── Drawing Viewer with Zoom ─────────────────────────────────────────────────
 
-function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUrl: string; sheetName: string; onFullscreen?: () => void; sheetId?: number; }) {
+function DrawingViewer({
+  imageUrl,
+  sheetName,
+  onFullscreen,
+  sheetId,
+}: {
+  imageUrl: string;
+  sheetName: string;
+  onFullscreen?: () => void;
+  sheetId?: number;
+}) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -156,14 +181,20 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
     { enabled: !!sheetId }
   );
   const shapes: Shape[] = savedMarkup.data?.shapesJson
-    ? (() => { try { return JSON.parse(savedMarkup.data.shapesJson); } catch { return []; } })()
+    ? (() => {
+        try {
+          return JSON.parse(savedMarkup.data.shapesJson);
+        } catch {
+          return [];
+        }
+      })()
     : [];
 
   // Track container size
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
+    const ro = new ResizeObserver(entries => {
       const r = entries[0].contentRect;
       setContainerSize({ w: r.width, h: r.height });
     });
@@ -174,7 +205,13 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
   // Redraw annotation overlay
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || shapes.length === 0 || imgNatural.w === 0 || containerSize.w === 0) return;
+    if (
+      !canvas ||
+      shapes.length === 0 ||
+      imgNatural.w === 0 ||
+      containerSize.w === 0
+    )
+      return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -218,53 +255,65 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
   }, [imageUrl]);
 
   const handleZoomIn = useCallback(() => {
-    setZoomIndex((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
+    setZoomIndex(prev => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomIndex((prev) => {
+    setZoomIndex(prev => {
       const next = Math.max(prev - 1, 0);
       if (next === 0) setPosition({ x: 0, y: 0 });
       return next;
     });
   }, []);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.deltaY < 0) {
-      handleZoomIn();
-    } else {
-      handleZoomOut();
-    }
-  }, [handleZoomIn, handleZoomOut]);
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.deltaY < 0) {
+        handleZoomIn();
+      } else {
+        handleZoomOut();
+      }
+    },
+    [handleZoomIn, handleZoomOut]
+  );
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (zoom <= 1) return;
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-  }, [zoom, position]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (zoom <= 1) return;
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    },
+    [zoom, position]
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  }, [isDragging, dragStart]);
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDragging) return;
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    },
+    [isDragging, dragStart]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Only cycle zoom on click (not drag)
-    if (isDragging) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("button")) return; // Don't zoom when clicking toolbar buttons
-    handleZoomIn();
-  }, [isDragging, handleZoomIn]);
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only cycle zoom on click (not drag)
+      if (isDragging) return;
+      const target = e.target as HTMLElement;
+      if (target.closest("button")) return; // Don't zoom when clicking toolbar buttons
+      handleZoomIn();
+    },
+    [isDragging, handleZoomIn]
+  );
 
   return (
     <div className="relative h-full flex flex-col">
@@ -293,7 +342,13 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
         </button>
         <button
           type="button"
-          onClick={onFullscreen || (() => { setZoomIndex(0); setPosition({ x: 0, y: 0 }); })}
+          onClick={
+            onFullscreen ||
+            (() => {
+              setZoomIndex(0);
+              setPosition({ x: 0, y: 0 });
+            })
+          }
           className="p-1 text-white/70 hover:text-white transition-colors ml-1"
           title={onFullscreen ? "Go fullscreen" : "Reset zoom"}
         >
@@ -312,7 +367,9 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
       <div
         ref={containerRef}
         className="flex-1 overflow-hidden bg-white rounded-lg relative"
-        style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in" }}
+        style={{
+          cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in",
+        }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -325,7 +382,7 @@ function DrawingViewer({ imageUrl, sheetName, onFullscreen, sheetId }: { imageUr
           alt={sheetName}
           className="w-full h-full object-contain select-none"
           draggable={false}
-          onLoad={(e) => {
+          onLoad={e => {
             const img = e.currentTarget;
             setImgNatural({ w: img.naturalWidth, h: img.naturalHeight });
           }}
@@ -372,15 +429,58 @@ function computePolygonAreaHelper(poly: PolygonShape): number {
 }
 
 /** Determine which measurement type best matches the item's unit */
-function suggestedMeasurementType(itemUnit: string | undefined): "line" | "area" | "count" | null {
+function suggestedMeasurementType(
+  itemUnit: string | undefined
+): "line" | "area" | "count" | null {
   if (!itemUnit) return null;
   const u = itemUnit.toUpperCase().trim();
   // Linear units
-  if (["LF", "FT", "M", "IN", "CM", "MM", "YD", "LINEAR FEET", "FEET", "FOOT"].includes(u)) return "line";
+  if (
+    [
+      "LF",
+      "FT",
+      "M",
+      "IN",
+      "CM",
+      "MM",
+      "YD",
+      "LINEAR FEET",
+      "FEET",
+      "FOOT",
+    ].includes(u)
+  )
+    return "line";
   // Area units
-  if (["SF", "SQ FT", "SQFT", "SY", "SQ YD", "M2", "M²", "SQUARE FEET", "SQUARE FOOT"].includes(u)) return "area";
+  if (
+    [
+      "SF",
+      "SQ FT",
+      "SQFT",
+      "SY",
+      "SQ YD",
+      "M2",
+      "M²",
+      "SQUARE FEET",
+      "SQUARE FOOT",
+    ].includes(u)
+  )
+    return "area";
   // Count units
-  if (["EA", "EACH", "PC", "PCS", "UNIT", "UNITS", "SET", "SETS", "LOT", "LS"].includes(u)) return "count";
+  if (
+    [
+      "EA",
+      "EACH",
+      "PC",
+      "PCS",
+      "UNIT",
+      "UNITS",
+      "SET",
+      "SETS",
+      "LOT",
+      "LS",
+    ].includes(u)
+  )
+    return "count";
   return null;
 }
 
@@ -400,7 +500,11 @@ function MarkupMeasurementStrip({
   itemUnit?: string;
   itemDescription?: string;
   sheetName?: string;
-  onApplyQuantity: (qty: number, unit: string, measurementType: "line" | "area" | "count") => void;
+  onApplyQuantity: (
+    qty: number,
+    unit: string,
+    measurementType: "line" | "area" | "count"
+  ) => void;
   onOpenFullscreen: () => void;
 }) {
   const savedMarkup = trpc.takeoff.getSheetMarkup.useQuery(
@@ -422,11 +526,19 @@ function MarkupMeasurementStrip({
   const isCalibrated = scaleRatio > 0;
 
   const lines = shapes.filter((s): s is LineShape => s.type === "line");
-  const polygons = shapes.filter((s): s is PolygonShape => s.type === "polygon");
+  const polygons = shapes.filter(
+    (s): s is PolygonShape => s.type === "polygon"
+  );
   const counts = shapes.filter((s): s is CountShape => s.type === "count");
 
-  const totalLinePx = lines.reduce((sum, l) => sum + computeLineLengthHelper(l), 0);
-  const totalAreaPx = polygons.reduce((sum, p) => sum + computePolygonAreaHelper(p), 0);
+  const totalLinePx = lines.reduce(
+    (sum, l) => sum + computeLineLengthHelper(l),
+    0
+  );
+  const totalAreaPx = polygons.reduce(
+    (sum, p) => sum + computePolygonAreaHelper(p),
+    0
+  );
 
   const hasAny = lines.length > 0 || polygons.length > 0 || counts.length > 0;
   if (!hasAny) return null;
@@ -440,12 +552,14 @@ function MarkupMeasurementStrip({
   const fmtArea = (px: number) => {
     if (!isCalibrated) return `${Math.round(px)}px²`;
     const real = px / (scaleRatio * scaleRatio);
-    const unitLabel = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
+    const unitLabel =
+      scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
     return `${real.toFixed(1)} ${unitLabel}`;
   };
 
   const lineUnit = scaleUnit === "ft" ? "LF" : scaleUnit;
-  const areaUnit = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
+  const areaUnit =
+    scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m²" : scaleUnit + "²";
 
   const suggested = suggestedMeasurementType(itemUnit);
 
@@ -455,29 +569,39 @@ function MarkupMeasurementStrip({
     <div className="mt-2 bg-navy-deep/40 border border-white/10 rounded-lg p-2.5">
       <div className="flex items-center gap-2 mb-1.5">
         <Sigma className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Saved Measurements</span>
+        <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
+          Saved Measurements
+        </span>
         {!isCalibrated && (
-          <span className="text-[9px] text-amber-400/60 italic ml-auto">Not calibrated</span>
+          <span className="text-[9px] text-amber-400/60 italic ml-auto">
+            Not calibrated
+          </span>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {/* Total lines */}
         {lines.length > 0 && (
-          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
-            isSuggested("line")
-              ? "bg-blue-500/20 border-2 border-blue-400/60 ring-1 ring-blue-400/30"
-              : "bg-blue-500/10 border border-blue-500/20"
-          }`}>
+          <div
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+              isSuggested("line")
+                ? "bg-blue-500/20 border-2 border-blue-400/60 ring-1 ring-blue-400/30"
+                : "bg-blue-500/10 border border-blue-500/20"
+            }`}
+          >
             <Ruler className="w-3 h-3 text-blue-400" />
             <span className="text-[11px] text-blue-300 font-mono">
               {fmtDist(totalLinePx)}
             </span>
-            <span className="text-[9px] text-blue-400/60">({lines.length} lines)</span>
+            <span className="text-[9px] text-blue-400/60">
+              ({lines.length} lines)
+            </span>
             {isCalibrated && (
               <button
                 type="button"
-                onClick={() => onApplyQuantity(totalLinePx / scaleRatio, lineUnit, "line")}
+                onClick={() =>
+                  onApplyQuantity(totalLinePx / scaleRatio, lineUnit, "line")
+                }
                 className={`ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                   isSuggested("line")
                     ? "bg-blue-500/40 text-blue-200 hover:bg-blue-500/50 font-bold"
@@ -495,19 +619,29 @@ function MarkupMeasurementStrip({
 
         {/* Total areas */}
         {polygons.length > 0 && (
-          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
-            isSuggested("area")
-              ? "bg-green-500/20 border-2 border-green-400/60 ring-1 ring-green-400/30"
-              : "bg-green-500/10 border border-green-500/20"
-          }`}>
+          <div
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+              isSuggested("area")
+                ? "bg-green-500/20 border-2 border-green-400/60 ring-1 ring-green-400/30"
+                : "bg-green-500/10 border border-green-500/20"
+            }`}
+          >
             <span className="text-[11px] text-green-300 font-mono">
               {fmtArea(totalAreaPx)}
             </span>
-            <span className="text-[9px] text-green-400/60">({polygons.length} areas)</span>
+            <span className="text-[9px] text-green-400/60">
+              ({polygons.length} areas)
+            </span>
             {isCalibrated && (
               <button
                 type="button"
-                onClick={() => onApplyQuantity(totalAreaPx / (scaleRatio * scaleRatio), areaUnit, "area")}
+                onClick={() =>
+                  onApplyQuantity(
+                    totalAreaPx / (scaleRatio * scaleRatio),
+                    areaUnit,
+                    "area"
+                  )
+                }
                 className={`ml-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                   isSuggested("area")
                     ? "bg-green-500/40 text-green-200 hover:bg-green-500/50 font-bold"
@@ -525,11 +659,13 @@ function MarkupMeasurementStrip({
 
         {/* Total counts */}
         {counts.length > 0 && (
-          <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
-            isSuggested("count")
-              ? "bg-purple-500/20 border-2 border-purple-400/60 ring-1 ring-purple-400/30"
-              : "bg-purple-500/10 border border-purple-500/20"
-          }`}>
+          <div
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 ${
+              isSuggested("count")
+                ? "bg-purple-500/20 border-2 border-purple-400/60 ring-1 ring-purple-400/30"
+                : "bg-purple-500/10 border border-purple-500/20"
+            }`}
+          >
             <span className="text-[11px] text-purple-300 font-mono">
               {counts.length} counted
             </span>
@@ -592,24 +728,47 @@ function FullscreenDrawing({
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [textPromptPos, setTextPromptPos] = useState<Point | null>(null);
-  const { elements, pushElement, replaceElements, updateElement, updateElementSilent, beginDrag, commitDrag, removeElement, undo, redo, clearAll, canUndo, canRedo } = useMarkupHistory();
+  const {
+    elements,
+    pushElement,
+    replaceElements,
+    updateElement,
+    updateElementSilent,
+    beginDrag,
+    commitDrag,
+    removeElement,
+    undo,
+    redo,
+    clearAll,
+    canUndo,
+    canRedo,
+  } = useMarkupHistory();
 
   // When color or lineWidth changes and a shape is selected, apply to that shape
-  const handleColorChange = useCallback((c: string) => {
-    setActiveColor(c);
-    if (selectedShapeId) {
-      updateElement(selectedShapeId, (s) => ({ ...s, color: c }));
-    }
-  }, [selectedShapeId, updateElement]);
+  const handleColorChange = useCallback(
+    (c: string) => {
+      setActiveColor(c);
+      if (selectedShapeId) {
+        updateElement(selectedShapeId, s => ({ ...s, color: c }));
+      }
+    },
+    [selectedShapeId, updateElement]
+  );
 
-  const handleLineWidthChange = useCallback((w: number) => {
-    setLineWidth(w);
-    if (selectedShapeId) {
-      updateElement(selectedShapeId, (s) => ({ ...s, lineWidth: w }));
-    }
-  }, [selectedShapeId, updateElement]);
+  const handleLineWidthChange = useCallback(
+    (w: number) => {
+      setLineWidth(w);
+      if (selectedShapeId) {
+        updateElement(selectedShapeId, s => ({ ...s, lineWidth: w }));
+      }
+    },
+    [selectedShapeId, updateElement]
+  );
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [lastMeasurement, setLastMeasurement] = useState<{ pxDist: number; type: string } | null>(null);
+  const [lastMeasurement, setLastMeasurement] = useState<{
+    pxDist: number;
+    type: string;
+  } | null>(null);
 
   // Image natural dimensions (needed for image-space coordinate conversion)
   const [imageNaturalWidth, setImageNaturalWidth] = useState(0);
@@ -621,9 +780,12 @@ function FullscreenDrawing({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
-        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+        setContainerSize({
+          w: entry.contentRect.width,
+          h: entry.contentRect.height,
+        });
       }
     });
     observer.observe(el);
@@ -637,7 +799,9 @@ function FullscreenDrawing({
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [scaleRatio, setScaleRatio] = useState(0); // px per real-world unit
   const [scaleUnit, setScaleUnit] = useState("px");
-  const [calibrationPixelDist, setCalibrationPixelDist] = useState<number | null>(null);
+  const [calibrationPixelDist, setCalibrationPixelDist] = useState<
+    number | null
+  >(null);
   const [scaleDisplay, setScaleDisplay] = useState("");
 
   // ── Load saved markup from DB ──
@@ -653,9 +817,13 @@ function FullscreenDrawing({
         if (savedMarkup.data.scaleRatio > 0) {
           setScaleRatio(savedMarkup.data.scaleRatio);
           setScaleUnit(savedMarkup.data.scaleUnit || "px");
-          setScaleDisplay(`1 ${savedMarkup.data.scaleUnit || "px"} = ${Math.round(savedMarkup.data.scaleRatio)}px`);
+          setScaleDisplay(
+            `1 ${savedMarkup.data.scaleUnit || "px"} = ${Math.round(savedMarkup.data.scaleRatio)}px`
+          );
         }
-      } catch { /* ignore parse errors */ }
+      } catch {
+        /* ignore parse errors */
+      }
       setHasLoaded(true);
     } else if (savedMarkup.isFetched && !savedMarkup.data) {
       setHasLoaded(true);
@@ -685,32 +853,65 @@ function FullscreenDrawing({
         scaleUnit,
       });
     }, 1500);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [elements, scaleRatio, scaleUnit, sheetId, projectId, hasLoaded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (textPromptPos) { setTextPromptPos(null); return; }
+        if (textPromptPos) {
+          setTextPromptPos(null);
+          return;
+        }
         onClose();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) { e.preventDefault(); redo(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); redo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
       // Skip tool shortcuts when user is typing in an input or textarea
       const tag = (document.activeElement as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (markupActive && !textPromptPos) {
         switch (e.key.toLowerCase()) {
-          case "v": setActiveTool("select"); break;
-          case "p": setActiveTool("pen"); break;
-          case "r": setActiveTool("rectangle"); break;
-          case "c": setActiveTool("circle"); break;
-          case "l": setActiveTool("line"); break;
-          case "a": setActiveTool("polygon"); break;
-          case "t": setActiveTool("text"); break;
-          case "n": setActiveTool("count"); break;
+          case "v":
+            setActiveTool("select");
+            break;
+          case "p":
+            setActiveTool("pen");
+            break;
+          case "r":
+            setActiveTool("rectangle");
+            break;
+          case "c":
+            setActiveTool("circle");
+            break;
+          case "l":
+            setActiveTool("line");
+            break;
+          case "a":
+            setActiveTool("polygon");
+            break;
+          case "t":
+            setActiveTool("text");
+            break;
+          case "n":
+            setActiveTool("count");
+            break;
         }
       }
     };
@@ -718,20 +919,23 @@ function FullscreenDrawing({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose, undo, redo, markupActive, textPromptPos]);
 
-  const handleTextSubmit = useCallback((text: string) => {
-    if (!textPromptPos) return;
-    const shape = {
-      id: `text_${Date.now()}`,
-      type: "text" as const,
-      position: textPromptPos,
-      text,
-      fontSize: Math.max(14, lineWidth * 4),
-      color: activeColor,
-      lineWidth,
-    };
-    pushElement(shape);
-    setTextPromptPos(null);
-  }, [textPromptPos, activeColor, lineWidth, pushElement]);
+  const handleTextSubmit = useCallback(
+    (text: string) => {
+      if (!textPromptPos) return;
+      const shape = {
+        id: `text_${Date.now()}`,
+        type: "text" as const,
+        position: textPromptPos,
+        text,
+        fontSize: Math.max(14, lineWidth * 4),
+        color: activeColor,
+        lineWidth,
+      };
+      pushElement(shape);
+      setTextPromptPos(null);
+    },
+    [textPromptPos, activeColor, lineWidth, pushElement]
+  );
 
   const formatDistance = useCallback(
     (pxDist: number): string => {
@@ -747,7 +951,7 @@ function FullscreenDrawing({
       }
       return `${Math.round(pxDist)}px`;
     },
-    [scaleRatio, scaleUnit],
+    [scaleRatio, scaleUnit]
   );
 
   const formatArea = useCallback(
@@ -760,7 +964,7 @@ function FullscreenDrawing({
       }
       return `${Math.round(pxArea)} px\u00B2`;
     },
-    [scaleRatio, scaleUnit],
+    [scaleRatio, scaleUnit]
   );
 
   const handleDeleteSelected = useCallback(() => {
@@ -771,20 +975,26 @@ function FullscreenDrawing({
 
   const handleExport = useCallback(async () => {
     try {
-      await exportToPng(imageUrl, elements, `${sheetName}-markup.png`, formatDistance, formatArea);
+      await exportToPng(
+        imageUrl,
+        elements,
+        `${sheetName}-markup.png`,
+        formatDistance,
+        formatArea
+      );
     } catch (err) {
       console.error("Export failed:", err);
     }
   }, [imageUrl, elements, sheetName, formatDistance, formatArea]);
 
   const toggleMarkup = useCallback(() => {
-    setMarkupActive((prev) => !prev);
+    setMarkupActive(prev => !prev);
     setTextPromptPos(null);
     setIsCalibrating(false);
   }, []);
 
   const handleToggleCalibrate = useCallback(() => {
-    setIsCalibrating((prev) => !prev);
+    setIsCalibrating(prev => !prev);
   }, []);
 
   const handleCalibrationComplete = useCallback((pixelDist: number) => {
@@ -792,15 +1002,18 @@ function FullscreenDrawing({
     setIsCalibrating(false);
   }, []);
 
-  const handleScaleConfirm = useCallback((realDistance: number, unit: string) => {
-    if (calibrationPixelDist && realDistance > 0) {
-      const ratio = calibrationPixelDist / realDistance;
-      setScaleRatio(ratio);
-      setScaleUnit(unit);
-      setScaleDisplay(`1 ${unit} = ${Math.round(ratio)}px`);
-    }
-    setCalibrationPixelDist(null);
-  }, [calibrationPixelDist]);
+  const handleScaleConfirm = useCallback(
+    (realDistance: number, unit: string) => {
+      if (calibrationPixelDist && realDistance > 0) {
+        const ratio = calibrationPixelDist / realDistance;
+        setScaleRatio(ratio);
+        setScaleUnit(unit);
+        setScaleDisplay(`1 ${unit} = ${Math.round(ratio)}px`);
+      }
+      setCalibrationPixelDist(null);
+    },
+    [calibrationPixelDist]
+  );
 
   const handleScaleCancel = useCallback(() => {
     setCalibrationPixelDist(null);
@@ -809,7 +1022,9 @@ function FullscreenDrawing({
   // Zoom controls
   const ZOOM_STEPS = [1, 1.5, 2, 2.5, 3, 4];
   const zoomIdx = ZOOM_STEPS.indexOf(zoom);
-  const handleZoomIn = () => { if (zoomIdx < ZOOM_STEPS.length - 1) setZoom(ZOOM_STEPS[zoomIdx + 1]); };
+  const handleZoomIn = () => {
+    if (zoomIdx < ZOOM_STEPS.length - 1) setZoom(ZOOM_STEPS[zoomIdx + 1]);
+  };
   const handleZoomOut = () => {
     if (zoomIdx > 0) {
       setZoom(ZOOM_STEPS[zoomIdx - 1]);
@@ -845,32 +1060,50 @@ function FullscreenDrawing({
   }, [markupActive, textPromptPos]);
 
   // Scroll-wheel zoom works in ALL modes (pan + markup)
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    if (e.deltaY < 0) handleZoomIn();
-    else handleZoomOut();
-  }, [zoomIdx]);
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY < 0) handleZoomIn();
+      else handleZoomOut();
+    },
+    [zoomIdx]
+  );
 
-  const handlePointerDownContainer = useCallback((e: React.PointerEvent) => {
-    // In pan-only mode (markup off): click-to-zoom at 100%, drag to pan when zoomed
-    if (!markupActive && zoom <= 1) { handleZoomIn(); return; }
-    // In markup mode: only pan when spacebar is held
-    if (markupActive && !spaceHeld) return;
-    if (zoom <= 1) return; // don't pan at 100%
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  }, [markupActive, zoom, panOffset, spaceHeld]);
+  const handlePointerDownContainer = useCallback(
+    (e: React.PointerEvent) => {
+      // In pan-only mode (markup off): click-to-zoom at 100%, drag to pan when zoomed
+      if (!markupActive && zoom <= 1) {
+        handleZoomIn();
+        return;
+      }
+      // In markup mode: only pan when spacebar is held
+      if (markupActive && !spaceHeld) return;
+      if (zoom <= 1) return; // don't pan at 100%
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    },
+    [markupActive, zoom, panOffset, spaceHeld]
+  );
 
-  const handlePointerMoveContainer = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, dragStart]);
+  const handlePointerMoveContainer = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging) return;
+      setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    },
+    [isDragging, dragStart]
+  );
 
-  const handlePointerUpContainer = useCallback(() => { setIsDragging(false); }, []);
+  const handlePointerUpContainer = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
+      onPointerDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-white/5 shrink-0">
         <div className="flex items-center gap-3">
@@ -893,9 +1126,15 @@ function FullscreenDrawing({
             title={markupActive ? "Exit markup mode" : "Enter markup mode"}
           >
             {markupActive ? (
-              <><Move className="w-3.5 h-3.5" /><span>Pan Mode</span></>
+              <>
+                <Move className="w-3.5 h-3.5" />
+                <span>Pan Mode</span>
+              </>
             ) : (
-              <><Pencil className="w-3.5 h-3.5" /><span>Markup</span></>
+              <>
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Markup</span>
+              </>
             )}
           </button>
           <button
@@ -913,11 +1152,25 @@ function FullscreenDrawing({
       <div className="flex-1 min-h-0 relative">
         {/* Zoom controls */}
         <div className="absolute top-2 right-2 z-30 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
-          <button type="button" onClick={handleZoomOut} disabled={zoomIdx <= 0} className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors" title="Zoom out">
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            disabled={zoomIdx <= 0}
+            className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors"
+            title="Zoom out"
+          >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-white/80 text-xs font-mono min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={handleZoomIn} disabled={zoomIdx >= ZOOM_STEPS.length - 1} className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors" title="Zoom in">
+          <span className="text-white/80 text-xs font-mono min-w-[3rem] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            disabled={zoomIdx >= ZOOM_STEPS.length - 1}
+            className="p-1 text-white/70 hover:text-white disabled:text-white/30 transition-colors"
+            title="Zoom in"
+          >
             <ZoomIn className="w-4 h-4" />
           </button>
         </div>
@@ -926,7 +1179,19 @@ function FullscreenDrawing({
         <div
           ref={containerRef}
           className="h-full overflow-hidden bg-white relative"
-          style={{ cursor: spaceHeld ? (isDragging ? "grabbing" : "grab") : zoom > 1 && !markupActive ? (isDragging ? "grabbing" : "grab") : markupActive ? "crosshair" : "zoom-in" }}
+          style={{
+            cursor: spaceHeld
+              ? isDragging
+                ? "grabbing"
+                : "grab"
+              : zoom > 1 && !markupActive
+                ? isDragging
+                  ? "grabbing"
+                  : "grab"
+                : markupActive
+                  ? "crosshair"
+                  : "zoom-in",
+          }}
           onWheel={handleWheel}
           onPointerDown={handlePointerDownContainer}
           onPointerMove={handlePointerMoveContainer}
@@ -938,7 +1203,7 @@ function FullscreenDrawing({
             alt={sheetName}
             className="w-full h-full object-contain select-none"
             draggable={false}
-            onLoad={(e) => {
+            onLoad={e => {
               const img = e.currentTarget;
               setImageNaturalWidth(img.naturalWidth);
               setImageNaturalHeight(img.naturalHeight);
@@ -951,7 +1216,7 @@ function FullscreenDrawing({
           />
           <MarkupCanvas
             elements={elements}
-            onElementAdd={(shape) => {
+            onElementAdd={shape => {
               pushElement(shape);
               // Track last measurement for push-to-quantity
               if (shape.type === "line" && scaleRatio > 0) {
@@ -967,7 +1232,11 @@ function FullscreenDrawing({
               } else if (shape.type === "circle" && scaleRatio > 0) {
                 const areaPx = Math.PI * shape.radiusX * shape.radiusY;
                 setLastMeasurement({ pxDist: areaPx, type: "area" });
-              } else if (shape.type === "polygon" && scaleRatio > 0 && shape.points.length >= 3) {
+              } else if (
+                shape.type === "polygon" &&
+                scaleRatio > 0 &&
+                shape.points.length >= 3
+              ) {
                 // Shoelace formula for polygon area
                 let areaPx = 0;
                 const pts = shape.points;
@@ -1023,7 +1292,7 @@ function FullscreenDrawing({
         <div className="flex justify-center py-2 px-4 bg-black/80 border-t border-white/5 shrink-0">
           <MarkupToolbar
             activeTool={activeTool}
-            onToolChange={(tool) => {
+            onToolChange={tool => {
               setActiveTool(tool);
               if (tool !== "select") setSelectedShapeId(null);
             }}
@@ -1043,50 +1312,72 @@ function FullscreenDrawing({
             scaleDisplay={scaleDisplay}
             isCalibrating={isCalibrating}
             onToggleCalibrate={handleToggleCalibrate}
-            lastMeasurementLabel={lastMeasurement && scaleRatio > 0 ? (
-              lastMeasurement.type === "line"
-                ? formatDistance(lastMeasurement.pxDist)
-                : `${(lastMeasurement.pxDist / (scaleRatio * scaleRatio)).toFixed(1)} ${scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m\u00B2" : scaleUnit + "\u00B2"}`
-            ) : undefined}
-            onPushQuantity={lastMeasurement && scaleRatio > 0 && onQuantityUpdate ? () => {
-              if (lastMeasurement.type === "line") {
-                const realDist = lastMeasurement.pxDist / scaleRatio;
-                const unit = scaleUnit === "ft" ? "LF" : scaleUnit;
-                onQuantityUpdate(realDist, unit);
-              } else {
-                const realArea = lastMeasurement.pxDist / (scaleRatio * scaleRatio);
-                const unit = scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m\u00B2" : scaleUnit + "\u00B2";
-                onQuantityUpdate(realArea, unit);
-              }
-            } : undefined}
+            lastMeasurementLabel={
+              lastMeasurement && scaleRatio > 0
+                ? lastMeasurement.type === "line"
+                  ? formatDistance(lastMeasurement.pxDist)
+                  : `${(lastMeasurement.pxDist / (scaleRatio * scaleRatio)).toFixed(1)} ${scaleUnit === "ft" ? "SF" : scaleUnit === "m" ? "m\u00B2" : scaleUnit + "\u00B2"}`
+                : undefined
+            }
+            onPushQuantity={
+              lastMeasurement && scaleRatio > 0 && onQuantityUpdate
+                ? () => {
+                    if (lastMeasurement.type === "line") {
+                      const realDist = lastMeasurement.pxDist / scaleRatio;
+                      const unit = scaleUnit === "ft" ? "LF" : scaleUnit;
+                      onQuantityUpdate(realDist, unit);
+                    } else {
+                      const realArea =
+                        lastMeasurement.pxDist / (scaleRatio * scaleRatio);
+                      const unit =
+                        scaleUnit === "ft"
+                          ? "SF"
+                          : scaleUnit === "m"
+                            ? "m\u00B2"
+                            : scaleUnit + "\u00B2";
+                      onQuantityUpdate(realArea, unit);
+                    }
+                  }
+                : undefined
+            }
             isSaving={saveMarkupMutation.isPending}
             countLabel={countLabel}
             onCountLabelChange={setCountLabel}
             selectedCountLabel={
               selectedShapeId
                 ? (() => {
-                    const sel = elements.find((e) => e.id === selectedShapeId);
-                    return sel?.type === "count" ? ((sel as CountShape).label ?? "") : null;
+                    const sel = elements.find(e => e.id === selectedShapeId);
+                    return sel?.type === "count"
+                      ? ((sel as CountShape).label ?? "")
+                      : null;
                   })()
                 : null
             }
             onSelectedCountLabelChange={(label: string) => {
               if (selectedShapeId) {
-                updateElement(selectedShapeId, (s) => ({ ...s, label }));
+                updateElement(selectedShapeId, s => ({ ...s, label }));
               }
             }}
-            unlabeledCountCount={elements.filter((e) => e.type === "count" && !(e as CountShape).label).length}
+            unlabeledCountCount={
+              elements.filter(
+                e => e.type === "count" && !(e as CountShape).label
+              ).length
+            }
             onBatchLabelUnlabeled={(label: string) => {
-              const unlabeled = elements.filter((e) => e.type === "count" && !(e as CountShape).label);
+              const unlabeled = elements.filter(
+                e => e.type === "count" && !(e as CountShape).label
+              );
               // Use replaceElements to batch-update all unlabeled counts
-              const updated = elements.map((e) => {
+              const updated = elements.map(e => {
                 if (e.type === "count" && !(e as CountShape).label) {
                   return { ...e, label } as CountShape;
                 }
                 return e;
               });
               replaceElements(updated);
-              toast.success(`Labeled ${unlabeled.length} count marker(s) as "${label}"`);
+              toast.success(
+                `Labeled ${unlabeled.length} count marker(s) as "${label}"`
+              );
             }}
           />
         </div>
@@ -1138,6 +1429,7 @@ export default function ItemDetailModal({
   onSave,
   onDelete,
   onMarkReviewed,
+  onScopeDecision,
   isPending,
   onPrev,
   onNext,
@@ -1156,8 +1448,9 @@ export default function ItemDetailModal({
   const [notes, setNotes] = useState("");
 
   const symbol = CURRENCY_SYMBOLS[currencyCode] || "$";
-  const hasDrawing = !!(sourceSheet?.imageUrl);
-  const sheetLabel = sourceSheet?.sheetName || `Page ${sourceSheet?.pageNumber || "?"}`;
+  const hasDrawing = !!sourceSheet?.imageUrl;
+  const sheetLabel =
+    sourceSheet?.sheetName || `Page ${sourceSheet?.pageNumber || "?"}`;
 
   // Measurement history
   const logMeasurement = trpc.takeoff.logMeasurementApply.useMutation();
@@ -1173,7 +1466,13 @@ export default function ItemDetailModal({
       setQuantity(parseFloat(item.quantity as string)?.toString() || "0");
       setUnit(item.unit || "EA");
       setUnitCost(((item.unitCost || 0) / 100).toFixed(2));
-      setMaterialUnitCost((((item.materialCost && item.materialCost > 0 ? item.materialCost : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0)))) / 100).toFixed(2));
+      setMaterialUnitCost(
+        (
+          (item.materialCost && item.materialCost > 0
+            ? item.materialCost
+            : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0))) / 100
+        ).toFixed(2)
+      );
       setDefaultLaborUnitCost(((item.laborCost || 0) / 100).toFixed(2));
       setNotes(item.notes || "");
       setIsEditing(false);
@@ -1201,21 +1500,29 @@ export default function ItemDetailModal({
 
   if (!item) return null;
 
-  const materialUnitCostCents = Math.round(parseFloat(materialUnitCost || "0") * 100);
-  const defaultLaborUnitCostCents = Math.round(parseFloat(defaultLaborUnitCost || "0") * 100);
-  const referenceUnitCostCents = materialUnitCostCents + defaultLaborUnitCostCents;
-  const extendedCost = Math.round(parseFloat(quantity || "0") * referenceUnitCostCents);
-  const displayMaterialUnitCost = item.materialCost && item.materialCost > 0
-    ? item.materialCost
-    : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0));
+  const materialUnitCostCents = Math.round(
+    parseFloat(materialUnitCost || "0") * 100
+  );
+  const defaultLaborUnitCostCents = Math.round(
+    parseFloat(defaultLaborUnitCost || "0") * 100
+  );
+  const referenceUnitCostCents =
+    materialUnitCostCents + defaultLaborUnitCostCents;
+  const extendedCost = Math.round(
+    parseFloat(quantity || "0") * referenceUnitCostCents
+  );
+  const displayMaterialUnitCost =
+    item.materialCost && item.materialCost > 0
+      ? item.materialCost
+      : Math.max(0, (item.unitCost || 0) - (item.laborCost || 0));
   const displayDefaultLaborUnitCost = item.laborCost || 0;
 
   const confidenceColor =
     item.confidence >= 80
       ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
       : item.confidence >= 50
-      ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-      : "bg-red-500/20 text-red-400 border-red-500/30";
+        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+        : "bg-red-500/20 text-red-400 border-red-500/30";
 
   const handleSave = () => {
     onSave({
@@ -1251,417 +1558,571 @@ export default function ItemDetailModal({
           }}
         />
       ) : (
-      <Dialog open={!!item} onOpenChange={(open) => { if (!open) onClose(); }}>
-        {/* Wider modal when drawing is available */}
-        <DialogContent
-          className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}
+        <Dialog
+          open={!!item}
+          onOpenChange={open => {
+            if (!open) onClose();
+          }}
         >
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="shrink-0 font-mono text-xs border-amber-500/30 text-amber-400">
-                {item.csiCode || item.csiDivision || "—"}
-              </Badge>
-              <DialogTitle className="text-lg truncate">
-                {isEditing ? "Edit Item" : (item.description?.slice(0, 60) || "Takeoff Item")}
-                {!isEditing && item.description && item.description.length > 60 && "..."}
-              </DialogTitle>
-              {/* Navigation */}
-              {(hasPrev || hasNext) && (
-                <div className="flex items-center gap-1 ml-auto shrink-0">
-                  <Button variant="ghost" size="icon" disabled={!hasPrev} onClick={onPrev} className="h-7 w-7 text-cream-muted hover:text-cream">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-[10px] text-cream-muted/50">←→</span>
-                  <Button variant="ghost" size="icon" disabled={!hasNext} onClick={onNext} className="h-7 w-7 text-cream-muted hover:text-cream">
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+          {/* Wider modal when drawing is available */}
+          <DialogContent
+            className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}
+          >
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 font-mono text-xs border-amber-500/30 text-amber-400"
+                >
+                  {item.csiCode || item.csiDivision || "—"}
+                </Badge>
+                <DialogTitle className="text-lg truncate">
+                  {isEditing
+                    ? "Edit Item"
+                    : item.description?.slice(0, 60) || "Takeoff Item"}
+                  {!isEditing &&
+                    item.description &&
+                    item.description.length > 60 &&
+                    "..."}
+                </DialogTitle>
+                {/* Navigation */}
+                {(hasPrev || hasNext) && (
+                  <div className="flex items-center gap-1 ml-auto shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={!hasPrev}
+                      onClick={onPrev}
+                      className="h-7 w-7 text-cream-muted hover:text-cream"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-[10px] text-cream-muted/50">←→</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={!hasNext}
+                      onClick={onNext}
+                      className="h-7 w-7 text-cream-muted hover:text-cream"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <DialogDescription className="sr-only">
+                View and edit takeoff item details
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* ─── Body: Side-by-side when drawing available ─────────── */}
+            <div className={hasDrawing ? "flex gap-5 max-h-[65vh]" : ""}>
+              {/* ─── LEFT: Source Drawing (focal point) ──────────────── */}
+              {hasDrawing && (
+                <div className="w-1/2 shrink-0 flex flex-col min-h-[300px]">
+                  {/* Sheet label bar */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="text-amber-400 font-medium text-sm">
+                        {sheetLabel}
+                      </span>
+                      {sourceSheet?.sheetType &&
+                        sourceSheet.sheetType !== "other" && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-white/10 text-cream-muted"
+                          >
+                            {sourceSheet.sheetType}
+                          </Badge>
+                        )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-cream-muted hover:text-cream text-xs gap-1"
+                      onClick={() => setIsFullscreen(true)}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" /> Full Screen
+                    </Button>
+                  </div>
+
+                  {/* Drawing viewer */}
+                  <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-amber-500/20">
+                    <DrawingViewer
+                      imageUrl={sourceSheet!.imageUrl!}
+                      sheetName={sheetLabel}
+                      sheetId={sourceSheet?.id}
+                      onFullscreen={() => setIsFullscreen(true)}
+                    />
+                  </div>
+
+                  {/* Quick-apply measurement strip from saved markups */}
+                  <MarkupMeasurementStrip
+                    sheetId={sourceSheet?.id}
+                    itemId={item?.id}
+                    projectId={projectId}
+                    itemUnit={unit}
+                    itemDescription={description}
+                    sheetName={sheetLabel}
+                    onApplyQuantity={(qty, unitLabel, measurementType) => {
+                      setQuantity(qty.toFixed(2));
+                      setUnit(unitLabel);
+                      toast.success(
+                        `Quantity updated to ${qty.toFixed(2)} ${unitLabel}`
+                      );
+                      // Log to measurement history
+                      if (item?.id && sourceSheet?.id) {
+                        logMeasurement.mutate({
+                          itemId: item.id,
+                          projectId,
+                          sheetId: sourceSheet.id,
+                          measurementType,
+                          rawValue: qty,
+                          unit: unitLabel,
+                          sheetName: sheetLabel,
+                          itemDescription: description,
+                        });
+                      }
+                    }}
+                    onOpenFullscreen={() => setIsFullscreen(true)}
+                  />
                 </div>
               )}
-            </div>
-            <DialogDescription className="sr-only">
-              View and edit takeoff item details
-            </DialogDescription>
-          </DialogHeader>
 
-          {/* ─── Body: Side-by-side when drawing available ─────────── */}
-          <div className={hasDrawing ? "flex gap-5 max-h-[65vh]" : ""}>
-
-            {/* ─── LEFT: Source Drawing (focal point) ──────────────── */}
-            {hasDrawing && (
-              <div className="w-1/2 shrink-0 flex flex-col min-h-[300px]">
-                {/* Sheet label bar */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span className="text-amber-400 font-medium text-sm">
-                      {sheetLabel}
+              {/* ─── RIGHT (or FULL): Item Details ──────────────────── */}
+              <div
+                className={`${hasDrawing ? "w-1/2" : ""} overflow-y-auto pr-1 space-y-4`}
+              >
+                {/* No drawing placeholder */}
+                {!hasDrawing && (
+                  <div className="flex items-center gap-3 bg-navy-deep/30 border border-white/5 rounded-lg p-3">
+                    <ImageIcon className="w-5 h-5 text-cream-muted/40" />
+                    <span className="text-cream-muted/60 text-sm">
+                      No source drawing linked to this item
                     </span>
-                    {sourceSheet?.sheetType && sourceSheet.sheetType !== "other" && (
-                      <Badge variant="outline" className="text-[10px] border-white/10 text-cream-muted">
-                        {sourceSheet.sheetType}
-                      </Badge>
+                  </div>
+                )}
+
+                {/* Full Description */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-amber-400" />
+                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                      Description
+                    </Label>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      rows={3}
+                      className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
+                    />
+                  ) : (
+                    <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3">
+                      <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
+                        {item.description || "No description"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                      Your Notes
+                    </Label>
+                  </div>
+                  {isEditing ? (
+                    <Textarea
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                      rows={2}
+                      placeholder="e.g., Verify with sub, Price seems high..."
+                      className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
+                    />
+                  ) : (
+                    <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5">
+                      {notes ? (
+                        <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
+                          {notes}
+                        </p>
+                      ) : (
+                        <p className="text-cream-muted/50 text-sm italic">
+                          No notes — click Edit to add
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quantity / Unit / Cost Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Hash className="w-3 h-3 text-amber-400" />
+                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                        Qty
+                      </Label>
+                    </div>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={quantity}
+                        onChange={e => setQuantity(e.target.value)}
+                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                      />
+                    ) : (
+                      <p className="text-cream font-mono text-base font-semibold">
+                        {parseFloat(item.quantity as string).toLocaleString()}
+                      </p>
                     )}
                   </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Ruler className="w-3 h-3 text-amber-400" />
+                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                        Unit
+                      </Label>
+                    </div>
+                    {isEditing ? (
+                      <Input
+                        value={unit}
+                        onChange={e => setUnit(e.target.value)}
+                        className="bg-navy-deep/50 border-white/10 text-cream h-9 text-sm"
+                      />
+                    ) : (
+                      <p className="text-cream text-base font-semibold">
+                        {item.unit || "EA"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3 h-3 text-emerald-400" />
+                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                        Material Unit
+                      </Label>
+                    </div>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={materialUnitCost}
+                        onChange={e => setMaterialUnitCost(e.target.value)}
+                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                      />
+                    ) : (
+                      <p className="text-cream font-mono text-base font-semibold">
+                        {formatCurrency(displayMaterialUnitCost, currencyCode)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3 h-3 text-cyan-400" />
+                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                        Default Labor
+                      </Label>
+                    </div>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={defaultLaborUnitCost}
+                        onChange={e => setDefaultLaborUnitCost(e.target.value)}
+                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                      />
+                    ) : (
+                      <p className="text-cream font-mono text-base font-semibold">
+                        {displayDefaultLaborUnitCost > 0
+                          ? formatCurrency(
+                              displayDefaultLaborUnitCost,
+                              currencyCode
+                            )
+                          : "—"}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Sigma className="w-3 h-3 text-amber-400" />
+                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                        Ref Unit
+                      </Label>
+                    </div>
+                    <p className="text-cream font-mono text-base font-semibold">
+                      {formatCurrency(
+                        isEditing ? referenceUnitCostCents : item.unitCost,
+                        currencyCode
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Extended Cost */}
+                <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-cream-muted text-sm">
+                      Reference Total
+                    </span>
+                    <span className="text-amber-400 font-bold text-xl font-mono">
+                      {isEditing
+                        ? formatCurrency(extendedCost, currencyCode)
+                        : formatCurrency(item.extendedCost, currencyCode)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-cream-muted/55 mt-1">
+                    Quantity Takeoff reference = material unit + default labor
+                    unit. The Estimate tab chooses the active labor source for
+                    the live total.
+                  </p>
+                </div>
+
+                {/* Audit Trail */}
+                <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <History className="w-3.5 h-3.5 text-amber-400" />
+                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                      Audit Trail
+                    </Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div>
+                      <p className="text-cream-muted/60">Quantity source</p>
+                      <p className="text-cream">
+                        {measurementHistory.data?.length
+                          ? "Verified measurement"
+                          : item.needsMeasurement
+                            ? "Needs measurement"
+                            : "AI takeoff"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-cream-muted/60">Drawing reference</p>
+                      <p className="text-cream">
+                        {hasDrawing ? sheetLabel : "No linked sheet"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-cream-muted/60">Labor source</p>
+                      <p className="text-cream">
+                        {displayDefaultLaborUnitCost > 0
+                          ? "Cost Library / Default Labor"
+                          : "No default labor"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-cream-muted/60">Confidence</p>
+                      <p className="text-cream">{item.confidence}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meta badges */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Badge className={`text-xs border ${confidenceColor}`}>
+                    {item.confidence}% confidence
+                  </Badge>
+                  {item.reviewed ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30">
+                      <Check className="w-3 h-3 mr-1" /> Reviewed
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/20 text-amber-400 text-xs border border-amber-500/30">
+                      <AlertTriangle className="w-3 h-3 mr-1" /> Pending
+                    </Badge>
+                  )}
+                  {measurementHistory.data &&
+                    measurementHistory.data.length > 0 && (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> Verified via
+                        Measurement
+                      </Badge>
+                    )}
+                </div>
+
+                {/* Measurement History Timeline */}
+                {measurementHistory.data &&
+                  measurementHistory.data.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <History className="w-3.5 h-3.5 text-amber-400" />
+                        <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                          Measurement History
+                        </Label>
+                      </div>
+                      <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5 space-y-2 max-h-[140px] overflow-y-auto">
+                        {measurementHistory.data.map(entry => {
+                          const typeIcon =
+                            entry.measurementType === "line"
+                              ? "📏"
+                              : entry.measurementType === "area"
+                                ? "⬛"
+                                : "🔢";
+                          const when = new Date(entry.createdAt);
+                          const timeAgo = getTimeAgo(when);
+                          return (
+                            <div
+                              key={entry.id}
+                              className="flex items-start gap-2 text-[11px]"
+                            >
+                              <span className="text-sm mt-0.5 shrink-0">
+                                {typeIcon}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-cream font-mono font-semibold">
+                                    {entry.rawValue.toFixed(
+                                      entry.measurementType === "count" ? 0 : 2
+                                    )}{" "}
+                                    {entry.unit}
+                                  </span>
+                                  <span className="text-cream-muted/40">←</span>
+                                  <span className="text-cream-muted/60 truncate">
+                                    {entry.sheetName || "Sheet"}
+                                  </span>
+                                </div>
+                                <span className="text-cream-muted/40 text-[10px]">
+                                  {timeAgo}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            {/* ─── Footer ───────────────────────────────────────────── */}
+            <DialogFooter className="flex-col gap-3">
+              {onScopeDecision && !isEditing && (
+                <div className="w-full rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2.5">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">
+                        Scope Decision
+                      </p>
+                      <p className="text-xs text-cream-muted mt-0.5">
+                        Decide whether this row belongs in the bid total, stays
+                        parked for later, or leaves the estimate boundary.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                        onClick={() => onScopeDecision(item, "included")}
+                        disabled={isPending}
+                      >
+                        <Check className="w-4 h-4 mr-1.5" /> Include in Scope
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                        onClick={() => onScopeDecision(item, "review")}
+                        disabled={isPending}
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-1.5" /> Hold
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500/30 text-red-200 hover:bg-red-500/10"
+                        onClick={() => onScopeDecision(item, "excluded")}
+                        disabled={isPending}
+                      >
+                        <X className="w-4 h-4 mr-1.5" /> Exclude
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <div className="flex items-center gap-2 mr-auto">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-cream-muted hover:text-cream text-xs gap-1"
-                    onClick={() => setIsFullscreen(true)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    onClick={() => {
+                      onDelete({ id: item.id, projectId });
+                      onClose();
+                    }}
                   >
-                    <Maximize2 className="w-3.5 h-3.5" /> Full Screen
+                    <Trash2 className="w-4 h-4 mr-1" /> Delete
                   </Button>
+                  {!item.reviewed && !isEditing && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                      onClick={() => {
+                        onMarkReviewed({
+                          id: item.id,
+                          projectId,
+                          reviewed: true,
+                        });
+                      }}
+                    >
+                      <Check className="w-4 h-4 mr-1" /> Mark Reviewed
+                    </Button>
+                  )}
                 </div>
 
-                {/* Drawing viewer */}
-                <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-amber-500/20">
-                  <DrawingViewer
-                    imageUrl={sourceSheet!.imageUrl!}
-                    sheetName={sheetLabel}
-                    sheetId={sourceSheet?.id}
-                    onFullscreen={() => setIsFullscreen(true)}
-                  />
-                </div>
-
-                {/* Quick-apply measurement strip from saved markups */}
-                <MarkupMeasurementStrip
-                  sheetId={sourceSheet?.id}
-                  itemId={item?.id}
-                  projectId={projectId}
-                  itemUnit={unit}
-                  itemDescription={description}
-                  sheetName={sheetLabel}
-                  onApplyQuantity={(qty, unitLabel, measurementType) => {
-                    setQuantity(qty.toFixed(2));
-                    setUnit(unitLabel);
-                    toast.success(`Quantity updated to ${qty.toFixed(2)} ${unitLabel}`);
-                    // Log to measurement history
-                    if (item?.id && sourceSheet?.id) {
-                      logMeasurement.mutate({
-                        itemId: item.id,
-                        projectId,
-                        sheetId: sourceSheet.id,
-                        measurementType,
-                        rawValue: qty,
-                        unit: unitLabel,
-                        sheetName: sheetLabel,
-                        itemDescription: description,
-                      });
-                    }
-                  }}
-                  onOpenFullscreen={() => setIsFullscreen(true)}
-                />
-              </div>
-            )}
-
-            {/* ─── RIGHT (or FULL): Item Details ──────────────────── */}
-            <div className={`${hasDrawing ? "w-1/2" : ""} overflow-y-auto pr-1 space-y-4`}>
-
-              {/* No drawing placeholder */}
-              {!hasDrawing && (
-                <div className="flex items-center gap-3 bg-navy-deep/30 border border-white/5 rounded-lg p-3">
-                  <ImageIcon className="w-5 h-5 text-cream-muted/40" />
-                  <span className="text-cream-muted/60 text-sm">No source drawing linked to this item</span>
-                </div>
-              )}
-
-              {/* Full Description */}
-              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5 text-amber-400" />
-                  <Label className="text-cream-muted text-xs uppercase tracking-wider">Description</Label>
-                </div>
-                {isEditing ? (
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
-                  />
-                ) : (
-                  <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3">
-                    <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
-                      {item.description || "No description"}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                  <Label className="text-cream-muted text-xs uppercase tracking-wider">Your Notes</Label>
-                </div>
-                {isEditing ? (
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={2}
-                    placeholder="e.g., Verify with sub, Price seems high..."
-                    className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
-                  />
-                ) : (
-                  <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5">
-                    {notes ? (
-                      <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">{notes}</p>
-                    ) : (
-                      <p className="text-cream-muted/50 text-sm italic">No notes — click Edit to add</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Quantity / Unit / Cost Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Hash className="w-3 h-3 text-amber-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Qty</Label>
-                  </div>
                   {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
-                    />
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditing(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSave}
+                        disabled={isPending}
+                        className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                      >
+                        {isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4 mr-2" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </>
                   ) : (
-                    <p className="text-cream font-mono text-base font-semibold">
-                      {parseFloat(item.quantity as string).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Ruler className="w-3 h-3 text-amber-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Unit</Label>
-                  </div>
-                  {isEditing ? (
-                    <Input
-                      value={unit}
-                      onChange={(e) => setUnit(e.target.value)}
-                      className="bg-navy-deep/50 border-white/10 text-cream h-9 text-sm"
-                    />
-                  ) : (
-                    <p className="text-cream text-base font-semibold">{item.unit || "EA"}</p>
+                    <>
+                      <Button variant="outline" onClick={onClose}>
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                      >
+                        <Edit3 className="w-4 h-4 mr-2" /> Edit Item
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3 text-emerald-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Material Unit</Label>
-                  </div>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={materialUnitCost}
-                      onChange={(e) => setMaterialUnitCost(e.target.value)}
-                      className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
-                    />
-                  ) : (
-                    <p className="text-cream font-mono text-base font-semibold">
-                      {formatCurrency(displayMaterialUnitCost, currencyCode)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3 text-cyan-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Default Labor</Label>
-                  </div>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={defaultLaborUnitCost}
-                      onChange={(e) => setDefaultLaborUnitCost(e.target.value)}
-                      className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
-                    />
-                  ) : (
-                    <p className="text-cream font-mono text-base font-semibold">
-                      {displayDefaultLaborUnitCost > 0 ? formatCurrency(displayDefaultLaborUnitCost, currencyCode) : "—"}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Sigma className="w-3 h-3 text-amber-400" />
-                    <Label className="text-cream-muted text-[10px] uppercase tracking-wider">Ref Unit</Label>
-                  </div>
-                  <p className="text-cream font-mono text-base font-semibold">
-                    {formatCurrency(isEditing ? referenceUnitCostCents : item.unitCost, currencyCode)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Extended Cost */}
-              <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-cream-muted text-sm">Reference Total</span>
-                  <span className="text-amber-400 font-bold text-xl font-mono">
-                    {isEditing
-                      ? formatCurrency(extendedCost, currencyCode)
-                      : formatCurrency(item.extendedCost, currencyCode)}
-                  </span>
-                </div>
-                <p className="text-[10px] text-cream-muted/55 mt-1">
-                  Quantity Takeoff reference = material unit + default labor unit. The Estimate tab chooses the active labor source for the live total.
-                </p>
-              </div>
-
-              {/* Audit Trail */}
-              <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <History className="w-3.5 h-3.5 text-amber-400" />
-                  <Label className="text-cream-muted text-xs uppercase tracking-wider">Audit Trail</Label>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                  <div>
-                    <p className="text-cream-muted/60">Quantity source</p>
-                    <p className="text-cream">{measurementHistory.data?.length ? "Verified measurement" : item.needsMeasurement ? "Needs measurement" : "AI takeoff"}</p>
-                  </div>
-                  <div>
-                    <p className="text-cream-muted/60">Drawing reference</p>
-                    <p className="text-cream">{hasDrawing ? sheetLabel : "No linked sheet"}</p>
-                  </div>
-                  <div>
-                    <p className="text-cream-muted/60">Labor source</p>
-                    <p className="text-cream">{displayDefaultLaborUnitCost > 0 ? "Cost Library / Default Labor" : "No default labor"}</p>
-                  </div>
-                  <div>
-                    <p className="text-cream-muted/60">Confidence</p>
-                    <p className="text-cream">{item.confidence}%</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Meta badges */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge className={`text-xs border ${confidenceColor}`}>
-                  {item.confidence}% confidence
-                </Badge>
-                {item.reviewed ? (
-                  <Badge className="bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30">
-                    <Check className="w-3 h-3 mr-1" /> Reviewed
-                  </Badge>
-                ) : (
-                  <Badge className="bg-amber-500/20 text-amber-400 text-xs border border-amber-500/30">
-                    <AlertTriangle className="w-3 h-3 mr-1" /> Pending
-                  </Badge>
-                )}
-                {measurementHistory.data && measurementHistory.data.length > 0 && (
-                  <Badge className="bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Verified via Measurement
-                  </Badge>
-                )}
-              </div>
-
-              {/* Measurement History Timeline */}
-              {measurementHistory.data && measurementHistory.data.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <History className="w-3.5 h-3.5 text-amber-400" />
-                    <Label className="text-cream-muted text-xs uppercase tracking-wider">Measurement History</Label>
-                  </div>
-                  <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5 space-y-2 max-h-[140px] overflow-y-auto">
-                    {measurementHistory.data.map((entry) => {
-                      const typeIcon = entry.measurementType === "line" ? "📏" : entry.measurementType === "area" ? "⬛" : "🔢";
-                      const when = new Date(entry.createdAt);
-                      const timeAgo = getTimeAgo(when);
-                      return (
-                        <div key={entry.id} className="flex items-start gap-2 text-[11px]">
-                          <span className="text-sm mt-0.5 shrink-0">{typeIcon}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-cream font-mono font-semibold">
-                                {entry.rawValue.toFixed(entry.measurementType === "count" ? 0 : 2)} {entry.unit}
-                              </span>
-                              <span className="text-cream-muted/40">←</span>
-                              <span className="text-cream-muted/60 truncate">{entry.sheetName || "Sheet"}</span>
-                            </div>
-                            <span className="text-cream-muted/40 text-[10px]">{timeAgo}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ─── Footer ───────────────────────────────────────────── */}
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <div className="flex items-center gap-2 mr-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                onClick={() => {
-                  onDelete({ id: item.id, projectId });
-                  onClose();
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-1" /> Delete
-              </Button>
-              {!item.reviewed && !isEditing && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                  onClick={() => {
-                    onMarkReviewed({ id: item.id, projectId, reviewed: true });
-                  }}
-                >
-                  <Check className="w-4 h-4 mr-1" /> Mark Reviewed
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {isEditing ? (
-                <>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={isPending}
-                    className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
-                  >
-                    {isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4 mr-2" />
-                    )}
-                    Save Changes
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={onClose}>
-                    Close
-                  </Button>
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" /> Edit Item
-                  </Button>
-                </>
-              )}
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
