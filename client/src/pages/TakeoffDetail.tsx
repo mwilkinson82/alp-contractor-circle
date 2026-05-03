@@ -3316,47 +3316,55 @@ export default function TakeoffDetail() {
                           bundle.excludedCost;
                         return (
                           <div key={bundle.key} className="bg-white/[0.02]">
-                            <div className="px-4 py-4">
-                              <div className="flex flex-col xl:flex-row xl:items-start gap-4">
-                                <button
-                                  className="flex-1 min-w-0 text-left"
-                                  onClick={() => toggleBundle(bundle.key)}
-                                >
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    {expanded ? (
-                                      <ChevronDown className="w-4 h-4 text-cream-muted" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4 text-cream-muted" />
-                                    )}
-                                    <Badge className="bg-blue-500/15 text-blue-200 border-blue-500/25 text-[10px]">
-                                      <FileImage className="w-3 h-3 mr-1" />
+                            <div className="px-4 py-3">
+                              <button
+                                className="w-full min-w-0 text-left"
+                                onClick={() => toggleBundle(bundle.key)}
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {expanded ? (
+                                    <ChevronDown className="w-4 h-4 shrink-0 text-cream-muted" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 shrink-0 text-cream-muted" />
+                                  )}
+                                  <Badge className="max-w-full bg-blue-500/15 text-blue-200 border-blue-500/25 text-[10px]">
+                                    <FileImage className="w-3 h-3 mr-1 shrink-0" />
+                                    <span className="truncate">
                                       {bundle.drawingGroup}
-                                    </Badge>
-                                    <span className="text-cream font-semibold">
-                                      {bundle.title}
                                     </span>
-                                    {bundle.highImpact && (
-                                      <Badge className="bg-purple-500/15 text-purple-200 border-purple-500/25 text-[10px]">
-                                        High impact
-                                      </Badge>
-                                    )}
-                                    {bundle.openReviewCount > 0 && (
-                                      <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-[10px]">
-                                        {bundle.openReviewCount} open
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="mt-2 text-sm text-cream-muted line-clamp-2">
+                                  </Badge>
+                                  <span className="min-w-[220px] flex-1 text-cream font-semibold">
+                                    {bundle.title}
+                                  </span>
+                                  {bundle.highImpact && (
+                                    <Badge className="bg-purple-500/15 text-purple-200 border-purple-500/25 text-[10px]">
+                                      High impact
+                                    </Badge>
+                                  )}
+                                  {bundle.openReviewCount > 0 && (
+                                    <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-[10px]">
+                                      {bundle.openReviewCount} open
+                                    </Badge>
+                                  )}
+                                  <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                                    Recommended: {recommendedLabel}
+                                  </Badge>
+                                </div>
+                              </button>
+
+                              <div className="mt-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-4">
+                                <div className="min-w-0">
+                                  <p className="text-sm text-cream-muted line-clamp-2">
                                     Primary:{" "}
                                     <span className="text-cream">
                                       {bundle.primaryItem?.description}
                                     </span>
                                   </p>
-                                  <p className="mt-1 text-xs text-cream-muted/80">
+                                  <p className="mt-1 text-xs text-cream-muted/80 line-clamp-2">
                                     {bundle.reason}
                                   </p>
-                                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cream-muted/70">
-                                    <span>
+                                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-cream-muted/70">
+                                    <span className="max-w-full truncate">
                                       Sources:{" "}
                                       {bundle.sourceDrawings.join(", ")}
                                     </span>
@@ -3368,14 +3376,14 @@ export default function TakeoffDetail() {
                                         : ""}
                                     </span>
                                   </div>
-                                </button>
+                                </div>
 
-                                <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
+                                <div className="grid grid-cols-3 gap-2">
                                   <div className="rounded-md border border-emerald-500/20 bg-emerald-500/8 px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-emerald-300/70">
                                       Included
                                     </p>
-                                    <p className="mt-1 text-sm font-mono font-semibold text-emerald-300">
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-emerald-300">
                                       {formatCurrency(
                                         bundle.currentIncludedCost,
                                         project?.currency || "USD"
@@ -3386,7 +3394,7 @@ export default function TakeoffDetail() {
                                     <p className="text-[10px] uppercase tracking-wider text-amber-200/70">
                                       Review
                                     </p>
-                                    <p className="mt-1 text-sm font-mono font-semibold text-amber-200">
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-amber-200">
                                       {formatCurrency(
                                         bundle.reviewCost,
                                         project?.currency || "USD"
@@ -3397,7 +3405,7 @@ export default function TakeoffDetail() {
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
                                       Ref.
                                     </p>
-                                    <p className="mt-1 text-sm font-mono font-semibold text-cream">
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
                                       {formatCurrency(
                                         totalReference,
                                         project?.currency || "USD"
@@ -3405,58 +3413,55 @@ export default function TakeoffDetail() {
                                     </p>
                                   </div>
                                 </div>
+                              </div>
 
-                                <div
-                                  className="flex flex-wrap xl:justify-end gap-2"
-                                  onClick={event => event.stopPropagation()}
+                              <div
+                                className="mt-3 flex flex-wrap items-center justify-end gap-2"
+                                onClick={event => event.stopPropagation()}
+                              >
+                                <Button
+                                  size="sm"
+                                  className="h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white"
+                                  onClick={() =>
+                                    applyBundleDecision(bundle, "included")
+                                  }
                                 >
-                                  <Badge className="h-7 bg-white/5 text-cream-muted border-white/10">
-                                    Recommended: {recommendedLabel}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    className="h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white"
-                                    onClick={() =>
-                                      applyBundleDecision(bundle, "included")
-                                    }
-                                  >
-                                    <Check className="w-3.5 h-3.5 mr-1.5" />
-                                    Accept Bundle
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 border-red-500/25 text-red-200 hover:bg-red-500/10"
-                                    onClick={() =>
-                                      applyBundleDecision(bundle, "excluded")
-                                    }
-                                  >
-                                    <X className="w-3.5 h-3.5 mr-1.5" />
-                                    Exclude Bundle
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
-                                    onClick={() =>
-                                      applyBundleDecision(bundle, "review")
-                                    }
-                                  >
-                                    <Square className="w-3.5 h-3.5 mr-1.5" />
-                                    Hold
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 text-cream-muted hover:text-amber-300"
-                                    onClick={() =>
-                                      setSelectedItem(bundle.primaryItem)
-                                    }
-                                  >
-                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                    Open Evidence
-                                  </Button>
-                                </div>
+                                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                                  Accept Bundle
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                  onClick={() =>
+                                    applyBundleDecision(bundle, "excluded")
+                                  }
+                                >
+                                  <X className="w-3.5 h-3.5 mr-1.5" />
+                                  Exclude Bundle
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                  onClick={() =>
+                                    applyBundleDecision(bundle, "review")
+                                  }
+                                >
+                                  <Square className="w-3.5 h-3.5 mr-1.5" />
+                                  Hold
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 text-cream-muted hover:text-amber-300"
+                                  onClick={() =>
+                                    setSelectedItem(bundle.primaryItem)
+                                  }
+                                >
+                                  <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                  Open Evidence
+                                </Button>
                               </div>
                             </div>
                             {expanded && (
