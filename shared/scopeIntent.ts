@@ -102,7 +102,7 @@ const TERM_PATTERNS: Record<TermFamily, RegExp[]> = {
   concrete: [/\bconcrete\b/i, /\bcast[-\s]?in[-\s]?place\b/i, /\bpit concrete\b/i, /\btrench concrete\b/i, /\bcar wash trench\b/i],
   slab: [/\bslabs?\b/i, /\bslab(?:-on-grade| on grade)?\b/i, /\bsog\b/i],
   footing: [/\bfootings?\b/i, /\bcontinuous footings?\b/i, /\bspread footings?\b/i, /\bwall footings?\b/i, /\bwf footing\b/i, /\bgrade beams?\b/i, /\bfoundation walls?\b/i],
-  rebar: [/\brebar\b/i, /\breinforc(?:e|ing|ement)?\b/i, /\breinforcing steel\b/i, /\bstructural reinforcing\b/i],
+  rebar: [/\brebar\b/i, /\breinforc(?:e|ing|ement)?\b/i, /\breinforcing steel\b/i, /\bstructural reinforcing\b/i, /\bdowels?\b/i],
   formwork: [/\bforms?\b/i, /\bformwork\b/i],
   masonry: [/\bcmu\b/i, /\bmasonry\b/i, /\bblock\b/i, /\bbrick\b/i],
   structuralSteel: [/\bstructural steel\b/i, /\bsteel beams?\b/i, /\bsteel columns?\b/i],
@@ -553,7 +553,7 @@ function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boo
   if (/\bimport\/export of fill\b|\bimport\s+or\s+export of fill\b|\bexport of fill\b|\bimport of fill\b/i.test(scopeText)) {
     if (/\bimport\b|\bexport\b|\boff[-\s]?site haul\b|\bhaul[-\s]?off\b/i.test(itemText)) return true;
   }
-  if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside the building footprint)\b/i.test(itemText)) {
+  if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside (?:the )?building footprint)\b/i.test(itemText)) {
     return true;
   }
   return false;
@@ -881,15 +881,19 @@ export function classifyTradePackageScopeSafety(
   const namedAnchor = hasNamedIncludedWorkArea(text);
   const highDollarControlJoint = isHighDollar && /\b(?:sawcuts?|control joints?)\b/i.test(text);
 
-  if (highDollarControlJoint) return "review";
-  if (weakEvidence) return "review";
-  if (broadOnly) return "review";
+  // --- Safety rules: only target generated/weak/broad rows, not explicit includes with evidence ---
+  // Rule 1: Weak evidence (placeholder, assumed, missing) → only demote if generated/consolidated
+  if (weakEvidence && generatedOrConsolidated) return "review";
+  // Rule 2: Broad assembly only (generic concrete, generic slab) → only demote if generated/consolidated or high-dollar
+  if (broadOnly && (generatedOrConsolidated || isHighDollar)) return "review";
+  // Rule 3: Generated/consolidated without named anchor → always review
   if (generatedOrConsolidated && !namedAnchor) return "review";
-  // High-dollar generated items: named area alone is not enough.
-  // If the calc basis references broad unrelated assemblies, demote even with named area.
+  // Rule 4: High-dollar generated items with named area but broad unrelated calc basis → review
   if (isHighDollar && generatedOrConsolidated && namedAnchor && hasBroadCalcBasis(text)) return "review";
+  // Rule 5: High-dollar generated/repeated with no named anchor or weak evidence → review
   if (isHighDollar && (generatedOrConsolidated || repeatedAssembly) && (!namedAnchor || weakEvidence)) return "review";
-  if (isHighDollar && broadOnly) return "review";
+  // Rule 6: High-dollar control joints → only demote if generated/consolidated (legitimate sawcut items can be high-dollar)
+  if (highDollarControlJoint && generatedOrConsolidated) return "review";
 
   return currentStatus;
 }
@@ -1028,7 +1032,7 @@ export function scopeSafetyPass(
     activeSubtotalCents * HIGH_DOLLAR_PERCENTAGE
   );
 
-  // Pass 1: High-dollar review
+  // Pass 1: High-dollar review — only target generated/weak/broad rows, not explicit includes
   for (const item of result) {
     const status = getScopeStatusFromNotes(item.notes);
     if (status !== "included") continue;
@@ -1037,14 +1041,24 @@ export function scopeSafetyPass(
     if (cost <= highDollarThresholdCents) continue;
 
     const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+    const isGenOrConsolidated = isGeneratedOrConsolidated(text);
+    const isWeak = hasWeakSheetEvidence(text);
+    const isBroad = hasBroadAssemblyOnly(text);
+
+    // Only demote high-dollar items that are generated/consolidated, have weak evidence, or are broad
+    if (!isGenOrConsolidated && !isWeak && !isBroad) continue;
+
     // Skip if item has strong evidence (named area, explicit scope match)
-    if (matchesNamedArea(text)) continue;
-    // Skip if item is clearly a core scope item (waterproofing, vapor barrier, etc.)
+    if (matchesNamedArea(text) && !hasBroadCalcBasis(text)) continue;
+    // Skip if item is clearly a core scope item (any concrete package family)
     const families = matchingFamilies(text);
     const isCoreScope = families.some((f) =>
-      ["waterproofing", "vaporBarrier", "waterstop", "protectionBoard", "drainageBoard", "foundationDrain"].includes(f)
+      ["waterproofing", "vaporBarrier", "waterstop", "protectionBoard", "drainageBoard", "foundationDrain",
+       "slab", "footing", "concrete", "subgradePrep", "excavation", "compactedBase", "controlJoint",
+       "termiteTreatment", "belowGradeInsulation", "trenchPit", "miscFoundations"].includes(f)
     );
-    if (isCoreScope) continue;
+    // For core scope items, only demote if generated with broad calc basis
+    if (isCoreScope && !isBroad && !(isGenOrConsolidated && hasBroadCalcBasis(text))) continue;
     // Skip if item has sheet-level evidence markers
     if (/\bsheet\s+[A-Z]?\d|\bpage\s+\d|\bdwg\b|\bdetail\s+\d/i.test(text)) continue;
 

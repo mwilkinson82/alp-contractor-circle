@@ -900,3 +900,94 @@ describe("scope-safety: Needs Scope Review remains out of active total", () => {
     expect(result).toBe("review");
   });
 });
+
+describe("scope-safety: high-dollar explicitly included items stay Active", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("high-dollar fiber-reinforced slab-on-grade with direct evidence stays Active", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Fiber-reinforced slab-on-grade within building footprint",
+      notes: "[Scope: included] 4,200 SF × $12.50/SF = $52,500. Sheet S1.1 detail 3.",
+      extendedCost: 5_250_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar continuous footing concrete stays Active", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Continuous footing concrete",
+      notes: "[Scope: included] 1,240 LF × 2.5 CF/LF = 115 CY. Sheet S1.0.",
+      extendedCost: 3_200_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar sawcut control joints stays Active (not generated)", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Sawcut control joints",
+      notes: "[Scope: included] 2,800 LF at $2.50/LF",
+      extendedCost: 1_200_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar generated rebar with broad calc basis goes to review", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Reinforcing steel for Gate Post Foundations",
+      notes: "[Scope: included] [Enhanced] #5 rebar at 12 OC both ways. Calc: total building slab area 15,000 SF × beams, columns, walls, footings, slabs → 48,178 LB",
+      extendedCost: 9_828_312,
+    };
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
+  });
+});
+
+describe("scope-safety: explicit includes not excluded", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("vapor barrier under slab-on-grade is not excluded", () => {
+    const item = { csiDivision: "07", description: "10 mil vapor barrier under slab-on-grade", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("rigid insulation at occupied slab perimeter is not excluded", () => {
+    const item = { csiDivision: "07", description: "Rigid insulation at occupied slab perimeter", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("continuous footing formwork is not excluded", () => {
+    const item = { csiDivision: "03", description: "Continuous footing formwork", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("subgrade preparation and compaction is not excluded", () => {
+    const item = { csiDivision: "31", description: "Subgrade preparation and compaction below slab-on-grade", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("termite treatment is not excluded", () => {
+    const item = { csiDivision: "31", description: "Termite treatment", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("dowels required for foundation continuation is not excluded", () => {
+    const item = { csiDivision: "03", description: "Dowels required for foundation continuation", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("drive slab outside building footprint IS excluded", () => {
+    const item = { csiDivision: "03", description: "Drive slab outside building footprint", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("excluded");
+  });
+
+  it("dewatering IS excluded", () => {
+    const item = { csiDivision: "31", description: "Dewatering", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("excluded");
+  });
+});

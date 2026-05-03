@@ -3532,8 +3532,13 @@
 - [x] Duplicate/consolidation protection: flag possible duplicate assemblies, keep clearest one active
 - [x] Estimate sanity warning banner: show review banner if active total > 2x comparison target
 - [x] Regression tests for Crystal Car Wash broad subcontract scope-safety
-- [ ] Fix: High-dollar generated row with named work area but broad unrelated calc basis → Needs Scope Review
-- [ ] Fix: Explicit included items (vapor barrier, rigid insulation, fiber-reinforced SOG, excavation/formwork for footings, subgrade prep) being incorrectly excluded
-- [ ] Fix: Named work area alone does not override duplicate/generated safety for high-dollar items
-- [ ] Fix: Generated rebar rows with same calc basis all go to review unless one is the clear aggregate
-- [ ] Add regression tests for all four scope classification issues
+- [x] Fix: High-dollar generated row with named work area but broad unrelated calc basis → Needs Scope Review
+- [x] Fix: Explicit included items (vapor barrier, rigid insulation, fiber-reinforced SOG, excavation/formwork for footings, subgrade prep) being incorrectly excluded
+- [x] Fix: Named work area alone does not override duplicate/generated safety for high-dollar items
+- [x] Fix: Generated rebar rows with same calc basis all go to review unless one is the clear aggregate
+- [x] Add regression tests for all four scope classification issues
+- [x] Fix: High-dollar safety should only target generated/weak/broad rows, not explicit includes with direct evidence
+- [x] Fix: Explicitly included primary assemblies (SOG, continuous footings, subgrade, termite, sawcut, pits) should not auto-demote to review
+- [x] Fix: Excluded-vs-included precedence for concrete package scope items (continuous footing concrete/formwork, subgrade, sawcut, pits)
+- [x] Keep generated rebar safety intact (gate-post $98k row stays in review)
+- [x] Add regression tests for high-dollar explicit includes, generated rebar, excluded-vs-included precedence
