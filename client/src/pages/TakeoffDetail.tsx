@@ -10,7 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +29,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
-import PreAnalysisModal, { type PreAnalysisSettings } from "@/components/PreAnalysisModal";
+import PreAnalysisModal, {
+  type PreAnalysisSettings,
+} from "@/components/PreAnalysisModal";
 import ProcessingOverlay from "@/components/ProcessingOverlay";
 import ItemDetailModal from "@/components/ItemDetailModal";
 import EstimateSummary from "@/components/EstimateSummary";
-import { playCompletionChime, sendCompletionNotification } from "@/lib/completionChime";
+import {
+  playCompletionChime,
+  sendCompletionNotification,
+} from "@/lib/completionChime";
 import {
   ArrowLeft,
   Upload,
@@ -69,18 +81,24 @@ import {
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
 // Scale calibration prompt removed — not used in AI pipeline
-import { DRAWING_SCALES, PAPER_SIZES, pxPerFt } from "@/components/ScaleCalibrationPrompt";
+import {
+  DRAWING_SCALES,
+  PAPER_SIZES,
+  pxPerFt,
+} from "@/components/ScaleCalibrationPrompt";
 
-function parseProjectAllowances(raw: unknown): Array<{ description: string; amount: number }> {
+function parseProjectAllowances(
+  raw: unknown
+): Array<{ description: string; amount: number }> {
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     return Array.isArray(parsed)
       ? parsed
-        .map((a: any) => ({
-          description: String(a.description || "").trim(),
-          amount: Number(a.amount) || 0,
-        }))
-        .filter(a => a.description && a.amount > 0)
+          .map((a: any) => ({
+            description: String(a.description || "").trim(),
+            amount: Number(a.amount) || 0,
+          }))
+          .filter(a => a.description && a.amount > 0)
       : [];
   } catch {
     return [];
@@ -105,10 +123,22 @@ function getScaleLabel(ratio: number): string {
   if (bestDist / ratio > 0.05) return `${ratio.toFixed(1)} px/ft`;
   return bestLabel;
 }
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildScopeIntent } from "../../../shared/scopeIntent";
-import { normalizeTakeoffProjectType, shouldRunResidentialQa } from "../../../shared/projectType";
-import { getBidModeBehavior, normalizeTakeoffBidMode } from "../../../shared/bidMode";
+import {
+  normalizeTakeoffProjectType,
+  shouldRunResidentialQa,
+} from "../../../shared/projectType";
+import {
+  getBidModeBehavior,
+  normalizeTakeoffBidMode,
+} from "../../../shared/bidMode";
 import {
   getScopeMaterialUnitCost,
   getScopeStatusFromNotes,
@@ -146,21 +176,120 @@ function getScopeReviewStatus(item: any): "included" | "review" | "excluded" {
   return getScopeStatusFromNotes(item?.notes);
 }
 
-function formatScopeReviewStatus(status: "included" | "review" | "excluded"): string {
+function formatScopeReviewStatus(
+  status: "included" | "review" | "excluded"
+): string {
   if (status === "review") return "Needs scope review";
   if (status === "excluded") return "Likely excluded";
   return "Included in scope";
 }
 
-function sortByExtendedCostDesc<T extends { extendedCost?: number | string | null }>(items: T[]): T[] {
-  return [...items].sort((a, b) => Number(b.extendedCost || 0) - Number(a.extendedCost || 0));
+function sortByExtendedCostDesc<
+  T extends { extendedCost?: number | string | null },
+>(items: T[]): T[] {
+  return [...items].sort(
+    (a, b) => Number(b.extendedCost || 0) - Number(a.extendedCost || 0)
+  );
 }
 
-const SHEET_STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: "Pending", color: "bg-gray-500/20 text-gray-300", icon: Clock },
-  processing: { label: "Analyzing...", color: "bg-amber-500/20 text-amber-300", icon: Loader2 },
-  completed: { label: "Done", color: "bg-emerald-500/20 text-emerald-300", icon: CheckCircle2 },
-  error: { label: "Error", color: "bg-red-500/20 text-red-300", icon: AlertCircle },
+function scopeDecisionNotes(
+  notes: string | null | undefined,
+  status: "included" | "review" | "excluded"
+): string {
+  const cleaned = String(notes || "")
+    .replace(/\[Scope:\s*(?:included|review|excluded)\]\s*/gi, "")
+    .trim();
+  const label =
+    status === "included"
+      ? "included"
+      : status === "excluded"
+        ? "excluded"
+        : "review";
+  return `[Scope: ${label}]${cleaned ? ` ${cleaned}` : ""}`;
+}
+
+function getEstimatorCue(item: any): { label: string; className: string } {
+  const notes = String(item?.notes || "").toLowerCase();
+  const cost = Number(item?.extendedCost || 0);
+  const confidence = Number(item?.confidence || 0);
+  if (
+    notes.includes("[scope: excluded]") &&
+    notes.includes("[scope: included]")
+  ) {
+    return {
+      label: "Scope conflict",
+      className: "bg-red-500/15 text-red-200 border-red-500/25",
+    };
+  }
+  if (notes.includes("duplicate") || notes.includes("another active row")) {
+    return {
+      label: "Possible duplicate",
+      className: "bg-blue-500/15 text-blue-200 border-blue-500/25",
+    };
+  }
+  if (
+    notes.includes("[generated]") ||
+    notes.includes("[enhanced]") ||
+    notes.includes("[consolidated")
+  ) {
+    return {
+      label: "Generated quantity",
+      className: "bg-amber-500/15 text-amber-100 border-amber-500/25",
+    };
+  }
+  if (
+    item?.needsMeasurement ||
+    notes.includes("placeholder") ||
+    notes.includes("field verify") ||
+    notes.includes("actual measurement")
+  ) {
+    return {
+      label: "Needs quantity",
+      className: "bg-orange-500/15 text-orange-200 border-orange-500/25",
+    };
+  }
+  if (cost >= 1_000_000) {
+    return {
+      label: "High dollar",
+      className: "bg-purple-500/15 text-purple-200 border-purple-500/25",
+    };
+  }
+  if (confidence > 0 && confidence < 70) {
+    return {
+      label: "Low confidence",
+      className: "bg-red-500/15 text-red-200 border-red-500/25",
+    };
+  }
+  return {
+    label: "Estimator decision",
+    className: "bg-white/5 text-cream-muted border-white/10",
+  };
+}
+
+const SHEET_STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: any }
+> = {
+  pending: {
+    label: "Pending",
+    color: "bg-gray-500/20 text-gray-300",
+    icon: Clock,
+  },
+  processing: {
+    label: "Analyzing...",
+    color: "bg-amber-500/20 text-amber-300",
+    icon: Loader2,
+  },
+  completed: {
+    label: "Done",
+    color: "bg-emerald-500/20 text-emerald-300",
+    icon: CheckCircle2,
+  },
+  error: {
+    label: "Error",
+    color: "bg-red-500/20 text-red-300",
+    icon: AlertCircle,
+  },
   skipped: { label: "Skipped", color: "bg-gray-500/20 text-gray-400", icon: X },
 };
 
@@ -199,16 +328,26 @@ export default function TakeoffDetail() {
   const [previewSheet, setPreviewSheet] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
+  const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(
+    new Set()
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
-  const [sheetScales, setSheetScales] = useState<Record<number, { ratio: number; unit: string; method?: "measured" | "title_block" }>>({});
+  const [sheetScales, setSheetScales] = useState<
+    Record<
+      number,
+      { ratio: number; unit: string; method?: "measured" | "title_block" }
+    >
+  >({});
   // Scale calibration prompt removed from upload flow
   const [showImportExcel, setShowImportExcel] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
@@ -241,22 +380,29 @@ export default function TakeoffDetail() {
 
   // ─── Preferred Currency ──────────────────────────────────────────────────
   const preferredCurrencyQuery = trpc.takeoff.getPreferredCurrency.useQuery();
-  const savePreferredCurrency = trpc.takeoff.savePreferredCurrency.useMutation();
+  const savePreferredCurrency =
+    trpc.takeoff.savePreferredCurrency.useMutation();
 
   // ─── Rate Profiles for quick-switch ─────────────────────────────────────────
   const { data: rateProfiles } = trpc.tradeRates.listRateProfiles.useQuery();
 
   // ─── Data Queries ─────────────────────────────────────────────────────────
 
-  const { data: project, isLoading, refetch: refetchProject } = trpc.takeoff.getProject.useQuery(
+  const {
+    data: project,
+    isLoading,
+    refetch: refetchProject,
+  } = trpc.takeoff.getProject.useQuery(
     { id: projectId },
     {
       enabled: projectId > 0,
       // Keep polling even when tab is in background (user walks away from computer)
       refetchIntervalInBackground: true,
-      refetchInterval: (query) => {
+      refetchInterval: query => {
         const status = query.state.data?.status;
-        return (status === "processing" || status === "post_processing") ? 3000 : false;
+        return status === "processing" || status === "post_processing"
+          ? 3000
+          : false;
       },
     }
   );
@@ -269,13 +415,20 @@ export default function TakeoffDetail() {
     if (!project?.selectedDivisions) return null;
     try {
       const parsed = JSON.parse(project.selectedDivisions);
-      return Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : null;
+      return Array.isArray(parsed)
+        ? parsed.filter(value => typeof value === "string")
+        : null;
     } catch {
       return null;
     }
   }, [project?.selectedDivisions]);
   const scopeIntent = useMemo(
-    () => buildScopeIntent(project?.scopeText || null, selectedDivisionList, project?.bidMode),
+    () =>
+      buildScopeIntent(
+        project?.scopeText || null,
+        selectedDivisionList,
+        project?.bidMode
+      ),
     [project?.scopeText, selectedDivisionList, project?.bidMode]
   );
   const projectType = normalizeTakeoffProjectType(project?.projectType);
@@ -295,7 +448,10 @@ export default function TakeoffDetail() {
         const next = { ...prev };
         for (const m of projectMarkups) {
           if (m.scaleRatio && m.sheetId && !next[m.sheetId]) {
-            next[m.sheetId] = { ratio: m.scaleRatio, unit: m.scaleUnit || "ft" };
+            next[m.sheetId] = {
+              ratio: m.scaleRatio,
+              unit: m.scaleUnit || "ft",
+            };
           }
         }
         return next;
@@ -304,30 +460,38 @@ export default function TakeoffDetail() {
   }, [projectMarkups]);
 
   // ─── Consolidation Diff Query ─────────────────────────────────────────
-  const { data: consolidationDiff } = trpc.takeoff.getConsolidationDiff.useQuery(
-    { projectId },
-    { enabled: projectId > 0 && showConsolidationDiff }
-  );
+  const { data: consolidationDiff } =
+    trpc.takeoff.getConsolidationDiff.useQuery(
+      { projectId },
+      { enabled: projectId > 0 && showConsolidationDiff }
+    );
 
   // ─── Verified (measurement history) items ─────────────────────────────
-  const { data: verifiedItemIds } = trpc.takeoff.getItemsWithMeasurements.useQuery(
-    { projectId },
-    { enabled: projectId > 0 }
+  const { data: verifiedItemIds } =
+    trpc.takeoff.getItemsWithMeasurements.useQuery(
+      { projectId },
+      { enabled: projectId > 0 }
+    );
+  const verifiedSet = useMemo(
+    () => new Set(verifiedItemIds || []),
+    [verifiedItemIds]
   );
-  const verifiedSet = useMemo(() => new Set(verifiedItemIds || []), [verifiedItemIds]);
 
-  const { data: progress, refetch: refetchProgress } = trpc.takeoff.getProgress.useQuery(
-    { projectId },
-    {
-      enabled: projectId > 0,
-      // Keep polling even when tab is in background — critical for long-running takeoffs
-      refetchIntervalInBackground: true,
-      refetchInterval: (query) => {
-        const status = query.state.data?.status;
-        return (status === "processing" || status === "post_processing") ? 2000 : false;
-      },
-    }
-  );
+  const { data: progress, refetch: refetchProgress } =
+    trpc.takeoff.getProgress.useQuery(
+      { projectId },
+      {
+        enabled: projectId > 0,
+        // Keep polling even when tab is in background — critical for long-running takeoffs
+        refetchIntervalInBackground: true,
+        refetchInterval: query => {
+          const status = query.state.data?.status;
+          return status === "processing" || status === "post_processing"
+            ? 2000
+            : false;
+        },
+      }
+    );
 
   // Track previous processing status to detect completion transition
   const prevStatusRef = useRef<string | null>(null);
@@ -347,16 +511,18 @@ export default function TakeoffDetail() {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = currentStatus || null;
 
-
-
     // Stop timer and detect completion
-    if (prevStatus && prevStatus !== "completed" && currentStatus === "completed") {
+    if (
+      prevStatus &&
+      prevStatus !== "completed" &&
+      currentStatus === "completed"
+    ) {
       processingStartRef.current = null;
 
       // Play completion chime and send browser notification
       playCompletionChime();
       sendCompletionNotification(project?.name || "Project");
-      
+
       if (prevStatus === "post_processing") {
         // Hard refresh for consolidation to ensure all data is fresh
         toast.success("Consolidation complete! Refreshing data...");
@@ -369,11 +535,7 @@ export default function TakeoffDetail() {
         });
       }
     }
-
-
   }, [progress?.status, project?.status, refetchItems]);
-
-
 
   // Force-refetch when user returns to the tab during processing
   // This ensures completion is detected immediately even if the background poll
@@ -382,7 +544,10 @@ export default function TakeoffDetail() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         const currentStatus = progress?.status || project?.status;
-        if (currentStatus === "processing" || currentStatus === "post_processing") {
+        if (
+          currentStatus === "processing" ||
+          currentStatus === "post_processing"
+        ) {
           // Immediately check for completion when user comes back
           refetchProgress();
           refetchProject();
@@ -390,7 +555,8 @@ export default function TakeoffDetail() {
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [progress?.status, project?.status, refetchProgress, refetchProject]);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
@@ -400,16 +566,18 @@ export default function TakeoffDetail() {
       refetchProject();
       refetchProgress();
     },
-    onError: (err) => toast.error(`Upload failed: ${err.message}`),
+    onError: err => toast.error(`Upload failed: ${err.message}`),
   });
 
   const processMutation = trpc.takeoff.startProcessing.useMutation({
     onSuccess: () => {
-      toast.success("ConstructLine takeoff started! This may take a few minutes...");
+      toast.success(
+        "ConstructLine takeoff started! This may take a few minutes..."
+      );
       refetchProject();
       refetchProgress();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const reprocessMutation = trpc.takeoff.reprocessSheet.useMutation({
@@ -418,7 +586,7 @@ export default function TakeoffDetail() {
       refetchProject();
       refetchProgress();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const updateItemMutation = trpc.takeoff.updateItem.useMutation({
@@ -428,7 +596,7 @@ export default function TakeoffDetail() {
       refetchItems();
       refetchProject();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const deleteItemMutation = trpc.takeoff.deleteItem.useMutation({
@@ -437,7 +605,7 @@ export default function TakeoffDetail() {
       refetchItems();
       refetchProject();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const bulkReviewMutation = trpc.takeoff.bulkReview.useMutation({
@@ -445,7 +613,7 @@ export default function TakeoffDetail() {
       toast.success("All items marked as reviewed");
       refetchItems();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const bulkUnreviewMutation = trpc.takeoff.bulkUnreview.useMutation({
@@ -453,7 +621,7 @@ export default function TakeoffDetail() {
       toast.success("All items marked as unreviewed");
       refetchItems();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const settingsMutation = trpc.takeoff.updateProjectSettings.useMutation({
@@ -461,11 +629,13 @@ export default function TakeoffDetail() {
       refetchProject();
       // Scope change detection: if scopeText changed and project is completed, prompt re-run
       const prevScope = prevScopeTextRef.current;
-      const newScope = variables.scopeText !== undefined ? (variables.scopeText ?? "") : null;
+      const newScope =
+        variables.scopeText !== undefined ? (variables.scopeText ?? "") : null;
       const isCompleted = project?.status === "completed";
       if (isCompleted && newScope !== null && newScope !== prevScope) {
         toast.info("Scope updated", {
-          description: "Re-run analysis to apply the new scope to your takeoff.",
+          description:
+            "Re-run analysis to apply the new scope to your takeoff.",
           action: {
             label: "Re-run Now",
             onClick: () => consolidateMutation.mutate({ projectId }),
@@ -476,12 +646,14 @@ export default function TakeoffDetail() {
       // Update the tracked scope
       if (newScope !== null) prevScopeTextRef.current = newScope;
     },
-    onError: (err) => toast.error(`Settings error: ${err.message}`),
+    onError: err => toast.error(`Settings error: ${err.message}`),
   });
 
   const updateProjectMutation = trpc.takeoff.updateProject.useMutation({
-    onSuccess: () => { refetchProject(); },
-    onError: (err) => toast.error(`Update error: ${err.message}`),
+    onSuccess: () => {
+      refetchProject();
+    },
+    onError: err => toast.error(`Update error: ${err.message}`),
   });
 
   const addItemMutation = (trpc.takeoff as any).addItem.useMutation({
@@ -496,85 +668,101 @@ export default function TakeoffDetail() {
 
   const consolidateMutation = trpc.takeoff.reprocessConsolidate.useMutation({
     onSuccess: () => {
-      toast.success("Re-running full analysis… items will update when complete.");
+      toast.success(
+        "Re-running full analysis… items will update when complete."
+      );
       // The backend sets status to post_processing, which triggers polling via refetchInterval.
       // The prevStatusRef effect above will detect post_processing → completed and auto-refresh items.
       refetchProject();
       refetchProgress();
     },
-    onError: (err) => toast.error(`Re-run error: ${err.message}`),
+    onError: err => toast.error(`Re-run error: ${err.message}`),
   });
 
   const repriceMutation = trpc.takeoff.repriceItems.useMutation({
-    onSuccess: (result) => {
-      toast.success(`Re-priced ${result.updated} items with updated cost data.`);
+    onSuccess: result => {
+      toast.success(
+        `Re-priced ${result.updated} items with updated cost data.`
+      );
       refetchItems();
       refetchProject();
     },
-    onError: (err) => toast.error(`Re-price error: ${err.message}`),
+    onError: err => toast.error(`Re-price error: ${err.message}`),
   });
 
   // Derived: is consolidation specifically running?
-  const isConsolidating = (progress?.status === "post_processing" || project?.status === "post_processing");
+  const isConsolidating =
+    progress?.status === "post_processing" ||
+    project?.status === "post_processing";
 
   // ─── File Upload Handler ──────────────────────────────────────────────────
 
-  const handleFileUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setUploading(true);
+  const handleFileUpload = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setUploading(true);
 
-    try {
-      const existingSheetCount = project?.sheets?.length || 0;
+      try {
+        const existingSheetCount = project?.sheets?.length || 0;
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
 
-        // Validate file type
-        if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-          toast.error(`Unsupported file type: ${file.name}. Use PNG, JPG, or PDF.`);
-          continue;
+          // Validate file type
+          if (
+            !file.type.startsWith("image/") &&
+            file.type !== "application/pdf"
+          ) {
+            toast.error(
+              `Unsupported file type: ${file.name}. Use PNG, JPG, or PDF.`
+            );
+            continue;
+          }
+
+          // For images, upload directly
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            const base64 = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => {
+                const result = reader.result as string;
+                resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            await uploadMutation.mutateAsync({
+              projectId,
+              filename: file.name,
+              pageNumber: existingSheetCount + i + 1,
+              imageData: base64,
+              contentType: file.type,
+            });
+
+            toast.success(`Uploaded: ${file.name}`);
+          } else if (file.type === "application/pdf") {
+            // For PDFs, we'll convert pages to images client-side using canvas
+            toast.info(
+              `Processing PDF: ${file.name}. Converting pages to images...`
+            );
+            await handlePdfUpload(file, existingSheetCount);
+          }
         }
 
-        // For images, upload directly
-        if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-
-          await uploadMutation.mutateAsync({
-            projectId,
-            filename: file.name,
-            pageNumber: existingSheetCount + i + 1,
-            imageData: base64,
-            contentType: file.type,
-          });
-
-          toast.success(`Uploaded: ${file.name}`);
-        } else if (file.type === "application/pdf") {
-          // For PDFs, we'll convert pages to images client-side using canvas
-          toast.info(`Processing PDF: ${file.name}. Converting pages to images...`);
-          await handlePdfUpload(file, existingSheetCount);
-        }
+        // After upload, refetch sheets and go straight to pre-analysis settings
+        await refetchProject();
+        refetchProgress();
+        // Auto-trigger the pre-analysis modal so user can confirm settings and start analysis
+        setShowPreAnalysis(true);
+      } catch (err: any) {
+        toast.error(`Upload error: ${err.message}`);
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
-
-      // After upload, refetch sheets and go straight to pre-analysis settings
-      await refetchProject();
-      refetchProgress();
-      // Auto-trigger the pre-analysis modal so user can confirm settings and start analysis
-      setShowPreAnalysis(true);
-    } catch (err: any) {
-      toast.error(`Upload error: ${err.message}`);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }, [projectId, project, uploadMutation]);
+    },
+    [projectId, project, uploadMutation]
+  );
 
   const handlePdfUpload = async (file: File, startPage: number) => {
     // Use pdf.js to render PDF pages to images
@@ -601,7 +789,8 @@ export default function TakeoffDetail() {
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d")!;
 
-        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any)
+          .promise;
 
         // Convert to base64 PNG
         const dataUrl = canvas.toDataURL("image/png");
@@ -634,11 +823,14 @@ export default function TakeoffDetail() {
     setDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    handleFileUpload(e.dataTransfer.files);
-  }, [handleFileUpload]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      handleFileUpload(e.dataTransfer.files);
+    },
+    [handleFileUpload]
+  );
 
   //  // ─── Excel/CSV Export ──────────────────────────────────────────────────
 
@@ -646,39 +838,140 @@ export default function TakeoffDetail() {
     if (!items || items.length === 0) return;
 
     const currencyCode = project?.currency || "USD";
-    const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+    const currencySymbol =
+      currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
     const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
     const projectName = (project as any)?.name || "Takeoff";
-    const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
+    const exportDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const headers = [
+      "CSI Code",
+      "Description",
+      "Quantity",
+      "Unit",
+      `Material (${currencySymbol})`,
+      `Default Labor (${currencySymbol})`,
+      `Reference Unit (${currencySymbol})`,
+      `Reference Total (${currencySymbol})`,
+      "Confidence %",
+      "Scope",
+      "Reviewed",
+      "Notes",
+    ];
     const allItems = items as any[];
-    const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
-    const reviewBucket = sortByExtendedCostDesc(allItems.filter((item) => isScopeReviewItem(item)));
-    const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
-    const projectAllowances = parseProjectAllowances((project as any)?.allowances);
-    const allowancesTotal = projectAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
-    const bucketTotal = (bucket: any[]) => bucket.reduce((sum, item) => sum + ((parseFloat(item.extendedCost) || 0) / 100), 0);
+    const activeBucket = allItems.filter(item => isScopeIncludedItem(item));
+    const reviewBucket = sortByExtendedCostDesc(
+      allItems.filter(item => isScopeReviewItem(item))
+    );
+    const excludedBucket = allItems.filter(item => isScopeExcludedItem(item));
+    const projectAllowances = parseProjectAllowances(
+      (project as any)?.allowances
+    );
+    const allowancesTotal =
+      projectAllowances.reduce(
+        (sum, allowance) => sum + (allowance.amount || 0),
+        0
+      ) / 100;
+    const bucketTotal = (bucket: any[]) =>
+      bucket.reduce(
+        (sum, item) => sum + (parseFloat(item.extendedCost) || 0) / 100,
+        0
+      );
     const activeTotal = bucketTotal(activeBucket) + allowancesTotal;
     const reviewTotal = bucketTotal(reviewBucket);
     const excludedTotal = bucketTotal(excludedBucket);
 
     const baseHeader = (): any[][] => [
-      ["ConstructLine | Powered by ALP", "", "", "", "", "", "", "", "", "", "", ""],
-      [`Project: ${projectName}`, "", "", `Date: ${exportDate}`, "", "", "", `Currency: ${currencyCode}`, "", "", "", ""],
-      [`Bid mode: ${exportBidModeBehavior.label}`, "", "", "", "", "", "", "", "", "", "", ""],
-      [`Review surface: ${exportBidModeBehavior.reviewSurface}`, "", "", "", "", "", "", "", "", "", "", ""],
-      [`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`, "", "", "", "", "", "", "", "", "", "", ""],
+      [
+        "ConstructLine | Powered by ALP",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        `Project: ${projectName}`,
+        "",
+        "",
+        `Date: ${exportDate}`,
+        "",
+        "",
+        "",
+        `Currency: ${currencyCode}`,
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        `Bid mode: ${exportBidModeBehavior.label}`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        `Review surface: ${exportBidModeBehavior.reviewSurface}`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        `Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
       [],
     ];
 
-    const buildBucketSheet = (bucketName: string, bucketItems: any[], includeAllowances = false): any[][] => {
+    const buildBucketSheet = (
+      bucketName: string,
+      bucketItems: any[],
+      includeAllowances = false
+    ): any[][] => {
       const divGroups: Record<string, any[]> = {};
       for (const item of bucketItems) {
         const div = item.csiDivision || "00";
         if (!divGroups[div]) divGroups[div] = [];
         divGroups[div].push(item);
       }
-      const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      const sortedDivs = Object.keys(divGroups).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      );
       const aoa: any[][] = [
         ...baseHeader(),
         [`Bucket: ${bucketName}`, "", "", "", "", "", "", "", "", "", "", ""],
@@ -689,7 +982,20 @@ export default function TakeoffDetail() {
 
       for (const div of sortedDivs) {
         const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
-        aoa.push([`${div} - ${divName}`, "", "", "", "", "", "", "", "", "", "", ""]);
+        aoa.push([
+          `${div} - ${divName}`,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ]);
         let divTotal = 0;
         for (const item of divGroups[div]) {
           const extCost = (parseFloat(item.extendedCost) || 0) / 100;
@@ -709,7 +1015,20 @@ export default function TakeoffDetail() {
             item.notes || "",
           ]);
         }
-        aoa.push(["", `Subtotal - ${divName}`, "", "", "", "", "", divTotal, "", "", "", ""]);
+        aoa.push([
+          "",
+          `Subtotal - ${divName}`,
+          "",
+          "",
+          "",
+          "",
+          "",
+          divTotal,
+          "",
+          "",
+          "",
+          "",
+        ]);
         aoa.push([]);
         grandTotal += divTotal;
       }
@@ -718,38 +1037,183 @@ export default function TakeoffDetail() {
         aoa.push(["ALLOWANCES", "", "", "", "", "", "", "", "", "", "", ""]);
         for (const allowance of projectAllowances) {
           const amt = (allowance.amount || 0) / 100;
-          aoa.push(["", allowance.description || "Allowance", "", "LS", "", "", "", amt, "", "Included", "", ""]);
+          aoa.push([
+            "",
+            allowance.description || "Allowance",
+            "",
+            "LS",
+            "",
+            "",
+            "",
+            amt,
+            "",
+            "Included",
+            "",
+            "",
+          ]);
         }
-        aoa.push(["", "Subtotal - Allowances", "", "", "", "", "", allowancesTotal, "", "", "", ""]);
+        aoa.push([
+          "",
+          "Subtotal - Allowances",
+          "",
+          "",
+          "",
+          "",
+          "",
+          allowancesTotal,
+          "",
+          "",
+          "",
+          "",
+        ]);
         aoa.push([]);
       }
-      aoa.push(["", `${bucketName.toUpperCase()} TOTAL`, "", "", "", "", "", grandTotal + (includeAllowances ? allowancesTotal : 0), "", "", "", ""]);
+      aoa.push([
+        "",
+        `${bucketName.toUpperCase()} TOTAL`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        grandTotal + (includeAllowances ? allowancesTotal : 0),
+        "",
+        "",
+        "",
+        "",
+      ]);
       return aoa;
     };
 
     const summaryRows: any[][] = [
       ...baseHeader(),
-      ["Summary", "Count", `Subtotal (${currencySymbol})`, "", "", "", "", "", "", "", "", ""],
-      ["Active Items", activeBucket.length, activeTotal, "", "", "", "", "", "", "", "", ""],
-      ["Needs Scope Review", reviewBucket.length, reviewTotal, "", "", "", "", "", "", "", "", ""],
-      ["Active + Review Potential", activeBucket.length + reviewBucket.length, activeTotal + reviewTotal, "", "", "", "", "", "", "", "", ""],
-      ["Excluded / Boundary", excludedBucket.length, excludedTotal, "", "", "", "", "", "", "", "", ""],
-      ["Allowances included in Active Total", projectAllowances.length, allowancesTotal, "", "", "", "", "", "", "", "", ""],
+      [
+        "Summary",
+        "Count",
+        `Subtotal (${currencySymbol})`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Active Items",
+        activeBucket.length,
+        activeTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Needs Scope Review",
+        reviewBucket.length,
+        reviewTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Active + Review Potential",
+        activeBucket.length + reviewBucket.length,
+        activeTotal + reviewTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Excluded / Boundary",
+        excludedBucket.length,
+        excludedTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Allowances included in Active Total",
+        projectAllowances.length,
+        allowancesTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
     ];
 
     const makeSheet = (aoa: any[][]) => {
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws["!cols"] = [{ wch: 16 }, { wch: 58 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 46 }];
+      ws["!cols"] = [
+        { wch: 16 },
+        { wch: 58 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 10 },
+        { wch: 46 },
+      ];
       const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
-      if (ws[brandCell]) ws[brandCell].s = { font: { bold: true, sz: 16, color: { rgb: "0D1B2A" } } };
+      if (ws[brandCell])
+        ws[brandCell].s = {
+          font: { bold: true, sz: 16, color: { rgb: "0D1B2A" } },
+        };
       return ws;
     };
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, makeSheet(summaryRows), "Summary");
-    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Active Items", activeBucket, true)), "Active Items");
-    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Needs Scope Review", reviewBucket)), "Needs Scope Review");
-    XLSX.utils.book_append_sheet(wb, makeSheet(buildBucketSheet("Excluded Boundary", excludedBucket)), "Excluded Boundary");
+    XLSX.utils.book_append_sheet(
+      wb,
+      makeSheet(buildBucketSheet("Active Items", activeBucket, true)),
+      "Active Items"
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      makeSheet(buildBucketSheet("Needs Scope Review", reviewBucket)),
+      "Needs Scope Review"
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      makeSheet(buildBucketSheet("Excluded Boundary", excludedBucket)),
+      "Excluded Boundary"
+    );
     const fileName = `${(project as any)?.name || "Takeoff"}_Quantities_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
     toast.success("Exported all takeoff buckets to Excel");
@@ -758,41 +1222,103 @@ export default function TakeoffDetail() {
   const handleExportCsv = useCallback(() => {
     if (!items || items.length === 0) return;
     const currencyCode = project?.currency || "USD";
-    const currencySymbol = currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
+    const currencySymbol =
+      currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$";
     const exportBidModeBehavior = getBidModeBehavior(project?.bidMode);
-    const headers = ["CSI Code", "Description", "Quantity", "Unit", `Material (${currencySymbol})`, `Default Labor (${currencySymbol})`, `Reference Unit (${currencySymbol})`, `Reference Total (${currencySymbol})`, "Confidence %", "Scope", "Reviewed", "Notes"];
+    const headers = [
+      "CSI Code",
+      "Description",
+      "Quantity",
+      "Unit",
+      `Material (${currencySymbol})`,
+      `Default Labor (${currencySymbol})`,
+      `Reference Unit (${currencySymbol})`,
+      `Reference Total (${currencySymbol})`,
+      "Confidence %",
+      "Scope",
+      "Reviewed",
+      "Notes",
+    ];
     const allItems = items as any[];
-    const activeBucket = allItems.filter((item) => isScopeIncludedItem(item));
-    const reviewBucket = sortByExtendedCostDesc(allItems.filter((item) => isScopeReviewItem(item)));
-    const excludedBucket = allItems.filter((item) => isScopeExcludedItem(item));
+    const activeBucket = allItems.filter(item => isScopeIncludedItem(item));
+    const reviewBucket = sortByExtendedCostDesc(
+      allItems.filter(item => isScopeReviewItem(item))
+    );
+    const excludedBucket = allItems.filter(item => isScopeExcludedItem(item));
     const csvAllowances = parseProjectAllowances((project as any)?.allowances);
-    const csvAllowancesTotal = csvAllowances.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) / 100;
-    const bucketTotal = (bucket: any[]) => bucket.reduce((sum, item) => sum + ((parseFloat(item.extendedCost) || 0) / 100), 0);
+    const csvAllowancesTotal =
+      csvAllowances.reduce(
+        (sum, allowance) => sum + (allowance.amount || 0),
+        0
+      ) / 100;
+    const bucketTotal = (bucket: any[]) =>
+      bucket.reduce(
+        (sum, item) => sum + (parseFloat(item.extendedCost) || 0) / 100,
+        0
+      );
     const activeTotal = bucketTotal(activeBucket) + csvAllowancesTotal;
     const reviewTotal = bucketTotal(reviewBucket);
     const excludedTotal = bucketTotal(excludedBucket);
 
-    const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const escapeCsv = (value: unknown) =>
+      `"${String(value ?? "").replace(/"/g, '""')}"`;
     const projectName = (project as any)?.name || "Takeoff";
-    const exportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const exportDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
     const csvRows: string[] = [
       [escapeCsv("ConstructLine | Powered by ALP")].join(","),
-      [escapeCsv(`Project: ${projectName}`), "", "", escapeCsv(`Date: ${exportDate}`), "", "", "", escapeCsv(`Currency: ${currencyCode}`)].join(","),
+      [
+        escapeCsv(`Project: ${projectName}`),
+        "",
+        "",
+        escapeCsv(`Date: ${exportDate}`),
+        "",
+        "",
+        "",
+        escapeCsv(`Currency: ${currencyCode}`),
+      ].join(","),
       [escapeCsv(`Bid mode: ${exportBidModeBehavior.label}`)].join(","),
-      [escapeCsv(`Review surface: ${exportBidModeBehavior.reviewSurface}`)].join(","),
-      [escapeCsv(`Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`)].join(","),
+      [
+        escapeCsv(`Review surface: ${exportBidModeBehavior.reviewSurface}`),
+      ].join(","),
+      [
+        escapeCsv(
+          `Scope: ${scopeIntent.hasScope ? scopeIntent.originalText : "Full drawing set"}`
+        ),
+      ].join(","),
       "",
       ["Summary", "Count", `Subtotal (${currencySymbol})`].join(","),
       ["Active Items", activeBucket.length, activeTotal.toFixed(2)].join(","),
-      ["Needs Scope Review", reviewBucket.length, reviewTotal.toFixed(2)].join(","),
-      ["Active + Review Potential", activeBucket.length + reviewBucket.length, (activeTotal + reviewTotal).toFixed(2)].join(","),
-      ["Excluded / Boundary", excludedBucket.length, excludedTotal.toFixed(2)].join(","),
-      ["Allowances included in Active Total", csvAllowances.length, csvAllowancesTotal.toFixed(2)].join(","),
+      ["Needs Scope Review", reviewBucket.length, reviewTotal.toFixed(2)].join(
+        ","
+      ),
+      [
+        "Active + Review Potential",
+        activeBucket.length + reviewBucket.length,
+        (activeTotal + reviewTotal).toFixed(2),
+      ].join(","),
+      [
+        "Excluded / Boundary",
+        excludedBucket.length,
+        excludedTotal.toFixed(2),
+      ].join(","),
+      [
+        "Allowances included in Active Total",
+        csvAllowances.length,
+        csvAllowancesTotal.toFixed(2),
+      ].join(","),
       "",
       headers.join(","),
     ];
 
-    const appendBucket = (bucketName: string, bucketItems: any[], includeAllowances = false) => {
+    const appendBucket = (
+      bucketName: string,
+      bucketItems: any[],
+      includeAllowances = false
+    ) => {
       csvRows.push("");
       csvRows.push(escapeCsv(bucketName));
       const divGroups: Record<string, any[]> = {};
@@ -801,7 +1327,9 @@ export default function TakeoffDetail() {
         if (!divGroups[div]) divGroups[div] = [];
         divGroups[div].push(item);
       }
-      const sortedDivs = Object.keys(divGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      const sortedDivs = Object.keys(divGroups).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      );
       let grandTotal = 0;
       for (const div of sortedDivs) {
         const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
@@ -810,22 +1338,39 @@ export default function TakeoffDetail() {
         for (const item of divGroups[div]) {
           const extCost = (parseFloat(item.extendedCost) || 0) / 100;
           divTotal += extCost;
-          csvRows.push([
-            item.csiCode || item.csiDivision || "",
-            escapeCsv(item.description || ""),
-            parseFloat(item.quantity) || 0,
-            item.unit || "",
-            (getTakeoffMaterialUnitCost(item) / 100).toFixed(2),
-            ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
-            ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
-            extCost.toFixed(2),
-            item.confidence || 0,
-            formatScopeReviewStatus(getScopeReviewStatus(item)),
-            item.reviewed ? "Yes" : "No",
-            escapeCsv(item.notes || ""),
-          ].join(","));
+          csvRows.push(
+            [
+              item.csiCode || item.csiDivision || "",
+              escapeCsv(item.description || ""),
+              parseFloat(item.quantity) || 0,
+              item.unit || "",
+              (getTakeoffMaterialUnitCost(item) / 100).toFixed(2),
+              ((parseFloat(item.laborCost) || 0) / 100).toFixed(2),
+              ((parseFloat(item.unitCost) || 0) / 100).toFixed(2),
+              extCost.toFixed(2),
+              item.confidence || 0,
+              formatScopeReviewStatus(getScopeReviewStatus(item)),
+              item.reviewed ? "Yes" : "No",
+              escapeCsv(item.notes || ""),
+            ].join(",")
+          );
         }
-        csvRows.push(["", escapeCsv(`Subtotal - ${divName}`), "", "", "", "", "", divTotal.toFixed(2), "", "", "", ""].join(","));
+        csvRows.push(
+          [
+            "",
+            escapeCsv(`Subtotal - ${divName}`),
+            "",
+            "",
+            "",
+            "",
+            "",
+            divTotal.toFixed(2),
+            "",
+            "",
+            "",
+            "",
+          ].join(",")
+        );
         csvRows.push("");
         grandTotal += divTotal;
       }
@@ -833,12 +1378,59 @@ export default function TakeoffDetail() {
         csvRows.push(escapeCsv("ALLOWANCES"));
         for (const allowance of csvAllowances) {
           const amt = (allowance.amount || 0) / 100;
-          csvRows.push(["", escapeCsv(allowance.description || "Allowance"), "", "LS", "", "", "", amt.toFixed(2), "", "Included", "", ""].join(","));
+          csvRows.push(
+            [
+              "",
+              escapeCsv(allowance.description || "Allowance"),
+              "",
+              "LS",
+              "",
+              "",
+              "",
+              amt.toFixed(2),
+              "",
+              "Included",
+              "",
+              "",
+            ].join(",")
+          );
         }
-        csvRows.push(["", escapeCsv("Subtotal - Allowances"), "", "", "", "", "", csvAllowancesTotal.toFixed(2), "", "", "", ""].join(","));
+        csvRows.push(
+          [
+            "",
+            escapeCsv("Subtotal - Allowances"),
+            "",
+            "",
+            "",
+            "",
+            "",
+            csvAllowancesTotal.toFixed(2),
+            "",
+            "",
+            "",
+            "",
+          ].join(",")
+        );
         csvRows.push("");
       }
-      csvRows.push(["", escapeCsv(`${bucketName} Total`), "", "", "", "", "", (grandTotal + (includeAllowances ? csvAllowancesTotal : 0)).toFixed(2), "", "", "", ""].join(","));
+      csvRows.push(
+        [
+          "",
+          escapeCsv(`${bucketName} Total`),
+          "",
+          "",
+          "",
+          "",
+          "",
+          (grandTotal + (includeAllowances ? csvAllowancesTotal : 0)).toFixed(
+            2
+          ),
+          "",
+          "",
+          "",
+          "",
+        ].join(",")
+      );
     };
 
     appendBucket("Active Items", activeBucket, true);
@@ -858,7 +1450,12 @@ export default function TakeoffDetail() {
 
   // ─── Excel Import ──────────────────────────────────────────────────────
   const importExcelMutation = (trpc.takeoff as any).importExcel.useMutation({
-    onSuccess: (result: { updated: number; created: number; removed: number; errors: string[] }) => {
+    onSuccess: (result: {
+      updated: number;
+      created: number;
+      removed: number;
+      errors: string[];
+    }) => {
       refetchProject();
       setShowImportExcel(false);
       setImportPreview(null);
@@ -877,73 +1474,132 @@ export default function TakeoffDetail() {
     },
   });
 
-  const handleImportExcel = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImportExcel = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        if (!ws) { toast.error("No sheet found in file"); return; }
-
-        const rawRows = XLSX.utils.sheet_to_json<any>(ws, { header: 1 }) as any[][];
-
-        // Find the header row (look for "Description" or "CSI Code")
-        let headerIdx = -1;
-        for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
-          const row = rawRows[i];
-          if (row && row.some((cell: any) => typeof cell === "string" && (cell.toLowerCase().includes("description") || cell.toLowerCase().includes("csi code")))) {
-            headerIdx = i;
-            break;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          if (!ws) {
+            toast.error("No sheet found in file");
+            return;
           }
+
+          const rawRows = XLSX.utils.sheet_to_json<any>(ws, {
+            header: 1,
+          }) as any[][];
+
+          // Find the header row (look for "Description" or "CSI Code")
+          let headerIdx = -1;
+          for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+            const row = rawRows[i];
+            if (
+              row &&
+              row.some(
+                (cell: any) =>
+                  typeof cell === "string" &&
+                  (cell.toLowerCase().includes("description") ||
+                    cell.toLowerCase().includes("csi code"))
+              )
+            ) {
+              headerIdx = i;
+              break;
+            }
+          }
+          if (headerIdx === -1) {
+            toast.error(
+              "Could not find header row with 'Description' or 'CSI Code'"
+            );
+            return;
+          }
+
+          const headers = rawRows[headerIdx].map((h: any) =>
+            String(h || "")
+              .toLowerCase()
+              .trim()
+          );
+          const descCol = headers.findIndex((h: string) =>
+            h.includes("description")
+          );
+          const csiCol = headers.findIndex(
+            (h: string) => h.includes("csi code") || h === "csi"
+          );
+          const qtyCol = headers.findIndex(
+            (h: string) => h.includes("quantity") || h === "qty"
+          );
+          const unitCol = headers.findIndex(
+            (h: string) => h.includes("unit") && !h.includes("cost")
+          );
+          const unitCostCol = headers.findIndex((h: string) =>
+            h.includes("unit cost")
+          );
+          const confCol = headers.findIndex((h: string) =>
+            h.includes("confidence")
+          );
+          const reviewedCol = headers.findIndex((h: string) =>
+            h.includes("reviewed")
+          );
+          const notesCol = headers.findIndex((h: string) =>
+            h.includes("notes")
+          );
+
+          if (descCol === -1) {
+            toast.error("Could not find 'Description' column");
+            return;
+          }
+
+          const parsed: any[] = [];
+          for (let i = headerIdx + 1; i < rawRows.length; i++) {
+            const row = rawRows[i];
+            if (!row || !row[descCol]) continue;
+            const desc = String(row[descCol] || "").trim();
+            if (
+              !desc ||
+              desc.toLowerCase().startsWith("subtotal") ||
+              desc === "GRAND TOTAL"
+            )
+              continue;
+            // Skip division header rows (e.g. "03 — Concrete")
+            if (/^\d{2}\s*[\u2014—-]/.test(desc)) continue;
+
+            parsed.push({
+              csiCode: csiCol >= 0 ? String(row[csiCol] || "").trim() : "",
+              description: desc,
+              quantity: qtyCol >= 0 ? parseFloat(row[qtyCol]) || 0 : 0,
+              unit: unitCol >= 0 ? String(row[unitCol] || "").trim() : "EA",
+              unitCost:
+                unitCostCol >= 0 ? parseFloat(row[unitCostCol]) || 0 : 0,
+              confidence: confCol >= 0 ? parseFloat(row[confCol]) || 0 : 100,
+              reviewed:
+                reviewedCol >= 0
+                  ? String(row[reviewedCol]).toLowerCase() === "yes" ||
+                    row[reviewedCol] === true
+                  : false,
+              notes: notesCol >= 0 ? String(row[notesCol] || "").trim() : "",
+            });
+          }
+
+          if (parsed.length === 0) {
+            toast.error("No valid data rows found");
+            return;
+          }
+          setImportPreview(parsed);
+          setShowImportExcel(true);
+        } catch (err: any) {
+          toast.error(
+            "Failed to parse Excel file: " + (err.message || "Unknown error")
+          );
         }
-        if (headerIdx === -1) { toast.error("Could not find header row with 'Description' or 'CSI Code'"); return; }
-
-        const headers = rawRows[headerIdx].map((h: any) => String(h || "").toLowerCase().trim());
-        const descCol = headers.findIndex((h: string) => h.includes("description"));
-        const csiCol = headers.findIndex((h: string) => h.includes("csi code") || h === "csi");
-        const qtyCol = headers.findIndex((h: string) => h.includes("quantity") || h === "qty");
-        const unitCol = headers.findIndex((h: string) => h.includes("unit") && !h.includes("cost"));
-        const unitCostCol = headers.findIndex((h: string) => h.includes("unit cost"));
-        const confCol = headers.findIndex((h: string) => h.includes("confidence"));
-        const reviewedCol = headers.findIndex((h: string) => h.includes("reviewed"));
-        const notesCol = headers.findIndex((h: string) => h.includes("notes"));
-
-        if (descCol === -1) { toast.error("Could not find 'Description' column"); return; }
-
-        const parsed: any[] = [];
-        for (let i = headerIdx + 1; i < rawRows.length; i++) {
-          const row = rawRows[i];
-          if (!row || !row[descCol]) continue;
-          const desc = String(row[descCol] || "").trim();
-          if (!desc || desc.toLowerCase().startsWith("subtotal") || desc === "GRAND TOTAL") continue;
-          // Skip division header rows (e.g. "03 — Concrete")
-          if (/^\d{2}\s*[\u2014—-]/.test(desc)) continue;
-
-          parsed.push({
-            csiCode: csiCol >= 0 ? String(row[csiCol] || "").trim() : "",
-            description: desc,
-            quantity: qtyCol >= 0 ? (parseFloat(row[qtyCol]) || 0) : 0,
-            unit: unitCol >= 0 ? String(row[unitCol] || "").trim() : "EA",
-            unitCost: unitCostCol >= 0 ? (parseFloat(row[unitCostCol]) || 0) : 0,
-            confidence: confCol >= 0 ? (parseFloat(row[confCol]) || 0) : 100,
-            reviewed: reviewedCol >= 0 ? (String(row[reviewedCol]).toLowerCase() === "yes" || row[reviewedCol] === true) : false,
-            notes: notesCol >= 0 ? String(row[notesCol] || "").trim() : "",
-          });
-        }
-
-        if (parsed.length === 0) { toast.error("No valid data rows found"); return; }
-        setImportPreview(parsed);
-        setShowImportExcel(true);
-      } catch (err: any) {
-        toast.error("Failed to parse Excel file: " + (err.message || "Unknown error"));
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }, []);
+      };
+      reader.readAsArrayBuffer(file);
+    },
+    []
+  );
 
   const handleConfirmImport = useCallback(() => {
     if (!importPreview || importPreview.length === 0) return;
@@ -956,16 +1612,36 @@ export default function TakeoffDetail() {
 
   // ─── Grouped Items ──────────────────────────────────────────────────
 
-  const activeItems = useMemo(() => (items || []).filter((item: any) => isScopeIncludedItem(item)), [items]);
-  const reviewItems = useMemo(() => sortByExtendedCostDesc((items || []).filter((item: any) => isScopeReviewItem(item))), [items]);
-  const excludedItems = useMemo(() => (items || []).filter((item: any) => isScopeExcludedItem(item)), [items]);
+  const activeItems = useMemo(
+    () => (items || []).filter((item: any) => isScopeIncludedItem(item)),
+    [items]
+  );
+  const reviewItems = useMemo(
+    () =>
+      sortByExtendedCostDesc(
+        (items || []).filter((item: any) => isScopeReviewItem(item))
+      ),
+    [items]
+  );
+  const excludedItems = useMemo(
+    () => (items || []).filter((item: any) => isScopeExcludedItem(item)),
+    [items]
+  );
   const scopeReviewCount = reviewItems.length;
   const reviewItemsCost = useMemo(
-    () => reviewItems.reduce((sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0), 0),
+    () =>
+      reviewItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0),
+        0
+      ),
     [reviewItems]
   );
   const excludedItemsCost = useMemo(
-    () => excludedItems.reduce((sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0), 0),
+    () =>
+      excludedItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.extendedCost || 0) || 0),
+        0
+      ),
     [excludedItems]
   );
 
@@ -981,13 +1657,29 @@ export default function TakeoffDetail() {
   }, [activeItems]);
 
   const toggleDivision = (div: string) => {
-    setCollapsedDivisions((prev) => {
+    setCollapsedDivisions(prev => {
       const next = new Set(prev);
       if (next.has(div)) next.delete(div);
       else next.add(div);
       return next;
     });
   };
+
+  const applyScopeDecision = useCallback(
+    (
+      item: any,
+      status: "included" | "review" | "excluded",
+      reviewed = true
+    ) => {
+      updateItemMutation.mutate({
+        id: item.id,
+        projectId,
+        notes: scopeDecisionNotes(item.notes, status),
+        reviewed,
+      });
+    },
+    [projectId, updateItemMutation]
+  );
 
   // ─── Loading State ────────────────────────────────────────────────────────
 
@@ -1003,7 +1695,11 @@ export default function TakeoffDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-cream-muted">Project not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/portal/takeoff")}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => navigate("/portal/takeoff")}
+        >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Projects
         </Button>
       </div>
@@ -1011,19 +1707,38 @@ export default function TakeoffDetail() {
   }
 
   const sheets = project.sheets || [];
-  const isProcessing = progress?.status === "processing" || progress?.status === "post_processing";
+  const isProcessing =
+    progress?.status === "processing" || progress?.status === "post_processing";
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
   // Parse project allowances
   const projectAllowances = parseProjectAllowances(project.allowances);
-  const allowancesTotal = projectAllowances.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const allowancesTotal = projectAllowances.reduce(
+    (sum, a) => sum + (a.amount || 0),
+    0
+  );
   const itemsCost = sumScopeIncludedExtendedCost(activeItems);
   const totalCost = itemsCost + allowancesTotal;
   const potentialTotal = totalCost + reviewItemsCost;
   const bidModeBehavior = getBidModeBehavior(project.bidMode);
+  const openReviewItems = reviewItems.filter((item: any) => !item.reviewed);
+  const reviewedReviewItems = reviewItems.length - openReviewItems.length;
+  const highPriorityReviewItems = reviewItems.filter((item: any) => {
+    const cue = getEstimatorCue(item).label;
+    return (
+      Number(item.extendedCost || 0) >= 1_000_000 ||
+      cue === "Scope conflict" ||
+      cue === "Possible duplicate" ||
+      cue === "Generated quantity"
+    );
+  });
+  const reviewProgressPct =
+    reviewItems.length > 0
+      ? Math.round((reviewedReviewItems / reviewItems.length) * 100)
+      : 100;
+  const readyToPrice = reviewItems.length === 0;
 
   return (
     <div className="min-h-screen bg-navy-deep">
-
       {/* Header Bar */}
       <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
@@ -1040,14 +1755,20 @@ export default function TakeoffDetail() {
             <div className="w-px h-6 bg-white/10" />
             {/* ConstructLine Brand Mark */}
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
-              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+              <span className="text-sm font-bold tracking-tight text-white leading-tight">
+                Construct<span className="text-amber-400">Line</span>
+              </span>
+              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">
+                Powered by ALP
+              </span>
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div>
               <h1 className="text-lg font-bold text-cream">{project.name}</h1>
               {project.description && (
-                <p className="text-xs text-cream-muted">{project.description}</p>
+                <p className="text-xs text-cream-muted">
+                  {project.description}
+                </p>
               )}
             </div>
             {/* Rate Profile Quick-Switch */}
@@ -1055,8 +1776,12 @@ export default function TakeoffDetail() {
               <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
                 <Bookmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <Select
-                  value={project.rateProfileId ? String(project.rateProfileId) : "default"}
-                  onValueChange={(val) => {
+                  value={
+                    project.rateProfileId
+                      ? String(project.rateProfileId)
+                      : "default"
+                  }
+                  onValueChange={val => {
                     const profileId = val === "default" ? null : Number(val);
                     updateProjectMutation.mutate(
                       { id: projectId, rateProfileId: profileId } as any,
@@ -1064,9 +1789,12 @@ export default function TakeoffDetail() {
                         onSuccess: () => {
                           refetchProject();
                           const profileName = profileId
-                            ? rateProfiles.find((p: any) => p.id === profileId)?.name
+                            ? rateProfiles.find((p: any) => p.id === profileId)
+                                ?.name
                             : "Hub Default";
-                          toast.success(`Rate profile switched to ${profileName}`);
+                          toast.success(
+                            `Rate profile switched to ${profileName}`
+                          );
                         },
                       }
                     );
@@ -1094,70 +1822,116 @@ export default function TakeoffDetail() {
                 <span className="text-emerald-400 font-bold text-lg">
                   {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
-                <span className="text-emerald-400/60 text-xs">pricing reference</span>
+                <span className="text-emerald-400/60 text-xs">
+                  current included
+                </span>
               </div>
             )}
             <div data-tour="takeoff-settings">
-            <ProjectSettingsPanel
-              projectId={projectId}
-              currentDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
-              currentRegion={project.costRegion}
-              currentCurrency={project.currency}
-              currentProjectType={projectType}
-              currentBidMode={project.bidMode}
-              currentScopeText={project.scopeText}
-              currentSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
-              detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
-              currentRateProfileId={project.rateProfileId ?? null}
-              currentAllowances={project.allowances ? (typeof project.allowances === 'string' ? JSON.parse(project.allowances) : project.allowances) : null}
-              hasProcessedSheets={sheets.some((s: any) => s.status === "completed")}
-              onSave={async (divisions, region, currency, scopeText, specialties, rateProfileId, allowances, settingsProjectType, bidMode) => {
-                // Save rateProfileId separately via updateProject if it changed
-                if (rateProfileId !== undefined) {
-                  await new Promise<void>((resolve, reject) => {
-                    updateProjectMutation.mutate(
-                      { id: projectId, rateProfileId } as any,
-                      { onSuccess: () => resolve(), onError: (err) => reject(err) }
-                    );
-                  });
+              <ProjectSettingsPanel
+                projectId={projectId}
+                currentDivisions={
+                  project.selectedDivisions
+                    ? JSON.parse(project.selectedDivisions)
+                    : null
                 }
-                return new Promise<{ regionChanged?: boolean }>((resolve, reject) => {
-                  settingsMutation.mutate(
-                    {
-                      projectId,
-                      selectedDivisions: divisions || [],
-                      costRegion: region,
-                      currency: currency as any,
-                      ...(scopeText !== undefined ? { scopeText } : {}),
-                      ...(specialties !== undefined ? { selectedSpecialties: specialties } : {}),
-                      ...(allowances !== undefined ? { allowances } : {}),
-                      ...(settingsProjectType !== undefined ? { projectType: settingsProjectType } : {}),
-                      ...(bidMode !== undefined ? { bidMode } : {}),
-                    },
-                    {
-                      onSuccess: (result) => resolve(result),
-                      onError: (err) => reject(err),
-                    },
+                currentRegion={project.costRegion}
+                currentCurrency={project.currency}
+                currentProjectType={projectType}
+                currentBidMode={project.bidMode}
+                currentScopeText={project.scopeText}
+                currentSpecialties={
+                  project.selectedSpecialties
+                    ? JSON.parse(project.selectedSpecialties)
+                    : null
+                }
+                detectedSpecialties={
+                  project.detectedSpecialties
+                    ? JSON.parse(project.detectedSpecialties)
+                    : null
+                }
+                currentRateProfileId={project.rateProfileId ?? null}
+                currentAllowances={
+                  project.allowances
+                    ? typeof project.allowances === "string"
+                      ? JSON.parse(project.allowances)
+                      : project.allowances
+                    : null
+                }
+                hasProcessedSheets={sheets.some(
+                  (s: any) => s.status === "completed"
+                )}
+                onSave={async (
+                  divisions,
+                  region,
+                  currency,
+                  scopeText,
+                  specialties,
+                  rateProfileId,
+                  allowances,
+                  settingsProjectType,
+                  bidMode
+                ) => {
+                  // Save rateProfileId separately via updateProject if it changed
+                  if (rateProfileId !== undefined) {
+                    await new Promise<void>((resolve, reject) => {
+                      updateProjectMutation.mutate(
+                        { id: projectId, rateProfileId } as any,
+                        {
+                          onSuccess: () => resolve(),
+                          onError: err => reject(err),
+                        }
+                      );
+                    });
+                  }
+                  return new Promise<{ regionChanged?: boolean }>(
+                    (resolve, reject) => {
+                      settingsMutation.mutate(
+                        {
+                          projectId,
+                          selectedDivisions: divisions || [],
+                          costRegion: region,
+                          currency: currency as any,
+                          ...(scopeText !== undefined ? { scopeText } : {}),
+                          ...(specialties !== undefined
+                            ? { selectedSpecialties: specialties }
+                            : {}),
+                          ...(allowances !== undefined ? { allowances } : {}),
+                          ...(settingsProjectType !== undefined
+                            ? { projectType: settingsProjectType }
+                            : {}),
+                          ...(bidMode !== undefined ? { bidMode } : {}),
+                        },
+                        {
+                          onSuccess: result => resolve(result),
+                          onError: err => reject(err),
+                        }
+                      );
+                    }
                   );
-                });
-              }}
-              externalOpen={openSettingsToScope}
-              onExternalOpenChange={(v) => setOpenSettingsToScope(v)}
-              focusScope={openSettingsToScope}
-              onReAnalyze={(divisions) => {
-                // Re-analyze with updated divisions — triggers startProcessing
-                processMutation.mutate({
-                  projectId,
-                  selectedDivisions: divisions || [],
-                  currency: (project.currency || "USD") as "USD" | "GBP" | "AUD",
-                  projectType,
-                  bidMode: normalizeTakeoffBidMode(project.bidMode),
-                  costRegion: project.costRegion || null,
-                  scopeText: project.scopeText || null,
-                  selectedSpecialties: project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null,
-                });
-              }}
-            />
+                }}
+                externalOpen={openSettingsToScope}
+                onExternalOpenChange={v => setOpenSettingsToScope(v)}
+                focusScope={openSettingsToScope}
+                onReAnalyze={divisions => {
+                  // Re-analyze with updated divisions — triggers startProcessing
+                  processMutation.mutate({
+                    projectId,
+                    selectedDivisions: divisions || [],
+                    currency: (project.currency || "USD") as
+                      | "USD"
+                      | "GBP"
+                      | "AUD",
+                    projectType,
+                    bidMode: normalizeTakeoffBidMode(project.bidMode),
+                    costRegion: project.costRegion || null,
+                    scopeText: project.scopeText || null,
+                    selectedSpecialties: project.selectedSpecialties
+                      ? JSON.parse(project.selectedSpecialties)
+                      : null,
+                  });
+                }}
+              />
             </div>
           </div>
         </div>
@@ -1166,18 +1940,32 @@ export default function TakeoffDetail() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList data-tour="takeoff-tabs" className="bg-navy-medium/50 border border-white/10 mb-6">
-            <TabsTrigger value="sheets" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+          <TabsList
+            data-tour="takeoff-tabs"
+            className="bg-navy-medium/50 border border-white/10 mb-6"
+          >
+            <TabsTrigger
+              value="sheets"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+            >
               <FileStack className="w-4 h-4 mr-2" />
               Drawing Sheets ({sheets.length})
             </TabsTrigger>
-            <TabsTrigger value="items" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+            <TabsTrigger
+              value="items"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+            >
               <DollarSign className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Quantity Takeoff</span>
               <span className="sm:hidden">Takeoff</span>
-              <span className="ml-1 text-xs opacity-75">({activeItems.length} active)</span>
+              <span className="ml-1 text-xs opacity-75">
+                ({activeItems.length} active)
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="estimate" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+            <TabsTrigger
+              value="estimate"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+            >
               <Calculator className="w-4 h-4 mr-2" />
               Estimate
             </TabsTrigger>
@@ -1187,77 +1975,85 @@ export default function TakeoffDetail() {
           <TabsContent value="sheets">
             {/* Upload Area — hidden during processing when sheets already exist */}
             {!(isProcessing && sheets.length > 0) && (
-            <div
-              data-tour="takeoff-upload-area"
-              className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
-                dragOver
-                  ? "border-amber-500 bg-amber-500/10"
-                  : "border-white/20 hover:border-white/40 bg-navy-medium/30"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFileUpload(e.target.files)}
-              />
-              <div className="flex flex-col items-center gap-3">
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-                    <p className="text-cream font-medium">
-                      {uploadProgress
-                        ? `Converting & uploading page ${uploadProgress.current} of ${uploadProgress.total}...`
-                        : "Uploading drawings..."}
-                    </p>
-                    {uploadProgress && (
-                      <div className="w-full max-w-xs">
-                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
-                            style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
-                          />
+              <div
+                data-tour="takeoff-upload-area"
+                className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
+                  dragOver
+                    ? "border-amber-500 bg-amber-500/10"
+                    : "border-white/20 hover:border-white/40 bg-navy-medium/30"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  className="hidden"
+                  onChange={e => handleFileUpload(e.target.files)}
+                />
+                <div className="flex flex-col items-center gap-3">
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+                      <p className="text-cream font-medium">
+                        {uploadProgress
+                          ? `Converting & uploading page ${uploadProgress.current} of ${uploadProgress.total}...`
+                          : "Uploading drawings..."}
+                      </p>
+                      {uploadProgress && (
+                        <div className="w-full max-w-xs">
+                          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                              style={{
+                                width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="text-cream-muted text-xs text-center mt-1.5">
+                            {Math.round(
+                              (uploadProgress.current / uploadProgress.total) *
+                                100
+                            )}
+                            %
+                          </p>
                         </div>
-                        <p className="text-cream-muted text-xs text-center mt-1.5">
-                          {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                      )}
+                      <div className="flex items-center gap-2 mt-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <p className="text-amber-300 text-xs font-medium">
+                          Please stay on this page — PDF conversion runs in your
+                          browser and will stop if you navigate away.
                         </p>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 mt-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <p className="text-amber-300 text-xs font-medium">
-                        Please stay on this page — PDF conversion runs in your browser and will stop if you navigate away.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-10 h-10 text-cream-muted" />
-                    <div>
-                      <p className="text-cream font-medium">
-                        Drag & drop construction drawings here
-                      </p>
-                      <p className="text-cream-muted text-sm mt-1">
-                        Supports PDF (multi-page) and images (PNG, JPG). Each page is analyzed separately.
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-2"
-                    >
-                      <FileImage className="w-4 h-4 mr-2" />
-                      Browse Files
-                    </Button>
-                  </>
-                )}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-cream-muted" />
+                      <div>
+                        <p className="text-cream font-medium">
+                          Drag & drop construction drawings here
+                        </p>
+                        <p className="text-cream-muted text-sm mt-1">
+                          Supports PDF (multi-page) and images (PNG, JPG). Each
+                          page is analyzed separately.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-2"
+                      >
+                        <FileImage className="w-4 h-4 mr-2" />
+                        Browse Files
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
             )}
 
             {/* Analyze Drawings Button — opens Pre-Analysis Modal */}
@@ -1277,13 +2073,29 @@ export default function TakeoffDetail() {
                   {processMutation.isPending && (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   )}
-                  {hasPendingSheets
-                    ? <><span className="font-bold tracking-tight"><span className="text-white">Construct</span><span className="text-amber-300">Line</span></span>{" "}Analyze Drawings</>
-                    : <><span className="font-bold tracking-tight"><span className="text-white">Construct</span><span className="text-amber-300">Line</span></span>{" "}Re-Analyze Drawings</>}
+                  {hasPendingSheets ? (
+                    <>
+                      <span className="font-bold tracking-tight">
+                        <span className="text-white">Construct</span>
+                        <span className="text-amber-300">Line</span>
+                      </span>{" "}
+                      Analyze Drawings
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold tracking-tight">
+                        <span className="text-white">Construct</span>
+                        <span className="text-amber-300">Line</span>
+                      </span>{" "}
+                      Re-Analyze Drawings
+                    </>
+                  )}
                   <span className="ml-2 text-sm opacity-75">
-                    ({hasPendingSheets
+                    (
+                    {hasPendingSheets
                       ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`
-                      : `${sheets.length} sheets — update settings & re-run`})
+                      : `${sheets.length} sheets — update settings & re-run`}
+                    )
                   </span>
                 </Button>
               </div>
@@ -1306,7 +2118,10 @@ export default function TakeoffDetail() {
                     currency: settings.currency as any,
                     projectType: settings.projectType,
                     bidMode: settings.bidMode,
-                    allowances: settings.allowances.map(a => ({ description: a.description, amount: a.amount })),
+                    allowances: settings.allowances.map(a => ({
+                      description: a.description,
+                      amount: a.amount,
+                    })),
                   });
                 }
                 processMutation.mutate({
@@ -1317,21 +2132,43 @@ export default function TakeoffDetail() {
                   costRegion: settings.costRegion,
                   selectedDivisions: settings.selectedDivisions,
                   scopeText: settings.scopeText || null,
-                  selectedSpecialties: settings.selectedSpecialties.length > 0 ? settings.selectedSpecialties : null,
+                  selectedSpecialties:
+                    settings.selectedSpecialties.length > 0
+                      ? settings.selectedSpecialties
+                      : null,
                 });
               }}
-              pendingSheetCount={sheets.filter((s: any) => s.status === "pending").length || sheets.length}
+              pendingSheetCount={
+                sheets.filter((s: any) => s.status === "pending").length ||
+                sheets.length
+              }
               isSubmitting={processMutation.isPending}
-              existingDivisions={project.selectedDivisions ? JSON.parse(project.selectedDivisions) : null}
+              existingDivisions={
+                project.selectedDivisions
+                  ? JSON.parse(project.selectedDivisions)
+                  : null
+              }
               existingRegion={project.costRegion}
               existingCurrency={project.currency}
               existingProjectType={projectType}
               existingBidMode={project.bidMode}
               preferredCurrency={preferredCurrencyQuery.data?.currency}
               existingScopeText={project.scopeText}
-              existingSpecialties={project.selectedSpecialties ? JSON.parse(project.selectedSpecialties) : null}
-              detectedSpecialties={project.detectedSpecialties ? JSON.parse(project.detectedSpecialties) : null}
-              uncalibratedSheetCount={sheets.filter((s: any) => s.status !== "pending" && !sheetScales[s.id]).length}
+              existingSpecialties={
+                project.selectedSpecialties
+                  ? JSON.parse(project.selectedSpecialties)
+                  : null
+              }
+              detectedSpecialties={
+                project.detectedSpecialties
+                  ? JSON.parse(project.detectedSpecialties)
+                  : null
+              }
+              uncalibratedSheetCount={
+                sheets.filter(
+                  (s: any) => s.status !== "pending" && !sheetScales[s.id]
+                ).length
+              }
               onSetScale={() => {
                 // Close pre-analysis modal and scroll to sheets tab
                 setShowPreAnalysis(false);
@@ -1352,7 +2189,7 @@ export default function TakeoffDetail() {
                     pageNumber: s.pageNumber,
                     status: s.status,
                   }))}
-                  onRetrySheet={(sheetId) =>
+                  onRetrySheet={sheetId =>
                     reprocessMutation.mutate({ sheetId, projectId })
                   }
                 />
@@ -1361,13 +2198,22 @@ export default function TakeoffDetail() {
 
             {/* Sheet Grid */}
             {sheets.length > 0 ? (
-              <div data-tour="takeoff-sheet-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div
+                data-tour="takeoff-sheet-grid"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              >
                 {sheets.map((sheet: any) => {
                   // Detect context-only sheets (cover, general notes) that were auto-completed
-                  const isContextOnly = sheet.status === "completed" && sheet.sheetType === "cover";
+                  const isContextOnly =
+                    sheet.status === "completed" && sheet.sheetType === "cover";
                   const statusConfig = isContextOnly
-                    ? { label: "Context Only", color: "bg-blue-500/20 text-blue-300", icon: CheckCircle2 }
-                    : (SHEET_STATUS_CONFIG[sheet.status] || SHEET_STATUS_CONFIG.pending);
+                    ? {
+                        label: "Context Only",
+                        color: "bg-blue-500/20 text-blue-300",
+                        icon: CheckCircle2,
+                      }
+                    : SHEET_STATUS_CONFIG[sheet.status] ||
+                      SHEET_STATUS_CONFIG.pending;
                   const StatusIcon = statusConfig.icon;
                   return (
                     <Card
@@ -1394,8 +2240,12 @@ export default function TakeoffDetail() {
                           <Eye className="w-8 h-8 text-white" />
                         </div>
                         <div className="absolute top-2 right-2">
-                          <Badge className={`${statusConfig.color} text-xs flex items-center gap-1`}>
-                            <StatusIcon className={`w-3 h-3 ${sheet.status === "processing" ? "animate-spin" : ""}`} />
+                          <Badge
+                            className={`${statusConfig.color} text-xs flex items-center gap-1`}
+                          >
+                            <StatusIcon
+                              className={`w-3 h-3 ${sheet.status === "processing" ? "animate-spin" : ""}`}
+                            />
                             {statusConfig.label}
                           </Badge>
                         </div>
@@ -1419,13 +2269,21 @@ export default function TakeoffDetail() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
-                                title={sheetScales[sheet.id] ? `Scale set: 1 ${sheetScales[sheet.id].unit} = ${Math.round(sheetScales[sheet.id].ratio)}px` : "Set drawing scale for accurate AI measurements"}
-                                onClick={(e) => { e.stopPropagation(); setCalibratingSheet(sheet); }}
+                                title={
+                                  sheetScales[sheet.id]
+                                    ? `Scale set: 1 ${sheetScales[sheet.id].unit} = ${Math.round(sheetScales[sheet.id].ratio)}px`
+                                    : "Set drawing scale for accurate AI measurements"
+                                }
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setCalibratingSheet(sheet);
+                                }}
                               >
                                 <Ruler className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            {(sheet.status === "error" || sheet.status === "completed") && (
+                            {(sheet.status === "error" ||
+                              sheet.status === "completed") && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1455,9 +2313,14 @@ export default function TakeoffDetail() {
                               {getScaleLabel(sheetScales[sheet.id].ratio)}
                             </p>
                             {sheetScales[sheet.id].method === "measured" ? (
-                              <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded px-1.5 py-0.5">Measured</span>
-                            ) : sheetScales[sheet.id].method === "title_block" ? (
-                              <span className="text-[9px] bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded px-1.5 py-0.5">Title Block</span>
+                              <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded px-1.5 py-0.5">
+                                Measured
+                              </span>
+                            ) : sheetScales[sheet.id].method ===
+                              "title_block" ? (
+                              <span className="text-[9px] bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded px-1.5 py-0.5">
+                                Title Block
+                              </span>
                             ) : null}
                           </div>
                         )}
@@ -1469,7 +2332,10 @@ export default function TakeoffDetail() {
             ) : (
               <div className="text-center py-12 text-cream-muted">
                 <FileStack className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>No drawing sheets uploaded yet. Upload PDF or image files above.</p>
+                <p>
+                  No drawing sheets uploaded yet. Upload PDF or image files
+                  above.
+                </p>
               </div>
             )}
           </TabsContent>
@@ -1489,7 +2355,7 @@ export default function TakeoffDetail() {
                     pageNumber: s.pageNumber,
                     status: s.status,
                   }))}
-                  onRetrySheet={(sheetId) =>
+                  onRetrySheet={sheetId =>
                     reprocessMutation.mutate({ sheetId, projectId })
                   }
                 />
@@ -1500,32 +2366,72 @@ export default function TakeoffDetail() {
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">No quantity items yet.</p>
                 <p className="text-sm mt-1">
-                  Upload drawings and run <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> analysis to extract quantities.
+                  Upload drawings and run{" "}
+                  <span className="font-semibold">
+                    <span className="text-white">Construct</span>
+                    <span className="text-amber-400">Line</span>
+                  </span>{" "}
+                  analysis to extract quantities.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Summary Bar — Redesigned two-row toolbar */}
-                <div data-tour="takeoff-summary-bar" className="bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 space-y-2">
+                <div
+                  data-tour="takeoff-summary-bar"
+                  className="bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 space-y-2"
+                >
                   {/* Row 1: Stats + Total + Primary Actions */}
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Stats */}
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
                       <span className="whitespace-normal">
-                        <span className="text-cream">{activeItems.length} active</span>
-                        <span className="text-red-300/80"> • {excludedItems.length} excluded/boundary</span>
-                        <span className={scopeReviewCount > 0 ? "text-amber-300/90" : "text-cream-muted"}> • {scopeReviewCount} need review</span>
+                        <span className="text-cream">
+                          {activeItems.length} active
+                        </span>
+                        <span className="text-red-300/80">
+                          {" "}
+                          • {excludedItems.length} excluded/boundary
+                        </span>
+                        <span
+                          className={
+                            scopeReviewCount > 0
+                              ? "text-amber-300/90"
+                              : "text-cream-muted"
+                          }
+                        >
+                          {" "}
+                          • {scopeReviewCount} need review
+                        </span>
                       </span>
-                      <span className="hidden sm:inline whitespace-nowrap">{Object.keys(groupedItems).length} CSI divisions</span>
+                      <span className="hidden sm:inline whitespace-nowrap">
+                        {Object.keys(groupedItems).length} CSI divisions
+                      </span>
                       {project?.lastAnalyzedAt && (
-                        <span className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60" title={new Date(project.lastAnalyzedAt).toLocaleString()}>
-                          Last analyzed: {new Date(project.lastAnalyzedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        <span
+                          className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60"
+                          title={new Date(
+                            project.lastAnalyzedAt
+                          ).toLocaleString()}
+                        >
+                          Last analyzed:{" "}
+                          {new Date(project.lastAnalyzedAt).toLocaleDateString(
+                            undefined,
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </span>
                       )}
                     </div>
                     {/* Right: Total */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-cream-muted text-sm hidden sm:inline">Pricing ref:</span>
+                      <span className="text-cream-muted text-sm hidden sm:inline">
+                        Pricing ref:
+                      </span>
                       <span className="text-amber-400 font-bold text-lg sm:text-xl tabular-nums">
                         {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
@@ -1539,7 +2445,9 @@ export default function TakeoffDetail() {
                         data-tour="takeoff-consolidate-btn"
                         size="sm"
                         variant="outline"
-                        onClick={() => consolidateMutation.mutate({ projectId })}
+                        onClick={() =>
+                          consolidateMutation.mutate({ projectId })
+                        }
                         disabled={consolidateMutation.isPending || isProcessing}
                         className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
                       >
@@ -1548,14 +2456,23 @@ export default function TakeoffDetail() {
                         ) : (
                           <RefreshCw className="w-3.5 h-3.5" />
                         )}
-                        <span className="hidden sm:inline">Re-run Scope Analysis</span>
+                        <span className="hidden sm:inline">
+                          Re-run Scope Analysis
+                        </span>
                         <span className="sm:hidden">Re-run</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-amber-400 text-xs font-semibold mb-1.5">Re-run Full Analysis Pipeline</p>
-                        <p className="text-cream-muted text-[11px] mb-2">This runs automatically after upload. Use this to re-process after editing scope or adding sheets.</p>
+                        <p className="text-amber-400 text-xs font-semibold mb-1.5">
+                          Re-run Full Analysis Pipeline
+                        </p>
+                        <p className="text-cream-muted text-[11px] mb-2">
+                          This runs automatically after upload. Use this to
+                          re-process after editing scope or adding sheets.
+                        </p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
-                          <li>• Merges duplicate items from different sheets</li>
+                          <li>
+                            • Merges duplicate items from different sheets
+                          </li>
                           <li>• Converts lump sums to measured quantities</li>
                           <li>• Calculates concrete volumes (CY)</li>
                           <li>• Generates formwork items</li>
@@ -1580,7 +2497,9 @@ export default function TakeoffDetail() {
                         <span className="hidden sm:inline">Re-price</span>
                       </Button>
                       <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-navy-deep border border-blue-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-blue-400 text-xs font-semibold mb-1.5">Re-run Cost Lookup</p>
+                        <p className="text-blue-400 text-xs font-semibold mb-1.5">
+                          Re-run Cost Lookup
+                        </p>
                         <ul className="text-cream-muted text-[11px] space-y-1">
                           <li>• Re-matches items against cost database</li>
                           <li>• Fixes $1.00 placeholder costs</li>
@@ -1640,7 +2559,9 @@ export default function TakeoffDetail() {
                           size="sm"
                           variant="outline"
                           className={`h-7 text-xs gap-1 border-white/10 text-cream-muted hover:bg-white/5 hover:text-cream ${
-                            showConsolidationDiff ? "border-cyan-500/40 text-cyan-400" : ""
+                            showConsolidationDiff
+                              ? "border-cyan-500/40 text-cyan-400"
+                              : ""
                           }`}
                         >
                           <MoreHorizontal className="w-3.5 h-3.5" />
@@ -1650,7 +2571,9 @@ export default function TakeoffDetail() {
                       <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuItem
                           onClick={() => setShowRollup(true)}
-                          disabled={!projectMarkups || projectMarkups.length === 0}
+                          disabled={
+                            !projectMarkups || projectMarkups.length === 0
+                          }
                         >
                           <Layers className="w-4 h-4 text-amber-400" />
                           Measurements
@@ -1664,7 +2587,9 @@ export default function TakeoffDetail() {
                           <FileText className="w-4 h-4 text-amber-400" />
                           Edit Scope
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => importFileRef.current?.click()}>
+                        <DropdownMenuItem
+                          onClick={() => importFileRef.current?.click()}
+                        >
                           <Upload className="w-4 h-4 text-amber-400" />
                           Import Excel
                         </DropdownMenuItem>
@@ -1674,184 +2599,405 @@ export default function TakeoffDetail() {
                 </div>
 
                 {/* ─── Markup Calculator Panel ─────────────────────────────── */}
-                {showMarkup && (() => {
-                  const materialTotal = totalCost / 100; // cents to dollars
-                  const laborAmt = materialTotal * (markups.labor / 100);
-                  const subtotalWithLabor = materialTotal + laborAmt;
-                  const overheadAmt = subtotalWithLabor * (markups.overhead / 100);
-                  const profitAmt = subtotalWithLabor * (markups.profit / 100);
-                  const bondsAmt = subtotalWithLabor * (markups.bonds / 100);
-                  const contingencyAmt = subtotalWithLabor * (markups.contingency / 100);
-                  const grandTotal = subtotalWithLabor + overheadAmt + profitAmt + bondsAmt + contingencyAmt;
-                  const totalMarkupPct = materialTotal > 0 ? ((grandTotal - materialTotal) / materialTotal * 100) : 0;
-                  const curr = project?.currency || "USD";
-                  const fmtDollars = (v: number) => new Intl.NumberFormat(
-                    CURRENCY_LOCALE[curr] || "en-US",
-                    { style: "currency", currency: curr, minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                  ).format(v);
+                {showMarkup &&
+                  (() => {
+                    const materialTotal = totalCost / 100; // cents to dollars
+                    const laborAmt = materialTotal * (markups.labor / 100);
+                    const subtotalWithLabor = materialTotal + laborAmt;
+                    const overheadAmt =
+                      subtotalWithLabor * (markups.overhead / 100);
+                    const profitAmt =
+                      subtotalWithLabor * (markups.profit / 100);
+                    const bondsAmt = subtotalWithLabor * (markups.bonds / 100);
+                    const contingencyAmt =
+                      subtotalWithLabor * (markups.contingency / 100);
+                    const grandTotal =
+                      subtotalWithLabor +
+                      overheadAmt +
+                      profitAmt +
+                      bondsAmt +
+                      contingencyAmt;
+                    const totalMarkupPct =
+                      materialTotal > 0
+                        ? ((grandTotal - materialTotal) / materialTotal) * 100
+                        : 0;
+                    const curr = project?.currency || "USD";
+                    const fmtDollars = (v: number) =>
+                      new Intl.NumberFormat(CURRENCY_LOCALE[curr] || "en-US", {
+                        style: "currency",
+                        currency: curr,
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(v);
 
-                  return (
-                    <div className="bg-navy-medium/60 border border-purple-500/20 rounded-lg p-5 mb-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Calculator className="w-4 h-4 text-purple-400" />
-                        <h3 className="text-cream font-semibold text-sm">Bid Markup Calculator</h3>
-                        <span className="text-cream-muted text-xs ml-auto">Adjust percentages to build your full bid number</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
-                        {[
-                          { key: "labor" as const, label: "Labor", hint: "Labor cost as % of material" },
-                          { key: "overhead" as const, label: "Overhead", hint: "Office, insurance, etc." },
-                          { key: "profit" as const, label: "Profit", hint: "Your margin" },
-                          { key: "bonds" as const, label: "Bonds", hint: "Performance & payment bonds" },
-                          { key: "contingency" as const, label: "Contingency", hint: "Risk buffer" },
-                        ].map(({ key, label, hint }) => (
-                          <div key={key}>
-                            <Label className="text-cream-muted text-xs mb-1 block">{label}</Label>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                min={0}
-                                max={500}
-                                step={1}
-                                value={markups[key] || ""}
-                                onChange={(e) => setMarkups(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
-                                className="h-9 bg-navy-deep/80 border-white/10 text-cream text-sm pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                placeholder="0"
-                              />
-                              <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
-                            </div>
-                            <p className="text-cream-muted/50 text-[10px] mt-0.5">{hint}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="border-t border-white/10 pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                          <div className="flex justify-between py-1">
-                            <span className="text-cream-muted">Material Takeoff Total</span>
-                            <span className="text-cream font-mono">{fmtDollars(materialTotal)}</span>
-                          </div>
-                          {markups.labor > 0 && (
-                            <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">+ Labor ({markups.labor}%)</span>
-                              <span className="text-cream font-mono">{fmtDollars(laborAmt)}</span>
-                            </div>
-                          )}
-                          {markups.overhead > 0 && (
-                            <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">+ Overhead ({markups.overhead}%)</span>
-                              <span className="text-cream font-mono">{fmtDollars(overheadAmt)}</span>
-                            </div>
-                          )}
-                          {markups.profit > 0 && (
-                            <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">+ Profit ({markups.profit}%)</span>
-                              <span className="text-cream font-mono">{fmtDollars(profitAmt)}</span>
-                            </div>
-                          )}
-                          {markups.bonds > 0 && (
-                            <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">+ Bonds ({markups.bonds}%)</span>
-                              <span className="text-cream font-mono">{fmtDollars(bondsAmt)}</span>
-                            </div>
-                          )}
-                          {markups.contingency > 0 && (
-                            <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">+ Contingency ({markups.contingency}%)</span>
-                              <span className="text-cream font-mono">{fmtDollars(contingencyAmt)}</span>
-                            </div>
-                          )}
+                    return (
+                      <div className="bg-navy-medium/60 border border-purple-500/20 rounded-lg p-5 mb-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Calculator className="w-4 h-4 text-purple-400" />
+                          <h3 className="text-cream font-semibold text-sm">
+                            Bid Markup Calculator
+                          </h3>
+                          <span className="text-cream-muted text-xs ml-auto">
+                            Adjust percentages to build your full bid number
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-amber-500/20">
-                          <div>
-                            <span className="text-amber-400 font-bold text-lg">Bid Total</span>
-                            {totalMarkupPct > 0 && (
-                              <span className="text-cream-muted text-xs ml-2">(+{totalMarkupPct.toFixed(1)}% over material)</span>
+
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
+                          {[
+                            {
+                              key: "labor" as const,
+                              label: "Labor",
+                              hint: "Labor cost as % of material",
+                            },
+                            {
+                              key: "overhead" as const,
+                              label: "Overhead",
+                              hint: "Office, insurance, etc.",
+                            },
+                            {
+                              key: "profit" as const,
+                              label: "Profit",
+                              hint: "Your margin",
+                            },
+                            {
+                              key: "bonds" as const,
+                              label: "Bonds",
+                              hint: "Performance & payment bonds",
+                            },
+                            {
+                              key: "contingency" as const,
+                              label: "Contingency",
+                              hint: "Risk buffer",
+                            },
+                          ].map(({ key, label, hint }) => (
+                            <div key={key}>
+                              <Label className="text-cream-muted text-xs mb-1 block">
+                                {label}
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={500}
+                                  step={1}
+                                  value={markups[key] || ""}
+                                  onChange={e =>
+                                    setMarkups(prev => ({
+                                      ...prev,
+                                      [key]: parseFloat(e.target.value) || 0,
+                                    }))
+                                  }
+                                  className="h-9 bg-navy-deep/80 border-white/10 text-cream text-sm pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  placeholder="0"
+                                />
+                                <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
+                              </div>
+                              <p className="text-cream-muted/50 text-[10px] mt-0.5">
+                                {hint}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-white/10 pt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                            <div className="flex justify-between py-1">
+                              <span className="text-cream-muted">
+                                Material Takeoff Total
+                              </span>
+                              <span className="text-cream font-mono">
+                                {fmtDollars(materialTotal)}
+                              </span>
+                            </div>
+                            {markups.labor > 0 && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-cream-muted">
+                                  + Labor ({markups.labor}%)
+                                </span>
+                                <span className="text-cream font-mono">
+                                  {fmtDollars(laborAmt)}
+                                </span>
+                              </div>
+                            )}
+                            {markups.overhead > 0 && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-cream-muted">
+                                  + Overhead ({markups.overhead}%)
+                                </span>
+                                <span className="text-cream font-mono">
+                                  {fmtDollars(overheadAmt)}
+                                </span>
+                              </div>
+                            )}
+                            {markups.profit > 0 && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-cream-muted">
+                                  + Profit ({markups.profit}%)
+                                </span>
+                                <span className="text-cream font-mono">
+                                  {fmtDollars(profitAmt)}
+                                </span>
+                              </div>
+                            )}
+                            {markups.bonds > 0 && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-cream-muted">
+                                  + Bonds ({markups.bonds}%)
+                                </span>
+                                <span className="text-cream font-mono">
+                                  {fmtDollars(bondsAmt)}
+                                </span>
+                              </div>
+                            )}
+                            {markups.contingency > 0 && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-cream-muted">
+                                  + Contingency ({markups.contingency}%)
+                                </span>
+                                <span className="text-cream font-mono">
+                                  {fmtDollars(contingencyAmt)}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <span className="text-amber-400 font-bold text-2xl font-mono">{fmtDollars(grandTotal)}</span>
+                          <div className="flex justify-between items-center mt-3 pt-3 border-t border-amber-500/20">
+                            <div>
+                              <span className="text-amber-400 font-bold text-lg">
+                                Bid Total
+                              </span>
+                              {totalMarkupPct > 0 && (
+                                <span className="text-cream-muted text-xs ml-2">
+                                  (+{totalMarkupPct.toFixed(1)}% over material)
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-amber-400 font-bold text-2xl font-mono">
+                              {fmtDollars(grandTotal)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
 
                 {/* ─── Summary Breakdown Bar ───────────────────────────────────────── */}
-                {(items && items.length > 0) && (() => {
-                  const materialSubtotal = sumScopeIncludedMaterialCost(activeItems);
-                  const laborSubtotal = sumScopeIncludedLaborCost(activeItems);
-                  const curr = project?.currency || "USD";
-                  return (
-                    <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
-                      {(reviewItems.length > 0 || excludedItems.length > 0) && (
-                        <p className="mb-3 text-xs text-amber-100/80">
-                          {reviewItems.length > 0 ? `${reviewItems.length} needs-review item${reviewItems.length !== 1 ? "s are" : " is"} held out of totals` : ""}
-                          {reviewItems.length > 0 && excludedItems.length > 0 ? " and " : ""}
-                          {excludedItems.length > 0 ? `${excludedItems.length} excluded/boundary item${excludedItems.length !== 1 ? "s are" : " is"} visible below` : ""}
-                          . Only included scope items count in these totals.
-                        </p>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                        {/* Material Subtotal */}
-                        <div className="flex flex-col">
-                          <span className="text-cream-muted text-xs uppercase tracking-wider mb-1">Material</span>
-                          <span className="text-cream font-mono font-semibold text-lg">
-                            {formatCurrency(materialSubtotal, curr)}
-                          </span>
+                {items &&
+                  items.length > 0 &&
+                  (() => {
+                    const materialSubtotal =
+                      sumScopeIncludedMaterialCost(activeItems);
+                    const laborSubtotal =
+                      sumScopeIncludedLaborCost(activeItems);
+                    const curr = project?.currency || "USD";
+                    return (
+                      <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
+                        {(reviewItems.length > 0 ||
+                          excludedItems.length > 0) && (
+                          <p className="mb-3 text-xs text-amber-100/80">
+                            {reviewItems.length > 0
+                              ? `${reviewItems.length} needs-review item${reviewItems.length !== 1 ? "s are" : " is"} held out of totals`
+                              : ""}
+                            {reviewItems.length > 0 && excludedItems.length > 0
+                              ? " and "
+                              : ""}
+                            {excludedItems.length > 0
+                              ? `${excludedItems.length} excluded/boundary item${excludedItems.length !== 1 ? "s are" : " is"} visible below`
+                              : ""}
+                            . Only included scope items count in these totals.
+                          </p>
+                        )}
+                        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                          {/* Material Subtotal */}
+                          <div className="flex flex-col">
+                            <span className="text-cream-muted text-xs uppercase tracking-wider mb-1">
+                              Material
+                            </span>
+                            <span className="text-cream font-mono font-semibold text-lg">
+                              {formatCurrency(materialSubtotal, curr)}
+                            </span>
+                          </div>
+                          {/* Cost-library labor subtotal */}
+                          <div className="flex flex-col">
+                            <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">
+                              Default Labor
+                            </span>
+                            <span className="text-cyan-400 font-mono font-semibold text-lg">
+                              {formatCurrency(laborSubtotal, curr)}
+                            </span>
+                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
+                              Used as estimate fallback until crew labor
+                              replaces it
+                            </span>
+                          </div>
+                          {/* Allowances Subtotal */}
+                          <div className="flex flex-col">
+                            <span className="text-amber-400/60 text-xs uppercase tracking-wider mb-1">
+                              Allowances
+                            </span>
+                            <span className="text-amber-400 font-mono font-semibold text-lg">
+                              {formatCurrency(allowancesTotal, curr)}
+                            </span>
+                          </div>
+                          {/* Current Included Total */}
+                          <div className="flex flex-col border-l border-white/10 pl-4">
+                            <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">
+                              Current Included
+                            </span>
+                            <span className="text-emerald-400 font-mono font-bold text-lg">
+                              {formatCurrency(totalCost, curr)}
+                            </span>
+                          </div>
+                          {/* Review Subtotal */}
+                          <div className="flex flex-col">
+                            <span className="text-amber-300/70 text-xs uppercase tracking-wider mb-1">
+                              Review Queue
+                            </span>
+                            <span className="text-amber-300 font-mono font-semibold text-lg">
+                              {formatCurrency(reviewItemsCost, curr)}
+                            </span>
+                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
+                              {reviewItems.length} held for estimator decision
+                            </span>
+                          </div>
+                          {/* Potential Total */}
+                          <div className="flex flex-col">
+                            <span className="text-blue-300/70 text-xs uppercase tracking-wider mb-1">
+                              If Accepted
+                            </span>
+                            <span className="text-blue-300 font-mono font-bold text-lg">
+                              {formatCurrency(potentialTotal, curr)}
+                            </span>
+                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
+                              Active plus accepted review items
+                            </span>
+                          </div>
                         </div>
-                        {/* Cost-library labor subtotal */}
-                        <div className="flex flex-col">
-                          <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">Default Labor</span>
-                          <span className="text-cyan-400 font-mono font-semibold text-lg">
-                            {formatCurrency(laborSubtotal, curr)}
-                          </span>
-                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Used as estimate fallback until crew labor replaces it</span>
-                        </div>
-                        {/* Allowances Subtotal */}
-                        <div className="flex flex-col">
-                          <span className="text-amber-400/60 text-xs uppercase tracking-wider mb-1">Allowances</span>
-                          <span className="text-amber-400 font-mono font-semibold text-lg">
-                            {formatCurrency(allowancesTotal, curr)}
-                          </span>
-                        </div>
-                        {/* Active Total */}
-                        <div className="flex flex-col border-l border-white/10 pl-4">
-                          <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">Active Total</span>
-                          <span className="text-emerald-400 font-mono font-bold text-lg">
-                            {formatCurrency(totalCost, curr)}
-                          </span>
-                        </div>
-                        {/* Review Subtotal */}
-                        <div className="flex flex-col">
-                          <span className="text-amber-300/70 text-xs uppercase tracking-wider mb-1">Needs Review</span>
-                          <span className="text-amber-300 font-mono font-semibold text-lg">
-                            {formatCurrency(reviewItemsCost, curr)}
-                          </span>
-                          <span className="text-cream-muted/50 text-[10px] mt-0.5">{reviewItems.length} held for estimator decision</span>
-                        </div>
-                        {/* Potential Total */}
-                        <div className="flex flex-col">
-                          <span className="text-blue-300/70 text-xs uppercase tracking-wider mb-1">Potential Total</span>
-                          <span className="text-blue-300 font-mono font-bold text-lg">
-                            {formatCurrency(potentialTotal, curr)}
-                          </span>
-                          <span className="text-cream-muted/50 text-[10px] mt-0.5">Active plus accepted review items</span>
-                        </div>
+                        {excludedItems.length > 0 && (
+                          <p className="mt-3 text-[11px] text-red-200/70">
+                            Excluded / boundary reference:{" "}
+                            {formatCurrency(excludedItemsCost, curr)} outside
+                            active totals.
+                          </p>
+                        )}
                       </div>
-                      {excludedItems.length > 0 && (
-                        <p className="mt-3 text-[11px] text-red-200/70">
-                          Excluded / boundary reference: {formatCurrency(excludedItemsCost, curr)} outside active totals.
+                    );
+                  })()}
+
+                {items && items.length > 0 && (
+                  <div className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/30">
+                    <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4 text-amber-400" />
+                          <h2 className="text-sm font-semibold text-cream">
+                            Draft Takeoff Workflow
+                          </h2>
+                          <Badge
+                            className={
+                              readyToPrice
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                : "bg-amber-500/15 text-amber-200 border-amber-500/25"
+                            }
+                          >
+                            {readyToPrice
+                              ? "Ready to price"
+                              : `${openReviewItems.length} decisions open`}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-cream-muted mt-1">
+                          Found quantities are separated from estimator
+                          decisions before the Estimate tab becomes the bid
+                          number.
                         </p>
-                      )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById("scope-review-queue")
+                            ?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            })
+                        }
+                        className="h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                      >
+                        <Flag className="w-3.5 h-3.5 mr-1.5" />
+                        Review Decisions
+                      </Button>
                     </div>
-                  );
-                })()}
+                    <div className="grid md:grid-cols-3">
+                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs uppercase tracking-wider text-emerald-300/70">
+                            Accepted Scope
+                          </span>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <p className="mt-2 text-2xl font-mono font-bold text-emerald-400">
+                          {activeItems.length}
+                        </p>
+                        <p className="text-xs text-cream-muted">
+                          {formatCurrency(
+                            totalCost,
+                            project?.currency || "USD"
+                          )}{" "}
+                          currently included
+                        </p>
+                      </div>
+                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs uppercase tracking-wider text-amber-300/70">
+                            Scope Queue
+                          </span>
+                          <Flag className="w-4 h-4 text-amber-300" />
+                        </div>
+                        <p className="mt-2 text-2xl font-mono font-bold text-amber-300">
+                          {openReviewItems.length}
+                        </p>
+                        <p className="text-xs text-cream-muted">
+                          {formatCurrency(
+                            reviewItemsCost,
+                            project?.currency || "USD"
+                          )}{" "}
+                          held for decisions
+                        </p>
+                        {reviewItems.length > 0 && (
+                          <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className="h-full bg-amber-400"
+                              style={{ width: `${reviewProgressPct}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs uppercase tracking-wider text-blue-300/70">
+                            Risk First
+                          </span>
+                          <AlertCircle className="w-4 h-4 text-blue-300" />
+                        </div>
+                        <p className="mt-2 text-2xl font-mono font-bold text-blue-300">
+                          {highPriorityReviewItems.length}
+                        </p>
+                        <p className="text-xs text-cream-muted">
+                          high-dollar, generated, duplicate, or conflict rows
+                          first
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
                   <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-blue-100/75 leading-relaxed">
-                    Quantity Takeoff is the review surface for quantities, material pricing, default labor assumptions, source drawings, and confidence. The Estimate tab is the live estimate total and chooses one labor source per item so labor is not double-counted.
+                    Quantity Takeoff is the draft review surface for found
+                    quantities, scope decisions, material pricing, source
+                    drawings, and confidence. The Estimate tab uses the accepted
+                    scope as the live bid number.
                   </p>
                 </div>
 
@@ -1859,7 +3005,9 @@ export default function TakeoffDetail() {
                   <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold text-cream">Bid Mode</span>
+                      <span className="text-xs font-semibold text-cream">
+                        Bid Mode
+                      </span>
                       <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
                         {bidModeBehavior.label}
                       </Badge>
@@ -1883,13 +3031,16 @@ export default function TakeoffDetail() {
                     <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-amber-300">Bid Scope</span>
+                        <span className="text-xs font-semibold text-amber-300">
+                          Bid Scope
+                        </span>
                         <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
                           {scopeIntent.summary}
                         </Badge>
                         {scopeReviewCount > 0 && (
                           <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-[10px]">
-                            {scopeReviewCount} review item{scopeReviewCount !== 1 ? "s" : ""}
+                            {scopeReviewCount} review item
+                            {scopeReviewCount !== 1 ? "s" : ""}
                           </Badge>
                         )}
                       </div>
@@ -1916,17 +3067,25 @@ export default function TakeoffDetail() {
                       className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <ChevronDown className={`w-4 h-4 text-cream-muted transition-transform ${collapsedDivisions.has("_allowances") ? "-rotate-90" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-cream-muted transition-transform ${collapsedDivisions.has("_allowances") ? "-rotate-90" : ""}`}
+                        />
                         <div className="flex items-center gap-2">
                           <ClipboardList className="w-4 h-4 text-amber-400" />
-                          <span className="font-semibold text-cream">Allowances</span>
+                          <span className="font-semibold text-cream">
+                            Allowances
+                          </span>
                           <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] font-normal">
-                            {projectAllowances.length} item{projectAllowances.length !== 1 ? "s" : ""}
+                            {projectAllowances.length} item
+                            {projectAllowances.length !== 1 ? "s" : ""}
                           </Badge>
                         </div>
                       </div>
                       <span className="text-amber-400 font-semibold">
-                        {formatCurrency(allowancesTotal, project?.currency || "USD")}
+                        {formatCurrency(
+                          allowancesTotal,
+                          project?.currency || "USD"
+                        )}
                       </span>
                     </button>
                     {!collapsedDivisions.has("_allowances") && (
@@ -1935,19 +3094,31 @@ export default function TakeoffDetail() {
                           <thead>
                             <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
                               <th className="text-left px-4 py-2 w-12"></th>
-                              <th className="text-left px-4 py-2">Description</th>
-                              <th className="text-right px-4 py-2 w-28">Amount</th>
+                              <th className="text-left px-4 py-2">
+                                Description
+                              </th>
+                              <th className="text-right px-4 py-2 w-28">
+                                Amount
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {projectAllowances.map((a, idx) => (
-                              <tr key={idx} className="border-t border-white/5 hover:bg-white/5 transition-colors">
+                              <tr
+                                key={idx}
+                                className="border-t border-white/5 hover:bg-white/5 transition-colors"
+                              >
                                 <td className="px-4 py-2 text-cream-muted font-mono text-xs">
                                   <ClipboardList className="w-3.5 h-3.5 text-amber-400/50" />
                                 </td>
-                                <td className="px-4 py-2 text-cream">{a.description}</td>
+                                <td className="px-4 py-2 text-cream">
+                                  {a.description}
+                                </td>
                                 <td className="px-4 py-2 text-right text-amber-300 font-mono">
-                                  {formatCurrency(a.amount, project?.currency || "USD")}
+                                  {formatCurrency(
+                                    a.amount,
+                                    project?.currency || "USD"
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1964,17 +3135,24 @@ export default function TakeoffDetail() {
                   .map(([division, divItems]) => {
                     const isCollapsed = collapsedDivisions.has(division);
                     const divTotal = (divItems as any[]).reduce(
-                      (sum: number, item: any) => sum + (item.extendedCost || 0),
+                      (sum: number, item: any) =>
+                        sum + (item.extendedCost || 0),
                       0
                     );
-                    const divName = CSI_DIVISION_NAMES[division] || `Division ${division}`;
+                    const divName =
+                      CSI_DIVISION_NAMES[division] || `Division ${division}`;
 
-                    const divReviewedCount = (divItems as any[]).filter((i: any) => i.reviewed).length;
+                    const divReviewedCount = (divItems as any[]).filter(
+                      (i: any) => i.reviewed
+                    ).length;
                     const divItemCount = (divItems as any[]).length;
                     const allReviewed = divReviewedCount === divItemCount;
 
                     return (
-                      <div key={division} className="border border-white/10 rounded-lg overflow-hidden">
+                      <div
+                        key={division}
+                        className="border border-white/10 rounded-lg overflow-hidden"
+                      >
                         {/* Division Header */}
                         <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
                           <button
@@ -1989,17 +3167,23 @@ export default function TakeoffDetail() {
                             <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-mono">
                               {division}
                             </Badge>
-                            <span className="text-cream font-semibold">{divName}</span>
+                            <span className="text-cream font-semibold">
+                              {divName}
+                            </span>
                             <span className="text-cream-muted text-sm">
                               ({divItemCount} items)
                             </span>
                             {divReviewedCount > 0 && (
-                              <Badge className={`text-xs ${
-                                allReviewed
-                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              }`}>
-                                {allReviewed ? "All Reviewed" : `${divReviewedCount}/${divItemCount} reviewed`}
+                              <Badge
+                                className={`text-xs ${
+                                  allReviewed
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                }`}
+                              >
+                                {allReviewed
+                                  ? "All Reviewed"
+                                  : `${divReviewedCount}/${divItemCount} reviewed`}
                               </Badge>
                             )}
                           </button>
@@ -2009,7 +3193,12 @@ export default function TakeoffDetail() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 text-xs gap-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                                onClick={() => bulkUnreviewMutation.mutate({ projectId, csiDivision: division })}
+                                onClick={() =>
+                                  bulkUnreviewMutation.mutate({
+                                    projectId,
+                                    csiDivision: division,
+                                  })
+                                }
                                 disabled={bulkUnreviewMutation.isPending}
                               >
                                 <Square className="w-3.5 h-3.5" />
@@ -2020,7 +3209,12 @@ export default function TakeoffDetail() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 text-xs gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                                onClick={() => bulkReviewMutation.mutate({ projectId, csiDivision: division })}
+                                onClick={() =>
+                                  bulkReviewMutation.mutate({
+                                    projectId,
+                                    csiDivision: division,
+                                  })
+                                }
                                 disabled={bulkReviewMutation.isPending}
                               >
                                 <CheckSquare className="w-3.5 h-3.5" />
@@ -2028,7 +3222,10 @@ export default function TakeoffDetail() {
                               </Button>
                             )}
                             <span className="text-amber-400 font-semibold">
-                              {formatCurrency(divTotal, project?.currency || "USD")}
+                              {formatCurrency(
+                                divTotal,
+                                project?.currency || "USD"
+                              )}
                             </span>
                           </div>
                         </div>
@@ -2039,230 +3236,517 @@ export default function TakeoffDetail() {
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                                  <th className="text-left px-4 py-2 w-12">CSI</th>
-                                  <th className="text-left px-4 py-2">Description</th>
-                                  <th className="text-right px-4 py-2 w-20">Qty</th>
-                                  <th className="text-left px-4 py-2 w-14">Unit</th>
-                                  <th className="text-right px-4 py-2 w-20">Material</th>
-                                  <th className="text-right px-4 py-2 w-24">Default Labor</th>
-                                  <th className="text-right px-4 py-2 w-24">Ref Unit</th>
-                                  <th className="text-right px-4 py-2 w-28">Ref Total</th>
-                                  <th className="text-center px-4 py-2 w-16">Conf.</th>
-                                  <th className="text-center px-4 py-2 w-16">Verified</th>
-                                  <th className="text-center px-4 py-2 w-20">Actions</th>
+                                  <th className="text-left px-4 py-2 w-12">
+                                    CSI
+                                  </th>
+                                  <th className="text-left px-4 py-2">
+                                    Description
+                                  </th>
+                                  <th className="text-right px-4 py-2 w-20">
+                                    Qty
+                                  </th>
+                                  <th className="text-left px-4 py-2 w-14">
+                                    Unit
+                                  </th>
+                                  <th className="text-right px-4 py-2 w-20">
+                                    Material
+                                  </th>
+                                  <th className="text-right px-4 py-2 w-24">
+                                    Default Labor
+                                  </th>
+                                  <th className="text-right px-4 py-2 w-24">
+                                    Ref Unit
+                                  </th>
+                                  <th className="text-right px-4 py-2 w-28">
+                                    Ref Total
+                                  </th>
+                                  <th className="text-center px-4 py-2 w-16">
+                                    Conf.
+                                  </th>
+                                  <th className="text-center px-4 py-2 w-16">
+                                    Verified
+                                  </th>
+                                  <th className="text-center px-4 py-2 w-24">
+                                    Decision
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(divItems as any[]).map((item: any) => {
-                                  const scopeStatus = getScopeReviewStatus(item);
+                                  const scopeStatus =
+                                    getScopeReviewStatus(item);
                                   return (
-                                  <tr
-                                    key={item.id}
-                                    className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
-                                      item.reviewed ? "bg-emerald-500/5" : ""
-                                    } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
-                                    onClick={() => setSelectedItem(item)}
-                                  >
-                                    <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                      <div className="flex items-center gap-1">
-                                        {item.reviewed && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
-                                        {item.csiCode || item.csiDivision}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-2 text-cream max-w-xs">
-                                      <p className="line-clamp-2">{item.description}</p>
-                                      {scopeStatus !== "included" && (
-                                        <div className="flex flex-wrap items-center gap-1 mt-1">
-                                          <Badge className={`text-[10px] ${
-                                            scopeStatus === "review"
-                                              ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                                              : "bg-red-500/15 text-red-300 border-red-500/25"
-                                          }`}>
-                                            <Flag className="w-2.5 h-2.5 mr-0.5" />
-                                            {formatScopeReviewStatus(scopeStatus)}
-                                          </Badge>
+                                    <tr
+                                      key={item.id}
+                                      className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
+                                        item.reviewed ? "bg-emerald-500/5" : ""
+                                      } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
+                                      onClick={() => setSelectedItem(item)}
+                                    >
+                                      <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                        <div className="flex items-center gap-1">
+                                          {item.reviewed && (
+                                            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                                          )}
+                                          {item.csiCode || item.csiDivision}
                                         </div>
-                                      )}
-                                      {/* Consolidation diff annotations */}
-                                      {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
-                                        const ann = consolidationDiff.itemAnnotations[item.id];
-                                        if (!ann) return null;
-                                        return (
-                                          <div className="flex flex-wrap items-center gap-1 mt-1">
-                                            {ann.isNew && (
-                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                                New
-                                              </span>
-                                            )}
-                                            {ann.mergedFrom > 1 && (
-                                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
-                                                title={ann.mergedDescriptions?.join('\n')}
-                                              >
-                                                <Merge className="w-2.5 h-2.5" />
-                                                Combined from {ann.mergedFrom}
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                      {item.notes && (
-                                        <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
-                                          {item.notes}
+                                      </td>
+                                      <td className="px-4 py-2 text-cream max-w-xs">
+                                        <p className="line-clamp-2">
+                                          {item.description}
                                         </p>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-2 text-right text-cream font-mono">
-                                      <span>{parseFloat(item.quantity).toLocaleString()}</span>
-                                      {/* Needs measurement indicator */}
-                                      {item.needsMeasurement && (
-                                        <div className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1" title="Quantity is a placeholder — update with actual measurement">
-                                          <Ruler className="w-3 h-3" />
-                                          needs qty
-                                        </div>
-                                      )}
-                                      {/* Quantity change annotation */}
-                                      {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
-                                        const ann = consolidationDiff.itemAnnotations[item.id];
-                                        if (!ann || !ann.qtyChanged || ann.isNew) return null;
-                                        return (
-                                          <div className="text-[10px] text-amber-400/80 font-normal mt-0.5" title="Quantity changed during consolidation">
-                                            was {(ann.qtyBefore ?? 0).toLocaleString()}
+                                        {scopeStatus !== "included" && (
+                                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                                            <Badge
+                                              className={`text-[10px] ${
+                                                scopeStatus === "review"
+                                                  ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                                                  : "bg-red-500/15 text-red-300 border-red-500/25"
+                                              }`}
+                                            >
+                                              <Flag className="w-2.5 h-2.5 mr-0.5" />
+                                              {formatScopeReviewStatus(
+                                                scopeStatus
+                                              )}
+                                            </Badge>
                                           </div>
-                                        );
-                                      })()}
-                                    </td>
-                                    <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
-                                    {/* Material Cost */}
-                                    <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
-                                      {isConsolidating ? (
-                                        <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
-                                      ) : (
-                                        formatCurrency(getTakeoffMaterialUnitCost(item), project?.currency || "USD")
-                                      )}
-                                    </td>
-                                    {/* Labor Cost */}
-                                    <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
-                                      {isConsolidating ? (
-                                        <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
-                                      ) : (
-                                        formatCurrency(item.laborCost || 0, project?.currency || "USD")
-                                      )}
-                                    </td>
-                                    {/* Installed (Combined) Unit Cost */}
-                                    <td className="px-4 py-2 text-right text-cream font-mono">
-                                      {isConsolidating ? (
-                                        <span className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse" title="Pricing being applied..." />
-                                      ) : (
-                                        <>
-                                          <span>{formatCurrency(item.unitCost, project?.currency || "USD")}</span>
-                                          {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
-                                            const ann = consolidationDiff.itemAnnotations[item.id];
-                                            if (!ann || !ann.costChanged || ann.isNew) return null;
+                                        )}
+                                        {/* Consolidation diff annotations */}
+                                        {showConsolidationDiff &&
+                                          consolidationDiff?.hasDiff &&
+                                          (() => {
+                                            const ann =
+                                              consolidationDiff.itemAnnotations[
+                                                item.id
+                                              ];
+                                            if (!ann) return null;
                                             return (
-                                              <div className="text-[10px] text-amber-400/80 font-normal mt-0.5" title="Unit cost changed during consolidation">
-                                                was {formatCurrency(ann.unitCostBefore ?? 0, project?.currency || "USD")}
+                                              <div className="flex flex-wrap items-center gap-1 mt-1">
+                                                {ann.isNew && (
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                    New
+                                                  </span>
+                                                )}
+                                                {ann.mergedFrom > 1 && (
+                                                  <span
+                                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+                                                    title={ann.mergedDescriptions?.join(
+                                                      "\n"
+                                                    )}
+                                                  >
+                                                    <Merge className="w-2.5 h-2.5" />
+                                                    Combined from{" "}
+                                                    {ann.mergedFrom}
+                                                  </span>
+                                                )}
                                               </div>
                                             );
                                           })()}
-                                        </>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
-                                      {isConsolidating ? (
-                                        <span className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse" title="Pricing being applied..." />
-                                      ) : (
-                                        formatCurrency(item.extendedCost, project?.currency || "USD")
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-2 text-center">
-                                      <Badge
-                                        className={`text-xs ${
-                                          item.confidence >= 80
-                                            ? "bg-emerald-500/20 text-emerald-400"
-                                            : item.confidence >= 50
-                                            ? "bg-amber-500/20 text-amber-400"
-                                            : "bg-red-500/20 text-red-400"
-                                        }`}
-                                      >
-                                        {item.confidence}%
-                                      </Badge>
-                                    </td>
-                                    <td className="px-4 py-2 text-center">
-                                      {item.reviewed ? (
-                                        <div className="flex items-center justify-center" title="Reviewed & Verified">
-                                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                        </div>
-                                      ) : (
-                                        <span className="text-cream-muted/30">—</span>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
-                                          onClick={() => setSelectedItem(item)}
-                                          title="View details"
+                                        {item.notes && (
+                                          <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                            {item.notes}
+                                          </p>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2 text-right text-cream font-mono">
+                                        <span>
+                                          {parseFloat(
+                                            item.quantity
+                                          ).toLocaleString()}
+                                        </span>
+                                        {/* Needs measurement indicator */}
+                                        {item.needsMeasurement && (
+                                          <div
+                                            className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1"
+                                            title="Quantity is a placeholder — update with actual measurement"
+                                          >
+                                            <Ruler className="w-3 h-3" />
+                                            needs qty
+                                          </div>
+                                        )}
+                                        {/* Quantity change annotation */}
+                                        {showConsolidationDiff &&
+                                          consolidationDiff?.hasDiff &&
+                                          (() => {
+                                            const ann =
+                                              consolidationDiff.itemAnnotations[
+                                                item.id
+                                              ];
+                                            if (
+                                              !ann ||
+                                              !ann.qtyChanged ||
+                                              ann.isNew
+                                            )
+                                              return null;
+                                            return (
+                                              <div
+                                                className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                title="Quantity changed during consolidation"
+                                              >
+                                                was{" "}
+                                                {(
+                                                  ann.qtyBefore ?? 0
+                                                ).toLocaleString()}
+                                              </div>
+                                            );
+                                          })()}
+                                      </td>
+                                      <td className="px-4 py-2 text-cream-muted">
+                                        {item.unit}
+                                      </td>
+                                      {/* Material Cost */}
+                                      <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                                        {isConsolidating ? (
+                                          <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
+                                        ) : (
+                                          formatCurrency(
+                                            getTakeoffMaterialUnitCost(item),
+                                            project?.currency || "USD"
+                                          )
+                                        )}
+                                      </td>
+                                      {/* Labor Cost */}
+                                      <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
+                                        {isConsolidating ? (
+                                          <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
+                                        ) : (
+                                          formatCurrency(
+                                            item.laborCost || 0,
+                                            project?.currency || "USD"
+                                          )
+                                        )}
+                                      </td>
+                                      {/* Installed (Combined) Unit Cost */}
+                                      <td className="px-4 py-2 text-right text-cream font-mono">
+                                        {isConsolidating ? (
+                                          <span
+                                            className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse"
+                                            title="Pricing being applied..."
+                                          />
+                                        ) : (
+                                          <>
+                                            <span>
+                                              {formatCurrency(
+                                                item.unitCost,
+                                                project?.currency || "USD"
+                                              )}
+                                            </span>
+                                            {showConsolidationDiff &&
+                                              consolidationDiff?.hasDiff &&
+                                              (() => {
+                                                const ann =
+                                                  consolidationDiff
+                                                    .itemAnnotations[item.id];
+                                                if (
+                                                  !ann ||
+                                                  !ann.costChanged ||
+                                                  ann.isNew
+                                                )
+                                                  return null;
+                                                return (
+                                                  <div
+                                                    className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                    title="Unit cost changed during consolidation"
+                                                  >
+                                                    was{" "}
+                                                    {formatCurrency(
+                                                      ann.unitCostBefore ?? 0,
+                                                      project?.currency || "USD"
+                                                    )}
+                                                  </div>
+                                                );
+                                              })()}
+                                          </>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
+                                        {isConsolidating ? (
+                                          <span
+                                            className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse"
+                                            title="Pricing being applied..."
+                                          />
+                                        ) : (
+                                          formatCurrency(
+                                            item.extendedCost,
+                                            project?.currency || "USD"
+                                          )
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2 text-center">
+                                        <Badge
+                                          className={`text-xs ${
+                                            item.confidence >= 80
+                                              ? "bg-emerald-500/20 text-emerald-400"
+                                              : item.confidence >= 50
+                                                ? "bg-amber-500/20 text-amber-400"
+                                                : "bg-red-500/20 text-red-400"
+                                          }`}
                                         >
-                                          <Eye className="w-3 h-3" />
-                                        </Button>
-                                        {!item.reviewed && (
+                                          {item.confidence}%
+                                        </Badge>
+                                      </td>
+                                      <td className="px-4 py-2 text-center">
+                                        {item.reviewed ? (
+                                          <div
+                                            className="flex items-center justify-center"
+                                            title="Reviewed & Verified"
+                                          >
+                                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                          </div>
+                                        ) : (
+                                          <span className="text-cream-muted/30">
+                                            —
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td
+                                        className="px-4 py-2 text-center"
+                                        onClick={e => e.stopPropagation()}
+                                      >
+                                        <div className="flex items-center justify-center gap-1">
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                            className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
                                             onClick={() =>
-                                              updateItemMutation.mutate({
+                                              setSelectedItem(item)
+                                            }
+                                            title="View details"
+                                          >
+                                            <Eye className="w-3 h-3" />
+                                          </Button>
+                                          {!item.reviewed && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                              onClick={() =>
+                                                updateItemMutation.mutate({
+                                                  id: item.id,
+                                                  projectId,
+                                                  reviewed: true,
+                                                })
+                                              }
+                                            >
+                                              <Check className="w-3 h-3" />
+                                            </Button>
+                                          )}
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
+                                            onClick={() =>
+                                              deleteItemMutation.mutate({
                                                 id: item.id,
                                                 projectId,
-                                                reviewed: true,
                                               })
                                             }
                                           >
-                                            <Check className="w-3 h-3" />
+                                            <Trash2 className="w-3 h-3" />
                                           </Button>
-                                        )}
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
-                                          onClick={() =>
-                                            deleteItemMutation.mutate({
-                                              id: item.id,
-                                              projectId,
-                                            })
-                                          }
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
+                                        </div>
+                                      </td>
+                                    </tr>
                                   );
                                 })}
                               </tbody>
                             </table>
                           </div>
                         )}
-                       </div>
-	                    );
-	                  })}
+                      </div>
+                    );
+                  })}
 
                 {reviewItems.length > 0 && (
-                  <div className="border border-amber-500/25 rounded-lg overflow-hidden">
+                  <div
+                    id="scope-review-queue"
+                    className="border border-amber-500/25 rounded-lg overflow-hidden"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-amber-500/10">
                       <div className="flex flex-wrap items-center gap-2">
                         <Flag className="w-4 h-4 text-amber-300" />
-                        <span className="text-amber-100 font-semibold">Needs Scope Review</span>
+                        <span className="text-amber-100 font-semibold">
+                          Scope Review Queue
+                        </span>
                         <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
                           {reviewItems.length} not counted
                         </Badge>
+                        {openReviewItems.length > 0 && (
+                          <Badge className="bg-blue-500/15 text-blue-200 border-blue-500/25 text-xs">
+                            {openReviewItems.length} open
+                          </Badge>
+                        )}
                         <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          Review subtotal {formatCurrency(reviewItemsCost, project?.currency || "USD")}
+                          Review subtotal{" "}
+                          {formatCurrency(
+                            reviewItemsCost,
+                            project?.currency || "USD"
+                          )}
                         </Badge>
                       </div>
-                      <span className="text-xs text-amber-100/70">{bidModeBehavior.shortLabel}: mark an item included before it counts in takeoff or estimate totals</span>
+                      <span className="text-xs text-amber-100/70">
+                        {bidModeBehavior.shortLabel}: Include, exclude, or hold
+                        each decision
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <th className="text-left px-4 py-2 w-12">CSI</th>
+                            <th className="text-left px-4 py-2">Description</th>
+                            <th className="text-left px-4 py-2 w-36">Cue</th>
+                            <th className="text-right px-4 py-2 w-20">Qty</th>
+                            <th className="text-left px-4 py-2 w-14">Unit</th>
+                            <th className="text-center px-4 py-2 w-16">
+                              Conf.
+                            </th>
+                            <th className="text-right px-4 py-2 w-28">
+                              Review Total
+                            </th>
+                            <th className="text-center px-4 py-2 w-28">
+                              Decision
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reviewItems.map((item: any) => {
+                            const cue = getEstimatorCue(item);
+                            return (
+                              <tr
+                                key={item.id}
+                                className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
+                                onClick={() => setSelectedItem(item)}
+                              >
+                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                  {item.csiCode || item.csiDivision}
+                                </td>
+                                <td className="px-4 py-2 text-cream max-w-lg">
+                                  <p className="line-clamp-2">
+                                    {item.description}
+                                  </p>
+                                  {item.notes && (
+                                    <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                      {item.notes}
+                                    </p>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2">
+                                  <Badge
+                                    className={`text-[10px] ${cue.className}`}
+                                  >
+                                    {cue.label}
+                                  </Badge>
+                                  {item.reviewed && (
+                                    <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
+                                      <Check className="w-3 h-3" />
+                                      held
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 text-right text-cream font-mono">
+                                  {parseFloat(
+                                    item.quantity || "0"
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-2 text-cream-muted">
+                                  {item.unit}
+                                </td>
+                                <td className="px-4 py-2 text-center">
+                                  <Badge
+                                    className={`text-xs ${
+                                      item.confidence >= 80
+                                        ? "bg-emerald-500/20 text-emerald-400"
+                                        : item.confidence >= 50
+                                          ? "bg-amber-500/20 text-amber-400"
+                                          : "bg-red-500/20 text-red-400"
+                                    }`}
+                                  >
+                                    {item.confidence}%
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
+                                  {formatCurrency(
+                                    item.extendedCost || 0,
+                                    project?.currency || "USD"
+                                  )}
+                                </td>
+                                <td
+                                  className="px-4 py-2 text-center"
+                                  onClick={event => event.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                      onClick={() =>
+                                        applyScopeDecision(item, "included")
+                                      }
+                                      title="Include in active total"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
+                                      onClick={() =>
+                                        applyScopeDecision(item, "excluded")
+                                      }
+                                      title="Exclude from active total"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                    {!item.reviewed && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                        onClick={() =>
+                                          applyScopeDecision(item, "review")
+                                        }
+                                        title="Hold for later"
+                                      >
+                                        <Square className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                      onClick={() => setSelectedItem(item)}
+                                      title="View details"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {excludedItems.length > 0 && (
+                  <div className="border border-red-500/25 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 bg-red-500/10">
+                      <div className="flex items-center gap-2">
+                        <Flag className="w-4 h-4 text-red-300" />
+                        <span className="text-red-200 font-semibold">
+                          Excluded / Scope Boundary Review
+                        </span>
+                        <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
+                          {excludedItems.length} likely excluded
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-red-100/70">
+                        {bidModeBehavior.shortLabel}: boundary items stay
+                        visible and outside totals
+                      </span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -2272,38 +3756,60 @@ export default function TakeoffDetail() {
                             <th className="text-left px-4 py-2">Description</th>
                             <th className="text-right px-4 py-2 w-20">Qty</th>
                             <th className="text-left px-4 py-2 w-14">Unit</th>
-                            <th className="text-right px-4 py-2 w-28">Review Total</th>
-                            <th className="text-center px-4 py-2 w-20">Actions</th>
+                            <th className="text-right px-4 py-2 w-28">
+                              Ref Total
+                            </th>
+                            <th className="text-center px-4 py-2 w-20">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {reviewItems.map((item: any) => (
-                            <tr key={item.id} className="border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer" onClick={() => setSelectedItem(item)}>
-                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">{item.csiCode || item.csiDivision}</td>
-                              <td className="px-4 py-2 text-cream max-w-lg">
-                                <p className="line-clamp-2">{item.description}</p>
-                                {item.notes && <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">{item.notes}</p>}
+                          {excludedItems.map((item: any) => (
+                            <tr
+                              key={item.id}
+                              className="border-t border-white/5 bg-red-500/5 hover:bg-red-500/10 cursor-pointer"
+                              onClick={() => setSelectedItem(item)}
+                            >
+                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                {item.csiCode || item.csiDivision}
                               </td>
-                              <td className="px-4 py-2 text-right text-cream font-mono">{parseFloat(item.quantity || "0").toLocaleString()}</td>
-                              <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
-                              <td className="px-4 py-2 text-right text-amber-100/70 font-mono">{formatCurrency(item.extendedCost || 0, project?.currency || "USD")}</td>
-                              <td className="px-4 py-2 text-center">
+                              <td className="px-4 py-2 text-cream max-w-lg">
+                                <p className="line-clamp-2">
+                                  {item.description}
+                                </p>
+                                {item.notes && (
+                                  <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                    {item.notes}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="px-4 py-2 text-right text-cream font-mono">
+                                {parseFloat(
+                                  item.quantity || "0"
+                                ).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2 text-cream-muted">
+                                {item.unit}
+                              </td>
+                              <td className="px-4 py-2 text-right text-red-200/70 font-mono">
+                                {formatCurrency(
+                                  item.extendedCost || 0,
+                                  project?.currency || "USD"
+                                )}
+                              </td>
+                              <td
+                                className="px-4 py-2 text-center"
+                                onClick={event => event.stopPropagation()}
+                              >
                                 <div className="flex items-center justify-center gap-1">
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      const notes = String(item.notes || "");
-                                      updateItemMutation.mutate({
-                                        id: item.id,
-                                        projectId,
-                                        notes: notes.includes("[Scope: review]")
-                                          ? notes.replace("[Scope: review]", "[Scope: included]")
-                                          : `[Scope: included] ${notes}`.trim(),
-                                      });
-                                    }}
+                                    onClick={() =>
+                                      applyScopeDecision(item, "included")
+                                    }
                                     title="Include in active total"
                                   >
                                     <Check className="w-3 h-3" />
@@ -2312,10 +3818,7 @@ export default function TakeoffDetail() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelectedItem(item);
-                                    }}
+                                    onClick={() => setSelectedItem(item)}
                                     title="View details"
                                   >
                                     <Eye className="w-3 h-3" />
@@ -2330,141 +3833,141 @@ export default function TakeoffDetail() {
                   </div>
                 )}
 
-                {excludedItems.length > 0 && (
-                  <div className="border border-red-500/25 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 bg-red-500/10">
-                      <div className="flex items-center gap-2">
-                        <Flag className="w-4 h-4 text-red-300" />
-                        <span className="text-red-200 font-semibold">Excluded / Scope Boundary Review</span>
-                        <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
-                          {excludedItems.length} likely excluded
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-red-100/70">{bidModeBehavior.shortLabel}: boundary items stay visible and outside totals</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                            <th className="text-left px-4 py-2 w-12">CSI</th>
-                            <th className="text-left px-4 py-2">Description</th>
-                            <th className="text-right px-4 py-2 w-20">Qty</th>
-                            <th className="text-left px-4 py-2 w-14">Unit</th>
-                            <th className="text-right px-4 py-2 w-28">Ref Total</th>
-                            <th className="text-center px-4 py-2 w-20">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {excludedItems.map((item: any) => (
-                            <tr key={item.id} className="border-t border-white/5 bg-red-500/5 hover:bg-red-500/10 cursor-pointer" onClick={() => setSelectedItem(item)}>
-                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">{item.csiCode || item.csiDivision}</td>
-                              <td className="px-4 py-2 text-cream max-w-lg">
-                                <p className="line-clamp-2">{item.description}</p>
-                                {item.notes && <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">{item.notes}</p>}
-                              </td>
-                              <td className="px-4 py-2 text-right text-cream font-mono">{parseFloat(item.quantity || "0").toLocaleString()}</td>
-                              <td className="px-4 py-2 text-cream-muted">{item.unit}</td>
-                              <td className="px-4 py-2 text-right text-red-200/70 font-mono">{formatCurrency(item.extendedCost || 0, project?.currency || "USD")}</td>
-                              <td className="px-4 py-2 text-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400" onClick={() => setSelectedItem(item)} title="View details">
-                                  <Eye className="w-3 h-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
                 {/* ─── Consolidation Diff: Summary Banner ─────────────────── */}
-                {showConsolidationDiff && consolidationDiff?.hasDiff && (() => {
-                  const anns = Object.values(consolidationDiff.itemAnnotations) as any[];
-                  const newCount = anns.filter(a => a.isNew).length;
-                  const mergedCount = anns.filter(a => a.mergedFrom > 1).length;
-                  const qtyChangedCount = anns.filter(a => a.qtyChanged && !a.isNew).length;
-                  const removedCount = consolidationDiff.removedItems?.length || 0;
-                  const unchanged = (consolidationDiff.currentItemCount || 0) - anns.length;
+                {showConsolidationDiff &&
+                  consolidationDiff?.hasDiff &&
+                  (() => {
+                    const anns = Object.values(
+                      consolidationDiff.itemAnnotations
+                    ) as any[];
+                    const newCount = anns.filter(a => a.isNew).length;
+                    const mergedCount = anns.filter(
+                      a => a.mergedFrom > 1
+                    ).length;
+                    const qtyChangedCount = anns.filter(
+                      a => a.qtyChanged && !a.isNew
+                    ).length;
+                    const removedCount =
+                      consolidationDiff.removedItems?.length || 0;
+                    const unchanged =
+                      (consolidationDiff.currentItemCount || 0) - anns.length;
 
-                  return (
-                    <div className="mt-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg px-4 py-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <GitCompareArrows className="w-4 h-4 text-cyan-400" />
-                        <span className="text-cyan-400 font-semibold text-sm">Consolidation Diff</span>
-                        <span className="text-cream-muted text-xs ml-auto">
-                          {consolidationDiff.snapshotItemCount} items before → {consolidationDiff.currentItemCount} after
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-xs">
-                        {mergedCount > 0 && (
-                          <span className="text-cyan-400">
-                            <Merge className="w-3 h-3 inline mr-1" />{mergedCount} merged
+                    return (
+                      <div className="mt-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <GitCompareArrows className="w-4 h-4 text-cyan-400" />
+                          <span className="text-cyan-400 font-semibold text-sm">
+                            Consolidation Diff
                           </span>
-                        )}
-                        {qtyChangedCount > 0 && (
-                          <span className="text-amber-400">{qtyChangedCount} qty changed</span>
-                        )}
-                        {newCount > 0 && (
-                          <span className="text-emerald-400">{newCount} new</span>
-                        )}
-                        {removedCount > 0 && (
-                          <span className="text-red-400">{removedCount} removed</span>
-                        )}
-                        {unchanged > 0 && (
-                          <span className="text-cream-muted">{unchanged} unchanged</span>
-                        )}
+                          <span className="text-cream-muted text-xs ml-auto">
+                            {consolidationDiff.snapshotItemCount} items before →{" "}
+                            {consolidationDiff.currentItemCount} after
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-xs">
+                          {mergedCount > 0 && (
+                            <span className="text-cyan-400">
+                              <Merge className="w-3 h-3 inline mr-1" />
+                              {mergedCount} merged
+                            </span>
+                          )}
+                          {qtyChangedCount > 0 && (
+                            <span className="text-amber-400">
+                              {qtyChangedCount} qty changed
+                            </span>
+                          )}
+                          {newCount > 0 && (
+                            <span className="text-emerald-400">
+                              {newCount} new
+                            </span>
+                          )}
+                          {removedCount > 0 && (
+                            <span className="text-red-400">
+                              {removedCount} removed
+                            </span>
+                          )}
+                          {unchanged > 0 && (
+                            <span className="text-cream-muted">
+                              {unchanged} unchanged
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
 
                 {/* ─── Consolidation Diff: Removed Items ──────────────────── */}
-                {showConsolidationDiff && consolidationDiff?.hasDiff && consolidationDiff.removedItems && consolidationDiff.removedItems.length > 0 && (
-                  <div className="mt-4 border border-red-500/20 rounded-lg overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10">
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                      <span className="text-red-400 font-semibold text-sm">Removed During Consolidation</span>
-                      <span className="text-cream-muted text-xs ml-auto">{consolidationDiff.removedItems.length} items</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                            <th className="text-left px-4 py-2 w-12">CSI</th>
-                            <th className="text-left px-4 py-2">Description</th>
-                            <th className="text-right px-4 py-2 w-20">Qty</th>
-                            <th className="text-left px-4 py-2 w-14">Unit</th>
-                            <th className="text-right px-4 py-2 w-24">Unit Cost</th>
-                            <th className="text-right px-4 py-2 w-28">Extended</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {consolidationDiff.removedItems.map((ri: any, idx: number) => (
-                            <tr key={idx} className="border-t border-white/5 opacity-60">
-                              <td className="px-4 py-2 text-cream-muted font-mono text-xs line-through">
-                                {ri.csiCode || ri.csiDivision}
-                              </td>
-                              <td className="px-4 py-2 text-cream line-through">
-                                {ri.description}
-                              </td>
-                              <td className="px-4 py-2 text-right text-cream font-mono line-through">
-                                {ri.quantity.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-2 text-cream-muted line-through">{ri.unit}</td>
-                              <td className="px-4 py-2 text-right text-cream font-mono line-through">
-                                {formatCurrency(ri.unitCost, project?.currency || "USD")}
-                              </td>
-                              <td className="px-4 py-2 text-right text-red-400/60 font-mono line-through">
-                                {formatCurrency(ri.extendedCost, project?.currency || "USD")}
-                              </td>
+                {showConsolidationDiff &&
+                  consolidationDiff?.hasDiff &&
+                  consolidationDiff.removedItems &&
+                  consolidationDiff.removedItems.length > 0 && (
+                    <div className="mt-4 border border-red-500/20 rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10">
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        <span className="text-red-400 font-semibold text-sm">
+                          Removed During Consolidation
+                        </span>
+                        <span className="text-cream-muted text-xs ml-auto">
+                          {consolidationDiff.removedItems.length} items
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <th className="text-left px-4 py-2 w-12">CSI</th>
+                              <th className="text-left px-4 py-2">
+                                Description
+                              </th>
+                              <th className="text-right px-4 py-2 w-20">Qty</th>
+                              <th className="text-left px-4 py-2 w-14">Unit</th>
+                              <th className="text-right px-4 py-2 w-24">
+                                Unit Cost
+                              </th>
+                              <th className="text-right px-4 py-2 w-28">
+                                Extended
+                              </th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {consolidationDiff.removedItems.map(
+                              (ri: any, idx: number) => (
+                                <tr
+                                  key={idx}
+                                  className="border-t border-white/5 opacity-60"
+                                >
+                                  <td className="px-4 py-2 text-cream-muted font-mono text-xs line-through">
+                                    {ri.csiCode || ri.csiDivision}
+                                  </td>
+                                  <td className="px-4 py-2 text-cream line-through">
+                                    {ri.description}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                    {ri.quantity.toLocaleString()}
+                                  </td>
+                                  <td className="px-4 py-2 text-cream-muted line-through">
+                                    {ri.unit}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                    {formatCurrency(
+                                      ri.unitCost,
+                                      project?.currency || "USD"
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-red-400/60 font-mono line-through">
+                                    {formatCurrency(
+                                      ri.extendedCost,
+                                      project?.currency || "USD"
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             )}
           </TabsContent>
@@ -2477,9 +3980,11 @@ export default function TakeoffDetail() {
               projectDescription={project.description || undefined}
               items={activeItems || []}
               allowances={projectAllowances}
-              onAddAllowance={(allowance) => {
-                const existing = projectAllowances.some(a =>
-                  (a.description || "").toLowerCase() === allowance.description.toLowerCase()
+              onAddAllowance={allowance => {
+                const existing = projectAllowances.some(
+                  a =>
+                    (a.description || "").toLowerCase() ===
+                    allowance.description.toLowerCase()
                 );
                 if (existing) {
                   toast.info("Allowance already exists");
@@ -2529,7 +4034,7 @@ export default function TakeoffDetail() {
         item={editingItem}
         projectId={projectId}
         onClose={() => setEditingItem(null)}
-        onSave={(data) => updateItemMutation.mutate(data)}
+        onSave={data => updateItemMutation.mutate(data)}
         isPending={updateItemMutation.isPending}
         currencyCode={project?.currency || "USD"}
       />
@@ -2539,12 +4044,15 @@ export default function TakeoffDetail() {
         // Build flat item list for prev/next navigation
         const allItems = items
           ? Object.entries(
-              (items as any[]).reduce((acc: Record<string, any[]>, item: any) => {
-                const div = item.csiDivision || "Other";
-                if (!acc[div]) acc[div] = [];
-                acc[div].push(item);
-                return acc;
-              }, {})
+              (items as any[]).reduce(
+                (acc: Record<string, any[]>, item: any) => {
+                  const div = item.csiDivision || "Other";
+                  if (!acc[div]) acc[div] = [];
+                  acc[div].push(item);
+                  return acc;
+                },
+                {}
+              )
             )
               .sort(([a], [b]) => a.localeCompare(b))
               .flatMap(([, divItems]) => divItems as any[])
@@ -2563,25 +4071,33 @@ export default function TakeoffDetail() {
             currencyCode={project?.currency || "USD"}
             sourceSheet={sourceSheet}
             onClose={() => setSelectedItem(null)}
-            onSave={(data) => {
+            onSave={data => {
               updateItemMutation.mutate(data);
               // Update selectedItem in place so modal reflects changes
-              setSelectedItem((prev: any) => prev ? {
-                ...prev,
-                ...data,
-                unitCost: data.unitCost,
-                materialCost: data.materialCost,
-                laborCost: data.laborCost,
-                extendedCost: Math.round(parseFloat(data.quantity || "0") * (data.unitCost || 0)),
-              } : null);
+              setSelectedItem((prev: any) =>
+                prev
+                  ? {
+                      ...prev,
+                      ...data,
+                      unitCost: data.unitCost,
+                      materialCost: data.materialCost,
+                      laborCost: data.laborCost,
+                      extendedCost: Math.round(
+                        parseFloat(data.quantity || "0") * (data.unitCost || 0)
+                      ),
+                    }
+                  : null
+              );
             }}
-            onDelete={(data) => {
+            onDelete={data => {
               deleteItemMutation.mutate(data);
               setSelectedItem(null);
             }}
-            onMarkReviewed={(data) => {
+            onMarkReviewed={data => {
               updateItemMutation.mutate(data);
-              setSelectedItem((prev: any) => prev ? { ...prev, reviewed: true } : null);
+              setSelectedItem((prev: any) =>
+                prev ? { ...prev, reviewed: true } : null
+              );
             }}
             isPending={updateItemMutation.isPending}
             hasPrev={selectedIdx > 0}
@@ -2590,10 +4106,11 @@ export default function TakeoffDetail() {
               if (selectedIdx > 0) setSelectedItem(allItems[selectedIdx - 1]);
             }}
             onNext={() => {
-              if (selectedIdx < allItems.length - 1) setSelectedItem(allItems[selectedIdx + 1]);
+              if (selectedIdx < allItems.length - 1)
+                setSelectedItem(allItems[selectedIdx + 1]);
             }}
           />
-         );
+        );
       })()}
 
       {/* ─── Add Manual Item Dialog ──────────────────────────────────── */}
@@ -2603,7 +4120,7 @@ export default function TakeoffDetail() {
           defaultDivision={addItemDivision}
           currency={project?.currency || "USD"}
           onClose={() => setShowAddItem(false)}
-          onSave={(data) => addItemMutation.mutate({ projectId, ...data })}
+          onSave={data => addItemMutation.mutate({ projectId, ...data })}
           isPending={addItemMutation.isPending}
         />
       )}
@@ -2622,10 +4139,21 @@ export default function TakeoffDetail() {
           <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div>
-                <h3 className="text-lg font-semibold text-white">Import Excel Preview</h3>
-                <p className="text-xs text-white/50 mt-1">{importPreview.length} rows found — review before importing</p>
+                <h3 className="text-lg font-semibold text-white">
+                  Import Excel Preview
+                </h3>
+                <p className="text-xs text-white/50 mt-1">
+                  {importPreview.length} rows found — review before importing
+                </p>
               </div>
-              <button onClick={() => { setShowImportExcel(false); setImportPreview(null); if (importFileRef.current) importFileRef.current.value = ''; }} className="text-white/40 hover:text-white">
+              <button
+                onClick={() => {
+                  setShowImportExcel(false);
+                  setImportPreview(null);
+                  if (importFileRef.current) importFileRef.current.value = "";
+                }}
+                className="text-white/40 hover:text-white"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2643,19 +4171,32 @@ export default function TakeoffDetail() {
                 </thead>
                 <tbody>
                   {importPreview.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="p-2 text-white/60">{row.csiCode || '—'}</td>
+                    <tr
+                      key={i}
+                      className="border-b border-white/5 hover:bg-white/5"
+                    >
+                      <td className="p-2 text-white/60">
+                        {row.csiCode || "—"}
+                      </td>
                       <td className="p-2 text-white">{row.description}</td>
-                      <td className="p-2 text-right text-white">{row.quantity}</td>
+                      <td className="p-2 text-right text-white">
+                        {row.quantity}
+                      </td>
                       <td className="p-2 text-white/60">{row.unit}</td>
-                      <td className="p-2 text-right text-white">${row.unitCost.toFixed(2)}</td>
-                      <td className="p-2 text-right text-emerald-400">${(row.quantity * row.unitCost).toFixed(2)}</td>
+                      <td className="p-2 text-right text-white">
+                        ${row.unitCost.toFixed(2)}
+                      </td>
+                      <td className="p-2 text-right text-emerald-400">
+                        ${(row.quantity * row.unitCost).toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {importPreview.length > 100 && (
-                <p className="text-xs text-white/40 mt-2 text-center">Showing first 100 of {importPreview.length} rows</p>
+                <p className="text-xs text-white/40 mt-2 text-center">
+                  Showing first 100 of {importPreview.length} rows
+                </p>
               )}
             </div>
             <div className="p-4 border-t border-white/10 flex items-center justify-between">
@@ -2663,13 +4204,21 @@ export default function TakeoffDetail() {
                 <input
                   type="checkbox"
                   checked={importRemoveUnmatched}
-                  onChange={(e) => setImportRemoveUnmatched(e.target.checked)}
+                  onChange={e => setImportRemoveUnmatched(e.target.checked)}
                   className="rounded border-white/20"
                 />
                 Remove items not in this import
               </label>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { setShowImportExcel(false); setImportPreview(null); if (importFileRef.current) importFileRef.current.value = ''; }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowImportExcel(false);
+                    setImportPreview(null);
+                    if (importFileRef.current) importFileRef.current.value = "";
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
@@ -2678,7 +4227,9 @@ export default function TakeoffDetail() {
                   disabled={importExcelMutation.isPending}
                   className="bg-amber-500 hover:bg-amber-600 text-black"
                 >
-                  {importExcelMutation.isPending ? 'Importing...' : `Import ${importPreview.length} Rows`}
+                  {importExcelMutation.isPending
+                    ? "Importing..."
+                    : `Import ${importPreview.length} Rows`}
                 </Button>
               </div>
             </div>
@@ -2693,7 +4244,10 @@ export default function TakeoffDetail() {
           projectId={projectId}
           onClose={() => setCalibratingSheet(null)}
           onSaved={(ratio, unit) => {
-            setSheetScales((prev) => ({ ...prev, [calibratingSheet.id]: { ratio, unit } }));
+            setSheetScales(prev => ({
+              ...prev,
+              [calibratingSheet.id]: { ratio, unit },
+            }));
           }}
         />
       )}
@@ -2726,7 +4280,21 @@ const CSI_DIVISIONS_LIST = [
   { code: "32", name: "Exterior Improvements" },
   { code: "33", name: "Utilities" },
 ];
-const COMMON_UNITS = ["EA", "SF", "LF", "CY", "SY", "CF", "TON", "LB", "LS", "HR", "GAL", "BF", "MBF"];
+const COMMON_UNITS = [
+  "EA",
+  "SF",
+  "LF",
+  "CY",
+  "SY",
+  "CF",
+  "TON",
+  "LB",
+  "LS",
+  "HR",
+  "GAL",
+  "BF",
+  "MBF",
+];
 function AddItemDialog({
   projectId,
   defaultDivision,
@@ -2758,7 +4326,8 @@ function AddItemDialog({
   const [unitCostDollars, setUnitCostDollars] = useState("");
   const [notes, setNotes] = useState("");
 
-  const extCost = (parseFloat(quantity) || 0) * (parseFloat(unitCostDollars) || 0);
+  const extCost =
+    (parseFloat(quantity) || 0) * (parseFloat(unitCostDollars) || 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2775,44 +4344,59 @@ function AddItemDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={open => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PlusCircle className="w-5 h-5 text-emerald-400" />
             Add Manual Line Item
           </DialogTitle>
-          <DialogDescription>Manually enter a takeoff item under any CSI division.</DialogDescription>
+          <DialogDescription>
+            Manually enter a takeoff item under any CSI division.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">CSI Division *</Label>
+              <Label className="text-xs text-cream-muted mb-1 block">
+                CSI Division *
+              </Label>
               <select
                 value={csiDivision}
-                onChange={(e) => setCsiDivision(e.target.value)}
+                onChange={e => setCsiDivision(e.target.value)}
                 className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
               >
-                {CSI_DIVISIONS_LIST.map((d) => (
-                  <option key={d.code} value={d.code}>{d.code} — {d.name}</option>
+                {CSI_DIVISIONS_LIST.map(d => (
+                  <option key={d.code} value={d.code}>
+                    {d.code} — {d.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">CSI Code (optional)</Label>
+              <Label className="text-xs text-cream-muted mb-1 block">
+                CSI Code (optional)
+              </Label>
               <Input
                 value={csiCode}
-                onChange={(e) => setCsiCode(e.target.value)}
+                onChange={e => setCsiCode(e.target.value)}
                 placeholder="e.g. 03 30 00"
                 className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
               />
             </div>
           </div>
           <div>
-            <Label className="text-xs text-cream-muted mb-1 block">Description *</Label>
+            <Label className="text-xs text-cream-muted mb-1 block">
+              Description *
+            </Label>
             <Input
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="e.g. 4-inch Concrete Slab on Grade"
               className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
               required
@@ -2820,70 +4404,99 @@ function AddItemDialog({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">Quantity *</Label>
+              <Label className="text-xs text-cream-muted mb-1 block">
+                Quantity *
+              </Label>
               <Input
                 type="number"
                 step="any"
                 min="0"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={e => setQuantity(e.target.value)}
                 placeholder="0"
                 className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
                 required
               />
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">Unit</Label>
+              <Label className="text-xs text-cream-muted mb-1 block">
+                Unit
+              </Label>
               <select
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={e => setUnit(e.target.value)}
                 className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
               >
-                {COMMON_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                {COMMON_UNITS.map(u => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">Unit Cost *</Label>
+              <Label className="text-xs text-cream-muted mb-1 block">
+                Unit Cost *
+              </Label>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={unitCostDollars}
-                onChange={(e) => setUnitCostDollars(e.target.value)}
+                onChange={e => setUnitCostDollars(e.target.value)}
                 placeholder="0.00"
                 className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
                 required
               />
             </div>
           </div>
-          {(parseFloat(quantity) > 0 && parseFloat(unitCostDollars) > 0) && (
+          {parseFloat(quantity) > 0 && parseFloat(unitCostDollars) > 0 && (
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-2 flex items-center justify-between">
               <span className="text-cream-muted text-sm">Extended Cost</span>
               <span className="text-amber-400 font-semibold font-mono">
-                {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(extCost)}
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency,
+                }).format(extCost)}
               </span>
             </div>
           )}
           <div>
-            <Label className="text-xs text-cream-muted mb-1 block">Notes (optional)</Label>
+            <Label className="text-xs text-cream-muted mb-1 block">
+              Notes (optional)
+            </Label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               placeholder="Any additional notes..."
               rows={2}
               className="w-full rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-amber-500/50 resize-none"
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
+              disabled={isPending}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isPending || !description.trim() || !quantity || !unitCostDollars}
+              disabled={
+                isPending ||
+                !description.trim() ||
+                !quantity ||
+                !unitCostDollars
+              }
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+              {isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlusCircle className="w-4 h-4" />
+              )}
               Add Item
             </Button>
           </DialogFooter>
@@ -2930,12 +4543,17 @@ function EditItemDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Takeoff Item</DialogTitle>
-          <DialogDescription>Update the quantity, unit cost, or description.</DialogDescription>
+          <DialogDescription>
+            Update the quantity, unit cost, or description.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -2944,20 +4562,28 @@ function EditItemDialog({
                 type="number"
                 step="0.01"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={e => setQuantity(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label>Unit</Label>
-              <Input value={unit} onChange={(e) => setUnit(e.target.value)} />
+              <Input value={unit} onChange={e => setUnit(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Unit Cost ({currencyCode === "GBP" ? "£" : currencyCode === "AUD" ? "A$" : "$"})</Label>
+              <Label>
+                Unit Cost (
+                {currencyCode === "GBP"
+                  ? "£"
+                  : currencyCode === "AUD"
+                    ? "A$"
+                    : "$"}
+                )
+              </Label>
               <Input
                 type="number"
                 step="0.01"
                 value={unitCost}
-                onChange={(e) => setUnitCost(e.target.value)}
+                onChange={e => setUnitCost(e.target.value)}
               />
             </div>
           </div>
@@ -2966,7 +4592,11 @@ function EditItemDialog({
               <span className="text-cream-muted">Extended Cost:</span>
               <span className="text-amber-400 font-bold text-lg">
                 {formatCurrency(
-                  Math.round(parseFloat(quantity || "0") * parseFloat(unitCost || "0") * 100),
+                  Math.round(
+                    parseFloat(quantity || "0") *
+                      parseFloat(unitCost || "0") *
+                      100
+                  ),
                   currencyCode
                 )}
               </span>
@@ -2992,7 +4622,11 @@ function EditItemDialog({
             disabled={isPending}
             className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
           >
-            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+            {isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Check className="w-4 h-4 mr-2" />
+            )}
             Save Changes
           </Button>
         </DialogFooter>
