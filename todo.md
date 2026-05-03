@@ -3532,3 +3532,8 @@
 - [x] Duplicate/consolidation protection: flag possible duplicate assemblies, keep clearest one active
 - [x] Estimate sanity warning banner: show review banner if active total > 2x comparison target
 - [x] Regression tests for Crystal Car Wash broad subcontract scope-safety
+- [ ] Fix: High-dollar generated row with named work area but broad unrelated calc basis → Needs Scope Review
+- [ ] Fix: Explicit included items (vapor barrier, rigid insulation, fiber-reinforced SOG, excavation/formwork for footings, subgrade prep) being incorrectly excluded
+- [ ] Fix: Named work area alone does not override duplicate/generated safety for high-dollar items
+- [ ] Fix: Generated rebar rows with same calc basis all go to review unless one is the clear aggregate
+- [ ] Add regression tests for all four scope classification issues

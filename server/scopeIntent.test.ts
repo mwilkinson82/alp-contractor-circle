@@ -782,3 +782,121 @@ describe("Scope-safety pass: scopeSafetyPass function", () => {
     expect(result.demotedIds).not.toContain(1);
   });
 });
+
+describe("scope-safety: explicit includes not excluded", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("fiber-reinforced slab-on-grade is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "03", csiCode: "03 30 00", description: "Fiber-reinforced slab-on-grade", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("10 mil vapor barrier under slab-on-grade is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "07", csiCode: "07 26 00", description: "10 mil vapor barrier under slab-on-grade", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("rigid insulation at occupied slab perimeter is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "07", csiCode: "07 21 00", description: "Rigid insulation at occupied slab perimeter", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("excavation for continuous footings is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "31", csiCode: "31 23 00", description: "Excavation for continuous footings", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("formwork for continuous footings is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "03", csiCode: "03 11 00", description: "Formwork for continuous footings", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("subgrade preparation and compaction is included, not excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "31", csiCode: "31 22 00", description: "Subgrade preparation and compaction", notes: "" },
+      intent
+    );
+    expect(result).not.toBe("excluded");
+  });
+
+  it("dewatering remains excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "31", csiCode: "31 23 19", description: "Dewatering at excavation", notes: "" },
+      intent
+    );
+    expect(result).toBe("excluded");
+  });
+
+  it("CMU masonry remains excluded", () => {
+    const result = classifyScopeMatch(
+      { csiDivision: "04", csiCode: "04 22 00", description: "CMU masonry work at enclosures", notes: "" },
+      intent
+    );
+    expect(result).toBe("excluded");
+  });
+});
+
+describe("scope-safety: high-dollar generated row with broad calc basis", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("generated rebar row with named area but broad calc basis → review", () => {
+    const item = {
+      csiDivision: "03",
+      csiCode: "03 21 00",
+      description: "Reinforcing steel for Gate Post Foundations",
+      notes: "[Scope: included] [Enhanced] Calc: #5 rebar at 12 OC both ways across total building slab area 18,500 SF plus grade beams 1,240 LF plus columns 48 EA plus retaining walls 860 LF = 48,178 LB",
+      extendedCost: 9_828_312,
+    };
+    const result = classifyTradePackageScopeSafety(item, intent);
+    expect(result).toBe("review");
+  });
+
+  it("legitimate aggregate rebar row without broad calc basis stays included", () => {
+    const item = {
+      csiDivision: "03",
+      csiCode: "03 21 00",
+      description: "Reinforcing steel within foundations and pits",
+      notes: "[Scope: included] [Enhanced] Calc: continuous footings 1,240 LF × #5 at 12 OC + isolated footings 24 EA × #6 bars = 26,845 LB",
+      extendedCost: 5_500_000,
+    };
+    const result = classifyTradePackageScopeSafety(item, intent);
+    expect(result).toBe("included");
+  });
+
+  it("named work area alone does not override generated safety for high-dollar items", () => {
+    const item = {
+      csiDivision: "03",
+      csiCode: "03 21 00",
+      description: "Reinforcing steel for Bollard Foundations",
+      notes: "[Scope: included] [Generated] Calc: total project rebar = all concrete areas × #5 at 12 OC both ways, slabs + beams + walls + footings = 48,178 LB",
+      extendedCost: 9_000_000,
+    };
+    const result = classifyTradePackageScopeSafety(item, intent);
+    expect(result).toBe("review");
+  });
+});
+
+describe("scope-safety: Needs Scope Review remains out of active total", () => {
+  it("review items are not counted as included by classifyScopeMatch", () => {
+    const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+    const item = { csiDivision: "03", description: "Concrete for slab-on-grade (4 inch thick)", notes: "" };
+    const result = classifyScopeMatch(item, intent);
+    // Generic slab item without named area should be review, not included
+    expect(result).toBe("review");
+  });
+});

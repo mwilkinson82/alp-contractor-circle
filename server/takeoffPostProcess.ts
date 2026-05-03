@@ -1160,6 +1160,23 @@ function generatedQuantityClarityScore(item: ConsolidatedItem): number {
   if (/\bdowels?\b/i.test(text)) score -= 18;
   if (/\bstep\b|\bdiscontinuous\b|\bcontrol joints?\b|\bre-entrant\b/i.test(text)) score -= 12;
   if (/\[enhanced\]/i.test(text)) score -= 8;
+  // Penalize items where the description mentions a specific named work area
+  // but the calc basis references broad unrelated assemblies (calc-basis mismatch)
+  const descText = (item.description || "").toLowerCase();
+  const hasSpecificNamedArea = /\b(?:gate post|bollard|equipment pole|vacuum enclosure|trash enclosure|correlator|tire seal)\b/i.test(descText);
+  if (hasSpecificNamedArea) {
+    const calcSection = text.match(/(?:calc:|basis:|generated from|enhanced from|calculation:)\s*(.+)/i)?.[1] || "";
+    const checkText = calcSection || text;
+    const broadCategories = [
+      /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i,
+      /\b(?:beams?|grade beams?)\b/i,
+      /\b(?:columns?|pilasters?)\b/i,
+      /\b(?:walls?|stem walls?|retaining walls?)\b/i,
+      /\b(?:floors?|elevated (?:slab|deck))\b/i,
+    ];
+    const broadCount = broadCategories.filter(p => p.test(checkText)).length;
+    if (broadCount >= 2) score -= 50; // Heavy penalty: calc doesn't match named area
+  }
   return score;
 }
 
