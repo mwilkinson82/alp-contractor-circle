@@ -396,6 +396,11 @@ function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boo
   if (/\b(?:control joint sealants?|joint sealants?|epoxy fillers?|joint caulking|caulking)\b/i.test(scopeText)) {
     if (/\b(?:sealants?|caulking|epoxy fillers?)\b/i.test(itemText)) return true;
   }
+  if (/\bdewatering\b/i.test(scopeText) && /\bdewatering\b/i.test(itemText)) return true;
+  if (/\bsurveying(?:\s+services)?\b/i.test(scopeText) && /\bsurvey(?:ing)?\b/i.test(itemText)) return true;
+  if (/\bimport\/export of fill\b|\bimport\s+or\s+export of fill\b|\bexport of fill\b|\bimport of fill\b/i.test(scopeText)) {
+    if (/\bimport\b|\bexport\b|\boff[-\s]?site haul\b|\bhaul[-\s]?off\b/i.test(itemText)) return true;
+  }
   if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside the building footprint)\b/i.test(itemText)) {
     return true;
   }

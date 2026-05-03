@@ -1128,6 +1128,85 @@ function duplicateClarityScore(item: ConsolidatedItem): number {
   return score;
 }
 
+function enhancedQuantityDuplicateKey(item: ConsolidatedItem): string | null {
+  const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  if (!/\[enhanced\]|\[generated\]/i.test(text)) return null;
+
+  const family =
+    /\brebar\b|\breinforcing steel\b|\bdowels?\b|\b#[3-8]\b/i.test(text) ? "rebar" :
+    /\bformwork|forms?\b/i.test(text) ? "formwork" :
+    /\bconcrete\b|\bslab\b|\bfooting\b|\bpit\b/i.test(text) ? "concrete" :
+    "generated";
+
+  const calcMatch = text.match(/\bcalc:\s*(.+)$/i);
+  const calcBasis = calcMatch?.[1]
+    ?.replace(/\s+/g, " ")
+    .replace(/\d+\.\d+/g, (value) => Number(value).toFixed(2))
+    .trim()
+    .slice(0, 500);
+  const qty = Math.round(Number(item.quantity || 0) * 100) / 100;
+  const unit = String(item.unit || "").toUpperCase().trim();
+
+  if (calcBasis) return `${family}|${unit}|${qty}|${calcBasis}`;
+  if (qty > 0 && /\[enhanced\]/i.test(text)) return `${family}|${unit}|${qty}|enhanced`;
+  return null;
+}
+
+function generatedQuantityClarityScore(item: ConsolidatedItem): number {
+  const text = `${item.description || ""} ${item.notes || ""}`.toLowerCase();
+  let score = duplicateClarityScore(item);
+  if (/\b(?:summary|total|within foundations? and pits?|complete|overall|all foundations?)\b/i.test(text)) score += 35;
+  if (/^reinforcing steel\b/i.test(item.description)) score += 15;
+  if (/\bdowels?\b/i.test(text)) score -= 18;
+  if (/\bstep\b|\bdiscontinuous\b|\bcontrol joints?\b|\bre-entrant\b/i.test(text)) score -= 12;
+  if (/\[enhanced\]/i.test(text)) score -= 8;
+  return score;
+}
+
+export function holdDuplicateGeneratedQuantityAssemblies(items: ConsolidatedItem[]): ConsolidatedItem[] {
+  const groups = new Map<string, number[]>();
+  items.forEach((item, index) => {
+    if (scopeStatusFromNotes(item.notes) !== "included") return;
+    const key = enhancedQuantityDuplicateKey(item);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(index);
+  });
+
+  const reviewIndexes = new Set<number>();
+  for (const indexes of Array.from(groups.values())) {
+    if (indexes.length <= 1) continue;
+    const groupCost = indexes.reduce((sum, index) => sum + (items[index].extendedCost || 0), 0);
+    const highDollarGroup = groupCost >= 1_000_000;
+    const hasGeneratedOrEnhanced = indexes.some((index) => /\[(?:enhanced|generated)\]/i.test(items[index].notes || ""));
+    if (!highDollarGroup && !hasGeneratedOrEnhanced) continue;
+
+    const ranked = indexes
+      .map((index) => ({
+        index,
+        score: generatedQuantityClarityScore(items[index]),
+        cost: items[index].extendedCost || 0,
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.cost - a.cost;
+      });
+
+    for (const duplicate of ranked.slice(1)) reviewIndexes.add(duplicate.index);
+  }
+
+  if (reviewIndexes.size === 0) return items;
+  console.log(`[ScopeIntent] Held ${reviewIndexes.size} duplicate generated/enhanced quantity row${reviewIndexes.size === 1 ? "" : "s"} for scope review.`);
+  return items.map((item, index) => {
+    if (!reviewIndexes.has(index)) return item;
+    return {
+      ...item,
+      notes: `${appendScopeReviewNote(item.notes, "review")} Generated quantity safety: another active row uses the same generated calculation basis; verify before including both.`,
+      confidence: Math.min(item.confidence, 74),
+    };
+  });
+}
+
 export function holdDuplicateTradePackageAssemblies(items: ConsolidatedItem[], intent: ScopeIntent): ConsolidatedItem[] {
   if (intent.bidMode !== "trade_package" || intent.scopeStrictness !== "strict" || !intent.hasScope) return items;
 
@@ -1524,6 +1603,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
 
   consolidated = annotateScopeReview(consolidated, projectScopeIntent);
   consolidated = holdDuplicateTradePackageAssemblies(consolidated, projectScopeIntent);
+  consolidated = holdDuplicateGeneratedQuantityAssemblies(consolidated);
 
   console.log(`[PostProcess] Step 6/6: Saving results...`);
   await updateTakeoffProject(projectId, { postProcessStep: 'saving' } as any).catch(() => {});

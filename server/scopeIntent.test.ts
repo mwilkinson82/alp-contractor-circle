@@ -94,6 +94,7 @@ describe("scope intent", () => {
       { csiDivision: "04", csiCode: "04 22 00", description: "CMU masonry enclosure wall" },
       { csiDivision: "05", csiCode: "05 12 00", description: "Structural steel above top of foundation" },
       { csiDivision: "22", csiCode: "22 11 00", description: "Plumbing utilities beyond included pits and drains" },
+      { csiDivision: "31", csiCode: "31 23 16", description: "Dewatering" },
       { csiDivision: "07", csiCode: "07 92 00", description: "Control joint sealants and joint caulking" },
     ]) {
       expect(classifyScopeMatch(item, intent), item.description).toBe("excluded");

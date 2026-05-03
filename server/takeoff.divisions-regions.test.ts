@@ -19,7 +19,11 @@ import {
 } from "../shared/costRegions";
 import { CURRENCIES, getCurrency, formatCurrencyAmount } from "../shared/currencies";
 import { buildScopeIntent } from "../shared/scopeIntent";
-import { filterBySelectedDivisions, holdDuplicateTradePackageAssemblies } from "./takeoffPostProcess";
+import {
+  filterBySelectedDivisions,
+  holdDuplicateGeneratedQuantityAssemblies,
+  holdDuplicateTradePackageAssemblies,
+} from "./takeoffPostProcess";
 
 describe("Division Selector", () => {
   it("should have all expected CSI divisions", () => {
@@ -173,6 +177,76 @@ describe("trade-package duplicate assembly safety", () => {
     expect(result[2].notes).toContain("[Scope: review]");
     expect(result[2].notes).toContain("Duplicate/consolidation safety");
     expect(result[3].notes).not.toContain("[Scope: review]");
+  });
+
+  it("keeps one generated quantity basis active across scopes and moves duplicate enhanced rows to review", () => {
+    const sharedCalc = "[Enhanced] #6 rebar, 26845 lbs total (incl. 10% lap/waste). Calc: Wall 892 SF × 1.5 = 1338 LF; Slab 4650 SF × 2 = 9300 LF; Pier 1 EA × 40 = 40 LF";
+    const items = [
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Dowels Required for Foundation Continuation",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 267,
+        extendedCost: 7_167_615,
+        materialCost: 160,
+        laborCost: 107,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Rebar, footing reinforcement at step",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 223,
+        extendedCost: 5_986_435,
+        materialCost: 134,
+        laborCost: 89,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [2],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing Steel within Foundations and Pits",
+        quantity: 26845,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 5_476_380,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: sharedCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [3],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+    ];
+
+    const result = holdDuplicateGeneratedQuantityAssemblies(items as any);
+
+    expect(result[0].notes).toContain("[Scope: review]");
+    expect(result[0].notes).toContain("Generated quantity safety");
+    expect(result[1].notes).toContain("[Scope: review]");
+    expect(result[2].notes).not.toContain("[Scope: review]");
   });
 });
 
