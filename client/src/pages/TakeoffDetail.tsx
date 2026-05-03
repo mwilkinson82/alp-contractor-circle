@@ -373,6 +373,39 @@ function getItemSearchText(item: any): string {
 function getAssemblyRule(item: any) {
   const text = getItemSearchText(item);
   const division = String(item?.csiDivision || "").padStart(2, "0");
+  const ruleByKey = (key: string) =>
+    ASSEMBLY_RULES.find(rule => rule.key === key)!;
+  const hasAny = (terms: string[]) => terms.some(term => text.includes(term));
+
+  if (hasAny(ruleByKey("excluded-masonry-cmu").terms)) {
+    return ruleByKey("excluded-masonry-cmu");
+  }
+  if (hasAny(["drain", "sump", "catch basin", "cleanout", "storm", "pipe"])) {
+    return ruleByKey("drain-pit");
+  }
+  if (
+    hasAny([
+      "trench",
+      "pit",
+      "grade beam",
+      "footing",
+      "wall footing",
+      "formed",
+      "formwork",
+    ])
+  ) {
+    return ruleByKey("trench-pit-concrete");
+  }
+  if (hasAny(ruleByKey("slab-on-grade").terms)) {
+    return ruleByKey("slab-on-grade");
+  }
+  if (hasAny(ruleByKey("foundation-reinforcing").terms)) {
+    return ruleByKey("foundation-reinforcing");
+  }
+  if (hasAny(ruleByKey("general-requirements").terms)) {
+    return ruleByKey("general-requirements");
+  }
+
   const termRule = ASSEMBLY_RULES.find(rule =>
     rule.terms.some(term => text.includes(term))
   );
@@ -406,9 +439,7 @@ function buildAssemblyBundles(
 
   for (const item of allItems || []) {
     const rule = getAssemblyRule(item);
-    const sheet = item.sheetId ? sheetById.get(item.sheetId) : null;
-    const drawingGroup = getSheetLabel(sheet);
-    const key = `${drawingGroup}::${rule.key}`;
+    const key = rule.key;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);
   }
@@ -477,7 +508,10 @@ function buildAssemblyBundles(
       return {
         key,
         title: rule.title,
-        drawingGroup: sourceDrawings[0] || "Unlinked drawing",
+        drawingGroup:
+          sourceDrawings.length > 1
+            ? `${sourceDrawings.length} drawings`
+            : sourceDrawings[0] || "Unlinked drawing",
         items: sortedItems,
         primaryItem,
         alternateItems: sortedItems.slice(1),
@@ -572,6 +606,7 @@ export default function TakeoffDetail() {
   const [expandedBundles, setExpandedBundles] = useState<Set<string>>(
     new Set()
   );
+  const [showRawReviewRows, setShowRawReviewRows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
@@ -3296,7 +3331,8 @@ export default function TakeoffDetail() {
                           )}
                         </div>
                         <p className="text-xs text-amber-100/70 mt-1">
-                          Review by drawing and package first. Raw rows stay
+                          Review estimator-level packages first. Drawing sheets
+                          are evidence inside each bundle; raw rows stay
                           expandable for audit, measurement, and cleanup.
                         </p>
                       </div>
@@ -3365,7 +3401,7 @@ export default function TakeoffDetail() {
                                   </p>
                                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-cream-muted/70">
                                     <span className="max-w-full truncate">
-                                      Sources:{" "}
+                                      Evidence:{" "}
                                       {bundle.sourceDrawings.join(", ")}
                                     </span>
                                     <span>
@@ -4094,7 +4130,7 @@ export default function TakeoffDetail() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Flag className="w-4 h-4 text-amber-300" />
                         <span className="text-amber-100 font-semibold">
-                          Scope Review Queue
+                          Raw Review Rows
                         </span>
                         <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
                           {reviewItems.length} not counted
@@ -4112,151 +4148,171 @@ export default function TakeoffDetail() {
                           )}
                         </Badge>
                       </div>
-                      <span className="text-xs text-amber-100/70">
-                        {bidModeBehavior.shortLabel}: Include, exclude, or hold
-                        each decision
-                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                        onClick={() => setShowRawReviewRows(prev => !prev)}
+                      >
+                        {showRawReviewRows ? (
+                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {showRawReviewRows ? "Hide Rows" : "Show Raw Rows"}
+                      </Button>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                            <th className="text-left px-4 py-2 w-12">CSI</th>
-                            <th className="text-left px-4 py-2">Description</th>
-                            <th className="text-left px-4 py-2 w-36">Cue</th>
-                            <th className="text-right px-4 py-2 w-20">Qty</th>
-                            <th className="text-left px-4 py-2 w-14">Unit</th>
-                            <th className="text-center px-4 py-2 w-16">
-                              Conf.
-                            </th>
-                            <th className="text-right px-4 py-2 w-28">
-                              Review Total
-                            </th>
-                            <th className="text-right px-4 py-2 min-w-[260px]">
-                              Decision
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reviewItems.map((item: any) => {
-                            const cue = getEstimatorCue(item);
-                            return (
-                              <tr
-                                key={item.id}
-                                className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
-                                onClick={() => setSelectedItem(item)}
-                              >
-                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                  {item.csiCode || item.csiDivision}
-                                </td>
-                                <td className="px-4 py-2 text-cream max-w-lg">
-                                  <p className="line-clamp-2">
-                                    {item.description}
-                                  </p>
-                                  {item.notes && (
-                                    <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
-                                      {item.notes}
-                                    </p>
-                                  )}
-                                </td>
-                                <td className="px-4 py-2">
-                                  <Badge
-                                    className={`text-[10px] ${cue.className}`}
-                                  >
-                                    {cue.label}
-                                  </Badge>
-                                  {item.reviewed && (
-                                    <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
-                                      <Check className="w-3 h-3" />
-                                      held
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-4 py-2 text-right text-cream font-mono">
-                                  {parseFloat(
-                                    item.quantity || "0"
-                                  ).toLocaleString()}
-                                </td>
-                                <td className="px-4 py-2 text-cream-muted">
-                                  {item.unit}
-                                </td>
-                                <td className="px-4 py-2 text-center">
-                                  <Badge
-                                    className={`text-xs ${
-                                      item.confidence >= 80
-                                        ? "bg-emerald-500/20 text-emerald-400"
-                                        : item.confidence >= 50
-                                          ? "bg-amber-500/20 text-amber-400"
-                                          : "bg-red-500/20 text-red-400"
-                                    }`}
-                                  >
-                                    {item.confidence}%
-                                  </Badge>
-                                </td>
-                                <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
-                                  {formatCurrency(
-                                    item.extendedCost || 0,
-                                    project?.currency || "USD"
-                                  )}
-                                </td>
-                                <td
-                                  className="px-4 py-2"
-                                  onClick={event => event.stopPropagation()}
+                    {!showRawReviewRows && (
+                      <div className="px-4 py-3 bg-amber-500/5 text-xs text-amber-100/70">
+                        Assembly Review is the primary decision surface. Open
+                        raw rows only when you need item-level audit,
+                        measurement, or exception cleanup.
+                      </div>
+                    )}
+                    {showRawReviewRows && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <th className="text-left px-4 py-2 w-12">CSI</th>
+                              <th className="text-left px-4 py-2">
+                                Description
+                              </th>
+                              <th className="text-left px-4 py-2 w-36">Cue</th>
+                              <th className="text-right px-4 py-2 w-20">Qty</th>
+                              <th className="text-left px-4 py-2 w-14">Unit</th>
+                              <th className="text-center px-4 py-2 w-16">
+                                Conf.
+                              </th>
+                              <th className="text-right px-4 py-2 w-28">
+                                Review Total
+                              </th>
+                              <th className="text-right px-4 py-2 min-w-[260px]">
+                                Decision
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reviewItems.map((item: any) => {
+                              const cue = getEstimatorCue(item);
+                              return (
+                                <tr
+                                  key={item.id}
+                                  className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
+                                  onClick={() => setSelectedItem(item)}
                                 >
-                                  <div className="flex flex-wrap items-center justify-end gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
-                                      onClick={() =>
-                                        applyScopeDecision(item, "included")
-                                      }
-                                      title="Include in active total"
+                                  <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                    {item.csiCode || item.csiDivision}
+                                  </td>
+                                  <td className="px-4 py-2 text-cream max-w-lg">
+                                    <p className="line-clamp-2">
+                                      {item.description}
+                                    </p>
+                                    {item.notes && (
+                                      <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                        {item.notes}
+                                      </p>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <Badge
+                                      className={`text-[10px] ${cue.className}`}
                                     >
-                                      <Check className="w-3 h-3 mr-1" />
-                                      Include
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
-                                      onClick={() =>
-                                        applyScopeDecision(item, "excluded")
-                                      }
-                                      title="Exclude from active total"
+                                      {cue.label}
+                                    </Badge>
+                                    {item.reviewed && (
+                                      <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
+                                        <Check className="w-3 h-3" />
+                                        held
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-cream font-mono">
+                                    {parseFloat(
+                                      item.quantity || "0"
+                                    ).toLocaleString()}
+                                  </td>
+                                  <td className="px-4 py-2 text-cream-muted">
+                                    {item.unit}
+                                  </td>
+                                  <td className="px-4 py-2 text-center">
+                                    <Badge
+                                      className={`text-xs ${
+                                        item.confidence >= 80
+                                          ? "bg-emerald-500/20 text-emerald-400"
+                                          : item.confidence >= 50
+                                            ? "bg-amber-500/20 text-amber-400"
+                                            : "bg-red-500/20 text-red-400"
+                                      }`}
                                     >
-                                      <X className="w-3 h-3 mr-1" />
-                                      Exclude
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
-                                      onClick={() =>
-                                        applyScopeDecision(item, "review")
-                                      }
-                                      title="Keep in review queue"
-                                    >
-                                      <Square className="w-3 h-3 mr-1" />
-                                      Hold
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
-                                      onClick={() => setSelectedItem(item)}
-                                      title="View details"
-                                    >
-                                      <Eye className="w-3 h-3 mr-1" />
-                                      Details
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                      {item.confidence}%
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
+                                    {formatCurrency(
+                                      item.extendedCost || 0,
+                                      project?.currency || "USD"
+                                    )}
+                                  </td>
+                                  <td
+                                    className="px-4 py-2"
+                                    onClick={event => event.stopPropagation()}
+                                  >
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                      <Button
+                                        size="sm"
+                                        className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
+                                        onClick={() =>
+                                          applyScopeDecision(item, "included")
+                                        }
+                                        title="Include in active total"
+                                      >
+                                        <Check className="w-3 h-3 mr-1" />
+                                        Include
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
+                                        onClick={() =>
+                                          applyScopeDecision(item, "excluded")
+                                        }
+                                        title="Exclude from active total"
+                                      >
+                                        <X className="w-3 h-3 mr-1" />
+                                        Exclude
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
+                                        onClick={() =>
+                                          applyScopeDecision(item, "review")
+                                        }
+                                        title="Keep in review queue"
+                                      >
+                                        <Square className="w-3 h-3 mr-1" />
+                                        Hold
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
+                                        onClick={() => setSelectedItem(item)}
+                                        title="View details"
+                                      >
+                                        <Eye className="w-3 h-3 mr-1" />
+                                        Details
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
 
