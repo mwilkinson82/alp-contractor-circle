@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildScopeIntent, classifyScopeMatch, classifyTradePackageScopeSafety } from "../shared/scopeIntent";
+import { buildScopeIntent, classifyScopeMatch, scopeSafetyPass, classifyTradePackageScopeSafety } from "../shared/scopeIntent";
 
 const CRYSTAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, and general concrete.";
 const CRYSTAL_COMMERCIAL_BELOW_GRADE_WATERPROOFING_SCOPE = "Commercial project. Below-grade waterproofing only. Include waterproofing membrane, protection board, waterstops, vapor barrier, and foundation drains. Exclude roofing, above-grade envelope, finishes, masonry, MEP, general concrete, slabs, footings, rebar, structural reinforcing, trench concrete, and pit concrete.";
@@ -720,6 +720,69 @@ describe("Scope-safety pass: named-area gate for broad concrete profile", () => 
   });
 });
 
+describe("Scope-safety pass: scopeSafetyPass function", () => {
+
+  it("demotes high-dollar items without named-area evidence to review", () => {
+    const intent = buildScopeIntent("Concrete foundations and slab-on-grade, trench/pit systems, and associated drains package. Include trench drains, correlator pit.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Trench drain concrete", notes: "", extendedCost: 500_000 },  // $5k — below threshold
+      { id: 2, description: "Generic concrete assembly", notes: "", extendedCost: 2_000_000 },  // $20k — above threshold, no named area
+      { id: 3, description: "Waterproofing membrane", notes: "", extendedCost: 1_500_000 },  // $15k — core scope, should stay
+      { id: 4, description: "Correlator pit concrete", notes: "", extendedCost: 1_200_000 },  // $12k — named area, should stay
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    // Item 2 should be demoted (generic, high-dollar, no named area)
+    expect(result.demotedIds).toContain(2);
+    // Item 3 should NOT be demoted (core waterproofing scope)
+    expect(result.demotedIds).not.toContain(3);
+    // Item 4 should NOT be demoted (named area match)
+    expect(result.demotedIds).not.toContain(4);
+    // Item 1 should NOT be demoted (below threshold)
+    expect(result.demotedIds).not.toContain(1);
+  });
+
+  it("detects duplicate active items and demotes the lower-cost one", () => {
+    const intent = buildScopeIntent("Concrete foundations and trench/pit systems.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Continuous footing concrete placement and finishing", notes: "", extendedCost: 800_000 },
+      { id: 2, description: "Continuous footing concrete placement and curing", notes: "", extendedCost: 600_000 },
+      { id: 3, description: "Trench drain concrete", notes: "", extendedCost: 300_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    // One of the duplicate continuous footing items should be demoted
+    expect(result.demotedIds).toContain(2); // lower cost gets demoted
+    expect(result.demotedIds).not.toContain(1); // higher cost stays
+    expect(result.demotedIds).not.toContain(3); // unique item stays
+  });
+
+  it("does not apply in full_gc (broad) mode", () => {
+    const intent = buildScopeIntent("Full GC scope.", null, "full_gc");
+
+    const items = [
+      { id: 1, description: "Generic concrete assembly", notes: "", extendedCost: 5_000_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    expect(result.demotedCount).toBe(0);
+    expect(result.demotedIds).toEqual([]);
+  });
+
+  it("does not demote items with sheet-level evidence", () => {
+    const intent = buildScopeIntent("Concrete foundations and slab-on-grade.", null, "trade_package");
+
+    const items = [
+      { id: 1, description: "Generic concrete assembly", notes: "From sheet S-101 detail 4", extendedCost: 2_000_000 },
+    ];
+
+    const result = scopeSafetyPass(items, intent);
+    expect(result.demotedIds).not.toContain(1);
+  });
+});
+
 describe("scope-safety: explicit includes not excluded", () => {
   const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
 
@@ -835,5 +898,96 @@ describe("scope-safety: Needs Scope Review remains out of active total", () => {
     const result = classifyScopeMatch(item, intent);
     // Generic slab item without named area should be review, not included
     expect(result).toBe("review");
+  });
+});
+
+describe("scope-safety: high-dollar explicitly included items stay Active", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("high-dollar fiber-reinforced slab-on-grade with direct evidence stays Active", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Fiber-reinforced slab-on-grade within building footprint",
+      notes: "[Scope: included] 4,200 SF × $12.50/SF = $52,500. Sheet S1.1 detail 3.",
+      extendedCost: 5_250_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar continuous footing concrete stays Active", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Continuous footing concrete",
+      notes: "[Scope: included] 1,240 LF × 2.5 CF/LF = 115 CY. Sheet S1.0.",
+      extendedCost: 3_200_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar sawcut control joints stays Active (not generated)", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Sawcut control joints",
+      notes: "[Scope: included] 2,800 LF at $2.50/LF",
+      extendedCost: 1_200_000,
+    };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("included");
+  });
+
+  it("high-dollar generated rebar with broad calc basis goes to review", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Reinforcing steel for Gate Post Foundations",
+      notes: "[Scope: included] [Enhanced] #5 rebar at 12 OC both ways. Calc: total building slab area 15,000 SF × beams, columns, walls, footings, slabs → 48,178 LB",
+      extendedCost: 9_828_312,
+    };
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
+  });
+});
+
+describe("scope-safety: explicit includes not excluded", () => {
+  const intent = buildScopeIntent(CRYSTAL_BROAD_CONCRETE_PACKAGE_SCOPE, null, "trade_package");
+
+  it("vapor barrier under slab-on-grade is not excluded", () => {
+    const item = { csiDivision: "07", description: "10 mil vapor barrier under slab-on-grade", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("rigid insulation at occupied slab perimeter is not excluded", () => {
+    const item = { csiDivision: "07", description: "Rigid insulation at occupied slab perimeter", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("continuous footing formwork is not excluded", () => {
+    const item = { csiDivision: "03", description: "Continuous footing formwork", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("subgrade preparation and compaction is not excluded", () => {
+    const item = { csiDivision: "31", description: "Subgrade preparation and compaction below slab-on-grade", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("termite treatment is not excluded", () => {
+    const item = { csiDivision: "31", description: "Termite treatment", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("dowels required for foundation continuation is not excluded", () => {
+    const item = { csiDivision: "03", description: "Dowels required for foundation continuation", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("included");
+  });
+
+  it("drive slab outside building footprint IS excluded", () => {
+    const item = { csiDivision: "03", description: "Drive slab outside building footprint", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("excluded");
+  });
+
+  it("dewatering IS excluded", () => {
+    const item = { csiDivision: "31", description: "Dewatering", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("excluded");
   });
 });
