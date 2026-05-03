@@ -400,6 +400,21 @@ function extractFamiliesFromClauses(text: string, marker: RegExp): TermFamily[] 
   return families;
 }
 
+function extractFamiliesFromExcludeClauses(text: string, marker: RegExp): TermFamily[] {
+  const families: TermFamily[] = [];
+  for (const sentence of text.split(/[.;]/)) {
+    const match = sentence.match(marker);
+    if (!match || match.index === undefined) continue;
+    const clause = sentence
+      .slice(match.index + match[0].length)
+      // "Footing dowels" is a dowel/rebar boundary, not a blanket footing exclusion.
+      .replace(/\bfooting\s+dowels?\b/gi, "dowels")
+      .replace(/\bfoundation\s+scope\b/gi, "scope");
+    families.push(...matchingFamilies(clause));
+  }
+  return families;
+}
+
 function parseExplicitIncludes(text: string): TermFamily[] {
   const includeFamilies = [
     ...extractFamiliesFromClauses(text, /\binclude(?:s|d|ing)?\b/i),
@@ -412,9 +427,9 @@ function parseExplicitIncludes(text: string): TermFamily[] {
 
 function parseExplicitExcludes(text: string): TermFamily[] {
   const excludeFamilies = [
-    ...extractFamiliesFromClauses(text, /\bexclude(?:s|d|ing)?\b/i),
-    ...extractFamiliesFromClauses(text, /\bno\b/i),
-    ...extractFamiliesFromClauses(text, /\bnot\s+including\b/i),
+    ...extractFamiliesFromExcludeClauses(text, /\bexclude(?:s|d|ing)?\b/i),
+    ...extractFamiliesFromExcludeClauses(text, /\bno\b/i),
+    ...extractFamiliesFromExcludeClauses(text, /\bnot\s+including\b/i),
   ];
   return unique(excludeFamilies) as TermFamily[];
 }

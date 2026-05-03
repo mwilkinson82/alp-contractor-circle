@@ -1021,6 +1021,14 @@ describe("scope-safety: explicit includes not excluded", () => {
     expect(classifyScopeMatch(item, intent)).toBe("excluded");
   });
 
+  it("does not treat footing dowels exclusion as a blanket isolated footing exclusion", () => {
+    const formwork = { csiDivision: "03", description: "Formwork, isolated footing (F-1)", notes: "" };
+    const concrete = { csiDivision: "03", description: "Concrete, isolated footing (F-1)", notes: "" };
+
+    expect(classifyScopeMatch(formwork, intent)).toBe("included");
+    expect(classifyScopeMatch(concrete, intent)).toBe("included");
+  });
+
   it("dewatering IS excluded", () => {
     const item = { csiDivision: "31", description: "Dewatering", notes: "" };
     expect(classifyScopeMatch(item, intent)).toBe("excluded");
