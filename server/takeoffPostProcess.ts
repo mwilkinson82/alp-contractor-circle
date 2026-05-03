@@ -1231,6 +1231,55 @@ export function holdDuplicateGeneratedQuantityAssemblies(items: ConsolidatedItem
   });
 }
 
+function generalRequirementDuplicateKey(item: ConsolidatedItem): string | null {
+  if (scopeStatusFromNotes(item.notes) !== "included") return null;
+  const unit = String(item.unit || "").toUpperCase().trim();
+  if (!["LS", "EA"].includes(unit)) return null;
+  const desc = normalizeDesc(item.description);
+  const keys: Array<[string, RegExp]> = [
+    ["mobilization", /\bmobilization\b/],
+    ["layout-coordination", /\blayout\b.*\bcoordination\b|\blayout coordination\b/],
+    ["project-management", /\bproject management\b/],
+    ["field-supervision", /\bfield supervision\b|\bsupervision\b/],
+    ["concrete-testing", /\bconcrete testing\b/],
+    ["compaction-testing", /\bcompaction testing\b/],
+  ];
+  return keys.find(([, pattern]) => pattern.test(desc))?.[0] || null;
+}
+
+export function holdDuplicateGeneralRequirementLumpSums(items: ConsolidatedItem[]): ConsolidatedItem[] {
+  const groups = new Map<string, number[]>();
+  items.forEach((item, index) => {
+    const key = generalRequirementDuplicateKey(item);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(index);
+  });
+
+  const reviewIndexes = new Set<number>();
+  for (const indexes of Array.from(groups.values())) {
+    if (indexes.length <= 1) continue;
+    const ranked = indexes
+      .map((index: number) => ({ index, confidence: items[index].confidence || 0, cost: items[index].extendedCost || 0 }))
+      .sort((a: { confidence: number; cost: number }, b: { confidence: number; cost: number }) => {
+        if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+        return b.cost - a.cost;
+      });
+    for (const duplicate of ranked.slice(1)) reviewIndexes.add(duplicate.index);
+  }
+
+  if (reviewIndexes.size === 0) return items;
+  console.log(`[ScopeIntent] Held ${reviewIndexes.size} duplicate general requirement lump sum row${reviewIndexes.size === 1 ? "" : "s"} for scope review.`);
+  return items.map((item, index) => {
+    if (!reviewIndexes.has(index)) return item;
+    return {
+      ...item,
+      notes: `${appendScopeReviewNote(item.notes, "review")} Duplicate general requirement safety: another active row covers the same lump-sum allowance.`,
+      confidence: Math.min(item.confidence, 74),
+    };
+  });
+}
+
 export function holdDuplicateTradePackageAssemblies(items: ConsolidatedItem[], intent: ScopeIntent): ConsolidatedItem[] {
   if (intent.bidMode !== "trade_package" || intent.scopeStrictness !== "strict" || !intent.hasScope) return items;
 
@@ -1628,6 +1677,7 @@ export async function postProcessTakeoff(projectId: number): Promise<{
   consolidated = annotateScopeReview(consolidated, projectScopeIntent);
   consolidated = holdDuplicateTradePackageAssemblies(consolidated, projectScopeIntent);
   consolidated = holdDuplicateGeneratedQuantityAssemblies(consolidated);
+  consolidated = holdDuplicateGeneralRequirementLumpSums(consolidated);
 
   console.log(`[PostProcess] Step 6/6: Saving results...`);
   await updateTakeoffProject(projectId, { postProcessStep: 'saving' } as any).catch(() => {});

@@ -550,6 +550,12 @@ function hasBroadCalcBasis(text: string): boolean {
   return false;
 }
 
+function hasGeneratedFormworkFromSupportAssembly(text: string): boolean {
+  return /\bformwork\b|\bforms?\b/i.test(text) &&
+    /\b(?:reinforc(?:ing|ement)|rebar|#[3-8]\s*(?:bar)?|dowels?|ties?)\b/i.test(text) &&
+    /\[(?:generated|enhanced)\]|\bgenerated\b|\bcalc:\b/i.test(text);
+}
+
 function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boolean {
   if (/\b(?:control joint sealants?|joint sealants?|epoxy fillers?|joint caulking|caulking)\b/i.test(scopeText)) {
     if (/\b(?:sealants?|caulking|epoxy fillers?)\b/i.test(itemText)) return true;
@@ -561,6 +567,11 @@ function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boo
   }
   if (/\b(?:beyond foundation scope|beyond included pits and drains|beyond included pits|beyond onsite reuse|outside (?:the )?building footprint)\b/i.test(itemText)) {
     return true;
+  }
+  if (/\bdrive slabs? outside (?:the )?building footprint\b/i.test(scopeText)) {
+    if (/\b(?:drive|approach|exit|exterior|parking|paving)\b.*\bslabs?\b|\bslabs?\b.*\b(?:drive|approach|exit|exterior|parking|paving)\b/i.test(itemText)) {
+      return true;
+    }
   }
   return false;
 }
@@ -888,6 +899,8 @@ export function classifyTradePackageScopeSafety(
   const highDollarControlJoint = isHighDollar && /\b(?:sawcuts?|control joints?)\b/i.test(text);
 
   // --- Safety rules: only target generated/weak/broad rows, not explicit includes with evidence ---
+  // Rule 0: generated formwork for rebar/support rows is not a direct formwork assembly.
+  if (generatedOrConsolidated && hasGeneratedFormworkFromSupportAssembly(text)) return "review";
   // Rule 1: Weak evidence (placeholder, assumed, missing) → only demote if generated/consolidated
   if (weakEvidence && generatedOrConsolidated) return "review";
   // Rule 2: Broad assembly only (generic concrete, generic slab) → only demote if generated/consolidated or high-dollar

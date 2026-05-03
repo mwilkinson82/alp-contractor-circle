@@ -22,6 +22,7 @@ import { buildScopeIntent } from "../shared/scopeIntent";
 import {
   filterBySelectedDivisions,
   holdDuplicateGeneratedQuantityAssemblies,
+  holdDuplicateGeneralRequirementLumpSums,
   holdDuplicateTradePackageAssemblies,
 } from "./takeoffPostProcess";
 
@@ -351,6 +352,42 @@ describe("Generated rebar dedup: mislabeled named-area row with broad calc basis
     expect(result[0].notes).toContain("[Scope: review]");
     expect(result[0].notes).toContain("Generated quantity safety");
     expect(result[1].notes).not.toContain("[Scope: review]");
+  });
+});
+
+describe("General requirement duplicate safety", () => {
+  it("moves duplicate active mobilization and layout lump sums to review", () => {
+    const base = {
+      csiDivision: "01",
+      csiCode: "01 50 00",
+      quantity: 1,
+      unit: "LS",
+      unitCost: 291000,
+      extendedCost: 291000,
+      materialCost: 145500,
+      laborCost: 145500,
+      confidence: 90,
+      notes: "[Scope: included] Explicitly included in scope.",
+      sourceSheetIds: [1],
+      sourceItemIds: [1],
+      wasConsolidated: false,
+      wasEnhanced: false,
+      isGenerated: false,
+      needsMeasurement: false,
+    };
+    const items = [
+      { ...base, description: "Mobilization", confidence: 100 },
+      { ...base, csiDivision: "31", description: "Mobilization", confidence: 90 },
+      { ...base, csiCode: "01 70 00", description: "Layout coordination", unitCost: 145508, extendedCost: 145508, confidence: 100 },
+      { ...base, csiDivision: "31", csiCode: "31 00 00", description: "Layout Coordination", unitCost: 145508, extendedCost: 145508, confidence: 90 },
+    ];
+
+    const result = holdDuplicateGeneralRequirementLumpSums(items as any);
+
+    expect(result[0].notes).not.toContain("[Scope: review]");
+    expect(result[1].notes).toContain("[Scope: review]");
+    expect(result[2].notes).not.toContain("[Scope: review]");
+    expect(result[3].notes).toContain("[Scope: review]");
   });
 });
 

@@ -947,6 +947,16 @@ describe("scope-safety: high-dollar explicitly included items stay Active", () =
     expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
   });
 
+  it("generated formwork for rebar support rows goes to review", () => {
+    const item = {
+      csiDivision: "03",
+      description: "Formwork for Reinforcing Steel #4 bar @ 16\" O.C. for Trench Pit Walls",
+      notes: "[Scope: included] [Generated] 2 sides × 4.0' height × 446 LF = 3568 SFCA",
+      extendedCost: 3_460_960,
+    };
+    expect(classifyTradePackageScopeSafety(item, intent)).toBe("review");
+  });
+
   it("high-dollar foundation rebar with slab-derived generated calc goes to review", () => {
     const item = {
       csiDivision: "03",
@@ -1003,6 +1013,11 @@ describe("scope-safety: explicit includes not excluded", () => {
 
   it("drive slab outside building footprint IS excluded", () => {
     const item = { csiDivision: "03", description: "Drive slab outside building footprint", notes: "" };
+    expect(classifyScopeMatch(item, intent)).toBe("excluded");
+  });
+
+  it("exterior approach and exit slabs are excluded when drive slabs outside footprint are excluded", () => {
+    const item = { csiDivision: "03", description: "Concrete Approach and Exit Slabs (Exterior)", notes: "" };
     expect(classifyScopeMatch(item, intent)).toBe("excluded");
   });
 
