@@ -421,6 +421,39 @@ function isObviousRepeatedAssembly(text: string): boolean {
   return /\b(?:sections?\s+\d|typ(?:ical)?|each side|at .*faces|from:\s*[^]]*,\s*[^]]*,|consolidated \d+ items)\b/i.test(text);
 }
 
+/**
+ * Detects if a generated/enhanced item's notes contain a calc basis that references
+ * broad unrelated assemblies (slabs, beams, columns, walls, floors) rather than
+ * being tied to the specific named work area in the description.
+ * E.g. "Reinforcing steel for Gate Post Foundations" with calc notes about
+ * "total building slab area × #5 rebar at 12 OC both ways" → broad calc basis.
+ */
+function hasBroadCalcBasis(text: string): boolean {
+  // Look for calc/basis notes that reference multiple unrelated assembly types
+  const calcSection = text.match(/(?:calc:|basis:|generated from|enhanced from|calculation:)\s*(.+)/i)?.[1] || "";
+  const notesSection = text.includes("[enhanced]") || text.includes("[generated]") ? text : "";
+  const checkText = calcSection || notesSection;
+  if (!checkText) return false;
+  // Count how many broad assembly categories are referenced
+  const broadCategories = [
+    /\b(?:slabs?|slab[- ]?on[- ]?grade)\b/i,
+    /\b(?:beams?|grade beams?)\b/i,
+    /\b(?:columns?|pilasters?)\b/i,
+    /\b(?:walls?|stem walls?|retaining walls?)\b/i,
+    /\b(?:floors?|elevated (?:slab|deck))\b/i,
+    /\b(?:footings?|foundations?)\b/i,
+    /\b(?:total\s+(?:building|project|structure))\b/i,
+    /\b(?:all\s+(?:areas|sections|zones|floors))\b/i,
+    /\b(?:entire\s+(?:building|structure|project))\b/i,
+  ];
+  const matchCount = broadCategories.filter(p => p.test(checkText)).length;
+  // If calc references 3+ different assembly categories, it's a broad calc
+  if (matchCount >= 3) return true;
+  // Also flag if calc mentions total building/project-wide quantities
+  if (/\b(?:total\s+(?:building|project|structure)|project[- ]wide|building[- ]wide|all\s+(?:concrete|rebar|reinforcing))\b/i.test(checkText)) return true;
+  return false;
+}
+
 function matchesExplicitExcludedPhrase(itemText: string, scopeText: string): boolean {
   if (/\b(?:control joint sealants?|joint sealants?|epoxy fillers?|joint caulking|caulking)\b/i.test(scopeText)) {
     if (/\b(?:sealants?|caulking|epoxy fillers?)\b/i.test(itemText)) return true;
@@ -569,8 +602,50 @@ export function classifyScopeMatch(
 
   const quantityNeedsReview = hasQuantityReviewSignal(text);
 
+  // Check if item has an explicit include that is NOT also explicitly excluded
+  // (i.e., a "clean" include that unambiguously protects the item from exclusion)
+  // Only count families that are the item's PRIMARY nature (from description), not incidental references.
+  // E.g., "Concrete equipment support for storefront" — glazing is incidental, concrete is primary.
+  const descText = (item.description || "").toLowerCase();
+  const descFamiliesForExclude = matchingFamilies(descText);
+  const descNonSupportForExclude = descFamiliesForExclude.filter((f) => !SUPPORT_FAMILIES.includes(f));
+  // A family is "primary" if it's not just a prepositional target ("for storefront", "at glazing")
+  // Heuristic: if the excluded family appears BEFORE the included family in the description, the excluded family is primary
+  const hasCleanExplicitInclude = (() => {
+    const cleanNonSupport = descNonSupportForExclude.filter((family) =>
+      containsFamily(intent.explicitIncludes, family) && !containsFamily(intent.explicitExcludes, family)
+    );
+    if (cleanNonSupport.length === 0) {
+      // Check support families only if there are no non-support families
+      if (descNonSupportForExclude.length === 0) {
+        return descFamiliesForExclude.filter((f) => SUPPORT_FAMILIES.includes(f)).some((family) =>
+          containsFamily(intent.explicitIncludes, family) && !containsFamily(intent.explicitExcludes, family)
+        );
+      }
+      return false;
+    }
+    // If the item also has an excluded non-support family, check which appears first in description
+    const excludedNonSupport = descNonSupportForExclude.filter((family) =>
+      containsFamily(intent.explicitExcludes, family)
+    );
+    if (excludedNonSupport.length === 0) return true; // Only clean includes, no conflict
+    // Find first position of excluded vs included family in description
+    const firstExcludedPos = Math.min(...excludedNonSupport.map((f) => {
+      const patterns = TERM_PATTERNS[f];
+      const positions = patterns.map((p) => { const m = descText.match(p); return m?.index ?? Infinity; });
+      return Math.min(...positions);
+    }));
+    const firstIncludedPos = Math.min(...cleanNonSupport.map((f) => {
+      const patterns = TERM_PATTERNS[f];
+      const positions = patterns.map((p) => { const m = descText.match(p); return m?.index ?? Infinity; });
+      return Math.min(...positions);
+    }));
+    // If the included family appears BEFORE the excluded family, it's the primary nature
+    return firstIncludedPos < firstExcludedPos;
+  })();
+
   if (matchesExplicitExcludedPhrase(text, intent.normalizedText)) return "excluded";
-  if (hasExplicitExclude && !(hasBroadConcretePackageProfile && hasProfileInclude) && !hasProtectiveExplicitInclude) return "excluded";
+  if (hasExplicitExclude && !hasCleanExplicitInclude && !(hasBroadConcretePackageProfile && hasProfileInclude) && !hasProtectiveExplicitInclude) return "excluded";
   if (hasExplicitExclude && !hasExplicitInclude) return "excluded";
   if (hasProfileExclude && hasUnincludedHardExcludedFamily) {
     return intent.scopeStrictness === "review_first" ? "review" : "excluded";
@@ -642,6 +717,9 @@ export function classifyTradePackageScopeSafety(
   if (weakEvidence) return "review";
   if (broadOnly) return "review";
   if (generatedOrConsolidated && !namedAnchor) return "review";
+  // High-dollar generated items: named area alone is not enough.
+  // If the calc basis references broad unrelated assemblies, demote even with named area.
+  if (isHighDollar && generatedOrConsolidated && namedAnchor && hasBroadCalcBasis(text)) return "review";
   if (isHighDollar && (generatedOrConsolidated || repeatedAssembly) && (!namedAnchor || weakEvidence)) return "review";
   if (isHighDollar && broadOnly) return "review";
 

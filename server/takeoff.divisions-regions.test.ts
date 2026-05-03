@@ -250,6 +250,60 @@ describe("trade-package duplicate assembly safety", () => {
   });
 });
 
+describe("Generated rebar dedup: mislabeled named-area row with broad calc basis", () => {
+  it("penalizes gate post row with broad calc and keeps aggregate row active", () => {
+    const broadCalc = "[Enhanced] #5 rebar at 12 OC both ways. Calc: total building slab area 18,500 SF + grade beams 1,240 LF + columns 48 EA + retaining walls 860 LF = 48,178 LB";
+    const items = [
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing steel for Gate Post Foundations",
+        quantity: 48178,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 9_828_312,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: broadCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [1],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+      {
+        csiDivision: "03",
+        csiCode: "03 20 00",
+        description: "Reinforcing Steel within Foundations and Pits",
+        quantity: 48178,
+        unit: "LB",
+        unitCost: 204,
+        extendedCost: 9_828_312,
+        materialCost: 122,
+        laborCost: 82,
+        confidence: 75,
+        notes: broadCalc,
+        sourceSheetIds: [1],
+        sourceItemIds: [2],
+        wasConsolidated: false,
+        wasEnhanced: true,
+        isGenerated: false,
+        needsMeasurement: false,
+      },
+    ];
+
+    const result = holdDuplicateGeneratedQuantityAssemblies(items as any);
+
+    // Gate Post row should be demoted (broad calc mismatch penalty)
+    expect(result[0].notes).toContain("[Scope: review]");
+    expect(result[0].notes).toContain("Generated quantity safety");
+    // Aggregate row should remain active
+    expect(result[1].notes).not.toContain("[Scope: review]");
+  });
+});
+
 describe("Regional Cost Factors", () => {
   it("should have cost region groups", () => {
     expect(COST_REGION_GROUPS.length).toBeGreaterThan(0);
