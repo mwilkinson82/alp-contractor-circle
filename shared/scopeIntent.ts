@@ -461,13 +461,42 @@ function hasNamedIncludedWorkArea(text: string): boolean {
     /\bvapor barriers?\b/i,
     /\brigid insulation\b/i,
     /\btermite treatment\b/i,
+    // Additional patterns from NAMED_AREA_PATTERNS for consistency
+    /\bwithin\s+(?:foundations?|pits?|trenches?)\b/i,
+    /\b(?:for|at|in)\s+(?:foundations?\s+and\s+pits?|pits?\s+and\s+foundations?)\b/i,
+    /\bconcrete\s+foundations?\b/i,
+    /\bfoundation\s+continuation\b/i,
+    /\bfooting\s+(?:reinforc|dowel|concrete)\b/i,
+    /\bsawcut\s+control\s+joints?\b/i,
+    /\bconcrete\s+testing\b/i,
+    /\bcompaction\s+testing\b/i,
+    /\bfield\s+supervision\b/i,
+    /\bproject\s+management\b/i,
+    /\bmobilization\b/i,
+    /\blayout\s+coordination\b/i,
+    /\bstepped\s+footing\b/i,
+    /\bslab\s+edge\s+form\b/i,
+    /\bfooting\s+dowel\b/i,
+    /\bdowels?\s+(?:required|for)\b/i,
+    /\bfoundation\s+(?:wall|concrete|drain)\b/i,
+    /\bgrade\s+beam\b/i,
+    /\bwall\s+footing\b/i,
+    /\bcolumn\s+footing\b/i,
+    /\bequipment\s+(?:pad|support)\b/i,
   ].some((pattern) => pattern.test(text));
 }
 
 function hasBroadAssemblyOnly(text: string): boolean {
   if (hasNamedIncludedWorkArea(text)) return false;
-  return /\b(?:generic|typ(?:ical)?|general|related)\b.*\b(?:concrete|slabs?|foundations?|formwork|reinforc(?:ing|ement)?|rebar)\b/i.test(text) ||
-    /\b(?:concrete|slabs?|foundations?|formwork|reinforc(?:ing|ement)?|rebar|control joints?|sawcuts?)\b/i.test(text);
+  // Only match items that are GENERIC (have generic/typical/general/related qualifiers)
+  // or are clearly broad consolidations without specific named-area ties
+  const hasGenericQualifier = /\b(?:generic|typ(?:ical)?|general|related|broad|misc(?:ellaneous)?)\b/i.test(text);
+  const hasConcreteTerm = /\b(?:concrete|slabs?|foundations?|formwork|reinforc(?:ing|ement)?|rebar|control joints?|sawcuts?)\b/i.test(text);
+  if (hasGenericQualifier && hasConcreteTerm) return true;
+  // Also catch items that are ONLY a bare concrete term with no specificity
+  // e.g. "Concrete placement" or "Formwork" alone, but NOT "Sawcut control joints" or "Reinforcing steel within foundations"
+  if (/^(?:concrete|slab|foundation|formwork|reinforc(?:ing|ement)|rebar)\b/i.test(text.trim()) && text.trim().split(/\s+/).length <= 4) return true;
+  return false;
 }
 
 function hasWeakSheetEvidence(text: string): boolean {
