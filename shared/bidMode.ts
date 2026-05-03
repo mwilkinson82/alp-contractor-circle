@@ -13,7 +13,7 @@ export interface BidModeBehavior {
   reviewSurface: string;
   extractionStrategy: "broad" | "strict_scope" | "speed_first";
   sheetTriage: "all_buildable" | "scope_relevant" | "highest_signal";
-  verification: "standard" | "targeted" | "minimal";
+  verification: "standard" | "fast_default" | "minimal";
   scopeStrictness: "broad" | "strict" | "review_first";
   maxFastSheets?: number;
 }
@@ -38,7 +38,7 @@ export const BID_MODE_BEHAVIORS: Record<TakeoffBidMode, BidModeBehavior> = {
     reviewSurface: "Active, needs-review, and boundary items separated before totals.",
     extractionStrategy: "strict_scope",
     sheetTriage: "scope_relevant",
-    verification: "targeted",
+    verification: "fast_default",
     scopeStrictness: "strict",
   },
   fast_scope_check: {

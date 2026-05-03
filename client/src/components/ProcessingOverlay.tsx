@@ -62,13 +62,11 @@ const PHASE1_MESSAGES = [
 ];
 
 const PHASE2_MESSAGES = [
-  { icon: HardHat, text: "Pass 1 — Reading the drawing holistically..." },
-  { icon: Boxes, text: "Pass 1 — Extracting every measurable quantity..." },
-  { icon: Calculator, text: "Pass 1 — Classifying items by CSI division..." },
-  { icon: ScanLine, text: "Pass 2 — Verifying quantities against the drawing..." },
-  { icon: FileSearch, text: "Pass 2 — Checking for missing items..." },
-  { icon: Wrench, text: "Pass 2 — Correcting any quantity errors..." },
-  { icon: Hammer, text: "Merging verified results..." },
+  { icon: HardHat, text: "Reading the drawing holistically..." },
+  { icon: Boxes, text: "Extracting measurable quantities..." },
+  { icon: Calculator, text: "Classifying items by CSI division..." },
+  { icon: ScanLine, text: "Applying scope-aware extraction..." },
+  { icon: Hammer, text: "Preparing rows for pricing and review..." },
 ];
 
 const PHASE3_MESSAGES = [
@@ -303,8 +301,8 @@ export default function ProcessingOverlay({
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
-  const [startTime] = useState(() => Date.now());
-  const [elapsed, setElapsed] = useState(0);
+  const phaseStartRef = useRef(Date.now());
+  const [phaseElapsed, setPhaseElapsed] = useState(0);
   const consolidationStartRef = useRef<number | null>(null);
   const [consolidationElapsed, setConsolidationElapsed] = useState(0);
 
@@ -339,12 +337,14 @@ export default function ProcessingOverlay({
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Date.now() - startTime);
+      setPhaseElapsed(Date.now() - phaseStartRef.current);
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, []);
 
   useEffect(() => {
+    phaseStartRef.current = Date.now();
+    setPhaseElapsed(0);
     setMessageIndex(0);
   }, [currentPhase]);
 
@@ -380,15 +380,15 @@ export default function ProcessingOverlay({
     }
     const remaining = totalSheets - processedSheets;
     if (remaining <= 0) return 15000; // Almost done — show minimal time
-    const avgPerSheet = processedSheets > 0 && elapsed > 5000
-      ? elapsed / processedSheets
-      : 30000;
+    const avgPerSheet = processedSheets > 0 && phaseElapsed > 5000
+      ? phaseElapsed / processedSheets
+      : 12000;
     return Math.max(15000, remaining * avgPerSheet); // Never show less than 15s
-  }, [currentPhase, totalSheets, processedSheets, elapsed, consolidationElapsed]);
+  }, [currentPhase, totalSheets, processedSheets, phaseElapsed, consolidationElapsed]);
 
   const phases = [
     { key: "indexing" as const, label: "Classify Sheets", description: "Identifying sheet types" },
-    { key: "extracting" as const, label: "Extract & Verify", description: "2-pass AI per sheet" },
+    { key: "extracting" as const, label: "Extract", description: "Fast AI extraction" },
     { key: "consolidating" as const, label: "Price & Consolidate", description: "Material + labor pricing" },
   ];
 

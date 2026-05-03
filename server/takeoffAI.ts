@@ -235,7 +235,14 @@ export function shouldVerifyExtractionForBidMode(
 ): { shouldVerify: boolean; reason: string } {
   const behavior = getBidModeBehavior(bidMode);
   const base = shouldVerifyExtraction(extracted, scaleRatio);
-  if (behavior.verification !== "minimal") return base;
+
+  if (behavior.verification === "standard") return base;
+
+  if (behavior.verification === "fast_default") {
+    const hasInvalidQuantity = extracted.items.some((item) => !Number.isFinite(item.quantity) || item.quantity <= 0);
+    if (hasInvalidQuantity) return base;
+    return { shouldVerify: false, reason: `${behavior.label} fast default; scope safety runs in post-processing` };
+  }
 
   const hasInvalidQuantity = extracted.items.some((item) => !Number.isFinite(item.quantity) || item.quantity <= 0);
   const hasLumpSum = extracted.items.some((item) => item.unit.toUpperCase().trim() === "LS");
@@ -575,9 +582,9 @@ async function verifyPass(
 // ─── Main Sheet Processing Function ───────────────────────────────────────────
 
 /**
- * Process a single drawing sheet through the two-pass AI pipeline.
+ * Process a single drawing sheet through the default fast AI pipeline.
  * Pass 1: Extract quantities from the drawing image.
- * Pass 2: Verify and QA the extraction against the same image.
+ * Optional Pass 2: Verify and QA only for bid modes that explicitly require it.
  */
 export async function processDrawingSheet(
   sheetId: number,
@@ -853,9 +860,9 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
     console.log(`[Takeoff AI] No pending sheets for project ${projectId}; skipping indexing/extraction and running post-processing only.`);
   }
 
-  // ─── PASS 2: Extract + Verify (parallel, concurrency=6) ──────────────────────
+  // ─── PASS 2: Extract (plus optional verification for standard QA modes) ──────
   const pass2Start = Date.now();
-  console.log(`[Takeoff AI] === PASS 2: Two-pass extraction for project ${projectId} (parallel, concurrency=6) ===`);
+  console.log(`[Takeoff AI] === PASS 2: Fast extraction for project ${projectId} (parallel, concurrency=6; verification=${bidModeBehavior.verification}) ===`);
 
   let processedCount = project.processedSheets || 0;
   let hasError = false;
@@ -966,7 +973,7 @@ export async function processAllPendingSheets(projectId: number): Promise<void> 
   }
 
   timings.pass2_extraction_sec = Math.round((Date.now() - pass2Start) / 1000);
-  console.log(`[Takeoff AI] ⏱ Pass 2 (extraction + verification): ${timings.pass2_extraction_sec}s`);
+  console.log(`[Takeoff AI] ⏱ Pass 2 (extraction + optional verification): ${timings.pass2_extraction_sec}s`);
 
   // ─── Post-Processing Pipeline ─────────────────────────────────────────────────
   const postProcStart = Date.now();

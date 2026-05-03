@@ -62,7 +62,7 @@ describe("bid mode behavior", () => {
     );
   });
 
-  it("lets Fast Scope Check skip standard verification for clean high-confidence results", () => {
+  it("keeps Trade Package and Fast Scope Check on the fast default path for usable reads", () => {
     const extracted = {
       sheetName: "A1.1 Floor Plan",
       sheetType: "floor_plan",
@@ -79,7 +79,8 @@ describe("bid mode behavior", () => {
       detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
     };
 
-    expect(shouldVerifyExtractionForBidMode(extracted, "trade_package").shouldVerify).toBe(true);
+    expect(shouldVerifyExtractionForBidMode(extracted, "trade_package").shouldVerify).toBe(false);
+    expect(shouldVerifyExtractionForBidMode(extracted, "trade_package").reason).toContain("fast default");
     expect(shouldVerifyExtractionForBidMode(extracted, "fast_scope_check").shouldVerify).toBe(false);
   });
 });
