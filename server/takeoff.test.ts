@@ -131,6 +131,54 @@ describe("Takeoff AI Pipeline", () => {
     expect(decision.reason).toContain("fast scope check");
   });
 
+  it("should keep Trade Package Takeoff on the fast default path and skip per-sheet AI verification", async () => {
+    const mod = await import("./takeoffAI");
+    const decision = mod.shouldVerifyExtractionForBidMode({
+      sheetName: "S1.1 Foundation Plan",
+      sheetType: "structural",
+      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
+      items: [
+        {
+          csiDivision: "03",
+          csiCode: "03 30 00",
+          description: "Concrete slab-on-grade",
+          quantity: 4323,
+          unit: "SF",
+          unitCost: 1,
+          confidence: 74,
+          notes: "Measured from foundation plan",
+        },
+      ],
+    }, "trade_package", null);
+
+    expect(decision.shouldVerify).toBe(false);
+    expect(decision.reason).toContain("fast default");
+  });
+
+  it("should still verify invalid Trade Package extraction results", async () => {
+    const mod = await import("./takeoffAI");
+    const decision = mod.shouldVerifyExtractionForBidMode({
+      sheetName: "S1.1 Foundation Plan",
+      sheetType: "structural",
+      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
+      items: [
+        {
+          csiDivision: "03",
+          csiCode: "03 30 00",
+          description: "Concrete slab-on-grade",
+          quantity: 0,
+          unit: "SF",
+          unitCost: 1,
+          confidence: 90,
+          notes: "Invalid quantity",
+        },
+      ],
+    }, "trade_package", null);
+
+    expect(decision.shouldVerify).toBe(true);
+    expect(decision.reason).toContain("invalid quantity");
+  });
+
   it("should score scope-relevant sheets higher for Trade Package Takeoff", async () => {
     const mod = await import("./takeoffAI");
     const waterproofingScore = mod.scoreSheetForBidMode({
