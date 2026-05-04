@@ -77,6 +77,7 @@ import {
   ClipboardList,
   Info,
   Flag,
+  AlertTriangle,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -2886,6 +2887,26 @@ export default function TakeoffDetail() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Scope Sanity Warning Banner — non-blocking */}
+                {bidModeBehavior.scopeStrictness === "strict" && totalCost > 0 && reviewItemsCost > 0 && totalCost > reviewItemsCost * 2 && activeItems.length > 5 && (() => {
+                  // Show warning if active total seems unusually high relative to review items
+                  // This is a heuristic: if active > 2x the review bucket, something may be over-counted
+                  const activeToReviewRatio = totalCost / (reviewItemsCost || 1);
+                  const showWarning = activeToReviewRatio > 3 || totalCost > 50_000_00; // > 3:1 ratio or > $500k
+                  if (!showWarning) return null;
+                  return (
+                    <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/25">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-amber-300 text-sm font-semibold">Scope total may be unusually high</p>
+                        <p className="text-amber-200/70 text-xs mt-0.5">
+                          Active total ({formatCurrency(totalCost, project?.currency || "USD")}) is significantly higher than the review bucket ({formatCurrency(reviewItemsCost, project?.currency || "USD")}). 
+                          Review high-dollar active items to ensure generic assemblies haven't been over-counted.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {/* Summary Bar — Redesigned two-row toolbar */}
                 <div
                   data-tour="takeoff-summary-bar"
