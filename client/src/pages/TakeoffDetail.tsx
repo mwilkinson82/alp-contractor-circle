@@ -633,6 +633,8 @@ export default function TakeoffDetail() {
     null
   );
   const [showRawReviewRows, setShowRawReviewRows] = useState(false);
+  const [showAcceptedRows, setShowAcceptedRows] = useState(false);
+  const [showBoundaryRows, setShowBoundaryRows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
@@ -2953,31 +2955,39 @@ export default function TakeoffDetail() {
                 {/* Summary Bar — Redesigned two-row toolbar */}
                 <div
                   data-tour="takeoff-summary-bar"
-                  className="bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 space-y-2"
+                  className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 space-y-2"
                 >
                   {/* Row 1: Stats + Total + Primary Actions */}
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Stats */}
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
-                      <span className="whitespace-normal">
-                        <span className="text-cream">
-                          {activeItems.length} active
+                      {assemblyBundles.length > 0 ? (
+                        <span className="whitespace-normal text-cream">
+                          Review {highImpactOpenBundles.length} open package
+                          {highImpactOpenBundles.length !== 1 ? "s" : ""} in
+                          Foreman Workbench before pricing.
                         </span>
-                        <span className="text-red-300/80">
-                          {" "}
-                          • {excludedItems.length} excluded/boundary
+                      ) : (
+                        <span className="whitespace-normal">
+                          <span className="text-cream">
+                            {activeItems.length} active
+                          </span>
+                          <span className="text-red-300/80">
+                            {" "}
+                            • {excludedItems.length} excluded/boundary
+                          </span>
+                          <span
+                            className={
+                              scopeReviewCount > 0
+                                ? "text-amber-300/90"
+                                : "text-cream-muted"
+                            }
+                          >
+                            {" "}
+                            • {scopeReviewCount} need review
+                          </span>
                         </span>
-                        <span
-                          className={
-                            scopeReviewCount > 0
-                              ? "text-amber-300/90"
-                              : "text-cream-muted"
-                          }
-                        >
-                          {" "}
-                          • {scopeReviewCount} need review
-                        </span>
-                      </span>
+                      )}
                       <span className="hidden sm:inline whitespace-nowrap">
                         {Object.keys(groupedItems).length} CSI divisions
                       </span>
@@ -3004,9 +3014,9 @@ export default function TakeoffDetail() {
                     {/* Right: Total */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-cream-muted text-sm hidden sm:inline">
-                        Pricing ref:
+                        Current bid:
                       </span>
-                      <span className="text-amber-400 font-bold text-lg sm:text-xl tabular-nums">
+                      <span className="text-emerald-300 font-bold text-lg sm:text-xl tabular-nums">
                         {formatCurrency(totalCost, project?.currency || "USD")}
                       </span>
                     </div>
@@ -3615,27 +3625,17 @@ export default function TakeoffDetail() {
                             : bundle.status === "mixed"
                               ? "Partly Decided"
                               : "Needs Decision";
-                    const statusClass =
-                      bundle.status === "include"
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                        : bundle.status === "exclude"
-                          ? "bg-red-500/15 text-red-200 border-red-500/25"
-                          : bundle.status === "review"
-                            ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
-                            : bundle.status === "mixed"
-                              ? "bg-blue-500/15 text-blue-200 border-blue-500/25"
-                              : "bg-amber-500/15 text-amber-200 border-amber-500/25";
                     return (
                       <div
                         id="assembly-review"
-                        className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/20"
+                        className="border border-white/10 rounded-lg overflow-hidden bg-[#07080b]"
                       >
-                        <div className="px-4 py-3 bg-navy-deep/55 border-b border-white/10">
+                        <div className="px-5 py-4 bg-white/[0.025] border-b border-white/10">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <Layers className="w-4 h-4 text-amber-300" />
-                                <h2 className="text-sm font-semibold text-cream">
+                                <h2 className="text-base font-semibold text-cream">
                                   Foreman Workbench
                                 </h2>
                                 <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
@@ -3651,12 +3651,13 @@ export default function TakeoffDetail() {
                                 >
                                   {readyToPrice
                                     ? "Ready to price"
-                                    : `${highImpactOpenBundles.length} left`}
+                                    : `${highImpactOpenBundles.length} package${highImpactOpenBundles.length !== 1 ? "s" : ""} left`}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-cream-muted mt-1">
-                                Pick package, check drawing, make the call, then
-                                move to the next package.
+                              <p className="text-sm text-cream-muted mt-1">
+                                Do one package at a time. Look at the drawing,
+                                choose where it goes, then the next package
+                                opens.
                               </p>
                             </div>
                             <Button
@@ -3674,67 +3675,46 @@ export default function TakeoffDetail() {
                               Price Bid
                             </Button>
                           </div>
-                          <div className="mt-4 grid gap-2 sm:grid-cols-5">
-                            {[
-                              {
-                                label: "Pick package",
-                                value: `${packageIndex}/${assemblyBundles.length}`,
-                                done: true,
-                              },
-                              {
-                                label: "Check drawing",
-                                value: bundle.drawingGroup,
-                                done: !!selectedSheet?.imageUrl,
-                              },
-                              {
-                                label: "Make call",
-                                value: statusLabel,
-                                done: bundle.status !== "open",
-                              },
-                              {
-                                label: "Next package",
-                                value: nextOpenBundle ? "Queued" : "Clear",
-                                done: !nextOpenBundle,
-                              },
-                              {
-                                label: "Price",
-                                value: readyToPrice ? "Open" : "Locked",
-                                done: readyToPrice,
-                              },
-                            ].map(step => (
-                              <div
-                                key={step.label}
-                                className={`rounded-md border px-3 py-2 ${
-                                  step.done
-                                    ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-                                    : "border-white/10 bg-white/[0.03]"
-                                }`}
-                              >
+                          <div className="mt-4 rounded-md border border-white/10 bg-black/20 px-4 py-3">
+                            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+                              <div>
                                 <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  {step.label}
+                                  1. Package
                                 </p>
-                                <p
-                                  className={`mt-1 truncate text-xs font-semibold ${
-                                    step.done
-                                      ? "text-emerald-300"
-                                      : "text-amber-200"
-                                  }`}
-                                >
-                                  {step.value}
+                                <p className="mt-1 text-sm font-semibold text-cream">
+                                  {packageIndex} of {assemblyBundles.length}
                                 </p>
                               </div>
-                            ))}
+                              <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                  2. Drawing
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-cream">
+                                  {bundle.drawingGroup}
+                                </p>
+                              </div>
+                              <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                  3. Your call
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-amber-200">
+                                  {statusLabel}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="grid xl:grid-cols-[320px_minmax(0,1fr)]">
-                          <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-navy-deep/30">
+                        <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
+                          <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-white/[0.015]">
                             <div className="px-4 py-3 border-b border-white/10">
                               <p className="text-xs font-semibold uppercase tracking-wider text-cream">
-                                Package Queue
+                                Pick a Package
                               </p>
                               <p className="text-xs text-cream-muted mt-1">
-                                The biggest undecided work stays at the top.
+                                Start at the top. Finished packages fade back.
                               </p>
                             </div>
                             <div className="max-h-[760px] overflow-y-auto p-2 space-y-2">
@@ -3760,15 +3740,15 @@ export default function TakeoffDetail() {
                                     }
                                     className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                       active
-                                        ? "border-amber-400/60 bg-amber-500/10"
+                                        ? "border-amber-400/45 bg-amber-500/[0.08]"
                                         : done
-                                          ? "border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.07]"
+                                          ? "border-white/10 bg-white/[0.015] opacity-65 hover:opacity-85"
                                           : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
                                     }`}
                                   >
                                     <div className="flex items-start gap-2">
                                       {done ? (
-                                        <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-emerald-300" />
+                                        <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-cream-muted" />
                                       ) : (
                                         <Flag className="mt-0.5 w-4 h-4 shrink-0 text-amber-300" />
                                       )}
@@ -3785,7 +3765,7 @@ export default function TakeoffDetail() {
                                       <span
                                         className={`text-[11px] font-semibold ${
                                           done
-                                            ? "text-emerald-300"
+                                            ? "text-cream-muted"
                                             : "text-amber-200"
                                         }`}
                                       >
@@ -3811,13 +3791,11 @@ export default function TakeoffDetail() {
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Badge className="bg-blue-500/15 text-blue-200 border-blue-500/25 text-[10px]">
+                                    <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
                                       <FileImage className="w-3 h-3 mr-1" />
                                       {bundle.drawingGroup}
                                     </Badge>
-                                    <Badge
-                                      className={`${statusClass} text-[10px]`}
-                                    >
+                                    <Badge className="bg-amber-500/10 text-amber-200 border-amber-500/20 text-[10px]">
                                       {bundle.status !== "open" && (
                                         <CheckCircle2 className="w-3 h-3 mr-1" />
                                       )}
@@ -3845,7 +3823,7 @@ export default function TakeoffDetail() {
                               </div>
                             </div>
 
-                            <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+                            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
@@ -3888,14 +3866,17 @@ export default function TakeoffDetail() {
                                 </div>
                               </div>
 
-                              <aside className="bg-navy-deep/25 p-4 space-y-4">
-                                <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-4">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
-                                    Make the call
+                              <aside className="bg-white/[0.012] p-4 space-y-4">
+                                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                                    Step 3
+                                  </p>
+                                  <p className="mt-1 text-lg font-semibold text-cream">
+                                    Choose where this goes
                                   </p>
                                   <p className="mt-1 text-sm text-cream-muted">
-                                    Choose once. The queue advances after your
-                                    decision.
+                                    Pick one answer. ConstructLine moves you to
+                                    the next package.
                                   </p>
                                   <div className="mt-4 grid gap-2">
                                     <Button
@@ -3908,7 +3889,7 @@ export default function TakeoffDetail() {
                                       className={
                                         bundle.status === "include"
                                           ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                          : "justify-start border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10"
+                                          : "justify-start border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-100 hover:bg-emerald-500/12"
                                       }
                                       onClick={() =>
                                         applyWorkbenchDecision(
@@ -3929,8 +3910,8 @@ export default function TakeoffDetail() {
                                       variant="outline"
                                       className={
                                         bundle.status === "exclude"
-                                          ? "justify-start border-red-400/50 bg-red-500/15 text-red-100 ring-1 ring-red-300/25"
-                                          : "justify-start border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                       }
                                       onClick={() =>
                                         applyWorkbenchDecision(
@@ -3951,8 +3932,8 @@ export default function TakeoffDetail() {
                                       variant="outline"
                                       className={
                                         bundle.status === "review"
-                                          ? "justify-start border-amber-400/50 bg-amber-500/15 text-amber-100 ring-1 ring-amber-300/25"
-                                          : "justify-start border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                       }
                                       onClick={() =>
                                         applyWorkbenchDecision(bundle, "review")
@@ -3968,30 +3949,30 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2">
-                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                <div className="grid grid-cols-3 gap-2 opacity-80">
+                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
                                       In Bid
                                     </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-emerald-300">
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
                                       {formatCurrency(
                                         bundle.currentIncludedCost,
                                         project?.currency || "USD"
                                       )}
                                     </p>
                                   </div>
-                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
                                       Waiting
                                     </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-amber-200">
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
                                       {formatCurrency(
                                         bundle.openReviewCost,
                                         project?.currency || "USD"
                                       )}
                                     </p>
                                   </div>
-                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
                                       Found
                                     </p>
@@ -4004,7 +3985,7 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
                                     Suggested call
                                   </p>
@@ -4233,433 +4214,477 @@ export default function TakeoffDetail() {
                   </div>
                 )}
 
-                {/* Items by CSI Division */}
-                {Object.entries(groupedItems)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([division, divItems]) => {
-                    const isCollapsed = collapsedDivisions.has(division);
-                    const divTotal = (divItems as any[]).reduce(
-                      (sum: number, item: any) =>
-                        sum + (item.extendedCost || 0),
-                      0
-                    );
-                    const divName =
-                      CSI_DIVISION_NAMES[division] || `Division ${division}`;
-
-                    const divReviewedCount = (divItems as any[]).filter(
-                      (i: any) => i.reviewed
-                    ).length;
-                    const divItemCount = (divItems as any[]).length;
-                    const allReviewed = divReviewedCount === divItemCount;
-
-                    return (
-                      <div
-                        key={division}
-                        className="border border-white/10 rounded-lg overflow-hidden"
+                {assemblyBundles.length > 0 && activeItems.length > 0 && (
+                  <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-cream-muted" />
+                        <span className="text-cream-muted font-semibold">
+                          Accepted Bid Rows
+                        </span>
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          {activeItems.length} already counted
+                        </Badge>
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          {formatCurrency(
+                            totalCost,
+                            project?.currency || "USD"
+                          )}
+                        </Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                        onClick={() => setShowAcceptedRows(prev => !prev)}
                       >
-                        {/* Division Header */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
-                          <button
-                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                            onClick={() => toggleDivision(division)}
-                          >
-                            {isCollapsed ? (
-                              <ChevronRight className="w-4 h-4 text-cream-muted" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-cream-muted" />
-                            )}
-                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-mono">
-                              {division}
-                            </Badge>
-                            <span className="text-cream font-semibold">
-                              {divName}
-                            </span>
-                            <span className="text-cream-muted text-sm">
-                              ({divItemCount} items)
-                            </span>
-                            {divReviewedCount > 0 && (
-                              <Badge
-                                className={`text-xs ${
-                                  allReviewed
-                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                    : "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                                }`}
-                              >
-                                {allReviewed
-                                  ? "All Reviewed"
-                                  : `${divReviewedCount}/${divItemCount} reviewed`}
-                              </Badge>
-                            )}
-                          </button>
-                          <div className="flex items-center gap-3">
-                            {allReviewed ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-xs gap-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                                onClick={() =>
-                                  bulkUnreviewMutation.mutate({
-                                    projectId,
-                                    csiDivision: division,
-                                  })
-                                }
-                                disabled={bulkUnreviewMutation.isPending}
-                              >
-                                <Square className="w-3.5 h-3.5" />
-                                Unreview All
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-xs gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                                onClick={() =>
-                                  bulkReviewMutation.mutate({
-                                    projectId,
-                                    csiDivision: division,
-                                  })
-                                }
-                                disabled={bulkReviewMutation.isPending}
-                              >
-                                <CheckSquare className="w-3.5 h-3.5" />
-                                Review All
-                              </Button>
-                            )}
-                            <span className="text-amber-400 font-semibold">
-                              {formatCurrency(
-                                divTotal,
-                                project?.currency || "USD"
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                        {showAcceptedRows ? (
+                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {showAcceptedRows ? "Hide Rows" : "Show Rows"}
+                      </Button>
+                    </div>
+                    {!showAcceptedRows && (
+                      <div className="px-4 py-3 text-xs text-cream-muted">
+                        These rows are already in the bid total. Review open
+                        packages first; come here only to audit accepted line
+                        items.
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                        {/* Division Items Table */}
-                        {!isCollapsed && (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                                  <th className="text-left px-4 py-2 w-12">
-                                    CSI
-                                  </th>
-                                  <th className="text-left px-4 py-2">
-                                    Description
-                                  </th>
-                                  <th className="text-right px-4 py-2 w-20">
-                                    Qty
-                                  </th>
-                                  <th className="text-left px-4 py-2 w-14">
-                                    Unit
-                                  </th>
-                                  <th className="text-right px-4 py-2 w-20">
-                                    Material
-                                  </th>
-                                  <th className="text-right px-4 py-2 w-24">
-                                    Default Labor
-                                  </th>
-                                  <th className="text-right px-4 py-2 w-24">
-                                    Ref Unit
-                                  </th>
-                                  <th className="text-right px-4 py-2 w-28">
-                                    Ref Total
-                                  </th>
-                                  <th className="text-center px-4 py-2 w-16">
-                                    Conf.
-                                  </th>
-                                  <th className="text-center px-4 py-2 w-16">
-                                    Verified
-                                  </th>
-                                  <th className="text-center px-4 py-2 w-24">
-                                    Decision
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(divItems as any[]).map((item: any) => {
-                                  const scopeStatus =
-                                    getScopeReviewStatus(item);
-                                  return (
-                                    <tr
-                                      key={item.id}
-                                      className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
-                                        item.reviewed ? "bg-emerald-500/5" : ""
-                                      } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
-                                      onClick={() => setSelectedItem(item)}
-                                    >
-                                      <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                        <div className="flex items-center gap-1">
-                                          {item.reviewed && (
-                                            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                                          )}
-                                          {item.csiCode || item.csiDivision}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-2 text-cream max-w-xs">
-                                        <p className="line-clamp-2">
-                                          {item.description}
-                                        </p>
-                                        {scopeStatus !== "included" && (
-                                          <div className="flex flex-wrap items-center gap-1 mt-1">
-                                            <Badge
-                                              className={`text-[10px] ${
-                                                scopeStatus === "review"
-                                                  ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                                                  : "bg-red-500/15 text-red-300 border-red-500/25"
-                                              }`}
-                                            >
-                                              <Flag className="w-2.5 h-2.5 mr-0.5" />
-                                              {formatScopeReviewStatus(
-                                                scopeStatus
-                                              )}
-                                            </Badge>
-                                          </div>
-                                        )}
-                                        {/* Consolidation diff annotations */}
-                                        {showConsolidationDiff &&
-                                          consolidationDiff?.hasDiff &&
-                                          (() => {
-                                            const ann =
-                                              consolidationDiff.itemAnnotations[
-                                                item.id
-                                              ];
-                                            if (!ann) return null;
-                                            return (
-                                              <div className="flex flex-wrap items-center gap-1 mt-1">
-                                                {ann.isNew && (
-                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                                    New
-                                                  </span>
-                                                )}
-                                                {ann.mergedFrom > 1 && (
-                                                  <span
-                                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
-                                                    title={ann.mergedDescriptions?.join(
-                                                      "\n"
-                                                    )}
-                                                  >
-                                                    <Merge className="w-2.5 h-2.5" />
-                                                    Combined from{" "}
-                                                    {ann.mergedFrom}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            );
-                                          })()}
-                                        {item.notes && (
-                                          <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
-                                            {item.notes}
-                                          </p>
-                                        )}
-                                      </td>
-                                      <td className="px-4 py-2 text-right text-cream font-mono">
-                                        <span>
-                                          {parseFloat(
-                                            item.quantity
-                                          ).toLocaleString()}
-                                        </span>
-                                        {/* Needs measurement indicator */}
-                                        {item.needsMeasurement && (
-                                          <div
-                                            className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1"
-                                            title="Quantity is a placeholder — update with actual measurement"
-                                          >
-                                            <Ruler className="w-3 h-3" />
-                                            needs qty
-                                          </div>
-                                        )}
-                                        {/* Quantity change annotation */}
-                                        {showConsolidationDiff &&
-                                          consolidationDiff?.hasDiff &&
-                                          (() => {
-                                            const ann =
-                                              consolidationDiff.itemAnnotations[
-                                                item.id
-                                              ];
-                                            if (
-                                              !ann ||
-                                              !ann.qtyChanged ||
-                                              ann.isNew
-                                            )
-                                              return null;
-                                            return (
-                                              <div
-                                                className="text-[10px] text-amber-400/80 font-normal mt-0.5"
-                                                title="Quantity changed during consolidation"
-                                              >
-                                                was{" "}
-                                                {(
-                                                  ann.qtyBefore ?? 0
-                                                ).toLocaleString()}
-                                              </div>
-                                            );
-                                          })()}
-                                      </td>
-                                      <td className="px-4 py-2 text-cream-muted">
-                                        {item.unit}
-                                      </td>
-                                      {/* Material Cost */}
-                                      <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
-                                        {isConsolidating ? (
-                                          <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
-                                        ) : (
-                                          formatCurrency(
-                                            getTakeoffMaterialUnitCost(item),
-                                            project?.currency || "USD"
-                                          )
-                                        )}
-                                      </td>
-                                      {/* Labor Cost */}
-                                      <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
-                                        {isConsolidating ? (
-                                          <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
-                                        ) : (
-                                          formatCurrency(
-                                            item.laborCost || 0,
-                                            project?.currency || "USD"
-                                          )
-                                        )}
-                                      </td>
-                                      {/* Installed (Combined) Unit Cost */}
-                                      <td className="px-4 py-2 text-right text-cream font-mono">
-                                        {isConsolidating ? (
-                                          <span
-                                            className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse"
-                                            title="Pricing being applied..."
-                                          />
-                                        ) : (
-                                          <>
-                                            <span>
-                                              {formatCurrency(
-                                                item.unitCost,
-                                                project?.currency || "USD"
-                                              )}
-                                            </span>
-                                            {showConsolidationDiff &&
-                                              consolidationDiff?.hasDiff &&
-                                              (() => {
-                                                const ann =
-                                                  consolidationDiff
-                                                    .itemAnnotations[item.id];
-                                                if (
-                                                  !ann ||
-                                                  !ann.costChanged ||
-                                                  ann.isNew
-                                                )
-                                                  return null;
-                                                return (
-                                                  <div
-                                                    className="text-[10px] text-amber-400/80 font-normal mt-0.5"
-                                                    title="Unit cost changed during consolidation"
-                                                  >
-                                                    was{" "}
-                                                    {formatCurrency(
-                                                      ann.unitCostBefore ?? 0,
-                                                      project?.currency || "USD"
-                                                    )}
-                                                  </div>
-                                                );
-                                              })()}
-                                          </>
-                                        )}
-                                      </td>
-                                      <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
-                                        {isConsolidating ? (
-                                          <span
-                                            className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse"
-                                            title="Pricing being applied..."
-                                          />
-                                        ) : (
-                                          formatCurrency(
-                                            item.extendedCost,
-                                            project?.currency || "USD"
-                                          )
-                                        )}
-                                      </td>
-                                      <td className="px-4 py-2 text-center">
-                                        <Badge
-                                          className={`text-xs ${
-                                            item.confidence >= 80
-                                              ? "bg-emerald-500/20 text-emerald-400"
-                                              : item.confidence >= 50
-                                                ? "bg-amber-500/20 text-amber-400"
-                                                : "bg-red-500/20 text-red-400"
-                                          }`}
-                                        >
-                                          {item.confidence}%
-                                        </Badge>
-                                      </td>
-                                      <td className="px-4 py-2 text-center">
-                                        {item.reviewed ? (
-                                          <div
-                                            className="flex items-center justify-center"
-                                            title="Reviewed & Verified"
-                                          >
-                                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                          </div>
-                                        ) : (
-                                          <span className="text-cream-muted/30">
-                                            —
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td
-                                        className="px-4 py-2 text-center"
-                                        onClick={e => e.stopPropagation()}
+                {/* Items by CSI Division */}
+                {(assemblyBundles.length === 0 || showAcceptedRows) &&
+                  Object.entries(groupedItems)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([division, divItems]) => {
+                      const isCollapsed = collapsedDivisions.has(division);
+                      const divTotal = (divItems as any[]).reduce(
+                        (sum: number, item: any) =>
+                          sum + (item.extendedCost || 0),
+                        0
+                      );
+                      const divName =
+                        CSI_DIVISION_NAMES[division] || `Division ${division}`;
+
+                      const divReviewedCount = (divItems as any[]).filter(
+                        (i: any) => i.reviewed
+                      ).length;
+                      const divItemCount = (divItems as any[]).length;
+                      const allReviewed = divReviewedCount === divItemCount;
+
+                      return (
+                        <div
+                          key={division}
+                          className="border border-white/10 rounded-lg overflow-hidden"
+                        >
+                          {/* Division Header */}
+                          <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
+                            <button
+                              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                              onClick={() => toggleDivision(division)}
+                            >
+                              {isCollapsed ? (
+                                <ChevronRight className="w-4 h-4 text-cream-muted" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-cream-muted" />
+                              )}
+                              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-mono">
+                                {division}
+                              </Badge>
+                              <span className="text-cream font-semibold">
+                                {divName}
+                              </span>
+                              <span className="text-cream-muted text-sm">
+                                ({divItemCount} items)
+                              </span>
+                              {divReviewedCount > 0 && (
+                                <Badge
+                                  className={`text-xs ${
+                                    allReviewed
+                                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                      : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                  }`}
+                                >
+                                  {allReviewed
+                                    ? "All Reviewed"
+                                    : `${divReviewedCount}/${divItemCount} reviewed`}
+                                </Badge>
+                              )}
+                            </button>
+                            <div className="flex items-center gap-3">
+                              {allReviewed ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                                  onClick={() =>
+                                    bulkUnreviewMutation.mutate({
+                                      projectId,
+                                      csiDivision: division,
+                                    })
+                                  }
+                                  disabled={bulkUnreviewMutation.isPending}
+                                >
+                                  <Square className="w-3.5 h-3.5" />
+                                  Unreview All
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  onClick={() =>
+                                    bulkReviewMutation.mutate({
+                                      projectId,
+                                      csiDivision: division,
+                                    })
+                                  }
+                                  disabled={bulkReviewMutation.isPending}
+                                >
+                                  <CheckSquare className="w-3.5 h-3.5" />
+                                  Review All
+                                </Button>
+                              )}
+                              <span className="text-amber-400 font-semibold">
+                                {formatCurrency(
+                                  divTotal,
+                                  project?.currency || "USD"
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Division Items Table */}
+                          {!isCollapsed && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                                    <th className="text-left px-4 py-2 w-12">
+                                      CSI
+                                    </th>
+                                    <th className="text-left px-4 py-2">
+                                      Description
+                                    </th>
+                                    <th className="text-right px-4 py-2 w-20">
+                                      Qty
+                                    </th>
+                                    <th className="text-left px-4 py-2 w-14">
+                                      Unit
+                                    </th>
+                                    <th className="text-right px-4 py-2 w-20">
+                                      Material
+                                    </th>
+                                    <th className="text-right px-4 py-2 w-24">
+                                      Default Labor
+                                    </th>
+                                    <th className="text-right px-4 py-2 w-24">
+                                      Ref Unit
+                                    </th>
+                                    <th className="text-right px-4 py-2 w-28">
+                                      Ref Total
+                                    </th>
+                                    <th className="text-center px-4 py-2 w-16">
+                                      Conf.
+                                    </th>
+                                    <th className="text-center px-4 py-2 w-16">
+                                      Verified
+                                    </th>
+                                    <th className="text-center px-4 py-2 w-24">
+                                      Decision
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(divItems as any[]).map((item: any) => {
+                                    const scopeStatus =
+                                      getScopeReviewStatus(item);
+                                    return (
+                                      <tr
+                                        key={item.id}
+                                        className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
+                                          item.reviewed
+                                            ? "bg-emerald-500/5"
+                                            : ""
+                                        } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
+                                        onClick={() => setSelectedItem(item)}
                                       >
-                                        <div className="flex items-center justify-center gap-1">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
-                                            onClick={() =>
-                                              setSelectedItem(item)
-                                            }
-                                            title="View details"
+                                        <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                          <div className="flex items-center gap-1">
+                                            {item.reviewed && (
+                                              <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                                            )}
+                                            {item.csiCode || item.csiDivision}
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-2 text-cream max-w-xs">
+                                          <p className="line-clamp-2">
+                                            {item.description}
+                                          </p>
+                                          {scopeStatus !== "included" && (
+                                            <div className="flex flex-wrap items-center gap-1 mt-1">
+                                              <Badge
+                                                className={`text-[10px] ${
+                                                  scopeStatus === "review"
+                                                    ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                                                    : "bg-red-500/15 text-red-300 border-red-500/25"
+                                                }`}
+                                              >
+                                                <Flag className="w-2.5 h-2.5 mr-0.5" />
+                                                {formatScopeReviewStatus(
+                                                  scopeStatus
+                                                )}
+                                              </Badge>
+                                            </div>
+                                          )}
+                                          {/* Consolidation diff annotations */}
+                                          {showConsolidationDiff &&
+                                            consolidationDiff?.hasDiff &&
+                                            (() => {
+                                              const ann =
+                                                consolidationDiff
+                                                  .itemAnnotations[item.id];
+                                              if (!ann) return null;
+                                              return (
+                                                <div className="flex flex-wrap items-center gap-1 mt-1">
+                                                  {ann.isNew && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                      New
+                                                    </span>
+                                                  )}
+                                                  {ann.mergedFrom > 1 && (
+                                                    <span
+                                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+                                                      title={ann.mergedDescriptions?.join(
+                                                        "\n"
+                                                      )}
+                                                    >
+                                                      <Merge className="w-2.5 h-2.5" />
+                                                      Combined from{" "}
+                                                      {ann.mergedFrom}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              );
+                                            })()}
+                                          {item.notes && (
+                                            <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                              {item.notes}
+                                            </p>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2 text-right text-cream font-mono">
+                                          <span>
+                                            {parseFloat(
+                                              item.quantity
+                                            ).toLocaleString()}
+                                          </span>
+                                          {/* Needs measurement indicator */}
+                                          {item.needsMeasurement && (
+                                            <div
+                                              className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1"
+                                              title="Quantity is a placeholder — update with actual measurement"
+                                            >
+                                              <Ruler className="w-3 h-3" />
+                                              needs qty
+                                            </div>
+                                          )}
+                                          {/* Quantity change annotation */}
+                                          {showConsolidationDiff &&
+                                            consolidationDiff?.hasDiff &&
+                                            (() => {
+                                              const ann =
+                                                consolidationDiff
+                                                  .itemAnnotations[item.id];
+                                              if (
+                                                !ann ||
+                                                !ann.qtyChanged ||
+                                                ann.isNew
+                                              )
+                                                return null;
+                                              return (
+                                                <div
+                                                  className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                  title="Quantity changed during consolidation"
+                                                >
+                                                  was{" "}
+                                                  {(
+                                                    ann.qtyBefore ?? 0
+                                                  ).toLocaleString()}
+                                                </div>
+                                              );
+                                            })()}
+                                        </td>
+                                        <td className="px-4 py-2 text-cream-muted">
+                                          {item.unit}
+                                        </td>
+                                        {/* Material Cost */}
+                                        <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                                          {isConsolidating ? (
+                                            <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
+                                          ) : (
+                                            formatCurrency(
+                                              getTakeoffMaterialUnitCost(item),
+                                              project?.currency || "USD"
+                                            )
+                                          )}
+                                        </td>
+                                        {/* Labor Cost */}
+                                        <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
+                                          {isConsolidating ? (
+                                            <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
+                                          ) : (
+                                            formatCurrency(
+                                              item.laborCost || 0,
+                                              project?.currency || "USD"
+                                            )
+                                          )}
+                                        </td>
+                                        {/* Installed (Combined) Unit Cost */}
+                                        <td className="px-4 py-2 text-right text-cream font-mono">
+                                          {isConsolidating ? (
+                                            <span
+                                              className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse"
+                                              title="Pricing being applied..."
+                                            />
+                                          ) : (
+                                            <>
+                                              <span>
+                                                {formatCurrency(
+                                                  item.unitCost,
+                                                  project?.currency || "USD"
+                                                )}
+                                              </span>
+                                              {showConsolidationDiff &&
+                                                consolidationDiff?.hasDiff &&
+                                                (() => {
+                                                  const ann =
+                                                    consolidationDiff
+                                                      .itemAnnotations[item.id];
+                                                  if (
+                                                    !ann ||
+                                                    !ann.costChanged ||
+                                                    ann.isNew
+                                                  )
+                                                    return null;
+                                                  return (
+                                                    <div
+                                                      className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                      title="Unit cost changed during consolidation"
+                                                    >
+                                                      was{" "}
+                                                      {formatCurrency(
+                                                        ann.unitCostBefore ?? 0,
+                                                        project?.currency ||
+                                                          "USD"
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })()}
+                                            </>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
+                                          {isConsolidating ? (
+                                            <span
+                                              className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse"
+                                              title="Pricing being applied..."
+                                            />
+                                          ) : (
+                                            formatCurrency(
+                                              item.extendedCost,
+                                              project?.currency || "USD"
+                                            )
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                          <Badge
+                                            className={`text-xs ${
+                                              item.confidence >= 80
+                                                ? "bg-emerald-500/20 text-emerald-400"
+                                                : item.confidence >= 50
+                                                  ? "bg-amber-500/20 text-amber-400"
+                                                  : "bg-red-500/20 text-red-400"
+                                            }`}
                                           >
-                                            <Eye className="w-3 h-3" />
-                                          </Button>
-                                          {!item.reviewed && (
+                                            {item.confidence}%
+                                          </Badge>
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                          {item.reviewed ? (
+                                            <div
+                                              className="flex items-center justify-center"
+                                              title="Reviewed & Verified"
+                                            >
+                                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                            </div>
+                                          ) : (
+                                            <span className="text-cream-muted/30">
+                                              —
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td
+                                          className="px-4 py-2 text-center"
+                                          onClick={e => e.stopPropagation()}
+                                        >
+                                          <div className="flex items-center justify-center gap-1">
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                              className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
                                               onClick={() =>
-                                                updateItemMutation.mutate({
+                                                setSelectedItem(item)
+                                              }
+                                              title="View details"
+                                            >
+                                              <Eye className="w-3 h-3" />
+                                            </Button>
+                                            {!item.reviewed && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                                onClick={() =>
+                                                  updateItemMutation.mutate({
+                                                    id: item.id,
+                                                    projectId,
+                                                    reviewed: true,
+                                                  })
+                                                }
+                                              >
+                                                <Check className="w-3 h-3" />
+                                              </Button>
+                                            )}
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
+                                              onClick={() =>
+                                                deleteItemMutation.mutate({
                                                   id: item.id,
                                                   projectId,
-                                                  reviewed: true,
                                                 })
                                               }
                                             >
-                                              <Check className="w-3 h-3" />
+                                              <Trash2 className="w-3 h-3" />
                                             </Button>
-                                          )}
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
-                                            onClick={() =>
-                                              deleteItemMutation.mutate({
-                                                id: item.id,
-                                                projectId,
-                                              })
-                                            }
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </Button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
                 {reviewItems.length > 0 && (
                   <div
@@ -4857,118 +4882,148 @@ export default function TakeoffDetail() {
                 )}
 
                 {excludedItems.length > 0 && (
-                  <div className="border border-red-500/25 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 bg-red-500/10">
-                      <div className="flex items-center gap-2">
-                        <Flag className="w-4 h-4 text-red-300" />
-                        <span className="text-red-200 font-semibold">
-                          Excluded / Scope Boundary Review
+                  <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Flag className="w-4 h-4 text-cream-muted" />
+                        <span className="text-cream-muted font-semibold">
+                          Boundary Reference
                         </span>
-                        <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
-                          {excludedItems.length} likely excluded
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          {excludedItems.length} not in bid
+                        </Badge>
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          {formatCurrency(
+                            excludedItemsCost,
+                            project?.currency || "USD"
+                          )}
                         </Badge>
                       </div>
-                      <span className="text-xs text-red-100/70">
-                        {bidModeBehavior.shortLabel}: boundary items stay
-                        visible and outside totals
-                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                        onClick={() => setShowBoundaryRows(prev => !prev)}
+                      >
+                        {showBoundaryRows ? (
+                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {showBoundaryRows ? "Hide Rows" : "Show Rows"}
+                      </Button>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                            <th className="text-left px-4 py-2 w-12">CSI</th>
-                            <th className="text-left px-4 py-2">Description</th>
-                            <th className="text-right px-4 py-2 w-20">Qty</th>
-                            <th className="text-left px-4 py-2 w-14">Unit</th>
-                            <th className="text-right px-4 py-2 w-28">
-                              Ref Total
-                            </th>
-                            <th className="text-right px-4 py-2 w-40">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {excludedItems.map((item: any) => (
-                            <tr
-                              key={item.id}
-                              className="border-t border-white/5 bg-red-500/5 hover:bg-red-500/10 cursor-pointer"
-                              onClick={() => setSelectedItem(item)}
-                            >
-                              <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                {item.csiCode || item.csiDivision}
-                              </td>
-                              <td className="px-4 py-2 text-cream max-w-lg">
-                                <p className="line-clamp-2">
-                                  {item.description}
-                                </p>
-                                {item.notes && (
-                                  <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
-                                    {item.notes}
-                                  </p>
-                                )}
-                              </td>
-                              <td className="px-4 py-2 text-right text-cream font-mono">
-                                {parseFloat(
-                                  item.quantity || "0"
-                                ).toLocaleString()}
-                              </td>
-                              <td className="px-4 py-2 text-cream-muted">
-                                {item.unit}
-                              </td>
-                              <td className="px-4 py-2 text-right text-red-200/70 font-mono">
-                                {formatCurrency(
-                                  item.extendedCost || 0,
-                                  project?.currency || "USD"
-                                )}
-                              </td>
-                              <td
-                                className="px-4 py-2"
-                                onClick={event => event.stopPropagation()}
-                              >
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 border-blue-500/25 text-blue-200 hover:bg-blue-500/10 px-2.5 text-xs"
-                                    onClick={() =>
-                                      applyScopeDecision(item, "review", false)
-                                    }
-                                    title="Move back to review queue"
-                                  >
-                                    <Flag className="w-3 h-3 mr-1" />
-                                    Move to Review
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 text-emerald-300 hover:bg-emerald-500/10 px-2.5 text-xs"
-                                    onClick={() =>
-                                      applyScopeDecision(item, "included")
-                                    }
-                                    title="Restore to active total"
-                                  >
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Restore
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
-                                    onClick={() => setSelectedItem(item)}
-                                    title="View details"
-                                  >
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    Details
-                                  </Button>
-                                </div>
-                              </td>
+                    {!showBoundaryRows && (
+                      <div className="px-4 py-3 text-xs text-cream-muted">
+                        These are visible for audit only. They stay outside the
+                        bid total unless you restore or move them back to
+                        review.
+                      </div>
+                    )}
+                    {showBoundaryRows && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <th className="text-left px-4 py-2 w-12">CSI</th>
+                              <th className="text-left px-4 py-2">
+                                Description
+                              </th>
+                              <th className="text-right px-4 py-2 w-20">Qty</th>
+                              <th className="text-left px-4 py-2 w-14">Unit</th>
+                              <th className="text-right px-4 py-2 w-28">
+                                Ref Total
+                              </th>
+                              <th className="text-right px-4 py-2 w-40">
+                                Actions
+                              </th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {excludedItems.map((item: any) => (
+                              <tr
+                                key={item.id}
+                                className="border-t border-white/5 bg-white/[0.01] hover:bg-white/[0.04] cursor-pointer"
+                                onClick={() => setSelectedItem(item)}
+                              >
+                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                  {item.csiCode || item.csiDivision}
+                                </td>
+                                <td className="px-4 py-2 text-cream max-w-lg">
+                                  <p className="line-clamp-2">
+                                    {item.description}
+                                  </p>
+                                  {item.notes && (
+                                    <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                      {item.notes}
+                                    </p>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 text-right text-cream font-mono">
+                                  {parseFloat(
+                                    item.quantity || "0"
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-2 text-cream-muted">
+                                  {item.unit}
+                                </td>
+                                <td className="px-4 py-2 text-right text-cream-muted font-mono">
+                                  {formatCurrency(
+                                    item.extendedCost || 0,
+                                    project?.currency || "USD"
+                                  )}
+                                </td>
+                                <td
+                                  className="px-4 py-2"
+                                  onClick={event => event.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5 px-2.5 text-xs"
+                                      onClick={() =>
+                                        applyScopeDecision(
+                                          item,
+                                          "review",
+                                          false
+                                        )
+                                      }
+                                      title="Move back to review queue"
+                                    >
+                                      <Flag className="w-3 h-3 mr-1" />
+                                      Move to Review
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-cream-muted hover:text-emerald-300 hover:bg-white/5 px-2.5 text-xs"
+                                      onClick={() =>
+                                        applyScopeDecision(item, "included")
+                                      }
+                                      title="Restore to active total"
+                                    >
+                                      <Check className="w-3 h-3 mr-1" />
+                                      Restore
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
+                                      onClick={() => setSelectedItem(item)}
+                                      title="View details"
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      Details
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
 
