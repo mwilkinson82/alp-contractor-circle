@@ -77,6 +77,7 @@ import {
   ClipboardList,
   Info,
   Flag,
+  AlertTriangle,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
