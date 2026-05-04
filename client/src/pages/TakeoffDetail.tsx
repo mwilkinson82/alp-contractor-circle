@@ -3560,88 +3560,51 @@ export default function TakeoffDetail() {
                 )}
 
                 {assemblyBundles.length > 0 && (
-                  <div className="grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-cyan-300" />
-                            <p className="text-sm font-semibold text-cream">
-                              Scope Intelligence
-                            </p>
-                          </div>
-                          <div className="mt-3 flex items-end gap-3">
-                            <p className="text-4xl font-bold text-cream">
-                              {scopeReviewCount}
-                            </p>
-                            <p className="pb-1 text-sm text-cream-muted">
-                              open decision{scopeReviewCount !== 1 ? "s" : ""}
-                            </p>
-                          </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.025] px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-cyan-300" />
+                          <span className="text-sm font-semibold text-cream">
+                            Scope Intelligence
+                          </span>
                         </div>
-                        <div className="grid min-w-[280px] flex-1 gap-3 rounded-md border border-white/10 bg-black/20 p-3 sm:grid-cols-3">
-                          <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                            <div>
-                              <p className="text-sm font-semibold text-cream">
-                                {highConfidenceReviewCount}
-                              </p>
-                              <p className="text-xs text-cream-muted">
-                                high confidence
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-amber-300" />
-                            <div>
-                              <p className="text-sm font-semibold text-cream">
-                                {mediumConfidenceReviewCount}
-                              </p>
-                              <p className="text-xs text-cream-muted">
-                                medium confidence
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-red-300" />
-                            <div>
-                              <p className="text-sm font-semibold text-cream">
-                                {lowConfidenceReviewCount}
-                              </p>
-                              <p className="text-xs text-cream-muted">
-                                needs estimator
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <span className="text-sm text-cream">
+                          <span className="font-semibold">
+                            {scopeReviewCount}
+                          </span>{" "}
+                          open decisions
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                          {highConfidenceReviewCount} high confidence
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                          <span className="h-2 w-2 rounded-full bg-amber-300" />
+                          {mediumConfidenceReviewCount} medium
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                          <span className="h-2 w-2 rounded-full bg-red-300" />
+                          {lowConfidenceReviewCount} estimator required
+                        </span>
                       </div>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-cream">
-                            Review Progress
-                          </p>
-                          <p className="mt-1 text-xs text-cream-muted">
-                            {completedBundleCount} of {assemblyBundles.length}{" "}
-                            packages complete
-                          </p>
+                      <div className="flex min-w-[280px] flex-1 items-center justify-end gap-3">
+                        <span className="whitespace-nowrap text-xs text-cream-muted">
+                          {completedBundleCount} of {assemblyBundles.length}{" "}
+                          reviewed
+                        </span>
+                        <div className="grid min-w-[180px] flex-1 grid-cols-[repeat(13,minmax(0,1fr))] gap-1 lg:max-w-[280px]">
+                          {assemblyBundles.map(bundle => (
+                            <span
+                              key={bundle.key}
+                              className={`h-1.5 rounded-full ${
+                                bundle.status !== "open"
+                                  ? "bg-emerald-400"
+                                  : "bg-white/12"
+                              }`}
+                            />
+                          ))}
                         </div>
-                        <p className="text-2xl font-bold text-emerald-300">
-                          {completedBundleCount}
-                        </p>
-                      </div>
-                      <div className="mt-4 grid grid-cols-[repeat(13,minmax(0,1fr))] gap-1">
-                        {assemblyBundles.map(bundle => (
-                          <span
-                            key={bundle.key}
-                            className={`h-2 rounded-full ${
-                              bundle.status !== "open"
-                                ? "bg-emerald-400"
-                                : "bg-white/12"
-                            }`}
-                          />
-                        ))}
                       </div>
                     </div>
                   </div>
@@ -3683,7 +3646,7 @@ export default function TakeoffDetail() {
                         id="assembly-review"
                         className="border border-white/10 rounded-lg overflow-hidden bg-[#07080b]"
                       >
-                        <div className="px-5 py-4 bg-white/[0.025] border-b border-white/10">
+                        <div className="px-5 py-3 bg-white/[0.025] border-b border-white/10">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -3713,22 +3676,8 @@ export default function TakeoffDetail() {
                                 package.
                               </p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant={readyToPrice ? "default" : "outline"}
-                              disabled={!readyToPrice}
-                              onClick={() => setActiveTab("estimate")}
-                              className={
-                                readyToPrice
-                                  ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                  : "h-8 border-white/10 text-cream-muted"
-                              }
-                            >
-                              <Calculator className="w-3.5 h-3.5 mr-1.5" />
-                              Price Bid
-                            </Button>
                           </div>
-                          <div className="mt-4 rounded-md border border-white/10 bg-black/20 px-4 py-3">
+                          <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-4 py-2.5">
                             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
                               <div>
                                 <p className="text-[10px] uppercase tracking-wider text-cream-muted">
@@ -3794,7 +3743,7 @@ export default function TakeoffDetail() {
                                     }
                                     className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                       active
-                                        ? "border-amber-400/45 bg-amber-500/[0.08]"
+                                        ? "border-amber-400/45 bg-amber-500/[0.055]"
                                         : done
                                           ? "border-white/10 bg-white/[0.015] opacity-65 hover:opacity-85"
                                           : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -3804,7 +3753,13 @@ export default function TakeoffDetail() {
                                       {done ? (
                                         <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-cream-muted" />
                                       ) : (
-                                        <Flag className="mt-0.5 w-4 h-4 shrink-0 text-amber-300" />
+                                        <Flag
+                                          className={`mt-0.5 w-4 h-4 shrink-0 ${
+                                            active
+                                              ? "text-amber-300"
+                                              : "text-cream-muted"
+                                          }`}
+                                        />
                                       )}
                                       <div className="min-w-0 flex-1">
                                         <p className="text-sm font-semibold text-cream line-clamp-2">
@@ -3820,7 +3775,9 @@ export default function TakeoffDetail() {
                                         className={`text-[11px] font-semibold ${
                                           done
                                             ? "text-cream-muted"
-                                            : "text-amber-200"
+                                            : active
+                                              ? "text-amber-200"
+                                              : "text-cream-muted"
                                         }`}
                                       >
                                         {candidateStatus}
@@ -4287,47 +4244,129 @@ export default function TakeoffDetail() {
                   </div>
                 )}
 
-                {assemblyBundles.length > 0 && activeItems.length > 0 && (
-                  <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-cream-muted" />
-                        <span className="text-cream-muted font-semibold">
-                          Accepted Rows
-                        </span>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          {activeItems.length} already counted
-                        </Badge>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          {formatCurrency(
-                            totalCost,
-                            project?.currency || "USD"
+                {assemblyBundles.length > 0 &&
+                  (activeItems.length > 0 ||
+                    reviewItems.length > 0 ||
+                    excludedItems.length > 0) && (
+                    <div className="rounded-lg border border-white/10 bg-white/[0.015] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FileText className="w-4 h-4 text-cream-muted" />
+                          <span className="font-semibold text-cream-muted">
+                            Audit Trail
+                          </span>
+                          {activeItems.length > 0 && (
+                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                              {activeItems.length} accepted
+                            </Badge>
                           )}
-                        </Badge>
+                          {reviewItems.length > 0 && (
+                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                              {openReviewItems.length} open rows
+                            </Badge>
+                          )}
+                          {excludedItems.length > 0 && (
+                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                              {excludedItems.length} excluded
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {activeItems.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              onClick={() => setShowAcceptedRows(prev => !prev)}
+                            >
+                              {showAcceptedRows ? (
+                                <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              Accepted
+                            </Button>
+                          )}
+                          {reviewItems.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              onClick={() =>
+                                setShowRawReviewRows(prev => !prev)
+                              }
+                            >
+                              {showRawReviewRows ? (
+                                <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              Raw Rows
+                            </Button>
+                          )}
+                          {excludedItems.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              onClick={() => setShowBoundaryRows(prev => !prev)}
+                            >
+                              {showBoundaryRows ? (
+                                <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              Excluded
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                        onClick={() => setShowAcceptedRows(prev => !prev)}
-                      >
-                        {showAcceptedRows ? (
-                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
-                        )}
-                        {showAcceptedRows ? "Hide Rows" : "Show Rows"}
-                      </Button>
                     </div>
-                    {!showAcceptedRows && (
-                      <div className="px-4 py-3 text-xs text-cream-muted">
-                        These rows are already in the bid total. Review open
-                        packages first; come here only to audit accepted line
-                        items.
+                  )}
+
+                {assemblyBundles.length > 0 &&
+                  activeItems.length > 0 &&
+                  showAcceptedRows && (
+                    <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
+                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-cream-muted" />
+                          <span className="text-cream-muted font-semibold">
+                            Accepted Rows
+                          </span>
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            {activeItems.length} already counted
+                          </Badge>
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            {formatCurrency(
+                              totalCost,
+                              project?.currency || "USD"
+                            )}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          onClick={() => setShowAcceptedRows(prev => !prev)}
+                        >
+                          {showAcceptedRows ? (
+                            <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                          )}
+                          {showAcceptedRows ? "Hide Rows" : "Show Rows"}
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                )}
+                      {!showAcceptedRows && (
+                        <div className="px-4 py-3 text-xs text-cream-muted">
+                          These rows are already in the bid total. Review open
+                          packages first; come here only to audit accepted line
+                          items.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 {/* Items by CSI Division */}
                 {(assemblyBundles.length === 0 || showAcceptedRows) &&
@@ -4759,84 +4798,280 @@ export default function TakeoffDetail() {
                       );
                     })}
 
-                {reviewItems.length > 0 && (
-                  <div
-                    id="scope-review-queue"
-                    className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-white/[0.03]">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <FileText className="w-4 h-4 text-cream-muted" />
-                        <span className="text-cream-muted font-semibold">
-                          Details & Audit Trail
-                        </span>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          {reviewItems.length} not counted
-                        </Badge>
-                        {openReviewItems.length > 0 && (
+                {reviewItems.length > 0 &&
+                  (assemblyBundles.length === 0 || showRawReviewRows) && (
+                    <div
+                      id="scope-review-queue"
+                      className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-white/[0.03]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FileText className="w-4 h-4 text-cream-muted" />
+                          <span className="text-cream-muted font-semibold">
+                            Details & Audit Trail
+                          </span>
                           <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                            {openReviewItems.length} open
+                            {reviewItems.length} not counted
                           </Badge>
-                        )}
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          Review subtotal{" "}
-                          {formatCurrency(
-                            reviewItemsCost,
-                            project?.currency || "USD"
+                          {openReviewItems.length > 0 && (
+                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                              {openReviewItems.length} open
+                            </Badge>
                           )}
-                        </Badge>
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            Review subtotal{" "}
+                            {formatCurrency(
+                              reviewItemsCost,
+                              project?.currency || "USD"
+                            )}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          onClick={() => setShowRawReviewRows(prev => !prev)}
+                        >
+                          {showRawReviewRows ? (
+                            <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                          )}
+                          {showRawReviewRows ? "Hide Rows" : "Show Raw Rows"}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                        onClick={() => setShowRawReviewRows(prev => !prev)}
-                      >
-                        {showRawReviewRows ? (
-                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
-                        )}
-                        {showRawReviewRows ? "Hide Rows" : "Show Raw Rows"}
-                      </Button>
+                      {!showRawReviewRows && (
+                        <div className="px-4 py-3 text-xs text-cream-muted">
+                          AI Takeoff Review is the primary workflow. Open this
+                          audit trail only for item-level measurements, source
+                          rows, or exception cleanup.
+                        </div>
+                      )}
+                      {showRawReviewRows && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                                <th className="text-left px-4 py-2 w-12">
+                                  CSI
+                                </th>
+                                <th className="text-left px-4 py-2">
+                                  Description
+                                </th>
+                                <th className="text-left px-4 py-2 w-36">
+                                  Cue
+                                </th>
+                                <th className="text-right px-4 py-2 w-20">
+                                  Qty
+                                </th>
+                                <th className="text-left px-4 py-2 w-14">
+                                  Unit
+                                </th>
+                                <th className="text-center px-4 py-2 w-16">
+                                  Conf.
+                                </th>
+                                <th className="text-right px-4 py-2 w-28">
+                                  Review Total
+                                </th>
+                                <th className="text-right px-4 py-2 min-w-[260px]">
+                                  Decision
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reviewItems.map((item: any) => {
+                                const cue = getEstimatorCue(item);
+                                return (
+                                  <tr
+                                    key={item.id}
+                                    className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
+                                    onClick={() => setSelectedItem(item)}
+                                  >
+                                    <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                      {item.csiCode || item.csiDivision}
+                                    </td>
+                                    <td className="px-4 py-2 text-cream max-w-lg">
+                                      <p className="line-clamp-2">
+                                        {item.description}
+                                      </p>
+                                      {item.notes && (
+                                        <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                          {item.notes}
+                                        </p>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <Badge
+                                        className={`text-[10px] ${cue.className}`}
+                                      >
+                                        {cue.label}
+                                      </Badge>
+                                      {item.reviewed && (
+                                        <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
+                                          <Check className="w-3 h-3" />
+                                          held
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-2 text-right text-cream font-mono">
+                                      {parseFloat(
+                                        item.quantity || "0"
+                                      ).toLocaleString()}
+                                    </td>
+                                    <td className="px-4 py-2 text-cream-muted">
+                                      {item.unit}
+                                    </td>
+                                    <td className="px-4 py-2 text-center">
+                                      <Badge
+                                        className={`text-xs ${
+                                          item.confidence >= 80
+                                            ? "bg-emerald-500/20 text-emerald-400"
+                                            : item.confidence >= 50
+                                              ? "bg-amber-500/20 text-amber-400"
+                                              : "bg-red-500/20 text-red-400"
+                                        }`}
+                                      >
+                                        {item.confidence}%
+                                      </Badge>
+                                    </td>
+                                    <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
+                                      {formatCurrency(
+                                        item.extendedCost || 0,
+                                        project?.currency || "USD"
+                                      )}
+                                    </td>
+                                    <td
+                                      className="px-4 py-2"
+                                      onClick={event => event.stopPropagation()}
+                                    >
+                                      <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
+                                          onClick={() =>
+                                            applyScopeDecision(item, "included")
+                                          }
+                                          title="Include in active total"
+                                        >
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Include
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
+                                          onClick={() =>
+                                            applyScopeDecision(item, "excluded")
+                                          }
+                                          title="Exclude from active total"
+                                        >
+                                          <X className="w-3 h-3 mr-1" />
+                                          Exclude
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
+                                          onClick={() =>
+                                            applyScopeDecision(item, "review")
+                                          }
+                                          title="Keep in review queue"
+                                        >
+                                          <Square className="w-3 h-3 mr-1" />
+                                          Hold
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
+                                          onClick={() => setSelectedItem(item)}
+                                          title="View details"
+                                        >
+                                          <Eye className="w-3 h-3 mr-1" />
+                                          Details
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                    {!showRawReviewRows && (
-                      <div className="px-4 py-3 text-xs text-cream-muted">
-                        AI Takeoff Review is the primary workflow. Open this
-                        audit trail only for item-level measurements, source
-                        rows, or exception cleanup.
+                  )}
+
+                {excludedItems.length > 0 &&
+                  (assemblyBundles.length === 0 || showBoundaryRows) && (
+                    <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
+                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Flag className="w-4 h-4 text-cream-muted" />
+                          <span className="text-cream-muted font-semibold">
+                            Excluded Scope
+                          </span>
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            {excludedItems.length} not in bid
+                          </Badge>
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            {formatCurrency(
+                              excludedItemsCost,
+                              project?.currency || "USD"
+                            )}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          onClick={() => setShowBoundaryRows(prev => !prev)}
+                        >
+                          {showBoundaryRows ? (
+                            <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                          )}
+                          {showBoundaryRows ? "Hide Rows" : "Show Rows"}
+                        </Button>
                       </div>
-                    )}
-                    {showRawReviewRows && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                              <th className="text-left px-4 py-2 w-12">CSI</th>
-                              <th className="text-left px-4 py-2">
-                                Description
-                              </th>
-                              <th className="text-left px-4 py-2 w-36">Cue</th>
-                              <th className="text-right px-4 py-2 w-20">Qty</th>
-                              <th className="text-left px-4 py-2 w-14">Unit</th>
-                              <th className="text-center px-4 py-2 w-16">
-                                Conf.
-                              </th>
-                              <th className="text-right px-4 py-2 w-28">
-                                Review Total
-                              </th>
-                              <th className="text-right px-4 py-2 min-w-[260px]">
-                                Decision
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {reviewItems.map((item: any) => {
-                              const cue = getEstimatorCue(item);
-                              return (
+                      {!showBoundaryRows && (
+                        <div className="px-4 py-3 text-xs text-cream-muted">
+                          These are visible for audit only. They stay outside
+                          the bid total unless you restore or move them back to
+                          review.
+                        </div>
+                      )}
+                      {showBoundaryRows && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                                <th className="text-left px-4 py-2 w-12">
+                                  CSI
+                                </th>
+                                <th className="text-left px-4 py-2">
+                                  Description
+                                </th>
+                                <th className="text-right px-4 py-2 w-20">
+                                  Qty
+                                </th>
+                                <th className="text-left px-4 py-2 w-14">
+                                  Unit
+                                </th>
+                                <th className="text-right px-4 py-2 w-28">
+                                  Ref Total
+                                </th>
+                                <th className="text-right px-4 py-2 w-40">
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {excludedItems.map((item: any) => (
                                 <tr
                                   key={item.id}
-                                  className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
+                                  className="border-t border-white/5 bg-white/[0.01] hover:bg-white/[0.04] cursor-pointer"
                                   onClick={() => setSelectedItem(item)}
                                 >
                                   <td className="px-4 py-2 text-cream-muted font-mono text-xs">
@@ -4852,19 +5087,6 @@ export default function TakeoffDetail() {
                                       </p>
                                     )}
                                   </td>
-                                  <td className="px-4 py-2">
-                                    <Badge
-                                      className={`text-[10px] ${cue.className}`}
-                                    >
-                                      {cue.label}
-                                    </Badge>
-                                    {item.reviewed && (
-                                      <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
-                                        <Check className="w-3 h-3" />
-                                        held
-                                      </div>
-                                    )}
-                                  </td>
                                   <td className="px-4 py-2 text-right text-cream font-mono">
                                     {parseFloat(
                                       item.quantity || "0"
@@ -4873,20 +5095,7 @@ export default function TakeoffDetail() {
                                   <td className="px-4 py-2 text-cream-muted">
                                     {item.unit}
                                   </td>
-                                  <td className="px-4 py-2 text-center">
-                                    <Badge
-                                      className={`text-xs ${
-                                        item.confidence >= 80
-                                          ? "bg-emerald-500/20 text-emerald-400"
-                                          : item.confidence >= 50
-                                            ? "bg-amber-500/20 text-amber-400"
-                                            : "bg-red-500/20 text-red-400"
-                                      }`}
-                                    >
-                                      {item.confidence}%
-                                    </Badge>
-                                  </td>
-                                  <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
+                                  <td className="px-4 py-2 text-right text-cream-muted font-mono">
                                     {formatCurrency(
                                       item.extendedCost || 0,
                                       project?.currency || "USD"
@@ -4896,41 +5105,34 @@ export default function TakeoffDetail() {
                                     className="px-4 py-2"
                                     onClick={event => event.stopPropagation()}
                                   >
-                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <div className="flex items-center justify-end gap-2">
                                       <Button
                                         size="sm"
-                                        className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
+                                        variant="outline"
+                                        className="h-7 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5 px-2.5 text-xs"
+                                        onClick={() =>
+                                          applyScopeDecision(
+                                            item,
+                                            "review",
+                                            false
+                                          )
+                                        }
+                                        title="Move back to review queue"
+                                      >
+                                        <Flag className="w-3 h-3 mr-1" />
+                                        Move to Review
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 text-cream-muted hover:text-emerald-300 hover:bg-white/5 px-2.5 text-xs"
                                         onClick={() =>
                                           applyScopeDecision(item, "included")
                                         }
-                                        title="Include in active total"
+                                        title="Restore to active total"
                                       >
                                         <Check className="w-3 h-3 mr-1" />
-                                        Include
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
-                                        onClick={() =>
-                                          applyScopeDecision(item, "excluded")
-                                        }
-                                        title="Exclude from active total"
-                                      >
-                                        <X className="w-3 h-3 mr-1" />
-                                        Exclude
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
-                                        onClick={() =>
-                                          applyScopeDecision(item, "review")
-                                        }
-                                        title="Keep in review queue"
-                                      >
-                                        <Square className="w-3 h-3 mr-1" />
-                                        Hold
+                                        Restore
                                       </Button>
                                       <Button
                                         variant="ghost"
@@ -4945,160 +5147,13 @@ export default function TakeoffDetail() {
                                     </div>
                                   </td>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {excludedItems.length > 0 && (
-                  <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Flag className="w-4 h-4 text-cream-muted" />
-                        <span className="text-cream-muted font-semibold">
-                          Excluded Scope
-                        </span>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          {excludedItems.length} not in bid
-                        </Badge>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                          {formatCurrency(
-                            excludedItemsCost,
-                            project?.currency || "USD"
-                          )}
-                        </Badge>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                        onClick={() => setShowBoundaryRows(prev => !prev)}
-                      >
-                        {showBoundaryRows ? (
-                          <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
-                        )}
-                        {showBoundaryRows ? "Hide Rows" : "Show Rows"}
-                      </Button>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                    {!showBoundaryRows && (
-                      <div className="px-4 py-3 text-xs text-cream-muted">
-                        These are visible for audit only. They stay outside the
-                        bid total unless you restore or move them back to
-                        review.
-                      </div>
-                    )}
-                    {showBoundaryRows && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
-                              <th className="text-left px-4 py-2 w-12">CSI</th>
-                              <th className="text-left px-4 py-2">
-                                Description
-                              </th>
-                              <th className="text-right px-4 py-2 w-20">Qty</th>
-                              <th className="text-left px-4 py-2 w-14">Unit</th>
-                              <th className="text-right px-4 py-2 w-28">
-                                Ref Total
-                              </th>
-                              <th className="text-right px-4 py-2 w-40">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {excludedItems.map((item: any) => (
-                              <tr
-                                key={item.id}
-                                className="border-t border-white/5 bg-white/[0.01] hover:bg-white/[0.04] cursor-pointer"
-                                onClick={() => setSelectedItem(item)}
-                              >
-                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                  {item.csiCode || item.csiDivision}
-                                </td>
-                                <td className="px-4 py-2 text-cream max-w-lg">
-                                  <p className="line-clamp-2">
-                                    {item.description}
-                                  </p>
-                                  {item.notes && (
-                                    <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
-                                      {item.notes}
-                                    </p>
-                                  )}
-                                </td>
-                                <td className="px-4 py-2 text-right text-cream font-mono">
-                                  {parseFloat(
-                                    item.quantity || "0"
-                                  ).toLocaleString()}
-                                </td>
-                                <td className="px-4 py-2 text-cream-muted">
-                                  {item.unit}
-                                </td>
-                                <td className="px-4 py-2 text-right text-cream-muted font-mono">
-                                  {formatCurrency(
-                                    item.extendedCost || 0,
-                                    project?.currency || "USD"
-                                  )}
-                                </td>
-                                <td
-                                  className="px-4 py-2"
-                                  onClick={event => event.stopPropagation()}
-                                >
-                                  <div className="flex items-center justify-end gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5 px-2.5 text-xs"
-                                      onClick={() =>
-                                        applyScopeDecision(
-                                          item,
-                                          "review",
-                                          false
-                                        )
-                                      }
-                                      title="Move back to review queue"
-                                    >
-                                      <Flag className="w-3 h-3 mr-1" />
-                                      Move to Review
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 text-cream-muted hover:text-emerald-300 hover:bg-white/5 px-2.5 text-xs"
-                                      onClick={() =>
-                                        applyScopeDecision(item, "included")
-                                      }
-                                      title="Restore to active total"
-                                    >
-                                      <Check className="w-3 h-3 mr-1" />
-                                      Restore
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
-                                      onClick={() => setSelectedItem(item)}
-                                      title="View details"
-                                    >
-                                      <Eye className="w-3 h-3 mr-1" />
-                                      Details
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
                 {/* ─── Consolidation Diff: Summary Banner ─────────────────── */}
                 {showConsolidationDiff &&
