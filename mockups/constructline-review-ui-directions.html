@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ConstructLine Review UI Directions</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050608;
+        --panel: #101217;
+        --panel-2: #151923;
+        --line: #2a2f3a;
+        --muted: #9ca3af;
+        --text: #f4efe6;
+        --gold: #f2b705;
+        --green: #43d18b;
+        --red: #f07f7f;
+        --blue: #8fb5ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      .page {
+        width: min(1480px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 32px 0 56px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      .sub {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 8px;
+        line-height: 1.45;
+        max-width: 820px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 7px 11px;
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .gold {
+        color: var(--gold);
+      }
+
+      .green {
+        color: var(--green);
+      }
+
+      .red {
+        color: var(--red);
+      }
+
+      .blue {
+        color: var(--blue);
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .tab {
+        border: 1px solid var(--line);
+        background: #090b10;
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .tab strong {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 5px;
+      }
+
+      .tab span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .mockup {
+        border: 1px solid #333845;
+        background: #07080b;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 36px;
+      }
+
+      .mockup-head {
+        border-bottom: 1px solid var(--line);
+        padding: 18px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .mockup-head h2 {
+        font-size: 20px;
+      }
+
+      .mockup-head p {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 5px;
+      }
+
+      .appbar {
+        height: 70px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--line);
+        background: #08090c;
+      }
+
+      .brand {
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .project {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+      }
+
+      .bid-total {
+        border: 1px solid rgba(67, 209, 139, 0.35);
+        background: rgba(67, 209, 139, 0.08);
+        color: var(--green);
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-weight: 800;
+        font-size: 18px;
+      }
+
+      .body {
+        padding: 22px;
+      }
+
+      .decision-card {
+        border: 1px solid rgba(242, 183, 5, 0.35);
+        background: rgba(242, 183, 5, 0.08);
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      .decision-card h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+
+      .decision-card p {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      button,
+      .fake-button {
+        border: 1px solid var(--line);
+        background: #151923;
+        color: var(--text);
+        border-radius: 7px;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .primary {
+        background: #269964;
+        border-color: #3fd18c;
+        color: white;
+      }
+
+      .danger {
+        border-color: rgba(240, 127, 127, 0.4);
+        color: #ffc5c5;
+      }
+
+      .hold {
+        border-color: rgba(242, 183, 5, 0.45);
+        color: #ffe28a;
+      }
+
+      .muted-button {
+        color: var(--muted);
+      }
+
+      .amount-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .amount {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 13px;
+      }
+
+      .amount span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .amount strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 20px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .package-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .package {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .package.active {
+        border-color: rgba(242, 183, 5, 0.65);
+        background: rgba(242, 183, 5, 0.08);
+      }
+
+      .package.done {
+        border-color: rgba(67, 209, 139, 0.35);
+        background: rgba(67, 209, 139, 0.06);
+      }
+
+      .package h3 {
+        font-size: 15px;
+        margin-bottom: 6px;
+      }
+
+      .package p {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .package .meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .drawing {
+        min-height: 360px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(#ffffff 0 0) center/78% 72% no-repeat,
+          #d9d9d9;
+        color: #222;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .drawing::before,
+      .drawing::after {
+        content: "";
+        position: absolute;
+        border: 2px solid #777;
+      }
+
+      .drawing::before {
+        inset: 92px 155px 112px 130px;
+      }
+
+      .drawing::after {
+        width: 220px;
+        height: 76px;
+        left: 45%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        border-color: #395cff;
+      }
+
+      .drawing-label {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: rgba(0, 0, 0, 0.72);
+        color: white;
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .wizard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+        gap: 18px;
+      }
+
+      .stepper {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .step {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 68px;
+      }
+
+      .step.current {
+        border-color: rgba(242, 183, 5, 0.65);
+      }
+
+      .step.done {
+        border-color: rgba(67, 209, 139, 0.35);
+      }
+
+      .step strong {
+        font-size: 13px;
+      }
+
+      .step span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 5px;
+      }
+
+      .punch-grid {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .workbench-grid {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 330px;
+        gap: 14px;
+      }
+
+      .small-table {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .small-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        background: #0f1117;
+      }
+
+      .small-row:last-child {
+        border-bottom: 0;
+      }
+
+      .small-row span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .side-panel {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .side-panel h3 {
+        font-size: 15px;
+        margin-bottom: 12px;
+      }
+
+      .callout {
+        border: 1px solid rgba(242, 183, 5, 0.35);
+        background: rgba(242, 183, 5, 0.08);
+        color: #ffe28a;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+      }
+
+      .decision-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      @media (max-width: 1000px) {
+        .tabs,
+        .wizard-grid,
+        .punch-grid,
+        .workbench-grid,
+        .amount-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <h1>ConstructLine Assembly Review UI Directions</h1>
+          <p class="sub">
+            Three layout directions for turning takeoff review into a
+            contractor-friendly, paint-by-number workflow. These are static
+            mockups, meant for product direction before production code.
+          </p>
+        </div>
+        <div class="pill">Crystal Car Wash test data shape</div>
+      </header>
+
+      <section class="tabs">
+        <div class="tab">
+          <strong>1. Guided Wizard</strong>
+          <span>Best for first-time users. One package at a time.</span>
+        </div>
+        <div class="tab">
+          <strong>2. Foreman Punch List</strong>
+          <span>Best balance. List on left, selected package on right.</span>
+        </div>
+        <div class="tab">
+          <strong>3. Estimator Workbench</strong>
+          <span>Power-user layout. Dense, fast, less hand-holding.</span>
+        </div>
+      </section>
+
+      <section class="mockup">
+        <div class="mockup-head">
+          <div>
+            <h2>Direction 1: Guided Wizard</h2>
+            <p>One package, one drawing, one decision. Lowest confusion.</p>
+          </div>
+          <span class="pill"><span class="gold">9</span> decisions left</span>
+        </div>
+        <div class="appbar">
+          <div class="project">
+            <div class="brand">Construct<span class="gold">Line</span></div>
+            <strong>Crystal Car Wash</strong>
+          </div>
+          <div class="bid-total">$160,794.41 current bid</div>
+        </div>
+        <div class="body">
+          <div class="stepper">
+            <div class="step done"><strong>1. Scope set</strong><span>Done</span></div>
+            <div class="step current">
+              <strong>2. Review packages</strong><span>Current step</span>
+            </div>
+            <div class="step"><strong>3. Labor</strong><span>Locked</span></div>
+            <div class="step"><strong>4. Markups</strong><span>Locked</span></div>
+            <div class="step"><strong>5. Export</strong><span>Locked</span></div>
+          </div>
+
+          <div class="wizard-grid">
+            <div>
+              <div class="drawing">
+                <div class="drawing-label">A-400 Building Section</div>
+              </div>
+            </div>
+            <div>
+              <div class="decision-card">
+                <h3>Review this package</h3>
+                <p>
+                  Trench/pit concrete, form, and rebar package. We found
+                  $64,256.65 that still needs your answer.
+                </p>
+                <div class="amount-grid" style="margin-top: 16px">
+                  <div class="amount">
+                    <span>In Bid</span><strong class="green">$0.00</strong>
+                  </div>
+                  <div class="amount">
+                    <span>Waiting</span><strong class="gold">$64,256.65</strong>
+                  </div>
+                  <div class="amount">
+                    <span>Found Total</span><strong>$296,014.00</strong>
+                  </div>
+                </div>
+                <div class="button-row">
+                  <button class="primary">Add to Bid</button>
+                  <button class="danger">Not in Bid</button>
+                  <button class="hold">Decide Later</button>
+                </div>
+                <div class="decision-note">✓ After you choose, we move to the next package.</div>
+              </div>
+              <div class="package-list" style="margin-top: 12px">
+                <div class="package done">
+                  <h3>Slab-on-grade package</h3>
+                  <p>Already added to bid.</p>
+                </div>
+                <div class="package">
+                  <h3>Drain/pit package</h3>
+                  <p>Next up: $37,019.14 waiting.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mockup">
+        <div class="mockup-head">
+          <div>
+            <h2>Direction 2: Foreman Punch List</h2>
+            <p>Recommended direction. Feels like working down a jobsite list.</p>
+          </div>
+          <span class="pill"><span class="gold">9</span> decisions left</span>
+        </div>
+        <div class="appbar">
+          <div class="project">
+            <div class="brand">Construct<span class="gold">Line</span></div>
+            <strong>Crystal Car Wash</strong>
+          </div>
+          <div class="bid-total">$160,794.41 current bid</div>
+        </div>
+        <div class="body">
+          <div class="punch-grid">
+            <aside class="package-list">
+              <div class="callout">
+                Start at the top. Open a package, check the drawing, then choose
+                where it goes.
+              </div>
+              <div class="package active">
+                <h3>Trench/pit concrete, form, and rebar</h3>
+                <p>31 decisions left</p>
+                <div class="meta"><span>Waiting</span><span>$64,256.65</span></div>
+              </div>
+              <div class="package">
+                <h3>Slab-on-grade package</h3>
+                <p>11 decisions left</p>
+                <div class="meta"><span>Waiting</span><span>$52,393.89</span></div>
+              </div>
+              <div class="package">
+                <h3>Drain/pit package</h3>
+                <p>10 decisions left</p>
+                <div class="meta"><span>Waiting</span><span>$37,019.14</span></div>
+              </div>
+              <div class="package done">
+                <h3>Foundation reinforcing</h3>
+                <p>✓ Decided later</p>
+              </div>
+            </aside>
+
+            <section>
+              <div class="decision-card" style="margin-bottom: 14px">
+                <h3>Trench/pit concrete, form, and rebar package</h3>
+                <p>
+                  Check the drawing evidence. If this belongs in your bid, add
+                  it. If not, leave it out. If you need to ask someone, decide
+                  later.
+                </p>
+                <div class="button-row">
+                  <button class="primary">Add to Bid</button>
+                  <button class="danger">Not in Bid</button>
+                  <button class="hold">Decide Later</button>
+                  <button class="muted-button">View raw rows</button>
+                </div>
+              </div>
+              <div class="wizard-grid">
+                <div class="drawing">
+                  <div class="drawing-label">10 drawings linked</div>
+                </div>
+                <div class="side-panel">
+                  <h3>What we found</h3>
+                  <div class="amount-grid">
+                    <div class="amount">
+                      <span>In Bid</span><strong class="green">$0.00</strong>
+                    </div>
+                    <div class="amount">
+                      <span>Waiting</span><strong class="gold">$64,256.65</strong>
+                    </div>
+                    <div class="amount">
+                      <span>Found</span><strong>$296,014.00</strong>
+                    </div>
+                  </div>
+                  <div class="small-table" style="margin-top: 14px">
+                    <div class="small-row"><span>Reinforcing steel for trench system</span><strong>$145,742.50</strong></div>
+                    <div class="small-row"><span>Waterstop for trench pit</span><strong>$11,304.40</strong></div>
+                    <div class="small-row"><span>Formwork for continuous footing</span><strong>$5,844.08</strong></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="mockup">
+        <div class="mockup-head">
+          <div>
+            <h2>Direction 3: Estimator Workbench</h2>
+            <p>Fast for repeat users, but it assumes more estimating discipline.</p>
+          </div>
+          <span class="pill"><span class="green">$160,794.41</span> current bid</span>
+        </div>
+        <div class="appbar">
+          <div class="project">
+            <div class="brand">Construct<span class="gold">Line</span></div>
+            <strong>Quantity Takeoff</strong>
+          </div>
+          <div class="pill">Draft until 9 packages decided</div>
+        </div>
+        <div class="body">
+          <div class="workbench-grid">
+            <aside class="package-list">
+              <div class="package active">
+                <h3>Trench/pit package</h3>
+                <p>$64,256.65 waiting</p>
+              </div>
+              <div class="package">
+                <h3>Slab-on-grade</h3>
+                <p>$52,393.89 waiting</p>
+              </div>
+              <div class="package done">
+                <h3>Foundation reinforcing</h3>
+                <p>✓ Added to bid</p>
+              </div>
+            </aside>
+
+            <section>
+              <div class="drawing" style="min-height: 420px">
+                <div class="drawing-label">Evidence Viewer</div>
+              </div>
+            </section>
+
+            <aside class="side-panel">
+              <h3>Selected Package</h3>
+              <div class="amount" style="margin-bottom: 10px">
+                <span>Waiting</span><strong class="gold">$64,256.65</strong>
+              </div>
+              <div class="button-row">
+                <button class="primary">Add</button>
+                <button class="danger">Out</button>
+                <button class="hold">Later</button>
+              </div>
+              <div class="small-table" style="margin-top: 16px">
+                <div class="small-row"><span>Rows</span><strong>43</strong></div>
+                <div class="small-row"><span>Drawings</span><strong>10</strong></div>
+                <div class="small-row"><span>Risk</span><strong class="gold">High</strong></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
