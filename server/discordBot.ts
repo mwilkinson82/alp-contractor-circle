@@ -73,6 +73,23 @@ export function startDiscordBot() {
   });
   botClient = client;
 
+  // ─── ERROR HANDLERS: Prevent unhandled WebSocket errors from crashing the server ──
+  client.on("error", (err) => {
+    console.error("[DiscordBot] Client error (non-fatal):", err?.message);
+  });
+
+  client.on("shardError", (err) => {
+    console.error("[DiscordBot] Shard/WebSocket error (non-fatal):", err?.message);
+  });
+
+  client.on("shardDisconnect", (event, shardId) => {
+    console.warn(`[DiscordBot] Shard ${shardId} disconnected (code ${event.code}) — discord.js will auto-reconnect.`);
+  });
+
+  client.on("shardReconnecting", (shardId) => {
+    console.log(`[DiscordBot] Shard ${shardId} reconnecting...`);
+  });
+
   client.once(Events.ClientReady, (readyClient) => {
     console.log(`[DiscordBot] Logged in as ${readyClient.user.tag} — listening for new members.`);
   });
