@@ -275,6 +275,9 @@ interface AssemblyBundle {
   drawingGroup: string;
   items: any[];
   primaryItem: any;
+  primarySheetId: number | null;
+  primarySheetItem: any;
+  primarySheetLabel: string;
   alternateItems: any[];
   recommendedDecision: AssemblyBundleDecision;
   reason: string;
@@ -431,6 +434,112 @@ function getSheetLabel(sheet: any): string {
   return sheet.sheetName || `Page ${sheet.pageNumber || "?"}`;
 }
 
+function normalizeDrawingToken(value: unknown): string {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function getDrawingNumberToken(value: unknown): string {
+  const match = String(value || "")
+    .toUpperCase()
+    .match(/\b[A-Z]{1,3}[-\s]?\d{1,4}(?:\.\d+)?\b/);
+  return match ? normalizeDrawingToken(match[0]) : "";
+}
+
+function extractConsolidatedSourceLabels(notes: unknown): string[] {
+  const text = String(notes || "");
+  const match = text.match(
+    /\[Consolidated\s+\d+\s+items?\s+from:\s*([^\]]+)\]/i
+  );
+  if (!match?.[1]) return [];
+
+  return match[1]
+    .split(",")
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function getItemSourceLabels(item: any, sheetById: Map<number, any>): string[] {
+  const labels = new Set<string>();
+  if (item?.sheetId) {
+    labels.add(getSheetLabel(sheetById.get(item.sheetId)));
+  }
+  for (const label of extractConsolidatedSourceLabels(item?.notes)) {
+    labels.add(label);
+  }
+  return Array.from(labels).filter(label => label !== "Unlinked drawing");
+}
+
+function sourceLabelMatchesSheet(sourceLabel: string, sheet: any): boolean {
+  const sourceToken = normalizeDrawingToken(sourceLabel);
+  const sheetLabel = getSheetLabel(sheet);
+  const sheetToken = normalizeDrawingToken(sheetLabel);
+  const sourceNumber = getDrawingNumberToken(sourceLabel);
+  const sheetNumber = getDrawingNumberToken(sheetLabel);
+
+  if (sourceNumber && sheetNumber && sourceNumber === sheetNumber) return true;
+  if (!sourceToken || !sheetToken) return false;
+  return sourceToken.includes(sheetToken) || sheetToken.includes(sourceToken);
+}
+
+function choosePrimaryEvidenceSheet(
+  bundleItems: any[],
+  sheets: any[],
+  sheetById: Map<number, any>,
+  rule: { terms?: string[] },
+  primaryItem: any
+): { sheet: any | null; item: any; label: string } {
+  const sheetScores = new Map<number, number>();
+  const addScore = (sheetId: number | undefined, score: number) => {
+    if (!sheetId) return;
+    sheetScores.set(sheetId, (sheetScores.get(sheetId) || 0) + score);
+  };
+
+  const sourceLabels = bundleItems.flatMap(item =>
+    getItemSourceLabels(item, sheetById)
+  );
+
+  for (const item of bundleItems) {
+    const cost = Number(item.extendedCost || 0) || 0;
+    addScore(item.sheetId, 12);
+    if (isScopeReviewItem(item) && !item.reviewed) addScore(item.sheetId, 7);
+    if (isScopeIncludedItem(item)) addScore(item.sheetId, 3);
+    addScore(item.sheetId, Math.min(6, Math.floor(cost / 2500000)));
+  }
+
+  for (const sheet of sheets || []) {
+    let score = sheet?.imageUrl ? 4 : 0;
+    const label = getSheetLabel(sheet).toLowerCase();
+    for (const sourceLabel of sourceLabels) {
+      if (sourceLabelMatchesSheet(sourceLabel, sheet)) score += 14;
+    }
+    for (const term of rule.terms || []) {
+      if (label.includes(term.toLowerCase())) score += 9;
+    }
+    if (sheet.id === primaryItem?.sheetId) score += 2;
+    addScore(sheet.id, score);
+  }
+
+  const rankedSheets = Array.from(sheetScores.entries())
+    .map(([sheetId, score]) => ({ sheet: sheetById.get(sheetId), score }))
+    .filter(entry => entry.sheet?.imageUrl)
+    .sort((a, b) => b.score - a.score);
+  const sheet =
+    rankedSheets[0]?.sheet ||
+    (primaryItem?.sheetId ? sheetById.get(primaryItem.sheetId) : null) ||
+    null;
+  const item =
+    bundleItems.find(candidate => candidate.sheetId === sheet?.id) ||
+    primaryItem;
+
+  return {
+    sheet,
+    item,
+    label: sheet ? getSheetLabel(sheet) : "Unlinked drawing",
+  };
+}
+
 function buildAssemblyBundles(
   allItems: any[],
   sheets: any[]
@@ -451,14 +560,19 @@ function buildAssemblyBundles(
     .map(([key, bundleItems]) => {
       const sortedItems = sortByExtendedCostDesc(bundleItems);
       const primaryItem = sortedItems[0];
+      const rule = getAssemblyRule(primaryItem);
       const sourceDrawings = Array.from(
         new Set(
-          bundleItems.map(item =>
-            getSheetLabel(item.sheetId ? sheetById.get(item.sheetId) : null)
-          )
+          bundleItems.flatMap(item => getItemSourceLabels(item, sheetById))
         )
       );
-      const rule = getAssemblyRule(primaryItem);
+      const primaryEvidence = choosePrimaryEvidenceSheet(
+        bundleItems,
+        sheets,
+        sheetById,
+        rule,
+        primaryItem
+      );
       const currentIncludedCost = bundleItems
         .filter(item => isScopeIncludedItem(item))
         .reduce((sum, item) => sum + Number(item.extendedCost || 0), 0);
@@ -535,6 +649,9 @@ function buildAssemblyBundles(
             : sourceDrawings[0] || "Unlinked drawing",
         items: sortedItems,
         primaryItem,
+        primarySheetId: primaryEvidence.sheet?.id || null,
+        primarySheetItem: primaryEvidence.item,
+        primarySheetLabel: primaryEvidence.label,
         alternateItems: sortedItems.slice(1),
         recommendedDecision,
         reason,
@@ -3743,7 +3860,7 @@ export default function TakeoffDetail() {
                   (() => {
                     const bundle = selectedAssemblyBundle;
                     const selectedSheet = sheets.find(
-                      (sheet: any) => sheet.id === bundle.primaryItem?.sheetId
+                      (sheet: any) => sheet.id === bundle.primarySheetId
                     );
                     const expanded = expandedBundles.has(bundle.key);
                     const nextOpenBundle = highImpactOpenBundles.find(
@@ -3930,7 +4047,11 @@ export default function TakeoffDetail() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    setSelectedItem(bundle.primaryItem)
+                                    setSelectedItem({
+                                      ...bundle.primarySheetItem,
+                                      sourceSheetOverrideId:
+                                        bundle.primarySheetId,
+                                    })
                                   }
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                 >
@@ -3972,6 +4093,9 @@ export default function TakeoffDetail() {
                                   )}
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cream-muted">
+                                  <span>
+                                    Primary source: {bundle.primarySheetLabel}
+                                  </span>
                                   <span>
                                     Evidence: {bundle.sourceDrawings.join(", ")}
                                   </span>
@@ -5489,8 +5613,10 @@ export default function TakeoffDetail() {
           ? allItems.findIndex((i: any) => i.id === selectedItem.id)
           : -1;
         // Look up source sheet for the selected item
-        const sourceSheet = selectedItem?.sheetId
-          ? sheets.find((s: any) => s.id === selectedItem.sheetId) || null
+        const selectedSourceSheetId =
+          selectedItem?.sourceSheetOverrideId || selectedItem?.sheetId;
+        const sourceSheet = selectedSourceSheetId
+          ? sheets.find((s: any) => s.id === selectedSourceSheetId) || null
           : null;
         return (
           <ItemDetailModal
