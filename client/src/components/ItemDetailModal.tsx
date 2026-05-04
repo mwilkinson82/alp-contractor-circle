@@ -1503,9 +1503,9 @@ export default function ItemDetailModal({
 
   const scopeStatus = getScopeStatusFromNotes(item.notes);
   const includeButtonLabel =
-    scopeStatus === "excluded" ? "Restore to Scope" : "Include in Scope";
+    scopeStatus === "excluded" ? "Restore to Bid" : "Add to Bid";
   const holdButtonLabel =
-    scopeStatus === "excluded" ? "Move to Review" : "Hold";
+    scopeStatus === "excluded" ? "Move to Review" : "Decide Later";
 
   const materialUnitCostCents = Math.round(
     parseFloat(materialUnitCost || "0") * 100
@@ -2016,15 +2016,14 @@ export default function ItemDetailModal({
             {/* ─── Footer ───────────────────────────────────────────── */}
             <DialogFooter className="flex-col gap-3 sm:flex-col sm:items-stretch sm:justify-start">
               {onScopeDecision && !isEditing && (
-                <div className="w-full rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2.5">
+                <div className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
                   <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">
-                        Scope Decision
+                      <p className="text-xs font-semibold uppercase tracking-wider text-cream">
+                        Choose Where This Goes
                       </p>
                       <p className="max-w-2xl text-xs text-cream-muted mt-0.5">
-                        Decide whether this row belongs in the bid total, stays
-                        parked for later, or leaves the estimate boundary.
+                        Add it to the bid, park it for later, or leave it out.
                       </p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 xl:flex xl:justify-end gap-2">
@@ -2061,7 +2060,7 @@ export default function ItemDetailModal({
                         onClick={() => onScopeDecision(item, "excluded")}
                         disabled={isPending}
                       >
-                        <X className="w-4 h-4 mr-1.5" /> Exclude
+                        <X className="w-4 h-4 mr-1.5" /> Not in Bid
                       </Button>
                     </div>
                   </div>

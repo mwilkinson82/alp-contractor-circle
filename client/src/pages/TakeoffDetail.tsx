@@ -279,6 +279,7 @@ interface AssemblyBundle {
   reason: string;
   currentIncludedCost: number;
   reviewCost: number;
+  openReviewCost: number;
   excludedCost: number;
   openReviewCount: number;
   highImpact: boolean;
@@ -469,6 +470,9 @@ function buildAssemblyBundles(
         (sum, item) => sum + Number(item.extendedCost || 0),
         0
       );
+      const openReviewCost = reviewItemsForBundle
+        .filter(item => !item.reviewed)
+        .reduce((sum, item) => sum + Number(item.extendedCost || 0), 0);
       const excludedCost = excludedItemsForBundle.reduce(
         (sum, item) => sum + Number(item.extendedCost || 0),
         0
@@ -519,6 +523,7 @@ function buildAssemblyBundles(
         reason,
         currentIncludedCost,
         reviewCost,
+        openReviewCost,
         excludedCost,
         openReviewCount,
         highImpact,
@@ -2101,7 +2106,10 @@ export default function TakeoffDetail() {
   );
   const highImpactOpenBundleCost = useMemo(
     () =>
-      highImpactOpenBundles.reduce((sum, bundle) => sum + bundle.reviewCost, 0),
+      highImpactOpenBundles.reduce(
+        (sum, bundle) => sum + bundle.openReviewCost,
+        0
+      ),
     [highImpactOpenBundles]
   );
 
@@ -2169,7 +2177,7 @@ export default function TakeoffDetail() {
           id: item.id,
           projectId,
           notes: scopeDecisionNotes(item.notes, status),
-          reviewed: status !== "review",
+          reviewed: true,
         });
       }
     },
@@ -3390,7 +3398,7 @@ export default function TakeoffDetail() {
                     <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <ClipboardList className="w-4 h-4 text-amber-400" />
+                          <ClipboardList className="w-4 h-4 text-amber-300" />
                           <h2 className="text-sm font-semibold text-cream">
                             Bid Review Checklist
                           </h2>
@@ -3407,8 +3415,8 @@ export default function TakeoffDetail() {
                           </Badge>
                         </div>
                         <p className="text-xs text-cream-muted mt-1">
-                          Do these in order. The estimate stays draft until the
-                          big scope decisions are handled.
+                          Start at the top. Decide the big packages, then price
+                          the estimate.
                         </p>
                       </div>
                       <Button
@@ -3428,7 +3436,7 @@ export default function TakeoffDetail() {
                     <div className="grid md:grid-cols-3">
                       <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-emerald-300/70">
+                          <span className="text-xs uppercase tracking-wider text-cream-muted">
                             1. Current Bid
                           </span>
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -3440,14 +3448,14 @@ export default function TakeoffDetail() {
                           )}
                         </p>
                         <p className="text-xs text-cream-muted">
-                          This is what counts right now. Review items are not in
-                          this number yet.
+                          This is what counts now. Anything below is not in the
+                          bid until you choose it.
                         </p>
                       </div>
                       <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-amber-300/70">
-                            2. Decide These
+                          <span className="text-xs uppercase tracking-wider text-cream-muted">
+                            2. Decide Next
                           </span>
                           <Flag className="w-4 h-4 text-amber-300" />
                         </div>
@@ -3459,7 +3467,7 @@ export default function TakeoffDetail() {
                             highImpactOpenBundleCost,
                             project?.currency || "USD"
                           )}{" "}
-                          in big packages is waiting on you.
+                          still needs an answer.
                         </p>
                         {reviewItems.length > 0 && (
                           <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -3472,14 +3480,14 @@ export default function TakeoffDetail() {
                       </div>
                       <div className="px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-blue-300/70">
+                          <span className="text-xs uppercase tracking-wider text-cream-muted">
                             3. Price Last
                           </span>
-                          <AlertCircle className="w-4 h-4 text-blue-300" />
+                          <AlertCircle className="w-4 h-4 text-amber-300" />
                         </div>
                         <p
                           className={`mt-2 text-lg font-semibold ${
-                            readyToPrice ? "text-emerald-300" : "text-blue-300"
+                            readyToPrice ? "text-emerald-300" : "text-amber-200"
                           }`}
                         >
                           {readyToPrice ? "Looks ready" : "Do not price yet"}
@@ -3505,13 +3513,14 @@ export default function TakeoffDetail() {
                       </div>
                     </div>
                     {topDecisionBundles.length > 0 && (
-                      <div className="border-t border-white/10 px-4 py-3 bg-amber-500/[0.04]">
+                      <div className="border-t border-white/10 px-4 py-3 bg-white/[0.02]">
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
-                            Start With These Packages
+                          <p className="text-xs font-semibold uppercase tracking-wider text-cream">
+                            Start Here
                           </p>
                           <span className="text-[11px] text-cream-muted">
-                            Accept, exclude, or hold each one.
+                            Open one package. Choose Add, Not in Bid, or Decide
+                            Later.
                           </span>
                         </div>
                         <div className="grid gap-2 lg:grid-cols-3">
@@ -3520,7 +3529,7 @@ export default function TakeoffDetail() {
                               key={bundle.key}
                               type="button"
                               onClick={() => scrollToAssemblyBundle(bundle.key)}
-                              className="text-left rounded-md border border-amber-500/20 bg-navy-deep/60 px-3 py-2 hover:border-amber-400/50 hover:bg-amber-500/10 transition-colors"
+                              className="text-left rounded-md border border-white/10 bg-navy-deep/60 px-3 py-2 hover:border-amber-400/50 hover:bg-amber-500/10 transition-colors"
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <p className="text-sm font-semibold text-cream line-clamp-2">
@@ -3534,12 +3543,11 @@ export default function TakeoffDetail() {
                                 {bundle.primaryItem.description}
                               </p>
                               <p className="mt-2 text-xs text-amber-200">
-                                Adds{" "}
+                                Decide{" "}
                                 {formatCurrency(
-                                  bundle.reviewCost,
+                                  bundle.openReviewCost,
                                   project?.currency || "USD"
-                                )}{" "}
-                                if accepted
+                                )}
                               </p>
                             </button>
                           ))}
@@ -3552,29 +3560,28 @@ export default function TakeoffDetail() {
                 {assemblyBundles.length > 0 && (
                   <div
                     id="assembly-review"
-                    className="border border-amber-500/25 rounded-lg overflow-hidden bg-navy-medium/25"
+                    className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/25"
                   >
-                    <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20 flex flex-wrap items-center justify-between gap-3">
+                    <div className="px-4 py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Layers className="w-4 h-4 text-amber-300" />
-                          <h2 className="text-sm font-semibold text-amber-100">
-                            Assembly Review
+                          <h2 className="text-sm font-semibold text-cream">
+                            Review Packages
                           </h2>
-                          <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                             {assemblyBundles.length} bundle
                             {assemblyBundles.length !== 1 ? "s" : ""}
                           </Badge>
                           {highImpactOpenBundles.length > 0 && (
-                            <Badge className="bg-red-500/15 text-red-200 border-red-500/25 text-xs">
-                              {highImpactOpenBundles.length} high-impact open
+                            <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-xs">
+                              {highImpactOpenBundles.length} need a decision
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-amber-100/70 mt-1">
-                          Review estimator-level packages first. Drawing sheets
-                          are evidence inside each bundle; raw rows stay
-                          expandable for audit, measurement, and cleanup.
+                        <p className="text-xs text-cream-muted mt-1">
+                          Open the drawing if you are unsure. Then choose Add to
+                          Bid, Not in Bid, or Decide Later.
                         </p>
                       </div>
                     </div>
@@ -3613,18 +3620,13 @@ export default function TakeoffDetail() {
                                   <span className="min-w-[220px] flex-1 text-cream font-semibold">
                                     {bundle.title}
                                   </span>
-                                  {bundle.highImpact && (
-                                    <Badge className="bg-purple-500/15 text-purple-200 border-purple-500/25 text-[10px]">
-                                      High impact
-                                    </Badge>
-                                  )}
                                   {bundle.openReviewCount > 0 && (
                                     <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-[10px]">
-                                      {bundle.openReviewCount} open
+                                      {bundle.openReviewCount} need decision
                                     </Badge>
                                   )}
                                   <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
-                                    Recommended: {recommendedLabel}
+                                    Suggested: {recommendedLabel}
                                   </Badge>
                                 </div>
                               </button>
@@ -3656,9 +3658,9 @@ export default function TakeoffDetail() {
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2">
-                                  <div className="rounded-md border border-emerald-500/20 bg-emerald-500/8 px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-emerald-300/70">
-                                      Included
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      In Bid
                                     </p>
                                     <p className="mt-1 truncate text-sm font-mono font-semibold text-emerald-300">
                                       {formatCurrency(
@@ -3667,20 +3669,20 @@ export default function TakeoffDetail() {
                                       )}
                                     </p>
                                   </div>
-                                  <div className="rounded-md border border-amber-500/20 bg-amber-500/8 px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-amber-200/70">
-                                      Review
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      Waiting
                                     </p>
                                     <p className="mt-1 truncate text-sm font-mono font-semibold text-amber-200">
                                       {formatCurrency(
-                                        bundle.reviewCost,
+                                        bundle.openReviewCost,
                                         project?.currency || "USD"
                                       )}
                                     </p>
                                   </div>
                                   <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      Ref.
+                                      Found Total
                                     </p>
                                     <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
                                       {formatCurrency(
@@ -3704,7 +3706,7 @@ export default function TakeoffDetail() {
                                   }
                                 >
                                   <Check className="w-3.5 h-3.5 mr-1.5" />
-                                  Accept Bundle
+                                  Add to Bid
                                 </Button>
                                 <Button
                                   size="sm"
@@ -3715,7 +3717,7 @@ export default function TakeoffDetail() {
                                   }
                                 >
                                   <X className="w-3.5 h-3.5 mr-1.5" />
-                                  Exclude Bundle
+                                  Not in Bid
                                 </Button>
                                 <Button
                                   size="sm"
@@ -3726,7 +3728,7 @@ export default function TakeoffDetail() {
                                   }
                                 >
                                   <Square className="w-3.5 h-3.5 mr-1.5" />
-                                  Hold
+                                  Decide Later
                                 </Button>
                                 <Button
                                   size="sm"
@@ -3737,7 +3739,7 @@ export default function TakeoffDetail() {
                                   }
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                  Open Evidence
+                                  View Drawing
                                 </Button>
                               </div>
                             </div>
