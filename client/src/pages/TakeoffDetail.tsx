@@ -3823,18 +3823,107 @@ export default function TakeoffDetail() {
                               </div>
                             </div>
 
+                            <div className="border-b border-white/10 p-4">
+                              <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.055] p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
+                                      Answer this package
+                                    </p>
+                                    <h4 className="mt-1 text-lg font-semibold text-cream">
+                                      Does this work belong in your bid?
+                                    </h4>
+                                    <p className="mt-1 max-w-2xl text-sm text-cream-muted">
+                                      Check the drawing, then pick one answer.
+                                      ConstructLine saves the call and opens the
+                                      next package.
+                                    </p>
+                                  </div>
+                                  <div className="grid w-full gap-2 sm:w-auto sm:min-w-[560px] sm:grid-cols-3">
+                                    <Button
+                                      size="lg"
+                                      variant={
+                                        bundle.status === "include"
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      className={
+                                        bundle.status === "include"
+                                          ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
+                                          : "justify-start border-emerald-500/35 bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/15"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(
+                                          bundle,
+                                          "included"
+                                        )
+                                      }
+                                    >
+                                      {bundle.status === "include" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <Check className="w-4 h-4 mr-2" />
+                                      )}
+                                      Yes, Add to Bid
+                                    </Button>
+                                    <Button
+                                      size="lg"
+                                      variant="outline"
+                                      className={
+                                        bundle.status === "exclude"
+                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(
+                                          bundle,
+                                          "excluded"
+                                        )
+                                      }
+                                    >
+                                      {bundle.status === "exclude" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <X className="w-4 h-4 mr-2" />
+                                      )}
+                                      No, Not in Bid
+                                    </Button>
+                                    <Button
+                                      size="lg"
+                                      variant="outline"
+                                      className={
+                                        bundle.status === "review"
+                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(bundle, "review")
+                                      }
+                                    >
+                                      {bundle.status === "review" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <Square className="w-4 h-4 mr-2" />
+                                      )}
+                                      Park It
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
-                                    <div className="relative bg-white min-h-[420px] max-h-[680px] flex items-center justify-center">
+                                    <div className="relative bg-white min-h-[360px] max-h-[560px] flex items-center justify-center">
                                       <img
                                         src={selectedSheet.imageUrl}
                                         alt={
                                           selectedSheet.sheetName ||
                                           `Page ${selectedSheet.pageNumber}`
                                         }
-                                        className="max-h-[680px] w-full object-contain"
+                                        className="max-h-[560px] w-full object-contain"
                                       />
                                       <div className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
                                         {selectedSheet.sheetName ||
@@ -3842,7 +3931,7 @@ export default function TakeoffDetail() {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="min-h-[420px] flex flex-col items-center justify-center gap-2 text-center">
+                                    <div className="min-h-[360px] flex flex-col items-center justify-center gap-2 text-center">
                                       <FileImage className="w-10 h-10 text-cream-muted/50" />
                                       <p className="text-sm font-semibold text-cream">
                                         No drawing preview linked
@@ -3869,84 +3958,15 @@ export default function TakeoffDetail() {
                               <aside className="bg-white/[0.012] p-4 space-y-4">
                                 <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                    Step 3
+                                    Package Check
                                   </p>
                                   <p className="mt-1 text-lg font-semibold text-cream">
-                                    Choose where this goes
+                                    What you are deciding
                                   </p>
                                   <p className="mt-1 text-sm text-cream-muted">
-                                    Pick one answer. ConstructLine moves you to
-                                    the next package.
+                                    This package is not counted until you choose
+                                    yes, no, or park it above the drawing.
                                   </p>
-                                  <div className="mt-4 grid gap-2">
-                                    <Button
-                                      size="lg"
-                                      variant={
-                                        bundle.status === "include"
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      className={
-                                        bundle.status === "include"
-                                          ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                          : "justify-start border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-100 hover:bg-emerald-500/12"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(
-                                          bundle,
-                                          "included"
-                                        )
-                                      }
-                                    >
-                                      {bundle.status === "include" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <Check className="w-4 h-4 mr-2" />
-                                      )}
-                                      Add to Bid
-                                    </Button>
-                                    <Button
-                                      size="lg"
-                                      variant="outline"
-                                      className={
-                                        bundle.status === "exclude"
-                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(
-                                          bundle,
-                                          "excluded"
-                                        )
-                                      }
-                                    >
-                                      {bundle.status === "exclude" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <X className="w-4 h-4 mr-2" />
-                                      )}
-                                      Not in Bid
-                                    </Button>
-                                    <Button
-                                      size="lg"
-                                      variant="outline"
-                                      className={
-                                        bundle.status === "review"
-                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(bundle, "review")
-                                      }
-                                    >
-                                      {bundle.status === "review" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <Square className="w-4 h-4 mr-2" />
-                                      )}
-                                      Decide Later
-                                    </Button>
-                                  </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2 opacity-80">
@@ -4086,32 +4106,34 @@ export default function TakeoffDetail() {
                   </div>
                 )}
 
-                <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
-                  <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold text-cream">
-                        Bid Mode
-                      </span>
-                      <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
-                        {bidModeBehavior.label}
-                      </Badge>
+                {assemblyBundles.length === 0 && (
+                  <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
+                    <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-cream">
+                          Bid Mode
+                        </span>
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                          {bidModeBehavior.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-cream-muted leading-relaxed mt-1 line-clamp-2">
+                        {bidModeBehavior.reviewSurface}
+                      </p>
                     </div>
-                    <p className="text-xs text-cream-muted leading-relaxed mt-1">
-                      {bidModeBehavior.reviewSurface}
-                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpenSettingsToScope(true)}
+                      className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                    >
+                      Edit Mode
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setOpenSettingsToScope(true)}
-                    className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                  >
-                    Edit Mode
-                  </Button>
-                </div>
+                )}
 
-                {scopeIntent.hasScope && (
+                {assemblyBundles.length === 0 && scopeIntent.hasScope && (
                   <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
                     <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
