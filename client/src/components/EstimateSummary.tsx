@@ -20,11 +20,9 @@ import * as XLSX from "xlsx";
 import {
   Calculator,
   Save,
-  Download,
   ChevronDown,
   ChevronRight,
   DollarSign,
-  HardHat,
   Percent,
   TrendingUp,
   FileSpreadsheet,
@@ -36,6 +34,7 @@ import {
   AlertTriangle,
   ClipboardList,
   ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 import {
   TRADES,
@@ -852,6 +851,90 @@ export default function EstimateSummary({
     );
   }
 
+  const laborNeedsAttention =
+    calculations.laborItemsHeldForReview + calculations.laborItemsWithoutLabor;
+  const materialNeedsAttention =
+    calculations.materialItemsMissing + calculations.quantityItemsMissing;
+  const defaultLaborCount = calculations.laborItemsDefaulted;
+  const hasOpenScope = reviewQueueCount > 0;
+  const readyInputs = Math.max(calculations.bidReadyItems, 0);
+  const readinessPct =
+    calculations.totalItems > 0
+      ? Math.round((readyInputs / calculations.totalItems) * 100)
+      : 0;
+  const markupPctTotal =
+    generalConditionsPct +
+    overheadPct +
+    profitPct +
+    contingencyPct +
+    bondPct +
+    taxPct;
+  const markupProfileLabel =
+    markupPctTotal > 0
+      ? `${pctToDisplay(overheadPct + profitPct)}% O/H + profit`
+      : "No markup set";
+  const attentionItems = [
+    hasOpenScope
+      ? {
+          tone: "amber",
+          label: "Scope",
+          title: "Review queue still open",
+          detail: `${reviewQueueCount} high-impact package${reviewQueueCount !== 1 ? "s" : ""} holding ${formatCurrency(reviewQueueCost, currency)} out of the bid.`,
+          cta: "Open Review",
+          action: onOpenReview,
+        }
+      : null,
+    materialNeedsAttention > 0
+      ? {
+          tone: "red",
+          label: "Cost",
+          title: "Missing quantity or material price",
+          detail: `${materialNeedsAttention} accepted item${materialNeedsAttention !== 1 ? "s need" : " needs"} pricing cleanup before submit.`,
+          cta: "Review Rows",
+          action: undefined as (() => void) | undefined,
+        }
+      : null,
+    laborNeedsAttention > 0 || defaultLaborCount > 0
+      ? {
+          tone: defaultLaborCount > 0 ? "blue" : "amber",
+          label: "Labor",
+          title: hasUserCrews
+            ? "Labor source needs confirmation"
+            : "Crew labor is not set up",
+          detail: hasUserCrews
+            ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} crew labor, default labor review, or an explicit no-labor decision.`
+            : "Build your crews once, then apply them to accepted scope.",
+          cta: hasUserCrews ? "Review Labor" : "Set Up Crews",
+          action: handleLaborCta,
+        }
+      : null,
+    markupPctTotal === 0
+      ? {
+          tone: "amber",
+          label: "Markup",
+          title: "Markup profile is empty",
+          detail:
+            "Set general conditions, overhead, profit, contingency, bond, or tax before submit.",
+          cta: "Save Markups",
+          action: handleSave,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    tone: "amber" | "red" | "blue";
+    label: string;
+    title: string;
+    detail: string;
+    cta: string;
+    action?: () => void;
+  }>;
+  const primaryAttention = attentionItems[0];
+  const estimateModeLabel =
+    hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
+      ? "Draft"
+      : defaultLaborCount > 0
+        ? "Price review"
+        : "Bid-ready";
+
   return (
     <div className="space-y-6">
       {/* Header with actions */}
@@ -859,11 +942,11 @@ export default function EstimateSummary({
         <div>
           <h2 className="text-cream font-semibold text-lg flex items-center gap-2">
             <Calculator className="w-5 h-5 text-amber-400" />
-            Estimate Summary
+            Estimate Cockpit
           </h2>
           <p className="text-cream-muted text-xs mt-1">
-            Live estimate from takeoff quantities, placeholder default labor,
-            your crew labor when assigned, allowances, and configurable markups
+            ConstructLine 2.0 turns accepted scope into cost confidence, then
+            a bid package.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -876,276 +959,156 @@ export default function EstimateSummary({
             <FileSpreadsheet className="w-3.5 h-3.5" />
             Export
           </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white gap-1.5"
-          >
-            <Save className="w-3.5 h-3.5" />
-            Save Markups
-          </Button>
         </div>
       </div>
 
-      {reviewQueueCount > 0 ? (
-        <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-3">
-          <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5 lg:mt-0" />
-          <div className="flex-1">
-            <p className="text-sm text-amber-100 font-medium">
-              Draft estimate from accepted scope
-            </p>
-            <p className="text-xs text-amber-100/75 mt-0.5">
-              {reviewQueueCount} high-impact assembly bundle
-              {reviewQueueCount !== 1 ? "s are" : " is"} still open and{" "}
-              {formatCurrency(reviewQueueCost, currency)} is held out of this
-              bid number. Finish assembly review before treating the estimate as
-              ready.
-            </p>
-          </div>
-          <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25">
-            {reviewQueueCount} open
-          </Badge>
-        </div>
-      ) : (
-        <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <div>
-            <p className="text-sm text-emerald-200 font-medium">
-              Accepted scope is ready for pricing
-            </p>
-            <p className="text-xs text-emerald-100/70 mt-0.5">
-              The scope queue is clear. This estimate is now using the accepted
-              takeoff rows, allowances, labor source, and markup settings.
-              {excludedBoundaryCount > 0
-                ? ` ${excludedBoundaryCount} boundary item${excludedBoundaryCount !== 1 ? "s remain" : " remains"} visible for audit.`
-                : ""}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {(() => {
-        const laborNeedsAttention =
-          calculations.laborItemsHeldForReview +
-          calculations.laborItemsWithoutLabor;
-        const materialNeedsAttention =
-          calculations.materialItemsMissing + calculations.quantityItemsMissing;
-        const defaultLaborCount = calculations.laborItemsDefaulted;
-        const hasOpenScope = reviewQueueCount > 0;
-        const markupLabel =
-          overheadPct > 0 ||
-          profitPct > 0 ||
-          contingencyPct > 0 ||
-          bondPct > 0 ||
-          taxPct > 0 ||
-          generalConditionsPct > 0
-            ? "Review markups"
-            : "No markup set";
-        const bidSetupLabel = hasOpenScope ? "Scope first" : markupLabel;
-        const bidSetupBody = hasOpenScope
-          ? "Resolve open packages before treating markups as final."
-          : `${calculations.bidReadyItems} of ${calculations.totalItems} line items have quantity, material, and crew/manual labor.`;
-
-        const nextAction = hasOpenScope
-          ? {
-              title: "Finish scope review",
-              body: `${reviewQueueCount} package${reviewQueueCount !== 1 ? "s" : ""} still need a call before this is bid-ready.`,
-              cta: "Open Review",
-              action: onOpenReview,
-            }
-          : materialNeedsAttention > 0
-            ? {
-                title: "Review missing pricing inputs",
-                body: `${materialNeedsAttention} item${materialNeedsAttention !== 1 ? "s need" : " needs"} quantity or material pricing before this number is reliable.`,
-                cta: "Review Table",
-                action: undefined as (() => void) | undefined,
-              }
-            : laborNeedsAttention > 0 || defaultLaborCount > 0
-              ? {
-                  title: hasUserCrews
-                    ? "Assign crew labor"
-                    : "Set up your crews",
-                  body: hasUserCrews
-                    ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} real crew labor or review before bid.`
-                    : "Default labor is a placeholder. Build crews once, then apply them to accepted scope.",
-                  cta: hasUserCrews
-                    ? "Review Labor Assignments"
-                    : "Set Up Crews",
-                  action: handleLaborCta,
-                }
-              : {
-                  title: "Review markups",
-                  body: "Scope and pricing inputs are clear. Confirm markups before proposal.",
-                  cta: "Save Markups",
-                  action: handleSave,
-                };
-
-        return (
-          <div className="border border-white/10 rounded-xl overflow-hidden bg-navy-medium/35">
-            <div className="px-4 py-3 border-b border-white/10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+      <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-medium/45">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="p-5 lg:p-6">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Estimate Readiness
-                </h3>
-                <p className="text-xs text-cream-muted mt-0.5">
-                  Scope becomes the estimate here. This panel shows what still
-                  keeps the number from being bid-ready.
-                </p>
-              </div>
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 min-w-[260px]">
-                <p className="text-[10px] uppercase tracking-wider text-emerald-300/75">
-                  Next best action
-                </p>
-                <p className="text-sm text-cream font-semibold mt-0.5">
-                  {nextAction.title}
-                </p>
-                <p className="text-xs text-cream-muted mt-0.5">
-                  {nextAction.body}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/10">
-              <div className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                  Scope Review
-                </p>
-                <p className="text-lg text-cream font-semibold mt-1">
-                  {hasOpenScope
-                    ? `${reviewQueueCount} open`
-                    : "Clear"}
-                </p>
-                <p className="text-xs text-cream-muted mt-1">
-                  {hasOpenScope
-                    ? `${formatCurrency(reviewQueueCost, currency)} held out`
-                    : excludedBoundaryCount > 0
-                      ? `${excludedBoundaryCount} excluded items visible for audit`
-                      : "Accepted scope is feeding the estimate"}
-                </p>
-              </div>
-              <div className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                  Materials
-                </p>
-                <p className="text-lg text-cream font-semibold mt-1">
-                  {materialNeedsAttention > 0
-                    ? `${materialNeedsAttention} need review`
-                    : "Ready"}
-                </p>
-                <p className="text-xs text-cream-muted mt-1">
-                  {calculations.materialItemsMissing > 0
-                    ? `${calculations.materialItemsMissing} missing material price`
-                    : calculations.quantityItemsMissing > 0
-                      ? `${calculations.quantityItemsMissing} missing quantity`
-                      : `${formatCurrency(calculations.totalMaterial, currency)} material total`}
-                </p>
-              </div>
-              <div className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                  Labor
-                </p>
-                <p className="text-lg text-cream font-semibold mt-1">
-                  {calculations.laborItemsMatched} crew priced
-                </p>
-                <p className="text-xs text-cream-muted mt-1">
-                  {defaultLaborCount > 0
-                    ? `${defaultLaborCount} using default labor`
-                    : laborNeedsAttention > 0
-                      ? `${laborNeedsAttention} need labor review`
-                      : calculations.totalLabor > 0
-                        ? `${formatCurrency(calculations.totalLabor, currency)} labor total`
-                        : "No crew labor assigned yet"}
-                </p>
-              </div>
-              <div className="px-4 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                  Bid Setup
-                </p>
-                <p className="text-lg text-cream font-semibold mt-1">
-                  {bidSetupLabel}
-                </p>
-                <p className="text-xs text-cream-muted mt-1">
-                  {bidSetupBody}
-                </p>
-              </div>
-            </div>
-
-            <div className="px-4 py-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <p className="text-xs text-cream-muted flex flex-wrap gap-x-2 gap-y-1">
-                <span>
-                  Direct priced cost:{" "}
-                  <span className="text-emerald-300 font-mono">
-                    {formatCurrency(calculations.directCost, currency)}
-                  </span>
-                </span>
-                <span>
-                  Bid with markups:{" "}
-                  <span className="text-amber-300 font-mono">
-                    {formatCurrency(calculations.grandTotal, currency)}
-                  </span>
-                </span>
-                {hasOpenScope ? (
-                  <span>
-                    Pending scope value:{" "}
-                    {formatCurrency(reviewQueueCost, currency)}
-                  </span>
-                ) : null}
-              </p>
-              {nextAction.action ? (
-                <Button
-                  size="sm"
-                  variant={
-                    nextAction.action === handleSave ? "default" : "outline"
-                  }
-                  onClick={nextAction.action}
-                  disabled={inferByTasksMutation.isPending || saveMutation.isPending}
+                <Badge
                   className={
-                    nextAction.action === handleSave
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                      : "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5"
+                    estimateModeLabel === "Bid-ready"
+                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                      : estimateModeLabel === "Price review"
+                        ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                        : "bg-amber-500/15 text-amber-300 border-amber-500/25"
                   }
                 >
-                  {inferByTasksMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Grouping tasks...
-                    </>
-                  ) : nextAction.action === handleSave &&
-                    saveMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Saving...
-                    </>
-                  ) : nextAction.cta === "Set Up Crews" ? (
-                    <>
-                      <Users className="w-3.5 h-3.5" />
-                      {nextAction.cta}
-                    </>
-                  ) : nextAction.cta.includes("Labor") ? (
-                    <>
-                      <Layers className="w-3.5 h-3.5" />
-                      {nextAction.cta}
-                    </>
-                  ) : nextAction.action === handleSave ? (
-                    <>
-                      <Save className="w-3.5 h-3.5" />
-                      {nextAction.cta}
-                    </>
-                  ) : (
-                    nextAction.cta
-                  )}
-                </Button>
-              ) : (
-                <span className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-cream-muted">
-                  {nextAction.cta}
-                </span>
-              )}
+                  ConstructLine 2.0 Estimate Cockpit
+                </Badge>
+                <h3 className="mt-3 text-2xl font-semibold text-cream">
+                  {formatCurrency(calculations.grandTotal, currency)}
+                </h3>
+                <p className="mt-1 text-sm text-cream-muted">
+                  Accepted scope priced through direct cost, allowances, and
+                  saved markup profile.
+                </p>
+              </div>
+              <div className="min-w-[220px] rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs uppercase text-emerald-300/75">
+                    Bid Readiness
+                  </span>
+                  <span className="font-mono text-xl font-semibold text-emerald-300">
+                    {readinessPct}%
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={
+                      readinessPct >= 90
+                        ? "h-full rounded-full bg-emerald-400"
+                        : readinessPct >= 60
+                          ? "h-full rounded-full bg-blue-400"
+                          : "h-full rounded-full bg-amber-400"
+                    }
+                    style={{ width: `${Math.min(100, readinessPct)}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-cream-muted">
+                  {calculations.bidReadyItems} of {calculations.totalItems} rows
+                  have quantity, material, and active labor.
+                </p>
+              </div>
             </div>
           </div>
-        );
-      })()}
+          <div className="border-t border-white/10 bg-navy-deep/30 p-5 lg:border-l lg:border-t-0 lg:p-6">
+            <div className="grid grid-cols-2 gap-3">
+              <ReadinessMetric
+                label="Accepted Direct"
+                value={formatCurrency(calculations.directCost, currency)}
+                tone="green"
+              />
+              <ReadinessMetric
+                label="Pending Scope"
+                value={formatCurrency(reviewQueueCost, currency)}
+                tone={hasOpenScope ? "amber" : "gray"}
+              />
+              <ReadinessMetric
+                label="Crew Priced"
+                value={`${calculations.laborItemsMatched}`}
+                tone="blue"
+              />
+              <ReadinessMetric
+                label="Attention"
+                value={`${attentionItems.length}`}
+                tone={attentionItems.length > 0 ? "red" : "green"}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-navy-medium/30">
+        <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-cream flex items-center gap-2">
+              {attentionItems.length > 0 ? (
+                <AlertTriangle className="h-4 w-4 text-amber-400" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              )}
+              Needs Attention
+            </h3>
+            <p className="mt-0.5 text-xs text-cream-muted">
+              Review items that can block confidence before this moves to
+              submit.
+            </p>
+          </div>
+          {primaryAttention?.action ? (
+            <Button
+              size="sm"
+              onClick={primaryAttention.action}
+              disabled={inferByTasksMutation.isPending || saveMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            >
+              {primaryAttention.cta === "Set Up Crews" ? (
+                <Users className="h-3.5 w-3.5" />
+              ) : primaryAttention.cta.includes("Labor") ? (
+                <Layers className="h-3.5 w-3.5" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {primaryAttention.cta}
+            </Button>
+          ) : null}
+        </div>
+        {attentionItems.length > 0 ? (
+          <div className="grid grid-cols-1 divide-y divide-white/10 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+            {attentionItems.slice(0, 3).map(item => (
+              <div key={`${item.label}-${item.title}`} className="p-4">
+                <Badge
+                  className={
+                    item.tone === "red"
+                      ? "bg-red-500/15 text-red-300 border-red-500/25"
+                      : item.tone === "blue"
+                        ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                        : "bg-amber-500/15 text-amber-300 border-amber-500/25"
+                  }
+                >
+                  {item.label}
+                </Badge>
+                <p className="mt-2 text-sm font-semibold text-cream">
+                  {item.title}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-cream-muted">
+                  {item.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-4">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <p className="text-sm text-emerald-200">
+              Accepted scope, pricing inputs, labor source, and markup profile
+              are ready for submit packaging.
+            </p>
+          </div>
+        )}
+      </div>
 
       {enableResidentialQa && (
         <ResidentialQaPanel
@@ -1605,21 +1568,34 @@ export default function EstimateSummary({
         </div>
       )}
 
-      {/* Two-column layout: Division breakdown + Markup config */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Division Cost Breakdown (2 cols) */}
-        <div className="lg:col-span-2 space-y-3">
-          <h3 className="text-cream font-medium text-sm flex items-center gap-2 mb-3">
-            <DollarSign className="w-4 h-4 text-emerald-400" />
-            Direct Cost Breakdown by Division
-          </h3>
+      {/* Estimate cockpit: cost table + bid rail */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                Direct Cost Breakdown
+              </h3>
+              <p className="mt-1 text-xs text-cream-muted">
+                Accepted scope grouped by division with row-level pricing
+                status.
+              </p>
+            </div>
+            <Badge className="bg-white/5 text-cream-muted border-white/10">
+              {calculations.totalItems} accepted rows
+            </Badge>
+          </div>
 
-          <div className="border border-white/10 rounded-lg overflow-hidden">
+          <div className="border border-white/10 rounded-xl overflow-hidden bg-navy-medium/25">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-navy-medium/70 border-b border-white/10">
                   <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider">
                     Division
+                  </th>
+                  <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-36">
+                    Status
                   </th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
                     Material
@@ -1637,6 +1613,25 @@ export default function EstimateSummary({
                   const data = calculations.byDivision[div];
                   const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
                   const divTotal = data.materialTotal + data.laborTotal;
+                  const divMissingInputs = data.items.filter((item: any) => {
+                    const labor = calculations.itemLaborEstimates.get(item.id);
+                    return (
+                      (parseFloat(item.quantity) || 0) <= 0 ||
+                      getMaterialUnitCost(item) <= 0 ||
+                      labor?.laborSource === "held_for_review" ||
+                      labor?.laborSource === "none"
+                    );
+                  }).length;
+                  const divDefaultLabor = data.items.filter((item: any) => {
+                    const labor = calculations.itemLaborEstimates.get(item.id);
+                    return labor?.laborSource === "cost_library";
+                  }).length;
+                  const divStatus =
+                    divMissingInputs > 0
+                      ? "Needs review"
+                      : divDefaultLabor > 0
+                        ? "Default labor"
+                        : "Bid-ready";
 
                   return (
                     <Fragment key={div}>
@@ -1660,6 +1655,18 @@ export default function EstimateSummary({
                               {data.items.length}
                             </Badge>
                           </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <StatusBadge
+                            status={divStatus}
+                            detail={
+                              divMissingInputs > 0
+                                ? `${divMissingInputs} row${divMissingInputs !== 1 ? "s" : ""}`
+                                : divDefaultLabor > 0
+                                  ? `${divDefaultLabor} default`
+                                  : "Ready"
+                            }
+                          />
                         </td>
                         <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">
                           {formatCurrency(data.materialTotal, currency)}
@@ -1685,6 +1692,15 @@ export default function EstimateSummary({
                             qty * getMaterialUnitCost(item)
                           );
                           const laborTotal = labor?.laborCost || 0;
+                          const rowStatus =
+                            qty <= 0 || getMaterialUnitCost(item) <= 0
+                              ? "Missing cost"
+                              : labor?.laborSource === "held_for_review" ||
+                                  labor?.laborSource === "none"
+                                ? "Needs review"
+                                : labor?.laborSource === "cost_library"
+                                  ? "Default labor"
+                                  : "Bid-ready";
                           return (
                             <tr
                               key={`${div}-${item.id}`}
@@ -1706,6 +1722,9 @@ export default function EstimateSummary({
                                     </span>
                                   )}
                                 </div>
+                              </td>
+                              <td className="px-4 py-2">
+                                <StatusBadge status={rowStatus} compact />
                               </td>
                               <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
                                 {formatCurrency(materialTotal, currency)}
@@ -1738,6 +1757,9 @@ export default function EstimateSummary({
                         </Badge>
                       </div>
                     </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge status="Bid allowance" compact />
+                    </td>
                     <td className="px-4 py-2.5 text-right text-cream-muted/40 font-mono text-xs">
                       —
                     </td>
@@ -1752,6 +1774,12 @@ export default function EstimateSummary({
                 <tr className="bg-navy-medium/50 border-t border-white/15">
                   <td className="px-4 py-3 text-cream font-semibold">
                     Direct Costs Total
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge
+                      status={attentionItems.length > 0 ? "Draft" : "Bid-ready"}
+                      compact
+                    />
                   </td>
                   <td className="px-4 py-3 text-right text-emerald-400 font-mono text-sm font-semibold">
                     {formatCurrency(calculations.totalMaterial, currency)}
@@ -1770,14 +1798,38 @@ export default function EstimateSummary({
           </div>
         </div>
 
-        {/* Right: Markup Configuration (1 col) */}
-        <div className="space-y-4">
-          <h3 className="text-cream font-medium text-sm flex items-center gap-2 mb-3">
-            <Percent className="w-4 h-4 text-amber-400" />
-            Markup Configuration
-          </h3>
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-emerald-300/75">
+              Bid Total
+            </p>
+            <p className="mt-1 font-mono text-2xl font-semibold text-emerald-200">
+              {formatCurrency(calculations.grandTotal, currency)}
+            </p>
+            <div className="mt-3 space-y-1.5 border-t border-emerald-500/15 pt-3">
+              <WaterfallRow
+                label="Direct cost"
+                value={calculations.directCost}
+                currency={currency}
+              />
+              <WaterfallRow
+                label="Markup + tax"
+                value={calculations.grandTotal - calculations.directCost}
+                currency={currency}
+              />
+            </div>
+          </div>
 
-          <div className="bg-navy-medium/30 border border-white/10 rounded-lg p-4 space-y-3">
+          <div className="bg-navy-medium/35 border border-white/10 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
+                <Percent className="w-4 h-4 text-amber-400" />
+                Markup Profile
+              </h3>
+              <Badge className="bg-amber-500/12 text-amber-300 border-amber-500/25">
+                {markupProfileLabel}
+              </Badge>
+            </div>
             <MarkupInput
               label="General Conditions"
               value={generalConditionsPct}
@@ -1814,13 +1866,30 @@ export default function EstimateSummary({
               onChange={setTaxPct}
               hint="State/local tax on materials only"
             />
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              className="mt-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  Save Markups
+                </>
+              )}
+            </Button>
           </div>
 
-          {/* Estimate Waterfall */}
-          <div className="bg-navy-medium/30 border border-white/10 rounded-lg p-4 space-y-2">
+          <div className="bg-navy-medium/35 border border-white/10 rounded-xl p-4 space-y-2">
             <h4 className="text-cream font-medium text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-              Estimate Waterfall
+              Cost Waterfall
             </h4>
             <WaterfallRow
               label="Direct Costs"
@@ -1880,6 +1949,47 @@ export default function EstimateSummary({
               />
             </div>
           </div>
+
+          <div
+            className={`rounded-xl border p-4 ${
+              hasOpenScope
+                ? "border-amber-500/25 bg-amber-500/8"
+                : "border-white/10 bg-navy-medium/35"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {hasOpenScope ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+              ) : (
+                <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-400" />
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-cream">
+                  Pending Scope
+                </h4>
+                <p className="mt-1 text-xs leading-5 text-cream-muted">
+                  {hasOpenScope
+                    ? `${reviewQueueCount} review package${reviewQueueCount !== 1 ? "s are" : " is"} visible but not counted until accepted.`
+                    : excludedBoundaryCount > 0
+                      ? `${excludedBoundaryCount} excluded boundary item${excludedBoundaryCount !== 1 ? "s remain" : " remains"} available for audit.`
+                      : "No pending review scope is affecting this bid total."}
+                </p>
+                <p className="mt-2 font-mono text-sm text-amber-300">
+                  {formatCurrency(reviewQueueCost, currency)}
+                </p>
+                {onOpenReview && hasOpenScope ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onOpenReview}
+                    className="mt-3 h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                  >
+                    Open Review
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       {/* Export Documents */}
@@ -1903,6 +2013,64 @@ export default function EstimateSummary({
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function ReadinessMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "amber" | "red" | "blue" | "gray";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-emerald-300 border-emerald-500/20 bg-emerald-500/8"
+      : tone === "amber"
+        ? "text-amber-300 border-amber-500/20 bg-amber-500/8"
+        : tone === "red"
+          ? "text-red-300 border-red-500/20 bg-red-500/8"
+          : tone === "blue"
+            ? "text-blue-300 border-blue-500/20 bg-blue-500/8"
+            : "text-cream-muted border-white/10 bg-white/5";
+
+  return (
+    <div className={`rounded-lg border p-3 ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wider opacity-75">{label}</p>
+      <p className="mt-1 truncate font-mono text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({
+  status,
+  detail,
+  compact,
+}: {
+  status: string;
+  detail?: string;
+  compact?: boolean;
+}) {
+  const normalized = status.toLowerCase();
+  const className = normalized.includes("ready")
+    ? "bg-emerald-500/12 text-emerald-300 border-emerald-500/25"
+    : normalized.includes("default") || normalized.includes("allowance")
+      ? "bg-blue-500/12 text-blue-300 border-blue-500/25"
+      : normalized.includes("missing") || normalized.includes("draft")
+        ? "bg-red-500/12 text-red-300 border-red-500/25"
+        : "bg-amber-500/12 text-amber-300 border-amber-500/25";
+
+  return (
+    <Badge
+      className={`border ${className} ${compact ? "text-[10px]" : "text-[10px]"} max-w-full`}
+    >
+      <span className="truncate">{status}</span>
+      {detail && (
+        <span className="ml-1 text-current/65 truncate">· {detail}</span>
+      )}
+    </Badge>
+  );
+}
 
 function ResidentialQaPanel({
   findings,
