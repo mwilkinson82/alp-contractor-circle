@@ -801,6 +801,7 @@ export default function TakeoffDetail() {
   >({});
   const [expandedSourceDrawingBundles, setExpandedSourceDrawingBundles] =
     useState<Set<string>>(new Set());
+  const [focusedReviewDrawing, setFocusedReviewDrawing] = useState<any>(null);
   const [showRawReviewRows, setShowRawReviewRows] = useState(false);
   const [showAcceptedRows, setShowAcceptedRows] = useState(false);
   const [showBoundaryRows, setShowBoundaryRows] = useState(false);
@@ -4110,12 +4111,25 @@ export default function TakeoffDetail() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() =>
-                                    setSelectedItem({
-                                      ...selectedSheetItem,
-                                      sourceSheetOverrideId: selectedSheet?.id,
-                                    })
-                                  }
+                                  onClick={() => {
+                                    if (selectedSheet) {
+                                      setFocusedReviewDrawing({
+                                        bundleKey: bundle.key,
+                                        title: bundle.title,
+                                        selectedSheetId: selectedSheet.id,
+                                        sourceSheets: bundle.sourceSheets,
+                                        rowCount: bundle.items.length,
+                                        drawingCount:
+                                          bundle.sourceSheets.length ||
+                                          bundle.sourceDrawings.length,
+                                      });
+                                    } else {
+                                      setSelectedItem({
+                                        ...selectedSheetItem,
+                                        sourceSheetOverrideId: undefined,
+                                      });
+                                    }
+                                  }}
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
@@ -4156,16 +4170,31 @@ export default function TakeoffDetail() {
                                   )}
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cream-muted">
-                                  <span className="text-cream-muted">
-                                    Primary source:{" "}
+                                  <span>
+                                    Showing{" "}
                                     <span className="font-semibold text-cream">
-                                      {bundle.primarySheetLabel}
+                                      {selectedSheet
+                                        ? getSheetLabel(selectedSheet)
+                                        : bundle.primarySheetLabel}
                                     </span>
+                                    {selectedSheet?.id ===
+                                      bundle.primarySheetId && (
+                                      <span className="ml-1 text-blue-200">
+                                        primary source
+                                      </span>
+                                    )}
                                   </span>
                                   <span>
                                     {bundle.items.length} row
                                     {bundle.items.length !== 1 ? "s" : ""}{" "}
-                                    grouped into this package
+                                    grouped from{" "}
+                                    {bundle.sourceSheets.length ||
+                                      bundle.sourceDrawings.length}{" "}
+                                    drawing
+                                    {(bundle.sourceSheets.length ||
+                                      bundle.sourceDrawings.length) !== 1
+                                      ? "s"
+                                      : ""}
                                   </span>
                                 </div>
                                 {bundle.sourceSheets.length > 1 && (
@@ -5687,6 +5716,104 @@ export default function TakeoffDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ─── Focused Review Drawing Modal ───────────────────────────────── */}
+      {(() => {
+        const focusedSheet = focusedReviewDrawing?.selectedSheetId
+          ? sheets.find(
+              (sheet: any) => sheet.id === focusedReviewDrawing.selectedSheetId
+            )
+          : null;
+        return (
+          <Dialog
+            open={!!focusedReviewDrawing}
+            onOpenChange={() => setFocusedReviewDrawing(null)}
+          >
+            <DialogContent className="max-w-[94vw] h-[90vh] bg-[#080b10] border-white/10 p-0 overflow-hidden">
+              <DialogHeader className="px-5 py-4 border-b border-white/10">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <DialogTitle className="text-lg text-cream">
+                      {focusedReviewDrawing?.title || "Review Drawing"}
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 text-xs text-cream-muted">
+                      Showing{" "}
+                      <span className="font-semibold text-cream">
+                        {focusedSheet
+                          ? getSheetLabel(focusedSheet)
+                          : "selected source"}
+                      </span>{" "}
+                      · {focusedReviewDrawing?.rowCount || 0} rows grouped from{" "}
+                      {focusedReviewDrawing?.drawingCount || 0} drawings
+                    </DialogDescription>
+                  </div>
+                  {focusedReviewDrawing?.sourceSheets?.length > 1 && (
+                    <div className="flex max-w-3xl flex-wrap justify-end gap-1.5">
+                      {focusedReviewDrawing.sourceSheets.map(
+                        (sourceSheet: { id: number; label: string }) => {
+                          const active = sourceSheet.id === focusedSheet?.id;
+                          const primary =
+                            sourceSheet.id ===
+                            selectedAssemblyBundle?.primarySheetId;
+                          return (
+                            <button
+                              key={sourceSheet.id}
+                              type="button"
+                              onClick={() => {
+                                setFocusedReviewDrawing((prev: any) => ({
+                                  ...prev,
+                                  selectedSheetId: sourceSheet.id,
+                                }));
+                                if (focusedReviewDrawing?.bundleKey) {
+                                  setSelectedBundleSheetIds(prev => ({
+                                    ...prev,
+                                    [focusedReviewDrawing.bundleKey]:
+                                      sourceSheet.id,
+                                  }));
+                                }
+                              }}
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                                active
+                                  ? "border-blue-300/50 bg-blue-400/15 text-blue-100"
+                                  : "border-white/10 bg-white/[0.03] text-cream-muted hover:bg-white/[0.07] hover:text-cream"
+                              }`}
+                            >
+                              {sourceSheet.label}
+                              {primary && (
+                                <span className="ml-1 text-[10px] opacity-70">
+                                  primary
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  )}
+                </div>
+              </DialogHeader>
+              <div className="h-[calc(90vh-94px)] overflow-auto bg-black/35 p-4">
+                {focusedSheet?.imageUrl ? (
+                  <div className="mx-auto flex min-h-full max-w-7xl items-center justify-center">
+                    <img
+                      src={focusedSheet.imageUrl}
+                      alt={getSheetLabel(focusedSheet)}
+                      className="max-h-none w-full rounded-lg bg-white object-contain shadow-2xl"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                    <FileImage className="w-10 h-10 text-cream-muted/50" />
+                    <p className="text-sm font-semibold text-cream">
+                      No drawing preview linked
+                    </p>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
       <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
