@@ -857,11 +857,6 @@ export default function EstimateSummary({
     calculations.materialItemsMissing + calculations.quantityItemsMissing;
   const defaultLaborCount = calculations.laborItemsDefaulted;
   const hasOpenScope = reviewQueueCount > 0;
-  const readyInputs = Math.max(calculations.bidReadyItems, 0);
-  const readinessPct =
-    calculations.totalItems > 0
-      ? Math.round((readyInputs / calculations.totalItems) * 100)
-      : 0;
   const markupPctTotal =
     generalConditionsPct +
     overheadPct +
@@ -869,6 +864,36 @@ export default function EstimateSummary({
     contingencyPct +
     bondPct +
     taxPct;
+  const costedItems = Math.max(
+    0,
+    calculations.totalItems -
+      calculations.materialItemsMissing -
+      calculations.quantityItemsMissing -
+      calculations.laborItemsHeldForReview -
+      calculations.laborItemsWithoutLabor
+  );
+  const pricedRowsPct =
+    calculations.totalItems > 0 ? costedItems / calculations.totalItems : 0;
+  const readinessPct = Math.min(
+    100,
+    Math.round(
+      pricedRowsPct * 45 +
+        (hasOpenScope ? 0 : 25) +
+        (defaultLaborCount > 0 || laborNeedsAttention > 0
+          ? calculations.laborItemsMatched > 0
+            ? 10
+            : 0
+          : 20) +
+        (markupPctTotal > 0 ? 10 : 0)
+    )
+  );
+  const readinessDetail = hasOpenScope
+    ? `${reviewQueueCount} scope package${reviewQueueCount !== 1 ? "s" : ""} still pending.`
+    : defaultLaborCount > 0
+      ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with default labor.`
+      : laborNeedsAttention > 0
+        ? `${laborNeedsAttention} labor decision${laborNeedsAttention !== 1 ? "s" : ""} still open.`
+        : "Accepted scope is priced and ready for submit prep.";
   const markupProfileLabel =
     markupPctTotal > 0
       ? `${pctToDisplay(overheadPct + profitPct)}% O/H + profit`
@@ -962,7 +987,7 @@ export default function EstimateSummary({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-medium/45">
+      <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#151817] via-[#101416] to-[#090b0c] shadow-[0_18px_70px_rgba(0,0,0,0.28)]">
         <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="p-5 lg:p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -978,7 +1003,7 @@ export default function EstimateSummary({
                 >
                   ConstructLine 2.0 Estimate Cockpit
                 </Badge>
-                <h3 className="mt-3 text-2xl font-semibold text-cream">
+                <h3 className="mt-3 text-3xl font-semibold text-cream">
                   {formatCurrency(calculations.grandTotal, currency)}
                 </h3>
                 <p className="mt-1 text-sm text-cream-muted">
@@ -986,12 +1011,20 @@ export default function EstimateSummary({
                   saved markup profile.
                 </p>
               </div>
-              <div className="min-w-[220px] rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3">
+              <div className="min-w-[260px] rounded-lg border border-white/10 bg-white/[0.045] p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs uppercase text-emerald-300/75">
+                  <span className="text-xs uppercase text-cream-muted">
                     Bid Readiness
                   </span>
-                  <span className="font-mono text-xl font-semibold text-emerald-300">
+                  <span
+                    className={`font-mono text-2xl font-semibold ${
+                      readinessPct >= 80
+                        ? "text-emerald-300"
+                        : readinessPct >= 50
+                          ? "text-amber-300"
+                          : "text-orange-300"
+                    }`}
+                  >
                     {readinessPct}%
                   </span>
                 </div>
@@ -1008,13 +1041,13 @@ export default function EstimateSummary({
                   />
                 </div>
                 <p className="mt-2 text-xs text-cream-muted">
-                  {calculations.bidReadyItems} of {calculations.totalItems} rows
-                  have quantity, material, and active labor.
+                  {costedItems} of {calculations.totalItems} accepted rows are
+                  priced. {readinessDetail}
                 </p>
               </div>
             </div>
           </div>
-          <div className="border-t border-white/10 bg-navy-deep/30 p-5 lg:border-l lg:border-t-0 lg:p-6">
+          <div className="border-t border-white/10 bg-white/[0.025] p-5 lg:border-l lg:border-t-0 lg:p-6">
             <div className="grid grid-cols-2 gap-3">
               <ReadinessMetric
                 label="Accepted Direct"
@@ -1068,6 +1101,8 @@ export default function EstimateSummary({
                 <Users className="h-3.5 w-3.5" />
               ) : primaryAttention.cta.includes("Labor") ? (
                 <Layers className="h-3.5 w-3.5" />
+              ) : primaryAttention.cta.includes("Review") ? (
+                <ClipboardList className="h-3.5 w-3.5" />
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
@@ -1076,7 +1111,13 @@ export default function EstimateSummary({
           ) : null}
         </div>
         {attentionItems.length > 0 ? (
-          <div className="grid grid-cols-1 divide-y divide-white/10 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+          <div
+            className={`grid grid-cols-1 divide-y divide-white/10 lg:divide-x lg:divide-y-0 ${
+              attentionItems.length === 1
+                ? "lg:grid-cols-1"
+                : "lg:grid-cols-2"
+            }`}
+          >
             {attentionItems.slice(0, 3).map(item => (
               <div key={`${item.label}-${item.title}`} className="p-4">
                 <Badge
@@ -2025,17 +2066,17 @@ function ReadinessMetric({
 }) {
   const toneClass =
     tone === "green"
-      ? "text-emerald-300 border-emerald-500/20 bg-emerald-500/8"
+      ? "text-emerald-300 border-emerald-500/18 bg-white/[0.035]"
       : tone === "amber"
-        ? "text-amber-300 border-amber-500/20 bg-amber-500/8"
+        ? "text-amber-300 border-amber-500/22 bg-white/[0.035]"
         : tone === "red"
-          ? "text-red-300 border-red-500/20 bg-red-500/8"
+          ? "text-orange-300 border-orange-500/22 bg-white/[0.035]"
           : tone === "blue"
-            ? "text-blue-300 border-blue-500/20 bg-blue-500/8"
+            ? "text-blue-300 border-blue-500/22 bg-white/[0.035]"
             : "text-cream-muted border-white/10 bg-white/5";
 
   return (
-    <div className={`rounded-lg border p-3 ${toneClass}`}>
+    <div className={`rounded-lg border p-3 shadow-inner ${toneClass}`}>
       <p className="text-[10px] uppercase tracking-wider opacity-75">{label}</p>
       <p className="mt-1 truncate font-mono text-lg font-semibold">{value}</p>
     </div>
