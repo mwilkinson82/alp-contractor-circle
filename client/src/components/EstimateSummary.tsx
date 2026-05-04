@@ -1673,37 +1673,37 @@ export default function EstimateSummary({
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
+              <h3 className="text-[#f4efe4] font-semibold text-sm flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
                 Direct Cost Breakdown
               </h3>
-              <p className="mt-1 text-xs text-cream-muted">
+              <p className="mt-1 text-xs text-[#d8ccb4]">
                 Accepted scope grouped by division with pricing and labor basis
                 decisions.
               </p>
             </div>
-            <Badge className="bg-white/5 text-cream-muted border-white/10">
+            <Badge className="bg-[#f4efe4]/10 text-[#d8ccb4] border-[#d7c7aa]/20">
               {calculations.totalItems} accepted rows
             </Badge>
           </div>
 
-          <div className="border border-white/10 rounded-xl overflow-hidden bg-navy-medium/25">
+          <div className="border border-[#d7c7aa] rounded-xl overflow-hidden bg-[#f4efe4] text-[#171714] shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-navy-medium/70 border-b border-white/10">
-                  <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider">
+                <tr className="bg-[#eee4d2] border-b border-[#d7c7aa]">
+                  <th className="text-left text-[#716855] font-semibold px-4 py-2.5 text-xs uppercase tracking-wider">
                     Division
                   </th>
-                  <th className="text-left text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-36">
+                  <th className="text-left text-[#716855] font-semibold px-4 py-2.5 text-xs uppercase tracking-wider w-36">
                     Status
                   </th>
-                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
+                  <th className="text-right text-[#716855] font-semibold px-4 py-2.5 text-xs uppercase tracking-wider w-32">
                     Material
                   </th>
-                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
+                  <th className="text-right text-[#716855] font-semibold px-4 py-2.5 text-xs uppercase tracking-wider w-32">
                     Labor Basis
                   </th>
-                  <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
+                  <th className="text-right text-[#716855] font-semibold px-4 py-2.5 text-xs uppercase tracking-wider w-32">
                     Subtotal
                   </th>
                 </tr>
@@ -1737,21 +1737,21 @@ export default function EstimateSummary({
                     <Fragment key={div}>
                       <tr
                         key={div}
-                        className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                        className="border-b border-[#d7c7aa] hover:bg-white/65 cursor-pointer"
                         onClick={() => toggleDivision(div)}
                       >
-                        <td className="px-4 py-2.5 text-cream">
+                        <td className="px-4 py-2.5 text-[#171714]">
                           <div className="flex items-center gap-2">
                             {collapsedDivisions.has(div) ? (
                               <ChevronRight className="w-3.5 h-3.5 text-cream-muted" />
                             ) : (
                               <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />
                             )}
-                            <span className="font-mono text-amber-400/80 text-xs">
+                            <span className="font-mono text-[#8a6510] text-xs">
                               {div}
                             </span>
                             <span>{divName}</span>
-                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px] ml-1">
+                            <Badge className="bg-white/70 text-[#716855] border-[#d7c7aa] text-[10px] ml-1">
                               {data.items.length}
                             </Badge>
                           </div>
@@ -1768,17 +1768,17 @@ export default function EstimateSummary({
                             }
                           />
                         </td>
-                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">
+                        <td className="px-4 py-2.5 text-right text-[#171714] font-mono text-xs">
                           {formatCurrency(data.materialTotal, currency)}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs">
+                        <td className="px-4 py-2.5 text-right text-[#171714] font-mono text-xs">
                           {data.laborTotal > 0 ? (
                             formatCurrency(data.laborTotal, currency)
                           ) : (
-                            <span className="text-cream-muted/40">—</span>
+                            <span className="text-[#716855]/50">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-cream font-mono text-xs font-medium">
+                        <td className="px-4 py-2.5 text-right text-[#171714] font-mono text-xs font-medium">
                           {formatCurrency(divTotal, currency)}
                         </td>
                       </tr>
@@ -1804,9 +1804,9 @@ export default function EstimateSummary({
                           return (
                             <tr
                               key={`${div}-${item.id}`}
-                              className="border-b border-white/5 bg-navy-deep/20"
+                              className="border-b border-[#d7c7aa]/70 bg-white/45"
                             >
-                              <td className="px-8 py-2 text-cream/75">
+                              <td className="px-8 py-2 text-[#29251c]">
                                 <p className="text-xs line-clamp-1">
                                   {item.description}
                                 </p>
@@ -1819,7 +1819,7 @@ export default function EstimateSummary({
                                     </Badge>
                                   )}
                                   {labor?.laborNote && (
-                                    <span className="text-[10px] text-cream-muted/55 line-clamp-1">
+                                    <span className="text-[10px] text-[#716855] line-clamp-1">
                                       {labor.laborNote}
                                     </span>
                                   )}
@@ -1828,15 +1828,15 @@ export default function EstimateSummary({
                               <td className="px-4 py-2">
                                 <StatusBadge status={rowStatus} compact />
                               </td>
-                              <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                              <td className="px-4 py-2 text-right text-[#5d5546] font-mono text-xs">
                                 {formatCurrency(materialTotal, currency)}
                               </td>
-                              <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                              <td className="px-4 py-2 text-right text-[#5d5546] font-mono text-xs">
                                 {laborTotal > 0
                                   ? formatCurrency(laborTotal, currency)
                                   : "—"}
                               </td>
-                              <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                              <td className="px-4 py-2 text-right text-[#5d5546] font-mono text-xs">
                                 {formatCurrency(
                                   materialTotal + laborTotal,
                                   currency
@@ -1849,8 +1849,8 @@ export default function EstimateSummary({
                   );
                 })}
                 {calculations.allowancesTotal > 0 && (
-                  <tr className="border-b border-white/5 bg-amber-500/[0.03]">
-                    <td className="px-4 py-2.5 text-cream">
+                  <tr className="border-b border-[#d7c7aa] bg-[#fff4cb]/60">
+                    <td className="px-4 py-2.5 text-[#171714]">
                       <div className="flex items-center gap-2">
                         <ClipboardList className="w-3.5 h-3.5 text-amber-400" />
                         <span>Allowances</span>
@@ -1862,19 +1862,19 @@ export default function EstimateSummary({
                     <td className="px-4 py-2.5">
                       <StatusBadge status="Bid allowance" compact />
                     </td>
-                    <td className="px-4 py-2.5 text-right text-cream-muted/40 font-mono text-xs">
+                    <td className="px-4 py-2.5 text-right text-[#716855]/50 font-mono text-xs">
                       —
                     </td>
-                    <td className="px-4 py-2.5 text-right text-cream-muted/40 font-mono text-xs">
+                    <td className="px-4 py-2.5 text-right text-[#716855]/50 font-mono text-xs">
                       —
                     </td>
-                    <td className="px-4 py-2.5 text-right text-amber-300 font-mono text-xs font-medium">
+                    <td className="px-4 py-2.5 text-right text-[#8a6510] font-mono text-xs font-medium">
                       {formatCurrency(calculations.allowancesTotal, currency)}
                     </td>
                   </tr>
                 )}
-                <tr className="bg-navy-medium/50 border-t border-white/15">
-                  <td className="px-4 py-3 text-cream font-semibold">
+                <tr className="bg-[#17130c] border-t border-[#3a2e1d]">
+                  <td className="px-4 py-3 text-[#f4efe4] font-semibold">
                     Direct Costs Total
                   </td>
                   <td className="px-4 py-3">
@@ -1891,7 +1891,7 @@ export default function EstimateSummary({
                       ? formatCurrency(calculations.totalLabor, currency)
                       : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-cream font-mono text-sm font-bold">
+                  <td className="px-4 py-3 text-right text-[#f4efe4] font-mono text-sm font-bold">
                     {formatCurrency(calculations.directCost, currency)}
                   </td>
                 </tr>
@@ -1901,14 +1901,14 @@ export default function EstimateSummary({
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <div className="rounded-xl border border-emerald-500/18 bg-white/[0.035] p-4">
-            <p className="text-[10px] uppercase tracking-wider text-emerald-300/75">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 shadow-[0_16px_50px_rgba(0,0,0,0.2)]">
+            <p className="text-[10px] uppercase tracking-wider text-emerald-800/75">
               Bid Total
             </p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-emerald-200">
+            <p className="mt-1 font-mono text-2xl font-semibold text-emerald-800">
               {formatCurrency(calculations.grandTotal, currency)}
             </p>
-            <div className="mt-3 space-y-1.5 border-t border-emerald-500/15 pt-3">
+            <div className="mt-3 space-y-1.5 border-t border-emerald-300 pt-3">
               <WaterfallRow
                 label="Accepted direct"
                 value={acceptedDirect}
@@ -1922,9 +1922,9 @@ export default function EstimateSummary({
             </div>
           </div>
 
-          <div className="bg-white/[0.025] border border-white/10 rounded-xl p-4 space-y-3">
+          <div className="bg-[#f4efe4] border border-[#d7c7aa] rounded-xl p-4 space-y-3 text-[#171714]">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
+              <h3 className="text-[#171714] font-semibold text-sm flex items-center gap-2">
                 <Percent className="w-4 h-4 text-amber-400" />
                 Markup Profile
               </h3>
@@ -1988,8 +1988,8 @@ export default function EstimateSummary({
             </Button>
           </div>
 
-          <div className="bg-white/[0.025] border border-white/10 rounded-xl p-4 space-y-2">
-            <h4 className="text-cream font-medium text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+          <div className="bg-[#f4efe4] border border-[#d7c7aa] rounded-xl p-4 space-y-2 text-[#171714]">
+            <h4 className="text-[#171714] font-medium text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
               Cost Waterfall
             </h4>
@@ -2041,7 +2041,7 @@ export default function EstimateSummary({
                 currency={currency}
               />
             )}
-            <div className="border-t border-white/15 pt-2 mt-2">
+            <div className="border-t border-[#d7c7aa] pt-2 mt-2">
               <WaterfallRow
                 label="GRAND TOTAL"
                 value={calculations.grandTotal}
@@ -2055,8 +2055,8 @@ export default function EstimateSummary({
           <div
             className={`rounded-xl border p-4 ${
               hasOpenScope
-                ? "border-amber-500/25 bg-white/[0.035]"
-                : "border-white/10 bg-white/[0.025]"
+                ? "border-[#d7b44d] bg-[#fff4cb]"
+                : "border-emerald-300 bg-emerald-50"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -2066,17 +2066,17 @@ export default function EstimateSummary({
                 <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-400" />
               )}
               <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-semibold text-cream">
+                <h4 className="text-sm font-semibold text-[#171714]">
                   Pending Scope
                 </h4>
-                <p className="mt-1 text-xs leading-5 text-cream-muted">
+                <p className="mt-1 text-xs leading-5 text-[#716855]">
                   {hasOpenScope
                     ? `${reviewQueueCount} review package${reviewQueueCount !== 1 ? "s are" : " is"} visible but not counted until accepted.`
                     : excludedBoundaryCount > 0
                       ? `${excludedBoundaryCount} excluded boundary item${excludedBoundaryCount !== 1 ? "s remain" : " remains"} available for audit.`
                       : "No pending review scope is affecting this bid total."}
                 </p>
-                <p className="mt-2 font-mono text-sm text-amber-300">
+                <p className="mt-2 font-mono text-sm text-[#8a6510]">
                   {formatCurrency(reviewQueueCost, currency)}
                 </p>
                 {onOpenReview && hasOpenScope ? (
@@ -2200,14 +2200,14 @@ function StatusBadge({
 }) {
   const normalized = status.toLowerCase();
   const className = normalized.includes("ready")
-    ? "bg-emerald-500/12 text-emerald-300 border-emerald-500/25"
+    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
     : normalized.includes("confirm")
-      ? "bg-amber-500/12 text-amber-300 border-amber-500/25"
+      ? "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]"
       : normalized.includes("allowance")
-        ? "bg-blue-500/12 text-blue-300 border-blue-500/25"
+        ? "bg-blue-50 text-blue-800 border-blue-200"
       : normalized.includes("missing") || normalized.includes("draft")
-        ? "bg-red-500/12 text-red-300 border-red-500/25"
-        : "bg-amber-500/12 text-amber-300 border-amber-500/25";
+        ? "bg-orange-50 text-orange-800 border-orange-200"
+        : "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]";
 
   return (
     <Badge
@@ -2378,8 +2378,8 @@ function MarkupInput({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex-1 min-w-0">
-        <p className="text-cream text-xs font-medium">{label}</p>
-        <p className="text-cream-muted text-[10px] truncate">{hint}</p>
+        <p className="text-[#171714] text-xs font-medium">{label}</p>
+        <p className="text-[#716855] text-[10px] truncate">{hint}</p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <Input
@@ -2392,9 +2392,9 @@ function MarkupInput({
             setDisplay(e.target.value);
             onChange(displayToPct(e.target.value));
           }}
-          className="w-20 h-7 text-xs text-right bg-navy-deep/80 border-white/10 text-cream px-2"
+          className="w-20 h-7 text-xs text-right bg-white/70 border-[#d7c7aa] text-[#171714] px-2"
         />
-        <span className="text-cream-muted text-xs">%</span>
+        <span className="text-[#716855] text-xs">%</span>
       </div>
     </div>
   );
@@ -2418,12 +2418,12 @@ function WaterfallRow({
       className={`flex items-center justify-between py-1 ${bold ? "font-semibold" : ""}`}
     >
       <span
-        className={`text-xs ${accent ? "text-amber-400" : bold ? "text-cream" : "text-cream-muted"}`}
+        className={`text-xs ${accent ? "text-[#8a6510]" : bold ? "text-[#171714]" : "text-[#716855]"}`}
       >
         {label}
       </span>
       <span
-        className={`font-mono text-xs ${accent ? "text-amber-400 text-sm" : bold ? "text-cream" : "text-cream-muted"}`}
+        className={`font-mono text-xs ${accent ? "text-[#8a6510] text-sm" : bold ? "text-[#171714]" : "text-[#716855]"}`}
       >
         {formatCurrency(value, currency)}
       </span>

@@ -545,15 +545,18 @@ export default function EstimateOutputs({
   };
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-6 mt-6 rounded-xl border border-[#d7c7aa] bg-[#f4efe4] p-5 text-[#171714] shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
       {/* Section header */}
-      <div className="flex items-center justify-between border-t border-white/10 pt-6">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-amber-400" />
-          <h3 className="text-cream font-semibold text-base">Export Documents</h3>
+          <FileText className="w-5 h-5 text-[#8a6510]" />
+          <div>
+            <h3 className="text-[#171714] font-semibold text-base">Export Documents</h3>
+            <p className="text-xs text-[#716855]">Submit = package the bid for the owner, client, or pay-app workflow.</p>
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowBranding(!showBranding)}
-          className="text-cream-muted hover:text-cream gap-1.5 text-xs">
+          className="text-[#5d5546] hover:bg-white/70 hover:text-[#171714] gap-1.5 text-xs">
           <Settings2 className="w-3.5 h-3.5" />
           {showBranding ? "Hide" : "Company"} Branding
         </Button>
@@ -561,35 +564,35 @@ export default function EstimateOutputs({
 
       {/* Company Branding Panel */}
       {showBranding && (
-        <div className="bg-navy-medium/30 border border-white/10 rounded-xl p-4 space-y-3">
+        <div className="bg-white/60 border border-[#d7c7aa] rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2 mb-2">
-            <Building2 className="w-4 h-4 text-amber-400" />
-            <h4 className="text-cream font-medium text-sm">Company Branding</h4>
-            <span className="text-cream-muted text-xs">(appears on all documents)</span>
+            <Building2 className="w-4 h-4 text-[#8a6510]" />
+            <h4 className="text-[#171714] font-medium text-sm">Company Branding</h4>
+            <span className="text-[#716855] text-xs">(appears on all documents)</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input placeholder="Company name" value={companyName} onChange={e => setCompanyName(e.target.value)}
-              className="h-8 text-sm bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Company address" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)}
-              className="h-8 text-sm bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Phone number" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)}
-              className="h-8 text-sm bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Email address" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)}
-              className="h-8 text-sm bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="License number (optional)" value={companyLicense} onChange={e => setCompanyLicense(e.target.value)}
-              className="h-8 text-sm bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Bid Summary */}
-        <div className="bg-navy-medium/30 border border-white/10 rounded-xl p-4 space-y-3">
+        <div className="bg-white/65 border border-emerald-300 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-emerald-400" />
-            <h4 className="text-cream font-medium text-sm">Bid Summary</h4>
+            <h4 className="text-[#171714] font-medium text-sm">Bid Summary</h4>
           </div>
-          <p className="text-cream-muted text-xs">
+          <p className="text-[#716855] text-xs">
             One-page formatted estimate with division breakdown and markup waterfall. Includes your company branding.
           </p>
           <Button size="sm" onClick={generateBidSummary} disabled={generating === "bid"}
@@ -600,21 +603,21 @@ export default function EstimateOutputs({
         </div>
 
         {/* Proposal */}
-        <div className="bg-navy-medium/30 border border-white/10 rounded-xl p-4 space-y-3">
+        <div className="bg-white/65 border border-blue-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-blue-400" />
-            <h4 className="text-cream font-medium text-sm">Proposal</h4>
+            <h4 className="text-[#171714] font-medium text-sm">Proposal</h4>
           </div>
-          <p className="text-cream-muted text-xs">
+          <p className="text-[#716855] text-xs">
             Cover letter + scope + pricing + terms. Fill in client info below.
           </p>
           <div className="space-y-1.5">
             <Input placeholder="Client name" value={clientName} onChange={e => setClientName(e.target.value)}
-              className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Client company" value={clientCompany} onChange={e => setClientCompany(e.target.value)}
-              className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Project address" value={projectAddress} onChange={e => setProjectAddress(e.target.value)}
-              className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
           </div>
           <Button size="sm" onClick={generateProposal} disabled={generating === "proposal"}
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white gap-1.5">
@@ -624,24 +627,24 @@ export default function EstimateOutputs({
         </div>
 
         {/* SOV — AIA G702/G703 Excel */}
-        <div className="bg-navy-medium/30 border border-white/10 rounded-xl p-4 space-y-3">
+        <div className="bg-white/65 border border-[#d7b44d] rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-amber-400" />
-            <h4 className="text-cream font-medium text-sm">Schedule of Values</h4>
+            <h4 className="text-[#171714] font-medium text-sm">Schedule of Values</h4>
           </div>
-          <p className="text-cream-muted text-xs">
+          <p className="text-[#716855] text-xs">
             AIA G702/G703 Excel — 2 sheets: Application for Payment + Continuation Sheet (SOV). Editable in Excel.
           </p>
           <div className="space-y-1.5">
             <Input placeholder="Owner name" value={ownerName} onChange={e => setOwnerName(e.target.value)}
-              className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <Input placeholder="Architect name" value={architectName} onChange={e => setArchitectName(e.target.value)}
-              className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             <div className="grid grid-cols-2 gap-1.5">
               <Input placeholder="Project No." value={projectNo} onChange={e => setProjectNo(e.target.value)}
-                className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+                className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
               <Input placeholder="Retainage %" value={retainagePct} onChange={e => setRetainagePct(e.target.value)}
-                className="h-7 text-xs bg-navy-deep border-white/10 text-cream placeholder:text-cream-muted/40" />
+                className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
             </div>
           </div>
           <Button size="sm" onClick={generateSOVExcel} disabled={generating === "sov"}

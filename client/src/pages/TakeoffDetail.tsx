@@ -829,6 +829,9 @@ export default function TakeoffDetail() {
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
   const [showConsolidationDiff, setShowConsolidationDiff] = useState(false);
   const [openSettingsToScope, setOpenSettingsToScope] = useState(false);
+  const [optimisticScopeDecisions, setOptimisticScopeDecisions] = useState<
+    Record<number, { notes: string; reviewed: boolean }>
+  >({});
   // Track previous scopeText to detect scope changes
   const prevScopeTextRef = useRef<string | null>(null);
 
@@ -880,9 +883,15 @@ export default function TakeoffDetail() {
     }
   );
 
-  const { data: items, refetch: refetchItems } = trpc.takeoff.getItems.useQuery(
-    { projectId },
-    { enabled: projectId > 0 }
+  const { data: queriedItems, refetch: refetchItems } =
+    trpc.takeoff.getItems.useQuery({ projectId }, { enabled: projectId > 0 });
+  const items = useMemo(
+    () =>
+      (queriedItems || []).map((item: any) => {
+        const optimistic = optimisticScopeDecisions[item.id];
+        return optimistic ? { ...item, ...optimistic } : item;
+      }),
+    [queriedItems, optimisticScopeDecisions]
   );
   const selectedDivisionList = useMemo(() => {
     if (!project?.selectedDivisions) return null;
@@ -1063,13 +1072,32 @@ export default function TakeoffDetail() {
   });
 
   const updateItemMutation = trpc.takeoff.updateItem.useMutation({
-    onSuccess: () => {
-      toast.success("Item updated");
+    onSuccess: (_result, variables: any) => {
+      const isScopeDecision = String(variables?.notes || "").startsWith(
+        "[Scope:"
+      );
+      if (!isScopeDecision) toast.success("Item updated");
+      if (variables?.id) {
+        setOptimisticScopeDecisions(prev => {
+          const next = { ...prev };
+          delete next[variables.id];
+          return next;
+        });
+      }
       setEditingItem(null);
       refetchItems();
       refetchProject();
     },
-    onError: err => toast.error(err.message),
+    onError: (err, variables: any) => {
+      if (variables?.id) {
+        setOptimisticScopeDecisions(prev => {
+          const next = { ...prev };
+          delete next[variables.id];
+          return next;
+        });
+      }
+      toast.error(err.message);
+    },
   });
 
   const deleteItemMutation = trpc.takeoff.deleteItem.useMutation({
@@ -2360,10 +2388,15 @@ export default function TakeoffDetail() {
       status: "included" | "review" | "excluded",
       reviewed = true
     ) => {
+      const notes = scopeDecisionNotes(item.notes, status);
+      setOptimisticScopeDecisions(prev => ({
+        ...prev,
+        [item.id]: { notes, reviewed },
+      }));
       updateItemMutation.mutate({
         id: item.id,
         projectId,
-        notes: scopeDecisionNotes(item.notes, status),
+        notes,
         reviewed,
       });
     },
@@ -2387,10 +2420,15 @@ export default function TakeoffDetail() {
       }
 
       for (const item of targetItems) {
+        const notes = scopeDecisionNotes(item.notes, status);
+        setOptimisticScopeDecisions(prev => ({
+          ...prev,
+          [item.id]: { notes, reviewed: true },
+        }));
         updateItemMutation.mutate({
           id: item.id,
           projectId,
-          notes: scopeDecisionNotes(item.notes, status),
+          notes,
           reviewed: true,
         });
       }
@@ -2496,9 +2534,9 @@ export default function TakeoffDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080706]">
+    <div className="min-h-screen bg-[#100d08]">
       {/* Header Bar */}
-      <div className="border-b border-[#3a2e1d] bg-[#11100c]/95 px-3 sm:px-6 py-3 sm:py-4">
+      <div className="border-b border-[#3a2e1d] bg-[#141108]/95 px-3 sm:px-6 py-3 sm:py-4 shadow-[0_10px_40px_rgba(0,0,0,0.28)]">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
@@ -2737,10 +2775,10 @@ export default function TakeoffDetail() {
             {!(isProcessing && sheets.length > 0) && (
               <div
                 data-tour="takeoff-upload-area"
-                className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
+                  className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center shadow-[0_20px_70px_rgba(0,0,0,0.22)] transition-all ${
                   dragOver
                     ? "border-[#d9a21a] bg-[#fff4cb]"
-                    : "border-[#d7c7aa] hover:border-[#d9a21a] bg-[#f4efe4]"
+                    : "border-[#d7c7aa] hover:border-[#d9a21a] bg-[#f7efe0]"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2792,7 +2830,9 @@ export default function TakeoffDetail() {
                     </>
                   ) : (
                     <>
-                      <Upload className="w-10 h-10 text-[#8a6a19]" />
+                      <div className="rounded-full border border-[#d7c7aa] bg-white/70 p-4">
+                        <Upload className="w-10 h-10 text-[#8a6a19]" />
+                      </div>
                       <div>
                         <p className="text-[#171714] font-semibold">
                           Upload drawing set
@@ -2978,11 +3018,11 @@ export default function TakeoffDetail() {
                   return (
                     <Card
                       key={sheet.id}
-                      className="bg-navy-medium/50 border-white/10 overflow-hidden group hover:border-amber-500/30 transition-all"
+                    className="overflow-hidden border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_18px_50px_rgba(0,0,0,0.22)] transition-all group hover:-translate-y-0.5 hover:border-[#d9a21a]"
                     >
                       {/* Sheet Thumbnail */}
                       <div
-                        className="aspect-[4/3] bg-navy-deep/50 relative cursor-pointer"
+                        className="aspect-[4/3] bg-white relative cursor-pointer"
                         onClick={() => setPreviewSheet(sheet)}
                       >
                         {sheet.imageUrl ? (
@@ -2993,7 +3033,7 @@ export default function TakeoffDetail() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <FileImage className="w-12 h-12 text-cream-muted/30" />
+                            <FileImage className="w-12 h-12 text-[#716855]/35" />
                           </div>
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -3013,11 +3053,11 @@ export default function TakeoffDetail() {
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-1">
                           <div className="min-w-0 flex-1">
-                            <p className="text-cream text-sm font-medium truncate">
+                            <p className="text-[#171714] text-sm font-semibold truncate">
                               {sheet.sheetName || `Page ${sheet.pageNumber}`}
                             </p>
                             {sheet.sheetType && sheet.sheetType !== "other" && (
-                              <p className="text-cream-muted text-xs capitalize">
+                              <p className="text-[#716855] text-xs capitalize">
                                 {sheet.sheetType.replace(/_/g, " ")}
                               </p>
                             )}
@@ -3028,7 +3068,7 @@ export default function TakeoffDetail() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                                className="h-7 w-7 p-0 text-[#716855] hover:text-[#8a6510]"
                                 title={
                                   sheetScales[sheet.id]
                                     ? `Scale set: 1 ${sheetScales[sheet.id].unit} = ${Math.round(sheetScales[sheet.id].ratio)}px`
@@ -3047,7 +3087,7 @@ export default function TakeoffDetail() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                                className="h-7 w-7 p-0 text-[#716855] hover:text-[#8a6510]"
                                 onClick={() =>
                                   reprocessMutation.mutate({
                                     sheetId: sheet.id,
@@ -3738,36 +3778,36 @@ export default function TakeoffDetail() {
                 )}
 
                 {assemblyBundles.length > 0 && (
-                  <div className="rounded-lg border border-white/10 bg-white/[0.025] px-4 py-3">
+                  <div className="rounded-xl border border-[#d7c7aa] bg-[#f4efe4] px-4 py-3 text-[#171714] shadow-[0_16px_60px_rgba(0,0,0,0.22)]">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-cyan-300" />
-                          <span className="text-sm font-semibold text-cream">
+                          <Sparkles className="w-4 h-4 text-[#244c91]" />
+                          <span className="text-sm font-semibold text-[#171714]">
                             Scope Intelligence
                           </span>
                         </div>
-                        <span className="text-sm text-cream">
+                        <span className="text-sm text-[#5d5546]">
                           <span className="font-semibold">
                             {scopeReviewCount}
                           </span>{" "}
                           open decisions
                         </span>
-                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                        <span className="flex items-center gap-1.5 text-xs text-[#716855]">
                           <span className="h-2 w-2 rounded-full bg-emerald-400" />
                           {highConfidenceReviewCount} high confidence
                         </span>
-                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                        <span className="flex items-center gap-1.5 text-xs text-[#716855]">
                           <span className="h-2 w-2 rounded-full bg-amber-300" />
                           {mediumConfidenceReviewCount} medium
                         </span>
-                        <span className="flex items-center gap-1.5 text-xs text-cream-muted">
+                        <span className="flex items-center gap-1.5 text-xs text-[#716855]">
                           <span className="h-2 w-2 rounded-full bg-red-300" />
                           {lowConfidenceReviewCount} estimator required
                         </span>
                       </div>
                       <div className="flex min-w-[280px] flex-1 items-center justify-end gap-3">
-                        <span className="whitespace-nowrap text-xs text-cream-muted">
+                        <span className="whitespace-nowrap text-xs text-[#716855]">
                           {completedBundleCount} of {assemblyBundles.length}{" "}
                           reviewed
                         </span>
@@ -3777,8 +3817,8 @@ export default function TakeoffDetail() {
                               key={bundle.key}
                               className={`h-1.5 rounded-full ${
                                 bundle.status !== "open"
-                                  ? "bg-emerald-400"
-                                  : "bg-white/12"
+                                  ? "bg-emerald-600"
+                                  : "bg-[#d8c9ad]"
                               }`}
                             />
                           ))}
@@ -3791,7 +3831,7 @@ export default function TakeoffDetail() {
                           className={
                             readyToPrice
                               ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                              : "h-8 border-white/10 text-cream-muted"
+                              : "h-8 border-[#c8b895] text-[#716855]"
                           }
                         >
                           <Calculator className="w-3.5 h-3.5 mr-1.5" />
@@ -3802,7 +3842,7 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              className="h-8 border-[#c8b895] text-[#5d5546] hover:bg-white"
                             >
                               <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
                               Actions
@@ -3954,31 +3994,31 @@ export default function TakeoffDetail() {
                     return (
                       <div
                         id="assembly-review"
-                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714]"
+                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_24px_90px_rgba(0,0,0,0.3)]"
                       >
-                        <div className="px-5 py-3 bg-[#eee4d2] border-b border-[#d7c7aa]">
+                        <div className="px-5 py-3 bg-[#17130c] border-b border-[#3a2e1d] text-[#f4efe4]">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
                             <Layers className="w-4 h-4 text-amber-300" />
-                            <h2 className="font-semibold text-[#171714]">
+                            <h2 className="font-semibold text-[#f4efe4]">
                               AI Takeoff Review
                             </h2>
                             <span className="text-[#8a806d]">·</span>
-                            <span className="text-[#716855]">
+                            <span className="text-[#d8ccb4]">
                               Package{" "}
-                              <span className="text-[#171714]">
+                              <span className="text-white">
                                 {packageIndex}/{assemblyBundles.length}
                               </span>
                             </span>
                             <span className="text-[#8a806d]">·</span>
-                            <span className="text-[#716855]">
+                            <span className="text-[#d8ccb4]">
                               {bundle.drawingGroup}
                             </span>
                             <span className="text-[#8a806d]">·</span>
                             <span
                               className={
                                 bundle.status === "open"
-                                  ? "font-semibold text-[#8a6510]"
-                                  : "font-semibold text-emerald-700"
+                                  ? "font-semibold text-amber-300"
+                                  : "font-semibold text-emerald-300"
                               }
                             >
                               {statusLabel}
@@ -3986,7 +4026,7 @@ export default function TakeoffDetail() {
                             {!readyToPrice && (
                               <>
                                 <span className="text-[#8a806d]">·</span>
-                                <span className="text-[#716855]">
+                                <span className="text-[#d8ccb4]">
                                   {highImpactOpenBundles.length} left
                                 </span>
                               </>
@@ -4184,17 +4224,17 @@ export default function TakeoffDetail() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cream-muted">
+                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#716855]">
                                   <span>
                                     Showing{" "}
-                                    <span className="font-semibold text-cream">
+                                    <span className="font-semibold text-[#171714]">
                                       {selectedSheet
                                         ? getSheetLabel(selectedSheet)
                                         : bundle.primarySheetLabel}
                                     </span>
                                     {selectedSheet?.id ===
                                       bundle.primarySheetId && (
-                                      <span className="ml-1 text-blue-200">
+                                      <span className="ml-1 text-[#244c91]">
                                         primary source
                                       </span>
                                     )}
@@ -4213,12 +4253,12 @@ export default function TakeoffDetail() {
                                   </span>
                                 </div>
                                 {bundle.sourceSheets.length > 1 && (
-                                  <div className="mt-3 rounded-md border border-white/10 bg-black/20 p-2">
+                                  <div className="mt-3 rounded-md border border-[#d7c7aa] bg-[#f8f2e6] p-2">
                                     <div className="mb-2 flex items-center justify-between gap-2">
-                                      <p className="text-[10px] font-semibold uppercase tracking-wider text-cream-muted">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#716855]">
                                         Source Drawings
                                       </p>
-                                      <span className="text-[10px] text-cream-muted">
+                                      <span className="text-[10px] text-[#716855]">
                                         Pick a sheet to verify evidence
                                       </span>
                                     </div>
@@ -4240,8 +4280,8 @@ export default function TakeoffDetail() {
                                             }
                                             className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                                               active
-                                                ? "border-blue-300/50 bg-blue-400/15 text-blue-100"
-                                                : "border-white/10 bg-white/[0.03] text-cream-muted hover:bg-white/[0.07] hover:text-cream"
+                                                ? "border-[#244c91]/40 bg-blue-50 text-[#244c91]"
+                                                : "border-[#d7c7aa] bg-white/65 text-[#716855] hover:bg-white hover:text-[#171714]"
                                             }`}
                                           >
                                             {sourceSheet.label}
@@ -4270,7 +4310,7 @@ export default function TakeoffDetail() {
                                               }
                                             )
                                           }
-                                          className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-cream-muted transition-colors hover:bg-white/[0.07] hover:text-cream"
+                                          className="rounded-full border border-[#d7c7aa] bg-white/65 px-2.5 py-1 text-[11px] font-semibold text-[#716855] transition-colors hover:bg-white hover:text-[#171714]"
                                         >
                                           {showAllSourceDrawings
                                             ? "Show less"
@@ -4282,30 +4322,30 @@ export default function TakeoffDetail() {
                                 )}
                               </div>
 
-                              <aside className="bg-white/[0.012] p-4 space-y-4">
-                                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                              <aside className="bg-[#eee4d2] p-4 space-y-4">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white/70 p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                     Decision Needed
                                   </p>
-                                  <p className="mt-1 text-lg font-semibold text-cream">
+                                  <p className="mt-1 text-lg font-semibold text-[#171714]">
                                     Should this package be included in the bid?
                                   </p>
-                                  <p className="mt-1 text-sm text-cream-muted">
+                                  <p className="mt-1 text-sm text-[#716855]">
                                     Pick one answer. ConstructLine saves the
                                     call and opens the next package.
                                   </p>
                                 </div>
 
-                                <div className="rounded-lg border border-blue-500/20 bg-blue-500/[0.045] p-3">
-                                  <p className="text-[10px] uppercase tracking-wider text-blue-200/80">
+                                <div className="rounded-lg border border-[#244c91]/20 bg-blue-50 p-3">
+                                  <p className="text-[10px] uppercase tracking-wider text-[#244c91]/80">
                                     AI Recommendation
                                   </p>
-                                  <p className="mt-1 text-sm font-semibold text-cream">
+                                  <p className="mt-1 text-sm font-semibold text-[#171714]">
                                     {recommendedLabel === "Review"
                                       ? "Review before adding"
                                       : recommendedLabel}
                                   </p>
-                                  <p className="mt-1 text-xs text-cream-muted">
+                                  <p className="mt-1 text-xs text-[#5d5546]">
                                     Use the drawing and evidence below as the
                                     nudge before making the bid call.
                                   </p>
@@ -4349,8 +4389,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "exclude"
-                                        ? "w-full justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                        : "w-full justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                        ? "w-full justify-start border-orange-600/35 bg-orange-50 text-orange-800 ring-1 ring-orange-600/20"
+                                        : "w-full justify-start border-[#c8b895] bg-white/55 text-[#5d5546] hover:bg-white hover:text-[#171714]"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "excluded")
@@ -4368,8 +4408,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "review"
-                                        ? "w-full justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                        : "w-full justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                        ? "w-full justify-start border-[#d7b44d] bg-[#fff4cb] text-[#8a6510] ring-1 ring-[#d7b44d]/30"
+                                        : "w-full justify-start border-[#d7b44d] bg-[#fff4cb]/60 text-[#8a6510] hover:bg-[#fff4cb]"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "review")
@@ -4384,17 +4424,17 @@ export default function TakeoffDetail() {
                                   </Button>
                                 </div>
 
-                                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.045] p-3">
+                                <div className="rounded-lg border border-emerald-600/20 bg-emerald-50 p-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      <p className="text-[10px] uppercase tracking-wider text-emerald-900/70">
                                         Bid Impact
                                       </p>
-                                      <p className="mt-1 text-xs text-cream-muted">
+                                      <p className="mt-1 text-xs text-emerald-800">
                                         If accepted
                                       </p>
                                     </div>
-                                    <p className="font-mono text-lg font-semibold text-emerald-300">
+                                    <p className="font-mono text-lg font-semibold text-emerald-700">
                                       +
                                       {formatCurrency(
                                         bundle.openReviewCost,
@@ -4404,48 +4444,48 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white/55 p-3">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                     Evidence
                                   </p>
                                   <div className="mt-3 grid grid-cols-2 gap-2">
-                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                    <div className="rounded-md border border-[#d7c7aa] bg-white/70 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
                                         Drawings
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
                                         {bundle.sourceSheets.length ||
                                           bundle.sourceDrawings.length}
                                       </p>
                                     </div>
-                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                    <div className="rounded-md border border-[#d7c7aa] bg-white/70 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
                                         Rows
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
                                         {bundle.items.length}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-white/10 bg-white/[0.03]">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white/55">
                                   <button
                                     type="button"
                                     onClick={() => toggleBundle(bundle.key)}
                                     className="flex w-full items-center justify-between px-3 py-2 text-left"
                                   >
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                       Package Evidence
                                     </span>
                                     {expanded ? (
-                                      <ChevronDown className="w-4 h-4 text-cream-muted" />
+                                      <ChevronDown className="w-4 h-4 text-[#716855]" />
                                     ) : (
-                                      <ChevronRight className="w-4 h-4 text-cream-muted" />
+                                      <ChevronRight className="w-4 h-4 text-[#716855]" />
                                     )}
                                   </button>
                                   {expanded && (
-                                    <div className="max-h-[260px] overflow-y-auto border-t border-white/10 p-2 space-y-2">
+                                    <div className="max-h-[260px] overflow-y-auto border-t border-[#d7c7aa] p-2 space-y-2">
                                       {bundle.items.map(item => {
                                         const status =
                                           getScopeReviewStatus(item);
@@ -4453,23 +4493,23 @@ export default function TakeoffDetail() {
                                         return (
                                           <button
                                             key={item.id}
-                                            className="w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05]"
+                                            className="w-full rounded-md border border-[#d7c7aa] bg-white/70 px-3 py-2 text-left hover:bg-white"
                                             onClick={() =>
                                               setSelectedItem(item)
                                             }
                                           >
                                             <div className="flex flex-wrap items-center gap-2">
-                                              <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                                              <Badge className="bg-white/80 text-[#716855] border-[#d7c7aa] text-[10px]">
                                                 {item.csiCode ||
                                                   item.csiDivision}
                                               </Badge>
                                               <Badge
                                                 className={`text-[10px] ${
                                                   status === "included"
-                                                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                                    ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/25"
                                                     : status === "review"
-                                                      ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
-                                                      : "bg-red-500/15 text-red-200 border-red-500/25"
+                                                      ? "bg-amber-500/15 text-[#8a6510] border-amber-500/25"
+                                                      : "bg-red-500/15 text-red-700 border-red-500/25"
                                                 }`}
                                               >
                                                 {formatScopeReviewStatus(
@@ -4482,10 +4522,10 @@ export default function TakeoffDetail() {
                                                 {cue.label}
                                               </Badge>
                                             </div>
-                                            <p className="mt-1 text-sm text-cream line-clamp-2">
+                                            <p className="mt-1 text-sm text-[#171714] line-clamp-2">
                                               {item.description}
                                             </p>
-                                            <p className="mt-1 font-mono text-xs text-amber-300">
+                                            <p className="mt-1 font-mono text-xs text-[#8a6510]">
                                               {formatCurrency(
                                                 item.extendedCost || 0,
                                                 project?.currency || "USD"
