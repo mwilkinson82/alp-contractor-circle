@@ -2864,10 +2864,10 @@ export default function TakeoffDetail() {
                   data-tour="takeoff-analyze-btn"
                   onClick={() => setShowPreAnalysis(true)}
                   disabled={processMutation.isPending}
-                  className={`w-full font-semibold py-6 text-lg shadow-lg ${
+                  className={`w-full border font-semibold py-6 text-lg shadow-[0_18px_60px_rgba(0,0,0,0.24)] ${
                     hasPendingSheets
-                      ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
-                      : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      ? "border-[#d7b44d] bg-[#d9a21a] text-[#171714] hover:bg-[#e5b52f]"
+                      : "border-[#244c91]/35 bg-[#19345f] text-white hover:bg-[#244c91]"
                   }`}
                 >
                   {processMutation.isPending && (
@@ -2876,8 +2876,8 @@ export default function TakeoffDetail() {
                   {hasPendingSheets ? (
                     <>
                       <span className="font-bold tracking-tight">
-                        <span className="text-white">Construct</span>
-                        <span className="text-amber-300">Line</span>
+                        <span className={hasPendingSheets ? "text-[#171714]" : "text-white"}>Construct</span>
+                        <span className={hasPendingSheets ? "text-[#6f4d00]" : "text-amber-300"}>Line</span>
                       </span>{" "}
                       Analyze Drawings
                     </>
@@ -4322,30 +4322,30 @@ export default function TakeoffDetail() {
                                 )}
                               </div>
 
-                              <aside className="bg-[#eee4d2] p-4 space-y-4">
-                                <div className="rounded-lg border border-[#d7c7aa] bg-white/70 p-4">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                              <aside className="bg-[#17130c] p-4 space-y-4">
+                                <div className="rounded-lg border border-[#3a2e1d] bg-[#241d13] p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#b8ad98]">
                                     Decision Needed
                                   </p>
-                                  <p className="mt-1 text-lg font-semibold text-[#171714]">
+                                  <p className="mt-1 text-lg font-semibold text-[#f4efe4]">
                                     Should this package be included in the bid?
                                   </p>
-                                  <p className="mt-1 text-sm text-[#716855]">
+                                  <p className="mt-1 text-sm text-[#d8ccb4]">
                                     Pick one answer. ConstructLine saves the
                                     call and opens the next package.
                                   </p>
                                 </div>
 
-                                <div className="rounded-lg border border-[#244c91]/20 bg-blue-50 p-3">
-                                  <p className="text-[10px] uppercase tracking-wider text-[#244c91]/80">
+                                <div className="rounded-lg border border-blue-400/25 bg-blue-500/10 p-3">
+                                  <p className="text-[10px] uppercase tracking-wider text-blue-200/80">
                                     AI Recommendation
                                   </p>
-                                  <p className="mt-1 text-sm font-semibold text-[#171714]">
+                                  <p className="mt-1 text-sm font-semibold text-[#f4efe4]">
                                     {recommendedLabel === "Review"
                                       ? "Review before adding"
                                       : recommendedLabel}
                                   </p>
-                                  <p className="mt-1 text-xs text-[#5d5546]">
+                                  <p className="mt-1 text-xs text-[#d8ccb4]">
                                     Use the drawing and evidence below as the
                                     nudge before making the bid call.
                                   </p>
@@ -4362,7 +4362,7 @@ export default function TakeoffDetail() {
                                     className={
                                       bundle.status === "include"
                                         ? "w-full justify-between bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                        : "w-full justify-between border-emerald-500/35 bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/15"
+                                        : "w-full justify-between border-emerald-400/45 bg-emerald-500/12 text-emerald-100 hover:bg-emerald-500/20"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "included")
@@ -4389,8 +4389,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "exclude"
-                                        ? "w-full justify-start border-orange-600/35 bg-orange-50 text-orange-800 ring-1 ring-orange-600/20"
-                                        : "w-full justify-start border-[#c8b895] bg-white/55 text-[#5d5546] hover:bg-white hover:text-[#171714]"
+                                        ? "w-full justify-start border-orange-400/45 bg-orange-500/15 text-orange-100 ring-1 ring-orange-300/20"
+                                        : "w-full justify-start border-orange-400/25 bg-white/[0.04] text-[#d8ccb4] hover:bg-orange-500/10 hover:text-orange-100"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "excluded")
@@ -4408,8 +4408,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "review"
-                                        ? "w-full justify-start border-[#d7b44d] bg-[#fff4cb] text-[#8a6510] ring-1 ring-[#d7b44d]/30"
-                                        : "w-full justify-start border-[#d7b44d] bg-[#fff4cb]/60 text-[#8a6510] hover:bg-[#fff4cb]"
+                                        ? "w-full justify-start border-[#d7b44d] bg-amber-500/18 text-amber-100 ring-1 ring-[#d7b44d]/25"
+                                        : "w-full justify-start border-[#d7b44d]/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/18"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "review")
@@ -4424,17 +4424,17 @@ export default function TakeoffDetail() {
                                   </Button>
                                 </div>
 
-                                <div className="rounded-lg border border-emerald-600/20 bg-emerald-50 p-3">
+                                <div className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-[10px] uppercase tracking-wider text-emerald-900/70">
+                                      <p className="text-[10px] uppercase tracking-wider text-emerald-100/70">
                                         Bid Impact
                                       </p>
-                                      <p className="mt-1 text-xs text-emerald-800">
+                                      <p className="mt-1 text-xs text-emerald-100/75">
                                         If accepted
                                       </p>
                                     </div>
-                                    <p className="font-mono text-lg font-semibold text-emerald-700">
+                                    <p className="font-mono text-lg font-semibold text-emerald-300">
                                       +
                                       {formatCurrency(
                                         bundle.openReviewCost,
@@ -4444,44 +4444,44 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-[#d7c7aa] bg-white/55 p-3">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#d8ccb4]">
                                     Evidence
                                   </p>
                                   <div className="mt-3 grid grid-cols-2 gap-2">
-                                    <div className="rounded-md border border-[#d7c7aa] bg-white/70 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#b8ad98]">
                                         Drawings
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#f4efe4]">
                                         {bundle.sourceSheets.length ||
                                           bundle.sourceDrawings.length}
                                       </p>
                                     </div>
-                                    <div className="rounded-md border border-[#d7c7aa] bg-white/70 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#b8ad98]">
                                         Rows
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#f4efe4]">
                                         {bundle.items.length}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-[#d7c7aa] bg-white/55">
+                                <div className="rounded-lg border border-white/10 bg-white/[0.045]">
                                   <button
                                     type="button"
                                     onClick={() => toggleBundle(bundle.key)}
                                     className="flex w-full items-center justify-between px-3 py-2 text-left"
                                   >
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-[#d8ccb4]">
                                       Package Evidence
                                     </span>
                                     {expanded ? (
-                                      <ChevronDown className="w-4 h-4 text-[#716855]" />
+                                      <ChevronDown className="w-4 h-4 text-[#d8ccb4]" />
                                     ) : (
-                                      <ChevronRight className="w-4 h-4 text-[#716855]" />
+                                      <ChevronRight className="w-4 h-4 text-[#d8ccb4]" />
                                     )}
                                   </button>
                                   {expanded && (
