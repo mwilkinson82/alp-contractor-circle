@@ -3034,99 +3034,110 @@ export default function TakeoffDetail() {
                       </span>
                     </div>
                   </div>
-                  {/* Row 2: Action Buttons — compact with overflow dropdown */}
-                  <div className="flex flex-wrap items-center gap-2 border-t border-white/5 pt-2">
-                    {/* Re-run Analysis — manual re-trigger of full post-processing pipeline */}
-                    <div className="relative group">
-                      <Button
-                        data-tour="takeoff-consolidate-btn"
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          consolidateMutation.mutate({ projectId })
-                        }
-                        disabled={consolidateMutation.isPending || isProcessing}
-                        className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                      >
-                        {consolidateMutation.isPending ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        )}
-                        <span className="hidden sm:inline">
-                          Re-run Scope Analysis
-                        </span>
-                        <span className="sm:hidden">Re-run</span>
-                      </Button>
-                      <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-navy-deep border border-amber-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-amber-400 text-xs font-semibold mb-1.5">
-                          Re-run Full Analysis Pipeline
-                        </p>
-                        <p className="text-cream-muted text-[11px] mb-2">
-                          This runs automatically after upload. Use this to
-                          re-process after editing scope or adding sheets.
-                        </p>
-                        <ul className="text-cream-muted text-[11px] space-y-1">
-                          <li>
-                            • Merges duplicate items from different sheets
-                          </li>
-                          <li>• Converts lump sums to measured quantities</li>
-                          <li>• Calculates concrete volumes (CY)</li>
-                          <li>• Generates formwork items</li>
-                          <li>• Removes out-of-scope items</li>
-                        </ul>
-                      </div>
-                    </div>
-                    {/* Re-price */}
-                    <div className="relative group">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => repriceMutation.mutate({ projectId })}
-                        disabled={repriceMutation.isPending || isProcessing}
-                        className="h-7 text-xs gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
-                      >
-                        {repriceMutation.isPending ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <DollarSign className="w-3.5 h-3.5" />
-                        )}
-                        <span className="hidden sm:inline">Re-price</span>
-                      </Button>
-                      <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-navy-deep border border-blue-500/20 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <p className="text-blue-400 text-xs font-semibold mb-1.5">
-                          Re-run Cost Lookup
-                        </p>
-                        <ul className="text-cream-muted text-[11px] space-y-1">
-                          <li>• Re-matches items against cost database</li>
-                          <li>• Fixes $1.00 placeholder costs</li>
-                          <li>• Applies regional cost multiplier</li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="w-px h-5 bg-white/10" />
-                    {/* Export dropdown — combines Excel + CSV */}
+                  {/* Row 2: one primary path, everything else in Actions */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-2">
+                    <Button
+                      size="sm"
+                      variant={readyToPrice ? "default" : "outline"}
+                      disabled={!readyToPrice}
+                      onClick={() => setActiveTab("estimate")}
+                      className={
+                        readyToPrice
+                          ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "h-8 border-white/10 text-cream-muted"
+                      }
+                    >
+                      <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                      Price Bid
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={!items || items.length === 0}
-                          className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                         >
-                          <FileSpreadsheet className="w-3.5 h-3.5" />
-                          Export
-                          <ChevronDown className="w-3 h-3 opacity-60" />
+                          <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                          Actions
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-44">
-                        <DropdownMenuItem onClick={handleExportExcel}>
-                          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                          Excel (.xlsx)
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            consolidateMutation.mutate({ projectId })
+                          }
+                          disabled={
+                            consolidateMutation.isPending || isProcessing
+                          }
+                        >
+                          {consolidateMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 text-amber-400" />
+                          )}
+                          Re-run Scope Analysis
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleExportCsv}>
+                        <DropdownMenuItem
+                          onClick={() => repriceMutation.mutate({ projectId })}
+                          disabled={repriceMutation.isPending || isProcessing}
+                        >
+                          {repriceMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                          ) : (
+                            <DollarSign className="w-4 h-4 text-blue-400" />
+                          )}
+                          Re-price
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={handleExportExcel}
+                          disabled={!items || items.length === 0}
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                          Export Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleExportCsv}
+                          disabled={!items || items.length === 0}
+                        >
                           <Download className="w-4 h-4 text-blue-400" />
-                          CSV (.csv)
+                          Export CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setShowAddItem(true)}>
+                          <PlusCircle className="w-4 h-4 text-emerald-400" />
+                          Add Item
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setOpenSettingsToScope(true);
+                          }}
+                        >
+                          <FileText className="w-4 h-4 text-amber-400" />
+                          Edit Scope
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setShowRollup(true)}
+                          disabled={
+                            !projectMarkups || projectMarkups.length === 0
+                          }
+                        >
+                          <Layers className="w-4 h-4 text-amber-400" />
+                          Measurements
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            setShowConsolidationDiff(!showConsolidationDiff)
+                          }
+                        >
+                          <GitCompareArrows className="w-4 h-4 text-cyan-400" />
+                          {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => importFileRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4 text-amber-400" />
+                          Import Excel
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -3137,61 +3148,6 @@ export default function TakeoffDetail() {
                       className="hidden"
                       onChange={handleImportExcel}
                     />
-                    <div className="w-px h-5 bg-white/10" />
-                    {/* Add Item */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowAddItem(true)}
-                      className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
-                      title="Add a manual line item"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Add Item</span>
-                    </Button>
-                    {/* More dropdown — Measurements + Show Diff */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`h-7 text-xs gap-1 border-white/10 text-cream-muted hover:bg-white/5 hover:text-cream ${
-                            showConsolidationDiff
-                              ? "border-cyan-500/40 text-cyan-400"
-                              : ""
-                          }`}
-                        >
-                          <MoreHorizontal className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">More</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem
-                          onClick={() => setShowRollup(true)}
-                          disabled={
-                            !projectMarkups || projectMarkups.length === 0
-                          }
-                        >
-                          <Layers className="w-4 h-4 text-amber-400" />
-                          Measurements
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setOpenSettingsToScope(true);
-                          }}
-                        >
-                          <FileText className="w-4 h-4 text-amber-400" />
-                          Edit Scope
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => importFileRef.current?.click()}
-                        >
-                          <Upload className="w-4 h-4 text-amber-400" />
-                          Import Excel
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -3924,102 +3880,6 @@ export default function TakeoffDetail() {
                               </div>
                             </div>
 
-                            <div className="border-b border-white/10 p-4">
-                              <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.055] p-4">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
-                                      Answer this package
-                                    </p>
-                                    <h4 className="mt-1 text-lg font-semibold text-cream">
-                                      Does this work belong in your bid?
-                                    </h4>
-                                    <p className="mt-1 max-w-2xl text-sm text-cream-muted">
-                                      Check the drawing, then pick one answer.
-                                      ConstructLine saves the call and opens the
-                                      next package.
-                                    </p>
-                                  </div>
-                                  <div className="grid w-full gap-2 sm:w-auto sm:min-w-[560px] sm:grid-cols-3">
-                                    <Button
-                                      size="lg"
-                                      variant={
-                                        bundle.status === "include"
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      className={
-                                        bundle.status === "include"
-                                          ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                          : "justify-start border-emerald-500/35 bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/15"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(
-                                          bundle,
-                                          "included"
-                                        )
-                                      }
-                                    >
-                                      {bundle.status === "include" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <Check className="w-4 h-4 mr-2" />
-                                      )}
-                                      Add to Bid{" "}
-                                      <span className="font-mono text-xs opacity-80">
-                                        +
-                                        {formatCurrency(
-                                          bundle.openReviewCost,
-                                          project?.currency || "USD"
-                                        )}
-                                      </span>
-                                    </Button>
-                                    <Button
-                                      size="lg"
-                                      variant="outline"
-                                      className={
-                                        bundle.status === "exclude"
-                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(
-                                          bundle,
-                                          "excluded"
-                                        )
-                                      }
-                                    >
-                                      {bundle.status === "exclude" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <X className="w-4 h-4 mr-2" />
-                                      )}
-                                      Exclude from Bid
-                                    </Button>
-                                    <Button
-                                      size="lg"
-                                      variant="outline"
-                                      className={
-                                        bundle.status === "review"
-                                          ? "justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
-                                          : "justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                                      }
-                                      onClick={() =>
-                                        applyWorkbenchDecision(bundle, "review")
-                                      }
-                                    >
-                                      {bundle.status === "review" ? (
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      ) : (
-                                        <Square className="w-4 h-4 mr-2" />
-                                      )}
-                                      Decide Later
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
@@ -4077,6 +3937,94 @@ export default function TakeoffDetail() {
                                   </p>
                                 </div>
 
+                                <div className="rounded-lg border border-blue-500/20 bg-blue-500/[0.045] p-3">
+                                  <p className="text-[10px] uppercase tracking-wider text-blue-200/80">
+                                    AI Recommendation
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-cream">
+                                    {recommendedLabel === "Review"
+                                      ? "Review before adding"
+                                      : recommendedLabel}
+                                  </p>
+                                  <p className="mt-1 text-xs text-cream-muted">
+                                    Use the drawing and evidence below as the
+                                    nudge before making the bid call.
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Button
+                                    size="lg"
+                                    variant={
+                                      bundle.status === "include"
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    className={
+                                      bundle.status === "include"
+                                        ? "w-full justify-between bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
+                                        : "w-full justify-between border-emerald-500/35 bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/15"
+                                    }
+                                    onClick={() =>
+                                      applyWorkbenchDecision(bundle, "included")
+                                    }
+                                  >
+                                    <span className="inline-flex items-center">
+                                      {bundle.status === "include" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <Check className="w-4 h-4 mr-2" />
+                                      )}
+                                      Add to Bid
+                                    </span>
+                                    <span className="font-mono text-xs opacity-80">
+                                      +
+                                      {formatCurrency(
+                                        bundle.openReviewCost,
+                                        project?.currency || "USD"
+                                      )}
+                                    </span>
+                                  </Button>
+                                  <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className={
+                                      bundle.status === "exclude"
+                                        ? "w-full justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                        : "w-full justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                    }
+                                    onClick={() =>
+                                      applyWorkbenchDecision(bundle, "excluded")
+                                    }
+                                  >
+                                    {bundle.status === "exclude" ? (
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    ) : (
+                                      <X className="w-4 h-4 mr-2" />
+                                    )}
+                                    Exclude from Bid
+                                  </Button>
+                                  <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className={
+                                      bundle.status === "review"
+                                        ? "w-full justify-start border-white/25 bg-white/10 text-cream ring-1 ring-white/20"
+                                        : "w-full justify-start border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                    }
+                                    onClick={() =>
+                                      applyWorkbenchDecision(bundle, "review")
+                                    }
+                                  >
+                                    {bundle.status === "review" ? (
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    ) : (
+                                      <Square className="w-4 h-4 mr-2" />
+                                    )}
+                                    Decide Later
+                                  </Button>
+                                </div>
+
                                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.045] p-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -4097,36 +4045,28 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 opacity-80">
-                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      Drawings
-                                    </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
-                                      {bundle.sourceDrawings.length}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      Rows
-                                    </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
-                                      {bundle.items.length}
-                                    </p>
-                                  </div>
-                                </div>
-
                                 <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                    Suggested call
+                                    Evidence
                                   </p>
-                                  <p className="mt-1 text-sm font-semibold text-cream">
-                                    {recommendedLabel}
-                                  </p>
-                                  <p className="mt-1 text-xs text-cream-muted">
-                                    Use this as a nudge, not an automatic bid
-                                    decision.
-                                  </p>
+                                  <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                        Drawings
+                                      </p>
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                        {bundle.sourceDrawings.length}
+                                      </p>
+                                    </div>
+                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                        Rows
+                                      </p>
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                        {bundle.items.length}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
 
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03]">
