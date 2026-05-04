@@ -1143,6 +1143,10 @@ export default function TakeoffDetail() {
       allItems.filter(item => isScopeReviewItem(item))
     );
     const excludedBucket = allItems.filter(item => isScopeExcludedItem(item));
+    const exportAssemblyBundles = buildAssemblyBundles(
+      allItems,
+      (project as any)?.sheets || []
+    );
     const projectAllowances = parseProjectAllowances(
       (project as any)?.allowances
     );
@@ -1159,6 +1163,14 @@ export default function TakeoffDetail() {
     const activeTotal = bucketTotal(activeBucket) + allowancesTotal;
     const reviewTotal = bucketTotal(reviewBucket);
     const excludedTotal = bucketTotal(excludedBucket);
+    const highImpactAssemblyBundles = exportAssemblyBundles.filter(
+      bundle => bundle.highImpact && bundle.openReviewCount > 0
+    );
+    const assemblyReviewTotal =
+      highImpactAssemblyBundles.reduce(
+        (sum, bundle) => sum + bundle.reviewCost,
+        0
+      ) / 100;
 
     const baseHeader = (): any[][] => [
       [
@@ -1361,12 +1373,148 @@ export default function TakeoffDetail() {
       return aoa;
     };
 
+    const buildAssemblyReviewSheet = (): any[][] => {
+      const assemblyHeaders = [
+        "Assembly / Package",
+        "Recommended Decision",
+        `Included (${currencySymbol})`,
+        `Review (${currencySymbol})`,
+        `Reference Total (${currencySymbol})`,
+        "Open Review Rows",
+        "High Impact",
+        "Evidence Drawings",
+        "Primary Row",
+        "Alternate Rows",
+        "Risk Reason",
+        "Raw Scope Mix",
+      ];
+      const aoa: any[][] = [
+        ...baseHeader(),
+        [
+          "Assembly Review",
+          `${exportAssemblyBundles.length} bundles`,
+          `${highImpactAssemblyBundles.length} high-impact open`,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ],
+        [
+          "Estimator decision surface. Review package-level bundles first; raw item rows are retained on the bucket sheets for audit.",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ],
+        [],
+        assemblyHeaders,
+      ];
+
+      for (const bundle of exportAssemblyBundles) {
+        const includedCount = bundle.items.filter(item =>
+          isScopeIncludedItem(item)
+        ).length;
+        const reviewCount = bundle.items.filter(item =>
+          isScopeReviewItem(item)
+        ).length;
+        const excludedCount = bundle.items.filter(item =>
+          isScopeExcludedItem(item)
+        ).length;
+        const referenceTotal =
+          (bundle.currentIncludedCost +
+            bundle.reviewCost +
+            bundle.excludedCost) /
+          100;
+        const recommendedLabel =
+          bundle.recommendedDecision === "include"
+            ? "Accept"
+            : bundle.recommendedDecision === "exclude"
+              ? "Exclude"
+              : "Review";
+
+        aoa.push([
+          bundle.title,
+          recommendedLabel,
+          bundle.currentIncludedCost / 100,
+          bundle.reviewCost / 100,
+          referenceTotal,
+          bundle.openReviewCount,
+          bundle.highImpact ? "Yes" : "No",
+          bundle.sourceDrawings.join(", "),
+          bundle.primaryItem?.description || "",
+          bundle.alternateItems.length,
+          bundle.reason,
+          `${includedCount} included / ${reviewCount} review / ${excludedCount} boundary`,
+        ]);
+      }
+
+      aoa.push([]);
+      aoa.push([
+        "ASSEMBLY REVIEW TOTAL",
+        "",
+        activeTotal,
+        assemblyReviewTotal,
+        activeTotal + reviewTotal + excludedTotal,
+        highImpactAssemblyBundles.reduce(
+          (sum, bundle) => sum + bundle.openReviewCount,
+          0
+        ),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+      return aoa;
+    };
+
     const summaryRows: any[][] = [
       ...baseHeader(),
       [
         "Summary",
         "Count",
         `Subtotal (${currencySymbol})`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "Assembly Review Bundles",
+        exportAssemblyBundles.length,
+        assemblyReviewTotal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      [
+        "High-Impact Bundles Open",
+        highImpactAssemblyBundles.length,
+        assemblyReviewTotal,
         "",
         "",
         "",
@@ -1449,22 +1597,37 @@ export default function TakeoffDetail() {
       ],
     ];
 
-    const makeSheet = (aoa: any[][]) => {
+    const defaultCols = [
+      { wch: 16 },
+      { wch: 58 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 46 },
+    ];
+    const assemblyCols = [
+      { wch: 34 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 17 },
+      { wch: 16 },
+      { wch: 13 },
+      { wch: 56 },
+      { wch: 58 },
+      { wch: 14 },
+      { wch: 54 },
+      { wch: 28 },
+    ];
+    const makeSheet = (aoa: any[][], cols = defaultCols) => {
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws["!cols"] = [
-        { wch: 16 },
-        { wch: 58 },
-        { wch: 12 },
-        { wch: 10 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 10 },
-        { wch: 46 },
-      ];
+      ws["!cols"] = cols;
       const brandCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
       if (ws[brandCell])
         ws[brandCell].s = {
@@ -1475,6 +1638,11 @@ export default function TakeoffDetail() {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, makeSheet(summaryRows), "Summary");
+    XLSX.utils.book_append_sheet(
+      wb,
+      makeSheet(buildAssemblyReviewSheet(), assemblyCols),
+      "Assembly Review"
+    );
     XLSX.utils.book_append_sheet(
       wb,
       makeSheet(buildBucketSheet("Active Items", activeBucket, true)),

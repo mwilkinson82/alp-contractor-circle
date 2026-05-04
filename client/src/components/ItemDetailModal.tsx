@@ -2014,30 +2014,30 @@ export default function ItemDetailModal({
             </div>
 
             {/* ─── Footer ───────────────────────────────────────────── */}
-            <DialogFooter className="flex-col gap-3">
+            <DialogFooter className="flex-col gap-3 sm:flex-col sm:items-stretch sm:justify-start">
               {onScopeDecision && !isEditing && (
                 <div className="w-full rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2.5">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                    <div>
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
+                    <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">
                         Scope Decision
                       </p>
-                      <p className="text-xs text-cream-muted mt-0.5">
+                      <p className="max-w-2xl text-xs text-cream-muted mt-0.5">
                         Decide whether this row belongs in the bid total, stays
                         parked for later, or leaves the estimate boundary.
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 xl:flex xl:justify-end gap-2">
                       <Button
                         size="sm"
                         variant={
                           scopeStatus === "excluded" ? "outline" : "default"
                         }
-                        className={
+                        className={`whitespace-nowrap ${
                           scopeStatus === "excluded"
                             ? "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
                             : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                        }
+                        }`}
                         onClick={() => onScopeDecision(item, "included")}
                         disabled={isPending}
                       >
@@ -2047,7 +2047,7 @@ export default function ItemDetailModal({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                        className="whitespace-nowrap border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
                         onClick={() => onScopeDecision(item, "review")}
                         disabled={isPending}
                       >
@@ -2057,7 +2057,7 @@ export default function ItemDetailModal({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-500/30 text-red-200 hover:bg-red-500/10"
+                        className="whitespace-nowrap border-red-500/30 text-red-200 hover:bg-red-500/10"
                         onClick={() => onScopeDecision(item, "excluded")}
                         disabled={isPending}
                       >
