@@ -278,6 +278,7 @@ interface AssemblyBundle {
   primarySheetId: number | null;
   primarySheetItem: any;
   primarySheetLabel: string;
+  sourceSheets: Array<{ id: number; label: string }>;
   alternateItems: any[];
   recommendedDecision: AssemblyBundleDecision;
   reason: string;
@@ -540,6 +541,45 @@ function choosePrimaryEvidenceSheet(
   };
 }
 
+function collectSourceSheetOptions(
+  bundleItems: any[],
+  sheets: any[],
+  sheetById: Map<number, any>,
+  primarySheetId: number | null
+): Array<{ id: number; label: string }> {
+  const options = new Map<
+    number,
+    { id: number; label: string; score: number }
+  >();
+  const addOption = (sheet: any, score: number) => {
+    if (!sheet?.id || !sheet?.imageUrl) return;
+    const existing = options.get(sheet.id);
+    options.set(sheet.id, {
+      id: sheet.id,
+      label: getSheetLabel(sheet),
+      score: (existing?.score || 0) + score,
+    });
+  };
+
+  for (const item of bundleItems) {
+    if (item?.sheetId) addOption(sheetById.get(item.sheetId), 10);
+    for (const sourceLabel of extractConsolidatedSourceLabels(item?.notes)) {
+      for (const sheet of sheets || []) {
+        if (sourceLabelMatchesSheet(sourceLabel, sheet)) addOption(sheet, 16);
+      }
+    }
+  }
+
+  return Array.from(options.values())
+    .sort((a, b) => {
+      if (a.id === primarySheetId) return -1;
+      if (b.id === primarySheetId) return 1;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.label.localeCompare(b.label);
+    })
+    .map(({ id, label }) => ({ id, label }));
+}
+
 function buildAssemblyBundles(
   allItems: any[],
   sheets: any[]
@@ -572,6 +612,12 @@ function buildAssemblyBundles(
         sheetById,
         rule,
         primaryItem
+      );
+      const sourceSheets = collectSourceSheetOptions(
+        bundleItems,
+        sheets,
+        sheetById,
+        primaryEvidence.sheet?.id || null
       );
       const currentIncludedCost = bundleItems
         .filter(item => isScopeIncludedItem(item))
@@ -644,14 +690,15 @@ function buildAssemblyBundles(
         key,
         title: rule.title,
         drawingGroup:
-          sourceDrawings.length > 1
-            ? `${sourceDrawings.length} drawings`
-            : sourceDrawings[0] || "Unlinked drawing",
+          sourceSheets.length > 1
+            ? `${sourceSheets.length} drawings`
+            : sourceSheets[0]?.label || sourceDrawings[0] || "Unlinked drawing",
         items: sortedItems,
         primaryItem,
         primarySheetId: primaryEvidence.sheet?.id || null,
         primarySheetItem: primaryEvidence.item,
         primarySheetLabel: primaryEvidence.label,
+        sourceSheets,
         alternateItems: sortedItems.slice(1),
         recommendedDecision,
         reason,
@@ -749,6 +796,9 @@ export default function TakeoffDetail() {
   const [selectedBundleKey, setSelectedBundleKey] = useState<string | null>(
     null
   );
+  const [selectedBundleSheetIds, setSelectedBundleSheetIds] = useState<
+    Record<string, number>
+  >({});
   const [showRawReviewRows, setShowRawReviewRows] = useState(false);
   const [showAcceptedRows, setShowAcceptedRows] = useState(false);
   const [showBoundaryRows, setShowBoundaryRows] = useState(false);
@@ -3859,9 +3909,16 @@ export default function TakeoffDetail() {
                   selectedAssemblyBundle &&
                   (() => {
                     const bundle = selectedAssemblyBundle;
+                    const selectedSheetId =
+                      selectedBundleSheetIds[bundle.key] ||
+                      bundle.primarySheetId;
                     const selectedSheet = sheets.find(
-                      (sheet: any) => sheet.id === bundle.primarySheetId
+                      (sheet: any) => sheet.id === selectedSheetId
                     );
+                    const selectedSheetItem =
+                      bundle.items.find(
+                        item => item.sheetId === selectedSheet?.id
+                      ) || bundle.primarySheetItem;
                     const expanded = expandedBundles.has(bundle.key);
                     const nextOpenBundle = highImpactOpenBundles.find(
                       candidate => candidate.key !== bundle.key
@@ -4048,9 +4105,8 @@ export default function TakeoffDetail() {
                                   variant="outline"
                                   onClick={() =>
                                     setSelectedItem({
-                                      ...bundle.primarySheetItem,
-                                      sourceSheetOverrideId:
-                                        bundle.primarySheetId,
+                                      ...selectedSheetItem,
+                                      sourceSheetOverrideId: selectedSheet?.id,
                                     })
                                   }
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
@@ -4093,11 +4149,11 @@ export default function TakeoffDetail() {
                                   )}
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cream-muted">
-                                  <span>
-                                    Primary source: {bundle.primarySheetLabel}
-                                  </span>
-                                  <span>
-                                    Evidence: {bundle.sourceDrawings.join(", ")}
+                                  <span className="text-cream-muted">
+                                    Primary source:{" "}
+                                    <span className="font-semibold text-cream">
+                                      {bundle.primarySheetLabel}
+                                    </span>
                                   </span>
                                   <span>
                                     {bundle.items.length} row
@@ -4105,6 +4161,60 @@ export default function TakeoffDetail() {
                                     grouped into this package
                                   </span>
                                 </div>
+                                {bundle.sourceSheets.length > 1 && (
+                                  <div className="mt-3 rounded-md border border-white/10 bg-black/20 p-2">
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wider text-cream-muted">
+                                        Source Drawings
+                                      </p>
+                                      <span className="text-[10px] text-cream-muted">
+                                        Pick a sheet to verify evidence
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {bundle.sourceSheets
+                                        .slice(0, 8)
+                                        .map(sourceSheet => {
+                                          const active =
+                                            sourceSheet.id ===
+                                            selectedSheet?.id;
+                                          return (
+                                            <button
+                                              key={sourceSheet.id}
+                                              type="button"
+                                              onClick={() =>
+                                                setSelectedBundleSheetIds(
+                                                  prev => ({
+                                                    ...prev,
+                                                    [bundle.key]:
+                                                      sourceSheet.id,
+                                                  })
+                                                )
+                                              }
+                                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                                                active
+                                                  ? "border-blue-300/50 bg-blue-400/15 text-blue-100"
+                                                  : "border-white/10 bg-white/[0.03] text-cream-muted hover:bg-white/[0.07] hover:text-cream"
+                                              }`}
+                                            >
+                                              {sourceSheet.label}
+                                              {sourceSheet.id ===
+                                                bundle.primarySheetId && (
+                                                <span className="ml-1 text-[10px] opacity-70">
+                                                  primary
+                                                </span>
+                                              )}
+                                            </button>
+                                          );
+                                        })}
+                                      {bundle.sourceSheets.length > 8 && (
+                                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-cream-muted">
+                                          +{bundle.sourceSheets.length - 8} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               <aside className="bg-white/[0.012] p-4 space-y-4">
@@ -4239,7 +4349,8 @@ export default function TakeoffDetail() {
                                         Drawings
                                       </p>
                                       <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
-                                        {bundle.sourceDrawings.length}
+                                        {bundle.sourceSheets.length ||
+                                          bundle.sourceDrawings.length}
                                       </p>
                                     </div>
                                     <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
