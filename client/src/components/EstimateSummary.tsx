@@ -603,7 +603,7 @@ export default function EstimateSummary({
             laborSource: "cost_library",
             laborSourceLabel: "Library Labor - Confirm",
             laborNote:
-              "No matching crew rate was found yet, so the estimate is using the takeoff cost-library labor unit.",
+              "Library labor basis is included until you confirm a crew rate.",
           };
         } else {
           laborItemsWithoutLabor++;
@@ -622,7 +622,7 @@ export default function EstimateSummary({
           laborSource: "cost_library",
           laborSourceLabel: "Library Labor - Confirm",
           laborNote:
-            "Using the default labor from the takeoff cost library until crew labor is configured.",
+            "Library labor basis is included until you confirm a crew rate.",
         };
       } else {
         laborItemsWithoutLabor++;
@@ -1619,8 +1619,8 @@ export default function EstimateSummary({
                 Direct Cost Breakdown
               </h3>
               <p className="mt-1 text-xs text-cream-muted">
-                Accepted scope grouped by division with row-level pricing
-                status.
+                Accepted scope grouped by division with pricing and labor basis
+                decisions.
               </p>
             </div>
             <Badge className="bg-white/5 text-cream-muted border-white/10">
@@ -1751,12 +1751,14 @@ export default function EstimateSummary({
                                 <p className="text-xs line-clamp-1">
                                   {item.description}
                                 </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge
-                                    className={`text-[10px] border ${getLaborSourceBadgeClass(labor?.laborSource || "none")}`}
-                                  >
-                                    {labor?.laborSourceLabel || "No Labor"}
-                                  </Badge>
+                                <div className="flex items-center gap-2 mt-1 min-w-0">
+                                  {labor?.laborSource !== "cost_library" && (
+                                    <Badge
+                                      className={`text-[10px] border ${getLaborSourceBadgeClass(labor?.laborSource || "none")}`}
+                                    >
+                                      {labor?.laborSourceLabel || "No Labor"}
+                                    </Badge>
+                                  )}
                                   {labor?.laborNote && (
                                     <span className="text-[10px] text-cream-muted/55 line-clamp-1">
                                       {labor.laborNote}
@@ -2095,8 +2097,10 @@ function StatusBadge({
   const normalized = status.toLowerCase();
   const className = normalized.includes("ready")
     ? "bg-emerald-500/12 text-emerald-300 border-emerald-500/25"
-    : normalized.includes("confirm") || normalized.includes("allowance")
-      ? "bg-blue-500/12 text-blue-300 border-blue-500/25"
+    : normalized.includes("confirm")
+      ? "bg-amber-500/12 text-amber-300 border-amber-500/25"
+      : normalized.includes("allowance")
+        ? "bg-blue-500/12 text-blue-300 border-blue-500/25"
       : normalized.includes("missing") || normalized.includes("draft")
         ? "bg-red-500/12 text-red-300 border-red-500/25"
         : "bg-amber-500/12 text-amber-300 border-amber-500/25";
