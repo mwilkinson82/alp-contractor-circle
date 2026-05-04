@@ -3521,3 +3521,24 @@
 - [x] Add PDF download button to Three Silos Email 1 (DOWNLOAD FRAMEWORK)
 - [x] 492 tests passing
 - [ ] Deploy fix
+- [x] Fix Discord bot unhandled WebSocket error crashing entire server (causing tRPC HTML responses)
+- [x] Fix stale scope label in UI — exclude-clause words no longer trigger profiles (roofing, foundations, etc.)
+- [x] Fix formwork/rebar trench-wall rows being active when they should be excluded/review for waterproofing-only scope
+- [x] Add regression tests for formwork trench-wall items and scope label (7 new tests, 47 total passing)
+
+## Scope-Safety Pass for Trade Package Takeoff
+- [x] High-dollar scope review: items over $10k or 10% of active subtotal go to Needs Scope Review unless strong evidence
+- [x] Tighten broad concrete classification: only named work areas/assemblies are active, generic items go to review
+- [x] Duplicate/consolidation protection: flag possible duplicate assemblies, keep clearest one active
+- [x] Estimate sanity warning banner: show review banner if active total > 2x comparison target
+- [x] Regression tests for Crystal Car Wash broad subcontract scope-safety
+- [x] Fix: High-dollar generated row with named work area but broad unrelated calc basis → Needs Scope Review
+- [x] Fix: Explicit included items (vapor barrier, rigid insulation, fiber-reinforced SOG, excavation/formwork for footings, subgrade prep) being incorrectly excluded
+- [x] Fix: Named work area alone does not override duplicate/generated safety for high-dollar items
+- [x] Fix: Generated rebar rows with same calc basis all go to review unless one is the clear aggregate
+- [x] Add regression tests for all four scope classification issues
+- [x] Fix: High-dollar safety should only target generated/weak/broad rows, not explicit includes with direct evidence
+- [x] Fix: Explicitly included primary assemblies (SOG, continuous footings, subgrade, termite, sawcut, pits) should not auto-demote to review
+- [x] Fix: Excluded-vs-included precedence for concrete package scope items (continuous footing concrete/formwork, subgrade, sawcut, pits)
+- [x] Keep generated rebar safety intact (gate-post $98k row stays in review)
+- [x] Add regression tests for high-dollar explicit includes, generated rebar, excluded-vs-included precedence
