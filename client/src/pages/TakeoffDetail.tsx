@@ -4119,7 +4119,7 @@ export default function TakeoffDetail() {
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                  Measure / Mark Up
+                                  Open Drawing
                                 </Button>
                               </div>
                             </div>
@@ -4128,7 +4128,32 @@ export default function TakeoffDetail() {
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
-                                    <div className="relative bg-white min-h-[460px] max-h-[720px] flex items-center justify-center">
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() =>
+                                        setSelectedItem({
+                                          ...selectedSheetItem,
+                                          sourceSheetOverrideId:
+                                            selectedSheet?.id,
+                                        })
+                                      }
+                                      onKeyDown={event => {
+                                        if (
+                                          event.key === "Enter" ||
+                                          event.key === " "
+                                        ) {
+                                          event.preventDefault();
+                                          setSelectedItem({
+                                            ...selectedSheetItem,
+                                            sourceSheetOverrideId:
+                                              selectedSheet?.id,
+                                          });
+                                        }
+                                      }}
+                                      className="group relative bg-white min-h-[460px] max-h-[720px] flex cursor-zoom-in items-center justify-center"
+                                      aria-label={`Open ${getSheetLabel(selectedSheet)} drawing tools`}
+                                    >
                                       <img
                                         src={selectedSheet.imageUrl}
                                         alt={
@@ -4140,6 +4165,9 @@ export default function TakeoffDetail() {
                                       <div className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
                                         {selectedSheet.sheetName ||
                                           `Page ${selectedSheet.pageNumber}`}
+                                      </div>
+                                      <div className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white/80 opacity-0 transition-opacity group-hover:opacity-100">
+                                        Click to open drawing tools
                                       </div>
                                     </div>
                                   ) : (

@@ -1447,6 +1447,7 @@ export default function ItemDetailModal({
   const [materialUnitCost, setMaterialUnitCost] = useState("");
   const [defaultLaborUnitCost, setDefaultLaborUnitCost] = useState("");
   const [notes, setNotes] = useState("");
+  const appliedMeasurementValuesRef = useRef<Record<string, number>>({});
 
   const symbol = CURRENCY_SYMBOLS[currencyCode] || "$";
   const hasDrawing = !!sourceSheet?.imageUrl;
@@ -1547,6 +1548,72 @@ export default function ItemDetailModal({
     setIsEditing(false);
   };
 
+  const formatAppliedQuantity = (value: number) =>
+    Number.isInteger(value) ? value.toString() : value.toFixed(2);
+
+  const persistQuantityFromMeasurement = (
+    qty: number,
+    unitLabel: string,
+    measurementType?: "line" | "area" | "count",
+    rawValue = qty
+  ) => {
+    const existingQty = parseFloat(quantity || String(item.quantity) || "0");
+    const measurementKey =
+      measurementType && sourceSheet?.id
+        ? `${item.id}:${sourceSheet.id}:${measurementType}`
+        : null;
+    const lastApplied = measurementHistory.data?.find(
+      entry =>
+        entry.sheetId === sourceSheet?.id &&
+        entry.measurementType === measurementType
+    );
+    const previouslyApplied =
+      (measurementKey
+        ? appliedMeasurementValuesRef.current[measurementKey]
+        : undefined) ??
+      lastApplied?.rawValue ??
+      0;
+    const nextQty =
+      measurementType === "count"
+        ? Math.max(0, existingQty + rawValue - previouslyApplied)
+        : qty;
+    const nextQuantity = formatAppliedQuantity(nextQty);
+    const nextUnit =
+      measurementType === "count" ? unit || unitLabel : unitLabel;
+
+    setQuantity(nextQuantity);
+    setUnit(nextUnit);
+    onSave({
+      id: item.id,
+      projectId,
+      description,
+      quantity: nextQuantity,
+      unit: nextUnit,
+      unitCost: referenceUnitCostCents,
+      materialCost: materialUnitCostCents,
+      laborCost: defaultLaborUnitCostCents,
+      notes: notes || undefined,
+    });
+
+    if (measurementType && item?.id && sourceSheet?.id) {
+      if (measurementKey) {
+        appliedMeasurementValuesRef.current[measurementKey] = rawValue;
+      }
+      logMeasurement.mutate({
+        itemId: item.id,
+        projectId,
+        sheetId: sourceSheet.id,
+        measurementType,
+        rawValue,
+        unit: nextUnit,
+        sheetName: sheetLabel,
+        itemDescription: description,
+      });
+    }
+
+    toast.success(`Quantity saved as ${nextQuantity} ${nextUnit}`);
+  };
+
   return (
     <>
       {/* When fullscreen is active, render ONLY the fullscreen overlay — hide the dialog entirely */}
@@ -1559,9 +1626,7 @@ export default function ItemDetailModal({
           itemUnit={item.unit || "EA"}
           onClose={() => setIsFullscreen(false)}
           onQuantityUpdate={(qty, unit) => {
-            setQuantity(qty.toString());
-            setUnit(unit);
-            toast.success(`Quantity updated to ${qty.toFixed(2)} ${unit}`);
+            persistQuantityFromMeasurement(qty, unit);
           }}
         />
       ) : (
@@ -1673,24 +1738,11 @@ export default function ItemDetailModal({
                     itemDescription={description}
                     sheetName={sheetLabel}
                     onApplyQuantity={(qty, unitLabel, measurementType) => {
-                      setQuantity(qty.toFixed(2));
-                      setUnit(unitLabel);
-                      toast.success(
-                        `Quantity updated to ${qty.toFixed(2)} ${unitLabel}`
+                      persistQuantityFromMeasurement(
+                        qty,
+                        unitLabel,
+                        measurementType
                       );
-                      // Log to measurement history
-                      if (item?.id && sourceSheet?.id) {
-                        logMeasurement.mutate({
-                          itemId: item.id,
-                          projectId,
-                          sheetId: sourceSheet.id,
-                          measurementType,
-                          rawValue: qty,
-                          unit: unitLabel,
-                          sheetName: sheetLabel,
-                          itemDescription: description,
-                        });
-                      }
                     }}
                     onOpenFullscreen={() => setIsFullscreen(true)}
                   />
