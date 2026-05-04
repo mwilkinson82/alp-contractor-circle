@@ -961,194 +961,213 @@ export default function EstimateSummary({
         : "Bid-ready";
 
   return (
-    <div className="space-y-6">
-      {/* Header with actions */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-cream font-semibold text-lg flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-amber-400" />
-            Estimate Cockpit
-          </h2>
-          <p className="text-cream-muted text-xs mt-1">
-            ConstructLine 2.0 turns accepted scope into cost confidence, then
-            a bid package.
-          </p>
+    <div className="space-y-7">
+      <div className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+        <div className="border-b border-[#d8c9ad] px-5 py-4 lg:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a6a19]">
+                ConstructLine 2.0
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold">
+                Estimate Command Center
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border-[#d3b156] bg-[#fff7da] text-[#8a6510]">
+                {estimateModeLabel}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportEstimate}
+                className="border-[#c8b895] bg-white/55 text-[#29251c] hover:bg-white gap-1.5"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Export
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportEstimate}
-            className="border-white/20 text-cream hover:bg-white/5 gap-1.5"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            Export
-          </Button>
-        </div>
-      </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#151817] via-[#101416] to-[#090b0c] shadow-[0_18px_70px_rgba(0,0,0,0.28)]">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="p-5 lg:p-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.7fr)]">
               <div>
-                <Badge
-                  className={
-                    estimateModeLabel === "Bid-ready"
-                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                      : estimateModeLabel === "Price review"
-                        ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                        : "bg-amber-500/15 text-amber-300 border-amber-500/25"
-                  }
-                >
-                  ConstructLine 2.0 Estimate Cockpit
-                </Badge>
-                <h3 className="mt-3 text-3xl font-semibold text-cream">
-                  {formatCurrency(calculations.grandTotal, currency)}
-                </h3>
-                <p className="mt-1 text-sm text-cream-muted">
-                  Accepted scope priced through direct cost, allowances, and
-                  saved markup profile.
+                <p className="text-sm font-medium text-[#716855]">
+                  Bid total from accepted scope
                 </p>
+                <p className="mt-2 text-5xl font-semibold tracking-normal text-[#15120d]">
+                  {formatCurrency(calculations.grandTotal, currency)}
+                </p>
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <CommandMetric
+                    label="Accepted direct"
+                    value={formatCurrency(calculations.directCost, currency)}
+                    tone="green"
+                  />
+                  <CommandMetric
+                    label="Pending scope"
+                    value={formatCurrency(reviewQueueCost, currency)}
+                    tone={hasOpenScope ? "amber" : "gray"}
+                  />
+                  <CommandMetric
+                    label="Crew labor"
+                    value={`${calculations.laborItemsMatched}/${calculations.totalItems}`}
+                    tone="blue"
+                  />
+                </div>
               </div>
-              <div className="min-w-[260px] rounded-lg border border-white/10 bg-white/[0.045] p-4">
+
+              <div className="rounded-lg border border-[#d9c9aa] bg-white/65 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs uppercase text-cream-muted">
-                    Bid Readiness
-                  </span>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                      Bid Readiness
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[#716855]">
+                      {readinessDetail}
+                    </p>
+                  </div>
                   <span
-                    className={`font-mono text-2xl font-semibold ${
+                    className={`font-mono text-3xl font-semibold ${
                       readinessPct >= 80
-                        ? "text-emerald-300"
+                        ? "text-emerald-700"
                         : readinessPct >= 50
-                          ? "text-amber-300"
-                          : "text-orange-300"
+                          ? "text-[#a66d00]"
+                          : "text-orange-700"
                     }`}
                   >
                     {readinessPct}%
                   </span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#ddd2bd]">
                   <div
                     className={
-                      readinessPct >= 90
-                        ? "h-full rounded-full bg-emerald-400"
-                        : readinessPct >= 60
-                          ? "h-full rounded-full bg-blue-400"
-                          : "h-full rounded-full bg-amber-400"
+                      readinessPct >= 80
+                        ? "h-full rounded-full bg-emerald-600"
+                        : readinessPct >= 50
+                          ? "h-full rounded-full bg-[#d9a21a]"
+                          : "h-full rounded-full bg-orange-600"
                     }
                     style={{ width: `${Math.min(100, readinessPct)}%` }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-cream-muted">
-                  {costedItems} of {calculations.totalItems} accepted rows are
-                  priced. {readinessDetail}
+                <p className="mt-3 text-xs font-medium text-[#5d5546]">
+                  {costedItems} of {calculations.totalItems} accepted rows have
+                  pricing.
                 </p>
               </div>
             </div>
-          </div>
-          <div className="border-t border-white/10 bg-white/[0.025] p-5 lg:border-l lg:border-t-0 lg:p-6">
-            <div className="grid grid-cols-2 gap-3">
-              <ReadinessMetric
-                label="Accepted Direct"
-                value={formatCurrency(calculations.directCost, currency)}
-                tone="green"
+
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <PipelineStep
+                label="Review"
+                value={
+                  hasOpenScope
+                    ? `${reviewQueueCount} decisions open`
+                    : "Scope clear"
+                }
+                active={hasOpenScope}
+                complete={!hasOpenScope}
+                tone="amber"
               />
-              <ReadinessMetric
-                label="Pending Scope"
-                value={formatCurrency(reviewQueueCost, currency)}
-                tone={hasOpenScope ? "amber" : "gray"}
-              />
-              <ReadinessMetric
-                label="Crew Labor"
-                value={`${calculations.laborItemsMatched}/${calculations.totalItems}`}
+              <PipelineStep
+                label="Estimate"
+                value={
+                  defaultLaborCount > 0 || laborNeedsAttention > 0
+                    ? `${defaultLaborCount + laborNeedsAttention} labor decisions`
+                    : "Costs ready"
+                }
+                active={!hasOpenScope}
+                complete={
+                  !hasOpenScope &&
+                  defaultLaborCount === 0 &&
+                  laborNeedsAttention === 0
+                }
                 tone="blue"
               />
-              <ReadinessMetric
-                label="Attention"
-                value={`${attentionItems.length}`}
-                tone={attentionItems.length > 0 ? "red" : "green"}
+              <PipelineStep
+                label="Submit"
+                value={
+                  attentionItems.length > 0
+                    ? "Not ready yet"
+                    : "Ready to package"
+                }
+                active={attentionItems.length === 0}
+                complete={attentionItems.length === 0}
+                tone="green"
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-xl border border-white/10 bg-navy-medium/30">
-        <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-cream flex items-center gap-2">
-              {attentionItems.length > 0 ? (
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              )}
-              Needs Attention
-            </h3>
-            <p className="mt-0.5 text-xs text-cream-muted">
-              Review items that can block confidence before this moves to
-              submit.
-            </p>
-          </div>
-          {primaryAttention?.action ? (
-            <Button
-              size="sm"
-              onClick={primaryAttention.action}
-              disabled={inferByTasksMutation.isPending || saveMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-            >
-              {primaryAttention.cta === "Set Up Crews" ? (
-                <Users className="h-3.5 w-3.5" />
-              ) : primaryAttention.cta.includes("Labor") ? (
-                <Layers className="h-3.5 w-3.5" />
-              ) : primaryAttention.cta.includes("Review") ? (
-                <ClipboardList className="h-3.5 w-3.5" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              {primaryAttention.cta}
-            </Button>
-          ) : null}
-        </div>
-        {attentionItems.length > 0 ? (
-          <div
-            className={`grid grid-cols-1 divide-y divide-white/10 lg:divide-x lg:divide-y-0 ${
-              attentionItems.length === 1
-                ? "lg:grid-cols-1"
-                : "lg:grid-cols-2"
-            }`}
-          >
-            {attentionItems.slice(0, 3).map(item => (
-              <div key={`${item.label}-${item.title}`} className="p-4">
-                <Badge
-                  className={
-                    item.tone === "red"
-                      ? "bg-red-500/15 text-red-300 border-red-500/25"
-                      : item.tone === "blue"
-                        ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                        : "bg-amber-500/15 text-amber-300 border-amber-500/25"
+          <div className="border-t border-[#d8c9ad] bg-[#eee4d2] p-5 lg:border-l lg:border-t-0 lg:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">
+                Decision Queue
+              </h3>
+              {primaryAttention?.action ? (
+                <Button
+                  size="sm"
+                  onClick={primaryAttention.action}
+                  disabled={
+                    inferByTasksMutation.isPending || saveMutation.isPending
                   }
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white gap-1.5"
                 >
-                  {item.label}
-                </Badge>
-                <p className="mt-2 text-sm font-semibold text-cream">
-                  {item.title}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-cream-muted">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
+                  {primaryAttention.cta.includes("Labor") ? (
+                    <Layers className="h-3.5 w-3.5" />
+                  ) : primaryAttention.cta.includes("Review") ? (
+                    <ClipboardList className="h-3.5 w-3.5" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  {primaryAttention.cta}
+                </Button>
+              ) : null}
+            </div>
+            <div className="mt-4 space-y-3">
+              {attentionItems.length > 0 ? (
+                attentionItems.slice(0, 3).map(item => (
+                  <div
+                    key={`${item.label}-${item.title}`}
+                    className="rounded-lg border border-[#d2c2a1] bg-white/70 p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          item.tone === "red"
+                            ? "bg-red-600"
+                            : item.tone === "blue"
+                              ? "bg-blue-600"
+                              : "bg-[#d99a16]"
+                        }`}
+                      />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#716855]">
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-[#171714]">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[#716855]">
+                      {item.detail}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
+                  <p className="text-sm font-semibold text-emerald-900">
+                    Estimate is ready to package
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-800">
+                    Accepted scope, labor basis, and markups are clear.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 px-4 py-4">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <p className="text-sm text-emerald-200">
-              Accepted scope, pricing inputs, labor source, and markup profile
-              are ready for submit packaging.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
 
       {enableResidentialQa && (
@@ -2057,7 +2076,7 @@ export default function EstimateSummary({
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function ReadinessMetric({
+function CommandMetric({
   label,
   value,
   tone,
@@ -2068,19 +2087,64 @@ function ReadinessMetric({
 }) {
   const toneClass =
     tone === "green"
-      ? "text-emerald-300 border-emerald-500/18 bg-white/[0.035]"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
       : tone === "amber"
-        ? "text-amber-300 border-amber-500/22 bg-white/[0.035]"
+        ? "border-[#d9bb65] bg-[#fff5d4] text-[#7a5600]"
         : tone === "red"
-          ? "text-orange-300 border-orange-500/22 bg-white/[0.035]"
+          ? "border-red-200 bg-red-50 text-red-900"
           : tone === "blue"
-            ? "text-blue-300 border-blue-500/22 bg-white/[0.035]"
-            : "text-cream-muted border-white/10 bg-white/5";
+            ? "border-blue-200 bg-blue-50 text-blue-900"
+            : "border-[#d7c7aa] bg-white/60 text-[#5d5546]";
 
   return (
-    <div className={`rounded-lg border p-3 shadow-inner ${toneClass}`}>
-      <p className="text-[10px] uppercase tracking-wider opacity-75">{label}</p>
+    <div className={`rounded-lg border p-3 ${toneClass}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
+        {label}
+      </p>
       <p className="mt-1 truncate font-mono text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function PipelineStep({
+  label,
+  value,
+  active,
+  complete,
+  tone,
+}: {
+  label: string;
+  value: string;
+  active: boolean;
+  complete: boolean;
+  tone: "green" | "amber" | "blue";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+      : tone === "blue"
+        ? "border-blue-300 bg-blue-50 text-blue-900"
+        : "border-[#d7b44d] bg-[#fff4cb] text-[#755200]";
+
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        active || complete
+          ? toneClass
+          : "border-[#d7c7aa] bg-white/45 text-[#766b57]"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+          {label}
+        </p>
+        {complete ? (
+          <CheckCircle2 className="h-4 w-4" />
+        ) : active ? (
+          <AlertTriangle className="h-4 w-4" />
+        ) : null}
+      </div>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
     </div>
   );
 }
