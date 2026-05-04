@@ -2296,6 +2296,19 @@ export default function TakeoffDetail() {
       : 100;
   const readyToPrice = highImpactOpenBundles.length === 0;
   const topDecisionBundles = highImpactOpenBundles.slice(0, 3);
+  const completedBundleCount = assemblyBundles.filter(
+    bundle => bundle.status !== "open"
+  ).length;
+  const highConfidenceReviewCount = reviewItems.filter(
+    (item: any) => Number(item.confidence || 0) >= 80
+  ).length;
+  const mediumConfidenceReviewCount = reviewItems.filter((item: any) => {
+    const confidence = Number(item.confidence || 0);
+    return confidence >= 50 && confidence < 80;
+  }).length;
+  const lowConfidenceReviewCount = reviewItems.filter(
+    (item: any) => Number(item.confidence || 0) < 50
+  ).length;
   const scrollToAssemblyBundle = (bundleKey?: string) => {
     if (bundleKey) {
       setSelectedBundleKey(bundleKey);
@@ -3585,6 +3598,94 @@ export default function TakeoffDetail() {
                         >
                           Open Estimate
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {assemblyBundles.length > 0 && (
+                  <div className="grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
+                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-cyan-300" />
+                            <p className="text-sm font-semibold text-cream">
+                              Scope Intelligence
+                            </p>
+                          </div>
+                          <div className="mt-3 flex items-end gap-3">
+                            <p className="text-4xl font-bold text-cream">
+                              {scopeReviewCount}
+                            </p>
+                            <p className="pb-1 text-sm text-cream-muted">
+                              open decision{scopeReviewCount !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid min-w-[280px] flex-1 gap-3 rounded-md border border-white/10 bg-black/20 p-3 sm:grid-cols-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                            <div>
+                              <p className="text-sm font-semibold text-cream">
+                                {highConfidenceReviewCount}
+                              </p>
+                              <p className="text-xs text-cream-muted">
+                                high confidence
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-amber-300" />
+                            <div>
+                              <p className="text-sm font-semibold text-cream">
+                                {mediumConfidenceReviewCount}
+                              </p>
+                              <p className="text-xs text-cream-muted">
+                                medium confidence
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-red-300" />
+                            <div>
+                              <p className="text-sm font-semibold text-cream">
+                                {lowConfidenceReviewCount}
+                              </p>
+                              <p className="text-xs text-cream-muted">
+                                needs estimator
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-cream">
+                            Review Progress
+                          </p>
+                          <p className="mt-1 text-xs text-cream-muted">
+                            {completedBundleCount} of {assemblyBundles.length}{" "}
+                            packages complete
+                          </p>
+                        </div>
+                        <p className="text-2xl font-bold text-emerald-300">
+                          {completedBundleCount}
+                        </p>
+                      </div>
+                      <div className="mt-4 grid grid-cols-[repeat(13,minmax(0,1fr))] gap-1">
+                        {assemblyBundles.map(bundle => (
+                          <span
+                            key={bundle.key}
+                            className={`h-2 rounded-full ${
+                              bundle.status !== "open"
+                                ? "bg-emerald-400"
+                                : "bg-white/12"
+                            }`}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>
