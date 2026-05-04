@@ -2227,6 +2227,26 @@ export default function TakeoffDetail() {
     [projectId, updateItemMutation]
   );
 
+  const applyWorkbenchDecision = useCallback(
+    (bundle: AssemblyBundle, status: "included" | "review" | "excluded") => {
+      applyBundleDecision(bundle, status);
+      const nextBundle =
+        highImpactOpenBundles.find(candidate => candidate.key !== bundle.key) ||
+        assemblyBundles.find(
+          candidate =>
+            candidate.key !== bundle.key && candidate.status === "open"
+        ) ||
+        assemblyBundles.find(candidate => candidate.key !== bundle.key);
+
+      if (nextBundle) {
+        setSelectedBundleKey(nextBundle.key);
+      } else {
+        setActiveTab("estimate");
+      }
+    },
+    [applyBundleDecision, assemblyBundles, highImpactOpenBundles]
+  );
+
   // ─── Loading State ────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -3577,10 +3597,14 @@ export default function TakeoffDetail() {
                         : bundle.recommendedDecision === "exclude"
                           ? "Not in Bid"
                           : "Review";
-                    const totalReference =
+                    const foundTotal =
                       bundle.currentIncludedCost +
                       bundle.reviewCost +
                       bundle.excludedCost;
+                    const packageIndex =
+                      assemblyBundles.findIndex(
+                        candidate => candidate.key === bundle.key
+                      ) + 1;
                     const statusLabel =
                       bundle.status === "include"
                         ? "Added to Bid"
@@ -3604,56 +3628,116 @@ export default function TakeoffDetail() {
                     return (
                       <div
                         id="assembly-review"
-                        className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/25"
+                        className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/20"
                       >
-                        <div className="px-4 py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Layers className="w-4 h-4 text-amber-300" />
-                              <h2 className="text-sm font-semibold text-cream">
-                                Foreman Workbench
-                              </h2>
-                              <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                                {assemblyBundles.length} package
-                                {assemblyBundles.length !== 1 ? "s" : ""}
-                              </Badge>
-                              {highImpactOpenBundles.length > 0 && (
-                                <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-xs">
-                                  {highImpactOpenBundles.length} need a decision
+                        <div className="px-4 py-3 bg-navy-deep/55 border-b border-white/10">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Layers className="w-4 h-4 text-amber-300" />
+                                <h2 className="text-sm font-semibold text-cream">
+                                  Foreman Workbench
+                                </h2>
+                                <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                                  {assemblyBundles.length} package
+                                  {assemblyBundles.length !== 1 ? "s" : ""}
                                 </Badge>
-                              )}
+                                <Badge
+                                  className={
+                                    readyToPrice
+                                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-xs"
+                                      : "bg-amber-500/15 text-amber-200 border-amber-500/25 text-xs"
+                                  }
+                                >
+                                  {readyToPrice
+                                    ? "Ready to price"
+                                    : `${highImpactOpenBundles.length} left`}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-cream-muted mt-1">
+                                Pick package, check drawing, make the call, then
+                                move to the next package.
+                              </p>
                             </div>
-                            <p className="text-xs text-cream-muted mt-1">
-                              Work down the punch list. Check the drawing. Make
-                              one decision and move to the next package.
-                            </p>
+                            <Button
+                              size="sm"
+                              variant={readyToPrice ? "default" : "outline"}
+                              disabled={!readyToPrice}
+                              onClick={() => setActiveTab("estimate")}
+                              className={
+                                readyToPrice
+                                  ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  : "h-8 border-white/10 text-cream-muted"
+                              }
+                            >
+                              <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                              Price Bid
+                            </Button>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              nextOpenBundle
-                                ? setSelectedBundleKey(nextOpenBundle.key)
-                                : setActiveTab("estimate")
-                            }
-                            className="h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
-                          >
-                            <Flag className="w-3.5 h-3.5 mr-1.5" />
-                            {nextOpenBundle ? "Next Package" : "Open Estimate"}
-                          </Button>
+                          <div className="mt-4 grid gap-2 sm:grid-cols-5">
+                            {[
+                              {
+                                label: "Pick package",
+                                value: `${packageIndex}/${assemblyBundles.length}`,
+                                done: true,
+                              },
+                              {
+                                label: "Check drawing",
+                                value: bundle.drawingGroup,
+                                done: !!selectedSheet?.imageUrl,
+                              },
+                              {
+                                label: "Make call",
+                                value: statusLabel,
+                                done: bundle.status !== "open",
+                              },
+                              {
+                                label: "Next package",
+                                value: nextOpenBundle ? "Queued" : "Clear",
+                                done: !nextOpenBundle,
+                              },
+                              {
+                                label: "Price",
+                                value: readyToPrice ? "Open" : "Locked",
+                                done: readyToPrice,
+                              },
+                            ].map(step => (
+                              <div
+                                key={step.label}
+                                className={`rounded-md border px-3 py-2 ${
+                                  step.done
+                                    ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                                    : "border-white/10 bg-white/[0.03]"
+                                }`}
+                              >
+                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                  {step.label}
+                                </p>
+                                <p
+                                  className={`mt-1 truncate text-xs font-semibold ${
+                                    step.done
+                                      ? "text-emerald-300"
+                                      : "text-amber-200"
+                                  }`}
+                                >
+                                  {step.value}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="grid xl:grid-cols-[320px_minmax(0,1fr)_340px]">
-                          <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-navy-deep/35">
+                        <div className="grid xl:grid-cols-[320px_minmax(0,1fr)]">
+                          <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-navy-deep/30">
                             <div className="px-4 py-3 border-b border-white/10">
                               <p className="text-xs font-semibold uppercase tracking-wider text-cream">
-                                Package Punch List
+                                Package Queue
                               </p>
                               <p className="text-xs text-cream-muted mt-1">
-                                Start with the biggest open package.
+                                The biggest undecided work stays at the top.
                               </p>
                             </div>
-                            <div className="max-h-[680px] overflow-y-auto p-2 space-y-2">
+                            <div className="max-h-[760px] overflow-y-auto p-2 space-y-2">
                               {assemblyBundles.map(candidate => {
                                 const active = candidate.key === bundle.key;
                                 const done = candidate.status !== "open";
@@ -3663,10 +3747,10 @@ export default function TakeoffDetail() {
                                     : candidate.status === "exclude"
                                       ? "Not in Bid"
                                       : candidate.status === "review"
-                                        ? "Decided Later"
+                                        ? "Decide Later"
                                         : candidate.status === "mixed"
                                           ? "Partly Decided"
-                                          : `${candidate.openReviewCount} need decision`;
+                                          : `${candidate.openReviewCount} to decide`;
                                 return (
                                   <button
                                     key={candidate.key}
@@ -3693,7 +3777,7 @@ export default function TakeoffDetail() {
                                           {candidate.title}
                                         </p>
                                         <p className="mt-1 text-[11px] text-cream-muted line-clamp-1">
-                                          {candidate.primaryItem?.description}
+                                          {candidate.drawingGroup}
                                         </p>
                                       </div>
                                     </div>
@@ -3709,7 +3793,9 @@ export default function TakeoffDetail() {
                                       </span>
                                       <span className="font-mono text-[11px] text-cream-muted">
                                         {formatCurrency(
-                                          candidate.openReviewCost,
+                                          candidate.openReviewCost ||
+                                            candidate.currentIncludedCost +
+                                              candidate.reviewCost,
                                           project?.currency || "USD"
                                         )}
                                       </span>
@@ -3720,7 +3806,7 @@ export default function TakeoffDetail() {
                             </div>
                           </aside>
 
-                          <section className="min-w-0 border-b xl:border-b-0 xl:border-r border-white/10">
+                          <section className="min-w-0">
                             <div className="px-4 py-3 border-b border-white/10">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -3738,11 +3824,11 @@ export default function TakeoffDetail() {
                                       {statusLabel}
                                     </Badge>
                                   </div>
-                                  <h3 className="mt-2 text-lg font-semibold text-cream">
+                                  <h3 className="mt-2 text-xl font-semibold text-cream">
                                     {bundle.title}
                                   </h3>
-                                  <p className="mt-1 text-sm text-cream-muted">
-                                    {bundle.primaryItem?.description}
+                                  <p className="mt-1 max-w-3xl text-sm text-cream-muted">
+                                    {bundle.reason}
                                   </p>
                                 </div>
                                 <Button
@@ -3754,275 +3840,279 @@ export default function TakeoffDetail() {
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                  Open Detail
+                                  Detail
                                 </Button>
                               </div>
                             </div>
 
-                            <div className="p-4">
-                              <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
-                                {selectedSheet?.imageUrl ? (
-                                  <div className="relative bg-white min-h-[360px] max-h-[620px] flex items-center justify-center">
-                                    <img
-                                      src={selectedSheet.imageUrl}
-                                      alt={
-                                        selectedSheet.sheetName ||
-                                        `Page ${selectedSheet.pageNumber}`
-                                      }
-                                      className="max-h-[620px] w-full object-contain"
-                                    />
-                                    <div className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
-                                      {selectedSheet.sheetName ||
-                                        `Page ${selectedSheet.pageNumber}`}
+                            <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+                              <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
+                                <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+                                  {selectedSheet?.imageUrl ? (
+                                    <div className="relative bg-white min-h-[420px] max-h-[680px] flex items-center justify-center">
+                                      <img
+                                        src={selectedSheet.imageUrl}
+                                        alt={
+                                          selectedSheet.sheetName ||
+                                          `Page ${selectedSheet.pageNumber}`
+                                        }
+                                        className="max-h-[680px] w-full object-contain"
+                                      />
+                                      <div className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
+                                        {selectedSheet.sheetName ||
+                                          `Page ${selectedSheet.pageNumber}`}
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <div className="min-h-[360px] flex flex-col items-center justify-center gap-2 text-center">
-                                    <FileImage className="w-10 h-10 text-cream-muted/50" />
-                                    <p className="text-sm font-semibold text-cream">
-                                      No drawing preview linked
-                                    </p>
-                                    <p className="max-w-sm text-xs text-cream-muted">
-                                      Open the package detail to inspect the row
-                                      notes and drawing reference.
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="mt-4 rounded-lg border border-white/10 bg-navy-deep/35 p-4">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                  Why this needs your eye
-                                </p>
-                                <p className="mt-2 text-sm text-cream">
-                                  {bundle.reason}
-                                </p>
+                                  ) : (
+                                    <div className="min-h-[420px] flex flex-col items-center justify-center gap-2 text-center">
+                                      <FileImage className="w-10 h-10 text-cream-muted/50" />
+                                      <p className="text-sm font-semibold text-cream">
+                                        No drawing preview linked
+                                      </p>
+                                      <p className="max-w-sm text-xs text-cream-muted">
+                                        Open the package detail to inspect the
+                                        row notes and drawing reference.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cream-muted">
                                   <span>
                                     Evidence: {bundle.sourceDrawings.join(", ")}
                                   </span>
                                   <span>
-                                    {bundle.alternateItems.length} raw row
-                                    {bundle.alternateItems.length !== 1
-                                      ? "s"
-                                      : ""}{" "}
-                                    behind this package
+                                    {bundle.items.length} row
+                                    {bundle.items.length !== 1 ? "s" : ""}{" "}
+                                    grouped into this package
                                   </span>
                                 </div>
                               </div>
+
+                              <aside className="bg-navy-deep/25 p-4 space-y-4">
+                                <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
+                                    Make the call
+                                  </p>
+                                  <p className="mt-1 text-sm text-cream-muted">
+                                    Choose once. The queue advances after your
+                                    decision.
+                                  </p>
+                                  <div className="mt-4 grid gap-2">
+                                    <Button
+                                      size="lg"
+                                      variant={
+                                        bundle.status === "include"
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      className={
+                                        bundle.status === "include"
+                                          ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
+                                          : "justify-start border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(
+                                          bundle,
+                                          "included"
+                                        )
+                                      }
+                                    >
+                                      {bundle.status === "include" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <Check className="w-4 h-4 mr-2" />
+                                      )}
+                                      Add to Bid
+                                    </Button>
+                                    <Button
+                                      size="lg"
+                                      variant="outline"
+                                      className={
+                                        bundle.status === "exclude"
+                                          ? "justify-start border-red-400/50 bg-red-500/15 text-red-100 ring-1 ring-red-300/25"
+                                          : "justify-start border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(
+                                          bundle,
+                                          "excluded"
+                                        )
+                                      }
+                                    >
+                                      {bundle.status === "exclude" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <X className="w-4 h-4 mr-2" />
+                                      )}
+                                      Not in Bid
+                                    </Button>
+                                    <Button
+                                      size="lg"
+                                      variant="outline"
+                                      className={
+                                        bundle.status === "review"
+                                          ? "justify-start border-amber-400/50 bg-amber-500/15 text-amber-100 ring-1 ring-amber-300/25"
+                                          : "justify-start border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                      }
+                                      onClick={() =>
+                                        applyWorkbenchDecision(bundle, "review")
+                                      }
+                                    >
+                                      {bundle.status === "review" ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      ) : (
+                                        <Square className="w-4 h-4 mr-2" />
+                                      )}
+                                      Decide Later
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      In Bid
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-emerald-300">
+                                      {formatCurrency(
+                                        bundle.currentIncludedCost,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      Waiting
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-amber-200">
+                                      {formatCurrency(
+                                        bundle.openReviewCost,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      Found
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                      {formatCurrency(
+                                        foundTotal,
+                                        project?.currency || "USD"
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                                    Suggested call
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-cream">
+                                    {recommendedLabel}
+                                  </p>
+                                  <p className="mt-1 text-xs text-cream-muted">
+                                    Use this as a nudge, not an automatic bid
+                                    decision.
+                                  </p>
+                                </div>
+
+                                <div className="rounded-lg border border-white/10 bg-white/[0.03]">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleBundle(bundle.key)}
+                                    className="flex w-full items-center justify-between px-3 py-2 text-left"
+                                  >
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
+                                      Raw rows
+                                    </span>
+                                    {expanded ? (
+                                      <ChevronDown className="w-4 h-4 text-cream-muted" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4 text-cream-muted" />
+                                    )}
+                                  </button>
+                                  {expanded && (
+                                    <div className="max-h-[260px] overflow-y-auto border-t border-white/10 p-2 space-y-2">
+                                      {bundle.items.map(item => {
+                                        const status =
+                                          getScopeReviewStatus(item);
+                                        const cue = getEstimatorCue(item);
+                                        return (
+                                          <button
+                                            key={item.id}
+                                            className="w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05]"
+                                            onClick={() =>
+                                              setSelectedItem(item)
+                                            }
+                                          >
+                                            <div className="flex flex-wrap items-center gap-2">
+                                              <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                                                {item.csiCode ||
+                                                  item.csiDivision}
+                                              </Badge>
+                                              <Badge
+                                                className={`text-[10px] ${
+                                                  status === "included"
+                                                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                                    : status === "review"
+                                                      ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
+                                                      : "bg-red-500/15 text-red-200 border-red-500/25"
+                                                }`}
+                                              >
+                                                {formatScopeReviewStatus(
+                                                  status
+                                                )}
+                                              </Badge>
+                                              <Badge
+                                                className={`text-[10px] ${cue.className}`}
+                                              >
+                                                {cue.label}
+                                              </Badge>
+                                            </div>
+                                            <p className="mt-1 text-sm text-cream line-clamp-2">
+                                              {item.description}
+                                            </p>
+                                            <p className="mt-1 font-mono text-xs text-amber-300">
+                                              {formatCurrency(
+                                                item.extendedCost || 0,
+                                                project?.currency || "USD"
+                                              )}
+                                            </p>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </aside>
                             </div>
                           </section>
-
-                          <aside className="bg-navy-deep/30">
-                            <div className="px-4 py-3 border-b border-white/10">
-                              <p className="text-xs font-semibold uppercase tracking-wider text-cream">
-                                Make the Call
-                              </p>
-                              <p className="text-xs text-cream-muted mt-1">
-                                Pick where this package belongs.
-                              </p>
-                            </div>
-                            <div className="p-4 space-y-4">
-                              <div className="grid grid-cols-1 gap-2">
-                                <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-                                  <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                    In Bid Now
-                                  </p>
-                                  <p className="mt-1 truncate text-lg font-mono font-semibold text-emerald-300">
-                                    {formatCurrency(
-                                      bundle.currentIncludedCost,
-                                      project?.currency || "USD"
-                                    )}
-                                  </p>
-                                </div>
-                                <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-                                  <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                    Waiting on You
-                                  </p>
-                                  <p className="mt-1 truncate text-lg font-mono font-semibold text-amber-200">
-                                    {formatCurrency(
-                                      bundle.openReviewCost,
-                                      project?.currency || "USD"
-                                    )}
-                                  </p>
-                                </div>
-                                <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-                                  <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                    Found Total
-                                  </p>
-                                  <p className="mt-1 truncate text-lg font-mono font-semibold text-cream">
-                                    {formatCurrency(
-                                      totalReference,
-                                      project?.currency || "USD"
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="grid gap-2">
-                                <Button
-                                  size="lg"
-                                  variant={
-                                    bundle.status === "include"
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  className={
-                                    bundle.status === "include"
-                                      ? "justify-start bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                      : "justify-start border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10"
-                                  }
-                                  onClick={() =>
-                                    applyBundleDecision(bundle, "included")
-                                  }
-                                >
-                                  {bundle.status === "include" ? (
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  ) : (
-                                    <Check className="w-4 h-4 mr-2" />
-                                  )}
-                                  Add to Bid
-                                </Button>
-                                <Button
-                                  size="lg"
-                                  variant="outline"
-                                  className={
-                                    bundle.status === "exclude"
-                                      ? "justify-start border-red-400/50 bg-red-500/15 text-red-100 ring-1 ring-red-300/25"
-                                      : "justify-start border-red-500/25 text-red-200 hover:bg-red-500/10"
-                                  }
-                                  onClick={() =>
-                                    applyBundleDecision(bundle, "excluded")
-                                  }
-                                >
-                                  {bundle.status === "exclude" ? (
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  ) : (
-                                    <X className="w-4 h-4 mr-2" />
-                                  )}
-                                  Not in Bid
-                                </Button>
-                                <Button
-                                  size="lg"
-                                  variant="outline"
-                                  className={
-                                    bundle.status === "review"
-                                      ? "justify-start border-amber-400/50 bg-amber-500/15 text-amber-100 ring-1 ring-amber-300/25"
-                                      : "justify-start border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
-                                  }
-                                  onClick={() =>
-                                    applyBundleDecision(bundle, "review")
-                                  }
-                                >
-                                  {bundle.status === "review" ? (
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  ) : (
-                                    <Square className="w-4 h-4 mr-2" />
-                                  )}
-                                  Decide Later
-                                </Button>
-                              </div>
-
-                              <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                  Suggested Call
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-cream">
-                                  {recommendedLabel}
-                                </p>
-                                <p className="mt-1 text-xs text-cream-muted">
-                                  Use the drawing if you want to verify before
-                                  deciding.
-                                </p>
-                              </div>
-
-                              <div className="rounded-lg border border-white/10 bg-white/[0.03]">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleBundle(bundle.key)}
-                                  className="flex w-full items-center justify-between px-3 py-2 text-left"
-                                >
-                                  <span className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                    Rows Behind This Package
-                                  </span>
-                                  {expanded ? (
-                                    <ChevronDown className="w-4 h-4 text-cream-muted" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-cream-muted" />
-                                  )}
-                                </button>
-                                {expanded && (
-                                  <div className="max-h-[260px] overflow-y-auto border-t border-white/10 p-2 space-y-2">
-                                    {bundle.items.map(item => {
-                                      const status = getScopeReviewStatus(item);
-                                      const cue = getEstimatorCue(item);
-                                      return (
-                                        <button
-                                          key={item.id}
-                                          className="w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05]"
-                                          onClick={() => setSelectedItem(item)}
-                                        >
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
-                                              {item.csiCode || item.csiDivision}
-                                            </Badge>
-                                            <Badge
-                                              className={`text-[10px] ${
-                                                status === "included"
-                                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                                                  : status === "review"
-                                                    ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
-                                                    : "bg-red-500/15 text-red-200 border-red-500/25"
-                                              }`}
-                                            >
-                                              {formatScopeReviewStatus(status)}
-                                            </Badge>
-                                            <Badge
-                                              className={`text-[10px] ${cue.className}`}
-                                            >
-                                              {cue.label}
-                                            </Badge>
-                                          </div>
-                                          <p className="mt-1 text-sm text-cream line-clamp-2">
-                                            {item.description}
-                                          </p>
-                                          <p className="mt-1 font-mono text-xs text-amber-300">
-                                            {formatCurrency(
-                                              item.extendedCost || 0,
-                                              project?.currency || "USD"
-                                            )}
-                                          </p>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </aside>
                         </div>
                       </div>
                     );
                   })()}
 
-                <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
-                  <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-100/75 leading-relaxed">
-                    Quantity Takeoff is the draft review surface for found
-                    quantities, scope decisions, material pricing, source
-                    drawings, and confidence. The Estimate tab uses the accepted
-                    scope as the live bid number.
-                  </p>
-                </div>
+                {assemblyBundles.length === 0 && (
+                  <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
+                    <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-100/75 leading-relaxed">
+                      Quantity Takeoff is the draft review surface for found
+                      quantities, scope decisions, material pricing, source
+                      drawings, and confidence. The Estimate tab uses the
+                      accepted scope as the live bid number.
+                    </p>
+                  </div>
+                )}
 
-                <div className="bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
-                  <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
+                  <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold text-cream">
                         Bid Mode
                       </span>
-                      <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                      <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
                         {bidModeBehavior.label}
                       </Badge>
                     </div>
@@ -4041,14 +4131,14 @@ export default function TakeoffDetail() {
                 </div>
 
                 {scopeIntent.hasScope && (
-                  <div className="bg-amber-500/8 border border-amber-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <Flag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
+                    <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-amber-300">
+                        <span className="text-xs font-semibold text-cream">
                           Bid Scope
                         </span>
-                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
                           {scopeIntent.summary}
                         </Badge>
                         {scopeReviewCount > 0 && (
@@ -4058,7 +4148,7 @@ export default function TakeoffDetail() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-amber-100/75 leading-relaxed mt-1 line-clamp-2">
+                      <p className="text-xs text-cream-muted leading-relaxed mt-1 line-clamp-2">
                         {scopeIntent.originalText}
                       </p>
                     </div>
@@ -4066,7 +4156,7 @@ export default function TakeoffDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => setOpenSettingsToScope(true)}
-                      className="h-7 text-xs border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                      className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                     >
                       Edit Scope
                     </Button>
@@ -4574,19 +4664,19 @@ export default function TakeoffDetail() {
                 {reviewItems.length > 0 && (
                   <div
                     id="scope-review-queue"
-                    className="border border-amber-500/25 rounded-lg overflow-hidden"
+                    className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-amber-500/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-white/[0.03]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Flag className="w-4 h-4 text-amber-300" />
-                        <span className="text-amber-100 font-semibold">
-                          Raw Review Rows
+                        <FileText className="w-4 h-4 text-cream-muted" />
+                        <span className="text-cream-muted font-semibold">
+                          Raw Row Audit
                         </span>
-                        <Badge className="bg-amber-500/15 text-amber-100 border-amber-500/25 text-xs">
+                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                           {reviewItems.length} not counted
                         </Badge>
                         {openReviewItems.length > 0 && (
-                          <Badge className="bg-blue-500/15 text-blue-200 border-blue-500/25 text-xs">
+                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                             {openReviewItems.length} open
                           </Badge>
                         )}
@@ -4601,7 +4691,7 @@ export default function TakeoffDetail() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                        className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                         onClick={() => setShowRawReviewRows(prev => !prev)}
                       >
                         {showRawReviewRows ? (
@@ -4613,10 +4703,10 @@ export default function TakeoffDetail() {
                       </Button>
                     </div>
                     {!showRawReviewRows && (
-                      <div className="px-4 py-3 bg-amber-500/5 text-xs text-amber-100/70">
-                        Assembly Review is the primary decision surface. Open
-                        raw rows only when you need item-level audit,
-                        measurement, or exception cleanup.
+                      <div className="px-4 py-3 text-xs text-cream-muted">
+                        Foreman Workbench is the primary review surface. Open
+                        raw rows only for item-level audit, measurement, or
+                        exception cleanup.
                       </div>
                     )}
                     {showRawReviewRows && (
