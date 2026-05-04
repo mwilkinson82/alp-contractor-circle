@@ -267,6 +267,7 @@ function getEstimatorCue(item: any): { label: string; className: string } {
 }
 
 type AssemblyBundleDecision = "include" | "review" | "exclude";
+type AssemblyBundleStatus = AssemblyBundleDecision | "mixed" | "open";
 
 interface AssemblyBundle {
   key: string;
@@ -284,6 +285,7 @@ interface AssemblyBundle {
   openReviewCount: number;
   highImpact: boolean;
   sourceDrawings: string[];
+  status: AssemblyBundleStatus;
 }
 
 const ASSEMBLY_RULES: Array<{
@@ -480,6 +482,21 @@ function buildAssemblyBundles(
       const openReviewCount = reviewItemsForBundle.filter(
         item => !item.reviewed
       ).length;
+      const includedCount = bundleItems.filter(item =>
+        isScopeIncludedItem(item)
+      ).length;
+      const reviewCount = reviewItemsForBundle.length;
+      const excludedCount = excludedItemsForBundle.length;
+      const status: AssemblyBundleStatus =
+        openReviewCount > 0
+          ? "open"
+          : includedCount === bundleItems.length
+            ? "include"
+            : excludedCount === bundleItems.length
+              ? "exclude"
+              : reviewCount === bundleItems.length
+                ? "review"
+                : "mixed";
       const hasRiskCue = bundleItems.some(item => {
         const cue = getEstimatorCue(item).label;
         return [
@@ -528,6 +545,7 @@ function buildAssemblyBundles(
         openReviewCount,
         highImpact,
         sourceDrawings,
+        status,
       };
     })
     .sort((a, b) => {
@@ -2164,7 +2182,9 @@ export default function TakeoffDetail() {
         status === "included"
           ? bundle.items.filter(item => !isScopeIncludedItem(item))
           : status === "review"
-            ? bundle.items.filter(item => !isScopeReviewItem(item))
+            ? bundle.items.filter(
+                item => !isScopeReviewItem(item) || !item.reviewed
+              )
             : bundle.items.filter(item => !isScopeExcludedItem(item));
 
       if (targetItems.length === 0) {
@@ -3598,6 +3618,24 @@ export default function TakeoffDetail() {
                           bundle.currentIncludedCost +
                           bundle.reviewCost +
                           bundle.excludedCost;
+                        const statusLabel =
+                          bundle.status === "include"
+                            ? "Added to Bid"
+                            : bundle.status === "exclude"
+                              ? "Not in Bid"
+                              : bundle.status === "review"
+                                ? "Decided Later"
+                                : bundle.status === "mixed"
+                                  ? "Partly Decided"
+                                  : "";
+                        const statusClass =
+                          bundle.status === "include"
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                            : bundle.status === "exclude"
+                              ? "bg-red-500/15 text-red-200 border-red-500/25"
+                              : bundle.status === "review"
+                                ? "bg-amber-500/15 text-amber-200 border-amber-500/25"
+                                : "bg-white/5 text-cream-muted border-white/10";
                         return (
                           <div key={bundle.key} className="bg-white/[0.02]">
                             <div className="px-4 py-3">
@@ -3623,6 +3661,14 @@ export default function TakeoffDetail() {
                                   {bundle.openReviewCount > 0 && (
                                     <Badge className="bg-amber-500/15 text-amber-200 border-amber-500/25 text-[10px]">
                                       {bundle.openReviewCount} need decision
+                                    </Badge>
+                                  )}
+                                  {bundle.status !== "open" && (
+                                    <Badge
+                                      className={`${statusClass} text-[10px]`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                                      {statusLabel}
                                     </Badge>
                                   )}
                                   <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
@@ -3700,34 +3746,63 @@ export default function TakeoffDetail() {
                               >
                                 <Button
                                   size="sm"
-                                  className="h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white"
+                                  variant={
+                                    bundle.status === "include"
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  className={
+                                    bundle.status === "include"
+                                      ? "h-8 bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
+                                      : "h-8 border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10"
+                                  }
                                   onClick={() =>
                                     applyBundleDecision(bundle, "included")
                                   }
                                 >
-                                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                                  {bundle.status === "include" ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                                  )}
                                   Add to Bid
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                  className={
+                                    bundle.status === "exclude"
+                                      ? "h-8 border-red-400/50 bg-red-500/15 text-red-100 ring-1 ring-red-300/25"
+                                      : "h-8 border-red-500/25 text-red-200 hover:bg-red-500/10"
+                                  }
                                   onClick={() =>
                                     applyBundleDecision(bundle, "excluded")
                                   }
                                 >
-                                  <X className="w-3.5 h-3.5 mr-1.5" />
+                                  {bundle.status === "exclude" ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                                  ) : (
+                                    <X className="w-3.5 h-3.5 mr-1.5" />
+                                  )}
                                   Not in Bid
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                  className={
+                                    bundle.status === "review"
+                                      ? "h-8 border-amber-400/50 bg-amber-500/15 text-amber-100 ring-1 ring-amber-300/25"
+                                      : "h-8 border-amber-500/25 text-amber-200 hover:bg-amber-500/10"
+                                  }
                                   onClick={() =>
                                     applyBundleDecision(bundle, "review")
                                   }
                                 >
-                                  <Square className="w-3.5 h-3.5 mr-1.5" />
+                                  {bundle.status === "review" ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                                  ) : (
+                                    <Square className="w-3.5 h-3.5 mr-1.5" />
+                                  )}
                                   Decide Later
                                 </Button>
                                 <Button
