@@ -131,7 +131,7 @@ function getLaborSourceBadgeClass(source: ItemLaborSource): string {
     case "my_crew":
       return "bg-blue-500/15 text-blue-300 border-blue-500/25";
     case "cost_library":
-      return "bg-cyan-500/15 text-cyan-300 border-cyan-500/25";
+      return "bg-amber-500/12 text-amber-200 border-amber-500/25";
     case "manual":
       return "bg-purple-500/15 text-purple-300 border-purple-500/25";
     case "held_for_review":
@@ -601,7 +601,7 @@ export default function EstimateSummary({
           laborEstimate = {
             laborCost: itemLabor,
             laborSource: "cost_library",
-            laborSourceLabel: "Cost Library / Default Labor",
+            laborSourceLabel: "Library Labor - Confirm",
             laborNote:
               "No matching crew rate was found yet, so the estimate is using the takeoff cost-library labor unit.",
           };
@@ -620,7 +620,7 @@ export default function EstimateSummary({
         laborEstimate = {
           laborCost: itemLabor,
           laborSource: "cost_library",
-          laborSourceLabel: "Cost Library / Default Labor",
+          laborSourceLabel: "Library Labor - Confirm",
           laborNote:
             "Using the default labor from the takeoff cost library until crew labor is configured.",
         };
@@ -890,7 +890,7 @@ export default function EstimateSummary({
   const readinessDetail = hasOpenScope
     ? `${reviewQueueCount} scope package${reviewQueueCount !== 1 ? "s" : ""} still pending.`
     : defaultLaborCount > 0
-      ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with default labor.`
+      ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with library labor awaiting confirmation.`
       : laborNeedsAttention > 0
         ? `${laborNeedsAttention} labor decision${laborNeedsAttention !== 1 ? "s" : ""} still open.`
         : "Accepted scope is priced and ready for submit prep.";
@@ -924,12 +924,12 @@ export default function EstimateSummary({
           tone: defaultLaborCount > 0 ? "blue" : "amber",
           label: "Labor",
           title: hasUserCrews
-            ? "Labor source needs confirmation"
+            ? "Confirm labor basis"
             : "Crew labor is not set up",
           detail: hasUserCrews
-            ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} crew labor, default labor review, or an explicit no-labor decision.`
+            ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} crew labor, library labor confirmation, or an explicit no-labor decision.`
             : "Build your crews once, then apply them to accepted scope.",
-          cta: hasUserCrews ? "Review Labor" : "Set Up Crews",
+          cta: hasUserCrews ? "Confirm Labor" : "Set Up Crews",
           action: handleLaborCta,
         }
       : null,
@@ -1060,8 +1060,8 @@ export default function EstimateSummary({
                 tone={hasOpenScope ? "amber" : "gray"}
               />
               <ReadinessMetric
-                label="Crew Priced"
-                value={`${calculations.laborItemsMatched}`}
+                label="Crew Labor"
+                value={`${calculations.laborItemsMatched}/${calculations.totalItems}`}
                 tone="blue"
               />
               <ReadinessMetric
@@ -1610,7 +1610,7 @@ export default function EstimateSummary({
       )}
 
       {/* Estimate cockpit: cost table + bid rail */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -1642,7 +1642,7 @@ export default function EstimateSummary({
                     Material
                   </th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
-                    Active Labor
+                    Labor Basis
                   </th>
                   <th className="text-right text-cream-muted font-medium px-4 py-2.5 text-xs uppercase tracking-wider w-32">
                     Subtotal
@@ -1671,7 +1671,7 @@ export default function EstimateSummary({
                     divMissingInputs > 0
                       ? "Needs review"
                       : divDefaultLabor > 0
-                        ? "Default labor"
+                        ? "Confirm labor"
                         : "Bid-ready";
 
                   return (
@@ -1704,7 +1704,7 @@ export default function EstimateSummary({
                               divMissingInputs > 0
                                 ? `${divMissingInputs} row${divMissingInputs !== 1 ? "s" : ""}`
                                 : divDefaultLabor > 0
-                                  ? `${divDefaultLabor} default`
+                                  ? `${divDefaultLabor} to confirm`
                                   : "Ready"
                             }
                           />
@@ -1740,7 +1740,7 @@ export default function EstimateSummary({
                                   labor?.laborSource === "none"
                                 ? "Needs review"
                                 : labor?.laborSource === "cost_library"
-                                  ? "Default labor"
+                                  ? "Confirm labor"
                                   : "Bid-ready";
                           return (
                             <tr
@@ -1840,7 +1840,7 @@ export default function EstimateSummary({
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4">
+          <div className="rounded-xl border border-emerald-500/18 bg-white/[0.035] p-4">
             <p className="text-[10px] uppercase tracking-wider text-emerald-300/75">
               Bid Total
             </p>
@@ -1861,7 +1861,7 @@ export default function EstimateSummary({
             </div>
           </div>
 
-          <div className="bg-navy-medium/35 border border-white/10 rounded-xl p-4 space-y-3">
+          <div className="bg-white/[0.025] border border-white/10 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
                 <Percent className="w-4 h-4 text-amber-400" />
@@ -1927,7 +1927,7 @@ export default function EstimateSummary({
             </Button>
           </div>
 
-          <div className="bg-navy-medium/35 border border-white/10 rounded-xl p-4 space-y-2">
+          <div className="bg-white/[0.025] border border-white/10 rounded-xl p-4 space-y-2">
             <h4 className="text-cream font-medium text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
               Cost Waterfall
@@ -1994,8 +1994,8 @@ export default function EstimateSummary({
           <div
             className={`rounded-xl border p-4 ${
               hasOpenScope
-                ? "border-amber-500/25 bg-amber-500/8"
-                : "border-white/10 bg-navy-medium/35"
+                ? "border-amber-500/25 bg-white/[0.035]"
+                : "border-white/10 bg-white/[0.025]"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -2095,7 +2095,7 @@ function StatusBadge({
   const normalized = status.toLowerCase();
   const className = normalized.includes("ready")
     ? "bg-emerald-500/12 text-emerald-300 border-emerald-500/25"
-    : normalized.includes("default") || normalized.includes("allowance")
+    : normalized.includes("confirm") || normalized.includes("allowance")
       ? "bg-blue-500/12 text-blue-300 border-blue-500/25"
       : normalized.includes("missing") || normalized.includes("draft")
         ? "bg-red-500/12 text-red-300 border-red-500/25"
