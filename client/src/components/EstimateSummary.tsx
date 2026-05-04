@@ -29,7 +29,6 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Users,
-  Info,
   Sparkles,
   Loader2,
   Layers,
@@ -536,6 +535,9 @@ export default function EstimateSummary({
     let laborItemsHeldForReview = 0;
     let laborItemsDefaulted = 0;
     let laborItemsWithoutLabor = 0;
+    let materialItemsMissing = 0;
+    let quantityItemsMissing = 0;
+    let bidReadyItems = 0;
     const allowancesTotal = allowances.reduce(
       (sum, allowance) => sum + parseCents(allowance.amount),
       0
@@ -548,7 +550,10 @@ export default function EstimateSummary({
       byDivision[div].items.push(item);
 
       const qty = parseFloat(item.quantity) || 0;
-      const itemMaterial = qty * getMaterialUnitCost(item);
+      const materialUnitCost = getMaterialUnitCost(item);
+      const itemMaterial = qty * materialUnitCost;
+      if (qty <= 0) quantityItemsMissing++;
+      if (materialUnitCost <= 0) materialItemsMissing++;
       byDivision[div].materialTotal += itemMaterial;
       totalMaterial += itemMaterial;
 
@@ -629,6 +634,14 @@ export default function EstimateSummary({
       }
 
       itemLaborEstimates.set(item.id, laborEstimate);
+      if (
+        qty > 0 &&
+        materialUnitCost > 0 &&
+        (laborEstimate.laborSource === "my_crew" ||
+          laborEstimate.laborSource === "manual")
+      ) {
+        bidReadyItems++;
+      }
       byDivision[div].laborTotal += itemLabor;
       totalLabor += itemLabor;
     }
@@ -665,6 +678,9 @@ export default function EstimateSummary({
       laborItemsHeldForReview,
       laborItemsDefaulted,
       laborItemsWithoutLabor,
+      materialItemsMissing,
+      quantityItemsMissing,
+      bidReadyItems,
       itemLaborEstimates,
       totalItems: items.length,
     };
@@ -907,83 +923,213 @@ export default function EstimateSummary({
         </div>
       )}
 
-      {/* Labor coverage info + Calculate Labor button */}
-      {calculations.laborItemsMatched > 0 ? (
-        <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
-          <Users className="w-4 h-4 text-emerald-400 shrink-0" />
-          <p className="text-emerald-200/80 text-xs flex-1">
-            <strong className="text-emerald-300">Crew labor is active</strong>{" "}
-            for {calculations.laborItemsMatched} item
-            {calculations.laborItemsMatched !== 1 ? "s" : ""}.
-            {calculations.laborItemsDefaulted > 0
-              ? ` ${calculations.laborItemsDefaulted} item${calculations.laborItemsDefaulted !== 1 ? "s are" : " is"} still using Cost Library / Default Labor as a placeholder until you assign one of your crews.`
-              : ""}
-            {calculations.laborItemsWithoutLabor > 0
-              ? ` ${calculations.laborItemsWithoutLabor} item${calculations.laborItemsWithoutLabor !== 1 ? "s have" : " has"} no labor source yet.`
-              : ""}
-            {enableResidentialQa && calculations.laborItemsHeldForReview > 0
-              ? ` ${calculations.laborItemsHeldForReview} risky residential item${calculations.laborItemsHeldForReview !== 1 ? "s were" : " was"} held out for review.`
-              : ""}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLaborCta}
-            disabled={inferByTasksMutation.isPending}
-            className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5 shrink-0"
-          >
-            {inferByTasksMutation.isPending ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Grouping tasks...
-              </>
-            ) : (
-              <>
-                <Layers className="w-3.5 h-3.5" />
-                Review Labor Assignments
-              </>
-            )}
-          </Button>
-        </div>
-      ) : (
-        <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
-          <Info className="w-4 h-4 text-blue-400 shrink-0" />
-          <div className="flex-1">
-            <p className="text-blue-200/80 text-xs">
-              <strong className="text-blue-300">
-                Cost Library / Default Labor is a placeholder starting point.
-              </strong>{" "}
-              For accurate labor, set up your real crews in the Labor Database,
-              then apply those crews to this estimate. Starter/demo crews are
-              for setup only and should be reviewed before bidding.
-            </p>
+      {(() => {
+        const laborNeedsAttention =
+          calculations.laborItemsHeldForReview +
+          calculations.laborItemsWithoutLabor;
+        const materialNeedsAttention =
+          calculations.materialItemsMissing + calculations.quantityItemsMissing;
+        const defaultLaborCount = calculations.laborItemsDefaulted;
+        const hasOpenScope = reviewQueueCount > 0;
+        const markupLabel =
+          overheadPct > 0 ||
+          profitPct > 0 ||
+          contingencyPct > 0 ||
+          bondPct > 0 ||
+          taxPct > 0 ||
+          generalConditionsPct > 0
+            ? "Review markups"
+            : "No markup set";
+
+        const nextAction = hasOpenScope
+          ? {
+              title: "Finish scope review",
+              body: `${reviewQueueCount} package${reviewQueueCount !== 1 ? "s" : ""} still need a call before this is bid-ready.`,
+              cta: "Open Review",
+              action: undefined as (() => void) | undefined,
+            }
+          : materialNeedsAttention > 0
+            ? {
+                title: "Review missing pricing inputs",
+                body: `${materialNeedsAttention} item${materialNeedsAttention !== 1 ? "s need" : " needs"} quantity or material pricing before this number is reliable.`,
+                cta: "Review Table",
+                action: undefined as (() => void) | undefined,
+              }
+            : laborNeedsAttention > 0 || defaultLaborCount > 0
+              ? {
+                  title: hasUserCrews
+                    ? "Assign crew labor"
+                    : "Set up your crews",
+                  body: hasUserCrews
+                    ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} real crew labor or review before bid.`
+                    : "Default labor is a placeholder. Build crews once, then apply them to accepted scope.",
+                  cta: hasUserCrews
+                    ? "Review Labor Assignments"
+                    : "Set Up Crews",
+                  action: handleLaborCta,
+                }
+              : {
+                  title: "Review markups",
+                  body: "Scope and pricing inputs are clear. Confirm markups before proposal.",
+                  cta: "Save Markups",
+                  action: handleSave,
+                };
+
+        return (
+          <div className="border border-white/10 rounded-xl overflow-hidden bg-navy-medium/35">
+            <div className="px-4 py-3 border-b border-white/10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+              <div>
+                <h3 className="text-cream font-semibold text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  Estimate Readiness
+                </h3>
+                <p className="text-xs text-cream-muted mt-0.5">
+                  Scope becomes the estimate here. This panel shows what still
+                  keeps the number from being bid-ready.
+                </p>
+              </div>
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 min-w-[260px]">
+                <p className="text-[10px] uppercase tracking-wider text-emerald-300/75">
+                  Next best action
+                </p>
+                <p className="text-sm text-cream font-semibold mt-0.5">
+                  {nextAction.title}
+                </p>
+                <p className="text-xs text-cream-muted mt-0.5">
+                  {nextAction.body}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/10">
+              <div className="px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                  Scope Review
+                </p>
+                <p className="text-lg text-cream font-semibold mt-1">
+                  {hasOpenScope
+                    ? `${reviewQueueCount} open`
+                    : "Clear"}
+                </p>
+                <p className="text-xs text-cream-muted mt-1">
+                  {hasOpenScope
+                    ? `${formatCurrency(reviewQueueCost, currency)} held out`
+                    : excludedBoundaryCount > 0
+                      ? `${excludedBoundaryCount} excluded items visible for audit`
+                      : "Accepted scope is feeding the estimate"}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                  Materials
+                </p>
+                <p className="text-lg text-cream font-semibold mt-1">
+                  {materialNeedsAttention > 0
+                    ? `${materialNeedsAttention} need review`
+                    : "Ready"}
+                </p>
+                <p className="text-xs text-cream-muted mt-1">
+                  {calculations.materialItemsMissing > 0
+                    ? `${calculations.materialItemsMissing} missing material price`
+                    : calculations.quantityItemsMissing > 0
+                      ? `${calculations.quantityItemsMissing} missing quantity`
+                      : `${formatCurrency(calculations.totalMaterial, currency)} material total`}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                  Labor
+                </p>
+                <p className="text-lg text-cream font-semibold mt-1">
+                  {calculations.laborItemsMatched} crew priced
+                </p>
+                <p className="text-xs text-cream-muted mt-1">
+                  {defaultLaborCount > 0
+                    ? `${defaultLaborCount} using default labor`
+                    : laborNeedsAttention > 0
+                      ? `${laborNeedsAttention} need labor review`
+                      : calculations.totalLabor > 0
+                        ? `${formatCurrency(calculations.totalLabor, currency)} labor total`
+                        : "No crew labor assigned yet"}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                  Bid Setup
+                </p>
+                <p className="text-lg text-cream font-semibold mt-1">
+                  {markupLabel}
+                </p>
+                <p className="text-xs text-cream-muted mt-1">
+                  {calculations.bidReadyItems} of {calculations.totalItems} line
+                  items have quantity, material, and crew/manual labor.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs text-cream-muted">
+                Current priced bid:{" "}
+                <span className="text-emerald-300 font-mono">
+                  {formatCurrency(calculations.grandTotal, currency)}
+                </span>
+                {hasOpenScope
+                  ? ` · Pending scope value: ${formatCurrency(reviewQueueCost, currency)}`
+                  : ""}
+              </p>
+              {nextAction.action ? (
+                <Button
+                  size="sm"
+                  variant={
+                    nextAction.action === handleSave ? "default" : "outline"
+                  }
+                  onClick={nextAction.action}
+                  disabled={inferByTasksMutation.isPending || saveMutation.isPending}
+                  className={
+                    nextAction.action === handleSave
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                      : "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 gap-1.5"
+                  }
+                >
+                  {inferByTasksMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Grouping tasks...
+                    </>
+                  ) : nextAction.action === handleSave &&
+                    saveMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : nextAction.cta === "Set Up Crews" ? (
+                    <>
+                      <Users className="w-3.5 h-3.5" />
+                      {nextAction.cta}
+                    </>
+                  ) : nextAction.cta.includes("Labor") ? (
+                    <>
+                      <Layers className="w-3.5 h-3.5" />
+                      {nextAction.cta}
+                    </>
+                  ) : nextAction.action === handleSave ? (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      {nextAction.cta}
+                    </>
+                  ) : (
+                    nextAction.cta
+                  )}
+                </Button>
+              ) : (
+                <span className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-cream-muted">
+                  {nextAction.cta}
+                </span>
+              )}
+            </div>
           </div>
-          <Button
-            size="sm"
-            onClick={handleLaborCta}
-            disabled={inferByTasksMutation.isPending}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white gap-1.5 shrink-0"
-          >
-            {inferByTasksMutation.isPending ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Grouping{items.length > 20 ? ` ${items.length} items` : ""} into
-                tasks...
-              </>
-            ) : !hasUserCrews ? (
-              <>
-                <Users className="w-3.5 h-3.5" />
-                Set Up Crews
-              </>
-            ) : (
-              <>
-                <Layers className="w-3.5 h-3.5" />
-                Review Labor Assignments
-              </>
-            )}
-          </Button>
-        </div>
-      )}
+        );
+      })()}
 
       {enableResidentialQa && (
         <ResidentialQaPanel
@@ -993,21 +1139,6 @@ export default function EstimateSummary({
           onAddAllowance={onAddAllowance}
         />
       )}
-
-      <div className="bg-navy-medium/35 border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3">
-        <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <p className="text-sm text-cream font-medium">
-            One labor source per item
-          </p>
-          <p className="text-xs text-cream-muted">
-            The Estimate tab is the live bid number. Each line uses your
-            assigned crew labor when matched, or Cost Library / Default Labor as
-            a placeholder. Build and review crews in the Labor Database before
-            treating labor as bid-ready.
-          </p>
-        </div>
-      </div>
 
       {/* ─── Labor Inference Review Panel ──────────────────────────────── */}
       {showReviewPanel && reviewAssignments && (
