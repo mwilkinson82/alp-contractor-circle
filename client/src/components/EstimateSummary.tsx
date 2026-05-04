@@ -185,6 +185,7 @@ interface EstimateSummaryProps {
   reviewQueueCount?: number;
   reviewQueueCost?: number;
   excludedBoundaryCount?: number;
+  acceptedDirectCost?: number;
   onOpenReview?: () => void;
 }
 
@@ -201,6 +202,7 @@ export default function EstimateSummary({
   reviewQueueCount = 0,
   reviewQueueCost = 0,
   excludedBoundaryCount = 0,
+  acceptedDirectCost,
   onOpenReview,
 }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
@@ -898,6 +900,10 @@ export default function EstimateSummary({
     markupPctTotal > 0
       ? `${pctToDisplay(overheadPct + profitPct)}% O/H + profit`
       : "No markup set";
+  const acceptedDirect = acceptedDirectCost ?? calculations.directCost;
+  const estimateDirectDelta = calculations.directCost - acceptedDirect;
+  const hasDirectDelta = Math.abs(estimateDirectDelta) >= 1;
+  const markupAndTax = calculations.grandTotal - calculations.directCost;
   const attentionItems = [
     hasOpenScope
       ? {
@@ -995,15 +1001,49 @@ export default function EstimateSummary({
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.7fr)]">
               <div>
                 <p className="text-sm font-medium text-[#716855]">
-                  Bid total from accepted scope
+                  Bid Total = accepted direct + markup/tax
                 </p>
                 <p className="mt-2 text-5xl font-semibold tracking-normal text-[#15120d]">
                   {formatCurrency(calculations.grandTotal, currency)}
                 </p>
+                <div className="mt-3 rounded-lg border border-[#d7c7aa] bg-white/60 px-3 py-2">
+                  <p className="text-xs font-semibold text-[#5d5546]">
+                    Why this is higher than the top green number:
+                  </p>
+                  <p className="mt-1 text-sm text-[#5d5546]">
+                    Top bar = accepted direct cost. Bid Total = accepted direct
+                    plus markup/tax.
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                    <span>
+                      Accepted direct:{" "}
+                      <strong>{formatCurrency(acceptedDirect, currency)}</strong>
+                    </span>
+                    <span>
+                      Markup/tax:{" "}
+                      <strong>{formatCurrency(markupAndTax, currency)}</strong>
+                    </span>
+                    <span>
+                      Bid total:{" "}
+                      <strong>
+                        {formatCurrency(calculations.grandTotal, currency)}
+                      </strong>
+                    </span>
+                  </div>
+                  {hasDirectDelta && (
+                    <p className="mt-2 text-[11px] text-[#8a6510]">
+                      Estimate direct is{" "}
+                      {formatCurrency(Math.abs(estimateDirectDelta), currency)}{" "}
+                      {estimateDirectDelta > 0 ? "higher" : "lower"} than the
+                      takeoff header because Estimate rebuilds the number from
+                      material, labor basis, and allowances.
+                    </p>
+                  )}
+                </div>
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <CommandMetric
                     label="Accepted direct"
-                    value={formatCurrency(calculations.directCost, currency)}
+                    value={formatCurrency(acceptedDirect, currency)}
                     tone="green"
                   />
                   <CommandMetric
@@ -1870,13 +1910,13 @@ export default function EstimateSummary({
             </p>
             <div className="mt-3 space-y-1.5 border-t border-emerald-500/15 pt-3">
               <WaterfallRow
-                label="Direct cost"
-                value={calculations.directCost}
+                label="Accepted direct"
+                value={acceptedDirect}
                 currency={currency}
               />
               <WaterfallRow
                 label="Markup + tax"
-                value={calculations.grandTotal - calculations.directCost}
+                value={markupAndTax}
                 currency={currency}
               />
             </div>
