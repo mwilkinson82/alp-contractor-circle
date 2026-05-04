@@ -2977,8 +2977,8 @@ export default function TakeoffDetail() {
                       {assemblyBundles.length > 0 ? (
                         <span className="whitespace-normal text-cream">
                           Review {highImpactOpenBundles.length} open package
-                          {highImpactOpenBundles.length !== 1 ? "s" : ""} in
-                          Foreman Workbench before pricing.
+                          {highImpactOpenBundles.length !== 1 ? "s" : ""} in AI
+                          Takeoff Review before pricing.
                         </span>
                       ) : (
                         <span className="whitespace-normal">
@@ -3708,10 +3708,6 @@ export default function TakeoffDetail() {
                         : bundle.recommendedDecision === "exclude"
                           ? "Not in Bid"
                           : "Review";
-                    const foundTotal =
-                      bundle.currentIncludedCost +
-                      bundle.reviewCost +
-                      bundle.excludedCost;
                     const packageIndex =
                       assemblyBundles.findIndex(
                         candidate => candidate.key === bundle.key
@@ -3737,7 +3733,7 @@ export default function TakeoffDetail() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <Layers className="w-4 h-4 text-amber-300" />
                                 <h2 className="text-base font-semibold text-cream">
-                                  Foreman Workbench
+                                  AI Takeoff Review
                                 </h2>
                                 <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                                   {assemblyBundles.length} package
@@ -3756,9 +3752,9 @@ export default function TakeoffDetail() {
                                 </Badge>
                               </div>
                               <p className="text-sm text-cream-muted mt-1">
-                                Do one package at a time. Look at the drawing,
-                                choose where it goes, then the next package
-                                opens.
+                                Review one package at a time. Confirm what
+                                belongs in the bid, then move to the next
+                                package.
                               </p>
                             </div>
                             <Button
@@ -3780,7 +3776,7 @@ export default function TakeoffDetail() {
                             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
                               <div>
                                 <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  1. Package
+                                  1. Review Scope
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-cream">
                                   {packageIndex} of {assemblyBundles.length}
@@ -3789,7 +3785,7 @@ export default function TakeoffDetail() {
                               <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
                               <div>
                                 <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  2. Drawing
+                                  2. Check Drawing
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-cream">
                                   {bundle.drawingGroup}
@@ -3798,7 +3794,7 @@ export default function TakeoffDetail() {
                               <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
                               <div>
                                 <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  3. Your call
+                                  3. Make Call
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-amber-200">
                                   {statusLabel}
@@ -3812,10 +3808,11 @@ export default function TakeoffDetail() {
                           <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-white/[0.015]">
                             <div className="px-4 py-3 border-b border-white/10">
                               <p className="text-xs font-semibold uppercase tracking-wider text-cream">
-                                Pick a Package
+                                Review Queue
                               </p>
                               <p className="text-xs text-cream-muted mt-1">
-                                Start at the top. Finished packages fade back.
+                                Work from top to bottom. Each package needs one
+                                clear call.
                               </p>
                             </div>
                             <div className="max-h-[760px] overflow-y-auto p-2 space-y-2">
@@ -3906,6 +3903,9 @@ export default function TakeoffDetail() {
                                   <h3 className="mt-2 text-xl font-semibold text-cream">
                                     {bundle.title}
                                   </h3>
+                                  <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                                    Drawing / Takeoff Canvas
+                                  </p>
                                   <p className="mt-1 max-w-3xl text-sm text-cream-muted">
                                     {bundle.reason}
                                   </p>
@@ -3965,7 +3965,14 @@ export default function TakeoffDetail() {
                                       ) : (
                                         <Check className="w-4 h-4 mr-2" />
                                       )}
-                                      Yes, Add to Bid
+                                      Add to Bid{" "}
+                                      <span className="font-mono text-xs opacity-80">
+                                        +
+                                        {formatCurrency(
+                                          bundle.openReviewCost,
+                                          project?.currency || "USD"
+                                        )}
+                                      </span>
                                     </Button>
                                     <Button
                                       size="lg"
@@ -3987,7 +3994,7 @@ export default function TakeoffDetail() {
                                       ) : (
                                         <X className="w-4 h-4 mr-2" />
                                       )}
-                                      No, Not in Bid
+                                      Exclude from Bid
                                     </Button>
                                     <Button
                                       size="lg"
@@ -4006,7 +4013,7 @@ export default function TakeoffDetail() {
                                       ) : (
                                         <Square className="w-4 h-4 mr-2" />
                                       )}
-                                      Park It
+                                      Decide Later
                                     </Button>
                                   </div>
                                 </div>
@@ -4059,49 +4066,52 @@ export default function TakeoffDetail() {
                               <aside className="bg-white/[0.012] p-4 space-y-4">
                                 <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                    Package Check
+                                    Decision Needed
                                   </p>
                                   <p className="mt-1 text-lg font-semibold text-cream">
-                                    What you are deciding
+                                    Should this package be included in the bid?
                                   </p>
                                   <p className="mt-1 text-sm text-cream-muted">
-                                    This package is not counted until you choose
-                                    yes, no, or park it above the drawing.
+                                    Pick one answer. ConstructLine saves the
+                                    call and opens the next package.
                                   </p>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2 opacity-80">
-                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      In Bid
-                                    </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
-                                      {formatCurrency(
-                                        bundle.currentIncludedCost,
-                                        project?.currency || "USD"
-                                      )}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
-                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      Waiting
-                                    </p>
-                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.045] p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                        Bid Impact
+                                      </p>
+                                      <p className="mt-1 text-xs text-cream-muted">
+                                        If accepted
+                                      </p>
+                                    </div>
+                                    <p className="font-mono text-lg font-semibold text-emerald-300">
+                                      +
                                       {formatCurrency(
                                         bundle.openReviewCost,
                                         project?.currency || "USD"
                                       )}
                                     </p>
                                   </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 opacity-80">
                                   <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
                                     <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                      Found
+                                      Drawings
                                     </p>
                                     <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
-                                      {formatCurrency(
-                                        foundTotal,
-                                        project?.currency || "USD"
-                                      )}
+                                      {bundle.sourceDrawings.length}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wider text-cream-muted">
+                                      Rows
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-mono font-semibold text-cream">
+                                      {bundle.items.length}
                                     </p>
                                   </div>
                                 </div>
@@ -4126,7 +4136,7 @@ export default function TakeoffDetail() {
                                     className="flex w-full items-center justify-between px-3 py-2 text-left"
                                   >
                                     <span className="text-xs font-semibold uppercase tracking-wider text-cream-muted">
-                                      Raw rows
+                                      Package Evidence
                                     </span>
                                     {expanded ? (
                                       <ChevronDown className="w-4 h-4 text-cream-muted" />
@@ -4343,7 +4353,7 @@ export default function TakeoffDetail() {
                       <div className="flex flex-wrap items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-cream-muted" />
                         <span className="text-cream-muted font-semibold">
-                          Accepted Bid Rows
+                          Accepted Rows
                         </span>
                         <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                           {activeItems.length} already counted
@@ -4818,7 +4828,7 @@ export default function TakeoffDetail() {
                       <div className="flex flex-wrap items-center gap-2">
                         <FileText className="w-4 h-4 text-cream-muted" />
                         <span className="text-cream-muted font-semibold">
-                          Raw Row Audit
+                          Details & Audit Trail
                         </span>
                         <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                           {reviewItems.length} not counted
@@ -4852,9 +4862,9 @@ export default function TakeoffDetail() {
                     </div>
                     {!showRawReviewRows && (
                       <div className="px-4 py-3 text-xs text-cream-muted">
-                        Foreman Workbench is the primary review surface. Open
-                        raw rows only for item-level audit, measurement, or
-                        exception cleanup.
+                        AI Takeoff Review is the primary workflow. Open this
+                        audit trail only for item-level measurements, source
+                        rows, or exception cleanup.
                       </div>
                     )}
                     {showRawReviewRows && (
@@ -5010,7 +5020,7 @@ export default function TakeoffDetail() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Flag className="w-4 h-4 text-cream-muted" />
                         <span className="text-cream-muted font-semibold">
-                          Boundary Reference
+                          Excluded Scope
                         </span>
                         <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
                           {excludedItems.length} not in bid
