@@ -5726,6 +5726,7 @@ export default function TakeoffDetail() {
               reviewQueueCount={highImpactOpenBundles.length}
               reviewQueueCost={highImpactOpenBundleCost}
               excludedBoundaryCount={excludedItems.length}
+              onOpenReview={() => setActiveTab("items")}
             />
           </TabsContent>
         </Tabs>

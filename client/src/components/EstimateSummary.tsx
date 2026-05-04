@@ -186,6 +186,7 @@ interface EstimateSummaryProps {
   reviewQueueCount?: number;
   reviewQueueCost?: number;
   excludedBoundaryCount?: number;
+  onOpenReview?: () => void;
 }
 
 export default function EstimateSummary({
@@ -201,6 +202,7 @@ export default function EstimateSummary({
   reviewQueueCount = 0,
   reviewQueueCost = 0,
   excludedBoundaryCount = 0,
+  onOpenReview,
 }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } =
@@ -940,13 +942,17 @@ export default function EstimateSummary({
           generalConditionsPct > 0
             ? "Review markups"
             : "No markup set";
+        const bidSetupLabel = hasOpenScope ? "Scope first" : markupLabel;
+        const bidSetupBody = hasOpenScope
+          ? "Resolve open packages before treating markups as final."
+          : `${calculations.bidReadyItems} of ${calculations.totalItems} line items have quantity, material, and crew/manual labor.`;
 
         const nextAction = hasOpenScope
           ? {
               title: "Finish scope review",
               body: `${reviewQueueCount} package${reviewQueueCount !== 1 ? "s" : ""} still need a call before this is bid-ready.`,
               cta: "Open Review",
-              action: undefined as (() => void) | undefined,
+              action: onOpenReview,
             }
           : materialNeedsAttention > 0
             ? {
@@ -1058,24 +1064,34 @@ export default function EstimateSummary({
                   Bid Setup
                 </p>
                 <p className="text-lg text-cream font-semibold mt-1">
-                  {markupLabel}
+                  {bidSetupLabel}
                 </p>
                 <p className="text-xs text-cream-muted mt-1">
-                  {calculations.bidReadyItems} of {calculations.totalItems} line
-                  items have quantity, material, and crew/manual labor.
+                  {bidSetupBody}
                 </p>
               </div>
             </div>
 
             <div className="px-4 py-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <p className="text-xs text-cream-muted">
-                Current priced bid:{" "}
-                <span className="text-emerald-300 font-mono">
-                  {formatCurrency(calculations.grandTotal, currency)}
+              <p className="text-xs text-cream-muted flex flex-wrap gap-x-2 gap-y-1">
+                <span>
+                  Direct priced cost:{" "}
+                  <span className="text-emerald-300 font-mono">
+                    {formatCurrency(calculations.directCost, currency)}
+                  </span>
                 </span>
-                {hasOpenScope
-                  ? ` · Pending scope value: ${formatCurrency(reviewQueueCost, currency)}`
-                  : ""}
+                <span>
+                  Bid with markups:{" "}
+                  <span className="text-amber-300 font-mono">
+                    {formatCurrency(calculations.grandTotal, currency)}
+                  </span>
+                </span>
+                {hasOpenScope ? (
+                  <span>
+                    Pending scope value:{" "}
+                    {formatCurrency(reviewQueueCost, currency)}
+                  </span>
+                ) : null}
               </p>
               {nextAction.action ? (
                 <Button
