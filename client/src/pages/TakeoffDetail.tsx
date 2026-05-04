@@ -3337,6 +3337,7 @@ export default function TakeoffDetail() {
                 {/* ─── Summary Breakdown Bar ───────────────────────────────────────── */}
                 {items &&
                   items.length > 0 &&
+                  assemblyBundles.length === 0 &&
                   (() => {
                     const materialSubtotal =
                       sumScopeIncludedMaterialCost(activeItems);
@@ -3437,7 +3438,7 @@ export default function TakeoffDetail() {
                     );
                   })()}
 
-                {items && items.length > 0 && (
+                {items && items.length > 0 && assemblyBundles.length === 0 && (
                   <div className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/30">
                     <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                       <div>
