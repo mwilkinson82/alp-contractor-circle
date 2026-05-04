@@ -2496,21 +2496,21 @@ export default function TakeoffDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-deep">
+    <div className="min-h-screen bg-[#080706]">
       {/* Header Bar */}
-      <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
+      <div className="border-b border-[#3a2e1d] bg-[#11100c]/95 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/portal/takeoff")}
-              className="text-cream-muted hover:text-cream"
+              className="text-[#d8ccb4] hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
-            <div className="w-px h-6 bg-white/10" />
+            <div className="w-px h-6 bg-[#5f5034]/50" />
             {/* ConstructLine Brand Mark */}
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight text-white leading-tight">
@@ -2520,18 +2520,20 @@ export default function TakeoffDetail() {
                 Powered by ALP
               </span>
             </div>
-            <div className="w-px h-6 bg-white/10" />
+            <div className="w-px h-6 bg-[#5f5034]/50" />
             <div>
-              <h1 className="text-lg font-bold text-cream">{project.name}</h1>
+              <h1 className="text-lg font-bold text-[#f4efe4]">
+                {project.name}
+              </h1>
               {project.description && (
-                <p className="text-xs text-cream-muted">
+                <p className="text-xs text-[#a99d87]">
                   {project.description}
                 </p>
               )}
             </div>
             {/* Rate Profile Quick-Switch */}
             {rateProfiles && rateProfiles.length > 0 && (
-              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-[#5f5034]/50">
                 <Bookmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <Select
                   value={
@@ -2558,7 +2560,7 @@ export default function TakeoffDetail() {
                     );
                   }}
                 >
-                  <SelectTrigger className="h-8 w-[180px] bg-white/5 border-white/10 text-cream text-xs">
+                  <SelectTrigger className="h-8 w-[180px] bg-[#f4efe4]/10 border-[#bda45e]/30 text-[#f4efe4] text-xs">
                     <SelectValue placeholder="Rate Profile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2575,7 +2577,7 @@ export default function TakeoffDetail() {
           </div>
           <div className="flex items-center gap-3">
             {totalCost > 0 && (
-              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
+              <div className="flex items-center gap-2 bg-emerald-500/12 border border-emerald-400/25 rounded-lg px-4 py-2">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-400 font-bold text-lg">
                   {formatCurrency(totalCost, project?.currency || "USD")}
@@ -2700,18 +2702,18 @@ export default function TakeoffDetail() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList
             data-tour="takeoff-tabs"
-            className="bg-navy-medium/50 border border-white/10 mb-6"
+            className="mb-6 border border-[#d7c7aa] bg-[#f4efe4] p-1 text-[#4a4234]"
           >
             <TabsTrigger
               value="sheets"
-              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
             >
               <FileStack className="w-4 h-4 mr-2" />
               Drawing Sheets ({sheets.length})
             </TabsTrigger>
             <TabsTrigger
               value="items"
-              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Quantity Takeoff</span>
@@ -2722,7 +2724,7 @@ export default function TakeoffDetail() {
             </TabsTrigger>
             <TabsTrigger
               value="estimate"
-              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
             >
               <Calculator className="w-4 h-4 mr-2" />
               Estimate
@@ -2737,8 +2739,8 @@ export default function TakeoffDetail() {
                 data-tour="takeoff-upload-area"
                 className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center transition-all ${
                   dragOver
-                    ? "border-amber-500 bg-amber-500/10"
-                    : "border-white/20 hover:border-white/40 bg-navy-medium/30"
+                    ? "border-[#d9a21a] bg-[#fff4cb]"
+                    : "border-[#d7c7aa] hover:border-[#d9a21a] bg-[#f4efe4]"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2755,15 +2757,15 @@ export default function TakeoffDetail() {
                 <div className="flex flex-col items-center gap-3">
                   {uploading ? (
                     <>
-                      <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-                      <p className="text-cream font-medium">
+                      <Loader2 className="w-10 h-10 text-[#a66d00] animate-spin" />
+                      <p className="text-[#171714] font-medium">
                         {uploadProgress
                           ? `Converting & uploading page ${uploadProgress.current} of ${uploadProgress.total}...`
                           : "Uploading drawings..."}
                       </p>
                       {uploadProgress && (
                         <div className="w-full max-w-xs">
-                          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div className="h-2 rounded-full bg-[#ddd2bd] overflow-hidden">
                             <div
                               className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
                               style={{
@@ -2771,7 +2773,7 @@ export default function TakeoffDetail() {
                               }}
                             />
                           </div>
-                          <p className="text-cream-muted text-xs text-center mt-1.5">
+                          <p className="text-[#716855] text-xs text-center mt-1.5">
                             {Math.round(
                               (uploadProgress.current / uploadProgress.total) *
                                 100
@@ -2780,9 +2782,9 @@ export default function TakeoffDetail() {
                           </p>
                         </div>
                       )}
-                      <div className="flex items-center gap-2 mt-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                        <p className="text-amber-300 text-xs font-medium">
+                      <div className="flex items-center gap-2 mt-2 px-4 py-2.5 rounded-lg bg-[#fff4cb] border border-[#d7b44d]">
+                        <AlertCircle className="w-4 h-4 text-[#a66d00] shrink-0" />
+                        <p className="text-[#755200] text-xs font-medium">
                           Please stay on this page — PDF conversion runs in your
                           browser and will stop if you navigate away.
                         </p>
@@ -2790,20 +2792,20 @@ export default function TakeoffDetail() {
                     </>
                   ) : (
                     <>
-                      <Upload className="w-10 h-10 text-cream-muted" />
+                      <Upload className="w-10 h-10 text-[#8a6a19]" />
                       <div>
-                        <p className="text-cream font-medium">
-                          Drag & drop construction drawings here
+                        <p className="text-[#171714] font-semibold">
+                          Upload drawing set
                         </p>
-                        <p className="text-cream-muted text-sm mt-1">
-                          Supports PDF (multi-page) and images (PNG, JPG). Each
-                          page is analyzed separately.
+                        <p className="text-[#716855] text-sm mt-1">
+                          Add PDF plan sets or drawing images. ConstructLine
+                          keeps each sheet tied to source evidence for review.
                         </p>
                       </div>
                       <Button
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
-                        className="mt-2"
+                        className="mt-2 border-[#c8b895] bg-white/60 text-[#29251c] hover:bg-white"
                       >
                         <FileImage className="w-4 h-4 mr-2" />
                         Browse Files
@@ -3521,10 +3523,10 @@ export default function TakeoffDetail() {
                       sumScopeIncludedLaborCost(activeItems);
                     const curr = project?.currency || "USD";
                     return (
-                      <div className="bg-navy-medium/40 border border-white/10 rounded-lg px-5 py-4">
+                      <div className="rounded-xl border border-[#d7c7aa] bg-[#f4efe4] px-5 py-4 text-[#171714]">
                         {(reviewItems.length > 0 ||
                           excludedItems.length > 0) && (
-                          <p className="mb-3 text-xs text-amber-100/80">
+                          <p className="mb-3 text-xs font-medium text-[#8a6510]">
                             {reviewItems.length > 0
                               ? `${reviewItems.length} needs-review item${reviewItems.length !== 1 ? "s are" : " is"} held out of totals`
                               : ""}
@@ -3540,71 +3542,70 @@ export default function TakeoffDetail() {
                         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                           {/* Material Subtotal */}
                           <div className="flex flex-col">
-                            <span className="text-cream-muted text-xs uppercase tracking-wider mb-1">
+                            <span className="text-[#716855] text-xs uppercase tracking-wider mb-1">
                               Material
                             </span>
-                            <span className="text-cream font-mono font-semibold text-lg">
+                            <span className="text-[#171714] font-mono font-semibold text-lg">
                               {formatCurrency(materialSubtotal, curr)}
                             </span>
                           </div>
                           {/* Cost-library labor subtotal */}
                           <div className="flex flex-col">
-                            <span className="text-cyan-400/60 text-xs uppercase tracking-wider mb-1">
-                              Default Labor
+                            <span className="text-[#4f6ba6]/75 text-xs uppercase tracking-wider mb-1">
+                              Labor Basis
                             </span>
-                            <span className="text-cyan-400 font-mono font-semibold text-lg">
+                            <span className="text-[#244c91] font-mono font-semibold text-lg">
                               {formatCurrency(laborSubtotal, curr)}
                             </span>
-                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
-                              Used as estimate fallback until crew labor
-                              replaces it
+                            <span className="text-[#716855] text-[10px] mt-0.5">
+                              Confirm crew labor in Estimate
                             </span>
                           </div>
                           {/* Allowances Subtotal */}
                           <div className="flex flex-col">
-                            <span className="text-amber-400/60 text-xs uppercase tracking-wider mb-1">
+                            <span className="text-[#8a6510]/75 text-xs uppercase tracking-wider mb-1">
                               Allowances
                             </span>
-                            <span className="text-amber-400 font-mono font-semibold text-lg">
+                            <span className="text-[#8a6510] font-mono font-semibold text-lg">
                               {formatCurrency(allowancesTotal, curr)}
                             </span>
                           </div>
                           {/* Current Included Total */}
-                          <div className="flex flex-col border-l border-white/10 pl-4">
-                            <span className="text-emerald-400/60 text-xs uppercase tracking-wider mb-1">
+                          <div className="flex flex-col border-l border-[#d7c7aa] pl-4">
+                            <span className="text-emerald-700/70 text-xs uppercase tracking-wider mb-1">
                               Current Included
                             </span>
-                            <span className="text-emerald-400 font-mono font-bold text-lg">
+                            <span className="text-emerald-700 font-mono font-bold text-lg">
                               {formatCurrency(totalCost, curr)}
                             </span>
                           </div>
                           {/* Review Subtotal */}
                           <div className="flex flex-col">
-                            <span className="text-amber-300/70 text-xs uppercase tracking-wider mb-1">
+                            <span className="text-[#8a6510]/75 text-xs uppercase tracking-wider mb-1">
                               Review Queue
                             </span>
-                            <span className="text-amber-300 font-mono font-semibold text-lg">
+                            <span className="text-[#8a6510] font-mono font-semibold text-lg">
                               {formatCurrency(reviewItemsCost, curr)}
                             </span>
-                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
+                            <span className="text-[#716855] text-[10px] mt-0.5">
                               {reviewItems.length} held for estimator decision
                             </span>
                           </div>
                           {/* Potential Total */}
                           <div className="flex flex-col">
-                            <span className="text-blue-300/70 text-xs uppercase tracking-wider mb-1">
+                            <span className="text-[#4f6ba6]/75 text-xs uppercase tracking-wider mb-1">
                               If Accepted
                             </span>
-                            <span className="text-blue-300 font-mono font-bold text-lg">
+                            <span className="text-[#244c91] font-mono font-bold text-lg">
                               {formatCurrency(potentialTotal, curr)}
                             </span>
-                            <span className="text-cream-muted/50 text-[10px] mt-0.5">
+                            <span className="text-[#716855] text-[10px] mt-0.5">
                               Active plus accepted review items
                             </span>
                           </div>
                         </div>
                         {excludedItems.length > 0 && (
-                          <p className="mt-3 text-[11px] text-red-200/70">
+                          <p className="mt-3 text-[11px] text-red-800/75">
                             Excluded / boundary reference:{" "}
                             {formatCurrency(excludedItemsCost, curr)} outside
                             active totals.
@@ -3615,12 +3616,12 @@ export default function TakeoffDetail() {
                   })()}
 
                 {items && items.length > 0 && assemblyBundles.length === 0 && (
-                  <div className="border border-white/10 rounded-lg overflow-hidden bg-navy-medium/30">
-                    <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+                  <div className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714]">
+                    <div className="px-4 py-3 border-b border-[#d7c7aa] flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
                           <ClipboardList className="w-4 h-4 text-amber-300" />
-                          <h2 className="text-sm font-semibold text-cream">
+                          <h2 className="text-sm font-semibold text-[#171714]">
                             Bid Review Checklist
                           </h2>
                           <Badge
@@ -3635,7 +3636,7 @@ export default function TakeoffDetail() {
                               : `${highImpactOpenBundles.length} big decision${highImpactOpenBundles.length !== 1 ? "s" : ""} left`}
                           </Badge>
                         </div>
-                        <p className="text-xs text-cream-muted mt-1">
+                        <p className="text-xs text-[#716855] mt-1">
                           Start at the top. Decide the big packages, then price
                           the estimate.
                         </p>
@@ -3648,16 +3649,16 @@ export default function TakeoffDetail() {
                             ? scrollToAssemblyBundle(topDecisionBundles[0].key)
                             : scrollToAssemblyBundle()
                         }
-                        className="h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                        className="h-8 border-[#d7b44d] bg-[#fff4cb] text-[#755200] hover:bg-[#ffeaa3]"
                       >
                         <Flag className="w-3.5 h-3.5 mr-1.5" />
                         Start Here
                       </Button>
                     </div>
                     <div className="grid md:grid-cols-3">
-                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
+                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-[#d7c7aa]">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-cream-muted">
+                          <span className="text-xs uppercase tracking-wider text-[#716855]">
                             1. Current Bid
                           </span>
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -3668,14 +3669,14 @@ export default function TakeoffDetail() {
                             project?.currency || "USD"
                           )}
                         </p>
-                        <p className="text-xs text-cream-muted">
+                        <p className="text-xs text-[#716855]">
                           This is what counts now. Anything below is not in the
                           bid until you choose it.
                         </p>
                       </div>
-                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
+                      <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-[#d7c7aa]">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-cream-muted">
+                          <span className="text-xs uppercase tracking-wider text-[#716855]">
                             2. Decide Next
                           </span>
                           <Flag className="w-4 h-4 text-amber-300" />
@@ -3683,7 +3684,7 @@ export default function TakeoffDetail() {
                         <p className="mt-2 text-2xl font-mono font-bold text-amber-300">
                           {highImpactOpenBundles.length}
                         </p>
-                        <p className="text-xs text-cream-muted">
+                        <p className="text-xs text-[#716855]">
                           {formatCurrency(
                             highImpactOpenBundleCost,
                             project?.currency || "USD"
@@ -3691,7 +3692,7 @@ export default function TakeoffDetail() {
                           still needs an answer.
                         </p>
                         {reviewItems.length > 0 && (
-                          <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div className="mt-2 h-1.5 rounded-full bg-[#ddd2bd] overflow-hidden">
                             <div
                               className="h-full bg-amber-400"
                               style={{ width: `${reviewProgressPct}%` }}
@@ -3701,7 +3702,7 @@ export default function TakeoffDetail() {
                       </div>
                       <div className="px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wider text-cream-muted">
+                          <span className="text-xs uppercase tracking-wider text-[#716855]">
                             3. Price Last
                           </span>
                           <AlertCircle className="w-4 h-4 text-amber-300" />
@@ -3713,7 +3714,7 @@ export default function TakeoffDetail() {
                         >
                           {readyToPrice ? "Looks ready" : "Do not price yet"}
                         </p>
-                        <p className="text-xs text-cream-muted">
+                        <p className="text-xs text-[#716855]">
                           {readyToPrice
                             ? "Open Estimate and finish labor, markups, and export."
                             : "Finish the big decisions first, then use the Estimate tab."}
@@ -3726,7 +3727,7 @@ export default function TakeoffDetail() {
                           className={
                             readyToPrice
                               ? "mt-3 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                              : "mt-3 h-8 border-white/10 text-cream-muted"
+                              : "mt-3 h-8 border-[#c8b895] text-[#716855]"
                           }
                         >
                           Open Estimate
@@ -3953,39 +3954,39 @@ export default function TakeoffDetail() {
                     return (
                       <div
                         id="assembly-review"
-                        className="border border-white/10 rounded-lg overflow-hidden bg-[#07080b]"
+                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714]"
                       >
-                        <div className="px-5 py-2.5 bg-white/[0.025] border-b border-white/10">
+                        <div className="px-5 py-3 bg-[#eee4d2] border-b border-[#d7c7aa]">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
                             <Layers className="w-4 h-4 text-amber-300" />
-                            <h2 className="font-semibold text-cream">
+                            <h2 className="font-semibold text-[#171714]">
                               AI Takeoff Review
                             </h2>
-                            <span className="text-cream-muted">·</span>
-                            <span className="text-cream-muted">
+                            <span className="text-[#8a806d]">·</span>
+                            <span className="text-[#716855]">
                               Package{" "}
-                              <span className="text-cream">
+                              <span className="text-[#171714]">
                                 {packageIndex}/{assemblyBundles.length}
                               </span>
                             </span>
-                            <span className="text-cream-muted">·</span>
-                            <span className="text-cream-muted">
+                            <span className="text-[#8a806d]">·</span>
+                            <span className="text-[#716855]">
                               {bundle.drawingGroup}
                             </span>
-                            <span className="text-cream-muted">·</span>
+                            <span className="text-[#8a806d]">·</span>
                             <span
                               className={
                                 bundle.status === "open"
-                                  ? "font-semibold text-amber-200"
-                                  : "font-semibold text-emerald-300"
+                                  ? "font-semibold text-[#8a6510]"
+                                  : "font-semibold text-emerald-700"
                               }
                             >
                               {statusLabel}
                             </span>
                             {!readyToPrice && (
                               <>
-                                <span className="text-cream-muted">·</span>
-                                <span className="text-cream-muted">
+                                <span className="text-[#8a806d]">·</span>
+                                <span className="text-[#716855]">
                                   {highImpactOpenBundles.length} left
                                 </span>
                               </>
@@ -3994,12 +3995,12 @@ export default function TakeoffDetail() {
                         </div>
 
                         <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
-                          <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-white/[0.015]">
-                            <div className="px-4 py-3 border-b border-white/10">
-                              <p className="text-xs font-semibold uppercase tracking-wider text-cream">
+                          <aside className="border-b xl:border-b-0 xl:border-r border-[#d7c7aa] bg-[#eee4d2]">
+                            <div className="px-4 py-3 border-b border-[#d7c7aa]">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-[#5f5542]">
                                 Review Queue
                               </p>
-                              <p className="text-xs text-cream-muted mt-1">
+                              <p className="text-xs text-[#716855] mt-1">
                                 Work from top to bottom. Each package needs one
                                 clear call.
                               </p>
@@ -4027,29 +4028,29 @@ export default function TakeoffDetail() {
                                     }
                                     className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                       active
-                                        ? "border-amber-400/45 bg-amber-500/[0.055]"
+                                        ? "border-[#d7b44d] bg-[#fff4cb]"
                                         : done
-                                          ? "border-white/10 bg-white/[0.015] opacity-65 hover:opacity-85"
-                                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
+                                          ? "border-[#d7c7aa] bg-white/45 opacity-70 hover:opacity-90"
+                                          : "border-[#d7c7aa] bg-white/65 hover:bg-white"
                                     }`}
                                   >
                                     <div className="flex items-start gap-2">
                                       {done ? (
-                                        <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-cream-muted" />
+                                        <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-[#716855]" />
                                       ) : (
                                         <Flag
                                           className={`mt-0.5 w-4 h-4 shrink-0 ${
                                             active
-                                              ? "text-amber-300"
-                                              : "text-cream-muted"
+                                              ? "text-[#a66d00]"
+                                              : "text-[#716855]"
                                           }`}
                                         />
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-cream line-clamp-2">
+                                        <p className="text-sm font-semibold text-[#171714] line-clamp-2">
                                           {candidate.title}
                                         </p>
-                                        <p className="mt-1 text-[11px] text-cream-muted line-clamp-1">
+                                        <p className="mt-1 text-[11px] text-[#716855] line-clamp-1">
                                           {candidate.drawingGroup}
                                         </p>
                                       </div>
@@ -4058,15 +4059,15 @@ export default function TakeoffDetail() {
                                       <span
                                         className={`text-[11px] font-semibold ${
                                           done
-                                            ? "text-cream-muted"
+                                            ? "text-[#716855]"
                                             : active
-                                              ? "text-amber-200"
-                                              : "text-cream-muted"
+                                              ? "text-[#8a6510]"
+                                              : "text-[#716855]"
                                         }`}
                                       >
                                         {candidateStatus}
                                       </span>
-                                      <span className="font-mono text-[11px] text-cream-muted">
+                                      <span className="font-mono text-[11px] text-[#716855]">
                                         {formatCurrency(
                                           candidate.openReviewCost ||
                                             candidate.currentIncludedCost +
@@ -4082,28 +4083,28 @@ export default function TakeoffDetail() {
                           </aside>
 
                           <section className="min-w-0">
-                            <div className="px-4 py-3 border-b border-white/10">
+                            <div className="px-4 py-3 border-b border-[#d7c7aa] bg-[#f8f2e6]">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                                    <Badge className="bg-white/80 text-[#716855] border-[#d7c7aa] text-[10px]">
                                       <FileImage className="w-3 h-3 mr-1" />
                                       {bundle.drawingGroup}
                                     </Badge>
-                                    <Badge className="bg-amber-500/10 text-amber-200 border-amber-500/20 text-[10px]">
+                                    <Badge className="bg-[#fff4cb] text-[#8a6510] border-[#d7b44d] text-[10px]">
                                       {bundle.status !== "open" && (
                                         <CheckCircle2 className="w-3 h-3 mr-1" />
                                       )}
                                       {statusLabel}
                                     </Badge>
                                   </div>
-                                  <h3 className="mt-2 text-xl font-semibold text-cream">
+                                  <h3 className="mt-2 text-xl font-semibold text-[#171714]">
                                     {bundle.title}
                                   </h3>
-                                  <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                                  <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-[#244c91]">
                                     Drawing / Takeoff Canvas
                                   </p>
-                                  <p className="mt-1 max-w-3xl text-sm text-cream-muted">
+                                  <p className="mt-1 max-w-3xl text-sm text-[#716855]">
                                     {bundle.reason}
                                   </p>
                                 </div>
@@ -4116,7 +4117,7 @@ export default function TakeoffDetail() {
                                       sourceSheetOverrideId: selectedSheet?.id,
                                     })
                                   }
-                                  className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                                  className="h-8 border-[#c8b895] bg-white/65 text-[#29251c] hover:bg-white"
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
                                   Open Drawing
@@ -4125,8 +4126,8 @@ export default function TakeoffDetail() {
                             </div>
 
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
-                              <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
-                                <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+                              <div className="p-4 border-b lg:border-b-0 lg:border-r border-[#d7c7aa]">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
                                     <div
                                       role="button"
