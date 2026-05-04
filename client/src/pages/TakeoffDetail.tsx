@@ -2965,191 +2965,199 @@ export default function TakeoffDetail() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Summary Bar — Redesigned two-row toolbar */}
-                <div
-                  data-tour="takeoff-summary-bar"
-                  className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 space-y-2"
-                >
-                  {/* Row 1: Stats + Total + Primary Actions */}
-                  <div className="flex items-center justify-between gap-3">
-                    {/* Left: Stats */}
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
-                      {assemblyBundles.length > 0 ? (
-                        <span className="whitespace-normal text-cream">
-                          Review {highImpactOpenBundles.length} open package
-                          {highImpactOpenBundles.length !== 1 ? "s" : ""} in AI
-                          Takeoff Review before pricing.
+                {/* Summary Bar — used when raw rows are the primary surface */}
+                {assemblyBundles.length === 0 && (
+                  <div
+                    data-tour="takeoff-summary-bar"
+                    className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 space-y-2"
+                  >
+                    {/* Row 1: Stats + Total + Primary Actions */}
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Left: Stats */}
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
+                        {assemblyBundles.length > 0 ? (
+                          <span className="whitespace-normal text-cream">
+                            Review {highImpactOpenBundles.length} open package
+                            {highImpactOpenBundles.length !== 1 ? "s" : ""} in
+                            AI Takeoff Review before pricing.
+                          </span>
+                        ) : (
+                          <span className="whitespace-normal">
+                            <span className="text-cream">
+                              {activeItems.length} active
+                            </span>
+                            <span className="text-red-300/80">
+                              {" "}
+                              • {excludedItems.length} excluded/boundary
+                            </span>
+                            <span
+                              className={
+                                scopeReviewCount > 0
+                                  ? "text-amber-300/90"
+                                  : "text-cream-muted"
+                              }
+                            >
+                              {" "}
+                              • {scopeReviewCount} need review
+                            </span>
+                          </span>
+                        )}
+                        <span className="hidden sm:inline whitespace-nowrap">
+                          {Object.keys(groupedItems).length} CSI divisions
                         </span>
-                      ) : (
-                        <span className="whitespace-normal">
-                          <span className="text-cream">
-                            {activeItems.length} active
-                          </span>
-                          <span className="text-red-300/80">
-                            {" "}
-                            • {excludedItems.length} excluded/boundary
-                          </span>
+                        {project?.lastAnalyzedAt && (
                           <span
-                            className={
-                              scopeReviewCount > 0
-                                ? "text-amber-300/90"
-                                : "text-cream-muted"
-                            }
+                            className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60"
+                            title={new Date(
+                              project.lastAnalyzedAt
+                            ).toLocaleString()}
                           >
-                            {" "}
-                            • {scopeReviewCount} need review
-                          </span>
-                        </span>
-                      )}
-                      <span className="hidden sm:inline whitespace-nowrap">
-                        {Object.keys(groupedItems).length} CSI divisions
-                      </span>
-                      {project?.lastAnalyzedAt && (
-                        <span
-                          className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60"
-                          title={new Date(
-                            project.lastAnalyzedAt
-                          ).toLocaleString()}
-                        >
-                          Last analyzed:{" "}
-                          {new Date(project.lastAnalyzedAt).toLocaleDateString(
-                            undefined,
-                            {
+                            Last analyzed:{" "}
+                            {new Date(
+                              project.lastAnalyzedAt
+                            ).toLocaleDateString(undefined, {
                               month: "short",
                               day: "numeric",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {/* Right: Total */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-cream-muted text-sm hidden sm:inline">
+                          Current bid:
+                        </span>
+                        <span className="text-emerald-300 font-bold text-lg sm:text-xl tabular-nums">
+                          {formatCurrency(
+                            totalCost,
+                            project?.currency || "USD"
                           )}
                         </span>
-                      )}
+                      </div>
                     </div>
-                    {/* Right: Total */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-cream-muted text-sm hidden sm:inline">
-                        Current bid:
-                      </span>
-                      <span className="text-emerald-300 font-bold text-lg sm:text-xl tabular-nums">
-                        {formatCurrency(totalCost, project?.currency || "USD")}
-                      </span>
+                    {/* Row 2: one primary path, everything else in Actions */}
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-2">
+                      <Button
+                        size="sm"
+                        variant={readyToPrice ? "default" : "outline"}
+                        disabled={!readyToPrice}
+                        onClick={() => setActiveTab("estimate")}
+                        className={
+                          readyToPrice
+                            ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            : "h-8 border-white/10 text-cream-muted"
+                        }
+                      >
+                        <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                        Price Bid
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                            Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              consolidateMutation.mutate({ projectId })
+                            }
+                            disabled={
+                              consolidateMutation.isPending || isProcessing
+                            }
+                          >
+                            {consolidateMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 text-amber-400" />
+                            )}
+                            Re-run Scope Analysis
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              repriceMutation.mutate({ projectId })
+                            }
+                            disabled={repriceMutation.isPending || isProcessing}
+                          >
+                            {repriceMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                            ) : (
+                              <DollarSign className="w-4 h-4 text-blue-400" />
+                            )}
+                            Re-price
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={handleExportExcel}
+                            disabled={!items || items.length === 0}
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                            Export Excel
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={handleExportCsv}
+                            disabled={!items || items.length === 0}
+                          >
+                            <Download className="w-4 h-4 text-blue-400" />
+                            Export CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setShowAddItem(true)}
+                          >
+                            <PlusCircle className="w-4 h-4 text-emerald-400" />
+                            Add Item
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setOpenSettingsToScope(true);
+                            }}
+                          >
+                            <FileText className="w-4 h-4 text-amber-400" />
+                            Edit Scope
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setShowRollup(true)}
+                            disabled={
+                              !projectMarkups || projectMarkups.length === 0
+                            }
+                          >
+                            <Layers className="w-4 h-4 text-amber-400" />
+                            Measurements
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              setShowConsolidationDiff(!showConsolidationDiff)
+                            }
+                          >
+                            <GitCompareArrows className="w-4 h-4 text-cyan-400" />
+                            {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => importFileRef.current?.click()}
+                          >
+                            <Upload className="w-4 h-4 text-amber-400" />
+                            Import Excel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <input
+                        ref={importFileRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        className="hidden"
+                        onChange={handleImportExcel}
+                      />
                     </div>
                   </div>
-                  {/* Row 2: one primary path, everything else in Actions */}
-                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-2">
-                    <Button
-                      size="sm"
-                      variant={readyToPrice ? "default" : "outline"}
-                      disabled={!readyToPrice}
-                      onClick={() => setActiveTab("estimate")}
-                      className={
-                        readyToPrice
-                          ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          : "h-8 border-white/10 text-cream-muted"
-                      }
-                    >
-                      <Calculator className="w-3.5 h-3.5 mr-1.5" />
-                      Price Bid
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
-                        >
-                          <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                          Actions
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem
-                          onClick={() =>
-                            consolidateMutation.mutate({ projectId })
-                          }
-                          disabled={
-                            consolidateMutation.isPending || isProcessing
-                          }
-                        >
-                          {consolidateMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 text-amber-400" />
-                          )}
-                          Re-run Scope Analysis
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => repriceMutation.mutate({ projectId })}
-                          disabled={repriceMutation.isPending || isProcessing}
-                        >
-                          {repriceMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                          ) : (
-                            <DollarSign className="w-4 h-4 text-blue-400" />
-                          )}
-                          Re-price
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={handleExportExcel}
-                          disabled={!items || items.length === 0}
-                        >
-                          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                          Export Excel
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={handleExportCsv}
-                          disabled={!items || items.length === 0}
-                        >
-                          <Download className="w-4 h-4 text-blue-400" />
-                          Export CSV
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setShowAddItem(true)}>
-                          <PlusCircle className="w-4 h-4 text-emerald-400" />
-                          Add Item
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setOpenSettingsToScope(true);
-                          }}
-                        >
-                          <FileText className="w-4 h-4 text-amber-400" />
-                          Edit Scope
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setShowRollup(true)}
-                          disabled={
-                            !projectMarkups || projectMarkups.length === 0
-                          }
-                        >
-                          <Layers className="w-4 h-4 text-amber-400" />
-                          Measurements
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            setShowConsolidationDiff(!showConsolidationDiff)
-                          }
-                        >
-                          <GitCompareArrows className="w-4 h-4 text-cyan-400" />
-                          {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => importFileRef.current?.click()}
-                        >
-                          <Upload className="w-4 h-4 text-amber-400" />
-                          Import Excel
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <input
-                      ref={importFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      className="hidden"
-                      onChange={handleImportExcel}
-                    />
-                  </div>
-                </div>
+                )}
 
                 {/* ─── Markup Calculator Panel ─────────────────────────────── */}
                 {showMarkup &&
@@ -3605,6 +3613,126 @@ export default function TakeoffDetail() {
                             />
                           ))}
                         </div>
+                        <Button
+                          size="sm"
+                          variant={readyToPrice ? "default" : "outline"}
+                          disabled={!readyToPrice}
+                          onClick={() => setActiveTab("estimate")}
+                          className={
+                            readyToPrice
+                              ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "h-8 border-white/10 text-cream-muted"
+                          }
+                        >
+                          <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                          Price Bid
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                              Actions
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                consolidateMutation.mutate({ projectId })
+                              }
+                              disabled={
+                                consolidateMutation.isPending || isProcessing
+                              }
+                            >
+                              {consolidateMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 text-amber-400" />
+                              )}
+                              Re-run Scope Analysis
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                repriceMutation.mutate({ projectId })
+                              }
+                              disabled={
+                                repriceMutation.isPending || isProcessing
+                              }
+                            >
+                              {repriceMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                              ) : (
+                                <DollarSign className="w-4 h-4 text-blue-400" />
+                              )}
+                              Re-price
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={handleExportExcel}
+                              disabled={!items || items.length === 0}
+                            >
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                              Export Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleExportCsv}
+                              disabled={!items || items.length === 0}
+                            >
+                              <Download className="w-4 h-4 text-blue-400" />
+                              Export CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setShowAddItem(true)}
+                            >
+                              <PlusCircle className="w-4 h-4 text-emerald-400" />
+                              Add Item
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setOpenSettingsToScope(true);
+                              }}
+                            >
+                              <FileText className="w-4 h-4 text-amber-400" />
+                              Edit Scope
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setShowRollup(true)}
+                              disabled={
+                                !projectMarkups || projectMarkups.length === 0
+                              }
+                            >
+                              <Layers className="w-4 h-4 text-amber-400" />
+                              Measurements
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setShowConsolidationDiff(!showConsolidationDiff)
+                              }
+                            >
+                              <GitCompareArrows className="w-4 h-4 text-cyan-400" />
+                              {showConsolidationDiff
+                                ? "Hide Diff"
+                                : "Show Diff"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => importFileRef.current?.click()}
+                            >
+                              <Upload className="w-4 h-4 text-amber-400" />
+                              Import Excel
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <input
+                          ref={importFileRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={handleImportExcel}
+                        />
                       </div>
                     </div>
                   </div>
@@ -3646,66 +3774,41 @@ export default function TakeoffDetail() {
                         id="assembly-review"
                         className="border border-white/10 rounded-lg overflow-hidden bg-[#07080b]"
                       >
-                        <div className="px-5 py-3 bg-white/[0.025] border-b border-white/10">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Layers className="w-4 h-4 text-amber-300" />
-                                <h2 className="text-base font-semibold text-cream">
-                                  AI Takeoff Review
-                                </h2>
-                                <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
-                                  {assemblyBundles.length} package
-                                  {assemblyBundles.length !== 1 ? "s" : ""}
-                                </Badge>
-                                <Badge
-                                  className={
-                                    readyToPrice
-                                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-xs"
-                                      : "bg-amber-500/15 text-amber-200 border-amber-500/25 text-xs"
-                                  }
-                                >
-                                  {readyToPrice
-                                    ? "Ready to price"
-                                    : `${highImpactOpenBundles.length} package${highImpactOpenBundles.length !== 1 ? "s" : ""} left`}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-cream-muted mt-1">
-                                Review one package at a time. Confirm what
-                                belongs in the bid, then move to the next
-                                package.
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-4 py-2.5">
-                            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  1. Review Scope
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-cream">
-                                  {packageIndex} of {assemblyBundles.length}
-                                </p>
-                              </div>
-                              <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  2. Check Drawing
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-cream">
-                                  {bundle.drawingGroup}
-                                </p>
-                              </div>
-                              <ChevronRight className="hidden md:block w-4 h-4 text-cream-muted/50" />
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-cream-muted">
-                                  3. Make Call
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-amber-200">
-                                  {statusLabel}
-                                </p>
-                              </div>
-                            </div>
+                        <div className="px-5 py-2.5 bg-white/[0.025] border-b border-white/10">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <Layers className="w-4 h-4 text-amber-300" />
+                            <h2 className="font-semibold text-cream">
+                              AI Takeoff Review
+                            </h2>
+                            <span className="text-cream-muted">·</span>
+                            <span className="text-cream-muted">
+                              Package{" "}
+                              <span className="text-cream">
+                                {packageIndex}/{assemblyBundles.length}
+                              </span>
+                            </span>
+                            <span className="text-cream-muted">·</span>
+                            <span className="text-cream-muted">
+                              {bundle.drawingGroup}
+                            </span>
+                            <span className="text-cream-muted">·</span>
+                            <span
+                              className={
+                                bundle.status === "open"
+                                  ? "font-semibold text-amber-200"
+                                  : "font-semibold text-emerald-300"
+                              }
+                            >
+                              {statusLabel}
+                            </span>
+                            {!readyToPrice && (
+                              <>
+                                <span className="text-cream-muted">·</span>
+                                <span className="text-cream-muted">
+                                  {highImpactOpenBundles.length} left
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -3832,7 +3935,7 @@ export default function TakeoffDetail() {
                                   className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                  Detail
+                                  Larger View
                                 </Button>
                               </div>
                             </div>
@@ -3841,14 +3944,14 @@ export default function TakeoffDetail() {
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-white/10">
                                 <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
-                                    <div className="relative bg-white min-h-[360px] max-h-[560px] flex items-center justify-center">
+                                    <div className="relative bg-white min-h-[460px] max-h-[720px] flex items-center justify-center">
                                       <img
                                         src={selectedSheet.imageUrl}
                                         alt={
                                           selectedSheet.sheetName ||
                                           `Page ${selectedSheet.pageNumber}`
                                         }
-                                        className="max-h-[560px] w-full object-contain"
+                                        className="max-h-[720px] w-full object-contain"
                                       />
                                       <div className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
                                         {selectedSheet.sheetName ||
@@ -3856,7 +3959,7 @@ export default function TakeoffDetail() {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="min-h-[360px] flex flex-col items-center justify-center gap-2 text-center">
+                                    <div className="min-h-[460px] flex flex-col items-center justify-center gap-2 text-center">
                                       <FileImage className="w-10 h-10 text-cream-muted/50" />
                                       <p className="text-sm font-semibold text-cream">
                                         No drawing preview linked
