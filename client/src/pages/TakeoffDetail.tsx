@@ -2222,6 +2222,22 @@ export default function TakeoffDetail() {
       ? Math.round((reviewedReviewItems / reviewItems.length) * 100)
       : 100;
   const readyToPrice = highImpactOpenBundles.length === 0;
+  const topDecisionBundles = highImpactOpenBundles.slice(0, 3);
+  const scrollToAssemblyBundle = (bundleKey?: string) => {
+    if (bundleKey) {
+      setExpandedBundles(prev => {
+        const next = new Set(prev);
+        next.add(bundleKey);
+        return next;
+      });
+    }
+    window.setTimeout(() => {
+      document.getElementById("assembly-review")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  };
 
   return (
     <div className="min-h-screen bg-navy-deep">
@@ -3376,7 +3392,7 @@ export default function TakeoffDetail() {
                         <div className="flex items-center gap-2">
                           <ClipboardList className="w-4 h-4 text-amber-400" />
                           <h2 className="text-sm font-semibold text-cream">
-                            Draft Takeoff Workflow
+                            Bid Review Checklist
                           </h2>
                           <Badge
                             className={
@@ -3387,67 +3403,63 @@ export default function TakeoffDetail() {
                           >
                             {readyToPrice
                               ? "Ready to price"
-                              : `${highImpactOpenBundles.length} high-impact bundle${highImpactOpenBundles.length !== 1 ? "s" : ""} open`}
+                              : `${highImpactOpenBundles.length} big decision${highImpactOpenBundles.length !== 1 ? "s" : ""} left`}
                           </Badge>
                         </div>
                         <p className="text-xs text-cream-muted mt-1">
-                          Found quantities are separated from estimator
-                          decisions before the Estimate tab becomes the bid
-                          number.
+                          Do these in order. The estimate stays draft until the
+                          big scope decisions are handled.
                         </p>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          document
-                            .getElementById("assembly-review")
-                            ?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "start",
-                            })
+                          topDecisionBundles[0]
+                            ? scrollToAssemblyBundle(topDecisionBundles[0].key)
+                            : scrollToAssemblyBundle()
                         }
                         className="h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
                       >
                         <Flag className="w-3.5 h-3.5 mr-1.5" />
-                        Review Bundles
+                        Start Here
                       </Button>
                     </div>
                     <div className="grid md:grid-cols-3">
                       <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs uppercase tracking-wider text-emerald-300/70">
-                            Accepted Scope
+                            1. Current Bid
                           </span>
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         </div>
                         <p className="mt-2 text-2xl font-mono font-bold text-emerald-400">
-                          {activeItems.length}
-                        </p>
-                        <p className="text-xs text-cream-muted">
                           {formatCurrency(
                             totalCost,
                             project?.currency || "USD"
-                          )}{" "}
-                          currently included
+                          )}
+                        </p>
+                        <p className="text-xs text-cream-muted">
+                          This is what counts right now. Review items are not in
+                          this number yet.
                         </p>
                       </div>
                       <div className="px-4 py-3 border-b md:border-b-0 md:border-r border-white/10">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs uppercase tracking-wider text-amber-300/70">
-                            Scope Queue
+                            2. Decide These
                           </span>
                           <Flag className="w-4 h-4 text-amber-300" />
                         </div>
                         <p className="mt-2 text-2xl font-mono font-bold text-amber-300">
-                          {openReviewItems.length}
+                          {highImpactOpenBundles.length}
                         </p>
                         <p className="text-xs text-cream-muted">
                           {formatCurrency(
-                            reviewItemsCost,
+                            highImpactOpenBundleCost,
                             project?.currency || "USD"
                           )}{" "}
-                          held for decisions
+                          in big packages is waiting on you.
                         </p>
                         {reviewItems.length > 0 && (
                           <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -3461,18 +3473,79 @@ export default function TakeoffDetail() {
                       <div className="px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs uppercase tracking-wider text-blue-300/70">
-                            Risk First
+                            3. Price Last
                           </span>
                           <AlertCircle className="w-4 h-4 text-blue-300" />
                         </div>
-                        <p className="mt-2 text-2xl font-mono font-bold text-blue-300">
-                          {highImpactOpenBundles.length}
+                        <p
+                          className={`mt-2 text-lg font-semibold ${
+                            readyToPrice ? "text-emerald-300" : "text-blue-300"
+                          }`}
+                        >
+                          {readyToPrice ? "Looks ready" : "Do not price yet"}
                         </p>
                         <p className="text-xs text-cream-muted">
-                          high-impact assembly bundles before row cleanup
+                          {readyToPrice
+                            ? "Open Estimate and finish labor, markups, and export."
+                            : "Finish the big decisions first, then use the Estimate tab."}
                         </p>
+                        <Button
+                          size="sm"
+                          variant={readyToPrice ? "default" : "outline"}
+                          disabled={!readyToPrice}
+                          onClick={() => setActiveTab("estimate")}
+                          className={
+                            readyToPrice
+                              ? "mt-3 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "mt-3 h-8 border-white/10 text-cream-muted"
+                          }
+                        >
+                          Open Estimate
+                        </Button>
                       </div>
                     </div>
+                    {topDecisionBundles.length > 0 && (
+                      <div className="border-t border-white/10 px-4 py-3 bg-amber-500/[0.04]">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">
+                            Start With These Packages
+                          </p>
+                          <span className="text-[11px] text-cream-muted">
+                            Accept, exclude, or hold each one.
+                          </span>
+                        </div>
+                        <div className="grid gap-2 lg:grid-cols-3">
+                          {topDecisionBundles.map(bundle => (
+                            <button
+                              key={bundle.key}
+                              type="button"
+                              onClick={() => scrollToAssemblyBundle(bundle.key)}
+                              className="text-left rounded-md border border-amber-500/20 bg-navy-deep/60 px-3 py-2 hover:border-amber-400/50 hover:bg-amber-500/10 transition-colors"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm font-semibold text-cream line-clamp-2">
+                                  {bundle.title}
+                                </p>
+                                <Badge className="shrink-0 bg-amber-500/15 text-amber-200 border-amber-500/25">
+                                  {bundle.openReviewCount} open
+                                </Badge>
+                              </div>
+                              <p className="mt-1 text-xs text-cream-muted line-clamp-1">
+                                {bundle.primaryItem.description}
+                              </p>
+                              <p className="mt-2 text-xs text-amber-200">
+                                Adds{" "}
+                                {formatCurrency(
+                                  bundle.reviewCost,
+                                  project?.currency || "USD"
+                                )}{" "}
+                                if accepted
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
