@@ -1673,21 +1673,21 @@ export default function EstimateSummary({
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3 className="text-[#f4efe4] font-semibold text-sm flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-[#171714] font-semibold text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-700" />
                 Direct Cost Breakdown
               </h3>
-              <p className="mt-1 text-xs text-[#d8ccb4]">
+              <p className="mt-1 text-xs text-[#716855]">
                 Accepted scope grouped by division with pricing and labor basis
                 decisions.
               </p>
             </div>
-            <Badge className="bg-[#f4efe4]/10 text-[#d8ccb4] border-[#d7c7aa]/20">
+            <Badge className="bg-white/80 text-[#716855] border-[#d7c7aa]">
               {calculations.totalItems} accepted rows
             </Badge>
           </div>
 
-          <div className="border border-[#d7c7aa] rounded-xl overflow-hidden bg-[#f4efe4] text-[#171714] shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
+          <div className="border border-[#d7c7aa] rounded-xl overflow-hidden bg-[#f4efe4] text-[#171714] shadow-[0_18px_45px_rgba(41,37,28,0.1)]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#eee4d2] border-b border-[#d7c7aa]">
@@ -1901,7 +1901,7 @@ export default function EstimateSummary({
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 shadow-[0_16px_50px_rgba(0,0,0,0.2)]">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 shadow-[0_16px_40px_rgba(6,95,70,0.1)]">
             <p className="text-[10px] uppercase tracking-wider text-emerald-800/75">
               Bid Total
             </p>

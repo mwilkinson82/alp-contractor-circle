@@ -2534,45 +2534,45 @@ export default function TakeoffDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#100d08]">
+    <div className="min-h-screen bg-[#ece9e1] text-[#171714]">
       {/* Header Bar */}
-      <div className="border-b border-[#3a2e1d] bg-[#141108]/95 px-3 sm:px-6 py-3 sm:py-4 shadow-[0_10px_40px_rgba(0,0,0,0.28)]">
+      <div className="border-b border-[#d7c7aa] bg-[#f7f4ed]/95 px-3 sm:px-6 py-3 sm:py-4 shadow-[0_10px_36px_rgba(41,37,28,0.08)]">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/portal/takeoff")}
-              className="text-[#d8ccb4] hover:text-white"
+              className="text-[#5d5546] hover:bg-white hover:text-[#171714]"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
-            <div className="w-px h-6 bg-[#5f5034]/50" />
+            <div className="w-px h-6 bg-[#d7c7aa]" />
             {/* ConstructLine Brand Mark */}
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-white leading-tight">
+              <span className="text-sm font-bold tracking-tight text-[#171714] leading-tight">
                 Construct<span className="text-amber-400">Line</span>
               </span>
-              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">
+              <span className="text-[8px] text-[#8a806d] tracking-wider uppercase leading-tight">
                 Powered by ALP
               </span>
             </div>
-            <div className="w-px h-6 bg-[#5f5034]/50" />
+            <div className="w-px h-6 bg-[#d7c7aa]" />
             <div>
-              <h1 className="text-lg font-bold text-[#f4efe4]">
+              <h1 className="text-lg font-bold text-[#171714]">
                 {project.name}
               </h1>
               {project.description && (
-                <p className="text-xs text-[#a99d87]">
+                <p className="text-xs text-[#716855]">
                   {project.description}
                 </p>
               )}
             </div>
             {/* Rate Profile Quick-Switch */}
             {rateProfiles && rateProfiles.length > 0 && (
-              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-[#5f5034]/50">
-                <Bookmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-[#d7c7aa]">
+                <Bookmark className="w-3.5 h-3.5 text-[#8a6510] shrink-0" />
                 <Select
                   value={
                     project.rateProfileId
@@ -2598,7 +2598,7 @@ export default function TakeoffDetail() {
                     );
                   }}
                 >
-                  <SelectTrigger className="h-8 w-[180px] bg-[#f4efe4]/10 border-[#bda45e]/30 text-[#f4efe4] text-xs">
+                  <SelectTrigger className="h-8 w-[180px] bg-white/70 border-[#d7c7aa] text-[#171714] text-xs">
                     <SelectValue placeholder="Rate Profile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2615,12 +2615,12 @@ export default function TakeoffDetail() {
           </div>
           <div className="flex items-center gap-3">
             {totalCost > 0 && (
-              <div className="flex items-center gap-2 bg-emerald-500/12 border border-emerald-400/25 rounded-lg px-4 py-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400 font-bold text-lg">
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-lg px-4 py-2 shadow-[0_10px_24px_rgba(6,95,70,0.08)]">
+                <DollarSign className="w-4 h-4 text-emerald-700" />
+                <span className="text-emerald-800 font-bold text-lg">
                   {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
-                <span className="text-emerald-400/60 text-xs">
+                <span className="text-emerald-700/70 text-xs">
                   current included
                 </span>
               </div>
@@ -2740,18 +2740,18 @@ export default function TakeoffDetail() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList
             data-tour="takeoff-tabs"
-            className="mb-6 border border-[#d7c7aa] bg-[#f4efe4] p-1 text-[#4a4234]"
+            className="mb-6 border border-[#d7c7aa] bg-white/90 p-1 text-[#8a806d] shadow-[0_16px_40px_rgba(41,37,28,0.08)]"
           >
             <TabsTrigger
               value="sheets"
-              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
+              className="data-[state=active]:bg-[#171714] data-[state=active]:text-white data-[state=active]:shadow-sm"
             >
               <FileStack className="w-4 h-4 mr-2" />
               Drawing Sheets ({sheets.length})
             </TabsTrigger>
             <TabsTrigger
               value="items"
-              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
+              className="data-[state=active]:bg-[#171714] data-[state=active]:text-white data-[state=active]:shadow-sm"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Quantity Takeoff</span>
@@ -2762,7 +2762,7 @@ export default function TakeoffDetail() {
             </TabsTrigger>
             <TabsTrigger
               value="estimate"
-              className="data-[state=active]:bg-[#d9a21a] data-[state=active]:text-[#171714] data-[state=active]:shadow-sm"
+              className="data-[state=active]:bg-[#171714] data-[state=active]:text-white data-[state=active]:shadow-sm"
             >
               <Calculator className="w-4 h-4 mr-2" />
               Estimate
@@ -2775,10 +2775,10 @@ export default function TakeoffDetail() {
             {!(isProcessing && sheets.length > 0) && (
               <div
                 data-tour="takeoff-upload-area"
-                  className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center shadow-[0_20px_70px_rgba(0,0,0,0.22)] transition-all ${
+                  className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all ${
                   dragOver
                     ? "border-[#d9a21a] bg-[#fff4cb]"
-                    : "border-[#d7c7aa] hover:border-[#d9a21a] bg-[#f7efe0]"
+                    : "border-[#d7c7aa] hover:border-[#d9a21a] bg-white/80"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2830,7 +2830,7 @@ export default function TakeoffDetail() {
                     </>
                   ) : (
                     <>
-                      <div className="rounded-full border border-[#d7c7aa] bg-white/70 p-4">
+                      <div className="rounded-full border border-[#d7c7aa] bg-[#f7f4ed] p-4 shadow-sm">
                         <Upload className="w-10 h-10 text-[#8a6a19]" />
                       </div>
                       <div>
@@ -2864,10 +2864,10 @@ export default function TakeoffDetail() {
                   data-tour="takeoff-analyze-btn"
                   onClick={() => setShowPreAnalysis(true)}
                   disabled={processMutation.isPending}
-                  className={`w-full border font-semibold py-6 text-lg shadow-[0_18px_60px_rgba(0,0,0,0.24)] ${
+                  className={`w-full border font-semibold py-6 text-lg shadow-[0_18px_45px_rgba(41,37,28,0.12)] ${
                     hasPendingSheets
                       ? "border-[#d7b44d] bg-[#d9a21a] text-[#171714] hover:bg-[#e5b52f]"
-                      : "border-[#244c91]/35 bg-[#19345f] text-white hover:bg-[#244c91]"
+                      : "border-[#171714] bg-[#171714] text-white hover:bg-[#29251c]"
                   }`}
                 >
                   {processMutation.isPending && (
@@ -2885,7 +2885,7 @@ export default function TakeoffDetail() {
                     <>
                       <span className="font-bold tracking-tight">
                         <span className="text-white">Construct</span>
-                        <span className="text-amber-300">Line</span>
+                        <span className="text-[#d9a21a]">Line</span>
                       </span>{" "}
                       Re-Analyze Drawings
                     </>
@@ -3018,7 +3018,7 @@ export default function TakeoffDetail() {
                   return (
                     <Card
                       key={sheet.id}
-                    className="overflow-hidden border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_18px_50px_rgba(0,0,0,0.22)] transition-all group hover:-translate-y-0.5 hover:border-[#d9a21a]"
+                    className="overflow-hidden border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_45px_rgba(41,37,28,0.1)] transition-all group hover:-translate-y-0.5 hover:border-[#d9a21a]"
                     >
                       {/* Sheet Thumbnail */}
                       <div
@@ -3778,7 +3778,7 @@ export default function TakeoffDetail() {
                 )}
 
                 {assemblyBundles.length > 0 && (
-                  <div className="rounded-xl border border-[#d7c7aa] bg-[#f4efe4] px-4 py-3 text-[#171714] shadow-[0_16px_60px_rgba(0,0,0,0.22)]">
+                  <div className="rounded-xl border border-[#d7c7aa] bg-white/90 px-4 py-3 text-[#171714] shadow-[0_16px_40px_rgba(41,37,28,0.08)]">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2">
@@ -3831,7 +3831,7 @@ export default function TakeoffDetail() {
                           className={
                             readyToPrice
                               ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                              : "h-8 border-[#c8b895] text-[#716855]"
+                              : "h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#8a806d]"
                           }
                         >
                           <Calculator className="w-3.5 h-3.5 mr-1.5" />
@@ -3994,9 +3994,9 @@ export default function TakeoffDetail() {
                     return (
                       <div
                         id="assembly-review"
-                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_24px_90px_rgba(0,0,0,0.3)]"
+                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-white text-[#171714] shadow-[0_24px_70px_rgba(41,37,28,0.14)]"
                       >
-                        <div className="px-5 py-3 bg-[#17130c] border-b border-[#3a2e1d] text-[#f4efe4]">
+                        <div className="px-5 py-3 bg-[#171714] border-b border-[#171714] text-[#f4efe4]">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
                             <Layers className="w-4 h-4 text-amber-300" />
                             <h2 className="font-semibold text-[#f4efe4]">
@@ -4035,7 +4035,7 @@ export default function TakeoffDetail() {
                         </div>
 
                         <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
-                          <aside className="border-b xl:border-b-0 xl:border-r border-[#d7c7aa] bg-[#eee4d2]">
+                          <aside className="border-b xl:border-b-0 xl:border-r border-[#d7c7aa] bg-[#f2eadc]">
                             <div className="px-4 py-3 border-b border-[#d7c7aa]">
                               <p className="text-xs font-semibold uppercase tracking-wider text-[#5f5542]">
                                 Review Queue
@@ -4068,10 +4068,10 @@ export default function TakeoffDetail() {
                                     }
                                     className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                       active
-                                        ? "border-[#d7b44d] bg-[#fff4cb]"
+                                        ? "border-[#d7b44d] bg-[#fff4cb] shadow-sm"
                                         : done
-                                          ? "border-[#d7c7aa] bg-white/45 opacity-70 hover:opacity-90"
-                                          : "border-[#d7c7aa] bg-white/65 hover:bg-white"
+                                          ? "border-[#d7c7aa] bg-white/55 opacity-80 hover:opacity-100"
+                                          : "border-[#d7c7aa] bg-white/80 hover:bg-white"
                                     }`}
                                   >
                                     <div className="flex items-start gap-2">
@@ -4123,7 +4123,7 @@ export default function TakeoffDetail() {
                           </aside>
 
                           <section className="min-w-0">
-                            <div className="px-4 py-3 border-b border-[#d7c7aa] bg-[#f8f2e6]">
+                            <div className="px-4 py-3 border-b border-[#d7c7aa] bg-white">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -4165,7 +4165,7 @@ export default function TakeoffDetail() {
                               </div>
                             </div>
 
-                            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
+                            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] bg-[#f7f4ed]">
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-[#d7c7aa]">
                                 <div className="rounded-lg border border-[#d7c7aa] bg-white overflow-hidden">
                                   {selectedSheet?.imageUrl ? (
@@ -4322,30 +4322,30 @@ export default function TakeoffDetail() {
                                 )}
                               </div>
 
-                              <aside className="bg-[#17130c] p-4 space-y-4">
-                                <div className="rounded-lg border border-[#3a2e1d] bg-[#241d13] p-4">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#b8ad98]">
+                              <aside className="bg-[#f2eadc] p-4 space-y-4">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white p-4 shadow-sm">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                     Decision Needed
                                   </p>
-                                  <p className="mt-1 text-lg font-semibold text-[#f4efe4]">
+                                  <p className="mt-1 text-lg font-semibold text-[#171714]">
                                     Should this package be included in the bid?
                                   </p>
-                                  <p className="mt-1 text-sm text-[#d8ccb4]">
+                                  <p className="mt-1 text-sm text-[#716855]">
                                     Pick one answer. ConstructLine saves the
                                     call and opens the next package.
                                   </p>
                                 </div>
 
-                                <div className="rounded-lg border border-blue-400/25 bg-blue-500/10 p-3">
-                                  <p className="text-[10px] uppercase tracking-wider text-blue-200/80">
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                  <p className="text-[10px] uppercase tracking-wider text-blue-700/80">
                                     AI Recommendation
                                   </p>
-                                  <p className="mt-1 text-sm font-semibold text-[#f4efe4]">
+                                  <p className="mt-1 text-sm font-semibold text-[#171714]">
                                     {recommendedLabel === "Review"
                                       ? "Review before adding"
                                       : recommendedLabel}
                                   </p>
-                                  <p className="mt-1 text-xs text-[#d8ccb4]">
+                                  <p className="mt-1 text-xs text-[#5d5546]">
                                     Use the drawing and evidence below as the
                                     nudge before making the bid call.
                                   </p>
@@ -4362,7 +4362,7 @@ export default function TakeoffDetail() {
                                     className={
                                       bundle.status === "include"
                                         ? "w-full justify-between bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-300/40"
-                                        : "w-full justify-between border-emerald-400/45 bg-emerald-500/12 text-emerald-100 hover:bg-emerald-500/20"
+                                        : "w-full justify-between border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "included")
@@ -4389,8 +4389,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "exclude"
-                                        ? "w-full justify-start border-orange-400/45 bg-orange-500/15 text-orange-100 ring-1 ring-orange-300/20"
-                                        : "w-full justify-start border-orange-400/25 bg-white/[0.04] text-[#d8ccb4] hover:bg-orange-500/10 hover:text-orange-100"
+                                        ? "w-full justify-start border-orange-300 bg-orange-50 text-orange-800 ring-1 ring-orange-300/30"
+                                        : "w-full justify-start border-[#d7c7aa] bg-white text-[#5d5546] hover:bg-orange-50 hover:text-orange-800"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "excluded")
@@ -4408,8 +4408,8 @@ export default function TakeoffDetail() {
                                     variant="outline"
                                     className={
                                       bundle.status === "review"
-                                        ? "w-full justify-start border-[#d7b44d] bg-amber-500/18 text-amber-100 ring-1 ring-[#d7b44d]/25"
-                                        : "w-full justify-start border-[#d7b44d]/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/18"
+                                        ? "w-full justify-start border-[#d7b44d] bg-[#fff4cb] text-[#8a6510] ring-1 ring-[#d7b44d]/30"
+                                        : "w-full justify-start border-[#d7b44d] bg-[#fff9e6] text-[#8a6510] hover:bg-[#fff4cb]"
                                     }
                                     onClick={() =>
                                       applyWorkbenchDecision(bundle, "review")
@@ -4424,17 +4424,17 @@ export default function TakeoffDetail() {
                                   </Button>
                                 </div>
 
-                                <div className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3">
+                                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-[10px] uppercase tracking-wider text-emerald-100/70">
+                                      <p className="text-[10px] uppercase tracking-wider text-emerald-800/70">
                                         Bid Impact
                                       </p>
-                                      <p className="mt-1 text-xs text-emerald-100/75">
+                                      <p className="mt-1 text-xs text-emerald-800">
                                         If accepted
                                       </p>
                                     </div>
-                                    <p className="font-mono text-lg font-semibold text-emerald-300">
+                                    <p className="font-mono text-lg font-semibold text-emerald-700">
                                       +
                                       {formatCurrency(
                                         bundle.openReviewCost,
@@ -4444,44 +4444,44 @@ export default function TakeoffDetail() {
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#d8ccb4]">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white p-3">
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                     Evidence
                                   </p>
                                   <div className="mt-3 grid grid-cols-2 gap-2">
-                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-[#b8ad98]">
+                                    <div className="rounded-md border border-[#d7c7aa] bg-[#f7f4ed] px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
                                         Drawings
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#f4efe4]">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
                                         {bundle.sourceSheets.length ||
                                           bundle.sourceDrawings.length}
                                       </p>
                                     </div>
-                                    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                                      <p className="text-[10px] uppercase tracking-wider text-[#b8ad98]">
+                                    <div className="rounded-md border border-[#d7c7aa] bg-[#f7f4ed] px-3 py-2">
+                                      <p className="text-[10px] uppercase tracking-wider text-[#716855]">
                                         Rows
                                       </p>
-                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#f4efe4]">
+                                      <p className="mt-1 truncate text-sm font-mono font-semibold text-[#171714]">
                                         {bundle.items.length}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="rounded-lg border border-white/10 bg-white/[0.045]">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white">
                                   <button
                                     type="button"
                                     onClick={() => toggleBundle(bundle.key)}
                                     className="flex w-full items-center justify-between px-3 py-2 text-left"
                                   >
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-[#d8ccb4]">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                       Package Evidence
                                     </span>
                                     {expanded ? (
-                                      <ChevronDown className="w-4 h-4 text-[#d8ccb4]" />
+                                      <ChevronDown className="w-4 h-4 text-[#716855]" />
                                     ) : (
-                                      <ChevronRight className="w-4 h-4 text-[#d8ccb4]" />
+                                      <ChevronRight className="w-4 h-4 text-[#716855]" />
                                     )}
                                   </button>
                                   {expanded && (
@@ -4691,25 +4691,25 @@ export default function TakeoffDetail() {
                   (activeItems.length > 0 ||
                     reviewItems.length > 0 ||
                     excludedItems.length > 0) && (
-                    <div className="rounded-lg border border-white/10 bg-white/[0.015] px-4 py-3">
+                    <div className="rounded-xl border border-[#d7c7aa] bg-white/85 px-4 py-3 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <FileText className="w-4 h-4 text-cream-muted" />
-                          <span className="font-semibold text-cream-muted">
+                          <FileText className="w-4 h-4 text-[#716855]" />
+                          <span className="font-semibold text-[#5d5546]">
                             Audit Trail
                           </span>
                           {activeItems.length > 0 && (
-                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-xs">
                               {activeItems.length} accepted
                             </Badge>
                           )}
                           {reviewItems.length > 0 && (
-                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-xs">
                               {openReviewItems.length} open rows
                             </Badge>
                           )}
                           {excludedItems.length > 0 && (
-                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-xs">
                               {excludedItems.length} excluded
                             </Badge>
                           )}
@@ -4719,7 +4719,7 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
                               onClick={() => setShowAcceptedRows(prev => !prev)}
                             >
                               {showAcceptedRows ? (
@@ -4734,7 +4734,7 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
                               onClick={() =>
                                 setShowRawReviewRows(prev => !prev)
                               }
@@ -4751,7 +4751,7 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
                               onClick={() => setShowBoundaryRows(prev => !prev)}
                             >
                               {showBoundaryRows ? (
