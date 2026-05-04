@@ -169,9 +169,12 @@ function drawCount(
   label?: string,
   zoom?: number,
 ) {
-  // Scale marker to maintain consistent screen-space size regardless of zoom
-  const s = 1 / (zoom ?? 1);
-  const radius = 16 * s;
+  // Let count markers become easier to read as the estimator zooms in, while
+  // still keeping them anchored to the underlying drawing coordinate.
+  const z = Math.max(1, zoom ?? 1);
+  const s = 1 / Math.sqrt(z);
+  const radius = 18 * s;
+  const screenScale = Math.sqrt(z);
   // Outer circle with fill
   ctx.beginPath();
   ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
@@ -188,7 +191,10 @@ function drawCount(
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "rgba(0,0,0,0.65)";
+  ctx.shadowBlur = 2 * s;
   ctx.fillText(String(number), position.x, position.y);
+  ctx.shadowBlur = 0;
   // Category label below marker
   if (label) {
     const labelFontSize = Math.round(11 * s);
@@ -196,17 +202,17 @@ function drawCount(
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     // Background pill
-    const textW = ctx.measureText(label).width + 8 * s;
-    const pillH = 16 * s;
+    const textW = ctx.measureText(label).width + (10 + screenScale) * s;
+    const pillH = (17 + Math.min(screenScale, 3)) * s;
     const pillX = position.x - textW / 2;
-    const pillY = position.y + radius + 4 * s;
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    const pillY = position.y + radius + 5 * s;
+    ctx.fillStyle = "rgba(0,0,0,0.78)";
     ctx.beginPath();
     ctx.roundRect(pillX, pillY, textW, pillH, 4 * s);
     ctx.fill();
     // Text
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, position.x, pillY + 2 * s);
+    ctx.fillText(label, position.x, pillY + 2.5 * s);
   }
 }
 
