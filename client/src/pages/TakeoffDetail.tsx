@@ -799,6 +799,8 @@ export default function TakeoffDetail() {
   const [selectedBundleSheetIds, setSelectedBundleSheetIds] = useState<
     Record<string, number>
   >({});
+  const [expandedSourceDrawingBundles, setExpandedSourceDrawingBundles] =
+    useState<Set<string>>(new Set());
   const [showRawReviewRows, setShowRawReviewRows] = useState(false);
   const [showAcceptedRows, setShowAcceptedRows] = useState(false);
   const [showBoundaryRows, setShowBoundaryRows] = useState(false);
@@ -3919,6 +3921,11 @@ export default function TakeoffDetail() {
                       bundle.items.find(
                         item => item.sheetId === selectedSheet?.id
                       ) || bundle.primarySheetItem;
+                    const showAllSourceDrawings =
+                      expandedSourceDrawingBundles.has(bundle.key);
+                    const visibleSourceSheets = showAllSourceDrawings
+                      ? bundle.sourceSheets
+                      : bundle.sourceSheets.slice(0, 8);
                     const expanded = expandedBundles.has(bundle.key);
                     const nextOpenBundle = highImpactOpenBundles.find(
                       candidate => candidate.key !== bundle.key
@@ -4172,45 +4179,59 @@ export default function TakeoffDetail() {
                                       </span>
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {bundle.sourceSheets
-                                        .slice(0, 8)
-                                        .map(sourceSheet => {
-                                          const active =
-                                            sourceSheet.id ===
-                                            selectedSheet?.id;
-                                          return (
-                                            <button
-                                              key={sourceSheet.id}
-                                              type="button"
-                                              onClick={() =>
-                                                setSelectedBundleSheetIds(
-                                                  prev => ({
-                                                    ...prev,
-                                                    [bundle.key]:
-                                                      sourceSheet.id,
-                                                  })
-                                                )
-                                              }
-                                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                                                active
-                                                  ? "border-blue-300/50 bg-blue-400/15 text-blue-100"
-                                                  : "border-white/10 bg-white/[0.03] text-cream-muted hover:bg-white/[0.07] hover:text-cream"
-                                              }`}
-                                            >
-                                              {sourceSheet.label}
-                                              {sourceSheet.id ===
-                                                bundle.primarySheetId && (
-                                                <span className="ml-1 text-[10px] opacity-70">
-                                                  primary
-                                                </span>
-                                              )}
-                                            </button>
-                                          );
-                                        })}
+                                      {visibleSourceSheets.map(sourceSheet => {
+                                        const active =
+                                          sourceSheet.id === selectedSheet?.id;
+                                        return (
+                                          <button
+                                            key={sourceSheet.id}
+                                            type="button"
+                                            onClick={() =>
+                                              setSelectedBundleSheetIds(
+                                                prev => ({
+                                                  ...prev,
+                                                  [bundle.key]: sourceSheet.id,
+                                                })
+                                              )
+                                            }
+                                            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                                              active
+                                                ? "border-blue-300/50 bg-blue-400/15 text-blue-100"
+                                                : "border-white/10 bg-white/[0.03] text-cream-muted hover:bg-white/[0.07] hover:text-cream"
+                                            }`}
+                                          >
+                                            {sourceSheet.label}
+                                            {sourceSheet.id ===
+                                              bundle.primarySheetId && (
+                                              <span className="ml-1 text-[10px] opacity-70">
+                                                primary
+                                              </span>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
                                       {bundle.sourceSheets.length > 8 && (
-                                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-cream-muted">
-                                          +{bundle.sourceSheets.length - 8} more
-                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setExpandedSourceDrawingBundles(
+                                              prev => {
+                                                const next = new Set(prev);
+                                                if (next.has(bundle.key)) {
+                                                  next.delete(bundle.key);
+                                                } else {
+                                                  next.add(bundle.key);
+                                                }
+                                                return next;
+                                              }
+                                            )
+                                          }
+                                          className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-cream-muted transition-colors hover:bg-white/[0.07] hover:text-cream"
+                                        >
+                                          {showAllSourceDrawings
+                                            ? "Show less"
+                                            : `+${bundle.sourceSheets.length - 8} more`}
+                                        </button>
                                       )}
                                     </div>
                                   </div>
