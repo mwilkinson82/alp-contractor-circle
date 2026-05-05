@@ -2,7 +2,7 @@
  * TakeoffList — List of ConstructLine Takeoff projects.
  * Members can create new projects, view existing ones, and see status.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   Plus,
@@ -34,8 +41,27 @@ import {
   FolderOpen,
   BarChart3,
   MoreHorizontal,
+  ArrowUpDown,
+  X,
 } from "lucide-react";
 import { getBidModeBehavior } from "../../../shared/bidMode";
+
+const LIGHT_OUTLINE_BUTTON_CLASS =
+  "border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714] focus-visible:!text-[#171714]";
+
+const SORT_OPTIONS = [
+  { id: "updated", label: "Last Updated" },
+  { id: "value", label: "Bid Value" },
+  { id: "name", label: "Project Name" },
+  { id: "sheets", label: "Sheet Count" },
+] as const;
+
+const BID_MODE_OPTIONS = [
+  { id: "all", label: "All bid modes" },
+  { id: "full_gc", label: "Full GC" },
+  { id: "trade_package", label: "Trade Package" },
+  { id: "fast_scope_check", label: "Fast Scope Check" },
+] as const;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   draft: { label: "Draft", color: "bg-white text-[#716855] border-[#d7c7aa]", icon: FileText },
@@ -63,6 +89,11 @@ export default function TakeoffList() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "processing" | "draft">("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<(typeof SORT_OPTIONS)[number]["id"]>("updated");
+  const [bidModeFilter, setBidModeFilter] = useState<(typeof BID_MODE_OPTIONS)[number]["id"]>("all");
+  const [regionFilter, setRegionFilter] = useState("all");
 
   const { data: projects, isLoading, refetch } = trpc.takeoff.listProjects.useQuery();
   const createMutation = trpc.takeoff.createProject.useMutation({
@@ -91,19 +122,48 @@ export default function TakeoffList() {
   };
 
   const projectList = projects || [];
-  const filteredProjects = projectList.filter((project: any) => {
-    const matchesSearch =
-      !search.trim() ||
-      project.name?.toLowerCase().includes(search.toLowerCase()) ||
-      project.description?.toLowerCase().includes(search.toLowerCase()) ||
-      project.costRegion?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "completed" && project.status === "completed") ||
-      (statusFilter === "processing" && ["uploading", "processing", "error"].includes(project.status)) ||
-      (statusFilter === "draft" && project.status === "draft");
-    return matchesSearch && matchesStatus;
-  });
+  const regionOptions = useMemo(() => {
+    const regions = projectList
+      .map((project: any) => project.costRegion)
+      .filter((region: string | null | undefined): region is string => Boolean(region));
+    return Array.from(new Set(regions)).sort((a, b) => a.localeCompare(b));
+  }, [projectList]);
+  const filtersActive = bidModeFilter !== "all" || regionFilter !== "all";
+  const selectedSortLabel = SORT_OPTIONS.find(option => option.id === sortBy)?.label || "Last Updated";
+  const filteredProjects = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return projectList.filter((project: any) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        project.name?.toLowerCase().includes(normalizedSearch) ||
+        project.description?.toLowerCase().includes(normalizedSearch) ||
+        project.costRegion?.toLowerCase().includes(normalizedSearch);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "completed" && project.status === "completed") ||
+        (statusFilter === "processing" && ["uploading", "processing", "error"].includes(project.status)) ||
+        (statusFilter === "draft" && project.status === "draft");
+      const matchesBidMode = bidModeFilter === "all" || project.bidMode === bidModeFilter;
+      const matchesRegion = regionFilter === "all" || project.costRegion === regionFilter;
+      return matchesSearch && matchesStatus && matchesBidMode && matchesRegion;
+    });
+  }, [bidModeFilter, projectList, regionFilter, search, statusFilter]);
+  const visibleProjects = useMemo(() => {
+    return [...filteredProjects].sort((a: any, b: any) => {
+      if (sortBy === "value") return (b.totalEstimatedCost || 0) - (a.totalEstimatedCost || 0);
+      if (sortBy === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+      if (sortBy === "sheets") return (b.totalSheets || 0) - (a.totalSheets || 0);
+
+      const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      return bDate - aDate;
+    });
+  }, [filteredProjects, sortBy]);
+  const clearProjectControls = () => {
+    setSortBy("updated");
+    setBidModeFilter("all");
+    setRegionFilter("all");
+  };
   const completedCount = projectList.filter((project: any) => project.status === "completed").length;
   const inProgressCount = projectList.filter((project: any) => ["uploading", "processing", "error"].includes(project.status)).length;
   const draftCount = projectList.filter((project: any) => project.status === "draft").length;
@@ -152,16 +212,41 @@ export default function TakeoffList() {
           </div>
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-[#d7c7aa] bg-white text-[#29251c] shadow-sm hover:bg-[#faf8f2]"
+            onClick={() => setShowFilters(open => !open)}
+            className={`h-10 rounded-xl shadow-sm ${
+              showFilters || filtersActive
+                ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714] active:!bg-[#f7e8ad] active:!text-[#171714]"
+                : LIGHT_OUTLINE_BUTTON_CLASS
+            }`}
           >
             <SlidersHorizontal className="mr-2 h-4 w-4" />
             Filters
           </Button>
           <div className="flex rounded-xl border border-[#d7c7aa] bg-white p-1 shadow-sm">
-            <Button size="sm" variant="ghost" className="h-8 w-8 rounded-lg bg-[#fff4cb] p-0 text-[#8a6510]">
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label="Show projects as cards"
+              onClick={() => setViewMode("grid")}
+              className={`h-8 w-8 rounded-lg p-0 ${
+                viewMode === "grid"
+                  ? "bg-[#fff4cb] text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
+                  : "text-[#716855] hover:!bg-[#faf8f2] hover:!text-[#171714]"
+              }`}
+            >
               <LayoutGrid className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-8 w-8 rounded-lg p-0 text-[#716855] hover:bg-[#faf8f2]">
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label="Show projects as a list"
+              onClick={() => setViewMode("list")}
+              className={`h-8 w-8 rounded-lg p-0 ${
+                viewMode === "list"
+                  ? "bg-[#fff4cb] text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
+                  : "text-[#716855] hover:!bg-[#faf8f2] hover:!text-[#171714]"
+              }`}
+            >
               <List className="h-4 w-4" />
             </Button>
           </div>
@@ -175,6 +260,103 @@ export default function TakeoffList() {
           </Button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="rounded-2xl border border-[#e0d2b7] bg-white/90 p-4 shadow-[0_18px_55px_rgba(41,37,28,0.09)]">
+          <div className="flex flex-col gap-2 border-b border-[#eadcc4] pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a6510]">Project Controls</p>
+              <p className="text-sm text-[#716855]">
+                Showing <span className="font-semibold text-[#171714]">{visibleProjects.length}</span> of {projectList.length} takeoff projects.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearProjectControls}
+              disabled={!filtersActive && sortBy === "updated"}
+              className={`${LIGHT_OUTLINE_BUTTON_CLASS} h-9 rounded-xl disabled:opacity-50`}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Clear
+            </Button>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.2fr_1fr]">
+            <div>
+              <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                Sort
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SORT_OPTIONS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSortBy(option.id)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      sortBy === option.id
+                        ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]"
+                        : "border-[#d7c7aa] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">Bid Mode</p>
+              <div className="flex flex-wrap gap-2">
+                {BID_MODE_OPTIONS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setBidModeFilter(option.id)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      bidModeFilter === option.id
+                        ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]"
+                        : "border-[#d7c7aa] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">Region</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRegionFilter("all")}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    regionFilter === "all"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                      : "border-[#d7c7aa] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                  }`}
+                >
+                  All regions
+                </button>
+                {regionOptions.map(region => (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() => setRegionFilter(region)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      regionFilter === region
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        : "border-[#d7c7aa] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                    }`}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {statCards.map(stat => {
@@ -254,11 +436,27 @@ export default function TakeoffList() {
               </div>
             </div>
             <div className="text-sm text-[#716855]">
-              Sort by: <span className="font-semibold text-[#171714]">Last Updated</span>
+              Sort by: <span className="font-semibold text-[#171714]">{selectedSortLabel}</span>
             </div>
           </div>
-          <div data-tour="takeoff-project-grid" className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          {filteredProjects.map((project: any, index: number) => {
+          <div
+            data-tour="takeoff-project-grid"
+            className={viewMode === "grid" ? "grid grid-cols-1 gap-4 xl:grid-cols-3" : "space-y-3"}
+          >
+          {visibleProjects.length === 0 && (
+            <Card className="border-[#e0d2b7] bg-white/82 shadow-[0_18px_50px_rgba(41,37,28,0.08)] xl:col-span-3">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-[#d7c7aa] bg-[#faf8f2] text-[#716855]">
+                  <Search className="h-5 w-5" />
+                </div>
+                <h3 className="font-semibold text-[#171714]">No projects match these controls</h3>
+                <p className="mt-1 max-w-md text-sm text-[#716855]">
+                  Clear the filters or adjust the search to bring projects back into view.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {visibleProjects.map((project: any, index: number) => {
             const statusConfig = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
             // Parse selected divisions for display
@@ -273,12 +471,16 @@ export default function TakeoffList() {
             return (
               <Card
                 key={project.id}
-                className="group cursor-pointer overflow-hidden border-[#e0d2b7] bg-white shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_24px_70px_rgba(41,37,28,0.14)]"
+                className={`group cursor-pointer overflow-hidden border-[#e0d2b7] bg-white shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_24px_70px_rgba(41,37,28,0.14)] ${
+                  viewMode === "list" ? "rounded-xl" : ""
+                }`}
                 onClick={() => navigate(`/takeoff/${project.id}`)}
               >
                 <CardContent className="p-3">
-                  <div className="flex gap-3">
-                    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#e9e2d4]">
+                  <div className={`flex gap-3 ${viewMode === "list" ? "items-center" : ""}`}>
+                    <div className={`relative shrink-0 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#e9e2d4] ${
+                      viewMode === "list" ? "h-20 w-24" : "h-28 w-28"
+                    }`}>
                       <div
                         className={`absolute inset-0 ${
                           index % 3 === 0
@@ -310,14 +512,39 @@ export default function TakeoffList() {
                             {project.costRegion ? ` • ${project.costRegion}` : " • All regions"}
                           </CardDescription>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 shrink-0 p-0 text-[#716855] hover:bg-[#faf8f2]"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 shrink-0 p-0 text-[#716855] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-44 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_44px_rgba(41,37,28,0.18)]"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <DropdownMenuItem
+                              className="cursor-pointer text-[#29251c] focus:bg-[#faf8f2] focus:text-[#171714]"
+                              onClick={() => navigate(`/takeoff/${project.id}`)}
+                            >
+                              <ArrowRight className="mr-2 h-4 w-4" />
+                              Open project
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#eadcc4]" />
+                            <DropdownMenuItem
+                              className="cursor-pointer text-orange-800 focus:bg-orange-50 focus:text-orange-900"
+                              onClick={() => setDeleteId(project.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#716855]">
                         <span className="flex items-center gap-1">
@@ -331,7 +558,7 @@ export default function TakeoffList() {
                       </div>
                       <div className="mt-3 flex items-end justify-between gap-3">
                         <span className="text-xs text-[#716855]">
-                          Updated {new Date(project.createdAt).toLocaleDateString()}
+                          Updated {new Date(project.updatedAt || project.createdAt).toLocaleDateString()}
                         </span>
                         <div className="text-right">
                           {project.totalEstimatedCost > 0 && (
@@ -381,17 +608,23 @@ export default function TakeoffList() {
             );
           })}
           <Card
-            className="flex min-h-[172px] cursor-pointer items-center justify-center border-dashed border-[#d7b44d] bg-white/55 shadow-[0_18px_50px_rgba(41,37,28,0.06)] transition-all hover:-translate-y-0.5 hover:bg-white"
+            className={`flex cursor-pointer items-center justify-center border-dashed border-[#d7b44d] bg-white/55 shadow-[0_18px_50px_rgba(41,37,28,0.06)] transition-all hover:-translate-y-0.5 hover:bg-white ${
+              viewMode === "grid" ? "min-h-[172px]" : "min-h-[96px]"
+            }`}
             onClick={() => setShowCreate(true)}
           >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
+            <CardContent className={`flex items-center justify-center p-6 text-center ${
+              viewMode === "grid" ? "flex-col" : "gap-4 text-left"
+            }`}>
+              <div className={`${viewMode === "grid" ? "mb-3" : ""} flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]`}>
                 <Plus className="h-5 w-5" />
               </div>
-              <h3 className="font-semibold text-[#171714]">Create New Takeoff</h3>
-              <p className="mt-1 text-xs text-[#716855]">
-                Upload drawings and start a new bid.
-              </p>
+              <div>
+                <h3 className="font-semibold text-[#171714]">Create New Takeoff</h3>
+                <p className="mt-1 text-xs text-[#716855]">
+                  Upload drawings and start a new bid.
+                </p>
+              </div>
             </CardContent>
           </Card>
           </div>
