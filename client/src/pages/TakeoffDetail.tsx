@@ -3480,10 +3480,9 @@ export default function TakeoffDetail() {
             )}
             {sheets.length > 0 && (
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => openDrawingNavigator()}
-                className={`h-10 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                className="h-11 rounded-xl border border-[#171714] bg-[#171714] px-4 text-white shadow-[0_16px_38px_rgba(23,23,20,0.18)] hover:bg-[#29251c]"
               >
                 <Search className="mr-2 h-4 w-4" />
                 Drawing Navigator
@@ -4135,7 +4134,18 @@ export default function TakeoffDetail() {
                       </div>
                     </div>
                     {/* Row 2: one primary path, everything else in Actions */}
-                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[#eadcc4] pt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#eadcc4] pt-2">
+                      {sheets.length > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => openDrawingNavigator()}
+                          className="h-8 border border-[#171714] bg-[#171714] px-3 text-white hover:bg-[#29251c]"
+                        >
+                          <Search className="w-3.5 h-3.5 mr-1.5" />
+                          Drawing Navigator
+                        </Button>
+                      )}
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -4218,6 +4228,7 @@ export default function TakeoffDetail() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      </div>
                       <input
                         ref={importFileRef}
                         type="file"
@@ -4638,7 +4649,7 @@ export default function TakeoffDetail() {
 
                 {assemblyBundles.length > 0 && (
                   <div className="rounded-xl border border-[#d7c7aa] bg-white/90 px-4 py-3 text-[#171714] shadow-[0_16px_40px_rgba(41,37,28,0.08)]">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-[#244c91]" />
@@ -4665,23 +4676,35 @@ export default function TakeoffDetail() {
                           {lowConfidenceReviewCount} estimator required
                         </span>
                       </div>
-                      <div className="flex min-w-[280px] flex-1 items-center justify-end gap-3">
-                        <span className="whitespace-nowrap text-xs text-[#716855]">
-                          {completedBundleCount} of {assemblyBundles.length}{" "}
-                          reviewed
-                        </span>
-                        <div className="grid min-w-[180px] flex-1 grid-cols-[repeat(13,minmax(0,1fr))] gap-1 lg:max-w-[280px]">
-                          {assemblyBundles.map(bundle => (
-                            <span
-                              key={bundle.key}
-                              className={`h-1.5 rounded-full ${
-                                bundle.status !== "open"
-                                  ? "bg-emerald-600"
-                                  : "bg-[#d8c9ad]"
-                              }`}
-                            />
-                          ))}
+                      <div className="flex flex-wrap items-center justify-end gap-3">
+                        <div className="flex min-w-[260px] items-center gap-3 rounded-full border border-[#eadcc4] bg-[#faf8f2] px-3 py-1.5">
+                          <span className="whitespace-nowrap text-xs text-[#716855]">
+                            {completedBundleCount} of {assemblyBundles.length}{" "}
+                            reviewed
+                          </span>
+                          <div className="grid min-w-[120px] flex-1 grid-cols-[repeat(13,minmax(0,1fr))] gap-1">
+                            {assemblyBundles.map(bundle => (
+                              <span
+                                key={bundle.key}
+                                className={`h-1.5 rounded-full ${
+                                  bundle.status !== "open"
+                                    ? "bg-emerald-600"
+                                    : "bg-[#d8c9ad]"
+                                }`}
+                              />
+                            ))}
+                          </div>
                         </div>
+                        {sheets.length > 0 && (
+                          <Button
+                            size="sm"
+                            onClick={() => openDrawingNavigator()}
+                            className="h-8 border border-[#171714] bg-[#171714] px-3 text-white hover:bg-[#29251c]"
+                          >
+                            <Search className="w-3.5 h-3.5 mr-1.5" />
+                            Drawing Navigator
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
