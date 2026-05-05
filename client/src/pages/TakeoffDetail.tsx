@@ -935,11 +935,11 @@ function DrawingNavigatorDialog({
 
   return (
     <Dialog open={open} onOpenChange={value => !value && onClose()}>
-      <DialogContent className="max-w-[min(1500px,96vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
-        <DialogHeader className="border-b border-[#d8c9ad] px-5 py-4">
+      <DialogContent className="!w-[min(1840px,98vw)] !max-w-[min(1840px,98vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+        <DialogHeader className="border-b border-[#d8c9ad] px-7 py-5">
           <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
             <div>
-              <DialogTitle className="text-xl text-[#171714]">
+              <DialogTitle className="text-2xl text-[#171714]">
                 Drawing Navigator
               </DialogTitle>
               <DialogDescription className="text-[#716855]">
@@ -952,16 +952,16 @@ function DrawingNavigatorDialog({
           </div>
         </DialogHeader>
 
-        <div className="grid max-h-[78vh] min-h-[640px] grid-cols-[330px_minmax(0,1fr)_340px] overflow-hidden">
+        <div className="grid max-h-[86vh] min-h-[760px] grid-cols-[minmax(320px,380px)_minmax(420px,1fr)_minmax(320px,390px)] overflow-hidden">
           <aside className="border-r border-[#d7c7aa] bg-[#eee4d2]">
-            <div className="space-y-3 border-b border-[#d7c7aa] p-3">
+            <div className="space-y-3 border-b border-[#d7c7aa] p-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a806d]" />
                 <Input
                   value={search}
                   onChange={event => setSearch(event.target.value)}
                   placeholder="Search sheets or scope..."
-                  className="h-10 rounded-xl border-[#d7c7aa] bg-white pl-9 text-[#171714] placeholder:text-[#8a806d]"
+                  className="h-11 rounded-xl border-[#d7c7aa] bg-white pl-9 text-[#171714] placeholder:text-[#8a806d]"
                 />
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -981,7 +981,7 @@ function DrawingNavigatorDialog({
                 ))}
               </div>
             </div>
-            <div className="max-h-[calc(78vh-132px)] overflow-y-auto p-2">
+            <div className="max-h-[calc(86vh-146px)] overflow-y-auto p-3">
               {visibleSheets.map(entry => {
                 const active = entry.sheet.id === activeSheet?.id;
                 const statusConfig =
@@ -1038,13 +1038,13 @@ function DrawingNavigatorDialog({
             </div>
           </aside>
 
-          <main className="min-w-0 bg-white p-4">
+          <main className="min-w-0 bg-white p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#244c91]">
                   Sheet Review Mode
                 </p>
-                <h3 className="truncate text-lg font-semibold text-[#171714]">
+                <h3 className="truncate text-2xl font-semibold text-[#171714]">
                   {activeSheet ? getSheetLabel(activeSheet) : "No drawing selected"}
                 </h3>
               </div>
@@ -1060,12 +1060,12 @@ function DrawingNavigatorDialog({
                 </Button>
               )}
             </div>
-            <div className="flex min-h-[540px] items-center justify-center overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#faf8f2] shadow-inner">
+            <div className="flex min-h-[650px] items-center justify-center overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#faf8f2] shadow-inner">
               {activeSheet?.imageUrl ? (
                 <img
                   src={activeSheet.imageUrl}
                   alt={getSheetLabel(activeSheet)}
-                  className="max-h-[68vh] w-full object-contain"
+                  className="h-full max-h-[74vh] w-full object-contain"
                 />
               ) : (
                 <div className="text-center text-[#716855]">
@@ -1077,7 +1077,7 @@ function DrawingNavigatorDialog({
             </div>
           </main>
 
-          <aside className="border-l border-[#d7c7aa] bg-[#eee4d2] p-4">
+          <aside className="max-h-[86vh] overflow-y-auto border-l border-[#d7c7aa] bg-[#eee4d2] p-5">
             <div className="rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
                 Sheet Intelligence
