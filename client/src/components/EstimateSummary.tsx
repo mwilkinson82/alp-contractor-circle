@@ -43,6 +43,8 @@ import {
   ClipboardList,
   ShieldCheck,
   CheckCircle2,
+  Eye,
+  FileImage,
 } from "lucide-react";
 import {
   TRADES,
@@ -183,11 +185,23 @@ function parseResidentialSquareFootage(text?: string | null): {
   };
 }
 
+function getSheetDisplayName(sheet: any): string {
+  if (!sheet) return "Source not linked";
+  return (
+    sheet.sheetNumber ||
+    sheet.sheetName ||
+    sheet.name ||
+    sheet.filename ||
+    `Sheet ${sheet.pageNumber || sheet.id}`
+  );
+}
+
 interface EstimateSummaryProps {
   projectId: number;
   projectName?: string;
   projectDescription?: string;
   items: any[];
+  sheets?: any[];
   allowances?: Array<{ description?: string | null; amount?: number | null }>;
   onAddAllowance?: (allowance: { description: string; amount: number }) => void;
   currency: string;
@@ -198,6 +212,7 @@ interface EstimateSummaryProps {
   excludedBoundaryCount?: number;
   acceptedDirectCost?: number;
   onOpenReview?: () => void;
+  onOpenSourceItem?: (item: any) => void;
 }
 
 export default function EstimateSummary({
@@ -205,6 +220,7 @@ export default function EstimateSummary({
   projectName,
   projectDescription,
   items,
+  sheets = [],
   allowances = [],
   onAddAllowance,
   currency,
@@ -215,6 +231,7 @@ export default function EstimateSummary({
   excludedBoundaryCount = 0,
   acceptedDirectCost,
   onOpenReview,
+  onOpenSourceItem,
 }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } =
@@ -236,6 +253,10 @@ export default function EstimateSummary({
     [crewsData, defaultCrewNames]
   );
   const hasUserCrews = userCrews.length > 0;
+  const sheetById = useMemo(
+    () => new Map((sheets || []).map((sheet: any) => [String(sheet.id), sheet])),
+    [sheets]
+  );
 
   const utils = trpc.useUtils();
 
@@ -1945,6 +1966,9 @@ export default function EstimateSummary({
                             qty * getMaterialUnitCost(item)
                           );
                           const laborTotal = labor?.laborCost || 0;
+                          const sourceSheet = item.sheetId
+                            ? sheetById.get(String(item.sheetId))
+                            : null;
                           const rowStatus =
                             qty <= 0 || getMaterialUnitCost(item) <= 0
                               ? "Missing cost"
@@ -1957,7 +1981,8 @@ export default function EstimateSummary({
                           return (
                             <tr
                               key={`${div}-${item.id}`}
-                              className="border-b border-[#d7c7aa]/70 bg-white/45"
+                              className={`border-b border-[#d7c7aa]/70 bg-white/45 transition-colors ${onOpenSourceItem ? "cursor-pointer hover:bg-white/80 focus-within:bg-white/80" : ""}`}
+                              onClick={() => onOpenSourceItem?.(item)}
                             >
                               <td className="px-8 py-2 text-[#29251c]">
                                 <p className="text-xs line-clamp-1">
@@ -1977,6 +2002,32 @@ export default function EstimateSummary({
                                     </span>
                                   )}
                                 </div>
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#716855]">
+                                  <span
+                                    className={`inline-flex max-w-[260px] items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${sourceSheet ? "border-blue-200 bg-blue-50 text-[#244c91]" : "border-[#d7c7aa] bg-white/70 text-[#716855]"}`}
+                                    title={sourceSheet ? getSheetDisplayName(sourceSheet) : "No drawing source is linked to this estimate row yet"}
+                                  >
+                                    <FileImage className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">
+                                      {sourceSheet
+                                        ? getSheetDisplayName(sourceSheet)
+                                        : "Source not linked"}
+                                    </span>
+                                  </span>
+                                  {onOpenSourceItem && (
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 rounded-full border border-[#d7c7aa] bg-white/75 px-2 py-0.5 font-semibold text-[#5d5546] shadow-sm transition-colors hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
+                                      onClick={event => {
+                                        event.stopPropagation();
+                                        onOpenSourceItem(item);
+                                      }}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      Evidence
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-4 py-2">
                                 {labor?.laborSource === "cost_library" ||
@@ -1987,7 +2038,10 @@ export default function EstimateSummary({
                                     size="sm"
                                     variant="outline"
                                     className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
-                                    onClick={() => openItemLaborEditor(item)}
+                                    onClick={event => {
+                                      event.stopPropagation();
+                                      openItemLaborEditor(item);
+                                    }}
                                   >
                                     Confirm labor
                                   </Button>

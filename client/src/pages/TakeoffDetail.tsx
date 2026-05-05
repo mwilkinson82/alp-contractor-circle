@@ -6186,6 +6186,7 @@ export default function TakeoffDetail() {
               projectName={project.name}
               projectDescription={project.description || undefined}
               items={activeItems || []}
+              sheets={sheets || []}
               allowances={projectAllowances}
               onAddAllowance={allowance => {
                 const existing = projectAllowances.some(
@@ -6211,6 +6212,7 @@ export default function TakeoffDetail() {
               excludedBoundaryCount={excludedItems.length}
               acceptedDirectCost={totalCost}
               onOpenReview={() => setActiveTab("items")}
+              onOpenSourceItem={item => setSelectedItem(item)}
             />
           </TabsContent>
         </Tabs>
