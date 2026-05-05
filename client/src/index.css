@@ -477,9 +477,16 @@
 
 .constructline-library-page .bg-navy-deep,
 .constructline-library-page .bg-navy-deep\/80,
+.constructline-library-page .bg-navy-deep\/50,
 .constructline-library-page .bg-navy-deep\/45,
+.constructline-library-page .bg-navy-deep\/30,
 .constructline-library-page .bg-navy-dark {
   background: #fffdf8 !important;
+}
+
+.constructline-library-page .bg-white\/3,
+.constructline-library-page .bg-white\/5 {
+  background: #fbf6ec !important;
 }
 
 .constructline-library-page .border-white\/5,
@@ -521,12 +528,13 @@
   color: #171714;
 }
 
-.constructline-library-page thead {
-  background: #e9dfcf !important;
+.constructline-library-page thead,
+.constructline-library-page tr.bg-navy-deep\/50 {
+  background: #f5eddd !important;
 }
 
 .constructline-library-page th {
-  color: #5f5545 !important;
+  color: #3f382d !important;
   font-weight: 700 !important;
 }
 
@@ -597,4 +605,78 @@
 .constructline-library-page [class*="from-amber-500"][class*="to-orange-600"],
 .constructline-library-page .bg-emerald-600 {
   color: #fffdf8 !important;
+}
+
+/* Rate setup wizard now lives in a portal, so it cannot inherit the library
+   page wrapper. Keep it intentionally light and consistent with Basis. */
+.rate-setup-wizard[data-slot="dialog-content"] {
+  background: #fffdf8 !important;
+  border-color: #d7c7aa !important;
+  color: #171714 !important;
+  box-shadow: 0 32px 100px rgba(41, 37, 28, 0.28) !important;
+}
+
+.rate-setup-wizard .text-cream,
+.rate-setup-wizard .text-white,
+.rate-setup-wizard .text-gray-100 {
+  color: #171714 !important;
+}
+
+.rate-setup-wizard .text-cream-muted,
+.rate-setup-wizard .text-cream-muted\/40,
+.rate-setup-wizard .text-cream-muted\/50,
+.rate-setup-wizard .text-cream-muted\/60,
+.rate-setup-wizard .text-gray-400 {
+  color: #716855 !important;
+}
+
+.rate-setup-wizard .text-amber-300,
+.rate-setup-wizard .text-amber-300\/60,
+.rate-setup-wizard .text-amber-400,
+.rate-setup-wizard .text-amber-500 {
+  color: #8a6510 !important;
+}
+
+.rate-setup-wizard .text-blue-300 {
+  color: #244c91 !important;
+}
+
+.rate-setup-wizard .text-purple-300 {
+  color: #5d3fb0 !important;
+}
+
+.rate-setup-wizard .text-emerald-300,
+.rate-setup-wizard .text-emerald-400 {
+  color: #24724f !important;
+}
+
+.rate-setup-wizard .bg-white\/5,
+.rate-setup-wizard .bg-white\/8,
+.rate-setup-wizard .bg-white\/10,
+.rate-setup-wizard .bg-white\/15 {
+  background: #fbf6ec !important;
+}
+
+.rate-setup-wizard .border-white\/10,
+.rate-setup-wizard .border-white\/20,
+.rate-setup-wizard .border-white\/30 {
+  border-color: #e4d7bf !important;
+}
+
+.rate-setup-wizard .bg-amber-500,
+.rate-setup-wizard .from-amber-500,
+.rate-setup-wizard .to-orange-600 {
+  color: #fffdf8 !important;
+}
+
+.rate-setup-wizard input,
+.rate-setup-wizard textarea,
+.rate-setup-wizard select {
+  background: #ffffff !important;
+  border-color: #d7c7aa !important;
+  color: #171714 !important;
+}
+
+.rate-setup-wizard [data-slot="dialog-close"] {
+  color: #716855 !important;
 }
