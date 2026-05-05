@@ -462,366 +462,391 @@ export default function PortalDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6 px-6 py-7 text-[#171714]">
-      {questionOpen && (
-        <SubmitQuestionModal onClose={() => setQuestionOpen(false)} />
-      )}
-      {topicOpen && (
-        <SubmitTopicModal
-          bootcampDate={bootcampDate}
-          onClose={() => setTopicOpen(false)}
-        />
-      )}
+    <div className="min-h-screen bg-[#f8f5ef] text-[#171714]">
+      <div className="mx-auto max-w-[1500px] space-y-5 px-6 py-6">
+        {questionOpen && (
+          <SubmitQuestionModal onClose={() => setQuestionOpen(false)} />
+        )}
+        {topicOpen && (
+          <SubmitTopicModal
+            bootcampDate={bootcampDate}
+            onClose={() => setTopicOpen(false)}
+          />
+        )}
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="rounded-xl border border-[#e4d7bf] bg-[#fffdf8] p-7 shadow-[0_24px_70px_rgba(41,37,28,0.07)]">
-          <div className="grid gap-7 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
-              <span className="text-3xl font-semibold">C</span>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
-                Contractor Circle Portal
-              </p>
-              <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-normal text-[#11100c] lg:text-5xl">
-                {greeting}, {firstName}
-              </h1>
-              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#6d6558]">
-                Build your business, win better jobs, and stay close to the
-                calls, tools, and resources that move the work forward.
-              </p>
-              <div className="mt-5 inline-flex rounded-xl border border-[#eadcc4] bg-white px-4 py-2 text-sm text-[#5d5546] shadow-inner">
-                <span>
-                  “Discipline in the details today. Freedom in the business
-                  tomorrow.”
-                </span>
-                <span className="ml-2 font-semibold text-[#b58513]">
-                  Marshall Wilkinson
-                </span>
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="overflow-hidden rounded-xl border border-[#e4d7bf] bg-[#fffdf8] shadow-[0_24px_70px_rgba(41,37,28,0.07)]">
+            <div className="grid gap-6 p-6 lg:grid-cols-[88px_minmax(0,1fr)] lg:items-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.18)] lg:h-20 lg:w-20">
+                <span className="text-3xl font-semibold">C</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <aside className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
-              <CircleUserRound className="h-7 w-7" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-semibold text-[#171714]">
-                {displayName}
-              </p>
-              <p className="text-sm text-[#716855]">
-                {member?.email ||
-                  member?.discordUsername ||
-                  "Contractor Circle member"}
-              </p>
-              <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-800">
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                {isSubscribed ? "Active" : "Preview"}
-              </Badge>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3 border-t border-[#eadcc4] pt-5 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-[#716855]">Member since</span>
-              <span className="font-semibold text-[#171714]">
-                {formatDate(member?.createdAt)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-[#716855]">Membership</span>
-              <span className="font-semibold text-emerald-700">
-                {subscriptionLoading
-                  ? "Checking"
-                  : subscription?.status ||
-                    member?.subscriptionStatus ||
-                    "Active"}
-              </span>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            className="mt-5 h-11 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
-            onClick={() => navigate("/portal/account")}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Account Settings
-          </Button>
-        </aside>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_420px]">
-        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
-              <Calendar className="h-6 w-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
-                Next Live Call
-              </p>
-              <h2 className="mt-2 text-xl font-semibold leading-tight text-[#171714]">
-                Contractor Circle Live Call
-              </h2>
-              <p className="mt-1 text-sm text-[#716855]">
-                {formatDate(nextCallDate)} at 5:00 PM ET
-              </p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <a
-              href={ZOOM_CALL_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
-            >
-              <Video className="mr-2 h-4 w-4" />
-              Join on Zoom
-            </a>
-            <a
-              href={callCalendarUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
-            >
-              <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
-              Add to Calendar
-            </a>
-          </div>
-          <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#eadcc4] bg-[#faf8f2] p-3 text-center">
-            {[
-              ["Projects", projectCount],
-              ["Completed", completedBids],
-              ["Questions", pendingQuestions ?? 0],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <p className="font-mono text-xl font-semibold text-[#171714]">
-                  {value}
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
+                  Contractor Circle Portal
                 </p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#716855]">
-                  {label}
+                <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-normal text-[#11100c] lg:text-[46px]">
+                  {greeting}, {firstName}
+                </h1>
+                <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#6d6558]">
+                  Build your business, win better jobs, and stay close to the
+                  calls, tools, and resources that move the work forward.
                 </p>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
-                Upcoming Calls
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-[#171714]">
-                Stay on the rhythm
-              </h2>
-            </div>
-            <Clock className="h-5 w-5 text-[#b58513]" />
-          </div>
-          <div className="mt-5 space-y-3">
-            {upcomingCalls.map(call => {
-              const short = formatShortDate(call.date);
-              const calendarUrl = buildCalendarUrl({
-                title: call.title,
-                details: `Contractor Circle live session.\n\nJoin Zoom:\n${call.url}`,
-                start: call.date,
-                durationHours: 1.5,
-                location: call.url,
-              });
-              return (
-                <div
-                  key={`${call.title}-${short.day}`}
-                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3"
-                >
-                  <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] py-2 text-center">
-                    <p className="text-[10px] font-semibold uppercase text-[#b58513]">
-                      {short.month}
-                    </p>
-                    <p className="font-mono text-xl font-semibold text-[#171714]">
-                      {short.day}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#171714]">
-                      {call.title}
-                    </p>
-                    <p className="text-xs text-[#716855]">{call.detail}</p>
-                  </div>
-                  <a
-                    href={calendarUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg border border-[#d7c7aa] bg-white px-3 py-2 text-xs font-semibold text-[#5d5546] transition-colors hover:bg-[#faf8f2]"
-                  >
-                    Add
-                  </a>
+                <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-xl border border-[#eadcc4] bg-white px-4 py-2 text-sm text-[#5d5546] shadow-inner">
+                  <Sparkles className="h-4 w-4 shrink-0 text-[#b58513]" />
+                  <span className="min-w-0">
+                    “Discipline in the details today. Freedom in the business
+                    tomorrow.”{" "}
+                    <span className="font-semibold text-[#b58513]">
+                      Marshall Wilkinson
+                    </span>
+                  </span>
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
-        </article>
 
-        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
-            Next Bootcamp
-          </p>
-          <h2 className="mt-3 text-xl font-semibold text-[#171714]">
-            Monthly Bootcamp
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-[#716855]">
-            Deep dive training with real contractor problems, live questions,
-            and working sessions.
-          </p>
-          <p className="mt-4 text-sm font-semibold text-[#171714]">
-            {bootcampDisplay}
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            <a
-              href={bootcampZoom}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
-            >
-              <Video className="mr-2 h-4 w-4" />
-              Join on Zoom
-            </a>
-            <a
-              href={buildBootcampCalendarUrl(
-                bootcampDate,
-                bootcampTime,
-                bootcampZoom
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
-            >
-              <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
-              Add to Calendar
-            </a>
-          </div>
-        </article>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-2">
-        <ActionCard
-          eyebrow="Submit your question"
-          title="For the next live call"
-          detail="Marshall reviews every submission and answers the best questions live."
-          icon={Send}
-          buttonLabel="Submit Question"
-          onClick={() => setQuestionOpen(true)}
-          stat={`${pendingQuestions ?? 0} pending`}
-        />
-        <ActionCard
-          eyebrow="Submit your topic"
-          title="For the next bootcamp"
-          detail="Shape the training. Submit what you want Marshall to work through next."
-          icon={MessageSquare}
-          buttonLabel="Submit Topic"
-          onClick={() => setTopicOpen(true)}
-          stat={`${submittedTopics} submitted`}
-        />
-      </section>
-
-      <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
-              Member shortcuts
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#171714]">
-              Get where you need to go
-            </h2>
-          </div>
-          <Button
-            variant="outline"
-            className="rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
-            onClick={() => navigate("/portal/constructline")}
-          >
-            Open ConstructLine
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <ShortcutCard
-            title="Replay Library"
-            detail="Watch past calls and bootcamp sessions."
-            icon={PlayCircle}
-            onClick={() => navigate("/portal/replays")}
-          />
-          <ShortcutCard
-            title="Templates"
-            detail="Download proposal, contract, and operating templates."
-            icon={FileDown}
-            onClick={() => navigate("/portal/templates")}
-          />
-          <ShortcutCard
-            title="ConstructLine"
-            detail="Open Basis, Baseline, and the estimating libraries."
-            icon={LayoutGrid}
-            onClick={() => navigate("/portal/constructline")}
-          />
-          <ShortcutCard
-            title="Account Details"
-            detail="Manage billing, profile, and member settings."
-            icon={CircleUserRound}
-            onClick={() => navigate("/portal/account")}
-          />
-        </div>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="rounded-xl border border-[#e4d7bf] bg-[#090b0f] p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
-            What belongs here
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold">
-            The portal is for low-friction member actions.
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-white/62">
-            Calls, questions, bootcamp topics, replays, templates, account
-            details, and direct access to ConstructLine. Community conversation
-            still lives in Discord where members already talk naturally.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {["Calls", "Questions", "Bootcamps", "Replays", "Templates"].map(
-              item => (
-                <span
-                  key={item}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/75"
-                >
-                  {item}
+          <aside className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
+                <CircleUserRound className="h-7 w-7" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-lg font-semibold text-[#171714]">
+                  {displayName}
+                </p>
+                <p className="text-sm text-[#716855]">
+                  {member?.email ||
+                    member?.discordUsername ||
+                    "Contractor Circle member"}
+                </p>
+                <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-800">
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  {isSubscribed ? "Active" : "Preview"}
+                </Badge>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 border-t border-[#eadcc4] pt-5 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-[#716855]">Member since</span>
+                <span className="text-right font-semibold text-[#171714]">
+                  {formatDate(member?.createdAt)}
                 </span>
-              )
-            )}
-          </div>
-        </div>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-[#716855]">Membership</span>
+                <span className="font-semibold text-emerald-700">
+                  {subscriptionLoading
+                    ? "Checking"
+                    : subscription?.status ||
+                      member?.subscriptionStatus ||
+                      "Active"}
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="mt-5 h-11 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+              onClick={() => navigate("/portal/account")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Account Settings
+            </Button>
+          </aside>
+        </section>
 
-        <a
-          href="https://discord.gg/rsK5HZcF"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group rounded-xl border border-[#e4d7bf] bg-white p-6 shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
-        >
-          <div className="flex items-start justify-between gap-4">
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.04fr)_390px]">
+          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                  Next Live Call
+                </p>
+                <h2 className="mt-2 text-xl font-semibold leading-tight text-[#171714]">
+                  Contractor Circle Live Call
+                </h2>
+                <p className="mt-1 text-sm text-[#716855]">
+                  {formatDate(nextCallDate)} at 5:00 PM ET
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <a
+                href={ZOOM_CALL_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+              >
+                <Video className="mr-2 h-4 w-4" />
+                Join on Zoom
+              </a>
+              <a
+                href={callCalendarUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+              >
+                <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
+                Add to Calendar
+              </a>
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#eadcc4] bg-[#faf8f2] p-3 text-center">
+              {[
+                ["Projects", projectCount],
+                ["Completed", completedBids],
+                ["Questions", pendingQuestions ?? 0],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p className="font-mono text-xl font-semibold text-[#171714]">
+                    {value}
+                  </p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#716855]">
+                    {label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                  Upcoming Calls
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-[#171714]">
+                  Stay on the rhythm
+                </h2>
+              </div>
+              <Clock className="h-5 w-5 text-[#b58513]" />
+            </div>
+            <div className="mt-5 space-y-3">
+              {upcomingCalls.map(call => {
+                const short = formatShortDate(call.date);
+                const calendarUrl = buildCalendarUrl({
+                  title: call.title,
+                  details: `Contractor Circle live session.\n\nJoin Zoom:\n${call.url}`,
+                  start: call.date,
+                  durationHours: 1.5,
+                  location: call.url,
+                });
+                return (
+                  <div
+                    key={`${call.title}-${short.day}`}
+                    className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3"
+                  >
+                    <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] py-2 text-center">
+                      <p className="text-[10px] font-semibold uppercase text-[#b58513]">
+                        {short.month}
+                      </p>
+                      <p className="font-mono text-xl font-semibold text-[#171714]">
+                        {short.day}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#171714]">
+                        {call.title}
+                      </p>
+                      <p className="text-xs text-[#716855]">{call.detail}</p>
+                    </div>
+                    <a
+                      href={calendarUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-[#d7c7aa] bg-white px-3 py-2 text-xs font-semibold text-[#5d5546] transition-colors hover:bg-[#faf8f2]"
+                    >
+                      Add
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+
+          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+              Next Bootcamp
+            </p>
+            <h2 className="mt-3 text-xl font-semibold text-[#171714]">
+              Monthly Bootcamp
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#716855]">
+              Deep dive training with real contractor problems, live questions,
+              and working sessions.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-[#171714]">
+              {bootcampDisplay}
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <a
+                href={bootcampZoom}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+              >
+                <Video className="mr-2 h-4 w-4" />
+                Join on Zoom
+              </a>
+              <a
+                href={buildBootcampCalendarUrl(
+                  bootcampDate,
+                  bootcampTime,
+                  bootcampZoom
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+              >
+                <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
+                Add to Calendar
+              </a>
+            </div>
+          </article>
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-2">
+          <ActionCard
+            eyebrow="Submit your question"
+            title="For the next live call"
+            detail="Marshall reviews every submission and answers the best questions live."
+            icon={Send}
+            buttonLabel="Submit Question"
+            onClick={() => setQuestionOpen(true)}
+            stat={`${pendingQuestions ?? 0} pending`}
+          />
+          <ActionCard
+            eyebrow="Submit your topic"
+            title="For the next bootcamp"
+            detail="Shape the training. Submit what you want Marshall to work through next."
+            icon={MessageSquare}
+            buttonLabel="Submit Topic"
+            onClick={() => setTopicOpen(true)}
+            stat={`${submittedTopics} submitted`}
+          />
+        </section>
+
+        <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
-                Community
+                Member shortcuts
               </p>
-              <h2 className="mt-3 text-2xl font-semibold text-[#171714]">
-                Discord stays the clubhouse.
+              <h2 className="mt-2 text-2xl font-semibold text-[#171714]">
+                Get where you need to go
               </h2>
-              <p className="mt-3 text-sm leading-7 text-[#716855]">
-                Project wins, field questions, and fast conversations still
-                belong where contractors already participate.
-              </p>
             </div>
-            <ExternalLink className="h-5 w-5 text-[#b58513] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <Button
+              variant="outline"
+              className="rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+              onClick={() => navigate("/portal/constructline")}
+            >
+              Open ConstructLine
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
-        </a>
-      </section>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <ShortcutCard
+              title="Replay Library"
+              detail="Watch past calls and bootcamp sessions."
+              icon={PlayCircle}
+              onClick={() => navigate("/portal/replays")}
+            />
+            <ShortcutCard
+              title="Templates"
+              detail="Download proposal, contract, and operating templates."
+              icon={FileDown}
+              onClick={() => navigate("/portal/templates")}
+            />
+            <ShortcutCard
+              title="ConstructLine"
+              detail="Open Basis, Baseline, and the estimating libraries."
+              icon={LayoutGrid}
+              onClick={() => navigate("/portal/constructline")}
+            />
+            <ShortcutCard
+              title="Account Details"
+              detail="Manage billing, profile, and member settings."
+              icon={CircleUserRound}
+              onClick={() => navigate("/portal/account")}
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
+                  Member rhythm
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-[#171714]">
+                  One place for the weekly moves.
+                </h2>
+              </div>
+              <Badge className="border-[#d7c7aa] bg-[#faf8f2] text-[#716855]">
+                Calls + training + tools
+              </Badge>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {[
+                [
+                  "01",
+                  "Show up",
+                  "Join the next call or add it to your calendar.",
+                ],
+                [
+                  "02",
+                  "Ask",
+                  "Send the question before it gets buried in the week.",
+                ],
+                [
+                  "03",
+                  "Apply",
+                  "Use replays, templates, and ConstructLine when the work starts.",
+                ],
+              ].map(([number, title, detail]) => (
+                <div
+                  key={number}
+                  className="rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4"
+                >
+                  <p className="font-mono text-xs font-semibold text-[#b58513]">
+                    {number}
+                  </p>
+                  <p className="mt-3 font-semibold text-[#171714]">{title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#716855]">
+                    {detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <a
+            href="https://discord.gg/rsK5HZcF"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group rounded-xl border border-[#e4d7bf] bg-[#090b0f] p-5 text-white shadow-[0_20px_55px_rgba(41,37,28,0.14)] transition-colors hover:bg-[#171a20]"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
+                  Community
+                </p>
+                <h2 className="mt-3 text-2xl font-semibold">
+                  Discord stays the clubhouse.
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-white/62">
+                  Project wins, field questions, and fast conversations still
+                  belong where contractors already participate.
+                </p>
+              </div>
+              <ExternalLink className="h-5 w-5 text-[#f1b51d] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </a>
+        </section>
+      </div>
     </div>
   );
 }
@@ -847,10 +872,10 @@ function ActionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group rounded-xl border border-[#e4d7bf] bg-white p-5 text-left shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
+      className="group rounded-xl border border-[#e4d7bf] bg-white p-4 text-left shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
     >
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510] transition-colors group-hover:bg-[#f1b51d] group-hover:text-[#171714]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510] transition-colors group-hover:bg-[#f1b51d] group-hover:text-[#171714]">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -862,10 +887,12 @@ function ActionCard({
               {stat}
             </Badge>
           </div>
-          <h3 className="mt-2 text-xl font-semibold text-[#171714]">{title}</h3>
+          <h3 className="mt-1.5 text-xl font-semibold text-[#171714]">
+            {title}
+          </h3>
           <p className="mt-1 text-sm leading-6 text-[#716855]">{detail}</p>
         </div>
-        <span className="hidden h-11 items-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors group-hover:bg-[#171a20] sm:inline-flex">
+        <span className="hidden h-10 items-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors group-hover:bg-[#171a20] sm:inline-flex">
           {buttonLabel}
           <Send className="ml-2 h-4 w-4" />
         </span>
@@ -889,7 +916,7 @@ function ShortcutCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[170px] flex-col rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-colors hover:bg-[#faf8f2]"
+      className="group flex min-h-[132px] flex-col rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-colors hover:bg-[#faf8f2]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white text-[#b58513]">
@@ -897,7 +924,7 @@ function ShortcutCard({
         </div>
         <ChevronRight className="h-5 w-5 text-[#b58513] transition-transform group-hover:translate-x-1" />
       </div>
-      <div className="mt-auto pt-8">
+      <div className="mt-auto pt-5">
         <h3 className="text-lg font-semibold text-[#171714]">{title}</h3>
         <p className="mt-2 text-sm leading-6 text-[#716855]">{detail}</p>
       </div>
