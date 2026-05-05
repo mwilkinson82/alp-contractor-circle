@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   ArrowRight,
-  BarChart3,
   Bell,
   BriefcaseBusiness,
   CalendarClock,
@@ -80,34 +79,35 @@ const STATUS_CONFIG: Record<
 const MODULES = [
   {
     code: "C1",
-    name: "CPM Schedule",
-    description: "Build schedules, track float, and generate Gantt charts.",
-    icon: GanttChart,
-    path: "/portal/scheduler",
+    name: "Basis",
+    description: "Review scope, price accepted work, and package the bid.",
+    icon: Ruler,
+    path: "/portal/takeoff",
     className: "border-[#f1d38d] bg-[#fffaf0] text-[#8a6510]",
   },
   {
     code: "C2",
-    name: "Quantity Takeoff",
-    description: "Upload drawings, auto-detect, and generate quantities.",
-    icon: Ruler,
-    path: "/portal/takeoff",
+    name: "Cost Library",
+    description: "Tune the unit costs Basis uses for material pricing.",
+    icon: Database,
+    path: "/portal/cost-library",
     className: "border-emerald-200 bg-emerald-50 text-emerald-800",
   },
   {
     code: "C3",
-    name: "Cost Library",
-    description: "Maintain unit costs across CSI divisions.",
-    icon: Database,
-    path: "/portal/cost-library",
+    name: "Trade Rate Library",
+    description: "Adjust burdened labor rates and crews used in estimates.",
+    icon: HardHat,
+    path: "/portal/labor-library",
     className: "border-blue-200 bg-blue-50 text-[#244c91]",
   },
   {
     code: "C4",
-    name: "Trade Rate Library",
-    description: "Set calibrated labor rates by trade and region.",
-    icon: HardHat,
-    path: "/portal/labor-library",
+    name: "Baseline",
+    description:
+      "Build CPM schedules, track float, and export schedule reports.",
+    icon: GanttChart,
+    path: "/portal/scheduler",
     className: "border-violet-200 bg-violet-50 text-violet-800",
   },
 ];
@@ -139,13 +139,6 @@ const NEWS = [
   },
 ];
 
-const HEALTH_SEGMENTS = [
-  { label: "In Review", color: "bg-[#d7b44d]" },
-  { label: "Estimating", color: "bg-emerald-400" },
-  { label: "In Pricing", color: "bg-blue-400" },
-  { label: "Complete", color: "bg-violet-400" },
-];
-
 function formatCurrency(cents?: number | null): string {
   if (!cents || cents <= 0) return "$0";
   return new Intl.NumberFormat("en-US", {
@@ -164,21 +157,6 @@ function formatDate(value?: string | Date | null): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function getBidPhase(
-  status: string
-): "In Review" | "Estimating" | "In Pricing" | "Complete" {
-  if (status === "completed") return "Complete";
-  if (
-    status === "processing" ||
-    status === "post_processing" ||
-    status === "uploading"
-  ) {
-    return "Estimating";
-  }
-  if (status === "draft") return "In Review";
-  return "In Pricing";
 }
 
 function BuildingHeroArt() {
@@ -247,18 +225,6 @@ export default function ConstructLineHub() {
     (rateProfilesList ?? []).map((profile: any) => [profile.id, profile.name])
   );
 
-  const phaseCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      "In Review": 0,
-      Estimating: 0,
-      "In Pricing": 0,
-      Complete: 0,
-    };
-    for (const project of projects ?? [])
-      counts[getBidPhase(project.status)] += 1;
-    return counts;
-  }, [projects]);
-
   const configureMutation = trpc.tradeRates.configureRates.useMutation({
     onSuccess: () =>
       toast.success("ConstructLine configured — your rates are ready."),
@@ -316,18 +282,6 @@ export default function ConstructLineHub() {
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Configure
-          </Button>
-          <Button
-            size="sm"
-            className="h-10 rounded-xl bg-[#111317] text-white hover:bg-[#1a1d23]"
-            onClick={() =>
-              toast.info(
-                "Ask ConstructLine is coming soon. Use Discord for launch questions."
-              )
-            }
-          >
-            <Sparkles className="mr-2 h-4 w-4 text-[#f1b51d]" />
-            Ask ConstructLine
           </Button>
           <div className="relative">
             <Bell className="h-5 w-5 text-white/70" />
@@ -515,258 +469,147 @@ export default function ConstructLineHub() {
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
-          <div className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.22fr)_360px]">
-              <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-[#716855]" />
-                      <h2 className="font-semibold text-[#171714]">
-                        Recent Projects
-                      </h2>
-                    </div>
-                    <p className="mt-1 text-sm text-[#716855]">
-                      Open the bid that needs your next decision.
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-[#716855] hover:text-[#171714]"
-                    onClick={() => navigate("/portal/takeoff")}
-                  >
-                    View All Projects
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="mt-5 overflow-hidden rounded-xl border border-[#eadcc4]">
-                  {recentProjects.length === 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate("/portal/takeoff")}
-                      className="flex w-full items-center gap-3 bg-[#faf8f2] p-5 text-left transition-colors hover:bg-[#fff4cb]"
-                    >
-                      <FileText className="h-5 w-5 text-[#8a6510]" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[#171714]">
-                          Start your first bid
-                        </p>
-                        <p className="text-sm text-[#716855]">
-                          Upload drawings and build the estimate from source
-                          evidence.
-                        </p>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-[#8a6510]" />
-                    </button>
-                  ) : (
-                    recentProjects.map((project: any, index: number) => {
-                      const status =
-                        STATUS_CONFIG[project.status] ?? STATUS_CONFIG.draft;
-                      const StatusIcon = status.icon;
-                      const isWorking =
-                        project.status === "processing" ||
-                        project.status === "post_processing" ||
-                        project.status === "uploading";
-                      const isComplete = project.status === "completed";
-                      return (
-                        <div
-                          key={project.id}
-                          className={`grid gap-4 p-4 transition-colors hover:bg-[#faf8f2] md:grid-cols-[112px_minmax(0,1fr)_150px_130px] md:items-center ${
-                            index > 0 ? "border-t border-[#eadcc4]" : ""
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => openProject(project.id)}
-                            className="relative h-20 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#efe7d9] text-left"
-                          >
-                            <div className="absolute inset-0 bg-[linear-gradient(135deg,#d7c3a2,#ffffff_48%,#c9ded6)]" />
-                            <div className="absolute bottom-3 left-3 right-4 top-4 rounded-sm border border-white/80 bg-white/38" />
-                            <div className="absolute bottom-2 left-2 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-[#716855]">
-                              CL
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openProject(project.id)}
-                            className="min-w-0 text-left"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge
-                                className={`${status.className} border text-[10px]`}
-                              >
-                                <StatusIcon
-                                  className={`mr-1 h-3 w-3 ${isWorking ? "animate-spin" : ""}`}
-                                />
-                                {status.label}
-                              </Badge>
-                              {(project as any).rateProfileId &&
-                                profileNameMap.has(
-                                  (project as any).rateProfileId
-                                ) && (
-                                  <Badge className="border-blue-200 bg-blue-50 text-[10px] text-[#244c91]">
-                                    {profileNameMap.get(
-                                      (project as any).rateProfileId
-                                    )}
-                                  </Badge>
-                                )}
-                            </div>
-                            <p className="mt-2 truncate text-base font-semibold text-[#171714]">
-                              {project.name}
-                            </p>
-                            <p className="mt-1 text-xs text-[#716855]">
-                              {project.totalSheets || 0} sheet
-                              {project.totalSheets === 1 ? "" : "s"} · Updated{" "}
-                              {formatDate(
-                                project.updatedAt || project.createdAt
-                              )}
-                            </p>
-                          </button>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
-                              Bid Total
-                            </p>
-                            <p className="mt-1 font-mono text-lg font-semibold text-[#171714]">
-                              {formatCurrency(project.totalEstimatedCost)}
-                            </p>
-                          </div>
-                          <div className="flex gap-2 md:justify-end">
-                            {isComplete ? (
-                              <Button
-                                size="sm"
-                                className="h-9 bg-[#171714] text-white hover:bg-[#29251c]"
-                                onClick={() => openSubmit(project.id)}
-                              >
-                                <Send className="mr-1.5 h-3.5 w-3.5" />
-                                Package
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 border-[#d7c7aa] bg-white text-[#5d5546] hover:!bg-[#faf8f2]"
-                                onClick={() => openProject(project.id)}
-                              >
-                                Open
-                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+          <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-[#716855]" />
+                  <FileText className="h-4 w-4 text-[#716855]" />
                   <h2 className="font-semibold text-[#171714]">
-                    Project Health
+                    Recent Projects
                   </h2>
                 </div>
                 <p className="mt-1 text-sm text-[#716855]">
-                  Overview of your active projects.
+                  Open the bid that needs your next decision.
                 </p>
-                <div className="mx-auto mt-6 grid h-44 w-44 place-items-center rounded-full bg-[conic-gradient(#d7b44d_0_25%,#6fd19d_25%_50%,#7fb1ff_50%_75%,#9a8cff_75%_100%)]">
-                  <div className="grid h-28 w-28 place-items-center rounded-full bg-white text-center shadow-inner">
-                    <div>
-                      <p className="font-mono text-3xl font-semibold text-[#171714]">
-                        {totalProjects}
-                      </p>
-                      <p className="text-xs text-[#716855]">Total Projects</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-5 grid grid-cols-2 gap-2">
-                  {HEALTH_SEGMENTS.map(segment => (
-                    <div
-                      key={segment.label}
-                      className="flex items-center gap-2 text-xs text-[#5d5546]"
-                    >
-                      <span
-                        className={`h-2.5 w-2.5 rounded-sm ${segment.color}`}
-                      />
-                      <span className="flex-1">{segment.label}</span>
-                      <span className="font-mono font-semibold">
-                        {phaseCounts[segment.label] || 0}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[#716855] hover:text-[#171714]"
+                onClick={() => navigate("/portal/takeoff")}
+              >
+                View All Projects
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
 
-            <section
-              id="constructline-tools"
-              className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-[#716855]" />
-                    <h2 className="font-semibold text-[#171714]">
-                      ConstructLine Tools
-                    </h2>
-                  </div>
-                  <p className="mt-1 text-sm text-[#716855]">
-                    Everything needed to build better bids.
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-[#716855] hover:text-[#171714]"
-                  onClick={() =>
-                    document
-                      .getElementById("constructline-tools")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
+            <div className="mt-5 overflow-hidden rounded-xl border border-[#eadcc4]">
+              {recentProjects.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/portal/takeoff")}
+                  className="flex w-full items-center gap-3 bg-[#faf8f2] p-5 text-left transition-colors hover:bg-[#fff4cb]"
                 >
-                  View All Tools
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {MODULES.map(module => {
-                  const Icon = module.icon;
+                  <FileText className="h-5 w-5 text-[#8a6510]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-[#171714]">
+                      Start your first bid
+                    </p>
+                    <p className="text-sm text-[#716855]">
+                      Upload drawings and build the estimate from source
+                      evidence.
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-[#8a6510]" />
+                </button>
+              ) : (
+                recentProjects.map((project: any, index: number) => {
+                  const status =
+                    STATUS_CONFIG[project.status] ?? STATUS_CONFIG.draft;
+                  const StatusIcon = status.icon;
+                  const isWorking =
+                    project.status === "processing" ||
+                    project.status === "post_processing" ||
+                    project.status === "uploading";
+                  const isComplete = project.status === "completed";
                   return (
-                    <button
-                      key={module.code}
-                      type="button"
-                      onClick={() => navigate(module.path)}
-                      className="group rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_20px_55px_rgba(41,37,28,0.10)]"
+                    <div
+                      key={project.id}
+                      className={`grid gap-4 p-4 transition-colors hover:bg-[#faf8f2] md:grid-cols-[112px_minmax(0,1fr)_150px_130px] md:items-center ${
+                        index > 0 ? "border-t border-[#eadcc4]" : ""
+                      }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-lg border ${module.className}`}
-                        >
-                          <Icon className="h-5 w-5" />
+                      <button
+                        type="button"
+                        onClick={() => openProject(project.id)}
+                        className="relative h-20 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#efe7d9] text-left"
+                      >
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,#d7c3a2,#ffffff_48%,#c9ded6)]" />
+                        <div className="absolute bottom-3 left-3 right-4 top-4 rounded-sm border border-white/80 bg-white/38" />
+                        <div className="absolute bottom-2 left-2 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-[#716855]">
+                          CL
                         </div>
-                        <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">
-                          {module.code}
-                        </Badge>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openProject(project.id)}
+                        className="min-w-0 text-left"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            className={`${status.className} border text-[10px]`}
+                          >
+                            <StatusIcon
+                              className={`mr-1 h-3 w-3 ${isWorking ? "animate-spin" : ""}`}
+                            />
+                            {status.label}
+                          </Badge>
+                          {(project as any).rateProfileId &&
+                            profileNameMap.has(
+                              (project as any).rateProfileId
+                            ) && (
+                              <Badge className="border-blue-200 bg-blue-50 text-[10px] text-[#244c91]">
+                                {profileNameMap.get(
+                                  (project as any).rateProfileId
+                                )}
+                              </Badge>
+                            )}
+                        </div>
+                        <p className="mt-2 truncate text-base font-semibold text-[#171714]">
+                          {project.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[#716855]">
+                          {project.totalSheets || 0} sheet
+                          {project.totalSheets === 1 ? "" : "s"} · Updated{" "}
+                          {formatDate(project.updatedAt || project.createdAt)}
+                        </p>
+                      </button>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                          Bid Total
+                        </p>
+                        <p className="mt-1 font-mono text-lg font-semibold text-[#171714]">
+                          {formatCurrency(project.totalEstimatedCost)}
+                        </p>
                       </div>
-                      <p className="mt-4 font-semibold text-[#171714]">
-                        {module.name}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-[#716855]">
-                        {module.description}
-                      </p>
-                      <div className="mt-4 flex justify-end">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#d7c7aa] text-[#8a6510] transition-transform group-hover:translate-x-0.5">
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </span>
+                      <div className="flex gap-2 md:justify-end">
+                        {isComplete ? (
+                          <Button
+                            size="sm"
+                            className="h-9 bg-[#171714] text-white hover:bg-[#29251c]"
+                            onClick={() => openSubmit(project.id)}
+                          >
+                            <Send className="mr-1.5 h-3.5 w-3.5" />
+                            Package
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 border-[#d7c7aa] bg-white text-[#5d5546] hover:!bg-[#faf8f2]"
+                            onClick={() => openProject(project.id)}
+                          >
+                            Open
+                            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
-                    </button>
+                    </div>
                   );
-                })}
-              </div>
-            </section>
-          </div>
+                })
+              )}
+            </div>
+          </section>
 
           <aside className="space-y-6">
             <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
@@ -814,6 +657,61 @@ export default function ConstructLineHub() {
             </section>
           </aside>
         </div>
+
+        <section
+          id="constructline-tools"
+          className="mt-6 rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-[#716855]" />
+                <h2 className="font-semibold text-[#171714]">
+                  ConstructLine Tools
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-[#716855]">
+                Basis, pricing inputs, labor setup, and scheduling in one
+                workflow.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {MODULES.map(module => {
+              const Icon = module.icon;
+              return (
+                <button
+                  key={module.code}
+                  type="button"
+                  onClick={() => navigate(module.path)}
+                  className="group rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_20px_55px_rgba(41,37,28,0.10)]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg border ${module.className}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">
+                      {module.code}
+                    </Badge>
+                  </div>
+                  <p className="mt-4 font-semibold text-[#171714]">
+                    {module.name}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[#716855]">
+                    {module.description}
+                  </p>
+                  <div className="mt-4 flex justify-end">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#d7c7aa] text-[#8a6510] transition-transform group-hover:translate-x-0.5">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
       </main>
 
       <RateSetupWizard

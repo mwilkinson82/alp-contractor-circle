@@ -1,11 +1,11 @@
 /**
  * ConstructLine Brand Components — Reusable branded wordmark and module labels.
  *
- * Naming convention (Primavera P3/P6 style):
+ * Naming convention:
  * - ConstructLine (parent brand / suite)
- * - C1 — CPM Schedule
- * - C2 — Quantity Takeoff
- * - C3 — Cost Library
+ * - Hub — suite landing page
+ * - Basis — estimating cockpit
+ * - Baseline — CPM scheduling
  */
 
 interface ConstructLineWordmarkProps {
@@ -40,11 +40,20 @@ export function ConstructLineWordmark({
   const subtitleClass = tone === "light" ? "text-[#8a806d]" : "text-gray-500";
   return (
     <div className={`flex flex-col ${className}`}>
-      <span className={`${s.text} font-bold tracking-tight ${textClass} leading-tight`}>
-        Construct<span className={tone === "light" ? "text-[#d9a21a]" : "text-amber-400"}>Line</span>
+      <span
+        className={`${s.text} font-bold tracking-tight ${textClass} leading-tight`}
+      >
+        Construct
+        <span
+          className={tone === "light" ? "text-[#d9a21a]" : "text-amber-400"}
+        >
+          Line
+        </span>
       </span>
       {showSubtitle && (
-        <span className={`${s.subtitle} ${subtitleClass} tracking-wider uppercase leading-tight`}>
+        <span
+          className={`${s.subtitle} ${subtitleClass} tracking-wider uppercase leading-tight`}
+        >
           Powered by ALP
         </span>
       )}
@@ -56,7 +65,11 @@ export function ConstructLineWordmark({
  * Inline branded text — for use inside sentences.
  * Renders "ConstructLine" with the branded color split.
  */
-export function ConstructLineInline({ className = "" }: { className?: string }) {
+export function ConstructLineInline({
+  className = "",
+}: {
+  className?: string;
+}) {
   return (
     <span className={`font-semibold ${className}`}>
       <span className="text-white">Construct</span>
@@ -67,11 +80,12 @@ export function ConstructLineInline({ className = "" }: { className?: string }) 
 
 /**
  * Module label constants.
- * Note: The C1/C2/C3... versioning convention (like Primavera P3/P6) is reserved
- * for future CPM Schedule product versions, not for labeling different tools.
+ * These constants keep old internal identifiers stable while the UI uses the
+ * customer-facing product names.
  */
 export const CL_MODULES = {
-  CPM_SCHEDULE: { name: "CPM Schedule" },
-  QUANTITY_TAKEOFF: { name: "Quantity Takeoff" },
+  CPM_SCHEDULE: { name: "Baseline" },
+  QUANTITY_TAKEOFF: { name: "Basis" },
   COST_LIBRARY: { name: "Cost Library" },
+  TRADE_RATE_LIBRARY: { name: "Trade Rate Library" },
 } as const;

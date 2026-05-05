@@ -8,7 +8,13 @@ import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -34,7 +40,10 @@ import {
   MapPin,
   ChevronDown as ChevronDownIcon2,
 } from "lucide-react";
-import { COST_REGION_GROUPS, type CostRegionGroup } from "../../../shared/costRegions";
+import {
+  COST_REGION_GROUPS,
+  type CostRegionGroup,
+} from "../../../shared/costRegions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ParsedEntry {
@@ -96,15 +105,20 @@ function ColGroup() {
 }
 
 // ─── Parse CSV/Excel ──────────────────────────────────────────────────────────
-function parseFile(file: File): Promise<{ entries: ParsedEntry[]; errors: ParseError[] }> {
-  return new Promise((resolve) => {
+function parseFile(
+  file: File
+): Promise<{ entries: ParsedEntry[]; errors: ParseError[] }> {
+  return new Promise(resolve => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         const data = new Uint8Array(e.target!.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, {
+          header: 1,
+          defval: "",
+        });
 
         const entries: ParsedEntry[] = [];
         const errors: ParseError[] = [];
@@ -114,22 +128,43 @@ function parseFile(file: File): Promise<{ entries: ParsedEntry[]; errors: ParseE
           if (!row || row.every((c: any) => !c)) continue;
 
           const description = String(row[0] || "").trim();
-          const unit = String(row[1] || "").trim().toUpperCase();
+          const unit = String(row[1] || "")
+            .trim()
+            .toUpperCase();
           const rawCost = row[2];
-          const csiDivision = String(row[3] || "").trim().replace(/\D/g, "").slice(0, 2) || undefined;
+          const csiDivision =
+            String(row[3] || "")
+              .trim()
+              .replace(/\D/g, "")
+              .slice(0, 2) || undefined;
           const notes = String(row[4] || "").trim() || undefined;
 
-          if (!description) { errors.push({ row: i + 1, message: "Missing description" }); continue; }
-          if (!unit) { errors.push({ row: i + 1, message: `Row ${i + 1}: Missing unit` }); continue; }
+          if (!description) {
+            errors.push({ row: i + 1, message: "Missing description" });
+            continue;
+          }
+          if (!unit) {
+            errors.push({ row: i + 1, message: `Row ${i + 1}: Missing unit` });
+            continue;
+          }
           const unitCost = parseFloat(String(rawCost).replace(/[$,]/g, ""));
-          if (isNaN(unitCost) || unitCost < 0) { errors.push({ row: i + 1, message: `Row ${i + 1}: Invalid unit cost "${rawCost}"` }); continue; }
+          if (isNaN(unitCost) || unitCost < 0) {
+            errors.push({
+              row: i + 1,
+              message: `Row ${i + 1}: Invalid unit cost "${rawCost}"`,
+            });
+            continue;
+          }
 
           entries.push({ description, unit, unitCost, csiDivision, notes });
         }
 
         resolve({ entries, errors });
       } catch (err) {
-        resolve({ entries: [], errors: [{ row: 0, message: `Failed to parse file: ${String(err)}` }] });
+        resolve({
+          entries: [],
+          errors: [{ row: 0, message: `Failed to parse file: ${String(err)}` }],
+        });
       }
     };
     reader.readAsArrayBuffer(file);
@@ -145,13 +180,31 @@ export default function CostLibrary() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
-  const [pendingEntries, setPendingEntries] = useState<ParsedEntry[] | null>(null);
+  const [pendingEntries, setPendingEntries] = useState<ParsedEntry[] | null>(
+    null
+  );
   const [pendingFilename, setPendingFilename] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editState, setEditState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
-  const [addingForDivision, setAddingForDivision] = useState<string | null>(null);
-  const [addState, setAddState] = useState<EditState>({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
-  const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(new Set());
+  const [editState, setEditState] = useState<EditState>({
+    description: "",
+    unit: "",
+    unitCost: "",
+    csiDivision: "",
+    notes: "",
+  });
+  const [addingForDivision, setAddingForDivision] = useState<string | null>(
+    null
+  );
+  const [addState, setAddState] = useState<EditState>({
+    description: "",
+    unit: "",
+    unitCost: "",
+    csiDivision: "",
+    notes: "",
+  });
+  const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(
+    new Set()
+  );
 
   // Regional cost factor state
   const [regionCode, setRegionCode] = useState("national");
@@ -159,36 +212,65 @@ export default function CostLibrary() {
   const [regionMultiplier, setRegionMultiplier] = useState(10000);
   const [showRegionModal, setShowRegionModal] = useState(false);
 
-  const { data: entries, isLoading, refetch } = trpc.takeoff.getCostLibrary.useQuery();
+  const {
+    data: entries,
+    isLoading,
+    refetch,
+  } = trpc.takeoff.getCostLibrary.useQuery();
 
   const uploadMutation = trpc.takeoff.uploadCostLibrary.useMutation({
-    onSuccess: (result) => { toast.success(`${result.count} cost entries saved`); setPendingEntries(null); setParseErrors([]); refetch(); },
-    onError: (err) => toast.error(err.message),
+    onSuccess: result => {
+      toast.success(`${result.count} cost entries saved`);
+      setPendingEntries(null);
+      setParseErrors([]);
+      refetch();
+    },
+    onError: err => toast.error(err.message),
   });
   const deleteMutation = trpc.takeoff.deleteCostLibraryEntry.useMutation({
-    onSuccess: () => { toast.success("Entry deleted"); refetch(); },
-    onError: (err) => toast.error(err.message),
+    onSuccess: () => {
+      toast.success("Entry deleted");
+      refetch();
+    },
+    onError: err => toast.error(err.message),
   });
   const clearMutation = trpc.takeoff.clearCostLibrary.useMutation({
-    onSuccess: () => { toast.success("Cost library cleared"); refetch(); },
-    onError: (err) => toast.error(err.message),
+    onSuccess: () => {
+      toast.success("Cost library cleared");
+      refetch();
+    },
+    onError: err => toast.error(err.message),
   });
   const updateMutation = trpc.takeoff.updateCostLibraryEntry.useMutation({
-    onSuccess: () => { toast.success("Entry updated"); setEditingId(null); refetch(); },
+    onSuccess: () => {
+      toast.success("Entry updated");
+      setEditingId(null);
+      refetch();
+    },
     onError: (err: any) => toast.error(err.message),
   });
   const addMutation = trpc.takeoff.addCostLibraryEntry.useMutation({
     onSuccess: () => {
       toast.success("Entry added");
       setAddingForDivision(null);
-      setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+      setAddState({
+        description: "",
+        unit: "",
+        unitCost: "",
+        csiDivision: "",
+        notes: "",
+      });
       refetch();
     },
     onError: (err: any) => toast.error(err.message),
   });
   const loadDefaultsMutation = trpc.takeoff.loadDefaults.useMutation({
     onSuccess: (result: any) => {
-      toast.success(result.added > 0 ? `Added ${result.added} new entries (${result.count} total)` : `Library is up to date (${result.count} entries)`);
+      toast.success(
+        result.added > 0
+          ? `Added ${result.added} new entries (${result.count} total)`
+          : `Library is up to date (${result.count} entries)`
+      );
       refetch();
     },
     onError: (err: any) => toast.error(err.message),
@@ -197,7 +279,13 @@ export default function CostLibrary() {
   // Auto-load on first visit if empty
   const hasAutoLoaded = useRef(false);
   useEffect(() => {
-    if (!isLoading && entries && entries.length === 0 && !loadDefaultsMutation.isPending && !hasAutoLoaded.current) {
+    if (
+      !isLoading &&
+      entries &&
+      entries.length === 0 &&
+      !loadDefaultsMutation.isPending &&
+      !hasAutoLoaded.current
+    ) {
       hasAutoLoaded.current = true;
       loadDefaultsMutation.mutate();
     }
@@ -209,30 +297,61 @@ export default function CostLibrary() {
     e.target.value = "";
     const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
     const isCsv = file.name.endsWith(".csv");
-    if (!isExcel && !isCsv) { toast.error("Please upload a CSV or Excel (.xlsx) file"); return; }
+    if (!isExcel && !isCsv) {
+      toast.error("Please upload a CSV or Excel (.xlsx) file");
+      return;
+    }
     toast.info(`Parsing ${file.name}…`);
     const { entries: parsed, errors } = await parseFile(file);
     setParseErrors(errors);
-    if (parsed.length === 0) { toast.error("No valid rows found. Check the file format."); return; }
+    if (parsed.length === 0) {
+      toast.error("No valid rows found. Check the file format.");
+      return;
+    }
     setPendingEntries(parsed);
     setPendingFilename(file.name);
   };
 
   const startEdit = (entry: any) => {
     setEditingId(entry.id);
-    setEditState({ description: entry.description, unit: entry.unit, unitCost: (entry.unitCost / 100).toFixed(2), csiDivision: entry.csiDivision || "", notes: entry.notes || "" });
+    setEditState({
+      description: entry.description,
+      unit: entry.unit,
+      unitCost: (entry.unitCost / 100).toFixed(2),
+      csiDivision: entry.csiDivision || "",
+      notes: entry.notes || "",
+    });
   };
   const saveEdit = () => {
     if (!editingId) return;
     const uc = parseFloat(editState.unitCost);
-    if (isNaN(uc) || uc < 0) { toast.error("Invalid unit cost"); return; }
-    updateMutation.mutate({ entryId: editingId, description: editState.description, unit: editState.unit.toUpperCase(), unitCost: uc, csiDivision: editState.csiDivision || undefined, notes: editState.notes || undefined });
+    if (isNaN(uc) || uc < 0) {
+      toast.error("Invalid unit cost");
+      return;
+    }
+    updateMutation.mutate({
+      entryId: editingId,
+      description: editState.description,
+      unit: editState.unit.toUpperCase(),
+      unitCost: uc,
+      csiDivision: editState.csiDivision || undefined,
+      notes: editState.notes || undefined,
+    });
   };
   const saveAdd = () => {
     const uc = parseFloat(addState.unitCost);
-    if (!addState.description.trim()) { toast.error("Description required"); return; }
-    if (!addState.unit.trim()) { toast.error("Unit required"); return; }
-    if (isNaN(uc) || uc < 0) { toast.error("Invalid unit cost"); return; }
+    if (!addState.description.trim()) {
+      toast.error("Description required");
+      return;
+    }
+    if (!addState.unit.trim()) {
+      toast.error("Unit required");
+      return;
+    }
+    if (isNaN(uc) || uc < 0) {
+      toast.error("Invalid unit cost");
+      return;
+    }
     addMutation.mutate({
       description: addState.description,
       unit: addState.unit.toUpperCase(),
@@ -250,25 +369,40 @@ export default function CostLibrary() {
       return next;
     });
     setAddingForDivision(div);
-    setAddState({ description: "", unit: "", unitCost: "", csiDivision: div, notes: "" });
+    setAddState({
+      description: "",
+      unit: "",
+      unitCost: "",
+      csiDivision: div,
+      notes: "",
+    });
   };
 
   const toggleDivision = (div: string) => {
     setCollapsedDivisions(prev => {
       const next = new Set(prev);
-      if (next.has(div)) next.delete(div); else next.add(div);
+      if (next.has(div)) next.delete(div);
+      else next.add(div);
       return next;
     });
   };
 
-  const inputCls = "h-7 text-xs bg-navy-deep/80 border-white/10 text-cream placeholder:text-cream-muted/40 px-2";
-  const applyRegion = (cents: number) => Math.round((cents * regionMultiplier) / 10000);
+  const inputCls =
+    "h-7 text-xs bg-navy-deep/80 border-white/10 text-cream placeholder:text-cream-muted/40 px-2";
+  const applyRegion = (cents: number) =>
+    Math.round((cents * regionMultiplier) / 10000);
   const formatCost = (cents: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(applyRegion(cents) / 100);
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(applyRegion(cents) / 100);
 
-  const filtered = (entries || []).filter((e: any) =>
-    !search || e.description.toLowerCase().includes(search.toLowerCase()) ||
-    (e.unit || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = (entries || []).filter(
+    (e: any) =>
+      !search ||
+      e.description.toLowerCase().includes(search.toLowerCase()) ||
+      (e.unit || "").toLowerCase().includes(search.toLowerCase())
   );
 
   // Group by CSI division
@@ -297,14 +431,19 @@ export default function CostLibrary() {
             </Button>
             <div className="w-px h-6 bg-white/10" />
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
-              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+              <span className="text-sm font-bold tracking-tight text-white leading-tight">
+                Construct<span className="text-amber-400">Line</span>
+              </span>
+              <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">
+                Powered by ALP
+              </span>
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div>
               <h1 className="text-lg font-bold text-cream">Cost Library</h1>
               <p className="text-cream-muted text-xs hidden sm:block">
-                Your unit costs override the built-in cost table during takeoff processing.
+                The material and unit-cost source Basis uses when pricing
+                accepted scope.
               </p>
             </div>
           </div>
@@ -317,24 +456,54 @@ export default function CostLibrary() {
               <Upload className="w-4 h-4" />
               Upload CSV / Excel
             </Button>
-            <Button variant="outline" size="sm"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setAddingForDivision("__new__");
-                setAddState({ description: "", unit: "", unitCost: "", csiDivision: "", notes: "" });
+                setAddState({
+                  description: "",
+                  unit: "",
+                  unitCost: "",
+                  csiDivision: "",
+                  notes: "",
+                });
               }}
-              className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
-              <Plus className="w-3.5 h-3.5" />Add Row
+              className="border-white/20 text-cream hover:bg-white/5 gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Row
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => { if (!confirm("Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices.")) return; loadDefaultsMutation.mutate(); }}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (
+                  !confirm(
+                    "Sync with ConstructLine Pricing? This adds any missing entries without overwriting your customized prices."
+                  )
+                )
+                  return;
+                loadDefaultsMutation.mutate();
+              }}
               disabled={loadDefaultsMutation.isPending}
-              className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5">
-              {loadDefaultsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 gap-1.5"
+            >
+              {loadDefaultsMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
               Sync ConstructLine Pricing
             </Button>
-            <Button variant="outline" size="sm"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
-                if (!entries?.length) { toast.error("No entries to export"); return; }
+                if (!entries?.length) {
+                  toast.error("No entries to export");
+                  return;
+                }
                 const wb = XLSX.utils.book_new();
                 const rows = entries.map((e: any) => ({
                   Description: e.description,
@@ -348,10 +517,18 @@ export default function CostLibrary() {
                 XLSX.writeFile(wb, "cost-library.xlsx");
                 toast.success("Exported cost library");
               }}
-              className="border-white/20 text-cream hover:bg-white/5 gap-1.5">
-              <Download className="w-3.5 h-3.5" />Export
+              className="border-white/20 text-cream hover:bg-white/5 gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export
             </Button>
-            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
           </div>
         </div>
       </div>
@@ -365,35 +542,130 @@ export default function CostLibrary() {
           >
             <MapPin className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-cream text-xs font-medium">{regionName}</span>
-            <span className="text-cream-muted text-xs font-mono">({(regionMultiplier / 10000).toFixed(2)}x)</span>
+            <span className="text-cream-muted text-xs font-mono">
+              ({(regionMultiplier / 10000).toFixed(2)}x)
+            </span>
             <ChevronDown className="w-3 h-3 text-cream-muted" />
           </button>
         </div>
       </div>
 
+      <section className="border-b border-amber-500/10 bg-[radial-gradient(circle_at_top_left,rgba(245,181,29,0.14),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-3 py-5 sm:px-6">
+        <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-300">
+              Basis pricing input
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-cream">
+              Cost Library is where Basis gets the numbers behind material and
+              unit pricing.
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-cream-muted">
+              ConstructLine starts with a default CSI cost table, then this
+              library lets each contractor tune the rows that matter. During
+              Basis post-processing, accepted scope is matched back to this
+              library before the estimator reviews pricing.
+            </p>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {[
+                [
+                  "CSI structure",
+                  "Rows stay organized by division so estimates export cleanly.",
+                ],
+                [
+                  "Regional factor",
+                  "The selected region adjusts unit costs before pricing.",
+                ],
+                [
+                  "Estimator control",
+                  "Upload, sync, or override rows without changing the schema.",
+                ],
+              ].map(([title, detail]) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-white/10 bg-navy-deep/45 p-3"
+                >
+                  <CheckCircle2 className="mb-2 h-4 w-4 text-emerald-300" />
+                  <p className="text-sm font-semibold text-cream">{title}</p>
+                  <p className="mt-1 text-xs leading-5 text-cream-muted">
+                    {detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5">
+            <BookOpen className="h-5 w-5 text-amber-300" />
+            <p className="mt-3 text-sm font-semibold text-cream">
+              Before running Basis
+            </p>
+            <p className="mt-2 text-sm leading-6 text-cream-muted">
+              Review the high-volume divisions, sync ConstructLine pricing for
+              missing rows, then upload company-specific cost history when
+              available.
+            </p>
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-4 w-full bg-amber-500 text-black hover:bg-amber-400"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Upload Cost Sheet
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {showRegionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowRegionModal(false)}>
-          <div className="bg-navy-medium border border-white/15 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowRegionModal(false)}
+        >
+          <div
+            className="bg-navy-medium border border-white/15 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="px-5 py-4 border-b border-white/10">
-              <h3 className="text-cream font-semibold text-lg flex items-center gap-2"><MapPin className="w-5 h-5 text-blue-400" />Select Your Region</h3>
-              <p className="text-cream-muted text-xs mt-1">Regional factors adjust material costs based on local market conditions (RS Means City Cost Index).</p>
+              <h3 className="text-cream font-semibold text-lg flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-400" />
+                Select Your Region
+              </h3>
+              <p className="text-cream-muted text-xs mt-1">
+                Regional factors adjust material costs based on local market
+                conditions (RS Means City Cost Index).
+              </p>
             </div>
             <div className="overflow-y-auto max-h-[55vh] p-3 space-y-2">
               {COST_REGION_GROUPS.filter(g => g.country === "US").map(group => (
                 <div key={group.region}>
-                  <p className="text-cream-muted text-xs font-semibold uppercase tracking-wider px-2 py-1">{group.region}</p>
+                  <p className="text-cream-muted text-xs font-semibold uppercase tracking-wider px-2 py-1">
+                    {group.region}
+                  </p>
                   <div className="space-y-0.5">
                     {group.metros.map(metro => (
-                      <button key={metro.code}
-                        onClick={() => { setRegionCode(metro.code); setRegionName(metro.name); setRegionMultiplier(metro.multiplier); setShowRegionModal(false); }}
+                      <button
+                        key={metro.code}
+                        onClick={() => {
+                          setRegionCode(metro.code);
+                          setRegionName(metro.name);
+                          setRegionMultiplier(metro.multiplier);
+                          setShowRegionModal(false);
+                        }}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                          regionCode === metro.code ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-cream hover:bg-white/5"
-                        }`}>
+                          regionCode === metro.code
+                            ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                            : "text-cream hover:bg-white/5"
+                        }`}
+                      >
                         <div className="text-left">
                           <span className="font-medium">{metro.name}</span>
-                          <span className="text-cream-muted text-xs ml-2">{metro.description}</span>
+                          <span className="text-cream-muted text-xs ml-2">
+                            {metro.description}
+                          </span>
                         </div>
-                        <span className="font-mono text-xs shrink-0 ml-2">{metro.displayMultiplier}</span>
+                        <span className="font-mono text-xs shrink-0 ml-2">
+                          {metro.displayMultiplier}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -406,16 +678,23 @@ export default function CostLibrary() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
-
         {/* How it works banner */}
         <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/15 rounded-lg px-4 py-3">
           <BookOpen className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
           <div className="text-sm text-cream-muted space-y-0.5">
-            <p className="text-blue-300 font-medium">How your cost library works</p>
+            <p className="text-blue-300 font-medium">
+              How your cost library works
+            </p>
             <p>
-              When <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> runs a takeoff, it checks your library first. If a takeoff item's description
-              matches one of your entries, your unit cost overrides the built-in cost table. Entries are matched
-              by keyword similarity — the closer the description, the higher the match priority.
+              When{" "}
+              <span className="font-semibold">
+                <span className="text-white">Construct</span>
+                <span className="text-amber-400">Line</span>
+              </span>{" "}
+              runs a takeoff, it checks your library first. If a takeoff item's
+              description matches one of your entries, your unit cost overrides
+              the built-in cost table. Entries are matched by keyword similarity
+              — the closer the description, the higher the match priority.
             </p>
           </div>
         </div>
@@ -425,10 +704,19 @@ export default function CostLibrary() {
           <div className="flex items-start gap-3 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-3">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-red-300 font-medium text-sm mb-1">{parseErrors.length} row{parseErrors.length !== 1 ? "s" : ""} skipped</p>
+              <p className="text-red-300 font-medium text-sm mb-1">
+                {parseErrors.length} row{parseErrors.length !== 1 ? "s" : ""}{" "}
+                skipped
+              </p>
               <ul className="text-red-300/80 text-xs space-y-0.5">
-                {parseErrors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.message}</li>)}
-                {parseErrors.length > 5 && <li>…and {parseErrors.length - 5} more</li>}
+                {parseErrors.slice(0, 5).map((e, i) => (
+                  <li key={i}>
+                    Row {e.row}: {e.message}
+                  </li>
+                ))}
+                {parseErrors.length > 5 && (
+                  <li>…and {parseErrors.length - 5} more</li>
+                )}
               </ul>
             </div>
           </div>
@@ -440,14 +728,42 @@ export default function CostLibrary() {
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-emerald-300 font-semibold text-sm">Ready to import {pendingEntries.length} entries from <span className="font-mono">{pendingFilename}</span></p>
-                <p className="text-cream-muted text-xs mt-0.5">This will <strong className="text-cream">replace</strong> your existing cost library.</p>
+                <p className="text-emerald-300 font-semibold text-sm">
+                  Ready to import {pendingEntries.length} entries from{" "}
+                  <span className="font-mono">{pendingFilename}</span>
+                </p>
+                <p className="text-cream-muted text-xs mt-0.5">
+                  This will <strong className="text-cream">replace</strong> your
+                  existing cost library.
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => { setPendingEntries(null); setParseErrors([]); }} className="border-white/20 text-cream-muted hover:text-cream"><X className="w-3.5 h-3.5 mr-1" />Cancel</Button>
-              <Button size="sm" onClick={() => uploadMutation.mutate({ entries: pendingEntries })} disabled={uploadMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
-                {uploadMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPendingEntries(null);
+                  setParseErrors([]);
+                }}
+                className="border-white/20 text-cream-muted hover:text-cream"
+              >
+                <X className="w-3.5 h-3.5 mr-1" />
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  uploadMutation.mutate({ entries: pendingEntries })
+                }
+                disabled={uploadMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              >
+                {uploadMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
                 Confirm Import
               </Button>
             </div>
@@ -473,19 +789,86 @@ export default function CostLibrary() {
               </thead>
               <tbody>
                 <tr className="border-t border-white/10">
-                  <td className="px-3 py-2"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                  <td className="px-2 py-2"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
-                  <td className="px-2 py-2"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
+                  <td className="px-3 py-2">
+                    <Input
+                      value={addState.description}
+                      onChange={e =>
+                        setAddState(s => ({
+                          ...s,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="Description"
+                      className={inputCls}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      value={addState.unit}
+                      onChange={e =>
+                        setAddState(s => ({ ...s, unit: e.target.value }))
+                      }
+                      placeholder="CY"
+                      className={inputCls}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      value={addState.unitCost}
+                      onChange={e =>
+                        setAddState(s => ({ ...s, unitCost: e.target.value }))
+                      }
+                      placeholder="0.00"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={inputCls + " text-right"}
+                    />
+                  </td>
                   <td className="px-2 py-2">
                     <div className="flex gap-1">
-                      <Input value={addState.csiDivision} onChange={e => setAddState(s => ({ ...s, csiDivision: e.target.value }))} placeholder="Div (03)" className={inputCls + " w-16 shrink-0"} />
-                      <Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} />
+                      <Input
+                        value={addState.csiDivision}
+                        onChange={e =>
+                          setAddState(s => ({
+                            ...s,
+                            csiDivision: e.target.value,
+                          }))
+                        }
+                        placeholder="Div (03)"
+                        className={inputCls + " w-16 shrink-0"}
+                      />
+                      <Input
+                        value={addState.notes}
+                        onChange={e =>
+                          setAddState(s => ({ ...s, notes: e.target.value }))
+                        }
+                        placeholder="Notes"
+                        className={inputCls}
+                      />
                     </div>
                   </td>
-                  <td className="px-2 py-2"><div className="flex gap-1">
-                    <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                    <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                  </div></td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={saveAdd}
+                        disabled={addMutation.isPending}
+                        className="text-green-400 hover:text-green-300 p-1"
+                      >
+                        {addMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setAddingForDivision(null)}
+                        className="text-cream-muted/50 hover:text-cream p-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -494,14 +877,21 @@ export default function CostLibrary() {
 
         {/* Library table */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-cream-muted animate-spin" /></div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-cream-muted animate-spin" />
+          </div>
         ) : !entries?.length && !pendingEntries ? (
           <div className="flex flex-col items-center justify-center py-16 border border-white/10 rounded-lg">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
               <FileSpreadsheet className="w-8 h-8 text-cream-muted" />
             </div>
-            <h3 className="text-lg font-semibold text-cream mb-2">Loading ConstructLine Pricing…</h3>
-            <p className="text-cream-muted text-center max-w-md">Setting up your cost library with baseline pricing across all CSI divisions.</p>
+            <h3 className="text-lg font-semibold text-cream mb-2">
+              Loading ConstructLine Pricing…
+            </h3>
+            <p className="text-cream-muted text-center max-w-md">
+              Setting up your cost library with baseline pricing across all CSI
+              divisions.
+            </p>
           </div>
         ) : entries && entries.length > 0 ? (
           <div>
@@ -509,26 +899,54 @@ export default function CostLibrary() {
             <div className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-cream font-semibold">Your Cost Library</h2>
-                <Badge className="bg-white/10 text-cream-muted border-white/20 text-xs">{entries.length} entries</Badge>
+                <Badge className="bg-white/10 text-cream-muted border-white/20 text-xs">
+                  {entries.length} entries
+                </Badge>
                 {regionCode !== "national" && (
                   <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-xs">
-                    <MapPin className="w-3 h-3 mr-1" />{regionName} ({(regionMultiplier / 10000).toFixed(2)}x)
+                    <MapPin className="w-3 h-3 mr-1" />
+                    {regionName} ({(regionMultiplier / 10000).toFixed(2)}x)
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…"
-                    className="pl-8 h-8 w-56 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40" />
-                  {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted/50 hover:text-cream"><X className="w-3.5 h-3.5" /></button>}
+                  <Input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Search…"
+                    className="pl-8 h-8 w-56 text-sm bg-navy-deep/50 border-white/10 text-cream placeholder:text-cream-muted/40"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-muted/50 hover:text-cream"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="w-px h-6 bg-white/10" />
-                <Button variant="outline" size="sm"
-                  onClick={() => { if (confirm("Clear all entries from your cost library? This cannot be undone.")) clearMutation.mutate(); }}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Clear all entries from your cost library? This cannot be undone."
+                      )
+                    )
+                      clearMutation.mutate();
+                  }}
                   disabled={clearMutation.isPending}
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5 h-8 text-xs">
-                  {clearMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5 h-8 text-xs"
+                >
+                  {clearMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
                   Clear All
                 </Button>
               </div>
@@ -542,19 +960,30 @@ export default function CostLibrary() {
                 const divName = CSI_DIVISION_NAMES[div] || `Div ${div}`;
                 const isAddingHere = addingForDivision === div;
                 return (
-                  <div key={div} className="border border-white/10 rounded-lg overflow-hidden">
+                  <div
+                    key={div}
+                    className="border border-white/10 rounded-lg overflow-hidden"
+                  >
                     {/* Division header — matches TakeoffDetail style */}
                     <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
                       <button
                         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                         onClick={() => toggleDivision(div)}
                       >
-                        {isCollapsed ? <ChevronRight className="w-4 h-4 text-cream-muted" /> : <ChevronDown className="w-4 h-4 text-cream-muted" />}
-                        <span className="text-cream font-semibold text-sm">{divName}</span>
-                        <span className="text-cream-muted text-sm">({divEntries.length})</span>
+                        {isCollapsed ? (
+                          <ChevronRight className="w-4 h-4 text-cream-muted" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-cream-muted" />
+                        )}
+                        <span className="text-cream font-semibold text-sm">
+                          {divName}
+                        </span>
+                        <span className="text-cream-muted text-sm">
+                          ({divEntries.length})
+                        </span>
                       </button>
                       <button
-                        onClick={(e) => startAddForDivision(div, e)}
+                        onClick={e => startAddForDivision(div, e)}
                         className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream px-2 py-1 rounded hover:bg-white/10 transition-colors"
                         title={`Add item to ${divName}`}
                       >
@@ -565,7 +994,10 @@ export default function CostLibrary() {
 
                     {/* Rows */}
                     {!isCollapsed && (
-                      <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                      <table
+                        className="w-full text-sm"
+                        style={{ tableLayout: "fixed" }}
+                      >
                         <ColGroup />
                         <thead>
                           <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
@@ -580,39 +1012,207 @@ export default function CostLibrary() {
                           {/* Inline add row for this division */}
                           {isAddingHere && (
                             <tr className="border-t border-white/10 bg-white/5">
-                              <td className="px-3 py-1.5"><Input value={addState.description} onChange={e => setAddState(s => ({ ...s, description: e.target.value }))} placeholder="Description" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.unit} onChange={e => setAddState(s => ({ ...s, unit: e.target.value }))} placeholder="CY" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.unitCost} onChange={e => setAddState(s => ({ ...s, unitCost: e.target.value }))} placeholder="0.00" type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                              <td className="px-2 py-1.5"><Input value={addState.notes} onChange={e => setAddState(s => ({ ...s, notes: e.target.value }))} placeholder="Notes" className={inputCls} /></td>
-                              <td className="px-2 py-1.5"><div className="flex gap-1">
-                                <button onClick={saveAdd} disabled={addMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{addMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                                <button onClick={() => setAddingForDivision(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                              </div></td>
+                              <td className="px-3 py-1.5">
+                                <Input
+                                  value={addState.description}
+                                  onChange={e =>
+                                    setAddState(s => ({
+                                      ...s,
+                                      description: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Description"
+                                  className={inputCls}
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <Input
+                                  value={addState.unit}
+                                  onChange={e =>
+                                    setAddState(s => ({
+                                      ...s,
+                                      unit: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="CY"
+                                  className={inputCls}
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <Input
+                                  value={addState.unitCost}
+                                  onChange={e =>
+                                    setAddState(s => ({
+                                      ...s,
+                                      unitCost: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="0.00"
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  className={inputCls + " text-right"}
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <Input
+                                  value={addState.notes}
+                                  onChange={e =>
+                                    setAddState(s => ({
+                                      ...s,
+                                      notes: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Notes"
+                                  className={inputCls}
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={saveAdd}
+                                    disabled={addMutation.isPending}
+                                    className="text-green-400 hover:text-green-300 p-1"
+                                  >
+                                    {addMutation.isPending ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => setAddingForDivision(null)}
+                                    className="text-cream-muted/50 hover:text-cream p-1"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           )}
                           {divEntries.map((entry: any) => {
                             const isEditing = editingId === entry.id;
                             return isEditing ? (
-                              <tr key={entry.id} className="border-t border-white/15 bg-white/5">
-                                <td className="px-3 py-1.5"><Input value={editState.description} onChange={e => setEditState(s => ({ ...s, description: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.unit} onChange={e => setEditState(s => ({ ...s, unit: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.unitCost} onChange={e => setEditState(s => ({ ...s, unitCost: e.target.value }))} type="number" min="0" step="0.01" className={inputCls + " text-right"} /></td>
-                                <td className="px-2 py-1.5"><Input value={editState.notes} onChange={e => setEditState(s => ({ ...s, notes: e.target.value }))} className={inputCls} /></td>
-                                <td className="px-2 py-1.5"><div className="flex gap-1">
-                                  <button onClick={saveEdit} disabled={updateMutation.isPending} className="text-green-400 hover:text-green-300 p-1">{updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
-                                  <button onClick={() => setEditingId(null)} className="text-cream-muted/50 hover:text-cream p-1"><X className="w-3.5 h-3.5" /></button>
-                                </div></td>
+                              <tr
+                                key={entry.id}
+                                className="border-t border-white/15 bg-white/5"
+                              >
+                                <td className="px-3 py-1.5">
+                                  <Input
+                                    value={editState.description}
+                                    onChange={e =>
+                                      setEditState(s => ({
+                                        ...s,
+                                        description: e.target.value,
+                                      }))
+                                    }
+                                    className={inputCls}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    value={editState.unit}
+                                    onChange={e =>
+                                      setEditState(s => ({
+                                        ...s,
+                                        unit: e.target.value,
+                                      }))
+                                    }
+                                    className={inputCls}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    value={editState.unitCost}
+                                    onChange={e =>
+                                      setEditState(s => ({
+                                        ...s,
+                                        unitCost: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className={inputCls + " text-right"}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    value={editState.notes}
+                                    onChange={e =>
+                                      setEditState(s => ({
+                                        ...s,
+                                        notes: e.target.value,
+                                      }))
+                                    }
+                                    className={inputCls}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={saveEdit}
+                                      disabled={updateMutation.isPending}
+                                      className="text-green-400 hover:text-green-300 p-1"
+                                    >
+                                      {updateMutation.isPending ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <Check className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingId(null)}
+                                      className="text-cream-muted/50 hover:text-cream p-1"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             ) : (
-                              <tr key={entry.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
-                                <td className="px-4 py-2.5 text-cream cursor-pointer truncate" onClick={() => startEdit(entry)}><span className="group-hover:underline decoration-white/20">{entry.description}</span></td>
-                                <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">{entry.unit}</td>
-                                <td className="px-3 py-2.5 text-emerald-400 font-mono text-right text-xs">{formatCost(entry.unitCost)}</td>
-                                <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">{entry.notes || "—"}</td>
-                                <td className="px-2 py-2.5"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                  <button onClick={() => startEdit(entry)} className="text-cream-muted/50 hover:text-cream p-1"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button onClick={() => deleteMutation.mutate({ entryId: entry.id })} disabled={deleteMutation.isPending} className="text-cream-muted/50 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div></td>
+                              <tr
+                                key={entry.id}
+                                className="border-t border-white/5 hover:bg-white/5 transition-colors group"
+                              >
+                                <td
+                                  className="px-4 py-2.5 text-cream cursor-pointer truncate"
+                                  onClick={() => startEdit(entry)}
+                                >
+                                  <span className="group-hover:underline decoration-white/20">
+                                    {entry.description}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2.5 text-cream-muted font-mono text-xs">
+                                  {entry.unit}
+                                </td>
+                                <td className="px-3 py-2.5 text-emerald-400 font-mono text-right text-xs">
+                                  {formatCost(entry.unitCost)}
+                                </td>
+                                <td className="px-3 py-2.5 text-cream-muted/60 text-xs truncate">
+                                  {entry.notes || "—"}
+                                </td>
+                                <td className="px-2 py-2.5">
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                      onClick={() => startEdit(entry)}
+                                      className="text-cream-muted/50 hover:text-cream p-1"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        deleteMutation.mutate({
+                                          entryId: entry.id,
+                                        })
+                                      }
+                                      disabled={deleteMutation.isPending}
+                                      className="text-cream-muted/50 hover:text-red-400 p-1"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}
@@ -624,11 +1224,15 @@ export default function CostLibrary() {
               })}
 
               {filtered.length === 0 && (
-                <div className="py-8 text-center text-cream-muted/50 text-sm">No entries match your search.</div>
+                <div className="py-8 text-center text-cream-muted/50 text-sm">
+                  No entries match your search.
+                </div>
               )}
 
               {search && filtered.length < entries.length && (
-                <p className="text-cream-muted/50 text-xs mt-2 text-right">Showing {filtered.length} of {entries.length} entries</p>
+                <p className="text-cream-muted/50 text-xs mt-2 text-right">
+                  Showing {filtered.length} of {entries.length} entries
+                </p>
               )}
             </div>
           </div>

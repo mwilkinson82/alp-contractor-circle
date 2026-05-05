@@ -6,10 +6,12 @@
  * - Dashboard
  * - Replay Library
  * - Templates
- * - ConstructLine (collapsible parent — admin only)
- *   ├── C1 — CPM Schedule
- *   ├── C2 — Quantity Takeoff (available to all members)
- *   └── C3 — Cost Library (available to all members)
+ * - ConstructLine
+ *   ├── Hub
+ *   ├── Basis
+ *   ├── Cost Library
+ *   ├── Trade Rate Library
+ *   └── Baseline
  * - Account
  * - Admin Panel (admin only)
  * - Subscribers / Members / Analytics / Drip (admin only)
@@ -44,10 +46,18 @@ import {
   Database,
   Lock,
 } from "lucide-react";
-import { ConstructLineWordmark, ConstructLineInline } from "@/components/ConstructLineBrand";
+import {
+  ConstructLineWordmark,
+  ConstructLineInline,
+} from "@/components/ConstructLineBrand";
 import { useState, useCallback } from "react";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -58,24 +68,73 @@ import { resetConstructLineTours } from "@/components/ConstructLineHubTour";
 import { OnlineUsersBadge } from "@/components/OnlineUsersWidget";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
 import { SetupChecklist } from "@/components/SetupChecklist";
-import RateSetupWizard, { loadRateConfig, saveRateConfig, type RateSetupConfig } from "@/components/RateSetupWizard";
+import RateSetupWizard, {
+  loadRateConfig,
+  saveRateConfig,
+  type RateSetupConfig,
+} from "@/components/RateSetupWizard";
 
 // ─── Top-level menu items (non-Construct-Line) ────────────────────────────────
 
 const topMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/portal", adminOnly: false },
-  { icon: PlayCircle, label: "Replay Library", path: "/portal/replays", adminOnly: false },
-  { icon: FileDown, label: "Templates", path: "/portal/templates", adminOnly: false },
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    path: "/portal",
+    adminOnly: false,
+  },
+  {
+    icon: PlayCircle,
+    label: "Replay Library",
+    path: "/portal/replays",
+    adminOnly: false,
+  },
+  {
+    icon: FileDown,
+    label: "Templates",
+    path: "/portal/templates",
+    adminOnly: false,
+  },
 ];
 
 const bottomMenuItems = [
-  { icon: Settings, label: "Account", path: "/portal/account", adminOnly: false },
-  { icon: ShieldCheck, label: "Admin Panel", path: "/portal/admin", adminOnly: true },
-  { icon: Users, label: "Subscribers", path: "/portal/subscribers", adminOnly: true },
+  {
+    icon: Settings,
+    label: "Account",
+    path: "/portal/account",
+    adminOnly: false,
+  },
+  {
+    icon: ShieldCheck,
+    label: "Admin Panel",
+    path: "/portal/admin",
+    adminOnly: true,
+  },
+  {
+    icon: Users,
+    label: "Subscribers",
+    path: "/portal/subscribers",
+    adminOnly: true,
+  },
   { icon: Users, label: "Members", path: "/portal/members", adminOnly: true },
-  { icon: BarChart3, label: "Analytics", path: "/portal/analytics", adminOnly: true },
-  { icon: Mail, label: "Drip Campaigns", path: "/portal/drip", adminOnly: true },
-  { icon: MessageSquare, label: "Feedback", path: "/portal/feedback", adminOnly: true },
+  {
+    icon: BarChart3,
+    label: "Analytics",
+    path: "/portal/analytics",
+    adminOnly: true,
+  },
+  {
+    icon: Mail,
+    label: "Drip Campaigns",
+    path: "/portal/drip",
+    adminOnly: true,
+  },
+  {
+    icon: MessageSquare,
+    label: "Feedback",
+    path: "/portal/feedback",
+    adminOnly: true,
+  },
 ];
 
 // ─── Skeletons & Login Prompt ─────────────────────────────────────────────────
@@ -85,13 +144,19 @@ function MemberPortalSkeleton() {
     <div className="min-h-screen bg-navy-deep flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 rounded-full border-2 border-ember border-t-transparent animate-spin" />
-        <p className="text-cream-muted text-sm font-sans">Loading your portal...</p>
+        <p className="text-cream-muted text-sm font-sans">
+          Loading your portal...
+        </p>
       </div>
     </div>
   );
 }
 
-function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => string }) {
+function MemberLoginPrompt({
+  getLoginUrl,
+}: {
+  getLoginUrl: (path?: string) => string;
+}) {
   return (
     <div className="min-h-screen bg-navy-deep flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
@@ -102,7 +167,8 @@ function MemberLoginPrompt({ getLoginUrl }: { getLoginUrl: (path?: string) => st
           Member Portal
         </h1>
         <p className="text-cream-muted mb-8 leading-relaxed">
-          Sign in with your Discord account to access The Contractor Circle member area.
+          Sign in with your Discord account to access The Contractor Circle
+          member area.
         </p>
         <a
           href={getLoginUrl("/portal")}
@@ -135,7 +201,12 @@ function ConstructLineNav({
   onNavigate?: () => void;
 }) {
   // Auto-expand if currently on a ConstructLine sub-page or hub
-  const isOnConstructLine = location === "/portal/constructline" || location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location === "/portal/cost-library" || location === "/portal/labor-library";
+  const isOnConstructLine =
+    location === "/portal/constructline" ||
+    location.startsWith("/portal/scheduler") ||
+    location.startsWith("/portal/takeoff") ||
+    location === "/portal/cost-library" ||
+    location === "/portal/labor-library";
   const [expanded, setExpanded] = useState(isOnConstructLine);
 
   const isSchedulerActive = location.startsWith("/portal/scheduler");
@@ -166,41 +237,53 @@ function ConstructLineNav({
             : "text-cream-muted hover:text-cream hover:bg-white/5"
         }`}
       >
-        <HardHat className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`} />
+        <HardHat
+          className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`}
+        />
         <span className="flex-1 text-left font-bold tracking-tight">
-          <span className={isParentActive ? "text-white" : "text-cream-muted"}>Construct</span>
+          <span className={isParentActive ? "text-white" : "text-cream-muted"}>
+            Construct
+          </span>
           <span className="text-amber-400">Line</span>
         </span>
         <button
-          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          onClick={e => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
           className="p-0.5 hover:bg-white/10 rounded"
         >
-          {expanded
-            ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-            : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-          }
+          {expanded ? (
+            <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+          )}
         </button>
       </button>
 
       {/* Children */}
       {expanded && (
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/8 pl-3">
-          {/* C1 — CPM Schedule */}
+          {/* Hub */}
           <button
-            data-tour="nav-scheduler"
-            onClick={() => navigate("/portal/scheduler")}
+            data-tour="nav-constructline-hub"
+            onClick={() => navigate("/portal/constructline")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isSchedulerActive
+              isHubActive
                 ? "bg-ember/10 text-ember font-medium"
                 : "text-cream-muted hover:text-cream hover:bg-white/5"
             }`}
           >
-            <GanttChart className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`} />
-            <span>CPM Schedule</span>
-            {isSchedulerActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            <LayoutDashboard
+              className={`w-3.5 h-3.5 shrink-0 ${isHubActive ? "text-ember" : ""}`}
+            />
+            <span>Hub</span>
+            {isHubActive && (
+              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+            )}
           </button>
 
-          {/* C2 — Quantity Takeoff — available to all members */}
+          {/* Basis */}
           <button
             data-tour="nav-takeoff"
             onClick={() => navigate("/portal/takeoff")}
@@ -210,12 +293,16 @@ function ConstructLineNav({
                 : "text-cream-muted hover:text-cream hover:bg-white/5"
             }`}
           >
-            <Ruler className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`} />
-            <span>Quantity Takeoff</span>
-            {isTakeoffActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            <Ruler
+              className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`}
+            />
+            <span>Basis</span>
+            {isTakeoffActive && (
+              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+            )}
           </button>
 
-          {/* C3 — Cost Library — available to all members */}
+          {/* Cost Library */}
           <button
             onClick={() => navigate("/portal/cost-library")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
@@ -224,12 +311,16 @@ function ConstructLineNav({
                 : "text-cream-muted hover:text-cream hover:bg-white/5"
             }`}
           >
-            <Database className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`} />
+            <Database
+              className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`}
+            />
             <span>Cost Library</span>
-            {isCostLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            {isCostLibraryActive && (
+              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+            )}
           </button>
 
-          {/* C4 — Trade Rate Library — available to all members */}
+          {/* Trade Rate Library */}
           <button
             onClick={() => navigate("/portal/labor-library")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
@@ -238,9 +329,32 @@ function ConstructLineNav({
                 : "text-cream-muted hover:text-cream hover:bg-white/5"
             }`}
           >
-            <HardHat className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-ember" : ""}`} />
+            <HardHat
+              className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-ember" : ""}`}
+            />
             <span>Trade Rate Library</span>
-            {isLaborLibraryActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />}
+            {isLaborLibraryActive && (
+              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+            )}
+          </button>
+
+          {/* Baseline */}
+          <button
+            data-tour="nav-scheduler"
+            onClick={() => navigate("/portal/scheduler")}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
+              isSchedulerActive
+                ? "bg-ember/10 text-ember font-medium"
+                : "text-cream-muted hover:text-cream hover:bg-white/5"
+            }`}
+          >
+            <GanttChart
+              className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`}
+            />
+            <span>Baseline</span>
+            {isSchedulerActive && (
+              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+            )}
           </button>
         </div>
       )}
@@ -265,30 +379,41 @@ export default function MemberPortalLayout({
     resetConstructLineTours();
     portalResetTour();
   };
-  const { showModal: showWhatsNew, dismiss: dismissWhatsNew, openManually: openWhatsNew } = useWhatsNew();
+  const {
+    showModal: showWhatsNew,
+    dismiss: dismissWhatsNew,
+    openManually: openWhatsNew,
+  } = useWhatsNew();
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const checkoutMut = trpc.stripe.createCircleCheckout.useMutation({
-    onSuccess: (data) => {
-      if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+    onSuccess: data => {
+      if (data.checkoutUrl) window.open(data.checkoutUrl, "_blank");
     },
   });
 
   // Setup checklist state — hooks must be called before any early returns
   const isBetaUser = betaUser && !member;
   const hasRateConfig = !!loadRateConfig();
-  const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, { enabled: !!isBetaUser });
+  const takeoffProjects = trpc.takeoff.listProjects.useQuery(undefined, {
+    enabled: !!isBetaUser,
+  });
   const hasTakeoffProject = (takeoffProjects.data?.length ?? 0) > 0;
 
   if (loading || betaLoading) return <MemberPortalSkeleton />;
-  if (!isAuthenticated && !betaUser) return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
+  if (!isAuthenticated && !betaUser)
+    return <MemberLoginPrompt getLoginUrl={getLoginUrl} />;
 
-  const isSubscribed = member?.subscriptionStatus === 'active' || member?.subscriptionStatus === 'trialing';
+  const isSubscribed =
+    member?.subscriptionStatus === "active" ||
+    member?.subscriptionStatus === "trialing";
 
   const avatarUrl = member?.avatarUrl || "";
-  const displayName = betaUser ? betaUser.name : (member?.displayName || member?.discordUsername || "Member");
+  const displayName = betaUser
+    ? betaUser.name
+    : member?.displayName || member?.discordUsername || "Member";
   const memberRole = member?.memberRole || "member";
 
   const roleLabel =
@@ -301,27 +426,41 @@ export default function MemberPortalLayout({
   const isAdmin = member?.memberRole === "admin";
 
   // Beta user mode: only ConstructLine tools are unlocked
-  const isConstructLinePage = location === "/portal/constructline" || location.startsWith("/portal/scheduler") || location.startsWith("/portal/takeoff") || location.startsWith("/portal/cost-library") || location.startsWith("/portal/labor-library");
+  const isConstructLinePage =
+    location === "/portal/constructline" ||
+    location.startsWith("/portal/scheduler") ||
+    location.startsWith("/portal/takeoff") ||
+    location.startsWith("/portal/cost-library") ||
+    location.startsWith("/portal/labor-library");
   const isLockedPage = !isConstructLinePage && isBetaUser;
 
   // Stripe checkout link for upgrade CTA
-  const STRIPE_CHECKOUT = "https://checkout.stripe.com/c/pay/cs_live_b1ORSXM3hl0VYviHrsNIhh85uE2JURl6hPh0s9h50M7Xocold1u1lw1ZhZ#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0TVVJPEFPYUFEUFZTXWdLUFFOUU82bENSbmgzMTJRZkNkUlV9QjJvQEswfH1KVGdKYWpUTkh3MkByVFNhYHRkXUtPS1JxQ1ZfT1VmTH92S3VDcDJydDdHNTVDd2RQNjNdbCcpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZnZ2E1Y2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
+  const STRIPE_CHECKOUT =
+    "https://checkout.stripe.com/c/pay/cs_live_b1ORSXM3hl0VYviHrsNIhh85uE2JURl6hPh0s9h50M7Xocold1u1lw1ZhZ#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0TVVJPEFPYUFEUFZTXWdLUFFOUU82bENSbmgzMTJRZkNkUlV9QjJvQEswfH1KVGdKYWpUTkh3MkByVFNhYHRkXUtPS1JxQ1ZfT1VmTH92S3VDcDJydDdHNTVDd2RQNjNdbCcpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZnZ2E1Y2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
 
   // Determine active page label for mobile header
   const allPaths = [
     ...topMenuItems,
     { label: "ConstructLine", path: "/portal/constructline" },
-    { label: "Scheduler", path: "/portal/scheduler" },
-    { label: "Takeoff", path: "/portal/takeoff" },
+    { label: "Baseline", path: "/portal/scheduler" },
+    { label: "Basis", path: "/portal/takeoff" },
     ...bottomMenuItems,
   ];
-  const activeItem = allPaths.find(item =>
-    location === item.path || (item.path !== "/portal" && location.startsWith(item.path))
+  const activeItem = allPaths.find(
+    item =>
+      location === item.path ||
+      (item.path !== "/portal" && location.startsWith(item.path))
   );
-  const activeLabel = activeItem?.label || (location.startsWith("/portal/scheduler") ? "Scheduler" : "Portal");
+  const activeLabel =
+    activeItem?.label ||
+    (location.startsWith("/portal/scheduler") ? "Baseline" : "Portal");
 
-  const visibleTopItems = topMenuItems.filter(item => !item.adminOnly || isAdmin);
-  const visibleBottomItems = bottomMenuItems.filter(item => !item.adminOnly || isAdmin);
+  const visibleTopItems = topMenuItems.filter(
+    item => !item.adminOnly || isAdmin
+  );
+  const visibleBottomItems = bottomMenuItems.filter(
+    item => !item.adminOnly || isAdmin
+  );
 
   return (
     <div className="min-h-screen bg-navy-deep flex">
@@ -332,7 +471,11 @@ export default function MemberPortalLayout({
           <div className="p-5 border-b border-white/5">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center">
-                <img src="/manus-storage/contractor_circle_icon_v5_7747cde6.webp" alt="Contractor Circle" className="w-9 h-9 object-contain" />
+                <img
+                  src="/manus-storage/contractor_circle_icon_v5_7747cde6.webp"
+                  alt="Contractor Circle"
+                  className="w-9 h-9 object-contain"
+                />
               </div>
               <div>
                 <h2 className="font-heading text-sm font-semibold text-cream tracking-tight">
@@ -349,12 +492,14 @@ export default function MemberPortalLayout({
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {/* Top items */}
             {visibleTopItems.map(item => {
-              const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+              const isActive =
+                location === item.path ||
+                (item.path !== "/portal" && location.startsWith(item.path));
               const isLocked = isBetaUser;
               return (
                 <button
                   key={item.path}
-                  data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                   onClick={() => {
                     if (isLocked) {
                       setShowUpsellModal(true);
@@ -362,7 +507,11 @@ export default function MemberPortalLayout({
                       setLocation(item.path);
                     }
                   }}
-                  title={isLocked ? "Upgrade to Contractor Circle to unlock" : undefined}
+                  title={
+                    isLocked
+                      ? "Upgrade to Contractor Circle to unlock"
+                      : undefined
+                  }
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
@@ -371,12 +520,17 @@ export default function MemberPortalLayout({
                         : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`} />
+                  <item.icon
+                    className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`}
+                  />
                   <span>{item.label}</span>
-                  {isLocked
-                    ? <Lock className="w-3 h-3 ml-auto opacity-60" />
-                    : isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
-                  }
+                  {isLocked ? (
+                    <Lock className="w-3 h-3 ml-auto opacity-60" />
+                  ) : (
+                    isActive && (
+                      <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                    )
+                  )}
                 </button>
               );
             })}
@@ -404,7 +558,9 @@ export default function MemberPortalLayout({
 
             {/* Bottom items */}
             {visibleBottomItems.map(item => {
-              const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+              const isActive =
+                location === item.path ||
+                (item.path !== "/portal" && location.startsWith(item.path));
               const isLocked = isBetaUser;
               return (
                 <button
@@ -416,7 +572,11 @@ export default function MemberPortalLayout({
                       setLocation(item.path);
                     }
                   }}
-                  title={isLocked ? "Upgrade to Contractor Circle to unlock" : undefined}
+                  title={
+                    isLocked
+                      ? "Upgrade to Contractor Circle to unlock"
+                      : undefined
+                  }
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
@@ -425,12 +585,17 @@ export default function MemberPortalLayout({
                         : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`} />
+                  <item.icon
+                    className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`}
+                  />
                   <span>{item.label}</span>
-                  {isLocked
-                    ? <Lock className="w-3 h-3 ml-auto opacity-60" />
-                    : isActive && <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
-                  }
+                  {isLocked ? (
+                    <Lock className="w-3 h-3 ml-auto opacity-60" />
+                  ) : (
+                    isActive && (
+                      <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                    )
+                  )}
                 </button>
               );
             })}
@@ -445,8 +610,12 @@ export default function MemberPortalLayout({
                 className="w-9 h-9 rounded-full border border-white/10"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-cream truncate">{displayName}</p>
-                <p className="text-[10px] text-ember uppercase tracking-wider">{roleLabel}</p>
+                <p className="text-sm font-medium text-cream truncate">
+                  {displayName}
+                </p>
+                <p className="text-[10px] text-ember uppercase tracking-wider">
+                  {roleLabel}
+                </p>
               </div>
             </div>
             <OnlineUsersBadge />
@@ -485,7 +654,11 @@ export default function MemberPortalLayout({
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center"
               >
-                {mobileMenuOpen ? <X className="w-4 h-4 text-cream" /> : <Menu className="w-4 h-4 text-cream" />}
+                {mobileMenuOpen ? (
+                  <X className="w-4 h-4 text-cream" />
+                ) : (
+                  <Menu className="w-4 h-4 text-cream" />
+                )}
               </button>
               <span className="font-heading text-sm font-semibold text-cream">
                 {activeLabel}
@@ -505,7 +678,9 @@ export default function MemberPortalLayout({
             <nav className="p-4 space-y-2">
               {/* Top items */}
               {visibleTopItems.map(item => {
-                const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+                const isActive =
+                  location === item.path ||
+                  (item.path !== "/portal" && location.startsWith(item.path));
                 const isLocked = isBetaUser;
                 return (
                   <button
@@ -527,9 +702,13 @@ export default function MemberPortalLayout({
                           : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`} />
+                    <item.icon
+                      className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`}
+                    />
                     <span>{item.label}</span>
-                    {isLocked && <Lock className="w-4 h-4 ml-auto opacity-60" />}
+                    {isLocked && (
+                      <Lock className="w-4 h-4 ml-auto opacity-60" />
+                    )}
                   </button>
                 );
               })}
@@ -542,40 +721,74 @@ export default function MemberPortalLayout({
                 </p>
               </div>
               <button
-                onClick={() => { setLocation("/portal/scheduler"); setMobileMenuOpen(false); }}
+                onClick={() => {
+                  setLocation("/portal/constructline");
+                  setMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                  location.startsWith("/portal/scheduler") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                  location === "/portal/constructline"
+                    ? "bg-ember/10 text-ember font-medium"
+                    : "text-cream-muted hover:text-cream hover:bg-white/5"
                 }`}
               >
-                <GanttChart className="w-5 h-5" />
-                <span>CPM Schedule</span>
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Hub</span>
               </button>
-               <button
-                onClick={() => { setLocation("/portal/takeoff"); setMobileMenuOpen(false); }}
+              <button
+                onClick={() => {
+                  setLocation("/portal/takeoff");
+                  setMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                  location.startsWith("/portal/takeoff") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                  location.startsWith("/portal/takeoff")
+                    ? "bg-ember/10 text-ember font-medium"
+                    : "text-cream-muted hover:text-cream hover:bg-white/5"
                 }`}
               >
                 <Ruler className="w-5 h-5" />
-                <span>Quantity Takeoff</span>
+                <span>Basis</span>
               </button>
               <button
-                onClick={() => { setLocation("/portal/cost-library"); setMobileMenuOpen(false); }}
+                onClick={() => {
+                  setLocation("/portal/cost-library");
+                  setMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                  location.startsWith("/portal/cost-library") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                  location.startsWith("/portal/cost-library")
+                    ? "bg-ember/10 text-ember font-medium"
+                    : "text-cream-muted hover:text-cream hover:bg-white/5"
                 }`}
               >
                 <Database className="w-5 h-5" />
                 <span>Cost Library</span>
               </button>
               <button
-                onClick={() => { setLocation("/portal/labor-library"); setMobileMenuOpen(false); }}
+                onClick={() => {
+                  setLocation("/portal/labor-library");
+                  setMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
-                  location.startsWith("/portal/labor-library") ? "bg-ember/10 text-ember font-medium" : "text-cream-muted hover:text-cream hover:bg-white/5"
+                  location.startsWith("/portal/labor-library")
+                    ? "bg-ember/10 text-ember font-medium"
+                    : "text-cream-muted hover:text-cream hover:bg-white/5"
                 }`}
               >
                 <HardHat className="w-5 h-5" />
                 <span>Trade Rate Library</span>
+              </button>
+              <button
+                onClick={() => {
+                  setLocation("/portal/scheduler");
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
+                  location.startsWith("/portal/scheduler")
+                    ? "bg-ember/10 text-ember font-medium"
+                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                }`}
+              >
+                <GanttChart className="w-5 h-5" />
+                <span>Baseline</span>
               </button>
 
               {/* Setup Checklist for beta users (mobile) */}
@@ -593,7 +806,10 @@ export default function MemberPortalLayout({
               {visibleBottomItems.length > 0 && (
                 <div className="border-t border-white/5 pt-2 mt-2 space-y-2">
                   {visibleBottomItems.map(item => {
-                    const isActive = location === item.path || (item.path !== "/portal" && location.startsWith(item.path));
+                    const isActive =
+                      location === item.path ||
+                      (item.path !== "/portal" &&
+                        location.startsWith(item.path));
                     const isLocked = isBetaUser;
                     return (
                       <button
@@ -615,9 +831,13 @@ export default function MemberPortalLayout({
                               : "text-cream-muted hover:text-cream hover:bg-white/5"
                         }`}
                       >
-                        <item.icon className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`} />
+                        <item.icon
+                          className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`}
+                        />
                         <span>{item.label}</span>
-                        {isLocked && <Lock className="w-4 h-4 ml-auto opacity-60" />}
+                        {isLocked && (
+                          <Lock className="w-4 h-4 ml-auto opacity-60" />
+                        )}
                       </button>
                     );
                   })}
@@ -642,9 +862,17 @@ export default function MemberPortalLayout({
           {isBetaUser && !betaUser?.discordConnected && (
             <div className="mb-4 p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                <svg
+                  className="w-5 h-5 text-indigo-400 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+                </svg>
                 <p className="text-sm text-indigo-300 font-medium">
-                  Connect Discord to join the ALP community and get the <strong className="text-indigo-200">ConstructLine</strong> role.
+                  Connect Discord to join the ALP community and get the{" "}
+                  <strong className="text-indigo-200">ConstructLine</strong>{" "}
+                  role.
                 </p>
               </div>
               <a
@@ -658,9 +886,21 @@ export default function MemberPortalLayout({
           {isBetaUser && betaUser?.discordConnected && (
             <div className="mb-4 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                <svg
+                  className="w-5 h-5 text-emerald-400 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+                </svg>
                 <p className="text-sm text-emerald-300 font-medium">
-                  Discord connected{betaUser.discordUsername ? ` as <strong className="text-emerald-200">${betaUser.discordUsername}</strong>` : ""}. You have the <strong className="text-emerald-200">ConstructLine</strong> role in the ALP server.
+                  Discord connected
+                  {betaUser.discordUsername
+                    ? ` as <strong className="text-emerald-200">${betaUser.discordUsername}</strong>`
+                    : ""}
+                  . You have the{" "}
+                  <strong className="text-emerald-200">ConstructLine</strong>{" "}
+                  role in the ALP server.
                 </p>
               </div>
               <button
@@ -674,7 +914,9 @@ export default function MemberPortalLayout({
           {isBetaUser && !betaUser?.discordConnected && (
             <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-4">
               <p className="text-sm text-amber-400 font-medium">
-                You have access to ConstructLine tools. Unlock the full Contractor Circle for live coaching, templates, replays, and more.
+                You have access to ConstructLine tools. Unlock the full
+                Contractor Circle for live coaching, templates, replays, and
+                more.
               </p>
               <button
                 onClick={() => setShowUpsellModal(true)}
@@ -687,16 +929,25 @@ export default function MemberPortalLayout({
 
           {/* Mobile Desktop Notice — only visible on small screens */}
           <div className="md:hidden mb-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-center">
-            <p className="text-xs font-semibold text-indigo-400 mb-1">Best on Desktop</p>
-            <p className="text-xs text-gray-400 leading-relaxed">ConstructLine tools are built for desktop or laptop. For the full experience with takeoffs and scheduling, hop on a computer.</p>
+            <p className="text-xs font-semibold text-indigo-400 mb-1">
+              Best on Desktop
+            </p>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              ConstructLine tools are built for desktop or laptop. For the full
+              experience with takeoffs and scheduling, hop on a computer.
+            </p>
           </div>
           {isLockedPage && (
             <div className="absolute inset-0 bg-navy-deep/60 backdrop-blur-sm rounded-lg flex items-center justify-center z-40">
               <div className="text-center">
                 <Lock className="w-12 h-12 text-cream-muted/50 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-cream mb-2">Full Portal Access Required</h3>
+                <h3 className="text-lg font-semibold text-cream mb-2">
+                  Full Portal Access Required
+                </h3>
                 <p className="text-cream-muted text-sm mb-2 max-w-sm">
-                  This feature is exclusive to Contractor Circle members. Get live coaching, templates, replays, and the full ConstructLine suite.
+                  This feature is exclusive to Contractor Circle members. Get
+                  live coaching, templates, replays, and the full ConstructLine
+                  suite.
                 </p>
                 <a
                   href="/"
@@ -722,7 +973,9 @@ export default function MemberPortalLayout({
               Contractor Circle Members Only
             </DialogTitle>
             <DialogDescription className="text-center text-cream-muted leading-relaxed">
-              This area is exclusive to Contractor Circle members. Get live coaching, templates, replay library, and the full ConstructLine suite.
+              This area is exclusive to Contractor Circle members. Get live
+              coaching, templates, replay library, and the full ConstructLine
+              suite.
             </DialogDescription>
           </DialogHeader>
           <div className="text-center text-sm text-cream-muted/70 py-2">
@@ -737,7 +990,9 @@ export default function MemberPortalLayout({
               }}
               disabled={checkoutMut.isPending}
             >
-              {checkoutMut.isPending ? "Redirecting..." : "Yes — Join Contractor Circle"}
+              {checkoutMut.isPending
+                ? "Redirecting..."
+                : "Yes — Join Contractor Circle"}
             </Button>
             <Button
               variant="ghost"
@@ -752,7 +1007,6 @@ export default function MemberPortalLayout({
 
       {/* What's New Changelog Modal */}
       <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />
-
     </div>
   );
 }
