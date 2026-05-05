@@ -187,7 +187,7 @@ function BuildingHeroArt() {
       <div
         className="absolute inset-0 bg-no-repeat opacity-95"
         style={{
-          backgroundImage: "url('/constructline-hub-mock.png')",
+          backgroundImage: "url('/manus-storage/constructline-hub-mock_ddfb4940.png')",
           backgroundPosition: "55% 7%",
           backgroundSize: "920px auto",
         }}
