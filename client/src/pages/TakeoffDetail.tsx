@@ -1428,7 +1428,7 @@ function AnomalyCenterDialog({
 
   return (
     <Dialog open={open} onOpenChange={value => !value && onClose()}>
-      <DialogContent className="!w-[min(1320px,96vw)] !max-w-[min(1320px,96vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+      <DialogContent className="!w-[min(1540px,98vw)] !max-w-[min(1540px,98vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
         <DialogHeader className="border-b border-[#d8c9ad] px-7 py-5">
           <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
             <div>
@@ -1468,7 +1468,7 @@ function AnomalyCenterDialog({
             </div>
           </div>
         ) : (
-          <div className="grid max-h-[78vh] min-h-[620px] grid-cols-[360px_minmax(0,1fr)] overflow-hidden">
+          <div className="grid max-h-[78vh] min-h-[620px] grid-cols-[340px_minmax(0,1fr)] overflow-hidden">
             <aside className="border-r border-[#d7c7aa] bg-[#eee4d2] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
@@ -1557,7 +1557,7 @@ function AnomalyCenterDialog({
                   </div>
 
                   <div className="mt-4 overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4]">
-                    <div className="grid grid-cols-[minmax(0,1fr)_104px_104px_112px_minmax(300px,auto)] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                    <div className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
                       <span>Description</span>
                       <span className="text-right">Qty</span>
                       <span className="text-right">Confidence</span>
@@ -1569,38 +1569,44 @@ function AnomalyCenterDialog({
                         const cue = getEstimatorCue(item);
                         const scopeStatus = getScopeReviewStatus(item);
                         const hasQuantity = Number(item.quantity || 0) > 0;
+                        const description =
+                          item.description ||
+                          String(item.notes || "")
+                            .replace(/\[Scope:\s*(?:included|review|excluded)\]\s*/gi, "")
+                            .trim() ||
+                          "Untitled takeoff row";
                         return (
                           <div
                             key={`${activeAnomaly.id}-${item.id}`}
-                            className="grid grid-cols-[minmax(0,1fr)_104px_104px_112px_minmax(300px,auto)] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3"
+                            className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3"
                           >
                             <button
                               type="button"
                               onClick={() => onOpenItem(item)}
                               className="min-w-0 text-left"
                             >
-                              <p className="truncate text-sm font-semibold text-[#171714]">
-                                {item.description || "Untitled item"}
+                              <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#171714]">
+                                {description}
                               </p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 <Badge className={`${cue.className} border text-[10px]`}>
                                   {cue.label}
                                 </Badge>
-                                <span className="text-[11px] text-[#716855]">
+                                <span className="whitespace-nowrap text-[11px] text-[#716855]">
                                   {item.csiCode || item.csiDivision || "No CSI"}
                                 </span>
                               </div>
                             </button>
-                            <span className="text-right font-mono text-xs text-[#5d5546]">
+                            <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
                               {item.quantity || "—"} {item.unit || ""}
                             </span>
-                            <span className="text-right font-mono text-xs text-[#5d5546]">
+                            <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
                               {item.confidence ? `${item.confidence}%` : "—"}
                             </span>
-                            <span className="text-right font-mono text-xs font-semibold text-[#8a6510]">
+                            <span className="whitespace-nowrap text-right font-mono text-xs font-semibold text-[#8a6510]">
                               {formatCurrency(Number(item.extendedCost || 0), currency)}
                             </span>
-                            <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 text-right">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1720,6 +1726,7 @@ export default function TakeoffDetail() {
 
   const [activeTab, setActiveTab] = useState("sheets");
   const [previewSheet, setPreviewSheet] = useState<any>(null);
+  const [previewItem, setPreviewItem] = useState<any>(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -3531,7 +3538,15 @@ export default function TakeoffDetail() {
       toast.info("No source drawing is linked to this row yet");
       return;
     }
-    openDrawingNavigator(item.sheetId);
+    const sourceSheet = sheets.find((sheet: any) => sheet.id === item.sheetId);
+    if (!sourceSheet?.imageUrl) {
+      openDrawingNavigator(item.sheetId);
+      setShowAnomalyCenter(false);
+      return;
+    }
+    setPreviewSheet(sourceSheet);
+    setPreviewItem(item);
+    setPreviewZoom(1);
     setShowAnomalyCenter(false);
   };
 
@@ -3541,6 +3556,21 @@ export default function TakeoffDetail() {
       projectId,
       reviewed: true,
     });
+    setPreviewItem((prev: any) =>
+      prev?.id === item.id ? { ...prev, reviewed: true } : prev
+    );
+  };
+
+  const applyPreviewScopeDecision = (
+    item: any,
+    status: "included" | "review" | "excluded",
+    reviewed = true
+  ) => {
+    const notes = scopeDecisionNotes(item.notes, status);
+    applyScopeDecision(item, status, reviewed);
+    setPreviewItem((prev: any) =>
+      prev?.id === item.id ? { ...prev, notes, reviewed } : prev
+    );
   };
 
   return (
@@ -6819,6 +6849,7 @@ export default function TakeoffDetail() {
         onClose={() => setShowDrawingNavigator(false)}
         onOpenPreview={sheet => {
           setPreviewSheet(sheet);
+          setPreviewItem(null);
         }}
         onOpenItem={(item, sheet) => {
           setSelectedItem({ ...item, sourceSheetOverrideId: sheet.id });
@@ -6847,7 +6878,13 @@ export default function TakeoffDetail() {
       />
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
-      <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
+      <Dialog
+        open={!!previewSheet}
+        onOpenChange={() => {
+          setPreviewSheet(null);
+          setPreviewItem(null);
+        }}
+      >
         <DialogContent className="flex h-[94vh] !w-[min(1920px,98vw)] !max-w-[min(1920px,98vw)] flex-col border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
           <DialogHeader className="border-b border-[#d8c9ad] px-6 py-4 pr-12">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -6902,19 +6939,187 @@ export default function TakeoffDetail() {
               </div>
             </div>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-auto bg-[#2f2f2b] p-5">
-            {previewSheet?.imageUrl && (
-              <div className="mx-auto flex min-h-full w-max min-w-full items-center justify-center">
-                <img
-                  src={previewSheet.imageUrl}
-                  alt={previewSheet.sheetName || "Drawing"}
-                  className="h-auto rounded-sm bg-white shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
-                  style={{
-                    width: `${previewZoom * 100}%`,
-                    maxWidth: previewZoom <= 1 ? "100%" : "none",
-                  }}
-                />
-              </div>
+          <div
+            className={`grid min-h-0 flex-1 ${
+              previewItem ? "grid-cols-[minmax(0,1fr)_340px]" : "grid-cols-1"
+            }`}
+          >
+            <div className="min-h-0 overflow-auto bg-[#2f2f2b] p-5">
+              {previewSheet?.imageUrl && (
+                <div className="mx-auto flex min-h-full w-max min-w-full items-center justify-center">
+                  <img
+                    src={previewSheet.imageUrl}
+                    alt={previewSheet.sheetName || "Drawing"}
+                    className="h-auto rounded-sm bg-white shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
+                    style={{
+                      width: `${previewZoom * 100}%`,
+                      maxWidth: previewZoom <= 1 ? "100%" : "none",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            {previewItem && (
+              <aside className="min-h-0 overflow-y-auto border-l border-[#d7c7aa] bg-[#eee4d2] p-4">
+                {(() => {
+                  const scopeStatus = getScopeReviewStatus(previewItem);
+                  const cue = getEstimatorCue(previewItem);
+                  const hasQuantity = Number(previewItem.quantity || 0) > 0;
+                  const description =
+                    previewItem.description ||
+                    String(previewItem.notes || "")
+                      .replace(/\[Scope:\s*(?:included|review|excluded)\]\s*/gi, "")
+                      .trim() ||
+                    "Untitled takeoff row";
+                  return (
+                    <div className="rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                        Estimator Review
+                      </p>
+                      <h3 className="mt-3 text-lg font-semibold leading-6 text-[#171714]">
+                        {description}
+                      </h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        <Badge className={`${cue.className} border text-[10px]`}>
+                          {cue.label}
+                        </Badge>
+                        <Badge className="border-[#d7c7aa] bg-[#faf8f2] text-[10px] text-[#716855]">
+                          {formatScopeReviewStatus(scopeStatus)}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                            Quantity
+                          </p>
+                          <p className="mt-1 font-mono text-sm font-semibold text-[#171714]">
+                            {previewItem.quantity || "—"} {previewItem.unit || ""}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                            Confidence
+                          </p>
+                          <p className="mt-1 font-mono text-sm font-semibold text-[#171714]">
+                            {previewItem.confidence
+                              ? `${previewItem.confidence}%`
+                              : "—"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                            Value
+                          </p>
+                          <p className="mt-1 font-mono text-sm font-semibold text-[#8a6510]">
+                            {formatCurrency(
+                              Number(previewItem.extendedCost || 0),
+                              project?.currency || "USD"
+                            )}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                            CSI
+                          </p>
+                          <p className="mt-1 truncate font-mono text-sm font-semibold text-[#171714]">
+                            {previewItem.csiCode ||
+                              previewItem.csiDivision ||
+                              "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`h-9 w-full justify-start rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                          onClick={() => {
+                            setSelectedItem({
+                              ...previewItem,
+                              sourceSheetOverrideId: previewSheet?.id,
+                            });
+                            setPreviewSheet(null);
+                            setPreviewItem(null);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Open Item Detail
+                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          {scopeStatus !== "included" && (
+                            <Button
+                              size="sm"
+                              className="h-9 bg-emerald-600 text-white hover:bg-emerald-700"
+                              onClick={() =>
+                                applyPreviewScopeDecision(previewItem, "included")
+                              }
+                              disabled={updateItemMutation.isPending}
+                            >
+                              <Check className="mr-1.5 h-4 w-4" />
+                              Include
+                            </Button>
+                          )}
+                          {scopeStatus !== "review" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 border-[#d7b44d] bg-[#fff7da] text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
+                              onClick={() =>
+                                applyPreviewScopeDecision(previewItem, "review", false)
+                              }
+                              disabled={updateItemMutation.isPending}
+                            >
+                              <Flag className="mr-1.5 h-4 w-4" />
+                              Review
+                            </Button>
+                          )}
+                          {scopeStatus !== "excluded" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 border-orange-300 bg-orange-50 text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
+                              onClick={() =>
+                                applyPreviewScopeDecision(previewItem, "excluded")
+                              }
+                              disabled={updateItemMutation.isPending}
+                            >
+                              <X className="mr-1.5 h-4 w-4" />
+                              Exclude
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 border-emerald-300 bg-emerald-50 text-emerald-800 hover:!bg-emerald-100 hover:!text-emerald-900"
+                            onClick={() => {
+                              if (hasQuantity) {
+                                markAnomalyItemReviewed(previewItem);
+                                return;
+                              }
+                              setSelectedItem({
+                                ...previewItem,
+                                sourceSheetOverrideId: previewSheet?.id,
+                              });
+                              setPreviewSheet(null);
+                              setPreviewItem(null);
+                            }}
+                            disabled={updateItemMutation.isPending}
+                          >
+                            {hasQuantity ? (
+                              <CheckSquare className="mr-1.5 h-4 w-4" />
+                            ) : (
+                              <Ruler className="mr-1.5 h-4 w-4" />
+                            )}
+                            {hasQuantity ? "Confirm" : "Edit Qty"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </aside>
             )}
           </div>
         </DialogContent>
