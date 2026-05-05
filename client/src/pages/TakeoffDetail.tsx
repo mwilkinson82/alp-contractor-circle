@@ -1720,11 +1720,21 @@ function AnomalyCenterDialog({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TakeoffDetail() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [, params] = useRoute("/takeoff/:id");
   const projectId = params?.id ? parseInt(params.id, 10) : 0;
+  const initialTab =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("tab")
+      : location.includes("?tab=estimate")
+        ? "estimate"
+        : null;
 
-  const [activeTab, setActiveTab] = useState("sheets");
+  const [activeTab, setActiveTab] = useState(
+    initialTab === "estimate" || initialTab === "items" || initialTab === "sheets"
+      ? initialTab
+      : "sheets"
+  );
   const [previewSheet, setPreviewSheet] = useState<any>(null);
   const [previewItem, setPreviewItem] = useState<any>(null);
   const [previewZoom, setPreviewZoom] = useState(1);

@@ -1,47 +1,40 @@
 /**
- * ConstructLineHub — Entry point for the ConstructLine suite.
+ * ConstructLineHub — polished entry point for the ConstructLine suite.
  *
- * Triggers Rate Setup Wizard on first visit (no saved config).
- * Shows recent takeoff projects, four module launch cards, and a changelog feed.
+ * This is the first impression for Review → Estimate → Submit, so it favors
+ * decisive project routing and bid packaging over generic module navigation.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Ruler,
-  Database,
-  HardHat,
-  GanttChart,
   ArrowRight,
-  Settings2,
-  Sparkles,
-  ChevronRight,
-  FileStack,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Upload,
-  FileText,
-  Loader2,
-  Plus,
-  Layers,
-  Zap,
-  Wrench,
-  Palette,
-  ScanLine,
-  DollarSign,
   BarChart3,
-  PenTool,
-  Newspaper,
-  TrendingUp,
-  Search,
-  SlidersHorizontal,
+  Bell,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCircle2,
   ClipboardCheck,
+  Database,
+  FileCheck2,
+  FileText,
+  GanttChart,
+  HardHat,
+  Layers,
+  Loader2,
+  PackageCheck,
+  Plus,
+  Ruler,
+  Search,
+  Send,
+  Settings2,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
-import { ConstructLineWordmark } from "@/components/ConstructLineBrand";
 import RateSetupWizard, {
   loadRateConfig,
   saveRateConfig,
@@ -49,188 +42,208 @@ import RateSetupWizard, {
 } from "@/components/RateSetupWizard";
 import { trpc } from "@/lib/trpc";
 
-// ─── Status config ─────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:           { label: "Draft",      color: "bg-white text-[#716855] border-[#d7c7aa]",    icon: FileText },
-  uploading:       { label: "Uploading",  color: "bg-blue-50 text-[#244c91] border-blue-200",    icon: Upload },
-  processing:      { label: "Processing", color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",   icon: Loader2 },
-  post_processing: { label: "Processing", color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",   icon: Loader2 },
-  completed:       { label: "Completed",  color: "bg-emerald-50 text-emerald-800 border-emerald-300", icon: CheckCircle2 },
-  error:           { label: "Error",      color: "bg-orange-50 text-orange-800 border-orange-300",     icon: AlertCircle },
+const STATUS_CONFIG: Record<string, { label: string; className: string; icon: any }> = {
+  draft: {
+    label: "Draft",
+    className: "border-[#d7c7aa] bg-white text-[#716855]",
+    icon: FileText,
+  },
+  uploading: {
+    label: "Uploading",
+    className: "border-blue-200 bg-blue-50 text-[#244c91]",
+    icon: Loader2,
+  },
+  processing: {
+    label: "Estimating",
+    className: "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]",
+    icon: Loader2,
+  },
+  post_processing: {
+    label: "Estimating",
+    className: "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]",
+    icon: Loader2,
+  },
+  completed: {
+    label: "Complete",
+    className: "border-emerald-300 bg-emerald-50 text-emerald-800",
+    icon: CheckCircle2,
+  },
+  error: {
+    label: "Needs Review",
+    className: "border-orange-300 bg-orange-50 text-orange-800",
+    icon: ShieldCheck,
+  },
 };
 
-// ─── Module Cards ──────────────────────────────────────────────────────────────
 const MODULES = [
   {
-    id: "scheduler",
-    label: "C1",
+    code: "C1",
     name: "CPM Schedule",
-    description: "Build critical path method schedules, track float, and generate Gantt charts for your projects.",
+    description: "Build schedules, track float, and generate Gantt charts.",
     icon: GanttChart,
     path: "/portal/scheduler",
-    tone: "amber",
-    proof: "Plan dates, float, and project logic",
-    featured: true,
+    className: "border-[#f1d38d] bg-[#fffaf0] text-[#8a6510]",
   },
   {
-    id: "takeoff",
-    label: "C2",
+    code: "C2",
     name: "Quantity Takeoff",
-    description: "Upload drawings, auto-detect dimensions, and generate material quantities with the ConstructLine CV engine.",
+    description: "Upload drawings, auto-detect, and generate quantities.",
     icon: Ruler,
     path: "/portal/takeoff",
-    tone: "green",
-    proof: "Review scope, accept rows, price the bid",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
   },
   {
-    id: "cost-library",
-    label: "C3",
+    code: "C3",
     name: "Cost Library",
-    description: "Maintain material unit costs across all CSI divisions. Sync ConstructLine baseline pricing or enter your own negotiated rates.",
+    description: "Maintain unit costs across CSI divisions.",
     icon: Database,
     path: "/portal/cost-library",
-    tone: "blue",
-    proof: "Material pricing with audit trail",
+    className: "border-blue-200 bg-blue-50 text-[#244c91]",
   },
   {
-    id: "labor-library",
-    label: "C4",
+    code: "C4",
     name: "Trade Rate Library",
-    description: "Configure RS Means-calibrated labor rates for your crews. Set work type, region, and specialty to get accurate fully-burdened rates.",
+    description: "Set calibrated labor rates by trade and region.",
     icon: HardHat,
     path: "/portal/labor-library",
-    tone: "gray",
-    proof: "Crew labor basis for estimates",
+    className: "border-violet-200 bg-violet-50 text-violet-800",
   },
 ];
 
-const WORKFLOW_STEPS = [
+const NEWS = [
   {
-    label: "Review",
-    detail: "Decide what belongs",
-    icon: ClipboardCheck,
-    tone: "amber",
+    title: "Source-Based Anomaly Review",
+    date: "May 5, 2026",
+    detail: "Open a flagged row against its drawing, then include, review, exclude, confirm, or open item detail.",
+    icon: FileCheck2,
+    tag: "Latest",
   },
   {
-    label: "Estimate",
-    detail: "Decide what it costs",
-    icon: DollarSign,
-    tone: "green",
+    title: "Full-Screen Drawing Review",
+    date: "May 5, 2026",
+    detail: "Drawing Navigator previews now open into a full-screen zoomable review surface.",
+    icon: Ruler,
+    tag: "New",
   },
   {
-    label: "Submit",
-    detail: "Package the bid",
+    title: "Discrepancy Review Actions",
+    date: "May 5, 2026",
+    detail: "Anomaly rows now support source review, scope decisions, quantity confirmation, and dismissal.",
     icon: ShieldCheck,
-    tone: "blue",
+    tag: "New",
   },
 ];
 
-const toneClasses = {
-  amber: {
-    icon: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
-    badge: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
-    card: "hover:border-[#d7b44d] hover:shadow-[0_24px_70px_rgba(138,101,16,0.14)]",
-  },
-  green: {
-    icon: "bg-emerald-50 text-emerald-800 border-emerald-300",
-    badge: "bg-emerald-50 text-emerald-800 border-emerald-300",
-    card: "hover:border-emerald-300 hover:shadow-[0_24px_70px_rgba(6,95,70,0.12)]",
-  },
-  blue: {
-    icon: "bg-blue-50 text-[#244c91] border-blue-200",
-    badge: "bg-blue-50 text-[#244c91] border-blue-200",
-    card: "hover:border-blue-200 hover:shadow-[0_24px_70px_rgba(36,76,145,0.12)]",
-  },
-  gray: {
-    icon: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
-    badge: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
-    card: "hover:border-[#c8b895] hover:shadow-[0_24px_70px_rgba(41,37,28,0.12)]",
-  },
-} as const;
-
-// ─── Changelog data (mirrors WhatsNewModal) ────────────────────────────────────
-const CHANGELOG = [
-  {
-    version: "2026.04.19",
-    date: "April 19, 2026",
-    title: "Task-Based Labor Grouping",
-    highlights: [
-      { icon: Layers, label: "Task-Based Labor Grouping", description: "ConstructLine now clusters related takeoff items into named installation tasks and assigns one crew per task — dramatically improving labor accuracy.", tag: "new" as const },
-      { icon: Wrench, label: "Inline Crew Editing", description: "Swap, add, or remove crews directly in the Labor Review Panel before confirming — no need to navigate to Trade Rate Library.", tag: "new" as const },
-      { icon: Settings2, label: "ConstructLine Hub", description: "Dedicated hub page at /portal/constructline with recent projects, module cards, and this changelog feed.", tag: "new" as const },
-    ],
-  },
-  {
-    version: "2026.04.17",
-    date: "April 17, 2026",
-    title: "Trade Specialty Intelligence & Branding",
-    highlights: [
-      { icon: Wrench, label: "Trade Specialty Intelligence", description: "18 specialties across 8 CSI divisions. Auto-detects specialties from drawings and generates specialty-specific line items.", tag: "new" as const },
-      { icon: Palette, label: "Branded ConstructLine Experience", description: "Consistent ConstructLine branding throughout — sidebar, headers, processing overlay, modals, and analysis screens.", tag: "improved" as const },
-      { icon: Sparkles, label: "Cinematic Splash Animation", description: "New branded splash intro when the ConstructLine engine starts analyzing your drawings.", tag: "new" as const },
-    ],
-  },
-  {
-    version: "2026.04.16",
-    date: "April 16, 2026",
-    title: "Measurement Tools & Drawing Markup",
-    highlights: [
-      { icon: Ruler, label: "On-Drawing Measurements", description: "Measure distances, areas, and perimeters directly on your construction drawings. Auto-calibrate from known dimensions.", tag: "new" as const },
-      { icon: PenTool, label: "Drawing Markup Mode", description: "Annotate drawings with freehand, lines, rectangles, circles, arrows, and text.", tag: "new" as const },
-      { icon: ScanLine, label: "Fullscreen Drawing Viewer", description: "View any drawing sheet in fullscreen with smooth pan and zoom.", tag: "new" as const },
-    ],
-  },
-  {
-    version: "2026.04.14",
-    date: "April 14, 2026",
-    title: "Consolidate & Enhance + Bid Calculator",
-    highlights: [
-      { icon: Layers, label: "Consolidate & Enhance", description: "One-click post-processing that merges duplicates, converts lump sums, calculates concrete volumes, and enforces scope compliance.", tag: "new" as const },
-      { icon: DollarSign, label: "Bid Calculator", description: "Apply overhead, profit, contingency, and bond percentages to your takeoff total. Export a bid-ready summary.", tag: "new" as const },
-      { icon: BarChart3, label: "CPM Schedule Reports", description: "Resource Leveling, Earned Value Management, Cash Flow S-Curve, Resource Histogram, Delay Analysis, and more.", tag: "new" as const },
-    ],
-  },
+const HEALTH_SEGMENTS = [
+  { label: "In Review", color: "bg-[#d7b44d]" },
+  { label: "Estimating", color: "bg-emerald-400" },
+  { label: "In Pricing", color: "bg-blue-400" },
+  { label: "Complete", color: "bg-violet-400" },
 ];
 
-const TAG_STYLES = {
-  new:      "bg-emerald-50 text-emerald-800 border-emerald-300",
-  improved: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
-  fix:      "bg-blue-50 text-[#244c91] border-blue-200",
-};
+function formatCurrency(cents?: number | null): string {
+  if (!cents || cents <= 0) return "$0";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
 
-// ─── Component ─────────────────────────────────────────────────────────────────
+function formatDate(value?: string | Date | null): string {
+  if (!value) return "No activity";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No activity";
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getBidPhase(status: string): "In Review" | "Estimating" | "In Pricing" | "Complete" {
+  if (status === "completed") return "Complete";
+  if (status === "processing" || status === "post_processing" || status === "uploading") {
+    return "Estimating";
+  }
+  if (status === "draft") return "In Review";
+  return "In Pricing";
+}
+
+function BuildingHeroArt() {
+  return (
+    <div className="relative hidden min-h-[250px] overflow-hidden lg:block">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_44%_44%,rgba(217,162,26,0.20),transparent_33%),linear-gradient(90deg,rgba(255,255,255,0),#fff9ee_82%)]" />
+      <div className="absolute left-[8%] top-[17%] h-[58%] w-[72%] rounded-sm border border-[#d9c7a5]/75 bg-white/42 shadow-[0_32px_80px_rgba(41,37,28,0.14)]">
+        <div className="absolute inset-x-[7%] top-[18%] h-[1px] bg-[#bfae8c]" />
+        <div className="absolute inset-y-[12%] left-[28%] w-[1px] bg-[#bfae8c]" />
+        <div className="absolute inset-y-[12%] left-[55%] w-[1px] bg-[#bfae8c]" />
+        <div className="absolute bottom-0 left-[9%] h-[46%] w-[70%] border border-[#8a806d]/35 bg-[#f3e6ca]/80" />
+        <div className="absolute bottom-[10%] left-[18%] h-[24%] w-[18%] border border-[#5d5546]/40 bg-white/40" />
+        <div className="absolute bottom-[10%] left-[42%] h-[24%] w-[18%] border border-[#5d5546]/40 bg-white/40" />
+        <div className="absolute bottom-[10%] left-[66%] h-[24%] w-[10%] border border-[#5d5546]/40 bg-white/40" />
+      </div>
+      <div className="absolute bottom-[17%] left-[14%] h-[1px] w-[70%] bg-[#bfae8c]" />
+      <div className="absolute bottom-[13%] left-[22%] h-[1px] w-[50%] bg-[#d7c7aa]" />
+      <div className="absolute left-[3%] top-[14%] h-[1px] w-[88%] rotate-[-18deg] bg-[#d7c7aa]/70" />
+      <div className="absolute left-[8%] top-[80%] h-[1px] w-[74%] rotate-[12deg] bg-[#d7c7aa]/70" />
+      <div className="absolute bottom-[10%] left-[10%] h-8 w-8 rounded-full bg-emerald-200/70 blur-sm" />
+      <div className="absolute bottom-[11%] right-[20%] h-10 w-10 rounded-full bg-[#d7b44d]/30 blur-sm" />
+    </div>
+  );
+}
+
 export default function ConstructLineHub() {
   const [, navigate] = useLocation();
-
-  // Wizard state — fires on first visit (no saved config)
   const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(loadRateConfig());
   const [showWizard, setShowWizard] = useState(!loadRateConfig());
 
-  // Recent projects + quick stats
   const { data: projects } = trpc.takeoff.listProjects.useQuery();
-  const recentProjects = (projects ?? []).slice(0, 3);
+  const { data: rateProfilesList } = trpc.tradeRates.listRateProfiles.useQuery();
 
-  // Quick stats derived from project list
+  const sortedProjects = useMemo(
+    () =>
+      [...(projects ?? [])].sort(
+        (a: any, b: any) =>
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime()
+      ),
+    [projects]
+  );
+  const recentProjects = sortedProjects.slice(0, 3);
   const totalProjects = projects?.length ?? 0;
-  const activeProjects = (projects ?? []).filter(
-    (p) => p.status === "processing" || p.status === "post_processing" || p.status === "uploading"
+  const activeProjects = (projects ?? []).filter((project: any) =>
+    ["draft", "uploading", "processing", "post_processing"].includes(project.status)
   ).length;
+  const bidsInReview = (projects ?? []).filter((project: any) =>
+    ["draft", "error"].includes(project.status)
+  ).length;
+  const completedProjects = (projects ?? []).filter(
+    (project: any) => project.status === "completed"
+  );
+  const readyToPackage = completedProjects.length;
   const totalEstimatedValue = (projects ?? []).reduce(
-    (sum, p) => sum + (p.totalEstimatedCost ?? 0),
+    (sum: number, project: any) => sum + (project.totalEstimatedCost ?? 0),
     0
   );
-  const lastActivityDate = projects && projects.length > 0
-    ? new Date(Math.max(...projects.map((p) => new Date(p.updatedAt).getTime())))
-    : null;
+  const lastProject = sortedProjects[0] as any | undefined;
+  const profileNameMap = new Map(
+    (rateProfilesList ?? []).map((profile: any) => [profile.id, profile.name])
+  );
 
-  // Rate profiles for badge display
-  const { data: rateProfilesList } = trpc.tradeRates.listRateProfiles.useQuery();
-  const profileNameMap = new Map((rateProfilesList ?? []).map((p: any) => [p.id, p.name]));
+  const phaseCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      "In Review": 0,
+      Estimating: 0,
+      "In Pricing": 0,
+      Complete: 0,
+    };
+    for (const project of projects ?? []) counts[getBidPhase(project.status)] += 1;
+    return counts;
+  }, [projects]);
 
   const configureMutation = trpc.tradeRates.configureRates.useMutation({
-    onSuccess: () => {
-      toast.success("ConstructLine configured — your rates are ready.");
-    },
+    onSuccess: () => toast.success("ConstructLine configured — your rates are ready."),
   });
 
   const handleWizardComplete = (config: RateSetupConfig) => {
@@ -245,214 +258,218 @@ export default function ConstructLineHub() {
     });
   };
 
-  const configSummary = rateConfig
-    ? [
-        rateConfig.workType === "residential" ? "Residential" : "Commercial",
-        rateConfig.shopType === "union" ? "Union" : "Open Shop",
-        rateConfig.regionName ?? "National Average",
-      ].join(" · ")
-    : null;
+  const openProject = (projectId: number) => navigate(`/takeoff/${projectId}`);
+  const openSubmit = (projectId?: number) => {
+    if (projectId) {
+      navigate(`/takeoff/${projectId}?tab=estimate`);
+      return;
+    }
+    navigate("/portal/takeoff");
+  };
 
   return (
-    <div className="min-h-screen bg-[#f5f2eb] text-[#171714]">
-
-      {/* ── Sticky Header ──────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-[#d7c7aa] bg-[#f7f4ed]/92 shadow-[0_10px_36px_rgba(41,37,28,0.08)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
-          <ConstructLineWordmark size="md" showSubtitle tone="light" />
-          <div className="flex items-center gap-3">
-            {configSummary && (
-              <span className="hidden text-xs font-medium text-[#716855] md:block">{configSummary}</span>
+    <div className="min-h-screen bg-[#f8f5ef] text-[#171714]">
+      <header className="sticky top-0 z-20 border-b border-black/10 bg-[#07090b] text-white shadow-[0_18px_50px_rgba(0,0,0,0.20)]">
+        <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-6 py-3">
+          <div className="min-w-[190px]">
+            <p className="text-xl font-semibold leading-none">
+              Construct<span className="text-[#f1b51d]">Line</span>
+            </p>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              Powered by ALP
+            </p>
+          </div>
+          <div className="relative hidden flex-1 md:block">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <div className="h-10 rounded-xl border border-white/10 bg-white/8 pl-11 pr-4 text-sm leading-10 text-white/56 shadow-inner">
+              Search projects, drawings, tools...
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden h-10 rounded-xl border-white/10 bg-white/8 text-white hover:!bg-white/14 hover:!text-white lg:inline-flex"
+            onClick={() => setShowWizard(true)}
+          >
+            <Settings2 className="mr-2 h-4 w-4" />
+            Configure
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 rounded-xl bg-[#111317] text-white hover:bg-[#1a1d23]"
+            onClick={() => navigate("/portal/takeoff")}
+          >
+            <Sparkles className="mr-2 h-4 w-4 text-[#f1b51d]" />
+            New Bid
+          </Button>
+          <div className="relative">
+            <Bell className="h-5 w-5 text-white/70" />
+            {bidsInReview > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f1b51d] px-1 text-[10px] font-bold text-black">
+                {bidsInReview}
+              </span>
             )}
-            <Button
-              data-tour="hub-configure-rates"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
-              onClick={() => setShowWizard(true)}
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Configure Rates</span>
-            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-[1180px] px-6 py-7">
-        <section className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f7f4ed] shadow-[0_28px_90px_rgba(41,37,28,0.14)]">
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="bg-white/58 p-6 lg:p-8">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  ConstructLine 2.0
-                </Badge>
-                {rateConfig && (
-                  <Badge className="border-emerald-300 bg-emerald-50 text-emerald-800">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Rates configured
-                  </Badge>
+      <main className="mx-auto max-w-[1500px] px-6 py-6">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="overflow-hidden rounded-xl border border-[#e4d7bf] bg-white shadow-[0_22px_70px_rgba(41,37,28,0.08)]">
+            <div className="grid min-h-[300px] lg:grid-cols-[minmax(0,1fr)_520px]">
+              <div className="p-7 lg:p-8">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
+                  Welcome back, Marshall
+                </p>
+                <h1 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.07] tracking-normal text-[#121212] lg:text-5xl">
+                  Good morning. Let’s build something great today.
+                </h1>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-[#6d6558]">
+                  Upload drawings, review scope, price accepted work, and package winning bids from one cockpit.
+                </p>
+                {!rateConfig && (
+                  <button
+                    type="button"
+                    onClick={() => setShowWizard(true)}
+                    className="mt-6 flex w-full max-w-xl items-center gap-3 rounded-xl border border-[#d7b44d] bg-[#fff4cb] px-4 py-3 text-left shadow-[0_16px_38px_rgba(138,101,16,0.10)] transition-colors hover:bg-[#ffeaa3]"
+                  >
+                    <Settings2 className="h-5 w-5 text-[#8a6510]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[#171714]">Finish labor-rate setup</p>
+                      <p className="text-xs text-[#716855]">Calibrate crew rates before pricing bids.</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-[#8a6510]" />
+                  </button>
                 )}
               </div>
-              <h1 data-tour="hub-hero" className="mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-normal text-[#171714] lg:text-[44px]">
-                A cleaner command center for every bid you are building.
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#5d5546]">
-                Upload drawings, review scope, price accepted work, and package a bid from one decisive estimating cockpit.
-              </p>
-
-              <div className="mt-7 grid gap-3 md:grid-cols-3">
-                {WORKFLOW_STEPS.map((step, index) => {
-                  const StepIcon = step.icon;
-                  const tone = toneClasses[step.tone as keyof typeof toneClasses];
-                  return (
-                    <div key={step.label} className="rounded-xl border border-[#d7c7aa] bg-[#fffdf8] p-4 shadow-[0_14px_34px_rgba(41,37,28,0.07)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${tone.icon}`}>
-                          <StepIcon className="h-5 w-5" />
-                        </div>
-                        <span className="font-mono text-xs font-semibold text-[#8a806d]">0{index + 1}</span>
-                      </div>
-                      <p className="mt-4 text-lg font-semibold text-[#171714]">{step.label}</p>
-                      <p className="text-sm text-[#716855]">{step.detail}</p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {!rateConfig && (
-                <button
-                  type="button"
-                  className="mt-5 flex w-full items-center gap-3 rounded-xl border border-[#d7b44d] bg-[#fff4cb] px-4 py-3.5 text-left shadow-[0_16px_38px_rgba(138,101,16,0.1)] transition-colors hover:bg-[#ffeaa3]"
-                  onClick={() => setShowWizard(true)}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-[#8a6510]">
-                    <Settings2 className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#171714]">Set up your labor rates to get started</p>
-                    <p className="mt-0.5 text-xs text-[#716855]">Takes 60 seconds and calibrates trade rates to your work type and region.</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-[#8a6510] shrink-0" />
-                </button>
-              )}
+              <BuildingHeroArt />
             </div>
+          </div>
 
-            <aside className="border-t border-[#d7c7aa] bg-[#ebe0cc] p-6 lg:border-l lg:border-t-0 lg:p-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-[#d7c7aa] bg-white/78 px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">Projects</p>
-                  <p className="mt-1 font-mono text-2xl font-semibold text-[#171714]">{totalProjects}</p>
+          <aside className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">Active Projects</p>
+                  <p className="mt-3 font-mono text-2xl font-semibold text-[#171714]">{activeProjects}</p>
+                  <p className="mt-1 text-xs text-[#716855]">of {totalProjects} total</p>
                 </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-800/70">Active</p>
-                  <p className="mt-1 font-mono text-2xl font-semibold text-[#244c91]">{activeProjects}</p>
-                </div>
-                <div className="col-span-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800/70">Portfolio</p>
-                  <p className="mt-1 break-words font-mono text-[26px] font-semibold leading-tight text-emerald-800">
-                    {totalEstimatedValue > 0
-                      ? `$${(totalEstimatedValue / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-                      : "—"}
-                  </p>
-                </div>
+                <BriefcaseBusiness className="h-5 w-5 text-[#c48d12]" />
               </div>
-              <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white/78 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">Last Activity</p>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="text-2xl font-semibold text-[#171714]">
-                    {lastActivityDate ? lastActivityDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No projects yet"}
-                  </p>
-                  <Clock className="h-5 w-5 text-[#8a806d]" />
-                </div>
+            </div>
+            <div className="rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">Portfolio Value</p>
+              <p className="mt-3 font-mono text-2xl font-semibold text-[#171714]">{formatCurrency(totalEstimatedValue)}</p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-emerald-700">
+                <TrendingUp className="h-3.5 w-3.5" />
+                Active bid pipeline
               </div>
-              <Button
-                data-tour="hub-new-project"
-                className="mt-4 h-11 w-full bg-[#171714] text-white shadow-[0_18px_45px_rgba(23,23,20,0.2)] hover:bg-[#29251c]"
-                onClick={() => navigate("/portal/takeoff")}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Bid
-              </Button>
-            </aside>
+            </div>
+            <div className="rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">Bids In Review</p>
+              <p className="mt-3 font-mono text-2xl font-semibold text-[#171714]">{bidsInReview}</p>
+              <p className="mt-1 text-xs text-[#716855]">Needs your attention</p>
+            </div>
+            <div className="rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">Last Activity</p>
+              <p className="mt-3 text-xl font-semibold text-[#171714]">{formatDate(lastProject?.updatedAt || lastProject?.createdAt)}</p>
+              <p className="mt-1 truncate text-xs text-[#716855]">{lastProject?.name || "No projects yet"}</p>
+            </div>
+            <Button
+              className="col-span-full h-12 rounded-xl bg-[#090b0f] text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.20)] hover:bg-[#171a20]"
+              onClick={() => navigate("/portal/takeoff")}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Bid
+            </Button>
+          </aside>
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-xl border border-black/10 bg-[#07090b] p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.20em] text-[#f1b51d]">The Estimating Flow</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+            {[
+              { label: "Review", detail: "Decide what belongs", icon: ClipboardCheck, color: "border-[#d7b44d] bg-[#d7b44d]/10 text-[#f1b51d]" },
+              { label: "Estimate", detail: "Decide what it costs", icon: TrendingUp, color: "border-emerald-400 bg-emerald-400/10 text-emerald-300" },
+              { label: "Submit", detail: "Package the bid", icon: ShieldCheck, color: "border-violet-400 bg-violet-400/10 text-violet-300" },
+            ].map((step, index) => {
+              const StepIcon = step.icon;
+              return (
+                <div key={step.label} className="contents">
+                  <div className="flex items-center gap-4 rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${step.color}`}>
+                      <StepIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-mono text-xs text-white/45">0{index + 1}</p>
+                      <p className="text-lg font-semibold">{step.label}</p>
+                      <p className="text-sm text-white/55">{step.detail}</p>
+                    </div>
+                  </div>
+                  {index < 2 && <ArrowRight className="hidden h-5 w-5 text-[#f1b51d] md:block" />}
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <div className="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-7">
-            <section data-tour="hub-recent-projects" className="rounded-xl border border-[#d7c7aa] bg-white/86 p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
+          <div className="space-y-6">
+            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#8a806d]" />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">Recent Projects</h2>
+                    <FileText className="h-4 w-4 text-[#716855]" />
+                    <h2 className="font-semibold text-[#171714]">Recent Projects</h2>
                   </div>
-                  <p className="mt-1 text-xs text-[#716855]">Open the bid that needs the next decision.</p>
+                  <p className="mt-1 text-sm text-[#716855]">Open the bid that needs your next decision.</p>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <div className="relative min-w-[230px]">
-                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a806d]" />
-                    <div className="h-9 rounded-lg border border-[#d7c7aa] bg-[#faf8f2] pl-9 pr-3 text-left text-xs leading-9 text-[#8a806d]">
-                      Search projects in Takeoff
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 border-[#c8b895] bg-white text-[#29251c] hover:bg-[#faf8f2]"
-                    onClick={() => navigate("/portal/takeoff")}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                    View All
-                  </Button>
-                </div>
+                <Button variant="ghost" size="sm" className="text-[#716855] hover:text-[#171714]" onClick={() => navigate("/portal/takeoff")}>
+                  View All Projects
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
 
-              {recentProjects.length === 0 ? (
-                <button
-                  onClick={() => navigate("/portal/takeoff")}
-                  className="mt-4 flex w-full items-center gap-3 rounded-xl border border-dashed border-[#d7c7aa] bg-[#faf8f2] px-4 py-5 text-left transition-all hover:border-[#d7b44d] hover:bg-[#fff4cb]"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d7c7aa] bg-white">
-                    <FileStack className="w-4 h-4 text-[#8a6510]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#171714]">No projects yet</p>
-                    <p className="text-xs text-[#716855]">Start the first takeoff and build the bid from Review to Submit.</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#8a6510] ml-auto" />
-                </button>
-              ) : (
-                <div className="mt-4 grid gap-3">
-                  {recentProjects.map((project, index) => {
+              <div className="mt-5 overflow-hidden rounded-xl border border-[#eadcc4]">
+                {recentProjects.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/portal/takeoff")}
+                    className="flex w-full items-center gap-3 bg-[#faf8f2] p-5 text-left transition-colors hover:bg-[#fff4cb]"
+                  >
+                    <FileText className="h-5 w-5 text-[#8a6510]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-[#171714]">Start your first bid</p>
+                      <p className="text-sm text-[#716855]">Upload drawings and build the estimate from source evidence.</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-[#8a6510]" />
+                  </button>
+                ) : (
+                  recentProjects.map((project: any, index: number) => {
                     const status = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.draft;
                     const StatusIcon = status.icon;
-                    const isSpinning = project.status === "processing" || project.status === "post_processing";
+                    const isWorking = project.status === "processing" || project.status === "post_processing" || project.status === "uploading";
+                    const isComplete = project.status === "completed";
                     return (
-                      <button
+                      <div
                         key={project.id}
-                        onClick={() => navigate(`/takeoff/${project.id}`)}
-                        className="group grid gap-3 rounded-xl border border-[#e0d2b7] bg-white p-3 text-left shadow-[0_14px_36px_rgba(41,37,28,0.06)] transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_22px_60px_rgba(41,37,28,0.13)] sm:grid-cols-[104px_minmax(0,1fr)_auto]"
+                        className={`grid gap-4 p-4 transition-colors hover:bg-[#faf8f2] md:grid-cols-[112px_minmax(0,1fr)_150px_130px] md:items-center ${
+                          index > 0 ? "border-t border-[#eadcc4]" : ""
+                        }`}
                       >
-                        <div className="relative h-24 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#e9e2d4]">
-                          <div
-                            className={`absolute inset-0 ${
-                              index % 3 === 0
-                                ? "bg-[linear-gradient(135deg,#e7d8bd_0%,#f8f5ed_55%,#cbd9d2_100%)]"
-                                : index % 3 === 1
-                                  ? "bg-[linear-gradient(135deg,#d8e4df_0%,#f8f5ed_52%,#d8c6a4_100%)]"
-                                  : "bg-[linear-gradient(135deg,#d8dce5_0%,#f8f5ed_55%,#e4d0aa_100%)]"
-                            }`}
-                          />
-                          <div className="absolute inset-x-4 bottom-4 top-6 rounded-sm border-2 border-white/80 bg-white/35 shadow-sm" />
-                          <div className="absolute bottom-3 left-3 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-[#716855]">
-                            CL
-                          </div>
-                        </div>
-                        <div className="min-w-0 py-1">
+                        <button
+                          type="button"
+                          onClick={() => openProject(project.id)}
+                          className="relative h-20 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#efe7d9] text-left"
+                        >
+                          <div className="absolute inset-0 bg-[linear-gradient(135deg,#d7c3a2,#ffffff_48%,#c9ded6)]" />
+                          <div className="absolute bottom-3 left-3 right-4 top-4 rounded-sm border border-white/80 bg-white/38" />
+                          <div className="absolute bottom-2 left-2 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-[#716855]">CL</div>
+                        </button>
+                        <button type="button" onClick={() => openProject(project.id)} className="min-w-0 text-left">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge className={`${status.color} border text-[10px]`}>
-                              <StatusIcon className={`mr-1 h-3 w-3 ${isSpinning ? "animate-spin" : ""}`} />
+                            <Badge className={`${status.className} border text-[10px]`}>
+                              <StatusIcon className={`mr-1 h-3 w-3 ${isWorking ? "animate-spin" : ""}`} />
                               {status.label}
                             </Badge>
                             {(project as any).rateProfileId && profileNameMap.has((project as any).rateProfileId) && (
@@ -461,62 +478,72 @@ export default function ConstructLineHub() {
                               </Badge>
                             )}
                           </div>
-                          <p className="mt-2 truncate text-base font-semibold text-[#171714] group-hover:text-[#8a6510]">{project.name}</p>
+                          <p className="mt-2 truncate text-base font-semibold text-[#171714]">{project.name}</p>
                           <p className="mt-1 text-xs text-[#716855]">
-                            {project.totalSheets} sheet{project.totalSheets !== 1 ? "s" : ""} · Updated {new Date(project.createdAt).toLocaleDateString()}
+                            {project.totalSheets || 0} sheet{project.totalSheets === 1 ? "" : "s"} · Updated {formatDate(project.updatedAt || project.createdAt)}
                           </p>
+                        </button>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">Bid Total</p>
+                          <p className="mt-1 font-mono text-lg font-semibold text-[#171714]">{formatCurrency(project.totalEstimatedCost)}</p>
                         </div>
-                        <div className="flex items-end justify-between gap-3 sm:flex-col sm:items-end sm:py-1">
-                          <p className="font-mono text-lg font-semibold text-emerald-800">
-                            {project.totalEstimatedCost
-                              ? `$${(project.totalEstimatedCost / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-                              : "—"}
-                          </p>
-                          <ArrowRight className="w-4 h-4 text-[#8a6510] transition-transform group-hover:translate-x-0.5" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            <section data-tour="hub-module-cards">
-              <div className="mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#8a806d]" />
-                <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">ConstructLine Tools</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {MODULES.map((mod) => {
-                  const Icon = mod.icon;
-                  const isFeatured = (mod as any).featured;
-                  const tone = toneClasses[mod.tone as keyof typeof toneClasses];
-                  return (
-                    <button
-                      key={mod.id}
-                      onClick={() => navigate(mod.path)}
-                      className={`group rounded-xl border border-[#e0d2b7] bg-white p-5 text-left shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all hover:-translate-y-0.5 ${tone.card} ${
-                        isFeatured ? "ring-1 ring-[#d7b44d]/50" : ""
-                      }`}
-                    >
-                      <div className="mb-4 flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${tone.icon}`}>
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <Badge className={`font-mono text-xs ${tone.badge}`}>{mod.label}</Badge>
-                          {isFeatured && (
-                            <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[10px] text-[#8a6510]">
-                              <Zap className="w-2.5 h-2.5 mr-0.5" />
-                              Featured
-                            </Badge>
+                        <div className="flex gap-2 md:justify-end">
+                          {isComplete ? (
+                            <Button size="sm" className="h-9 bg-[#171714] text-white hover:bg-[#29251c]" onClick={() => openSubmit(project.id)}>
+                              <Send className="mr-1.5 h-3.5 w-3.5" />
+                              Package
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" className="h-9 border-[#d7c7aa] bg-white text-[#5d5546] hover:!bg-[#faf8f2]" onClick={() => openProject(project.id)}>
+                              Open
+                              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                            </Button>
                           )}
                         </div>
-                        <ArrowRight className="w-4 h-4 text-[#8a806d] transition-all group-hover:translate-x-0.5 group-hover:text-[#171714]" />
                       </div>
-                      <h3 className="text-base font-semibold text-[#171714]">{mod.name}</h3>
-                      <p className="mt-1 text-sm leading-6 text-[#716855]">{mod.description}</p>
-                      <p className="mt-4 border-t border-[#eadcc4] pt-3 text-xs font-medium text-[#5d5546]">{mod.proof}</p>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-[#716855]" />
+                    <h2 className="font-semibold text-[#171714]">ConstructLine Tools</h2>
+                  </div>
+                  <p className="mt-1 text-sm text-[#716855]">Everything needed to build better bids.</p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-[#716855] hover:text-[#171714]" onClick={() => navigate("/portal/takeoff")}>
+                  View All Tools
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {MODULES.map((module) => {
+                  const Icon = module.icon;
+                  return (
+                    <button
+                      key={module.code}
+                      type="button"
+                      onClick={() => navigate(module.path)}
+                      className="group rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_20px_55px_rgba(41,37,28,0.10)]"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${module.className}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">{module.code}</Badge>
+                      </div>
+                      <p className="mt-4 font-semibold text-[#171714]">{module.name}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#716855]">{module.description}</p>
+                      <div className="mt-4 flex justify-end">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#d7c7aa] text-[#8a6510] transition-transform group-hover:translate-x-0.5">
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -524,62 +551,95 @@ export default function ConstructLineHub() {
             </section>
           </div>
 
-          <aside data-tour="hub-whats-new" className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Newspaper className="w-4 h-4 text-[#8a806d]" />
-              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">What's New</h2>
-            </div>
-
-            <div className="space-y-4">
-              {CHANGELOG.map((entry, entryIdx) => (
-                <div
-                  key={entry.version}
-                  className={`overflow-hidden rounded-xl border bg-white shadow-[0_18px_50px_rgba(41,37,28,0.07)] ${entryIdx === 0 ? "border-[#d7b44d]" : "border-[#e0d2b7]"}`}
-                >
-                  <div className={`flex items-center justify-between border-b px-4 py-3 ${entryIdx === 0 ? "border-[#d7b44d] bg-[#fff4cb]" : "border-[#eadcc4] bg-[#faf8f2]"}`}>
-                    <div>
-                      <p className="text-xs font-semibold text-[#171714]">{entry.title}</p>
-                      <p className="mt-0.5 text-[10px] text-[#716855]">{entry.date}</p>
-                    </div>
-                    {entryIdx === 0 && (
-                      <Badge className="border-[#d7b44d] bg-white/70 text-[9px] text-[#8a6510]">
-                        <Zap className="w-2.5 h-2.5 mr-0.5" />
-                        Latest
-                      </Badge>
-                    )}
+          <aside className="space-y-6">
+            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+              <div className="flex items-center gap-2">
+                <PackageCheck className="h-4 w-4 text-[#8a6510]" />
+                <h2 className="font-semibold text-[#171714]">Submit Center</h2>
+              </div>
+              <p className="mt-1 text-sm text-[#716855]">The end point for finished bids.</p>
+              <div className="mt-4 rounded-xl border border-[#eadcc4] bg-[#faf8f2] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">Ready to Package</p>
+                <p className="mt-2 font-mono text-3xl font-semibold text-[#171714]">{readyToPackage}</p>
+                <p className="mt-2 text-sm leading-6 text-[#716855]">
+                  Completed estimates can produce a proposal PDF, bid summary PDF, and SOV workbook from the Estimate screen.
+                </p>
+                <Button className="mt-4 h-10 w-full bg-[#171714] text-white hover:bg-[#29251c]" onClick={() => openSubmit(completedProjects[0]?.id)}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Open Bid Outputs
+                </Button>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                {["Proposal", "Bid Summary", "SOV"].map((label) => (
+                  <div key={label} className="rounded-lg border border-[#eadcc4] bg-white px-2 py-3">
+                    <FileCheck2 className="mx-auto h-4 w-4 text-[#8a6510]" />
+                    <p className="mt-1 text-[11px] font-semibold text-[#5d5546]">{label}</p>
                   </div>
+                ))}
+              </div>
+            </section>
 
-                  <div className="divide-y divide-[#eadcc4]">
-                    {entry.highlights.map((h, hi) => {
-                      const HIcon = h.icon;
-                      return (
-                        <div key={hi} className="flex items-start gap-3 px-4 py-3">
-                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#d7c7aa] bg-[#f7f4ed]">
-                            <HIcon className="w-3.5 h-3.5 text-[#716855]" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
-                              <p className="text-xs font-semibold text-[#171714]">{h.label}</p>
-                              {h.tag && (
-                                <Badge className={`${TAG_STYLES[h.tag]} text-[9px] font-medium px-1.5 py-0`}>
-                                  {h.tag === "new" ? "New" : h.tag === "improved" ? "Improved" : "Fix"}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-[11px] leading-5 text-[#716855]">{h.description}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-[#716855]" />
+                <h2 className="font-semibold text-[#171714]">Project Health</h2>
+              </div>
+              <p className="mt-1 text-sm text-[#716855]">Overview of your active projects.</p>
+              <div className="mx-auto mt-5 grid h-44 w-44 place-items-center rounded-full bg-[conic-gradient(#d7b44d_0_25%,#6fd19d_25%_50%,#7fb1ff_50%_75%,#9a8cff_75%_100%)]">
+                <div className="grid h-28 w-28 place-items-center rounded-full bg-white text-center shadow-inner">
+                  <div>
+                    <p className="font-mono text-3xl font-semibold text-[#171714]">{totalProjects}</p>
+                    <p className="text-xs text-[#716855]">Total Projects</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {HEALTH_SEGMENTS.map((segment) => (
+                  <div key={segment.label} className="flex items-center gap-2 text-xs text-[#5d5546]">
+                    <span className={`h-2.5 w-2.5 rounded-sm ${segment.color}`} />
+                    <span className="flex-1">{segment.label}</span>
+                    <span className="font-mono font-semibold">{phaseCounts[segment.label] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#8a6510]" />
+                <h2 className="font-semibold text-[#171714]">What’s New</h2>
+              </div>
+              <p className="mt-1 text-sm text-[#716855]">Latest ConstructLine updates.</p>
+              <div className="mt-4 space-y-3">
+                {NEWS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.title} className="rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-[#171714]">{item.title}</p>
+                            <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[9px] text-[#8a6510]">{item.tag}</Badge>
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#716855]">
+                            <CalendarClock className="h-3 w-3" />
+                            {item.date}
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-[#716855]">{item.detail}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           </aside>
         </div>
-      </div>
+      </main>
 
-      {/* Rate Setup Wizard */}
       <RateSetupWizard
         open={showWizard}
         onClose={() => setShowWizard(false)}
