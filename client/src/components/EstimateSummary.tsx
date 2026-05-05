@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -77,6 +85,9 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
   "32": "Exterior Improvements",
   "33": "Utilities",
 };
+
+const LIGHT_OUTLINE_BUTTON_CLASS =
+  "border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714] focus-visible:!text-[#171714]";
 
 function formatCurrency(cents: number, currencyCode: string = "USD"): string {
   return new Intl.NumberFormat("en-US", {
@@ -243,6 +254,10 @@ export default function EstimateSummary({
   const [taskGroups, setTaskGroups] = useState<any[] | null>(null);
   const [showTaskPanel, setShowTaskPanel] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
+  const [selectedLaborItem, setSelectedLaborItem] = useState<any | null>(null);
+  const [laborCrewId, setLaborCrewId] = useState("");
+  const [laborProductivity, setLaborProductivity] = useState("1");
+  const [laborNotes, setLaborNotes] = useState("");
 
   const confirmLaborMutation =
     trpc.estimate.confirmLaborAssignments.useMutation({
@@ -251,6 +266,7 @@ export default function EstimateSummary({
         utils.tradeRates.getActivityProductivity.invalidate();
         setShowReviewPanel(false);
         setReviewAssignments(null);
+        setSelectedLaborItem(null);
       },
       onError: (err: any) =>
         toast.error("Failed to save assignments: " + err.message),
@@ -342,6 +358,70 @@ export default function EstimateSummary({
       return;
     }
     handleCalculateLabor();
+  };
+
+  const getSuggestedProductivity = (item: any, crewId: number | null) => {
+    if (!crewId) return 1;
+    const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
+    const existingActivity = activityMap.get(descKey);
+    if (existingActivity?.crewId === crewId && existingActivity.productivityPerCrewHr > 0) {
+      return existingActivity.productivityPerCrewHr;
+    }
+    const crewInfo = crewCostMap.get(crewId);
+    const libraryLaborUnit = parseCents(item.laborCost);
+    if (crewInfo?.costPerHr && libraryLaborUnit > 0) {
+      return Math.max(0.01, crewInfo.costPerHr / libraryLaborUnit);
+    }
+    return 1;
+  };
+
+  const openItemLaborEditor = (item: any) => {
+    if (!hasUserCrews) {
+      toast.error("Set up your real crews before confirming labor on this item.");
+      window.location.href = "/portal/labor-library?tab=crews";
+      return;
+    }
+    const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
+    const existingActivity = activityMap.get(descKey);
+    const fallbackCrew = userCrews[0] || crewsData?.[0];
+    const nextCrewId = existingActivity?.crewId || fallbackCrew?.id || null;
+    setSelectedLaborItem(item);
+    setLaborCrewId(nextCrewId ? String(nextCrewId) : "");
+    setLaborProductivity(
+      getSuggestedProductivity(item, nextCrewId).toFixed(2).replace(/\.00$/, "")
+    );
+    setLaborNotes(
+      existingActivity?.source === "ai_inferred"
+        ? "Confirmed from estimate labor review."
+        : "Manual labor confirmation from Estimate."
+    );
+  };
+
+  const handleSaveItemLabor = () => {
+    if (!selectedLaborItem) return;
+    const crewId = parseInt(laborCrewId, 10);
+    const productivityPerCrewHr = parseFloat(laborProductivity);
+    if (!crewId || Number.isNaN(crewId)) {
+      toast.error("Choose a crew before saving labor.");
+      return;
+    }
+    if (!Number.isFinite(productivityPerCrewHr) || productivityPerCrewHr <= 0) {
+      toast.error("Enter production greater than zero.");
+      return;
+    }
+    confirmLaborMutation.mutate({
+      projectId,
+      assignments: [
+        {
+          description: selectedLaborItem.description || "",
+          unit: selectedLaborItem.unit || "",
+          csiDivision: selectedLaborItem.csiDivision || "00",
+          crewId,
+          productivityPerCrewHr,
+          notes: laborNotes || "Manual labor confirmation from Estimate.",
+        },
+      ],
+    });
   };
 
   const handleConfirmAssignments = () => {
@@ -1015,7 +1095,7 @@ export default function EstimateSummary({
                 variant="outline"
                 size="sm"
                 onClick={handleExportEstimate}
-                className="border-[#c8b895] bg-white/55 text-[#29251c] hover:bg-white gap-1.5"
+                className={`${LIGHT_OUTLINE_BUTTON_CLASS} gap-1.5`}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 Export
@@ -1899,7 +1979,21 @@ export default function EstimateSummary({
                                 </div>
                               </td>
                               <td className="px-4 py-2">
-                                <StatusBadge status={rowStatus} compact />
+                                {labor?.laborSource === "cost_library" ||
+                                labor?.laborSource === "held_for_review" ||
+                                labor?.laborSource === "none" ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
+                                    onClick={() => openItemLaborEditor(item)}
+                                  >
+                                    Confirm labor
+                                  </Button>
+                                ) : (
+                                  <StatusBadge status={rowStatus} compact />
+                                )}
                               </td>
                               <td className="px-4 py-2 text-right text-[#5d5546] font-mono text-xs">
                                 {formatCurrency(materialTotal, currency)}
@@ -2157,7 +2251,7 @@ export default function EstimateSummary({
                     size="sm"
                     variant="outline"
                     onClick={onOpenReview}
-                    className="mt-3 h-8 border-[#d7b44d] bg-white/80 text-[#8a6510] hover:bg-white"
+                    className="mt-3 h-8 border-[#d7b44d] bg-white/80 text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
                   >
                     Open Review
                   </Button>
@@ -2183,6 +2277,122 @@ export default function EstimateSummary({
         currency={currency}
         costRegion={costRegion}
       />
+      <Dialog
+        open={!!selectedLaborItem}
+        onOpenChange={open => {
+          if (!open) setSelectedLaborItem(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-xl border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+          <DialogHeader>
+            <DialogTitle>Confirm Labor</DialogTitle>
+            <DialogDescription className="text-[#716855]">
+              Choose the crew and production rate for this accepted item.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLaborItem && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-[#d7c7aa] bg-white/70 p-3">
+                <p className="text-sm font-semibold text-[#171714]">
+                  {selectedLaborItem.description}
+                </p>
+                <p className="mt-1 text-xs text-[#716855]">
+                  {parseFloat(selectedLaborItem.quantity || "0").toLocaleString()}{" "}
+                  {selectedLaborItem.unit || "units"} · Division{" "}
+                  {selectedLaborItem.csiDivision || "00"}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                    Crew
+                  </span>
+                  <Select
+                    value={laborCrewId}
+                    onValueChange={value => {
+                      setLaborCrewId(value);
+                      const crewId = parseInt(value, 10);
+                      setLaborProductivity(
+                        getSuggestedProductivity(
+                          selectedLaborItem,
+                          Number.isNaN(crewId) ? null : crewId
+                        )
+                          .toFixed(2)
+                          .replace(/\.00$/, "")
+                      );
+                    }}
+                  >
+                    <SelectTrigger className="border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]">
+                      <SelectValue placeholder="Select crew" />
+                    </SelectTrigger>
+                    <SelectContent className="border-[#d7c7aa] bg-white text-[#171714]">
+                      {userCrews.map((crew: any) => (
+                        <SelectItem
+                          key={crew.id}
+                          value={String(crew.id)}
+                          className="focus:bg-[#faf8f2] focus:text-[#171714]"
+                        >
+                          {crew.crewName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                    Production
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={laborProductivity}
+                      onChange={e => setLaborProductivity(e.target.value)}
+                      className="border-[#d7c7aa] bg-white text-[#171714]"
+                    />
+                    <span className="shrink-0 text-xs text-[#716855]">
+                      {selectedLaborItem.unit || "units"}/crew hr
+                    </span>
+                  </div>
+                </label>
+              </div>
+              <label className="space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
+                  Labor note
+                </span>
+                <Input
+                  value={laborNotes}
+                  onChange={e => setLaborNotes(e.target.value)}
+                  className="border-[#d7c7aa] bg-white text-[#171714]"
+                />
+              </label>
+              {laborCrewId && (
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+                  This will replace the library labor basis with your crew labor
+                  for this item.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedLaborItem(null)}
+              className={LIGHT_OUTLINE_BUTTON_CLASS}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveItemLabor}
+              disabled={confirmLaborMutation.isPending}
+              className="bg-emerald-700 text-white hover:bg-emerald-800"
+            >
+              {confirmLaborMutation.isPending ? "Saving..." : "Save Labor"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

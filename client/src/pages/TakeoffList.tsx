@@ -441,7 +441,7 @@ export default function TakeoffList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]">
               Cancel
             </Button>
             <Button
@@ -470,7 +470,7 @@ export default function TakeoffList() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
+            <Button variant="outline" onClick={() => setDeleteId(null)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]">
               Cancel
             </Button>
             <Button

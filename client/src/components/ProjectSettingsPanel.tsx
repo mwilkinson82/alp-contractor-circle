@@ -213,7 +213,7 @@ export default function ProjectSettingsPanel({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="border-[#d7c7aa] bg-white/65 text-[#716855] shadow-sm hover:bg-white hover:text-[#171714]"
+        className="border-[#d7c7aa] bg-white/65 text-[#716855] shadow-sm hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
       >
         <Settings className="w-4 h-4 mr-2" />
         Edit Settings
@@ -716,7 +716,7 @@ export default function ProjectSettingsPanel({
                 setOpen(false);
               }}
               disabled={saving}
-              className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+              className="border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
             >
               Cancel
             </Button>

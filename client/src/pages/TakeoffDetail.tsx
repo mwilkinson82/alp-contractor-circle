@@ -2,7 +2,7 @@
  * TakeoffDetail — Full takeoff project view with drawing upload,
  * ConstructLine processing status, and quantity review/edit table.
  */
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type RefObject } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -755,6 +755,9 @@ const SHEET_STATUS_CONFIG: Record<
 const LIGHT_DROPDOWN_ITEM_CLASS =
   "gap-2 text-[#29251c] focus:bg-[#faf8f2] focus:text-[#171714] data-[disabled]:opacity-100 data-[disabled]:text-[#8a806d] data-[disabled]:bg-[#faf8f2] data-[disabled]:[&_svg]:text-[#b3a481]";
 
+const LIGHT_OUTLINE_BUTTON_CLASS =
+  "border-[#c8b895] bg-white/70 text-[#5d5546] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714] focus-visible:!text-[#171714]";
+
 const CSI_DIVISION_NAMES: Record<string, string> = {
   "01": "General Requirements",
   "02": "Existing Conditions",
@@ -808,6 +811,10 @@ export default function TakeoffDetail() {
   const [showAcceptedRows, setShowAcceptedRows] = useState(false);
   const [showBoundaryRows, setShowBoundaryRows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const auditTrailRef = useRef<HTMLDivElement>(null);
+  const acceptedRowsRef = useRef<HTMLDivElement>(null);
+  const rawReviewRowsRef = useRef<HTMLDivElement>(null);
+  const boundaryRowsRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     current: number;
@@ -2376,6 +2383,38 @@ export default function TakeoffDetail() {
     });
   };
 
+  const scrollToAuditSection = useCallback(
+    (targetRef: RefObject<HTMLDivElement | null>) => {
+      window.setTimeout(() => {
+        const target = targetRef.current;
+        if (!target) return;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    },
+    []
+  );
+
+  const setAuditSectionOpen = useCallback(
+    (
+      section: "accepted" | "raw" | "excluded",
+      isOpen: boolean
+    ) => {
+      const sectionRef =
+        section === "accepted"
+          ? acceptedRowsRef
+          : section === "raw"
+            ? rawReviewRowsRef
+            : boundaryRowsRef;
+
+      if (section === "accepted") setShowAcceptedRows(isOpen);
+      if (section === "raw") setShowRawReviewRows(isOpen);
+      if (section === "excluded") setShowBoundaryRows(isOpen);
+
+      scrollToAuditSection(isOpen ? sectionRef : auditTrailRef);
+    },
+    [scrollToAuditSection]
+  );
+
   const toggleBundle = (bundleKey: string) => {
     setExpandedBundles(prev => {
       const next = new Set(prev);
@@ -2475,7 +2514,7 @@ export default function TakeoffDetail() {
         <p className="text-[#716855]">Project not found.</p>
         <Button
           variant="outline"
-          className="mt-4"
+          className={`mt-4 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
           onClick={() => navigate("/portal/takeoff")}
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Projects
@@ -2848,7 +2887,7 @@ export default function TakeoffDetail() {
                       <Button
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
-                        className="mt-2 border-[#c8b895] bg-white/60 text-[#29251c] hover:bg-white"
+                        className={`mt-2 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                       >
                         <FileImage className="w-4 h-4 mr-2" />
                         Browse Files
@@ -4080,7 +4119,7 @@ export default function TakeoffDetail() {
                                       sourceSheetOverrideId: selectedSheet?.id,
                                     })
                                   }
-                                  className="h-8 border-[#c8b895] bg-white/65 text-[#29251c] hover:bg-white"
+                                  className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                                 >
                                   <Eye className="w-3.5 h-3.5 mr-1.5" />
                                   Open Drawing
@@ -4500,7 +4539,7 @@ export default function TakeoffDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => setOpenSettingsToScope(true)}
-                      className="h-7 border-[#c8b895] bg-white/65 text-xs text-[#5d5546] hover:bg-white hover:text-[#171714]"
+                      className={`h-7 text-xs ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                     >
                       Edit Mode
                     </Button>
@@ -4533,7 +4572,7 @@ export default function TakeoffDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => setOpenSettingsToScope(true)}
-                      className="h-7 border-[#c8b895] bg-white/65 text-xs text-[#5d5546] hover:bg-white hover:text-[#171714]"
+                      className={`h-7 text-xs ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                     >
                       Edit Scope
                     </Button>
@@ -4614,7 +4653,10 @@ export default function TakeoffDetail() {
                   (activeItems.length > 0 ||
                     reviewItems.length > 0 ||
                     excludedItems.length > 0) && (
-                    <div className="rounded-xl border border-[#d7c7aa] bg-white/85 px-4 py-3 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                    <div
+                      ref={auditTrailRef}
+                      className="rounded-xl border border-[#d7c7aa] bg-white/85 px-4 py-3 shadow-[0_14px_35px_rgba(41,37,28,0.08)]"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <FileText className="w-4 h-4 text-[#716855]" />
@@ -4642,8 +4684,13 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
-                              onClick={() => setShowAcceptedRows(prev => !prev)}
+                              className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                              onClick={() =>
+                                setAuditSectionOpen(
+                                  "accepted",
+                                  !showAcceptedRows
+                                )
+                              }
                             >
                               {showAcceptedRows ? (
                                 <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
@@ -4657,9 +4704,9 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
+                              className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                               onClick={() =>
-                                setShowRawReviewRows(prev => !prev)
+                                setAuditSectionOpen("raw", !showRawReviewRows)
                               }
                             >
                               {showRawReviewRows ? (
@@ -4674,8 +4721,13 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#5d5546] hover:bg-white"
-                              onClick={() => setShowBoundaryRows(prev => !prev)}
+                              className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                              onClick={() =>
+                                setAuditSectionOpen(
+                                  "excluded",
+                                  !showBoundaryRows
+                                )
+                              }
                             >
                               {showBoundaryRows ? (
                                 <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
@@ -4693,7 +4745,10 @@ export default function TakeoffDetail() {
                 {assemblyBundles.length > 0 &&
                   activeItems.length > 0 &&
                   showAcceptedRows && (
-                    <div className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                    <div
+                      ref={acceptedRowsRef}
+                      className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#f4efe4] px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-emerald-700" />
@@ -4713,8 +4768,10 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
-                          onClick={() => setShowAcceptedRows(prev => !prev)}
+                          className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                          onClick={() =>
+                            setAuditSectionOpen("accepted", !showAcceptedRows)
+                          }
                         >
                           {showAcceptedRows ? (
                             <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
@@ -5168,6 +5225,7 @@ export default function TakeoffDetail() {
                   (assemblyBundles.length === 0 || showRawReviewRows) && (
                     <div
                       id="scope-review-queue"
+                      ref={rawReviewRowsRef}
                       className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 bg-[#f4efe4] px-4 py-3">
@@ -5195,8 +5253,10 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
-                          onClick={() => setShowRawReviewRows(prev => !prev)}
+                          className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                          onClick={() =>
+                            setAuditSectionOpen("raw", !showRawReviewRows)
+                          }
                         >
                           {showRawReviewRows ? (
                             <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
@@ -5325,7 +5385,7 @@ export default function TakeoffDetail() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7 border-orange-300 bg-orange-50 px-2.5 text-xs text-orange-800 hover:bg-orange-100"
+                                          className="h-7 border-orange-300 bg-orange-50 px-2.5 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900 active:!bg-orange-100 active:!text-orange-900"
                                           onClick={() =>
                                             applyScopeDecision(item, "excluded")
                                           }
@@ -5337,7 +5397,7 @@ export default function TakeoffDetail() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:bg-[#fff4cb]"
+                                          className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
                                           onClick={() =>
                                             applyScopeDecision(item, "review")
                                           }
@@ -5370,7 +5430,10 @@ export default function TakeoffDetail() {
 
                 {excludedItems.length > 0 &&
                   (assemblyBundles.length === 0 || showBoundaryRows) && (
-                    <div className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                    <div
+                      ref={boundaryRowsRef}
+                      className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#f4efe4] px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Flag className="h-4 w-4 text-orange-700" />
@@ -5390,8 +5453,10 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
-                          onClick={() => setShowBoundaryRows(prev => !prev)}
+                          className={`h-8 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                          onClick={() =>
+                            setAuditSectionOpen("excluded", !showBoundaryRows)
+                          }
                         >
                           {showBoundaryRows ? (
                             <ChevronDown className="w-3.5 h-3.5 mr-1.5" />
@@ -5920,6 +5985,7 @@ export default function TakeoffDetail() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className={LIGHT_OUTLINE_BUTTON_CLASS}
                   onClick={() => {
                     setShowImportExcel(false);
                     setImportPreview(null);
@@ -6186,7 +6252,7 @@ function AddItemDialog({
               variant="outline"
               onClick={onClose}
               disabled={isPending}
-              className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+              className={LIGHT_OUTLINE_BUTTON_CLASS}
             >
               Cancel
             </Button>
@@ -6315,7 +6381,7 @@ function EditItemDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
+          <Button variant="outline" onClick={onClose} className={LIGHT_OUTLINE_BUTTON_CLASS}>
             Cancel
           </Button>
           <Button

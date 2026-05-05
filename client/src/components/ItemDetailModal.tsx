@@ -2156,7 +2156,7 @@ export default function ItemDetailModal({
                       <Button
                         variant="outline"
                         onClick={() => setIsEditing(false)}
-                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
                       >
                         Cancel
                       </Button>
@@ -2178,7 +2178,7 @@ export default function ItemDetailModal({
                       <Button
                         variant="outline"
                         onClick={onClose}
-                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
                       >
                         Close
                       </Button>

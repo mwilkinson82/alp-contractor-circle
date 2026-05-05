@@ -268,7 +268,7 @@ export default function ConstructLineHub() {
               data-tour="hub-configure-rates"
               variant="outline"
               size="sm"
-              className="gap-1.5 border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+              className="gap-1.5 border-[#c8b895] bg-white/70 text-[#29251c] hover:!bg-[#faf8f2] hover:!text-[#171714] active:!bg-[#f1eee6] active:!text-[#171714]"
               onClick={() => setShowWizard(true)}
             >
               <Settings2 className="w-3.5 h-3.5" />
