@@ -1400,8 +1400,8 @@ export default function EstimateSummary({
                         }
                         className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                           a._excluded
-                            ? "border-red-400/40 bg-red-500/10 text-red-400"
-                            : "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
+                            ? "border-red-300 bg-red-50 text-red-800"
+                            : "border-emerald-300 bg-emerald-50 text-emerald-800"
                         }`}
                       >
                         {a._excluded ? "✕" : "✓"}
@@ -1563,8 +1563,8 @@ export default function EstimateSummary({
                       }
                       className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                         task._excluded
-                          ? "border-red-400/40 bg-red-500/10 text-red-400"
-                          : "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
+                          ? "border-red-300 bg-red-50 text-red-800"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-800"
                       }`}
                     >
                       {task._excluded ? "✕" : "✓"}
@@ -1590,7 +1590,7 @@ export default function EstimateSummary({
                           </p>
                         )}
                         {task.safetyReason && (
-                          <p className="text-xs text-amber-300/80 truncate">
+                          <p className="text-xs text-[#8a6510] truncate">
                             {task.safetyReason}
                           </p>
                         )}
@@ -1641,7 +1641,7 @@ export default function EstimateSummary({
                               <span className="flex min-w-0 flex-col">
                                 <span className="truncate">{c.crewName}</span>
                                 {isStarterCrew && (
-                                  <span className="text-[10px] text-amber-300/80">
+                                  <span className="text-[10px] text-[#8a6510]">
                                     Starter crew - review before bidding
                                   </span>
                                 )}
@@ -1925,9 +1925,9 @@ export default function EstimateSummary({
                   <tr className="border-b border-[#d7c7aa] bg-[#fff4cb]/60">
                     <td className="px-4 py-2.5 text-[#171714]">
                       <div className="flex items-center gap-2">
-                        <ClipboardList className="w-3.5 h-3.5 text-amber-400" />
+                        <ClipboardList className="w-3.5 h-3.5 text-[#8a6510]" />
                         <span>Allowances</span>
-                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] ml-1">
+                        <Badge className="bg-[#fff4cb] text-[#8a6510] border-[#d7b44d] text-[10px] ml-1">
                           {allowances.length}
                         </Badge>
                       </div>
@@ -2311,13 +2311,13 @@ function ResidentialQaPanel({
 
   if (findings.length === 0) {
     return (
-      <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
-        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+      <div className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 text-emerald-800 shrink-0 mt-0.5" />
         <div>
-          <p className="text-emerald-200 text-sm font-medium">
+          <p className="text-emerald-900 text-sm font-medium">
             Residential estimate QA looks clean
           </p>
-          <p className="text-emerald-200/70 text-xs mt-0.5">
+          <p className="text-emerald-800 text-xs mt-0.5">
             Required residential categories are represented, and no high-dollar
             inferred/detail-driven scope was detected.
           </p>

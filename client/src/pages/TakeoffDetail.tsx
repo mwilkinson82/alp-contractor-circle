@@ -218,13 +218,13 @@ function getEstimatorCue(item: any): { label: string; className: string } {
   ) {
     return {
       label: "Scope conflict",
-      className: "bg-red-500/15 text-red-200 border-red-500/25",
+      className: "bg-red-50 text-red-800 border-red-300",
     };
   }
   if (notes.includes("duplicate") || notes.includes("another active row")) {
     return {
       label: "Possible duplicate",
-      className: "bg-blue-500/15 text-blue-200 border-blue-500/25",
+      className: "bg-blue-50 text-[#244c91] border-blue-200",
     };
   }
   if (
@@ -731,26 +731,29 @@ const SHEET_STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Pending",
-    color: "bg-gray-500/20 text-gray-300",
+    color: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
     icon: Clock,
   },
   processing: {
     label: "Analyzing...",
-    color: "bg-amber-500/20 text-amber-300",
+    color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
     icon: Loader2,
   },
   completed: {
     label: "Done",
-    color: "bg-emerald-500/20 text-emerald-300",
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300",
     icon: CheckCircle2,
   },
   error: {
     label: "Error",
-    color: "bg-red-500/20 text-red-300",
+    color: "bg-orange-50 text-orange-800 border-orange-300",
     icon: AlertCircle,
   },
-  skipped: { label: "Skipped", color: "bg-gray-500/20 text-gray-400", icon: X },
+  skipped: { label: "Skipped", color: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]", icon: X },
 };
+
+const LIGHT_DROPDOWN_ITEM_CLASS =
+  "gap-2 text-[#29251c] focus:bg-[#faf8f2] focus:text-[#171714] data-[disabled]:opacity-100 data-[disabled]:text-[#8a806d] data-[disabled]:bg-[#faf8f2] data-[disabled]:[&_svg]:text-[#b3a481]";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
   "01": "General Requirements",
@@ -3009,7 +3012,7 @@ export default function TakeoffDetail() {
                   const statusConfig = isContextOnly
                     ? {
                         label: "Context Only",
-                        color: "bg-blue-500/20 text-blue-300",
+                        color: "bg-blue-50 text-[#244c91] border border-blue-200",
                         icon: CheckCircle2,
                       }
                     : SHEET_STATUS_CONFIG[sheet.status] ||
@@ -3101,24 +3104,24 @@ export default function TakeoffDetail() {
                           </div>
                         </div>
                         {sheet.errorMessage && (
-                          <p className="text-red-400 text-xs mt-1 line-clamp-2">
+                          <p className="text-orange-800 text-xs mt-1 line-clamp-2">
                             {sheet.errorMessage}
                           </p>
                         )}
                         {/* Scale indicator with verification badge */}
                         {sheetScales[sheet.id] && (
                           <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                            <p className="text-[10px] text-amber-400/70 flex items-center gap-1">
+                            <p className="text-[10px] text-[#8a6510] flex items-center gap-1">
                               <Ruler className="w-2.5 h-2.5" />
                               {getScaleLabel(sheetScales[sheet.id].ratio)}
                             </p>
                             {sheetScales[sheet.id].method === "measured" ? (
-                              <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded px-1.5 py-0.5">
+                              <span className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5">
                                 Measured
                               </span>
                             ) : sheetScales[sheet.id].method ===
                               "title_block" ? (
-                              <span className="text-[9px] bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded px-1.5 py-0.5">
+                              <span className="text-[9px] bg-blue-50 text-[#244c91] border border-blue-200 rounded px-1.5 py-0.5">
                                 Title Block
                               </span>
                             ) : null}
@@ -3279,7 +3282,7 @@ export default function TakeoffDetail() {
                           <DropdownMenuItem
                             onClick={handleExportExcel}
                             disabled={!items || items.length === 0}
-                            className="gap-2 focus:bg-[#faf8f2]"
+                            className={LIGHT_DROPDOWN_ITEM_CLASS}
                           >
                             <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                             Export Excel
@@ -3287,7 +3290,7 @@ export default function TakeoffDetail() {
                           <DropdownMenuItem
                             onClick={handleExportCsv}
                             disabled={!items || items.length === 0}
-                            className="gap-2 focus:bg-[#faf8f2]"
+                            className={LIGHT_DROPDOWN_ITEM_CLASS}
                           >
                             <Download className="w-4 h-4 text-[#244c91]" />
                             Export CSV
@@ -3295,7 +3298,7 @@ export default function TakeoffDetail() {
                           <DropdownMenuSeparator className="bg-[#eadcc4]" />
                           <DropdownMenuItem
                             onClick={() => setShowAddItem(true)}
-                            className="gap-2 focus:bg-[#faf8f2]"
+                            className={LIGHT_DROPDOWN_ITEM_CLASS}
                           >
                             <PlusCircle className="w-4 h-4 text-emerald-700" />
                             Add Item
@@ -3304,7 +3307,7 @@ export default function TakeoffDetail() {
                             onClick={() => {
                               setOpenSettingsToScope(true);
                             }}
-                            className="gap-2 focus:bg-[#faf8f2]"
+                            className={LIGHT_DROPDOWN_ITEM_CLASS}
                           >
                             <FileText className="w-4 h-4 text-[#8a6510]" />
                             Edit Scope
@@ -3314,7 +3317,7 @@ export default function TakeoffDetail() {
                             disabled={
                               !projectMarkups || projectMarkups.length === 0
                             }
-                            className="gap-2 focus:bg-[#faf8f2]"
+                            className={LIGHT_DROPDOWN_ITEM_CLASS}
                           >
                             <Layers className="w-4 h-4 text-[#8a6510]" />
                             Measurements
@@ -3622,15 +3625,15 @@ export default function TakeoffDetail() {
                     <div className="px-4 py-3 border-b border-[#d7c7aa] flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <ClipboardList className="w-4 h-4 text-amber-300" />
+                          <ClipboardList className="w-4 h-4 text-[#8a6510]" />
                           <h2 className="text-sm font-semibold text-[#171714]">
                             Bid Review Checklist
                           </h2>
                           <Badge
                             className={
                               readyToPrice
-                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                                : "bg-amber-500/15 text-amber-200 border-amber-500/25"
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                                : "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]"
                             }
                           >
                             {readyToPrice
@@ -3663,9 +3666,9 @@ export default function TakeoffDetail() {
                           <span className="text-xs uppercase tracking-wider text-[#716855]">
                             1. Current Bid
                           </span>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-800" />
                         </div>
-                        <p className="mt-2 text-2xl font-mono font-bold text-emerald-400">
+                        <p className="mt-2 text-2xl font-mono font-bold text-emerald-800">
                           {formatCurrency(
                             totalCost,
                             project?.currency || "USD"
@@ -3681,9 +3684,9 @@ export default function TakeoffDetail() {
                           <span className="text-xs uppercase tracking-wider text-[#716855]">
                             2. Decide Next
                           </span>
-                          <Flag className="w-4 h-4 text-amber-300" />
+                          <Flag className="w-4 h-4 text-[#8a6510]" />
                         </div>
-                        <p className="mt-2 text-2xl font-mono font-bold text-amber-300">
+                        <p className="mt-2 text-2xl font-mono font-bold text-[#8a6510]">
                           {highImpactOpenBundles.length}
                         </p>
                         <p className="text-xs text-[#716855]">
@@ -3707,11 +3710,11 @@ export default function TakeoffDetail() {
                           <span className="text-xs uppercase tracking-wider text-[#716855]">
                             3. Price Last
                           </span>
-                          <AlertCircle className="w-4 h-4 text-amber-300" />
+                          <AlertCircle className="w-4 h-4 text-[#8a6510]" />
                         </div>
                         <p
                           className={`mt-2 text-lg font-semibold ${
-                            readyToPrice ? "text-emerald-300" : "text-amber-200"
+                            readyToPrice ? "text-emerald-800" : "text-[#8a6510]"
                           }`}
                         >
                           {readyToPrice ? "Looks ready" : "Do not price yet"}
@@ -3729,7 +3732,7 @@ export default function TakeoffDetail() {
                           className={
                             readyToPrice
                               ? "mt-3 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                              : "mt-3 h-8 border-[#c8b895] text-[#716855]"
+                              : "mt-3 h-8 border-[#c8b895] bg-[#f7f4ed] text-[#8a806d] opacity-100 hover:bg-[#f7f4ed] disabled:opacity-100 disabled:text-[#8a806d]"
                           }
                         >
                           Open Estimate
@@ -3804,7 +3807,7 @@ export default function TakeoffDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 border-[#c8b895] text-[#5d5546] hover:bg-white"
+                              className="h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
                             >
                               <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
                               Actions
@@ -3814,7 +3817,7 @@ export default function TakeoffDetail() {
                             <DropdownMenuItem
                               onClick={handleExportExcel}
                               disabled={!items || items.length === 0}
-                              className="gap-2 focus:bg-[#faf8f2]"
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                               Export Excel
@@ -3822,7 +3825,7 @@ export default function TakeoffDetail() {
                             <DropdownMenuItem
                               onClick={handleExportCsv}
                               disabled={!items || items.length === 0}
-                              className="gap-2 focus:bg-[#faf8f2]"
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <Download className="w-4 h-4 text-[#244c91]" />
                               Export CSV
@@ -3830,7 +3833,7 @@ export default function TakeoffDetail() {
                             <DropdownMenuSeparator className="bg-[#eadcc4]" />
                             <DropdownMenuItem
                               onClick={() => setShowAddItem(true)}
-                              className="gap-2 focus:bg-[#faf8f2]"
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <PlusCircle className="w-4 h-4 text-emerald-700" />
                               Add Item
@@ -3839,7 +3842,7 @@ export default function TakeoffDetail() {
                               onClick={() => {
                                 setOpenSettingsToScope(true);
                               }}
-                              className="gap-2 focus:bg-[#faf8f2]"
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <FileText className="w-4 h-4 text-[#8a6510]" />
                               Edit Scope
@@ -3849,7 +3852,7 @@ export default function TakeoffDetail() {
                               disabled={
                                 !projectMarkups || projectMarkups.length === 0
                               }
-                              className="gap-2 focus:bg-[#faf8f2]"
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <Layers className="w-4 h-4 text-[#8a6510]" />
                               Measurements
@@ -4426,10 +4429,10 @@ export default function TakeoffDetail() {
                                               <Badge
                                                 className={`text-[10px] ${
                                                   status === "included"
-                                                    ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/25"
+                                                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                                                     : status === "review"
-                                                      ? "bg-amber-500/15 text-[#8a6510] border-amber-500/25"
-                                                      : "bg-red-500/15 text-red-700 border-red-500/25"
+                                                      ? "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]"
+                                                      : "bg-red-50 text-red-800 border-red-300"
                                                 }`}
                                               >
                                                 {formatScopeReviewStatus(
@@ -4516,7 +4519,7 @@ export default function TakeoffDetail() {
                           {scopeIntent.summary}
                         </Badge>
                         {scopeReviewCount > 0 && (
-                          <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-[10px]">
+                          <Badge className="bg-blue-50 text-[#244c91] border-blue-200 text-[10px]">
                             {scopeReviewCount} review item
                             {scopeReviewCount !== 1 ? "s" : ""}
                           </Badge>
@@ -4553,7 +4556,7 @@ export default function TakeoffDetail() {
                           <span className="font-semibold text-[#171714]">
                             Allowances
                           </span>
-                          <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] font-normal">
+                          <Badge className="bg-[#fff4cb] text-[#8a6510] border-[#d7b44d] text-[10px] font-normal">
                             {projectAllowances.length} item
                             {projectAllowances.length !== 1 ? "s" : ""}
                           </Badge>
@@ -4592,7 +4595,7 @@ export default function TakeoffDetail() {
                                 <td className="px-4 py-2 text-[#29251c]">
                                   {a.description}
                                 </td>
-                                <td className="px-4 py-2 text-right text-amber-300 font-mono">
+                                <td className="px-4 py-2 text-right text-[#8a6510] font-mono">
                                   {formatCurrency(
                                     a.amount,
                                     project?.currency || "USD"
@@ -4780,7 +4783,7 @@ export default function TakeoffDetail() {
                                 <Badge
                                   className={`text-xs ${
                                     allReviewed
-                                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                                       : "bg-blue-50 text-[#244c91] border-blue-200"
                                   }`}
                                 >

@@ -2004,7 +2004,7 @@ export default function ItemDetailModal({
                   )}
                   {measurementHistory.data &&
                     measurementHistory.data.length > 0 && (
-                      <Badge className="bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">
+                      <Badge className="bg-blue-50 text-[#244c91] text-xs border border-blue-200">
                         <CheckCircle2 className="w-3 h-3 mr-1" /> Verified via
                         Measurement
                       </Badge>
