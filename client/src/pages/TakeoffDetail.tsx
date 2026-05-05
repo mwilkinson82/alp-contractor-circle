@@ -3275,63 +3275,38 @@ export default function TakeoffDetail() {
                             Actions
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              consolidateMutation.mutate({ projectId })
-                            }
-                            disabled={
-                              consolidateMutation.isPending || isProcessing
-                            }
-                          >
-                            {consolidateMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4 text-amber-400" />
-                            )}
-                            Re-run Scope Analysis
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              repriceMutation.mutate({ projectId })
-                            }
-                            disabled={repriceMutation.isPending || isProcessing}
-                          >
-                            {repriceMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                            ) : (
-                              <DollarSign className="w-4 h-4 text-blue-400" />
-                            )}
-                            Re-price
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                        <DropdownMenuContent align="end" className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]">
                           <DropdownMenuItem
                             onClick={handleExportExcel}
                             disabled={!items || items.length === 0}
+                            className="gap-2 focus:bg-[#faf8f2]"
                           >
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                             Export Excel
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={handleExportCsv}
                             disabled={!items || items.length === 0}
+                            className="gap-2 focus:bg-[#faf8f2]"
                           >
-                            <Download className="w-4 h-4 text-blue-400" />
+                            <Download className="w-4 h-4 text-[#244c91]" />
                             Export CSV
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                          <DropdownMenuSeparator className="bg-[#eadcc4]" />
                           <DropdownMenuItem
                             onClick={() => setShowAddItem(true)}
+                            className="gap-2 focus:bg-[#faf8f2]"
                           >
-                            <PlusCircle className="w-4 h-4 text-emerald-400" />
+                            <PlusCircle className="w-4 h-4 text-emerald-700" />
                             Add Item
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setOpenSettingsToScope(true);
                             }}
+                            className="gap-2 focus:bg-[#faf8f2]"
                           >
-                            <FileText className="w-4 h-4 text-amber-400" />
+                            <FileText className="w-4 h-4 text-[#8a6510]" />
                             Edit Scope
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -3339,23 +3314,10 @@ export default function TakeoffDetail() {
                             disabled={
                               !projectMarkups || projectMarkups.length === 0
                             }
+                            className="gap-2 focus:bg-[#faf8f2]"
                           >
-                            <Layers className="w-4 h-4 text-amber-400" />
+                            <Layers className="w-4 h-4 text-[#8a6510]" />
                             Measurements
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              setShowConsolidationDiff(!showConsolidationDiff)
-                            }
-                          >
-                            <GitCompareArrows className="w-4 h-4 text-cyan-400" />
-                            {showConsolidationDiff ? "Hide Diff" : "Show Diff"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => importFileRef.current?.click()}
-                          >
-                            <Upload className="w-4 h-4 text-amber-400" />
-                            Import Excel
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -3848,65 +3810,38 @@ export default function TakeoffDetail() {
                               Actions
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                consolidateMutation.mutate({ projectId })
-                              }
-                              disabled={
-                                consolidateMutation.isPending || isProcessing
-                              }
-                            >
-                              {consolidateMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-4 h-4 text-amber-400" />
-                              )}
-                              Re-run Scope Analysis
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                repriceMutation.mutate({ projectId })
-                              }
-                              disabled={
-                                repriceMutation.isPending || isProcessing
-                              }
-                            >
-                              {repriceMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                              ) : (
-                                <DollarSign className="w-4 h-4 text-blue-400" />
-                              )}
-                              Re-price
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                          <DropdownMenuContent align="end" className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]">
                             <DropdownMenuItem
                               onClick={handleExportExcel}
                               disabled={!items || items.length === 0}
+                              className="gap-2 focus:bg-[#faf8f2]"
                             >
-                              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                               Export Excel
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={handleExportCsv}
                               disabled={!items || items.length === 0}
+                              className="gap-2 focus:bg-[#faf8f2]"
                             >
-                              <Download className="w-4 h-4 text-blue-400" />
+                              <Download className="w-4 h-4 text-[#244c91]" />
                               Export CSV
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            <DropdownMenuSeparator className="bg-[#eadcc4]" />
                             <DropdownMenuItem
                               onClick={() => setShowAddItem(true)}
+                              className="gap-2 focus:bg-[#faf8f2]"
                             >
-                              <PlusCircle className="w-4 h-4 text-emerald-400" />
+                              <PlusCircle className="w-4 h-4 text-emerald-700" />
                               Add Item
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
                                 setOpenSettingsToScope(true);
                               }}
+                              className="gap-2 focus:bg-[#faf8f2]"
                             >
-                              <FileText className="w-4 h-4 text-amber-400" />
+                              <FileText className="w-4 h-4 text-[#8a6510]" />
                               Edit Scope
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -3914,25 +3849,10 @@ export default function TakeoffDetail() {
                               disabled={
                                 !projectMarkups || projectMarkups.length === 0
                               }
+                              className="gap-2 focus:bg-[#faf8f2]"
                             >
-                              <Layers className="w-4 h-4 text-amber-400" />
+                              <Layers className="w-4 h-4 text-[#8a6510]" />
                               Measurements
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setShowConsolidationDiff(!showConsolidationDiff)
-                              }
-                            >
-                              <GitCompareArrows className="w-4 h-4 text-cyan-400" />
-                              {showConsolidationDiff
-                                ? "Hide Diff"
-                                : "Show Diff"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => importFileRef.current?.click()}
-                            >
-                              <Upload className="w-4 h-4 text-amber-400" />
-                              Import Excel
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -5776,23 +5696,23 @@ export default function TakeoffDetail() {
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
       <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-5xl border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-[#171714]">
               {previewSheet?.sheetName || `Page ${previewSheet?.pageNumber}`}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[#716855]">
               {previewSheet?.sheetType && previewSheet.sheetType !== "other"
                 ? previewSheet.sheetType.replace(/_/g, " ")
                 : "Drawing sheet preview"}
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-auto max-h-[70vh]">
+          <div className="max-h-[70vh] overflow-auto rounded-xl border border-[#d7c7aa] bg-white p-3 shadow-inner">
             {previewSheet?.imageUrl && (
               <img
                 src={previewSheet.imageUrl}
                 alt={previewSheet.sheetName || "Drawing"}
-                className="w-full h-auto"
+                className="h-auto w-full rounded-sm"
               />
             )}
           </div>
@@ -6134,26 +6054,26 @@ function AddItemDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <PlusCircle className="w-5 h-5 text-emerald-400" />
+          <DialogTitle className="flex items-center gap-2 text-[#171714]">
+            <PlusCircle className="w-5 h-5 text-emerald-700" />
             Add Manual Line Item
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[#716855]">
             Manually enter a takeoff item under any CSI division.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">
+              <Label className="text-xs text-[#716855] mb-1 block">
                 CSI Division *
               </Label>
               <select
                 value={csiDivision}
                 onChange={e => setCsiDivision(e.target.value)}
-                className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                className="w-full h-9 rounded-md border border-[#d7c7aa] bg-white text-[#171714] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#d9a21a]/40"
               >
                 {CSI_DIVISIONS_LIST.map(d => (
                   <option key={d.code} value={d.code}>
@@ -6163,32 +6083,32 @@ function AddItemDialog({
               </select>
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">
+              <Label className="text-xs text-[#716855] mb-1 block">
                 CSI Code (optional)
               </Label>
               <Input
                 value={csiCode}
                 onChange={e => setCsiCode(e.target.value)}
                 placeholder="e.g. 03 30 00"
-                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+                className="h-9 text-sm bg-white border-[#d7c7aa] text-[#171714]"
               />
             </div>
           </div>
           <div>
-            <Label className="text-xs text-cream-muted mb-1 block">
+            <Label className="text-xs text-[#716855] mb-1 block">
               Description *
             </Label>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="e.g. 4-inch Concrete Slab on Grade"
-              className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+              className="h-9 text-sm bg-white border-[#d7c7aa] text-[#171714]"
               required
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">
+              <Label className="text-xs text-[#716855] mb-1 block">
                 Quantity *
               </Label>
               <Input
@@ -6198,18 +6118,18 @@ function AddItemDialog({
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
                 placeholder="0"
-                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+                className="h-9 text-sm bg-white border-[#d7c7aa] text-[#171714]"
                 required
               />
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">
+              <Label className="text-xs text-[#716855] mb-1 block">
                 Unit
               </Label>
               <select
                 value={unit}
                 onChange={e => setUnit(e.target.value)}
-                className="w-full h-9 rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                className="w-full h-9 rounded-md border border-[#d7c7aa] bg-white text-[#171714] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#d9a21a]/40"
               >
                 {COMMON_UNITS.map(u => (
                   <option key={u} value={u}>
@@ -6219,7 +6139,7 @@ function AddItemDialog({
               </select>
             </div>
             <div>
-              <Label className="text-xs text-cream-muted mb-1 block">
+              <Label className="text-xs text-[#716855] mb-1 block">
                 Unit Cost *
               </Label>
               <Input
@@ -6229,15 +6149,15 @@ function AddItemDialog({
                 value={unitCostDollars}
                 onChange={e => setUnitCostDollars(e.target.value)}
                 placeholder="0.00"
-                className="h-9 text-sm bg-navy-medium border-white/10 text-cream"
+                className="h-9 text-sm bg-white border-[#d7c7aa] text-[#171714]"
                 required
               />
             </div>
           </div>
           {parseFloat(quantity) > 0 && parseFloat(unitCostDollars) > 0 && (
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-2 flex items-center justify-between">
-              <span className="text-cream-muted text-sm">Extended Cost</span>
-              <span className="text-amber-400 font-semibold font-mono">
+            <div className="rounded-lg bg-[#fff4cb] border border-[#d7b44d] px-4 py-2 flex items-center justify-between">
+              <span className="text-[#716855] text-sm">Extended Cost</span>
+              <span className="text-[#8a6510] font-semibold font-mono">
                 {new Intl.NumberFormat("en-US", {
                   style: "currency",
                   currency,
@@ -6246,7 +6166,7 @@ function AddItemDialog({
             </div>
           )}
           <div>
-            <Label className="text-xs text-cream-muted mb-1 block">
+            <Label className="text-xs text-[#716855] mb-1 block">
               Notes (optional)
             </Label>
             <textarea
@@ -6254,15 +6174,16 @@ function AddItemDialog({
               onChange={e => setNotes(e.target.value)}
               placeholder="Any additional notes..."
               rows={2}
-              className="w-full rounded-md border border-white/10 bg-navy-medium text-cream text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-amber-500/50 resize-none"
+              className="w-full rounded-md border border-[#d7c7aa] bg-white text-[#171714] text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#d9a21a]/40 resize-none"
             />
           </div>
           <DialogFooter>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={onClose}
               disabled={isPending}
+              className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
             >
               Cancel
             </Button>
@@ -6324,37 +6245,39 @@ function EditItemDialog({
 
   return (
     <Dialog open={!!item} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
         <DialogHeader>
-          <DialogTitle>Edit Takeoff Item</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#171714]">Edit Takeoff Item</DialogTitle>
+          <DialogDescription className="text-[#716855]">
             Update the quantity, unit cost, or description.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>Description</Label>
+            <Label className="text-[#716855]">Description</Label>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
+              className="border-[#d7c7aa] bg-white text-[#171714]"
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Quantity</Label>
+              <Label className="text-[#716855]">Quantity</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
+                className="border-[#d7c7aa] bg-white text-[#171714]"
               />
             </div>
             <div className="space-y-2">
-              <Label>Unit</Label>
-              <Input value={unit} onChange={e => setUnit(e.target.value)} />
+              <Label className="text-[#716855]">Unit</Label>
+              <Input value={unit} onChange={e => setUnit(e.target.value)} className="border-[#d7c7aa] bg-white text-[#171714]" />
             </div>
             <div className="space-y-2">
-              <Label>
+              <Label className="text-[#716855]">
                 Unit Cost (
                 {currencyCode === "GBP"
                   ? "£"
@@ -6368,13 +6291,14 @@ function EditItemDialog({
                 step="0.01"
                 value={unitCost}
                 onChange={e => setUnitCost(e.target.value)}
+                className="border-[#d7c7aa] bg-white text-[#171714]"
               />
             </div>
           </div>
-          <div className="bg-navy-deep/50 border border-white/10 rounded-lg p-3">
+          <div className="bg-[#fff4cb] border border-[#d7b44d] rounded-lg p-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-cream-muted">Extended Cost:</span>
-              <span className="text-amber-400 font-bold text-lg">
+              <span className="text-[#716855]">Extended Cost:</span>
+              <span className="text-[#8a6510] font-bold text-lg">
                 {formatCurrency(
                   Math.round(
                     parseFloat(quantity || "0") *
@@ -6388,7 +6312,7 @@ function EditItemDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
             Cancel
           </Button>
           <Button
@@ -6404,7 +6328,7 @@ function EditItemDialog({
               })
             }
             disabled={isPending}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+            className="bg-[#171714] text-white hover:bg-[#29251c]"
           >
             {isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
