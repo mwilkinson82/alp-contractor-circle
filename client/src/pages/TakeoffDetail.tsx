@@ -1110,6 +1110,7 @@ function DrawingNavigatorDialog({
   onOpenPreview,
   onOpenItem,
   onOpenTakeoff,
+  onAddItem,
 }: {
   open: boolean;
   sheets: any[];
@@ -1120,6 +1121,7 @@ function DrawingNavigatorDialog({
   onOpenPreview: (sheet: any) => void;
   onOpenItem: (item: any, sheet: any) => void;
   onOpenTakeoff: () => void;
+  onAddItem: (sheet: any) => void;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<DrawingNavigatorFilter>("all");
@@ -1294,15 +1296,26 @@ function DrawingNavigatorDialog({
                 </h3>
               </div>
               {activeSheet && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onOpenPreview(activeSheet)}
-                  className={`h-9 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
-                >
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                  Full Screen
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onAddItem(activeSheet)}
+                    className="h-9 rounded-xl bg-[#171714] text-white hover:bg-[#29251c]"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Item From Sheet
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onOpenPreview(activeSheet)}
+                    className={`h-9 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                  >
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    Full Screen
+                  </Button>
+                </div>
               )}
             </div>
             <div className="flex min-h-[650px] items-center justify-center overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#faf8f2] shadow-inner">
@@ -1398,6 +1411,26 @@ function DrawingNavigatorDialog({
             </div>
 
             <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+              {activeSheet && (
+                <button
+                  type="button"
+                  onClick={() => onAddItem(activeSheet)}
+                  className="mb-4 flex w-full items-start gap-3 rounded-xl border border-[#d7b44d] bg-[#fff4cb] p-3 text-left transition-colors hover:bg-[#ffeaa3]"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#171714] text-white">
+                    <PlusCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#171714]">
+                      Add missed scope to this drawing
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[#716855]">
+                      Use this when you spot work that AI missed. The new line
+                      item will stay linked to {getSheetLabel(activeSheet)}.
+                    </p>
+                  </div>
+                </button>
+              )}
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
                   AI Findings
@@ -1915,6 +1948,9 @@ export default function TakeoffDetail() {
   const [importRemoveUnmatched, setImportRemoveUnmatched] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [addItemDivision, setAddItemDivision] = useState<string>("03");
+  const [addItemSourceSheet, setAddItemSourceSheet] = useState<any | null>(
+    null
+  );
   const [showConsolidationDiff, setShowConsolidationDiff] = useState(false);
   const [openSettingsToScope, setOpenSettingsToScope] = useState(false);
   const [optimisticScopeDecisions, setOptimisticScopeDecisions] = useState<
@@ -2259,6 +2295,7 @@ export default function TakeoffDetail() {
     onSuccess: () => {
       toast.success("Item added");
       setShowAddItem(false);
+      setAddItemSourceSheet(null);
       refetchItems();
       refetchProject();
     },
@@ -3668,6 +3705,15 @@ export default function TakeoffDetail() {
     setShowDrawingNavigator(true);
   };
 
+  const openAddItemForSheet = (sheet: any) => {
+    setAddItemSourceSheet(sheet || null);
+    setAddItemDivision("03");
+    setShowDrawingNavigator(false);
+    setPreviewSheet(null);
+    setPreviewItem(null);
+    setShowAddItem(true);
+  };
+
   const openAnomalySource = (item: any) => {
     if (!item?.sheetId) {
       toast.info("No source drawing is linked to this row yet");
@@ -4532,7 +4578,10 @@ export default function TakeoffDetail() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-[#eadcc4]" />
                             <DropdownMenuItem
-                              onClick={() => setShowAddItem(true)}
+                              onClick={() => {
+                                setAddItemSourceSheet(null);
+                                setShowAddItem(true);
+                              }}
                               className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <PlusCircle className="w-4 h-4 text-emerald-700" />
@@ -5094,7 +5143,10 @@ export default function TakeoffDetail() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-[#eadcc4]" />
                             <DropdownMenuItem
-                              onClick={() => setShowAddItem(true)}
+                              onClick={() => {
+                                setAddItemSourceSheet(null);
+                                setShowAddItem(true);
+                              }}
                               className={LIGHT_DROPDOWN_ITEM_CLASS}
                             >
                               <PlusCircle className="w-4 h-4 text-emerald-700" />
@@ -7045,6 +7097,7 @@ export default function TakeoffDetail() {
           setActiveTab("items");
           setShowDrawingNavigator(false);
         }}
+        onAddItem={openAddItemForSheet}
       />
 
       <AnomalyCenterDialog
@@ -7086,6 +7139,18 @@ export default function TakeoffDetail() {
                 </DialogDescription>
               </div>
               <div className="flex items-center gap-2">
+                {previewSheet && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 rounded-xl bg-[#171714] text-white hover:bg-[#29251c]"
+                    onClick={() => openAddItemForSheet(previewSheet)}
+                    title="Add missed scope from this drawing"
+                  >
+                    <PlusCircle className="mr-1.5 h-4 w-4" />
+                    Add Item
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -7431,7 +7496,11 @@ export default function TakeoffDetail() {
           projectId={projectId}
           defaultDivision={addItemDivision}
           currency={project?.currency || "USD"}
-          onClose={() => setShowAddItem(false)}
+          sourceSheet={addItemSourceSheet}
+          onClose={() => {
+            setShowAddItem(false);
+            setAddItemSourceSheet(null);
+          }}
           onSave={data => addItemMutation.mutate({ projectId, ...data })}
           isPending={addItemMutation.isPending}
         />
@@ -7612,6 +7681,7 @@ function AddItemDialog({
   projectId,
   defaultDivision,
   currency,
+  sourceSheet,
   onClose,
   onSave,
   isPending,
@@ -7619,6 +7689,7 @@ function AddItemDialog({
   projectId: number;
   defaultDivision: string;
   currency: string;
+  sourceSheet?: any | null;
   onClose: () => void;
   onSave: (data: {
     csiDivision: string;
@@ -7628,6 +7699,7 @@ function AddItemDialog({
     unit: string;
     unitCost: number;
     notes?: string;
+    sheetId?: number;
   }) => void;
   isPending: boolean;
 }) {
@@ -7652,7 +7724,12 @@ function AddItemDialog({
       quantity,
       unit,
       unitCost: Math.round(parseFloat(unitCostDollars) * 100),
-      notes: notes.trim() || undefined,
+      notes:
+        notes.trim() ||
+        (sourceSheet
+          ? `Manually added from ${getSheetLabel(sourceSheet)}`
+          : undefined),
+      sheetId: sourceSheet?.id,
     });
   };
 
@@ -7670,10 +7747,26 @@ function AddItemDialog({
             Add Manual Line Item
           </DialogTitle>
           <DialogDescription className="text-[#716855]">
-            Manually enter a takeoff item under any CSI division.
+            {sourceSheet
+              ? `Add missed scope and link it to ${getSheetLabel(sourceSheet)}.`
+              : "Manually enter a takeoff item under any CSI division."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {sourceSheet && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#244c91]/80">
+                Drawing source
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[#171714]">
+                {getSheetLabel(sourceSheet)}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[#244c91]">
+                This item will be tied to the sheet so it can be defended later
+                from drawing review.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-[#716855] mb-1 block">

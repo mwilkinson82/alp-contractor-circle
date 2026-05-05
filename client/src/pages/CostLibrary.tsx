@@ -415,7 +415,7 @@ export default function CostLibrary() {
   const sortedDivisions = Object.keys(grouped).sort();
 
   return (
-    <div className="min-h-screen bg-navy-deep">
+    <div className="constructline-library-page min-h-screen bg-[#f5f2eb] text-[#171714]">
       {/* Header Bar — matches TakeoffDetail pattern */}
       <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">

@@ -749,6 +749,7 @@ export const takeoffRouter = router({
         unit: z.string().max(16).default("EA"),
         unitCost: z.number().min(0),
         notes: z.string().max(2000).optional(),
+        sheetId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -757,7 +758,12 @@ export const takeoffRouter = router({
       if (!project || project.memberId !== member.id) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
-      const sheetId = await getOrCreateManualSheet(input.projectId);
+      const sheets = await getDrawingSheetsByProject(input.projectId);
+      const linkedSheet = input.sheetId
+        ? sheets.find((sheet: any) => sheet.id === input.sheetId)
+        : null;
+      const sheetId =
+        linkedSheet?.id || (await getOrCreateManualSheet(input.projectId));
       const qty = parseFloat(input.quantity) || 0;
       const extendedCost = Math.round(qty * input.unitCost);
       // For manually added items, default to full amount as material, 0 labor
@@ -775,7 +781,11 @@ export const takeoffRouter = router({
         materialCost: input.unitCost,
         laborCost: 0,
         confidence: 100,
-        notes: input.notes || null,
+        notes:
+          input.notes ||
+          (linkedSheet
+            ? `Manually added from ${linkedSheet.sheetName || `page ${linkedSheet.pageNumber}`}`
+            : null),
         reviewed: true,
       });
       await recalculateProjectTotal(input.projectId);
