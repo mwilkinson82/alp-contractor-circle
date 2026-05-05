@@ -38,9 +38,15 @@ const DEFAULT_BOOTCAMP_DAY = "Sunday";
 const DEFAULT_BOOTCAMP_ZOOM =
   "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
 
-function getNextCallDate(): Date {
+const LIVE_CALL_EXCEPTIONS: Record<string, { movedTo: Date; note: string }> = {
+  "2026-05-10": {
+    movedTo: new Date(Date.UTC(2026, 4, 9, 21, 0, 0)),
+    note: "Moved to Saturday for Mother's Day weekend.",
+  },
+};
+
+function getStandardNextCallDate(now = new Date()): Date {
   const anchor = new Date(Date.UTC(2025, 2, 30, 21, 0, 0));
-  const now = new Date();
   const daysSinceAnchor = Math.floor(
     (now.getTime() - anchor.getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -49,6 +55,44 @@ function getNextCallDate(): Date {
   const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
   const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
   return new Date(anchor.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
+}
+
+function getNextCallDate(now = new Date()): Date {
+  const standardDate = getStandardNextCallDate(now);
+  const standardKey = standardDate.toISOString().split("T")[0];
+  const exception = LIVE_CALL_EXCEPTIONS[standardKey];
+
+  if (!exception) return standardDate;
+
+  const exceptionWindowEnd = new Date(
+    exception.movedTo.getTime() + 2 * 60 * 60 * 1000
+  );
+
+  if (now.getTime() <= exceptionWindowEnd.getTime()) {
+    return exception.movedTo;
+  }
+
+  return new Date(standardDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+}
+
+function getUpcomingCallDates(count: number): Date[] {
+  const firstCall = getNextCallDate();
+  const standardFirst = getStandardNextCallDate();
+  const standardKey = standardFirst.toISOString().split("T")[0];
+  const isMovedException =
+    LIVE_CALL_EXCEPTIONS[standardKey]?.movedTo.getTime() ===
+    firstCall.getTime();
+
+  const dates = [firstCall];
+  const nextScheduleAnchor = isMovedException ? standardFirst : firstCall;
+
+  for (let index = 1; index < count; index += 1) {
+    dates.push(
+      new Date(nextScheduleAnchor.getTime() + index * 14 * 24 * 60 * 60 * 1000)
+    );
+  }
+
+  return dates;
 }
 
 function getNextCallCycle(): string {
@@ -77,6 +121,14 @@ function formatShortDate(value: Date): { month: string; day: string } {
       timeZone: "UTC",
     }),
   };
+}
+
+function formatCallDetail(value: Date): string {
+  const weekday = value.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  return `${weekday} at 5:00 PM ET`;
 }
 
 function formatBootcampDisplay(
@@ -425,7 +477,14 @@ export default function PortalDashboard() {
   );
 
   const nextCallDate = useMemo(() => getNextCallDate(), []);
-  const nextCallShort = formatShortDate(nextCallDate);
+  const callExceptionNote =
+    LIVE_CALL_EXCEPTIONS[
+      getStandardNextCallDate().toISOString().split("T")[0]
+    ]?.movedTo.getTime() === nextCallDate.getTime()
+      ? LIVE_CALL_EXCEPTIONS[
+          getStandardNextCallDate().toISOString().split("T")[0]
+        ]?.note
+      : null;
   const callCalendarUrl = buildCalendarUrl({
     title: "Contractor Circle Live Call",
     details: `Contractor Circle live call with Marshall.\n\nJoin Zoom:\n${ZOOM_CALL_LINK}`,
@@ -448,23 +507,24 @@ export default function PortalDashboard() {
       (topic: any) => topic.bootcampDate === bootcampDate
     ).length ?? 0;
 
+  const upcomingCallDates = getUpcomingCallDates(3);
   const upcomingCalls = [
     {
-      date: nextCallDate,
+      date: upcomingCallDates[0],
       title: "Contractor Circle Live Call",
-      detail: "Sunday at 5:00 PM ET",
+      detail: formatCallDetail(upcomingCallDates[0]),
       url: ZOOM_CALL_LINK,
     },
     {
-      date: new Date(nextCallDate.getTime() + 14 * 24 * 60 * 60 * 1000),
+      date: upcomingCallDates[1],
       title: "Bid Review and Q&A",
-      detail: "Sunday at 5:00 PM ET",
+      detail: formatCallDetail(upcomingCallDates[1]),
       url: ZOOM_CALL_LINK,
     },
     {
-      date: new Date(nextCallDate.getTime() + 28 * 24 * 60 * 60 * 1000),
+      date: upcomingCallDates[2],
       title: "Systems and Profit Clinic",
-      detail: "Sunday at 5:00 PM ET",
+      detail: formatCallDetail(upcomingCallDates[2]),
       url: ZOOM_CALL_LINK,
     },
   ];
@@ -581,6 +641,11 @@ export default function PortalDashboard() {
                 <p className="mt-1 text-sm text-[#716855]">
                   {formatDate(nextCallDate)} at 5:00 PM ET
                 </p>
+                {callExceptionNote && (
+                  <p className="mt-2 inline-flex rounded-full border border-[#d7b44d] bg-[#fff4cb] px-2.5 py-1 text-[11px] font-semibold text-[#8a6510]">
+                    {callExceptionNote}
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
