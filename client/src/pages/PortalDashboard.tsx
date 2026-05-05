@@ -212,27 +212,31 @@ function SubmitQuestionModal({ onClose }: { onClose: () => void }) {
         />
       ) : (
         <>
-          <FieldLabel label="Your question" required />
-          <textarea
-            value={question}
-            onChange={event => setQuestion(event.target.value)}
-            placeholder="What's the most important thing you need clarity on before the next call?"
-            rows={5}
-            maxLength={1000}
-            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
-            autoFocus
-          />
-          <FieldLabel label="Context" optional />
-          <textarea
-            value={context}
-            onChange={event => setContext(event.target.value)}
-            placeholder="Project size, what you tried, what is at stake..."
-            rows={3}
-            maxLength={2000}
-            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
-          />
+          <div className="space-y-2">
+            <FieldLabel label="Your question" required />
+            <textarea
+              value={question}
+              onChange={event => setQuestion(event.target.value)}
+              placeholder="What's the most important thing you need clarity on before the next call?"
+              rows={5}
+              maxLength={1000}
+              className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <FieldLabel label="Context" optional />
+            <textarea
+              value={context}
+              onChange={event => setContext(event.target.value)}
+              placeholder="Project size, what you tried, what is at stake..."
+              rows={3}
+              maxLength={2000}
+              className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+            />
+          </div>
           <Button
-            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20]"
+            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20] disabled:bg-[#e7e1d6] disabled:text-[#9d9484]"
             disabled={question.trim().length < 10 || submitQuestion.isPending}
             onClick={() =>
               submitQuestion.mutate({
@@ -287,26 +291,30 @@ function SubmitTopicModal({
         />
       ) : (
         <>
-          <FieldLabel label="Topic" required />
-          <input
-            value={topic}
-            onChange={event => setTopic(event.target.value)}
-            placeholder="e.g. Pricing change orders profitably"
-            maxLength={512}
-            className="h-12 w-full rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
-            autoFocus
-          />
-          <FieldLabel label="Why this matters" optional />
-          <textarea
-            value={reason}
-            onChange={event => setReason(event.target.value)}
-            placeholder="What are you trying to solve in the field or in the business?"
-            rows={4}
-            maxLength={2000}
-            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
-          />
+          <div className="space-y-2">
+            <FieldLabel label="Topic" required />
+            <input
+              value={topic}
+              onChange={event => setTopic(event.target.value)}
+              placeholder="e.g. Pricing change orders profitably"
+              maxLength={512}
+              className="h-12 w-full rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <FieldLabel label="Why this matters" optional />
+            <textarea
+              value={reason}
+              onChange={event => setReason(event.target.value)}
+              placeholder="What are you trying to solve in the field or in the business?"
+              rows={4}
+              maxLength={2000}
+              className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+            />
+          </div>
           <Button
-            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20]"
+            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20] disabled:bg-[#e7e1d6] disabled:text-[#9d9484]"
             disabled={topic.trim().length < 5 || submitTopic.isPending}
             onClick={() =>
               submitTopic.mutate({
@@ -335,7 +343,7 @@ function FieldLabel({
   optional?: boolean;
 }) {
   return (
-    <label className="-mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+    <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
       {label}
       {required && <span className="text-[#c48d12]"> *</span>}
       {optional && (
@@ -485,7 +493,10 @@ export default function PortalDashboard() {
                   Contractor Circle Portal
                 </p>
                 <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-normal text-[#11100c] lg:text-[46px]">
-                  {greeting}, {firstName}
+                  {greeting}, {firstName}{" "}
+                  <span className="inline-block align-[0.04em] text-[0.82em]">
+                    👋
+                  </span>
                 </h1>
                 <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#6d6558]">
                   Build your business, win better jobs, and stay close to the
