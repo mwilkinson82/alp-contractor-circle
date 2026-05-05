@@ -275,6 +275,7 @@ export default function ConstructLineHub() {
             </div>
           </div>
           <Button
+            data-tour="hub-configure-rates"
             variant="outline"
             size="sm"
             className="hidden h-10 rounded-xl border-white/10 bg-white/8 text-white hover:!bg-white/14 hover:!text-white lg:inline-flex"
@@ -296,7 +297,10 @@ export default function ConstructLineHub() {
 
       <main className="mx-auto max-w-[1500px] px-6 py-7">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="overflow-hidden rounded-xl bg-[#fffdf8] shadow-[0_28px_80px_rgba(41,37,28,0.08)]">
+          <div
+            data-tour="hub-hero"
+            className="overflow-hidden rounded-xl bg-[#fffdf8] shadow-[0_28px_80px_rgba(41,37,28,0.08)]"
+          >
             <div className="grid min-h-[315px] lg:grid-cols-[minmax(430px,0.76fr)_minmax(520px,1fr)]">
               <div className="flex flex-col justify-center p-7 lg:p-9">
                 <div>
@@ -469,7 +473,10 @@ export default function ConstructLineHub() {
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
-          <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+          <section
+            data-tour="hub-recent-projects"
+            className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -612,7 +619,10 @@ export default function ConstructLineHub() {
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+            <section
+              data-tour="hub-whats-new"
+              className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
+            >
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-[#8a6510]" />
                 <h2 className="font-semibold text-[#171714]">What’s New</h2>
@@ -660,6 +670,7 @@ export default function ConstructLineHub() {
 
         <section
           id="constructline-tools"
+          data-tour="hub-module-cards"
           className="mt-6 rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">

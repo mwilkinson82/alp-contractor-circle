@@ -328,7 +328,10 @@ export default function LaborLibrary() {
   return (
     <div className="constructline-library-page constructline-rate-page min-h-screen bg-[#f5f2eb] text-[#171714]">
       {/* Header Bar */}
-      <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
+      <div
+        data-tour="labor-library-header"
+        className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4"
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
@@ -451,7 +454,10 @@ export default function LaborLibrary() {
           </div>
           <div className="flex items-center gap-2">
             {/* View toggle */}
-            <div className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1 mr-2">
+            <div
+              data-tour="labor-library-tabs"
+              className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1 mr-2"
+            >
               <button
                 onClick={() => setActiveView("rates")}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
@@ -487,6 +493,7 @@ export default function LaborLibrary() {
               </button>
             </div>
             <Button
+              data-tour="labor-library-seed"
               onClick={() => setShowWizard(true)}
               className="bg-gradient-to-r from-amber-500/20 to-orange-600/20 border border-amber-500/30 text-amber-300 hover:from-amber-500/30 hover:to-orange-600/30 gap-1.5 text-xs font-semibold"
               size="sm"
@@ -498,7 +505,10 @@ export default function LaborLibrary() {
         </div>
       </div>
 
-      <section className="border-b border-emerald-400/10 bg-[radial-gradient(circle_at_top_left,rgba(111,209,157,0.12),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-3 py-5 sm:px-6">
+      <section
+        data-tour="labor-library-crew-builder"
+        className="border-b border-emerald-400/10 bg-[radial-gradient(circle_at_top_left,rgba(111,209,157,0.12),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-3 py-5 sm:px-6"
+      >
         <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[minmax(0,1fr)_390px]">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300">

@@ -417,7 +417,10 @@ export default function CostLibrary() {
   return (
     <div className="constructline-library-page min-h-screen bg-[#f5f2eb] text-[#171714]">
       {/* Header Bar — matches TakeoffDetail pattern */}
-      <div className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4">
+      <div
+        data-tour="cost-library-header"
+        className="bg-navy-medium/80 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4"
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Button
@@ -457,6 +460,7 @@ export default function CostLibrary() {
               Upload CSV / Excel
             </Button>
             <Button
+              data-tour="cost-library-sync"
               variant="outline"
               size="sm"
               onClick={() => {
@@ -896,7 +900,10 @@ export default function CostLibrary() {
         ) : entries && entries.length > 0 ? (
           <div>
             {/* Summary bar — matches TakeoffDetail pattern */}
-            <div className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4">
+            <div
+              data-tour="cost-library-filter"
+              className="flex items-center justify-between gap-3 bg-navy-medium/50 border border-white/10 rounded-lg px-4 py-3 mb-4"
+            >
               <div className="flex items-center gap-3">
                 <h2 className="text-cream font-semibold">Your Cost Library</h2>
                 <Badge className="bg-white/10 text-cream-muted border-white/20 text-xs">
@@ -953,7 +960,7 @@ export default function CostLibrary() {
             </div>
 
             {/* Grouped by CSI division */}
-            <div className="space-y-2">
+            <div data-tour="cost-library-table" className="space-y-2">
               {sortedDivisions.map(div => {
                 const divEntries = grouped[div];
                 const isCollapsed = collapsedDivisions.has(div);

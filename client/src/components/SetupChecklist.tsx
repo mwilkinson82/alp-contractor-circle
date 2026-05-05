@@ -13,13 +13,13 @@ import {
   Sparkles,
   HardHat,
   Ruler,
-  MessageSquare,
   Settings2,
   X,
+  Database,
 } from "lucide-react";
 
-const STORAGE_KEY = "alp-cl-setup-checklist";
-const DISMISSED_KEY = "alp-cl-setup-dismissed";
+const STORAGE_KEY = "alp-cl-setup-checklist-v2";
+const DISMISSED_KEY = "alp-cl-setup-dismissed-v2";
 
 export interface SetupStep {
   id: string;
@@ -32,31 +32,31 @@ export interface SetupStep {
 const SETUP_STEPS: SetupStep[] = [
   {
     id: "rates",
-    label: "Configure Your Rates",
-    description: "Set your work type, region, and trade rates",
+    label: "Configure Basis Setup",
+    description: "Set work type, region, and default pricing setup",
     path: "/portal/labor-library",
     icon: Settings2,
   },
   {
+    id: "costs",
+    label: "Check Cost Library",
+    description: "Review the unit costs Basis uses for material pricing",
+    path: "/portal/cost-library",
+    icon: Database,
+  },
+  {
     id: "crews",
-    label: "Review Your Crews",
-    description: "Check crew compositions and adjust as needed",
+    label: "Check Trade Rates",
+    description: "Review fully burdened rates and crew assumptions",
     path: "/portal/labor-library?tab=crews",
     icon: HardHat,
   },
   {
     id: "project",
-    label: "Upload Your First Project",
-    description: "Upload drawings and run your first takeoff",
+    label: "Create First Basis Bid",
+    description: "Upload drawings and run your first Basis estimate",
     path: "/portal/takeoff",
     icon: Ruler,
-  },
-  {
-    id: "discord",
-    label: "Join the Community",
-    description: "Connect Discord for support and networking",
-    path: "/api/beta/discord/connect",
-    icon: MessageSquare,
   },
 ];
 
@@ -101,10 +101,6 @@ export function SetupChecklist({
     const updated = new Set(completed);
     let changed = false;
 
-    if (discordConnected && !updated.has("discord")) {
-      updated.add("discord");
-      changed = true;
-    }
     if (hasRateConfig && !updated.has("rates")) {
       updated.add("rates");
       changed = true;
@@ -127,7 +123,7 @@ export function SetupChecklist({
 
   // Find next incomplete step
   const nextStep = useMemo(
-    () => SETUP_STEPS.find((s) => !completed.has(s.id)),
+    () => SETUP_STEPS.find(s => !completed.has(s.id)),
     [completed]
   );
 
@@ -135,10 +131,8 @@ export function SetupChecklist({
   if (allDone && dismissed) return null;
 
   const handleStepClick = (step: SetupStep) => {
-    if (step.id === "discord") {
-      // Discord connect uses a full-page redirect
-      window.location.href = `${step.path}?origin=${encodeURIComponent(window.location.origin)}&returnPath=${encodeURIComponent(window.location.pathname)}`;
-      return;
+    if (step.id === "costs" || step.id === "crews") {
+      markComplete(step.id);
     }
     setLocation(step.path);
   };
@@ -163,7 +157,9 @@ export function SetupChecklist({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300">Setup Complete!</span>
+            <span className="text-xs font-semibold text-emerald-300">
+              Setup Complete!
+            </span>
           </div>
           <button
             onClick={handleDismiss}
@@ -223,7 +219,7 @@ export function SetupChecklist({
 
       {/* Steps */}
       <div className="px-2 pb-2 space-y-0.5">
-        {SETUP_STEPS.map((step) => {
+        {SETUP_STEPS.map(step => {
           const done = completed.has(step.id);
           const isNext = nextStep?.id === step.id;
           const isAnimating = animatingStep === step.id;

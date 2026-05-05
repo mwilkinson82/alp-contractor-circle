@@ -1,6 +1,6 @@
 /**
- * TakeoffOnboardingTour — Guided product tour for the ConstructLine Takeoff application.
- * Uses react-joyride v3 to walk through the takeoff workflow step-by-step.
+ * TakeoffOnboardingTour — Guided product tour for ConstructLine Basis.
+ * Uses react-joyride v3 to walk through the current Basis workflow.
  * Two tour variants:
  *   1. TakeoffList tour — runs on /portal/takeoff (project list page)
  *   2. TakeoffDetail tour — runs on /takeoff/:id (project detail page)
@@ -12,24 +12,32 @@ import type { Step, EventData, Controls } from "react-joyride";
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 
-const LIST_TOUR_KEY = "alp-takeoff-list-tour-v1";
-const DETAIL_TOUR_KEY = "alp-takeoff-detail-tour-v1";
+const LIST_TOUR_KEY = "alp-basis-list-tour-v2";
+const DETAIL_TOUR_KEY = "alp-basis-detail-tour-v2";
 
 /** Tour steps for the Takeoff Project List page (/portal/takeoff) */
 const LIST_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-new-project"]',
     content:
-      "Start here! Click \"New Takeoff\" to create a project. Give it a name (like the job name) and you'll be taken to the project page where you upload your drawings.",
-    title: "Step 1: Create a New Takeoff Project",
+      "Start here to create a new Basis project. Give it the job name, then upload drawings and choose the bid mode so the review surface matches the work you are pricing.",
+    title: "Step 1: Create a New Basis Project",
+    placement: "bottom",
+    skipBeacon: true,
+  },
+  {
+    target: '[data-tour="basis-pricing-libraries"]',
+    content:
+      "Before a real contractor trusts the numbers, they should review the Cost Library and Trade Rate Library. Cost Library controls material and unit pricing. Trade Rate Library controls fully burdened labor rates and crews.",
+    title: "Pricing Inputs Matter",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="takeoff-project-grid"]',
     content:
-      "All your takeoff projects show up here as cards. You can see the status, number of sheets, and estimated cost at a glance. Click any card to open it.",
-    title: "Your Takeoff Projects",
+      "This is the Bid Desk: the archive of estimating projects that open into ConstructLine Basis. Use it to see status, sheet count, region, bid mode, and bid value at a glance.",
+    title: "Bid Desk",
     placement: "top",
     skipBeacon: true,
   },
@@ -40,7 +48,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-upload-area"]',
     content:
-      "Drag and drop your construction drawings here — PDFs or images. Multi-page PDFs are automatically split into individual sheets. Each sheet gets analyzed separately.",
+      "Drag and drop construction drawings here — PDFs or images. Multi-page PDFs are split into sheets, indexed, and processed by Basis.",
     title: "Step 1: Upload Your Drawings",
     placement: "bottom",
     skipBeacon: true,
@@ -48,15 +56,15 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-analyze-btn"]',
     content:
-      "After uploading, hit this button to run the ConstructLine analysis. You'll pick your currency, CSI divisions to include, and cost region before it starts. The ConstructLine engine reads every sheet and extracts line items with quantities and costs.",
-    title: "Step 2: Analyze Drawings",
+      "Run Basis analysis after upload. You will choose bid mode, project type, currency, cost region, and scope setup before analysis starts.",
+    title: "Step 2: Start Basis Analysis",
     placement: "top",
     skipBeacon: true,
   },
   {
     target: '[data-tour="takeoff-settings"]',
     content:
-      "Change your project settings anytime — currency, CSI divisions, cost region, and scope notes. If you change divisions, you can re-analyze to update results.",
+      "Change project settings anytime — bid mode, scope notes, currency, region, and pricing setup. If the scope changes, re-run analysis to refresh the estimate.",
     title: "Project Settings",
     placement: "bottom",
     skipBeacon: true,
@@ -64,7 +72,7 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-sheet-grid"]',
     content:
-      "Your uploaded drawing sheets appear here. Click any sheet to preview it, open it fullscreen, or enter markup mode to measure distances, areas, and counts directly on the drawing.",
+      "Uploaded drawing sheets appear here. Open Drawing Navigator or full-screen preview to review source evidence, inspect what Basis found, and add missed scope tied to a specific sheet.",
     title: "Drawing Sheets",
     placement: "top",
     skipBeacon: true,
@@ -72,23 +80,23 @@ const DETAIL_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="takeoff-tabs"]',
     content:
-      "Switch between the Drawing Sheets tab (upload & markup) and the Quantity Takeoff tab (review extracted line items, costs, and export).",
-    title: "Sheets vs. Quantity Takeoff",
+      "Basis moves through drawing review, scope review, estimating, and submit packaging. Review decides what belongs, Estimate decides what it costs, Submit packages the bid.",
+    title: "Review, Estimate, Submit",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="takeoff-summary-bar"]',
     content:
-      "The summary bar shows your line item count, CSI divisions, reviewed count, and total estimated cost. Use the action buttons to Re-run Analysis, Re-price, Export, Import, Add Items, or open the Bid Calculator. Additional tools are in the More menu.",
-    title: "Quantity Takeoff Summary & Tools",
+      "The command area shows bid readiness, accepted cost, review status, and estimate actions. Use Add Item when the estimator catches scope that AI missed.",
+    title: "Basis Command Center",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="takeoff-consolidate-btn"]',
     content:
-      "The full analysis pipeline runs automatically after upload — no action needed. Use Re-run Analysis to re-process after editing scope, adding sheets, or changing settings. It merges duplicates, converts lump sums to measured quantities, calculates CY volumes, and removes out-of-scope items.",
+      "The analysis pipeline runs automatically after upload. Use Re-run Analysis only when you change scope, add sheets, or need Basis to rebuild the estimate from the current drawing set.",
     title: "Re-run Analysis",
     placement: "bottom",
     skipBeacon: true,
@@ -167,7 +175,9 @@ function useTour(steps: Step[], storageKey: string, shouldRun: boolean) {
     // Wait for DOM elements to render
     const timer = setTimeout(() => {
       const firstTarget = document.querySelector(steps[0]?.target as string);
-      console.log(`[TakeoffTour:${storageKey}] Checking targets...`, { firstTarget: !!firstTarget });
+      console.log(`[TakeoffTour:${storageKey}] Checking targets...`, {
+        firstTarget: !!firstTarget,
+      });
       if (firstTarget) {
         startedRef.current = true;
         setStepIndex(0);
@@ -185,7 +195,12 @@ function useTour(steps: Step[], storageKey: string, shouldRun: boolean) {
     (data: EventData, controls: Controls) => {
       const { status, action, index, type } = data;
 
-      console.log(`[TakeoffTour:${storageKey}] Event:`, { type, action, status, index });
+      console.log(`[TakeoffTour:${storageKey}] Event:`, {
+        type,
+        action,
+        status,
+        index,
+      });
 
       if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
         setRun(false);
@@ -230,14 +245,20 @@ export function TakeoffOnboardingTour() {
   const { member, isAuthenticated, loading } = useMember();
   const [location] = useLocation();
 
-  const isOnListPage = location === "/portal/takeoff" || location === "/portal/takeoff/";
+  const isOnListPage =
+    location === "/portal/takeoff" || location === "/portal/takeoff/";
   const isOnDetailPage = /^\/takeoff\/\d+/.test(location);
 
   const shouldRunList = !loading && isAuthenticated && !!member && isOnListPage;
-  const shouldRunDetail = !loading && isAuthenticated && !!member && isOnDetailPage;
+  const shouldRunDetail =
+    !loading && isAuthenticated && !!member && isOnDetailPage;
 
   const listTour = useTour(LIST_TOUR_STEPS, LIST_TOUR_KEY, shouldRunList);
-  const detailTour = useTour(DETAIL_TOUR_STEPS, DETAIL_TOUR_KEY, shouldRunDetail);
+  const detailTour = useTour(
+    DETAIL_TOUR_STEPS,
+    DETAIL_TOUR_KEY,
+    shouldRunDetail
+  );
 
   if (loading || !isAuthenticated) return null;
 

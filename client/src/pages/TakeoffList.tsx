@@ -55,6 +55,8 @@ import {
   MoreHorizontal,
   ArrowUpDown,
   X,
+  Database,
+  HardHat,
 } from "lucide-react";
 import { getBidModeBehavior } from "../../../shared/bidMode";
 
@@ -296,7 +298,7 @@ export default function TakeoffList() {
             {/* ConstructLine Brand Mark */}
             <div className="flex flex-col">
               <span className="text-2xl font-bold tracking-tight text-[#171714] leading-tight">
-                Basis
+                Construct<span className="text-[#d9a21a]">Line</span> Basis
               </span>
               <span className="text-[9px] text-[#8a806d] tracking-wider uppercase leading-tight">
                 Powered by ALP
@@ -368,6 +370,47 @@ export default function TakeoffList() {
           </Button>
         </div>
       </div>
+
+      <section
+        data-tour="basis-pricing-libraries"
+        className="rounded-2xl border border-[#d7b44d] bg-[#fff8df] p-4 shadow-[0_18px_55px_rgba(138,101,16,0.10)]"
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a6510]">
+              Before the first real bid
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-[#171714]">
+              Basis prices from your Cost Library and Trade Rate Library.
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[#716855]">
+              ConstructLine gives contractors a strong default starting point,
+              but users should quickly review material unit costs, burdened
+              rates, and crews so estimates reflect how they actually buy and
+              build.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/portal/cost-library")}
+              className="h-10 rounded-xl border-[#d7c7aa] bg-white text-[#29251c] hover:!bg-[#faf8f2]"
+            >
+              <Database className="mr-2 h-4 w-4 text-[#8a6510]" />
+              Cost Library
+            </Button>
+            <Button
+              type="button"
+              onClick={() => navigate("/portal/labor-library?tab=crews")}
+              className="h-10 rounded-xl bg-[#171714] text-white hover:bg-[#29251c]"
+            >
+              <HardHat className="mr-2 h-4 w-4" />
+              Trade Rate Library
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {showFilters && (
         <div className="rounded-2xl border border-[#e0d2b7] bg-white/90 p-4 shadow-[0_18px_55px_rgba(41,37,28,0.09)]">

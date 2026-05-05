@@ -11,9 +11,9 @@ import type { Step, EventData, Controls } from "react-joyride";
 import { useMember } from "@/hooks/useMember";
 import { useLocation } from "wouter";
 
-const HUB_TOUR_KEY          = "alp-constructline-hub-tour-v1";
-const COST_LIBRARY_TOUR_KEY = "alp-cost-library-tour-v1";
-const LABOR_LIBRARY_TOUR_KEY = "alp-labor-library-tour-v1";
+const HUB_TOUR_KEY = "alp-constructline-hub-tour-v2";
+const COST_LIBRARY_TOUR_KEY = "alp-cost-library-tour-v2";
+const LABOR_LIBRARY_TOUR_KEY = "alp-labor-library-tour-v2";
 
 // ─── Tour Steps ────────────────────────────────────────────────────────────────
 
@@ -21,23 +21,23 @@ const HUB_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="hub-hero"]',
     content:
-      "Welcome to ConstructLine — your complete construction estimating platform. This hub is your home base for all estimating tools. Everything starts here.",
-    title: "Welcome to ConstructLine",
+      "Welcome to the ConstructLine Hub. This is the home base for Basis estimating, pricing libraries, trade rates, and Baseline scheduling.",
+    title: "ConstructLine Hub",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="hub-configure-rates"]',
     content:
-      "Before estimating, configure your labor rates here. Tell ConstructLine your work type (commercial or residential), shop type (union or open shop), and region. This calibrates all trade rates to your specific market.",
-    title: "Configure Your Labor Rates",
+      "Before a contractor relies on an estimate, they need pricing inputs. Configure the region and labor setup, then review Cost Library and Trade Rate Library.",
+    title: "Configure Pricing Inputs",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="hub-recent-projects"]',
     content:
-      "Your most recent takeoff projects appear here for quick access. Jump back into any project without hunting through the full project list.",
+      "Recent Basis projects appear here. Completed bids can move straight into Submit packaging; active bids reopen into the review and estimate workflow.",
     title: "Recent Projects",
     placement: "top",
     skipBeacon: true,
@@ -45,8 +45,8 @@ const HUB_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="hub-module-cards"]',
     content:
-      "These four cards are your ConstructLine tools. Start with Quantity Takeoff to upload drawings and extract quantities, then use Cost Library and Trade Rate Library to price them out. CPM Schedule handles your project timeline.",
-    title: "Your Estimating Tools",
+      "These are the ConstructLine tools: Basis for estimating, Cost Library for unit pricing, Trade Rate Library for labor and crews, and Baseline for CPM scheduling.",
+    title: "ConstructLine Tools",
     placement: "top",
     skipBeacon: true,
   },
@@ -64,15 +64,15 @@ const COST_LIBRARY_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="cost-library-header"]',
     content:
-      "The Cost Library stores your material unit costs across all 33 CSI divisions. Think of it as your internal price book — every item here feeds directly into your estimate calculations.",
-    title: "Your Cost Library",
+      "Cost Library is the unit-cost source Basis uses when pricing material and cost-library matched scope. It is the contractor's internal price book.",
+    title: "Cost Library Powers Basis",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="cost-library-sync"]',
     content:
-      "Sync ConstructLine's baseline pricing to pre-populate the library with RS Means-calibrated unit costs. You can override any item with your own negotiated rates.",
+      "Sync ConstructLine's default pricing to fill gaps, then override rows with your own supplier history, subcontractor pricing, or preferred unit costs.",
     title: "Sync Baseline Pricing",
     placement: "bottom",
     skipBeacon: true,
@@ -80,7 +80,7 @@ const COST_LIBRARY_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="cost-library-filter"]',
     content:
-      "Filter by CSI division to find items quickly. The library is organized by the 33 CSI MasterFormat divisions — the same structure your takeoff uses.",
+      "Search and filter the library by CSI division. Basis uses the same CSI structure when grouping estimate rows and export tabs.",
     title: "Filter by Division",
     placement: "bottom",
     skipBeacon: true,
@@ -88,7 +88,7 @@ const COST_LIBRARY_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="cost-library-table"]',
     content:
-      "Each row shows the item description, unit of measure, and unit cost. Click any row to edit the cost. Your custom rates override the baseline whenever you run an estimate.",
+      "Each row stores description, unit, cost, division, and notes. Edit the rows contractors care about first; custom rows override generic defaults.",
     title: "Edit Unit Costs",
     placement: "top",
     skipBeacon: true,
@@ -99,23 +99,23 @@ const LABOR_LIBRARY_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="labor-library-header"]',
     content:
-      "The Trade Rate Library is where you define your crews and their fully-burdened labor rates. ConstructLine uses these rates to calculate labor costs for every item in your takeoff.",
-    title: "Trade Rate Library",
+      "Trade Rate Library is where Basis gets fully burdened labor rates and crew assumptions. This is what turns raw quantities into contractor-specific labor cost.",
+    title: "Trade Rate Library Powers Basis",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="labor-library-tabs"]',
     content:
-      "Three tabs: Trade Rates (individual worker rates by trade and classification), Burden Config (payroll taxes and benefits by labor type), and Crew Builder (define multi-trade crews with composition and hourly cost).",
-    title: "Three Configuration Tabs",
+      "Use Trade Rates for individual classifications, Burden Config for payroll load, Crew Builder for actual crews, and Rate Profiles when a company has multiple labor setups.",
+    title: "Rates, Burden, Crews",
     placement: "bottom",
     skipBeacon: true,
   },
   {
     target: '[data-tour="labor-library-crew-builder"]',
     content:
-      "The Crew Builder is the most important tab. Define your standard crews here — a Concrete Crew, a Framing Crew, a Drywall Crew. Each crew has a composition (how many of each trade) and a calculated hourly cost.",
+      "Crew Builder is the practical center of labor pricing. ConstructLine starts users with default crews; contractors tune composition, burden, and rates instead of building from scratch.",
     title: "Crew Builder",
     placement: "top",
     skipBeacon: true,
@@ -123,8 +123,8 @@ const LABOR_LIBRARY_TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="labor-library-seed"]',
     content:
-      "Use this to seed your trade rates from the ConstructLine baseline. It applies your configured work type, region, and specialty multipliers to generate accurate starting rates for every trade.",
-    title: "Seed from Baseline",
+      "Use Reconfigure Rates when the company changes region, work type, or labor basis. Basis then prices labor from the updated burdened rates and crew assumptions.",
+    title: "Reconfigure Rates",
     placement: "bottom",
     skipBeacon: true,
   },
@@ -260,17 +260,32 @@ export function ConstructLineHubTour() {
   const { member, isAuthenticated, loading } = useMember();
   const [location] = useLocation();
 
-  const isOnHub          = location === "/portal/constructline" || location === "/portal/constructline/";
-  const isOnCostLibrary  = location === "/portal/cost-library" || location === "/portal/cost-library/";
-  const isOnLaborLibrary = location === "/portal/labor-library" || location === "/portal/labor-library/";
+  const isOnHub =
+    location === "/portal/constructline" ||
+    location === "/portal/constructline/";
+  const isOnCostLibrary =
+    location === "/portal/cost-library" || location === "/portal/cost-library/";
+  const isOnLaborLibrary =
+    location === "/portal/labor-library" ||
+    location === "/portal/labor-library/";
 
-  const shouldRunHub          = !loading && isAuthenticated && !!member && isOnHub;
-  const shouldRunCostLibrary  = !loading && isAuthenticated && !!member && isOnCostLibrary;
-  const shouldRunLaborLibrary = !loading && isAuthenticated && !!member && isOnLaborLibrary;
+  const shouldRunHub = !loading && isAuthenticated && !!member && isOnHub;
+  const shouldRunCostLibrary =
+    !loading && isAuthenticated && !!member && isOnCostLibrary;
+  const shouldRunLaborLibrary =
+    !loading && isAuthenticated && !!member && isOnLaborLibrary;
 
-  const hubTour          = useTour(HUB_TOUR_STEPS,          HUB_TOUR_KEY,          shouldRunHub);
-  const costLibraryTour  = useTour(COST_LIBRARY_TOUR_STEPS,  COST_LIBRARY_TOUR_KEY,  shouldRunCostLibrary);
-  const laborLibraryTour = useTour(LABOR_LIBRARY_TOUR_STEPS, LABOR_LIBRARY_TOUR_KEY, shouldRunLaborLibrary);
+  const hubTour = useTour(HUB_TOUR_STEPS, HUB_TOUR_KEY, shouldRunHub);
+  const costLibraryTour = useTour(
+    COST_LIBRARY_TOUR_STEPS,
+    COST_LIBRARY_TOUR_KEY,
+    shouldRunCostLibrary
+  );
+  const laborLibraryTour = useTour(
+    LABOR_LIBRARY_TOUR_STEPS,
+    LABOR_LIBRARY_TOUR_KEY,
+    shouldRunLaborLibrary
+  );
 
   if (loading || !isAuthenticated) return null;
 
