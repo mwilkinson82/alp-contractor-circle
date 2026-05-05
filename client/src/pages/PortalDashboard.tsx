@@ -5,25 +5,16 @@
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { useLocation } from "wouter";
 import {
-  ArrowRight,
-  BriefcaseBusiness,
   Crown,
   Calendar,
-  Database,
   PlayCircle,
   FileDown,
-  GanttChart,
-  HardHat,
-  LayoutDashboard,
   MessageSquare,
   ExternalLink,
   CheckCircle2,
   AlertCircle,
   Clock,
-  PackageCheck,
-  Ruler,
   Zap,
   Send,
   ChevronDown,
@@ -35,6 +26,7 @@ import {
   CalendarPlus,
 } from "lucide-react";
 import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
+import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { CalendarIntegration } from "@/components/portal/CalendarIntegration";
 
 const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
@@ -172,26 +164,6 @@ function getNextCallCycle(): string {
   const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
   const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
   return nextCall.toISOString().split("T")[0];
-}
-
-function formatCurrency(cents?: number | null): string {
-  if (!cents || cents <= 0) return "$0";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
-function formatProjectDate(value?: string | Date | null): string {
-  if (!value) return "No activity";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No activity";
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 // ─── Full-screen modal question form ─────────────────────────────────────────
@@ -693,11 +665,9 @@ function QuestionSubmitWidget() {
 
 export default function PortalDashboard() {
   const { member, isSubscribed } = useMember();
-  const [, navigate] = useLocation();
   const { data: subscription, isLoading: subLoading } = trpc.member.subscription.useQuery(undefined, {
     retry: false,
   });
-  const { data: projects } = trpc.takeoff.listProjects.useQuery();
   const [questionModalOpen, setQuestionModalOpen] = useState(false);
 
   const displayName = member?.displayName || member?.discordUsername || "Member";
@@ -706,24 +676,6 @@ export default function PortalDashboard() {
   // Get time-based greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
-  const sortedProjects = [...(projects ?? [])].sort(
-    (a: any, b: any) =>
-      new Date(b.updatedAt || b.createdAt).getTime() -
-      new Date(a.updatedAt || a.createdAt).getTime()
-  );
-  const recentProjects = sortedProjects.slice(0, 3);
-  const totalProjects = projects?.length ?? 0;
-  const activeProjects = (projects ?? []).filter((project: any) =>
-    ["draft", "uploading", "processing", "post_processing"].includes(project.status)
-  ).length;
-  const readyToPackage = (projects ?? []).filter(
-    (project: any) => project.status === "completed"
-  ).length;
-  const totalEstimatedValue = (projects ?? []).reduce(
-    (sum: number, project: any) => sum + (project.totalEstimatedCost ?? 0),
-    0
-  );
 
   const quickLinks = [
     {
@@ -762,46 +714,8 @@ export default function PortalDashboard() {
     },
   ];
 
-  const constructLineLinks = [
-    {
-      icon: LayoutDashboard,
-      title: "ConstructLine Hub",
-      label: "Hub",
-      description: "See the suite, recent bids, and the next estimating decision.",
-      href: "/portal/constructline",
-    },
-    {
-      icon: Ruler,
-      title: "Basis",
-      label: "Primary",
-      description: "Review drawings, price accepted work, and package the bid.",
-      href: "/portal/takeoff",
-    },
-    {
-      icon: Database,
-      title: "Basis Cost Library",
-      label: "Pricing",
-      description: "Maintain unit costs and pricing assumptions for Basis.",
-      href: "/portal/cost-library",
-    },
-    {
-      icon: HardHat,
-      title: "Basis Trade Rate Library",
-      label: "Labor",
-      description: "Tune burdened labor rates and crews before estimating.",
-      href: "/portal/labor-library",
-    },
-    {
-      icon: GanttChart,
-      title: "Baseline",
-      label: "Schedule",
-      description: "Open CPM scheduling without leaving the ALP suite.",
-      href: "/portal/scheduler",
-    },
-  ];
-
   return (
-    <div className="-m-4 min-h-screen bg-[#f8f5ef] text-[#171714] sm:-m-6 md:-m-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       {/* Question Modal */}
       {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
 
@@ -809,462 +723,166 @@ export default function PortalDashboard() {
       <BootcampHeroBanner />
       */}
 
-      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 md:px-8 md:py-7">
-        {/* Welcome Header */}
-        <div
-          data-tour="welcome-header"
-          className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7622]">
-              Contractor Circle Portal
-            </p>
-            <h1 className="mt-2 font-heading text-2xl font-semibold tracking-normal text-[#11100c] md:text-3xl">
-              {greeting}, {firstName}
-            </h1>
-            <p className="mt-1 text-sm text-[#6d6558]">
-              Your ALP command center for bids, tools, calls, and member resources.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {member?.memberRole === "founding_member" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d7b44d] bg-[#fff4cb] px-3 py-1.5">
-                <Crown className="h-3.5 w-3.5 text-[#8a6510]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#8a6510]">
-                  Founding Member
-                </span>
-              </span>
-            )}
-            <StatusBadge status={subscription?.status || member?.subscriptionStatus || "none"} />
-          </div>
-        </div>
-
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
-          <div className="overflow-hidden rounded-xl border border-[#e4d7bf] bg-[#fffdf8] shadow-[0_28px_80px_rgba(41,37,28,0.08)]">
-            <div className="grid min-h-[360px] lg:grid-cols-[minmax(420px,0.72fr)_minmax(500px,1fr)]">
-              <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-9">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
-                  ConstructLine Suite
-                </p>
-                <h2 className="mt-4 max-w-[620px] text-4xl font-semibold leading-[1.04] tracking-normal text-[#11100c] md:text-[46px]">
-                  Build the bid before the day starts building you.
-                </h2>
-                <p className="mt-4 max-w-[570px] text-[15px] leading-7 text-[#6d6558]">
-                  Basis is the estimating cockpit inside ConstructLine: review the set,
-                  price accepted work, and package the bid with your cost and trade-rate
-                  libraries close at hand.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {["Review scope", "Price accepted work", "Package the bid"].map(item => (
-                    <span
-                      key={item}
-                      className="rounded-full border border-[#eadcc4] bg-white px-3 py-1 text-xs font-semibold text-[#5d5546]"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/portal/takeoff")}
-                    className="inline-flex h-12 items-center gap-2 rounded-xl bg-[#090b0f] px-5 text-sm font-semibold text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.20)] transition-colors hover:bg-[#171a20]"
-                  >
-                    <Ruler className="h-4 w-4" />
-                    Open Basis
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/portal/constructline")}
-                    className="inline-flex h-12 items-center gap-2 rounded-xl border border-[#d7c7aa] bg-white px-5 text-sm font-semibold text-[#171714] shadow-sm transition-colors hover:bg-[#faf8f2]"
-                  >
-                    <LayoutDashboard className="h-4 w-4 text-[#8a6510]" />
-                    ConstructLine Hub
-                  </button>
-                </div>
-              </div>
-              <div className="relative hidden min-h-[360px] overflow-hidden lg:block">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_18%,rgba(241,181,29,0.20),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e1_42%,#eef5ef_100%)]" />
-                <div className="absolute right-7 top-8 h-[285px] w-[455px] rounded-2xl border border-[#d7c7aa] bg-[#090b0f] p-5 shadow-[0_34px_90px_rgba(41,37,28,0.26)]">
-                  <div className="flex items-start justify-between border-b border-white/10 pb-4">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f1b51d]">
-                        Basis Cockpit
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-white">
-                        Active Bid Desk
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-emerald-300/35 bg-emerald-300/12 px-3 py-1 text-xs font-semibold text-emerald-200">
-                      Pilot ready
-                    </span>
-                  </div>
-                  <div className="mt-5 grid gap-3">
-                    {[
-                      ["Review", `${activeProjects}`, "active bids"],
-                      ["Estimate", formatCurrency(totalEstimatedValue), "pipeline"],
-                      ["Submit", `${readyToPackage}`, "ready packages"],
-                    ].map(([label, value, status]) => (
-                      <div
-                        key={label}
-                        className="grid grid-cols-[1fr_auto] items-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3"
-                      >
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                            {label}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-white">
-                            {value}
-                          </p>
-                        </div>
-                        <p className="font-mono text-xs font-semibold text-[#f1b51d]">
-                          {status}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="absolute -right-5 bottom-8 w-[170px] rounded-xl border border-[#f1b51d]/25 bg-[#f1b51d]/12 p-4 backdrop-blur">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
-                      Inputs
-                    </p>
-                    <div className="mt-3 space-y-2 text-sm text-white/70">
-                      <p>Cost Library</p>
-                      <p>Trade Rates</p>
-                      <p>Project Scope</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute bottom-8 left-8 rounded-full border border-[#d7c7aa] bg-white/82 px-4 py-2 text-xs font-semibold text-[#5d5546] shadow-[0_14px_40px_rgba(41,37,28,0.12)] backdrop-blur">
-                  <span className="inline-flex items-center gap-2">
-                    <PackageCheck className="h-3.5 w-3.5 text-[#c48d12]" />
-                    Review to Estimate to Submit
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <aside className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div
-              data-tour="subscription-status"
-              className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.07)]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">
-                    Membership
-                  </p>
-                  <h2 className="mt-3 text-lg font-semibold text-[#171714]">
-                    {subscription?.plan || "The Contractor Circle"}
-                  </h2>
-                  <p className="mt-1 text-xs text-[#716855]">
-                    {subLoading ? (
-                      "Loading subscription..."
-                    ) : subscription?.currentPeriodEnd ? (
-                      `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-                    ) : subscription?.status === "active" ? (
-                      "$497/month subscription"
-                    ) : (
-                      "No active subscription"
-                    )}
-                  </p>
-                </div>
-                <Zap className="h-5 w-5 text-[#c48d12]" />
-              </div>
-              {member?.createdAt && (
-                <div className="mt-4 border-t border-[#eadcc4] pt-4">
-                  <p className="flex items-center gap-2 text-xs text-[#716855]">
-                    <Clock className="h-3.5 w-3.5 text-[#8a806d]" />
-                    Member since {new Date(member.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  </p>
-                </div>
-              )}
-              {subscription?.cancelAtPeriodEnd && (
-                <div className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3">
-                  <p className="flex items-center gap-2 text-sm text-yellow-800">
-                    <AlertCircle className="h-4 w-4" />
-                    Your subscription will end at the current billing period.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">
-                    Bid Pipeline
-                  </p>
-                  <p className="mt-3 font-mono text-2xl font-semibold text-[#171714]">
-                    {activeProjects}
-                  </p>
-                  <p className="mt-1 text-xs text-[#716855]">
-                    active of {totalProjects} total projects
-                  </p>
-                </div>
-                <BriefcaseBusiness className="h-5 w-5 text-[#c48d12]" />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.07)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#716855]">
-                Estimated Value
-              </p>
-              <p className="mt-3 font-mono text-2xl font-semibold text-[#171714]">
-                {formatCurrency(totalEstimatedValue)}
-              </p>
-              <p className="mt-1 text-xs text-[#716855]">
-                across ConstructLine projects
-              </p>
-            </div>
-          </aside>
-        </section>
-
-        <section
-          data-tour="quick-links"
-          className="mt-6 rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#716855]">
-                Product Entry Points
-              </p>
-              <h2 className="mt-1 font-heading text-xl font-semibold text-[#171714]">
-                Start in ConstructLine
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/portal/takeoff")}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#d7c7aa] bg-[#fffdf8] px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#fff4cb]"
-            >
-              New Bid
-              <ArrowRight className="h-4 w-4 text-[#8a6510]" />
-            </button>
-          </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            {constructLineLinks.map(link => {
-              const Icon = link.icon;
-              return (
-                <button
-                  key={link.title}
-                  type="button"
-                  onClick={() => navigate(link.href)}
-                  className="group rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_20px_55px_rgba(41,37,28,0.10)]"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <span className="rounded-full border border-[#d7c7aa] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#716855]">
-                      {link.label}
-                    </span>
-                  </div>
-                  <p className="mt-4 font-semibold text-[#171714]">
-                    {link.title}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[#716855]">
-                    {link.description}
-                  </p>
-                  <div className="mt-4 flex justify-end">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#d7c7aa] text-[#8a6510] transition-transform group-hover:translate-x-0.5">
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_410px]">
-          <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-heading text-xl font-semibold text-[#171714]">
-                  Recent Basis Work
-                </h2>
-                <p className="mt-1 text-sm text-[#716855]">
-                  Pick up the bid that needs your next decision.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate("/portal/takeoff")}
-                className="text-sm font-semibold text-[#8a6510] hover:text-[#171714]"
-              >
-                View all projects
-              </button>
-            </div>
-            <div className="mt-5 overflow-hidden rounded-xl border border-[#eadcc4]">
-              {recentProjects.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/portal/takeoff")}
-                  className="flex w-full items-center gap-3 bg-[#faf8f2] p-5 text-left transition-colors hover:bg-[#fff4cb]"
-                >
-                  <Ruler className="h-5 w-5 text-[#8a6510]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[#171714]">
-                      Start your first Basis bid
-                    </p>
-                    <p className="text-sm text-[#716855]">
-                      Upload drawings and build the estimate from source evidence.
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-[#8a6510]" />
-                </button>
-              ) : (
-                recentProjects.map((project: any, index: number) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => navigate(`/takeoff/${project.id}`)}
-                    className={`grid w-full gap-4 p-4 text-left transition-colors hover:bg-[#faf8f2] md:grid-cols-[minmax(0,1fr)_150px_120px] md:items-center ${
-                      index > 0 ? "border-t border-[#eadcc4]" : ""
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-semibold text-[#171714]">
-                        {project.name}
-                      </p>
-                      <p className="mt-1 text-xs text-[#716855]">
-                        {project.totalSheets || 0} sheet
-                        {project.totalSheets === 1 ? "" : "s"} - Updated{" "}
-                        {formatProjectDate(project.updatedAt || project.createdAt)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
-                        Bid Total
-                      </p>
-                      <p className="mt-1 font-mono text-lg font-semibold text-[#171714]">
-                        {formatCurrency(project.totalEstimatedCost)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#8a6510] md:justify-end">
-                      Open
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </section>
-
-          <aside className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
-            <h2 className="font-heading text-xl font-semibold text-[#171714]">
-              Circle Resources
-            </h2>
-            <p className="mt-1 text-sm text-[#716855]">
-              Coaching and member assets stay one click away.
-            </p>
-            <div className="mt-5 grid gap-3">
-              {quickLinks.map(link => (
-                <a
-                  key={link.title}
-                  href={link.href}
-                  target={link.external ? "_blank" : undefined}
-                  rel={link.external ? "noopener noreferrer" : undefined}
-                  className="group flex items-start gap-4 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 transition-colors hover:bg-[#fff4cb]"
-                >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${link.bg}`}>
-                    <link.icon className={`h-5 w-5 ${link.color}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-[#171714]">
-                        {link.title}
-                      </h3>
-                      {link.external && (
-                        <ExternalLink className="h-3 w-3 text-[#8a806d]" />
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-[#716855]">
-                      {link.description}
-                    </p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </aside>
-        </div>
-
-        <section className="mt-6 rounded-xl border border-black/10 bg-[#07090b] p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.20em] text-[#f1b51d]">
-            Member Operations
+      {/* Welcome Header */}
+      <div data-tour="welcome-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-cream-muted mt-1">
+            Welcome to your Contractor Circle member portal.
           </p>
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-            <div className="space-y-5">
-              {/* Calendar Integration — Available to all members */}
-              <CalendarIntegration />
+        </div>
+        <div className="flex items-center gap-3">
+          {member?.memberRole === "founding_member" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ember/10 border border-ember/20">
+              <Crown className="w-3.5 h-3.5 text-ember" />
+              <span className="text-xs font-semibold text-ember uppercase tracking-wider">Founding Member</span>
+            </span>
+          )}
+        </div>
+      </div>
 
-              {/* Monthly Bootcamp — Topic Submission */}
-              {isSubscribed && <BootcampTopicWidget />}
-
-              {/* Gated content for subscribers only */}
-              {isSubscribed ? (
-                <>
-                  <button
-                    onClick={() => setQuestionModalOpen(true)}
-                    className="group w-full rounded-2xl border border-ember/15 bg-white/[0.04] p-5 text-left transition-all duration-300 hover:border-ember/35 hover:bg-ember/[0.04] sm:p-6"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ember/10 transition-colors group-hover:bg-ember/15">
-                        <Send className="h-6 w-6 text-ember" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-heading text-base font-bold text-cream transition-colors group-hover:text-ember">
-                          Submit a Question for the Next Call
-                        </h3>
-                        <p className="mt-0.5 text-sm text-cream-muted">
-                          Marshall reviews every submission - get your question answered live.
-                        </p>
-                      </div>
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 transition-colors group-hover:bg-ember/20">
-                        <Send className="h-3.5 w-3.5 text-ember" />
-                      </div>
-                    </div>
-                  </button>
-
-                  <SuccessStoriesForm />
-                </>
-              ) : (
-                <div className="rounded-2xl border border-ember/20 bg-white/[0.04] p-6 text-center md:p-8">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-ember/10">
-                    <Crown className="h-7 w-7 text-ember" />
-                  </div>
-                  <h3 className="mb-2 font-heading text-xl font-bold text-cream">
-                    Unlock Full Portal Access
-                  </h3>
-                  <p className="mx-auto mb-6 max-w-md text-sm text-cream-muted">
-                    You're previewing the Contractor Circle portal. Subscribe to unlock live call access, question submissions, templates, replays, and the private Discord community.
-                  </p>
-                  <a
-                    href="/circle#pricing"
-                    className="inline-flex items-center gap-2 rounded-xl bg-ember px-8 py-3.5 font-semibold text-white shadow-lg shadow-ember/30 transition-all duration-300 hover:bg-ember/90 hover:shadow-ember/50"
-                  >
-                    <Crown className="h-4 w-4" />
-                    Become a Member - $497/mo
-                  </a>
-                </div>
-              )}
+      {/* Subscription Status Card */}
+      <div data-tour="subscription-status" className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center">
+              <Zap className="w-6 h-6 text-ember" />
             </div>
-
-            <div className="space-y-5">
-              <QuestionSubmitWidget />
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center md:p-8">
-                <blockquote className="mx-auto max-w-2xl font-heading text-lg italic leading-relaxed text-cream/80 md:text-xl">
-                  "The difference between a contractor and a business owner is the system they build around themselves."
-                </blockquote>
-                <p className="mt-4 text-sm font-medium text-ember">
-                  - Marshall Wilkinson
-                </p>
-              </div>
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-cream">
+                {subscription?.plan || "The Contractor Circle"}
+              </h2>
+              <p className="text-cream-muted text-sm mt-0.5">
+                {subLoading ? (
+                  "Loading subscription..."
+                ) : subscription?.currentPeriodEnd ? (
+                  `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                ) : subscription?.status === "active" ? (
+                  "$497/month subscription"
+                ) : (
+                  "No active subscription"
+                )}
+              </p>
             </div>
           </div>
-        </section>
+          <StatusBadge status={subscription?.status || member?.subscriptionStatus || "none"} />
+        </div>
+
+        {/* Member Since */}
+        {member?.createdAt && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-cream-muted/50" />
+            <span className="text-xs text-cream-muted">
+              Member since {new Date(member.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            </span>
+          </div>
+        )}
+
+        {subscription?.cancelAtPeriodEnd && (
+          <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+            <p className="text-yellow-400 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Your subscription will end at the current billing period.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Calendar Integration — Available to all members */}
+      <CalendarIntegration />
+
+      {/* Monthly Bootcamp — Topic Submission */}
+      {isSubscribed && <BootcampTopicWidget />}
+
+      {/* Gated content for subscribers only */}
+      {isSubscribed ? (
+        <>
+          {/* Submit a Question — Prominent CTA tile */}
+          <button
+            onClick={() => setQuestionModalOpen(true)}
+            className="w-full group glass-card rounded-2xl p-5 sm:p-6 hover:bg-ember/[0.04] border border-ember/15 hover:border-ember/35 transition-all duration-300 text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-ember/10 group-hover:bg-ember/15 flex items-center justify-center shrink-0 transition-colors">
+                <Send className="w-6 h-6 text-ember" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading text-base font-bold text-cream group-hover:text-ember transition-colors">
+                  Submit a Question for the Next Call
+                </h3>
+                <p className="text-cream-muted text-sm mt-0.5">
+                  Marshall reviews every submission — get your question answered live.
+                </p>
+              </div>
+              <div className="shrink-0 w-8 h-8 rounded-full bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-colors">
+                <Send className="w-3.5 h-3.5 text-ember" />
+              </div>
+            </div>
+          </button>
+
+          {/* Success Stories Form */}
+          <SuccessStoriesForm />
+        </>
+      ) : (
+        /* Non-subscriber CTA */
+        <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/20 text-center">
+          <div className="w-14 h-14 rounded-full bg-ember/10 flex items-center justify-center mx-auto mb-4">
+            <Crown className="w-7 h-7 text-ember" />
+          </div>
+          <h3 className="font-heading text-xl font-bold text-cream mb-2">Unlock Full Portal Access</h3>
+          <p className="text-cream-muted text-sm mb-6 max-w-md mx-auto">
+            You're previewing the Contractor Circle portal. Subscribe to unlock live call access, question submissions, templates, replays, and the private Discord community.
+          </p>
+          <a
+            href="/circle#pricing"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50"
+          >
+            <Crown className="w-4 h-4" />
+            Become a Member — $497/mo
+          </a>
+        </div>
+      )}
+
+      {/* Quick Links Grid */}
+      <div data-tour="quick-links" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {quickLinks.map(link => (
+          <a
+            key={link.title}
+            href={link.href}
+            target={link.external ? "_blank" : undefined}
+            rel={link.external ? "noopener noreferrer" : undefined}
+            onClick={link.href === "#" ? (e) => e.preventDefault() : undefined}
+            className="group glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-all duration-300 block"
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-lg ${link.bg} flex items-center justify-center shrink-0`}>
+                <link.icon className={`w-5 h-5 ${link.color}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-heading text-sm font-semibold text-cream group-hover:text-ember transition-colors">
+                    {link.title}
+                  </h3>
+                  {link.external && <ExternalLink className="w-3 h-3 text-cream-muted" />}
+                </div>
+                <p className="text-cream-muted text-xs mt-1">{link.description}</p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      {/* Submit Question for Next Call */}
+      <QuestionSubmitWidget />
+
+      {/* Motivational Quote */}
+      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 text-center">
+        <blockquote className="text-cream/80 text-lg md:text-xl font-heading italic leading-relaxed max-w-2xl mx-auto">
+          "The difference between a contractor and a business owner is the system they build around themselves."
+        </blockquote>
+        <p className="text-ember text-sm mt-4 font-medium">— Marshall Wilkinson</p>
       </div>
     </div>
   );
