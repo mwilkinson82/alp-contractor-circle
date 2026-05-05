@@ -234,7 +234,7 @@ function getEstimatorCue(item: any): { label: string; className: string } {
   ) {
     return {
       label: "Generated quantity",
-      className: "bg-amber-500/15 text-amber-100 border-amber-500/25",
+      className: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
     };
   }
   if (
@@ -245,24 +245,24 @@ function getEstimatorCue(item: any): { label: string; className: string } {
   ) {
     return {
       label: "Needs quantity",
-      className: "bg-orange-500/15 text-orange-200 border-orange-500/25",
+      className: "bg-orange-50 text-orange-800 border-orange-300",
     };
   }
   if (cost >= 1_000_000) {
     return {
       label: "High dollar",
-      className: "bg-purple-500/15 text-purple-200 border-purple-500/25",
+      className: "bg-blue-50 text-[#244c91] border-blue-200",
     };
   }
   if (confidence > 0 && confidence < 70) {
     return {
       label: "Low confidence",
-      className: "bg-red-500/15 text-red-200 border-red-500/25",
+      className: "bg-orange-50 text-orange-800 border-orange-300",
     };
   }
   return {
     label: "Estimator decision",
-    className: "bg-white/5 text-cream-muted border-white/10",
+    className: "bg-white text-[#716855] border-[#d7c7aa]",
   };
 }
 
@@ -3994,39 +3994,39 @@ export default function TakeoffDetail() {
                     return (
                       <div
                         id="assembly-review"
-                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-white text-[#171714] shadow-[0_24px_70px_rgba(41,37,28,0.14)]"
+                        className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_28px_90px_rgba(41,37,28,0.18)]"
                       >
-                        <div className="px-5 py-3 bg-[#171714] border-b border-[#171714] text-[#f4efe4]">
+                        <div className="border-b border-[#d8c9ad] bg-[#f4efe4] px-5 py-4 text-[#171714]">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <Layers className="w-4 h-4 text-amber-300" />
-                            <h2 className="font-semibold text-[#f4efe4]">
+                            <Layers className="h-4 w-4 text-[#8a6510]" />
+                            <h2 className="font-semibold text-[#171714]">
                               AI Takeoff Review
                             </h2>
-                            <span className="text-[#8a806d]">·</span>
-                            <span className="text-[#d8ccb4]">
+                            <span className="text-[#b3a481]">·</span>
+                            <span className="text-[#716855]">
                               Package{" "}
-                              <span className="text-white">
+                              <span className="font-semibold text-[#171714]">
                                 {packageIndex}/{assemblyBundles.length}
                               </span>
                             </span>
-                            <span className="text-[#8a806d]">·</span>
-                            <span className="text-[#d8ccb4]">
+                            <span className="text-[#b3a481]">·</span>
+                            <span className="text-[#716855]">
                               {bundle.drawingGroup}
                             </span>
-                            <span className="text-[#8a806d]">·</span>
+                            <span className="text-[#b3a481]">·</span>
                             <span
                               className={
                                 bundle.status === "open"
-                                  ? "font-semibold text-amber-300"
-                                  : "font-semibold text-emerald-300"
+                                  ? "font-semibold text-[#a66d00]"
+                                  : "font-semibold text-emerald-700"
                               }
                             >
                               {statusLabel}
                             </span>
                             {!readyToPrice && (
                               <>
-                                <span className="text-[#8a806d]">·</span>
-                                <span className="text-[#d8ccb4]">
+                                <span className="text-[#b3a481]">·</span>
+                                <span className="text-[#716855]">
                                   {highImpactOpenBundles.length} left
                                 </span>
                               </>
@@ -4035,7 +4035,7 @@ export default function TakeoffDetail() {
                         </div>
 
                         <div className="grid xl:grid-cols-[300px_minmax(0,1fr)]">
-                          <aside className="border-b xl:border-b-0 xl:border-r border-[#d7c7aa] bg-[#f2eadc]">
+                          <aside className="border-b border-[#d7c7aa] bg-[#eee4d2] xl:border-b-0 xl:border-r">
                             <div className="px-4 py-3 border-b border-[#d7c7aa]">
                               <p className="text-xs font-semibold uppercase tracking-wider text-[#5f5542]">
                                 Review Queue
@@ -4045,7 +4045,7 @@ export default function TakeoffDetail() {
                                 clear call.
                               </p>
                             </div>
-                            <div className="max-h-[760px] overflow-y-auto p-2 space-y-2">
+                            <div className="max-h-[760px] space-y-2 overflow-y-auto p-2">
                               {assemblyBundles.map(candidate => {
                                 const active = candidate.key === bundle.key;
                                 const done = candidate.status !== "open";
@@ -4068,10 +4068,10 @@ export default function TakeoffDetail() {
                                     }
                                     className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                       active
-                                        ? "border-[#d7b44d] bg-[#fff4cb] shadow-sm"
+                                        ? "border-[#d7b44d] bg-[#fff4cb] shadow-[0_12px_26px_rgba(138,101,16,0.12)]"
                                         : done
-                                          ? "border-[#d7c7aa] bg-white/55 opacity-80 hover:opacity-100"
-                                          : "border-[#d7c7aa] bg-white/80 hover:bg-white"
+                                          ? "border-[#d7c7aa] bg-white/75 opacity-85 hover:opacity-100"
+                                          : "border-[#d7c7aa] bg-white/95 hover:bg-white hover:shadow-sm"
                                     }`}
                                   >
                                     <div className="flex items-start gap-2">
@@ -4165,9 +4165,9 @@ export default function TakeoffDetail() {
                               </div>
                             </div>
 
-                            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] bg-[#f7f4ed]">
+                            <div className="grid bg-[#faf8f2] lg:grid-cols-[minmax(0,1fr)_340px]">
                               <div className="p-4 border-b lg:border-b-0 lg:border-r border-[#d7c7aa]">
-                                <div className="rounded-lg border border-[#d7c7aa] bg-white overflow-hidden">
+                                <div className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white shadow-[0_18px_50px_rgba(41,37,28,0.12)]">
                                   {selectedSheet?.imageUrl ? (
                                     <div
                                       role="button"
@@ -4322,8 +4322,8 @@ export default function TakeoffDetail() {
                                 )}
                               </div>
 
-                              <aside className="bg-[#f2eadc] p-4 space-y-4">
-                                <div className="rounded-lg border border-[#d7c7aa] bg-white p-4 shadow-sm">
+                              <aside className="space-y-4 bg-[#eee4d2] p-4">
+                                <div className="rounded-lg border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-[#716855]">
                                     Decision Needed
                                   </p>
@@ -4558,18 +4558,18 @@ export default function TakeoffDetail() {
                 )}
 
                 {assemblyBundles.length === 0 && (
-                  <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 rounded-lg border border-[#d7c7aa] bg-white/75 px-4 py-3 shadow-sm">
+                    <Flag className="mt-0.5 h-4 w-4 shrink-0 text-[#716855]" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-cream">
+                        <span className="text-xs font-semibold text-[#171714]">
                           Bid Mode
                         </span>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                        <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">
                           {bidModeBehavior.label}
                         </Badge>
                       </div>
-                      <p className="text-xs text-cream-muted leading-relaxed mt-1 line-clamp-2">
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#716855]">
                         {bidModeBehavior.reviewSurface}
                       </p>
                     </div>
@@ -4577,7 +4577,7 @@ export default function TakeoffDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => setOpenSettingsToScope(true)}
-                      className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                      className="h-7 border-[#c8b895] bg-white/65 text-xs text-[#5d5546] hover:bg-white hover:text-[#171714]"
                     >
                       Edit Mode
                     </Button>
@@ -4585,14 +4585,14 @@ export default function TakeoffDetail() {
                 )}
 
                 {assemblyBundles.length === 0 && scopeIntent.hasScope && (
-                  <div className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <Flag className="w-4 h-4 text-cream-muted shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 rounded-lg border border-[#d7c7aa] bg-white/75 px-4 py-3 shadow-sm">
+                    <Flag className="mt-0.5 h-4 w-4 shrink-0 text-[#716855]" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-cream">
+                        <span className="text-xs font-semibold text-[#171714]">
                           Bid Scope
                         </span>
-                        <Badge className="bg-white/5 text-cream-muted border-white/10 text-[10px]">
+                        <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">
                           {scopeIntent.summary}
                         </Badge>
                         {scopeReviewCount > 0 && (
@@ -4602,7 +4602,7 @@ export default function TakeoffDetail() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-cream-muted leading-relaxed mt-1 line-clamp-2">
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#716855]">
                         {scopeIntent.originalText}
                       </p>
                     </div>
@@ -4610,7 +4610,7 @@ export default function TakeoffDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => setOpenSettingsToScope(true)}
-                      className="h-7 text-xs border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                      className="h-7 border-[#c8b895] bg-white/65 text-xs text-[#5d5546] hover:bg-white hover:text-[#171714]"
                     >
                       Edit Scope
                     </Button>
@@ -4619,18 +4619,18 @@ export default function TakeoffDetail() {
 
                 {/* Allowances Section — shown before CSI divisions */}
                 {projectAllowances.length > 0 && (
-                  <div className="bg-navy-medium/30 border border-amber-500/20 rounded-lg overflow-hidden">
+                  <div className="overflow-hidden rounded-lg border border-[#d7b44d] bg-[#fff7da]">
                     <button
                       onClick={() => toggleDivision("_allowances")}
                       className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <ChevronDown
-                          className={`w-4 h-4 text-cream-muted transition-transform ${collapsedDivisions.has("_allowances") ? "-rotate-90" : ""}`}
+                          className={`h-4 w-4 text-[#716855] transition-transform ${collapsedDivisions.has("_allowances") ? "-rotate-90" : ""}`}
                         />
                         <div className="flex items-center gap-2">
-                          <ClipboardList className="w-4 h-4 text-amber-400" />
-                          <span className="font-semibold text-cream">
+                          <ClipboardList className="h-4 w-4 text-[#8a6510]" />
+                          <span className="font-semibold text-[#171714]">
                             Allowances
                           </span>
                           <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px] font-normal">
@@ -4639,7 +4639,7 @@ export default function TakeoffDetail() {
                           </Badge>
                         </div>
                       </div>
-                      <span className="text-amber-400 font-semibold">
+                      <span className="font-semibold text-[#a66d00]">
                         {formatCurrency(
                           allowancesTotal,
                           project?.currency || "USD"
@@ -4650,7 +4650,7 @@ export default function TakeoffDetail() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <tr className="bg-[#f2eadc] text-xs uppercase text-[#716855]">
                               <th className="text-left px-4 py-2 w-12"></th>
                               <th className="text-left px-4 py-2">
                                 Description
@@ -4664,12 +4664,12 @@ export default function TakeoffDetail() {
                             {projectAllowances.map((a, idx) => (
                               <tr
                                 key={idx}
-                                className="border-t border-white/5 hover:bg-white/5 transition-colors"
+                                className="border-t border-[#eadcc4] transition-colors hover:bg-white/50"
                               >
-                                <td className="px-4 py-2 text-cream-muted font-mono text-xs">
-                                  <ClipboardList className="w-3.5 h-3.5 text-amber-400/50" />
+                                <td className="px-4 py-2 font-mono text-xs text-[#716855]">
+                                  <ClipboardList className="h-3.5 w-3.5 text-[#8a6510]/60" />
                                 </td>
-                                <td className="px-4 py-2 text-cream">
+                                <td className="px-4 py-2 text-[#29251c]">
                                   {a.description}
                                 </td>
                                 <td className="px-4 py-2 text-right text-amber-300 font-mono">
@@ -4770,17 +4770,17 @@ export default function TakeoffDetail() {
                 {assemblyBundles.length > 0 &&
                   activeItems.length > 0 &&
                   showAcceptedRows && (
-                    <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
-                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                    <div className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#f4efe4] px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-cream-muted" />
-                          <span className="text-cream-muted font-semibold">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                          <span className="font-semibold text-[#5d5546]">
                             Accepted Rows
                           </span>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             {activeItems.length} already counted
                           </Badge>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             {formatCurrency(
                               totalCost,
                               project?.currency || "USD"
@@ -4790,7 +4790,7 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
                           onClick={() => setShowAcceptedRows(prev => !prev)}
                         >
                           {showAcceptedRows ? (
@@ -4802,7 +4802,7 @@ export default function TakeoffDetail() {
                         </Button>
                       </div>
                       {!showAcceptedRows && (
-                        <div className="px-4 py-3 text-xs text-cream-muted">
+                        <div className="px-4 py-3 text-xs text-[#716855]">
                           These rows are already in the bid total. Review open
                           packages first; come here only to audit accepted line
                           items.
@@ -4834,26 +4834,26 @@ export default function TakeoffDetail() {
                       return (
                         <div
                           key={division}
-                          className="border border-white/10 rounded-lg overflow-hidden"
+                          className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_12px_30px_rgba(41,37,28,0.06)]"
                         >
                           {/* Division Header */}
-                          <div className="flex items-center justify-between px-4 py-3 bg-navy-medium/70">
+                          <div className="flex items-center justify-between bg-[#f4efe4] px-4 py-3">
                             <button
                               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                               onClick={() => toggleDivision(division)}
                             >
                               {isCollapsed ? (
-                                <ChevronRight className="w-4 h-4 text-cream-muted" />
+                                <ChevronRight className="h-4 w-4 text-[#716855]" />
                               ) : (
-                                <ChevronDown className="w-4 h-4 text-cream-muted" />
+                                <ChevronDown className="h-4 w-4 text-[#716855]" />
                               )}
-                              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-mono">
+                              <Badge className="border-[#d7b44d] bg-[#fff4cb] font-mono text-[#8a6510]">
                                 {division}
                               </Badge>
-                              <span className="text-cream font-semibold">
+                              <span className="font-semibold text-[#171714]">
                                 {divName}
                               </span>
-                              <span className="text-cream-muted text-sm">
+                              <span className="text-sm text-[#716855]">
                                 ({divItemCount} items)
                               </span>
                               {divReviewedCount > 0 && (
@@ -4861,7 +4861,7 @@ export default function TakeoffDetail() {
                                   className={`text-xs ${
                                     allReviewed
                                       ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                      : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                      : "bg-blue-50 text-[#244c91] border-blue-200"
                                   }`}
                                 >
                                   {allReviewed
@@ -4875,7 +4875,7 @@ export default function TakeoffDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 text-xs gap-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                                  className="h-7 gap-1.5 text-xs text-[#8a6510] hover:bg-[#fff4cb] hover:text-[#6f4d00]"
                                   onClick={() =>
                                     bulkUnreviewMutation.mutate({
                                       projectId,
@@ -4891,7 +4891,7 @@ export default function TakeoffDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 text-xs gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  className="h-7 gap-1.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                                   onClick={() =>
                                     bulkReviewMutation.mutate({
                                       projectId,
@@ -4904,7 +4904,7 @@ export default function TakeoffDetail() {
                                   Review All
                                 </Button>
                               )}
-                              <span className="text-amber-400 font-semibold">
+                              <span className="font-semibold text-[#a66d00]">
                                 {formatCurrency(
                                   divTotal,
                                   project?.currency || "USD"
@@ -4918,7 +4918,7 @@ export default function TakeoffDetail() {
                             <div className="overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
-                                  <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                                  <tr className="bg-[#e8decb] text-xs uppercase text-[#716855]">
                                     <th className="text-left px-4 py-2 w-12">
                                       CSI
                                     </th>
@@ -4961,22 +4961,22 @@ export default function TakeoffDetail() {
                                     return (
                                       <tr
                                         key={item.id}
-                                        className={`border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
+                                        className={`cursor-pointer border-t border-[#eadcc4] transition-colors hover:bg-[#faf8f2] ${
                                           item.reviewed
-                                            ? "bg-emerald-500/5"
+                                            ? "bg-emerald-50/45"
                                             : ""
-                                        } ${scopeStatus === "review" ? "bg-blue-500/5" : scopeStatus === "excluded" ? "bg-red-500/5" : ""}`}
+                                        } ${scopeStatus === "review" ? "bg-blue-50/55" : scopeStatus === "excluded" ? "bg-orange-50/55" : ""}`}
                                         onClick={() => setSelectedItem(item)}
                                       >
-                                        <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                        <td className="px-4 py-2 font-mono text-xs text-[#716855]">
                                           <div className="flex items-center gap-1">
                                             {item.reviewed && (
-                                              <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                                              <Check className="h-3 w-3 shrink-0 text-emerald-700" />
                                             )}
                                             {item.csiCode || item.csiDivision}
                                           </div>
                                         </td>
-                                        <td className="px-4 py-2 text-cream max-w-xs">
+                                        <td className="max-w-xs px-4 py-2 text-[#29251c]">
                                           <p className="line-clamp-2">
                                             {item.description}
                                           </p>
@@ -4985,8 +4985,8 @@ export default function TakeoffDetail() {
                                               <Badge
                                                 className={`text-[10px] ${
                                                   scopeStatus === "review"
-                                                    ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                                                    : "bg-red-500/15 text-red-300 border-red-500/25"
+                                                    ? "border-blue-200 bg-blue-50 text-[#244c91]"
+                                                    : "border-orange-300 bg-orange-50 text-orange-800"
                                                 }`}
                                               >
                                                 <Flag className="w-2.5 h-2.5 mr-0.5" />
@@ -5007,13 +5007,13 @@ export default function TakeoffDetail() {
                                               return (
                                                 <div className="flex flex-wrap items-center gap-1 mt-1">
                                                   {ann.isNew && (
-                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                    <span className="inline-flex items-center gap-0.5 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">
                                                       New
                                                     </span>
                                                   )}
                                                   {ann.mergedFrom > 1 && (
                                                     <span
-                                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+                                                      className="inline-flex items-center gap-0.5 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-[#244c91]"
                                                       title={ann.mergedDescriptions?.join(
                                                         "\n"
                                                       )}
@@ -5027,12 +5027,12 @@ export default function TakeoffDetail() {
                                               );
                                             })()}
                                           {item.notes && (
-                                            <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                            <p className="mt-0.5 line-clamp-1 text-xs text-[#716855]">
                                               {item.notes}
                                             </p>
                                           )}
                                         </td>
-                                        <td className="px-4 py-2 text-right text-cream font-mono">
+                                        <td className="px-4 py-2 text-right font-mono text-[#29251c]">
                                           <span>
                                             {parseFloat(
                                               item.quantity
@@ -5041,7 +5041,7 @@ export default function TakeoffDetail() {
                                           {/* Needs measurement indicator */}
                                           {item.needsMeasurement && (
                                             <div
-                                              className="text-[10px] text-amber-400 font-semibold mt-0.5 flex items-center justify-end gap-1"
+                                              className="mt-0.5 flex items-center justify-end gap-1 text-[10px] font-semibold text-[#a66d00]"
                                               title="Quantity is a placeholder — update with actual measurement"
                                             >
                                               <Ruler className="w-3 h-3" />
@@ -5063,7 +5063,7 @@ export default function TakeoffDetail() {
                                                 return null;
                                               return (
                                                 <div
-                                                  className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                  className="mt-0.5 text-[10px] font-normal text-[#a66d00]/80"
                                                   title="Quantity changed during consolidation"
                                                 >
                                                   was{" "}
@@ -5074,13 +5074,13 @@ export default function TakeoffDetail() {
                                               );
                                             })()}
                                         </td>
-                                        <td className="px-4 py-2 text-cream-muted">
+                                        <td className="px-4 py-2 text-[#716855]">
                                           {item.unit}
                                         </td>
                                         {/* Material Cost */}
-                                        <td className="px-4 py-2 text-right text-cream-muted font-mono text-xs">
+                                        <td className="px-4 py-2 text-right font-mono text-xs text-[#716855]">
                                           {isConsolidating ? (
-                                            <span className="inline-block w-14 h-4 rounded bg-white/10 animate-pulse" />
+                                            <span className="inline-block h-4 w-14 animate-pulse rounded bg-[#d8c9ad]/40" />
                                           ) : (
                                             formatCurrency(
                                               getTakeoffMaterialUnitCost(item),
@@ -5089,9 +5089,9 @@ export default function TakeoffDetail() {
                                           )}
                                         </td>
                                         {/* Labor Cost */}
-                                        <td className="px-4 py-2 text-right text-cyan-400/80 font-mono text-xs">
+                                        <td className="px-4 py-2 text-right font-mono text-xs text-[#244c91]">
                                           {isConsolidating ? (
-                                            <span className="inline-block w-14 h-4 rounded bg-cyan-400/10 animate-pulse" />
+                                            <span className="inline-block h-4 w-14 animate-pulse rounded bg-blue-100" />
                                           ) : (
                                             formatCurrency(
                                               item.laborCost || 0,
@@ -5100,10 +5100,10 @@ export default function TakeoffDetail() {
                                           )}
                                         </td>
                                         {/* Installed (Combined) Unit Cost */}
-                                        <td className="px-4 py-2 text-right text-cream font-mono">
+                                        <td className="px-4 py-2 text-right font-mono text-[#29251c]">
                                           {isConsolidating ? (
                                             <span
-                                              className="inline-block w-16 h-4 rounded bg-white/10 animate-pulse"
+                                              className="inline-block h-4 w-16 animate-pulse rounded bg-[#d8c9ad]/40"
                                               title="Pricing being applied..."
                                             />
                                           ) : (
@@ -5128,7 +5128,7 @@ export default function TakeoffDetail() {
                                                     return null;
                                                   return (
                                                     <div
-                                                      className="text-[10px] text-amber-400/80 font-normal mt-0.5"
+                                                      className="mt-0.5 text-[10px] font-normal text-[#a66d00]/80"
                                                       title="Unit cost changed during consolidation"
                                                     >
                                                       was{" "}
@@ -5143,10 +5143,10 @@ export default function TakeoffDetail() {
                                             </>
                                           )}
                                         </td>
-                                        <td className="px-4 py-2 text-right text-amber-400 font-semibold font-mono">
+                                        <td className="px-4 py-2 text-right font-mono font-semibold text-[#a66d00]">
                                           {isConsolidating ? (
                                             <span
-                                              className="inline-block w-20 h-4 rounded bg-amber-400/10 animate-pulse"
+                                              className="inline-block h-4 w-20 animate-pulse rounded bg-[#fff4cb]"
                                               title="Pricing being applied..."
                                             />
                                           ) : (
@@ -5160,10 +5160,10 @@ export default function TakeoffDetail() {
                                           <Badge
                                             className={`text-xs ${
                                               item.confidence >= 80
-                                                ? "bg-emerald-500/20 text-emerald-400"
+                                                ? "bg-emerald-50 text-emerald-800"
                                                 : item.confidence >= 50
-                                                  ? "bg-amber-500/20 text-amber-400"
-                                                  : "bg-red-500/20 text-red-400"
+                                                  ? "bg-[#fff4cb] text-[#8a6510]"
+                                                  : "bg-orange-50 text-orange-800"
                                             }`}
                                           >
                                             {item.confidence}%
@@ -5175,10 +5175,10 @@ export default function TakeoffDetail() {
                                               className="flex items-center justify-center"
                                               title="Reviewed & Verified"
                                             >
-                                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                              <Check className="h-3.5 w-3.5 text-emerald-700" />
                                             </div>
                                           ) : (
-                                            <span className="text-cream-muted/30">
+                                            <span className="text-[#b3a481]">
                                               —
                                             </span>
                                           )}
@@ -5191,7 +5191,7 @@ export default function TakeoffDetail() {
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              className="h-6 w-6 p-0 text-cream-muted hover:text-amber-400"
+                                              className="h-6 w-6 p-0 text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
                                               onClick={() =>
                                                 setSelectedItem(item)
                                               }
@@ -5203,7 +5203,7 @@ export default function TakeoffDetail() {
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-6 w-6 p-0 text-cream-muted hover:text-emerald-400"
+                                                className="h-6 w-6 p-0 text-[#716855] hover:bg-emerald-50 hover:text-emerald-700"
                                                 onClick={() =>
                                                   updateItemMutation.mutate({
                                                     id: item.id,
@@ -5218,7 +5218,7 @@ export default function TakeoffDetail() {
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              className="h-6 w-6 p-0 text-cream-muted hover:text-red-400"
+                                              className="h-6 w-6 p-0 text-[#716855] hover:bg-orange-50 hover:text-orange-700"
                                               onClick={() =>
                                                 deleteItemMutation.mutate({
                                                   id: item.id,
@@ -5245,23 +5245,23 @@ export default function TakeoffDetail() {
                   (assemblyBundles.length === 0 || showRawReviewRows) && (
                     <div
                       id="scope-review-queue"
-                      className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]"
+                      className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-white/[0.03]">
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#f4efe4] px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <FileText className="w-4 h-4 text-cream-muted" />
-                          <span className="text-cream-muted font-semibold">
+                          <FileText className="h-4 w-4 text-[#716855]" />
+                          <span className="font-semibold text-[#5d5546]">
                             Details & Audit Trail
                           </span>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             {reviewItems.length} not counted
                           </Badge>
                           {openReviewItems.length > 0 && (
-                            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                            <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                               {openReviewItems.length} open
                             </Badge>
                           )}
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             Review subtotal{" "}
                             {formatCurrency(
                               reviewItemsCost,
@@ -5272,7 +5272,7 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
                           onClick={() => setShowRawReviewRows(prev => !prev)}
                         >
                           {showRawReviewRows ? (
@@ -5284,7 +5284,7 @@ export default function TakeoffDetail() {
                         </Button>
                       </div>
                       {!showRawReviewRows && (
-                        <div className="px-4 py-3 text-xs text-cream-muted">
+                        <div className="px-4 py-3 text-xs text-[#716855]">
                           AI Takeoff Review is the primary workflow. Open this
                           audit trail only for item-level measurements, source
                           rows, or exception cleanup.
@@ -5294,7 +5294,7 @@ export default function TakeoffDetail() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <tr className="bg-[#e8decb] text-xs uppercase text-[#716855]">
                                 <th className="text-left px-4 py-2 w-12">
                                   CSI
                                 </th>
@@ -5327,18 +5327,18 @@ export default function TakeoffDetail() {
                                 return (
                                   <tr
                                     key={item.id}
-                                    className={`border-t border-white/5 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer ${item.reviewed ? "opacity-75" : ""}`}
+                                    className={`cursor-pointer border-t border-[#eadcc4] bg-[#fff7da]/50 hover:bg-[#fff4cb] ${item.reviewed ? "opacity-75" : ""}`}
                                     onClick={() => setSelectedItem(item)}
                                   >
-                                    <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                    <td className="px-4 py-2 font-mono text-xs text-[#716855]">
                                       {item.csiCode || item.csiDivision}
                                     </td>
-                                    <td className="px-4 py-2 text-cream max-w-lg">
+                                    <td className="max-w-lg px-4 py-2 text-[#29251c]">
                                       <p className="line-clamp-2">
                                         {item.description}
                                       </p>
                                       {item.notes && (
-                                        <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                        <p className="mt-0.5 line-clamp-1 text-xs text-[#716855]">
                                           {item.notes}
                                         </p>
                                       )}
@@ -5350,34 +5350,34 @@ export default function TakeoffDetail() {
                                         {cue.label}
                                       </Badge>
                                       {item.reviewed && (
-                                        <div className="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">
-                                          <Check className="w-3 h-3" />
+                                        <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-700">
+                                          <Check className="h-3 w-3" />
                                           held
                                         </div>
                                       )}
                                     </td>
-                                    <td className="px-4 py-2 text-right text-cream font-mono">
+                                    <td className="px-4 py-2 text-right font-mono text-[#29251c]">
                                       {parseFloat(
                                         item.quantity || "0"
                                       ).toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-2 text-cream-muted">
+                                    <td className="px-4 py-2 text-[#716855]">
                                       {item.unit}
                                     </td>
                                     <td className="px-4 py-2 text-center">
                                       <Badge
                                         className={`text-xs ${
                                           item.confidence >= 80
-                                            ? "bg-emerald-500/20 text-emerald-400"
+                                            ? "bg-emerald-50 text-emerald-800"
                                             : item.confidence >= 50
-                                              ? "bg-amber-500/20 text-amber-400"
-                                              : "bg-red-500/20 text-red-400"
+                                              ? "bg-[#fff4cb] text-[#8a6510]"
+                                              : "bg-orange-50 text-orange-800"
                                         }`}
                                       >
                                         {item.confidence}%
                                       </Badge>
                                     </td>
-                                    <td className="px-4 py-2 text-right text-amber-100/70 font-mono">
+                                    <td className="px-4 py-2 text-right font-mono text-[#a66d00]">
                                       {formatCurrency(
                                         item.extendedCost || 0,
                                         project?.currency || "USD"
@@ -5390,7 +5390,7 @@ export default function TakeoffDetail() {
                                       <div className="flex flex-wrap items-center justify-end gap-2">
                                         <Button
                                           size="sm"
-                                          className="h-7 bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 text-xs"
+                                          className="h-7 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
                                           onClick={() =>
                                             applyScopeDecision(item, "included")
                                           }
@@ -5402,7 +5402,7 @@ export default function TakeoffDetail() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7 border-red-500/25 text-red-200 hover:bg-red-500/10 px-2.5 text-xs"
+                                          className="h-7 border-orange-300 bg-orange-50 px-2.5 text-xs text-orange-800 hover:bg-orange-100"
                                           onClick={() =>
                                             applyScopeDecision(item, "excluded")
                                           }
@@ -5414,7 +5414,7 @@ export default function TakeoffDetail() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7 border-amber-500/25 text-amber-200 hover:bg-amber-500/10 px-2.5 text-xs"
+                                          className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:bg-[#fff4cb]"
                                           onClick={() =>
                                             applyScopeDecision(item, "review")
                                           }
@@ -5426,7 +5426,7 @@ export default function TakeoffDetail() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
+                                          className="h-7 px-2 text-xs text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
                                           onClick={() => setSelectedItem(item)}
                                           title="View details"
                                         >
@@ -5447,17 +5447,17 @@ export default function TakeoffDetail() {
 
                 {excludedItems.length > 0 &&
                   (assemblyBundles.length === 0 || showBoundaryRows) && (
-                    <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.01]">
-                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white/[0.025]">
+                    <div className="overflow-hidden rounded-lg border border-[#d7c7aa] bg-white/85 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#f4efe4] px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Flag className="w-4 h-4 text-cream-muted" />
-                          <span className="text-cream-muted font-semibold">
+                          <Flag className="h-4 w-4 text-orange-700" />
+                          <span className="font-semibold text-[#5d5546]">
                             Excluded Scope
                           </span>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             {excludedItems.length} not in bid
                           </Badge>
-                          <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+                          <Badge className="border-[#d7c7aa] bg-white text-xs text-[#716855]">
                             {formatCurrency(
                               excludedItemsCost,
                               project?.currency || "USD"
@@ -5467,7 +5467,7 @@ export default function TakeoffDetail() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                          className="h-8 border-[#c8b895] bg-white/70 text-[#5d5546] hover:bg-white"
                           onClick={() => setShowBoundaryRows(prev => !prev)}
                         >
                           {showBoundaryRows ? (
@@ -5479,7 +5479,7 @@ export default function TakeoffDetail() {
                         </Button>
                       </div>
                       {!showBoundaryRows && (
-                        <div className="px-4 py-3 text-xs text-cream-muted">
+                        <div className="px-4 py-3 text-xs text-[#716855]">
                           These are visible for audit only. They stay outside
                           the bid total unless you restore or move them back to
                           review.
@@ -5489,7 +5489,7 @@ export default function TakeoffDetail() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                              <tr className="bg-[#e8decb] text-xs uppercase text-[#716855]">
                                 <th className="text-left px-4 py-2 w-12">
                                   CSI
                                 </th>
@@ -5514,31 +5514,31 @@ export default function TakeoffDetail() {
                               {excludedItems.map((item: any) => (
                                 <tr
                                   key={item.id}
-                                  className="border-t border-white/5 bg-white/[0.01] hover:bg-white/[0.04] cursor-pointer"
+                                  className="cursor-pointer border-t border-[#eadcc4] bg-white/65 hover:bg-[#faf8f2]"
                                   onClick={() => setSelectedItem(item)}
                                 >
-                                  <td className="px-4 py-2 text-cream-muted font-mono text-xs">
+                                  <td className="px-4 py-2 font-mono text-xs text-[#716855]">
                                     {item.csiCode || item.csiDivision}
                                   </td>
-                                  <td className="px-4 py-2 text-cream max-w-lg">
+                                  <td className="max-w-lg px-4 py-2 text-[#29251c]">
                                     <p className="line-clamp-2">
                                       {item.description}
                                     </p>
                                     {item.notes && (
-                                      <p className="text-cream-muted text-xs mt-0.5 line-clamp-1">
+                                      <p className="mt-0.5 line-clamp-1 text-xs text-[#716855]">
                                         {item.notes}
                                       </p>
                                     )}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-cream font-mono">
+                                  <td className="px-4 py-2 text-right font-mono text-[#29251c]">
                                     {parseFloat(
                                       item.quantity || "0"
                                     ).toLocaleString()}
                                   </td>
-                                  <td className="px-4 py-2 text-cream-muted">
+                                  <td className="px-4 py-2 text-[#716855]">
                                     {item.unit}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-cream-muted font-mono">
+                                  <td className="px-4 py-2 text-right font-mono text-[#716855]">
                                     {formatCurrency(
                                       item.extendedCost || 0,
                                       project?.currency || "USD"
@@ -5552,7 +5552,7 @@ export default function TakeoffDetail() {
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-7 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5 px-2.5 text-xs"
+                                        className="h-7 border-[#d7b44d] bg-[#fff7da] px-2.5 text-xs text-[#8a6510] hover:bg-[#fff4cb]"
                                         onClick={() =>
                                           applyScopeDecision(
                                             item,
@@ -5568,7 +5568,7 @@ export default function TakeoffDetail() {
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        className="h-7 text-cream-muted hover:text-emerald-300 hover:bg-white/5 px-2.5 text-xs"
+                                        className="h-7 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                                         onClick={() =>
                                           applyScopeDecision(item, "included")
                                         }
@@ -5580,7 +5580,7 @@ export default function TakeoffDetail() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 text-cream-muted hover:text-amber-400 px-2 text-xs"
+                                        className="h-7 px-2 text-xs text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
                                         onClick={() => setSelectedItem(item)}
                                         title="View details"
                                       >

@@ -1527,10 +1527,10 @@ export default function ItemDetailModal({
 
   const confidenceColor =
     item.confidence >= 80
-      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
       : item.confidence >= 50
-        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-        : "bg-red-500/20 text-red-400 border-red-500/30";
+        ? "bg-amber-50 text-[#8a6510] border-[#d7b44d]"
+        : "bg-orange-50 text-orange-800 border-orange-300";
 
   const handleSave = () => {
     onSave({
@@ -1638,17 +1638,17 @@ export default function ItemDetailModal({
         >
           {/* Wider modal when drawing is available */}
           <DialogContent
-            className={hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"}
+            className={`${hasDrawing ? "sm:max-w-6xl" : "sm:max-w-3xl"} border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]`}
           >
             <DialogHeader>
               <div className="flex items-center gap-3">
                 <Badge
                   variant="outline"
-                  className="shrink-0 font-mono text-xs border-amber-500/30 text-amber-400"
+                  className="shrink-0 border-[#d7b44d] bg-[#fff4cb] font-mono text-xs text-[#8a6510]"
                 >
                   {item.csiCode || item.csiDivision || "—"}
                 </Badge>
-                <DialogTitle className="text-lg truncate">
+                <DialogTitle className="truncate text-lg text-[#171714]">
                   {isEditing
                     ? "Edit Item"
                     : item.description?.slice(0, 60) || "Takeoff Item"}
@@ -1665,17 +1665,17 @@ export default function ItemDetailModal({
                       size="icon"
                       disabled={!hasPrev}
                       onClick={onPrev}
-                      className="h-7 w-7 text-cream-muted hover:text-cream"
+                      className="h-7 w-7 text-[#716855] hover:bg-white hover:text-[#171714]"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <span className="text-[10px] text-cream-muted/50">←→</span>
+                    <span className="text-[10px] text-[#8a806d]">←→</span>
                     <Button
                       variant="ghost"
                       size="icon"
                       disabled={!hasNext}
                       onClick={onNext}
-                      className="h-7 w-7 text-cream-muted hover:text-cream"
+                      className="h-7 w-7 text-[#716855] hover:bg-white hover:text-[#171714]"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -1696,14 +1696,14 @@ export default function ItemDetailModal({
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                      <span className="text-amber-400 font-medium text-sm">
+                      <span className="text-sm font-semibold text-[#8a6510]">
                         {sheetLabel}
                       </span>
                       {sourceSheet?.sheetType &&
                         sourceSheet.sheetType !== "other" && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-white/10 text-cream-muted"
+                            className="border-[#d7c7aa] bg-white/70 text-[10px] text-[#716855]"
                           >
                             {sourceSheet.sheetType}
                           </Badge>
@@ -1712,7 +1712,7 @@ export default function ItemDetailModal({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-cream-muted hover:text-cream text-xs gap-1"
+                      className="h-7 gap-1 text-xs text-[#716855] hover:bg-white hover:text-[#171714]"
                       onClick={() => setIsFullscreen(true)}
                     >
                       <Maximize2 className="w-3.5 h-3.5" /> Full Screen
@@ -1720,7 +1720,7 @@ export default function ItemDetailModal({
                   </div>
 
                   {/* Drawing viewer */}
-                  <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-amber-500/20">
+                  <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-[#d7c7aa] bg-white shadow-[0_18px_45px_rgba(41,37,28,0.12)]">
                     <DrawingViewer
                       imageUrl={sourceSheet!.imageUrl!}
                       sheetName={sheetLabel}
@@ -1755,9 +1755,9 @@ export default function ItemDetailModal({
               >
                 {/* No drawing placeholder */}
                 {!hasDrawing && (
-                  <div className="flex items-center gap-3 bg-navy-deep/30 border border-white/5 rounded-lg p-3">
-                    <ImageIcon className="w-5 h-5 text-cream-muted/40" />
-                    <span className="text-cream-muted/60 text-sm">
+                  <div className="flex items-center gap-3 rounded-lg border border-[#d7c7aa] bg-white/70 p-3">
+                    <ImageIcon className="w-5 h-5 text-[#8a806d]" />
+                    <span className="text-sm text-[#716855]">
                       No source drawing linked to this item
                     </span>
                   </div>
@@ -1766,8 +1766,8 @@ export default function ItemDetailModal({
                 {/* Full Description */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-amber-400" />
-                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                    <FileText className="h-3.5 w-3.5 text-[#244c91]" />
+                    <Label className="text-xs uppercase tracking-wider text-[#716855]">
                       Description
                     </Label>
                   </div>
@@ -1776,11 +1776,11 @@ export default function ItemDetailModal({
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       rows={3}
-                      className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
+                      className="resize-none border-[#d7c7aa] bg-white text-sm text-[#171714]"
                     />
                   ) : (
-                    <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3">
-                      <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
+                    <div className="rounded-lg border border-[#d7c7aa] bg-white/75 p-3 shadow-sm">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#29251c]">
                         {item.description || "No description"}
                       </p>
                     </div>
@@ -1790,8 +1790,8 @@ export default function ItemDetailModal({
                 {/* Notes */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                    <Edit3 className="h-3.5 w-3.5 text-[#8a6510]" />
+                    <Label className="text-xs uppercase tracking-wider text-[#716855]">
                       Your Notes
                     </Label>
                   </div>
@@ -1801,16 +1801,16 @@ export default function ItemDetailModal({
                       onChange={e => setNotes(e.target.value)}
                       rows={2}
                       placeholder="e.g., Verify with sub, Price seems high..."
-                      className="bg-navy-deep/50 border-white/10 text-cream resize-none text-sm"
+                      className="resize-none border-[#d7c7aa] bg-white text-sm text-[#171714]"
                     />
                   ) : (
-                    <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5">
+                    <div className="rounded-lg border border-[#d7c7aa] bg-white/75 p-2.5 shadow-sm">
                       {notes ? (
-                        <p className="text-cream text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#29251c]">
                           {notes}
                         </p>
                       ) : (
-                        <p className="text-cream-muted/50 text-sm italic">
+                        <p className="text-sm italic text-[#8a806d]">
                           No notes — click Edit to add
                         </p>
                       )}
@@ -1822,8 +1822,8 @@ export default function ItemDetailModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <Hash className="w-3 h-3 text-amber-400" />
-                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                      <Hash className="h-3 w-3 text-[#8a6510]" />
+                      <Label className="text-[10px] uppercase tracking-wider text-[#716855]">
                         Qty
                       </Label>
                     </div>
@@ -1833,10 +1833,10 @@ export default function ItemDetailModal({
                         step="0.01"
                         value={quantity}
                         onChange={e => setQuantity(e.target.value)}
-                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                        className="h-9 border-[#d7c7aa] bg-white font-mono text-sm text-[#171714]"
                       />
                     ) : (
-                      <p className="text-cream font-mono text-base font-semibold">
+                      <p className="font-mono text-base font-semibold text-[#171714]">
                         {parseFloat(item.quantity as string).toLocaleString()}
                       </p>
                     )}
@@ -1844,8 +1844,8 @@ export default function ItemDetailModal({
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <Ruler className="w-3 h-3 text-amber-400" />
-                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                      <Ruler className="h-3 w-3 text-[#8a6510]" />
+                      <Label className="text-[10px] uppercase tracking-wider text-[#716855]">
                         Unit
                       </Label>
                     </div>
@@ -1853,10 +1853,10 @@ export default function ItemDetailModal({
                       <Input
                         value={unit}
                         onChange={e => setUnit(e.target.value)}
-                        className="bg-navy-deep/50 border-white/10 text-cream h-9 text-sm"
+                        className="h-9 border-[#d7c7aa] bg-white text-sm text-[#171714]"
                       />
                     ) : (
-                      <p className="text-cream text-base font-semibold">
+                      <p className="text-base font-semibold text-[#171714]">
                         {item.unit || "EA"}
                       </p>
                     )}
@@ -1866,8 +1866,8 @@ export default function ItemDetailModal({
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <DollarSign className="w-3 h-3 text-emerald-400" />
-                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                      <DollarSign className="h-3 w-3 text-emerald-700" />
+                      <Label className="text-[10px] uppercase tracking-wider text-[#716855]">
                         Material Unit
                       </Label>
                     </div>
@@ -1877,10 +1877,10 @@ export default function ItemDetailModal({
                         step="0.01"
                         value={materialUnitCost}
                         onChange={e => setMaterialUnitCost(e.target.value)}
-                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                        className="h-9 border-[#d7c7aa] bg-white font-mono text-sm text-[#171714]"
                       />
                     ) : (
-                      <p className="text-cream font-mono text-base font-semibold">
+                      <p className="font-mono text-base font-semibold text-[#171714]">
                         {formatCurrency(displayMaterialUnitCost, currencyCode)}
                       </p>
                     )}
@@ -1888,8 +1888,8 @@ export default function ItemDetailModal({
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <DollarSign className="w-3 h-3 text-cyan-400" />
-                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                      <DollarSign className="h-3 w-3 text-[#244c91]" />
+                      <Label className="text-[10px] uppercase tracking-wider text-[#716855]">
                         Default Labor
                       </Label>
                     </div>
@@ -1899,10 +1899,10 @@ export default function ItemDetailModal({
                         step="0.01"
                         value={defaultLaborUnitCost}
                         onChange={e => setDefaultLaborUnitCost(e.target.value)}
-                        className="bg-navy-deep/50 border-white/10 text-cream font-mono h-9 text-sm"
+                        className="h-9 border-[#d7c7aa] bg-white font-mono text-sm text-[#171714]"
                       />
                     ) : (
-                      <p className="text-cream font-mono text-base font-semibold">
+                      <p className="font-mono text-base font-semibold text-[#171714]">
                         {displayDefaultLaborUnitCost > 0
                           ? formatCurrency(
                               displayDefaultLaborUnitCost,
@@ -1915,12 +1915,12 @@ export default function ItemDetailModal({
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <Sigma className="w-3 h-3 text-amber-400" />
-                      <Label className="text-cream-muted text-[10px] uppercase tracking-wider">
+                      <Sigma className="h-3 w-3 text-[#8a6510]" />
+                      <Label className="text-[10px] uppercase tracking-wider text-[#716855]">
                         Ref Unit
                       </Label>
                     </div>
-                    <p className="text-cream font-mono text-base font-semibold">
+                    <p className="font-mono text-base font-semibold text-[#171714]">
                       {formatCurrency(
                         isEditing ? referenceUnitCostCents : item.unitCost,
                         currencyCode
@@ -1930,18 +1930,18 @@ export default function ItemDetailModal({
                 </div>
 
                 {/* Extended Cost */}
-                <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3">
+                <div className="rounded-lg border border-[#d7b44d] bg-[#fff7da] p-3 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-cream-muted text-sm">
+                    <span className="text-sm text-[#716855]">
                       Reference Total
                     </span>
-                    <span className="text-amber-400 font-bold text-xl font-mono">
+                    <span className="font-mono text-xl font-bold text-[#a66d00]">
                       {isEditing
                         ? formatCurrency(extendedCost, currencyCode)
                         : formatCurrency(item.extendedCost, currencyCode)}
                     </span>
                   </div>
-                  <p className="text-[10px] text-cream-muted/55 mt-1">
+                  <p className="mt-1 text-[10px] text-[#716855]">
                     Quantity Takeoff reference = material unit + default labor
                     unit. The Estimate tab chooses the active labor source for
                     the live total.
@@ -1949,17 +1949,17 @@ export default function ItemDetailModal({
                 </div>
 
                 {/* Audit Trail */}
-                <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-3 space-y-2">
+                <div className="space-y-2 rounded-lg border border-[#d7c7aa] bg-white/75 p-3 shadow-sm">
                   <div className="flex items-center gap-2">
-                    <History className="w-3.5 h-3.5 text-amber-400" />
-                    <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                    <History className="h-3.5 w-3.5 text-[#8a6510]" />
+                    <Label className="text-xs uppercase tracking-wider text-[#716855]">
                       Audit Trail
                     </Label>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
-                      <p className="text-cream-muted/60">Quantity source</p>
-                      <p className="text-cream">
+                      <p className="text-[#8a806d]">Quantity source</p>
+                      <p className="font-medium text-[#29251c]">
                         {measurementHistory.data?.length
                           ? "Verified measurement"
                           : item.needsMeasurement
@@ -1968,22 +1968,22 @@ export default function ItemDetailModal({
                       </p>
                     </div>
                     <div>
-                      <p className="text-cream-muted/60">Drawing reference</p>
-                      <p className="text-cream">
+                      <p className="text-[#8a806d]">Drawing reference</p>
+                      <p className="font-medium text-[#29251c]">
                         {hasDrawing ? sheetLabel : "No linked sheet"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-cream-muted/60">Labor source</p>
-                      <p className="text-cream">
+                      <p className="text-[#8a806d]">Labor source</p>
+                      <p className="font-medium text-[#29251c]">
                         {displayDefaultLaborUnitCost > 0
                           ? "Cost Library / Default Labor"
                           : "No default labor"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-cream-muted/60">Confidence</p>
-                      <p className="text-cream">{item.confidence}%</p>
+                      <p className="text-[#8a806d]">Confidence</p>
+                      <p className="font-medium text-[#29251c]">{item.confidence}%</p>
                     </div>
                   </div>
                 </div>
@@ -1994,11 +1994,11 @@ export default function ItemDetailModal({
                     {item.confidence}% confidence
                   </Badge>
                   {item.reviewed ? (
-                    <Badge className="bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30">
+                    <Badge className="border border-emerald-300 bg-emerald-50 text-xs text-emerald-800">
                       <Check className="w-3 h-3 mr-1" /> Reviewed
                     </Badge>
                   ) : (
-                    <Badge className="bg-amber-500/20 text-amber-400 text-xs border border-amber-500/30">
+                    <Badge className="border border-[#d7b44d] bg-[#fff4cb] text-xs text-[#8a6510]">
                       <AlertTriangle className="w-3 h-3 mr-1" /> Pending
                     </Badge>
                   )}
@@ -2016,12 +2016,12 @@ export default function ItemDetailModal({
                   measurementHistory.data.length > 0 && (
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <History className="w-3.5 h-3.5 text-amber-400" />
-                        <Label className="text-cream-muted text-xs uppercase tracking-wider">
+                        <History className="h-3.5 w-3.5 text-[#8a6510]" />
+                        <Label className="text-xs uppercase tracking-wider text-[#716855]">
                           Measurement History
                         </Label>
                       </div>
-                      <div className="bg-navy-deep/30 border border-white/5 rounded-lg p-2.5 space-y-2 max-h-[140px] overflow-y-auto">
+                      <div className="max-h-[140px] space-y-2 overflow-y-auto rounded-lg border border-[#d7c7aa] bg-white/75 p-2.5">
                         {measurementHistory.data.map(entry => {
                           const typeIcon =
                             entry.measurementType === "line"
@@ -2041,18 +2041,18 @@ export default function ItemDetailModal({
                               </span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-cream font-mono font-semibold">
+                                  <span className="font-mono font-semibold text-[#29251c]">
                                     {entry.rawValue.toFixed(
                                       entry.measurementType === "count" ? 0 : 2
                                     )}{" "}
                                     {entry.unit}
                                   </span>
-                                  <span className="text-cream-muted/40">←</span>
-                                  <span className="text-cream-muted/60 truncate">
+                                  <span className="text-[#8a806d]">←</span>
+                                  <span className="truncate text-[#716855]">
                                     {entry.sheetName || "Sheet"}
                                   </span>
                                 </div>
-                                <span className="text-cream-muted/40 text-[10px]">
+                                <span className="text-[10px] text-[#8a806d]">
                                   {timeAgo}
                                 </span>
                               </div>
@@ -2068,13 +2068,13 @@ export default function ItemDetailModal({
             {/* ─── Footer ───────────────────────────────────────────── */}
             <DialogFooter className="flex-col gap-3 sm:flex-col sm:items-stretch sm:justify-start">
               {onScopeDecision && !isEditing && (
-                <div className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                <div className="w-full rounded-lg border border-[#d7c7aa] bg-white/70 px-3 py-2.5 shadow-sm">
                   <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-cream">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[#5d5546]">
                         Choose Where This Goes
                       </p>
-                      <p className="max-w-2xl text-xs text-cream-muted mt-0.5">
+                      <p className="mt-0.5 max-w-2xl text-xs text-[#716855]">
                         Add it to the bid, park it for later, or leave it out.
                       </p>
                     </div>
@@ -2086,7 +2086,7 @@ export default function ItemDetailModal({
                         }
                         className={`whitespace-nowrap ${
                           scopeStatus === "excluded"
-                            ? "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                             : "bg-emerald-600 hover:bg-emerald-500 text-white"
                         }`}
                         onClick={() => onScopeDecision(item, "included")}
@@ -2098,7 +2098,7 @@ export default function ItemDetailModal({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                        className="whitespace-nowrap border-[#d7b44d] bg-[#fff7da] text-[#8a6510] hover:bg-[#fff4cb]"
                         onClick={() => onScopeDecision(item, "review")}
                         disabled={isPending}
                       >
@@ -2108,7 +2108,7 @@ export default function ItemDetailModal({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap border-red-500/30 text-red-200 hover:bg-red-500/10"
+                        className="whitespace-nowrap border-orange-300 bg-orange-50 text-orange-800 hover:bg-orange-100"
                         onClick={() => onScopeDecision(item, "excluded")}
                         disabled={isPending}
                       >
@@ -2124,7 +2124,7 @@ export default function ItemDetailModal({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    className="text-orange-700 hover:bg-orange-50 hover:text-orange-800"
                     onClick={() => {
                       onDelete({ id: item.id, projectId });
                       onClose();
@@ -2136,7 +2136,7 @@ export default function ItemDetailModal({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                      className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                       onClick={() => {
                         onMarkReviewed({
                           id: item.id,
@@ -2156,13 +2156,14 @@ export default function ItemDetailModal({
                       <Button
                         variant="outline"
                         onClick={() => setIsEditing(false)}
+                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
                       >
                         Cancel
                       </Button>
                       <Button
                         onClick={handleSave}
                         disabled={isPending}
-                        className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                        className="bg-[#171714] text-white hover:bg-[#29251c]"
                       >
                         {isPending ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -2174,12 +2175,16 @@ export default function ItemDetailModal({
                     </>
                   ) : (
                     <>
-                      <Button variant="outline" onClick={onClose}>
+                      <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
+                      >
                         Close
                       </Button>
                       <Button
                         onClick={() => setIsEditing(true)}
-                        className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                        className="bg-[#171714] text-white hover:bg-[#29251c]"
                       >
                         <Edit3 className="w-4 h-4 mr-2" /> Edit Item
                       </Button>
