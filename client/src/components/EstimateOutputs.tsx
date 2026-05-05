@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -22,6 +23,7 @@ import {
   LayoutTemplate,
   Send,
   BadgeCheck,
+  TableProperties,
 } from "lucide-react";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
@@ -50,15 +52,37 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
   "33": "Utilities",
 };
 
-function fmtCurrency(cents: number): string {
+function fmtCurrency(cents: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency,
     minimumFractionDigits: 2,
   }).format(cents / 100);
 }
 function fmtNum(cents: number): number {
   return Math.round(cents) / 100;
+}
+function parseCents(value: unknown): number {
+  const parsed =
+    typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+function getMaterialUnitCost(item: any): number {
+  const materialCost = parseCents(item.materialCost);
+  if (materialCost > 0) return materialCost;
+  const installedUnit = parseCents(item.unitCost);
+  const defaultLaborUnit = parseCents(item.laborCost);
+  if (installedUnit > defaultLaborUnit) return installedUnit - defaultLaborUnit;
+  return parseCents(item.unitCost);
+}
+function getItemQuantity(item: any): number {
+  return parseFloat(String(item.quantity ?? "")) || 0;
+}
+function getItemMaterialTotal(item: any): number {
+  return Math.round(getItemQuantity(item) * getMaterialUnitCost(item));
+}
+function getSheetName(name: string): string {
+  return name.replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Sheet";
 }
 
 interface DivisionData {
@@ -81,6 +105,16 @@ interface EstimateCalcs {
   bond: number;
   tax: number;
   grandTotal: number;
+  itemLaborEstimates?: Map<
+    number,
+    {
+      laborCost: number;
+      laborSourceLabel: string;
+      laborNote: string;
+      crewName?: string;
+      productivityPerCrewHr?: number;
+    }
+  >;
 }
 
 interface EstimateOutputsProps {
@@ -117,6 +151,18 @@ export default function EstimateOutputs({
     "executive" | "formal" | "scope"
   >("executive");
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [proposalIntro, setProposalIntro] = useState(
+    "Thank you for the opportunity to submit this proposal. The pricing below is built from the accepted ConstructLine takeoff, organized by CSI division, and includes the direct costs, labor basis, markups, tax, and bid total shown in this package."
+  );
+  const [proposalInclusions, setProposalInclusions] = useState(
+    "Includes accepted scope items listed in the estimate detail, labor and material pricing shown by division, allowances included in the bid total, and standard project supervision required to perform the work."
+  );
+  const [proposalExclusions, setProposalExclusions] = useState(
+    "Excludes work not specifically listed in this proposal, owner-furnished items, hidden conditions, permit fees unless listed, and changes after proposal acceptance."
+  );
+  const [proposalTerms, setProposalTerms] = useState(
+    "Proposal is valid for 30 days. Changes to scope require written approval. Payment terms, retainage, and schedule requirements are subject to final contract agreement."
+  );
 
   // ─── Company branding fields ──────────────────────────────────────
   const [companyName, setCompanyName] = useState("");
@@ -153,6 +199,34 @@ export default function EstimateOutputs({
     } catch {
       // If a browser-provided image type cannot be embedded, keep document generation working.
     }
+  };
+
+  const getLabor = (item: any) => calculations.itemLaborEstimates?.get(item.id);
+  const buildItemRows = (items: any[]) =>
+    items.map((item: any) => {
+      const qty = getItemQuantity(item);
+      const materialTotal = getItemMaterialTotal(item);
+      const labor = getLabor(item);
+      const laborTotal = labor?.laborCost || 0;
+      return {
+        item,
+        qty,
+        materialTotal,
+        laborTotal,
+        subtotal: materialTotal + laborTotal,
+        labor,
+      };
+    });
+
+  const writeWorkbookSheet = (
+    wb: XLSX.WorkBook,
+    sheetName: string,
+    rows: Record<string, string | number>[],
+    widths: Array<{ wch: number }>
+  ) => {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = widths;
+    XLSX.utils.book_append_sheet(wb, ws, getSheetName(sheetName));
   };
 
   // ─── Proposal client fields ───────────────────────────────────────
@@ -405,6 +479,16 @@ export default function EstimateOutputs({
 
       y += 30;
 
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("PROPOSAL LETTER", 14, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const introLines = doc.splitTextToSize(proposalIntro, pageW - 28);
+      doc.text(introLines, 14, y);
+      y += introLines.length * 5 + 8;
+
       // Scope
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -422,25 +506,127 @@ export default function EstimateOutputs({
       doc.text(scopeLines, 14, y);
       y += scopeLines.length * 5 + 5;
 
-      // Division list
-      for (const div of calculations.divisionOrder) {
+      const divisionRows = calculations.divisionOrder.map(div => {
         const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
         const data = calculations.byDivision[div];
-        if (data.items.length > 0) {
-          doc.text(
-            `• Division ${div} — ${divName} (${data.items.length} items)`,
-            18,
-            y
-          );
-          y += 5;
-          if (y > pageH - 60) {
+        return [
+          `Div ${div} — ${divName}`,
+          String(data.items.length),
+          fmtCurrency(data.materialTotal, currency),
+          fmtCurrency(data.laborTotal, currency),
+          fmtCurrency(data.materialTotal + data.laborTotal, currency),
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Division", "Rows", "Material", "Labor", "Subtotal"]],
+        body: divisionRows,
+        theme: proposalLayout === "formal" ? "grid" : "striped",
+        headStyles: {
+          fillColor: proposalLayout === "formal" ? [30, 41, 59] : [23, 23, 20],
+          textColor: [255, 255, 255],
+          fontSize: 8,
+          fontStyle: "bold",
+        },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 75 },
+          1: { halign: "right" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right", fontStyle: "bold" },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+
+      if (proposalLayout === "scope") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("DETAILED ESTIMATE ITEMS", 14, y);
+        y += 4;
+        for (const div of calculations.divisionOrder) {
+          const data = calculations.byDivision[div];
+          const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+          const rows = buildItemRows(data.items).map(row => [
+            row.item.description || "Estimate item",
+            String(row.qty || ""),
+            row.item.unit || "",
+            fmtCurrency(row.materialTotal, currency),
+            fmtCurrency(row.laborTotal, currency),
+            fmtCurrency(row.subtotal, currency),
+          ]);
+          autoTable(doc, {
+            startY: y,
+            head: [
+              [
+                `Div ${div} — ${divName}`,
+                "Qty",
+                "Unit",
+                "Material",
+                "Labor",
+                "Subtotal",
+              ],
+            ],
+            body: rows,
+            theme: "grid",
+            headStyles: {
+              fillColor: [23, 23, 20],
+              textColor: [255, 255, 255],
+              fontSize: 7,
+              fontStyle: "bold",
+            },
+            bodyStyles: { fontSize: 7 },
+            columnStyles: {
+              0: { cellWidth: 70 },
+              1: { halign: "right", cellWidth: 18 },
+              2: { cellWidth: 16 },
+              3: { halign: "right" },
+              4: { halign: "right" },
+              5: { halign: "right", fontStyle: "bold" },
+            },
+            margin: { left: 14, right: 14 },
+          });
+          y = (doc as any).lastAutoTable.finalY + 8;
+          if (y > pageH - 55) {
             doc.addPage();
             y = 20;
           }
         }
       }
 
-      y += 5;
+      if (y > pageH - 95) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("INCLUSIONS", 14, y);
+      y += 7;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      const inclusionLines = doc.splitTextToSize(
+        proposalInclusions,
+        pageW - 28
+      );
+      doc.text(inclusionLines, 14, y);
+      y += inclusionLines.length * 4.5 + 7;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("EXCLUSIONS", 14, y);
+      y += 7;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      const exclusionLines = doc.splitTextToSize(
+        proposalExclusions,
+        pageW - 28
+      );
+      doc.text(exclusionLines, 14, y);
+      y += exclusionLines.length * 4.5 + 8;
 
       // Pricing summary
       doc.setFont("helvetica", "bold");
@@ -453,30 +639,35 @@ export default function EstimateOutputs({
         body: [
           [
             "Direct Costs (Material + Crew Labor + Allowances)",
-            fmtCurrency(calculations.directCost),
+            fmtCurrency(calculations.directCost, currency),
           ],
           [
             `General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`,
-            fmtCurrency(calculations.generalConditions),
+            fmtCurrency(calculations.generalConditions, currency),
           ],
           [
             "Overhead & Profit",
-            fmtCurrency(calculations.overhead + calculations.profit),
+            fmtCurrency(calculations.overhead + calculations.profit, currency),
           ],
           [
             `Contingency (${pctDisplay(markups.contingencyPct)}%)`,
-            fmtCurrency(calculations.contingency),
+            fmtCurrency(calculations.contingency, currency),
           ],
           [
             `Bond (${pctDisplay(markups.bondPct)}%)`,
-            fmtCurrency(calculations.bond),
+            fmtCurrency(calculations.bond, currency),
           ],
           [
             `Sales Tax (${pctDisplay(markups.taxPct)}%)`,
-            fmtCurrency(calculations.tax),
+            fmtCurrency(calculations.tax, currency),
           ],
         ],
-        foot: [["TOTAL CONTRACT PRICE", fmtCurrency(calculations.grandTotal)]],
+        foot: [
+          [
+            "TOTAL CONTRACT PRICE",
+            fmtCurrency(calculations.grandTotal, currency),
+          ],
+        ],
         theme: "plain",
         footStyles: {
           fillColor: [217, 119, 6],
@@ -509,13 +700,9 @@ export default function EstimateOutputs({
       y += 6;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      const terms = [
-        "1. This proposal is valid for 30 days from the date above.",
-        "2. Payment terms: Progress billing per AIA G702/G703 Schedule of Values.",
-        "3. Retainage: 10% until substantial completion, 5% through final completion.",
-        "4. Changes to scope require written Change Order approval before work begins.",
-        "5. This proposal excludes work not specifically described in the scope above.",
-      ];
+      const terms = proposalTerms
+        .split("\n")
+        .flatMap(line => doc.splitTextToSize(line, pageW - 28));
       for (const t of terms) {
         if (y > pageH - 30) {
           doc.addPage();
@@ -837,6 +1024,370 @@ export default function EstimateOutputs({
     }
   };
 
+  const generateFullEstimateExcel = () => {
+    setGenerating("full-excel");
+    try {
+      const wb = XLSX.utils.book_new();
+      const summaryRows: Record<string, string | number>[] = [];
+      for (const div of calculations.divisionOrder) {
+        const data = calculations.byDivision[div];
+        const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+        summaryRows.push({
+          "CSI Division": `Div ${div} — ${divName}`,
+          Rows: data.items.length,
+          Material: fmtNum(data.materialTotal),
+          Labor: fmtNum(data.laborTotal),
+          Subtotal: fmtNum(data.materialTotal + data.laborTotal),
+        });
+      }
+      summaryRows.push({
+        "CSI Division": "Allowances",
+        Rows: "",
+        Material: "",
+        Labor: "",
+        Subtotal: fmtNum(calculations.allowancesTotal || 0),
+      });
+      summaryRows.push({
+        "CSI Division": "Direct Cost Total",
+        Rows: "",
+        Material: fmtNum(calculations.totalMaterial),
+        Labor: fmtNum(calculations.totalLabor),
+        Subtotal: fmtNum(calculations.directCost),
+      });
+      summaryRows.push({
+        "CSI Division": "Grand Total",
+        Rows: "",
+        Material: "",
+        Labor: "",
+        Subtotal: fmtNum(calculations.grandTotal),
+      });
+
+      writeWorkbookSheet(wb, "Summary", summaryRows, [
+        { wch: 42 },
+        { wch: 10 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+      ]);
+
+      for (const div of calculations.divisionOrder) {
+        const data = calculations.byDivision[div];
+        const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+        const rows: Record<string, string | number>[] = buildItemRows(
+          data.items
+        ).map(row => ({
+          Description: row.item.description || "",
+          Quantity: row.qty,
+          Unit: row.item.unit || "",
+          "Material Unit": fmtNum(getMaterialUnitCost(row.item)),
+          "Material Total": fmtNum(row.materialTotal),
+          "Labor Total": fmtNum(row.laborTotal),
+          "Labor Basis": row.labor?.laborSourceLabel || "No Labor",
+          "Crew / Productivity": row.labor?.crewName
+            ? `${row.labor.crewName}${row.labor.productivityPerCrewHr ? ` @ ${row.labor.productivityPerCrewHr} ${row.item.unit || "units"}/crew-hr` : ""}`
+            : row.labor?.laborNote || "",
+          Subtotal: fmtNum(row.subtotal),
+          "Source Sheet":
+            row.item.sheetName ||
+            row.item.sheetNumber ||
+            row.item.sheetId ||
+            "",
+          "CSI Division": div,
+          Category: row.item.category || "",
+          Notes: row.item.notes || row.item.sourceNotes || "",
+        }));
+        rows.push({
+          Description: "DIVISION TOTAL",
+          Quantity: "",
+          Unit: "",
+          "Material Unit": "",
+          "Material Total": fmtNum(data.materialTotal),
+          "Labor Total": fmtNum(data.laborTotal),
+          "Labor Basis": "",
+          "Crew / Productivity": "",
+          Subtotal: fmtNum(data.materialTotal + data.laborTotal),
+          "Source Sheet": "",
+          "CSI Division": div,
+          Category: "",
+          Notes: "",
+        });
+        writeWorkbookSheet(wb, `Div ${div} ${divName}`, rows, [
+          { wch: 46 },
+          { wch: 12 },
+          { wch: 10 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 22 },
+          { wch: 34 },
+          { wch: 14 },
+          { wch: 16 },
+          { wch: 12 },
+          { wch: 20 },
+          { wch: 36 },
+        ]);
+      }
+
+      if ((calculations.allowancesTotal || 0) > 0) {
+        writeWorkbookSheet(
+          wb,
+          "Allowances",
+          [
+            {
+              Description: "Allowances Total",
+              Amount: fmtNum(calculations.allowancesTotal || 0),
+            },
+          ],
+          [{ wch: 42 }, { wch: 16 }]
+        );
+      }
+
+      writeWorkbookSheet(
+        wb,
+        "Markups",
+        [
+          {
+            Line: "Direct Cost",
+            Rate: "",
+            Amount: fmtNum(calculations.directCost),
+          },
+          {
+            Line: "General Conditions",
+            Rate: `${pctDisplay(markups.generalConditionsPct)}%`,
+            Amount: fmtNum(calculations.generalConditions),
+          },
+          {
+            Line: "Overhead",
+            Rate: `${pctDisplay(markups.overheadPct)}%`,
+            Amount: fmtNum(calculations.overhead),
+          },
+          {
+            Line: "Profit",
+            Rate: `${pctDisplay(markups.profitPct)}%`,
+            Amount: fmtNum(calculations.profit),
+          },
+          {
+            Line: "Contingency",
+            Rate: `${pctDisplay(markups.contingencyPct)}%`,
+            Amount: fmtNum(calculations.contingency),
+          },
+          {
+            Line: "Bond",
+            Rate: `${pctDisplay(markups.bondPct)}%`,
+            Amount: fmtNum(calculations.bond),
+          },
+          {
+            Line: "Sales Tax",
+            Rate: `${pctDisplay(markups.taxPct)}%`,
+            Amount: fmtNum(calculations.tax),
+          },
+          {
+            Line: "Grand Total",
+            Rate: "",
+            Amount: fmtNum(calculations.grandTotal),
+          },
+        ],
+        [{ wch: 28 }, { wch: 14 }, { wch: 16 }]
+      );
+
+      XLSX.writeFile(
+        wb,
+        `full-estimate-${projectName.replace(/\s+/g, "-").toLowerCase()}.xlsx`
+      );
+      toast.success("Full estimate workbook downloaded");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate full estimate workbook");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const generateFullEstimatePdf = () => {
+    setGenerating("full-pdf");
+    try {
+      const doc = new jsPDF();
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+
+      doc.setFillColor(7, 9, 11);
+      doc.rect(0, 0, pageW, 42, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.text("FULL ESTIMATE DETAIL", 14, 18);
+      addLogo(doc, pageW);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(projectName, 14, 28);
+      doc.text(
+        `Grand Total: ${fmtCurrency(calculations.grandTotal, currency)}`,
+        pageW - 14,
+        28,
+        { align: "right" }
+      );
+
+      let y = 52;
+      autoTable(doc, {
+        startY: y,
+        head: [["Division", "Rows", "Material", "Labor", "Subtotal"]],
+        body: calculations.divisionOrder.map(div => {
+          const data = calculations.byDivision[div];
+          const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+          return [
+            `Div ${div} — ${divName}`,
+            String(data.items.length),
+            fmtCurrency(data.materialTotal, currency),
+            fmtCurrency(data.laborTotal, currency),
+            fmtCurrency(data.materialTotal + data.laborTotal, currency),
+          ];
+        }),
+        foot: [
+          [
+            "DIRECT COST",
+            "",
+            fmtCurrency(calculations.totalMaterial, currency),
+            fmtCurrency(calculations.totalLabor, currency),
+            fmtCurrency(calculations.directCost, currency),
+          ],
+        ],
+        theme: "grid",
+        headStyles: {
+          fillColor: [23, 23, 20],
+          textColor: [255, 255, 255],
+          fontSize: 8,
+        },
+        footStyles: {
+          fillColor: [23, 23, 20],
+          textColor: [255, 255, 255],
+          fontSize: 8,
+          fontStyle: "bold",
+        },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          1: { halign: "right" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right", fontStyle: "bold" },
+        },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 10;
+
+      for (const div of calculations.divisionOrder) {
+        const data = calculations.byDivision[div];
+        const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
+        if (y > pageH - 70) {
+          doc.addPage();
+          y = 18;
+        }
+        const rows = buildItemRows(data.items).map(row => [
+          row.item.description || "Estimate item",
+          String(row.qty || ""),
+          row.item.unit || "",
+          fmtCurrency(row.materialTotal, currency),
+          fmtCurrency(row.laborTotal, currency),
+          fmtCurrency(row.subtotal, currency),
+        ]);
+        autoTable(doc, {
+          startY: y,
+          head: [
+            [
+              `Div ${div} — ${divName}`,
+              "Qty",
+              "Unit",
+              "Material",
+              "Labor",
+              "Subtotal",
+            ],
+          ],
+          body: rows,
+          theme: "grid",
+          headStyles: {
+            fillColor: [30, 41, 59],
+            textColor: [255, 255, 255],
+            fontSize: 7,
+            fontStyle: "bold",
+          },
+          bodyStyles: { fontSize: 7 },
+          columnStyles: {
+            0: { cellWidth: 72 },
+            1: { halign: "right", cellWidth: 18 },
+            2: { cellWidth: 16 },
+            3: { halign: "right" },
+            4: { halign: "right" },
+            5: { halign: "right", fontStyle: "bold" },
+          },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      doc.addPage();
+      autoTable(doc, {
+        startY: 18,
+        head: [["Cost Waterfall", "Amount"]],
+        body: [
+          ["Direct Cost", fmtCurrency(calculations.directCost, currency)],
+          [
+            `General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`,
+            fmtCurrency(calculations.generalConditions, currency),
+          ],
+          [
+            `Overhead (${pctDisplay(markups.overheadPct)}%)`,
+            fmtCurrency(calculations.overhead, currency),
+          ],
+          [
+            `Profit (${pctDisplay(markups.profitPct)}%)`,
+            fmtCurrency(calculations.profit, currency),
+          ],
+          [
+            `Contingency (${pctDisplay(markups.contingencyPct)}%)`,
+            fmtCurrency(calculations.contingency, currency),
+          ],
+          [
+            `Bond (${pctDisplay(markups.bondPct)}%)`,
+            fmtCurrency(calculations.bond, currency),
+          ],
+          [
+            `Sales Tax (${pctDisplay(markups.taxPct)}%)`,
+            fmtCurrency(calculations.tax, currency),
+          ],
+        ],
+        foot: [["GRAND TOTAL", fmtCurrency(calculations.grandTotal, currency)]],
+        theme: "grid",
+        headStyles: { fillColor: [23, 23, 20], textColor: [255, 255, 255] },
+        footStyles: {
+          fillColor: [217, 119, 6],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
+      });
+
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Generated by ConstructLine — Powered by ALP", 14, pageH - 10);
+        doc.text(`Page ${i} of ${totalPages}`, pageW - 14, pageH - 10, {
+          align: "right",
+        });
+      }
+
+      doc.save(
+        `full-estimate-${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`
+      );
+      toast.success("Full estimate PDF downloaded");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate full estimate PDF");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
   return (
     <section
       id="submit-package"
@@ -1027,6 +1578,45 @@ export default function EstimateOutputs({
                   />
                 </div>
               </div>
+
+              <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#8a6510]" />
+                  <h4 className="font-semibold text-[#171714]">
+                    Proposal Verbiage
+                  </h4>
+                </div>
+                <p className="mt-1 text-sm text-[#716855]">
+                  Shape the actual proposal language before generating the
+                  package.
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <Textarea
+                    value={proposalIntro}
+                    onChange={e => setProposalIntro(e.target.value)}
+                    className="min-h-28 border-[#d7c7aa] bg-white text-sm text-[#171714] placeholder:text-[#716855]/50"
+                    placeholder="Proposal letter / executive summary"
+                  />
+                  <Textarea
+                    value={proposalInclusions}
+                    onChange={e => setProposalInclusions(e.target.value)}
+                    className="min-h-28 border-[#d7c7aa] bg-white text-sm text-[#171714] placeholder:text-[#716855]/50"
+                    placeholder="Inclusions"
+                  />
+                  <Textarea
+                    value={proposalExclusions}
+                    onChange={e => setProposalExclusions(e.target.value)}
+                    className="min-h-28 border-[#d7c7aa] bg-white text-sm text-[#171714] placeholder:text-[#716855]/50"
+                    placeholder="Exclusions"
+                  />
+                  <Textarea
+                    value={proposalTerms}
+                    onChange={e => setProposalTerms(e.target.value)}
+                    className="min-h-28 border-[#d7c7aa] bg-white text-sm text-[#171714] placeholder:text-[#716855]/50"
+                    placeholder="Terms and conditions"
+                  />
+                </div>
+              </div>
             </div>
 
             <aside className="space-y-3">
@@ -1047,6 +1637,24 @@ export default function EstimateOutputs({
                   icon: FileText,
                   action: generateBidSummary,
                   label: "Generate Summary",
+                },
+                {
+                  key: "full-excel",
+                  title: "Full Estimate Workbook",
+                  detail:
+                    "Summary, markups, allowances, and one detailed tab per CSI division.",
+                  icon: TableProperties,
+                  action: generateFullEstimateExcel,
+                  label: "Download Full Excel",
+                },
+                {
+                  key: "full-pdf",
+                  title: "Full Estimate PDF",
+                  detail:
+                    "Printable estimate detail with every accepted row and the cost waterfall.",
+                  icon: FileText,
+                  action: generateFullEstimatePdf,
+                  label: "Download Full PDF",
                 },
                 {
                   key: "sov",
