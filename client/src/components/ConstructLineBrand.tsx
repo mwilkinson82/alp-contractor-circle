@@ -13,6 +13,8 @@ interface ConstructLineWordmarkProps {
   size?: "xs" | "sm" | "md" | "lg";
   /** Show "POWERED BY ALP" subtitle */
   showSubtitle?: boolean;
+  /** Color treatment */
+  tone?: "dark" | "light";
   /** Additional className */
   className?: string;
 }
@@ -30,16 +32,19 @@ const sizeMap = {
 export function ConstructLineWordmark({
   size = "md",
   showSubtitle = true,
+  tone = "dark",
   className = "",
 }: ConstructLineWordmarkProps) {
   const s = sizeMap[size];
+  const textClass = tone === "light" ? "text-[#171714]" : "text-white";
+  const subtitleClass = tone === "light" ? "text-[#8a806d]" : "text-gray-500";
   return (
     <div className={`flex flex-col ${className}`}>
-      <span className={`${s.text} font-bold tracking-tight text-white leading-tight`}>
-        Construct<span className="text-amber-400">Line</span>
+      <span className={`${s.text} font-bold tracking-tight ${textClass} leading-tight`}>
+        Construct<span className={tone === "light" ? "text-[#d9a21a]" : "text-amber-400"}>Line</span>
       </span>
       {showSubtitle && (
-        <span className={`${s.subtitle} text-gray-500 tracking-wider uppercase leading-tight`}>
+        <span className={`${s.subtitle} ${subtitleClass} tracking-wider uppercase leading-tight`}>
           Powered by ALP
         </span>
       )}

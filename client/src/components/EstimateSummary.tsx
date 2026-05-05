@@ -129,15 +129,15 @@ interface ItemLaborEstimate {
 function getLaborSourceBadgeClass(source: ItemLaborSource): string {
   switch (source) {
     case "my_crew":
-      return "bg-blue-500/15 text-blue-300 border-blue-500/25";
+      return "bg-blue-50 text-[#244c91] border-blue-200";
     case "cost_library":
-      return "bg-amber-500/12 text-amber-200 border-amber-500/25";
+      return "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]";
     case "manual":
-      return "bg-purple-500/15 text-purple-300 border-purple-500/25";
+      return "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]";
     case "held_for_review":
-      return "bg-amber-500/15 text-amber-300 border-amber-500/25";
+      return "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]";
     default:
-      return "bg-white/5 text-cream-muted border-white/10";
+      return "bg-white text-[#716855] border-[#d7c7aa]";
   }
 }
 
@@ -832,11 +832,11 @@ export default function EstimateSummary({
   if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Calculator className="w-12 h-12 text-cream-muted/30 mb-4" />
-        <h3 className="text-cream font-semibold text-lg mb-2">
+        <Calculator className="w-12 h-12 text-[#8a806d]/40 mb-4" />
+        <h3 className="text-[#171714] font-semibold text-lg mb-2">
           No Takeoff Items Yet
         </h3>
-        <p className="text-cream-muted text-sm max-w-md">
+        <p className="text-[#716855] text-sm max-w-md">
           Upload drawings and run a takeoff first. Once you have quantity items
           with costs, the estimate summary will calculate material + labor +
           markups automatically.
@@ -1294,14 +1294,14 @@ export default function EstimateSummary({
 
       {/* ─── Labor Inference Review Panel ──────────────────────────────── */}
       {showReviewPanel && reviewAssignments && (
-        <div className="border border-indigo-500/30 rounded-xl bg-indigo-500/5 overflow-hidden">
-          <div className="px-4 py-3 border-b border-indigo-500/20 flex items-center justify-between gap-3">
+        <div className="overflow-hidden rounded-xl border border-blue-200 bg-blue-50 text-[#171714]">
+          <div className="px-4 py-3 border-b border-blue-200 bg-white/75 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-cream">
+              <Sparkles className="w-4 h-4 text-[#244c91]" />
+              <h3 className="text-sm font-semibold text-[#171714]">
                 ConstructLine Labor Assignment Review
               </h3>
-              <span className="text-xs text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-[#244c91] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                 {
                   reviewAssignments.filter(
                     a => a.crewId !== null && !a._excluded
@@ -1318,7 +1318,7 @@ export default function EstimateSummary({
                   setShowReviewPanel(false);
                   setReviewAssignments(null);
                 }}
-                className="border-white/10 text-cream-muted hover:text-cream text-xs"
+                className="border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] text-xs"
               >
                 Discard
               </Button>
@@ -1326,7 +1326,7 @@ export default function EstimateSummary({
                 size="sm"
                 onClick={handleConfirmAssignments}
                 disabled={confirmLaborMutation.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+                className="bg-[#244c91] hover:bg-[#1b3c74] text-white gap-1.5 text-xs"
               >
                 {confirmLaborMutation.isPending ? (
                   <>
@@ -1350,21 +1350,21 @@ export default function EstimateSummary({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-navy-medium/60 border-b border-white/8">
-                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-8"></th>
-                  <th className="text-left text-cream-muted font-medium px-3 py-2">
+                <tr className="bg-[#f4efe4] border-b border-[#d7c7aa]">
+                  <th className="text-left text-[#716855] font-medium px-3 py-2 w-8"></th>
+                  <th className="text-left text-[#716855] font-medium px-3 py-2">
                     Item Description
                   </th>
-                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-16">
+                  <th className="text-left text-[#716855] font-medium px-3 py-2 w-16">
                     Unit
                   </th>
-                  <th className="text-left text-cream-muted font-medium px-3 py-2 w-40">
+                  <th className="text-left text-[#716855] font-medium px-3 py-2 w-40">
                     Assigned Crew
                   </th>
-                  <th className="text-right text-cream-muted font-medium px-3 py-2 w-32">
+                  <th className="text-right text-[#716855] font-medium px-3 py-2 w-32">
                     Output / Crew-Hour
                   </th>
-                  <th className="text-left text-cream-muted font-medium px-3 py-2">
+                  <th className="text-left text-[#716855] font-medium px-3 py-2">
                     ConstructLine Reasoning
                   </th>
                 </tr>
@@ -1373,12 +1373,12 @@ export default function EstimateSummary({
                 {reviewAssignments.map((a, idx) => (
                   <tr
                     key={idx}
-                    className={`border-b border-white/5 transition-colors ${
+                    className={`border-b border-[#eadcc4] transition-colors ${
                       a._excluded
-                        ? "opacity-40 bg-red-500/5"
+                        ? "opacity-45 bg-orange-50"
                         : a.crewId
-                          ? "hover:bg-white/3"
-                          : "bg-amber-500/5"
+                          ? "bg-white/65 hover:bg-white"
+                          : "bg-[#fff4cb]/55"
                     }`}
                   >
                     {/* Include / exclude toggle */}
@@ -1407,17 +1407,17 @@ export default function EstimateSummary({
                         {a._excluded ? "✕" : "✓"}
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-cream/80 max-w-xs">
+                    <td className="px-3 py-2 text-[#29251c] max-w-xs">
                       <span className="line-clamp-2">{a.description}</span>
                     </td>
-                    <td className="px-3 py-2 text-cream-muted">{a.unit}</td>
+                    <td className="px-3 py-2 text-[#716855]">{a.unit}</td>
                     <td className="px-3 py-2">
                       {a.crewId ? (
-                        <span className="text-indigo-300 font-medium">
+                        <span className="text-[#244c91] font-medium">
                           {a.crewName}
                         </span>
                       ) : (
-                        <span className="text-amber-400/70 italic">
+                        <span className="text-[#8a6510] italic">
                           unassigned
                         </span>
                       )}
@@ -1442,10 +1442,10 @@ export default function EstimateSummary({
                             );
                           }
                         }}
-                        className="w-24 bg-navy-medium border border-white/10 rounded px-2 py-1 text-right text-cream focus:border-indigo-400/50 focus:outline-none text-xs"
+                        className="w-24 rounded border border-[#d7c7aa] bg-white px-2 py-1 text-right text-[#171714] focus:border-[#244c91] focus:outline-none text-xs"
                       />
                     </td>
-                    <td className="px-3 py-2 text-cream-muted/60 max-w-xs">
+                    <td className="px-3 py-2 text-[#716855] max-w-xs">
                       <span className="line-clamp-2 italic">{a.reasoning}</span>
                     </td>
                   </tr>
@@ -1453,18 +1453,18 @@ export default function EstimateSummary({
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-2.5 border-t border-indigo-500/20 flex items-center justify-between">
-            <p className="text-xs text-cream-muted/60">
+          <div className="px-4 py-2.5 border-t border-blue-200 bg-white/70 flex items-center justify-between">
+            <p className="text-xs text-[#716855]">
               Toggle ✓/✕ to include or exclude items. Edit productivity values
               inline. Click{" "}
-              <strong className="text-cream-muted">Confirm & Apply</strong> to
+              <strong className="text-[#171714]">Confirm & Apply</strong> to
               save.
             </p>
             <Button
               size="sm"
               onClick={handleConfirmAssignments}
               disabled={confirmLaborMutation.isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+              className="bg-[#244c91] hover:bg-[#1b3c74] text-white gap-1.5 text-xs"
             >
               {confirmLaborMutation.isPending ? (
                 <>
@@ -1481,14 +1481,14 @@ export default function EstimateSummary({
 
       {/* ─── Task-based Labor Review Panel ───────────────────────────────── */}
       {showTaskPanel && taskGroups && (
-        <div className="border border-indigo-500/30 rounded-xl bg-indigo-500/5 overflow-hidden">
-          <div className="px-4 py-3 border-b border-indigo-500/20 flex items-center justify-between gap-3">
+        <div className="overflow-hidden rounded-xl border border-blue-200 bg-blue-50 text-[#171714]">
+          <div className="px-4 py-3 border-b border-blue-200 bg-white/75 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-cream">
+              <Layers className="w-4 h-4 text-[#244c91]" />
+              <h3 className="text-sm font-semibold text-[#171714]">
                 ConstructLine Task-Based Labor Review
               </h3>
-              <span className="text-xs text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-[#244c91] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                 {
                   taskGroups.filter(
                     (t: any) => !t._excluded && t.crewId !== null
@@ -1505,7 +1505,7 @@ export default function EstimateSummary({
                   setShowTaskPanel(false);
                   setTaskGroups(null);
                 }}
-                className="border-white/10 text-cream-muted hover:text-cream text-xs"
+                className="border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] text-xs"
               >
                 Discard
               </Button>
@@ -1513,7 +1513,7 @@ export default function EstimateSummary({
                 size="sm"
                 onClick={handleConfirmTasks}
                 disabled={confirmTasksMutation.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+                className="bg-[#244c91] hover:bg-[#1b3c74] text-white gap-1.5 text-xs"
               >
                 {confirmTasksMutation.isPending ? (
                   <>
@@ -1535,7 +1535,7 @@ export default function EstimateSummary({
             </div>
           </div>
 
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-[#eadcc4] bg-white/55">
             {taskGroups.map((task: any, taskIdx: number) => {
               const isExpanded = expandedTasks.has(taskIdx);
               return (
@@ -1544,7 +1544,7 @@ export default function EstimateSummary({
                   className={`${task._excluded ? "opacity-40" : ""}`}
                 >
                   {/* Task header */}
-                  <div className="px-4 py-3 flex items-center gap-3 hover:bg-white/3 transition-colors">
+                  <div className="px-4 py-3 flex items-center gap-3 hover:bg-white transition-colors">
                     {/* Exclude toggle */}
                     <button
                       onClick={() =>
@@ -1576,16 +1576,16 @@ export default function EstimateSummary({
                       className="flex items-center gap-2 flex-1 min-w-0 text-left"
                     >
                       {isExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-cream-muted shrink-0" />
+                        <ChevronDown className="w-3.5 h-3.5 text-[#716855] shrink-0" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-cream-muted shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-[#716855] shrink-0" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-cream">
+                        <p className="text-sm font-semibold text-[#171714]">
                           {task.taskName}
                         </p>
                         {task.taskDescription && (
-                          <p className="text-xs text-cream-muted/60 truncate">
+                          <p className="text-xs text-[#716855] truncate">
                             {task.taskDescription}
                           </p>
                         )}
@@ -1595,7 +1595,7 @@ export default function EstimateSummary({
                           </p>
                         )}
                       </div>
-                      <span className="text-xs text-cream-muted/50 shrink-0">
+                      <span className="text-xs text-[#8a806d] shrink-0">
                         {task.items.length} item
                         {task.items.length !== 1 ? "s" : ""}
                       </span>
@@ -1614,17 +1614,17 @@ export default function EstimateSummary({
                     >
                       <SelectTrigger
                         size="sm"
-                        className="h-8 w-[260px] max-w-[32vw] shrink-0 border-indigo-400/25 bg-navy-deep text-xs text-cream hover:bg-indigo-500/10 hover:border-indigo-300/40 focus-visible:border-indigo-300 focus-visible:ring-indigo-400/20 disabled:opacity-50"
+                        className="h-8 w-[260px] max-w-[32vw] shrink-0 border-[#d7c7aa] bg-white text-xs text-[#171714] hover:bg-[#faf8f2] focus-visible:border-[#244c91] focus-visible:ring-blue-200 disabled:opacity-50"
                       >
                         <SelectValue placeholder="Select crew" />
                       </SelectTrigger>
                       <SelectContent
                         align="end"
-                        className="w-[320px] max-h-72 border-indigo-400/20 bg-navy-deep text-cream shadow-2xl"
+                        className="w-[320px] max-h-72 border-[#d7c7aa] bg-white text-[#171714] shadow-2xl"
                       >
                         <SelectItem
                           value="unassigned"
-                          className="text-cream-muted focus:bg-indigo-500/15 focus:text-white"
+                          className="text-[#716855] focus:bg-blue-50 focus:text-[#171714]"
                         >
                           Unassigned
                         </SelectItem>
@@ -1636,7 +1636,7 @@ export default function EstimateSummary({
                             <SelectItem
                               key={c.id}
                               value={String(c.id)}
-                              className="pr-8 text-cream focus:bg-indigo-500/15 focus:text-white data-[state=checked]:bg-indigo-500/20 data-[state=checked]:text-indigo-100"
+                              className="pr-8 text-[#171714] focus:bg-blue-50 focus:text-[#171714] data-[state=checked]:bg-blue-50 data-[state=checked]:text-[#244c91]"
                             >
                               <span className="flex min-w-0 flex-col">
                                 <span className="truncate">{c.crewName}</span>
@@ -1655,17 +1655,17 @@ export default function EstimateSummary({
 
                   {/* Expanded item list */}
                   {isExpanded && (
-                    <div className="bg-navy-deep/40 border-t border-white/5">
+                    <div className="bg-[#faf8f2] border-t border-[#eadcc4]">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-white/5">
-                            <th className="text-left text-cream-muted font-medium px-6 py-1.5">
+                          <tr className="border-b border-[#eadcc4]">
+                            <th className="text-left text-[#716855] font-medium px-6 py-1.5">
                               Item Description
                             </th>
-                            <th className="text-left text-cream-muted font-medium px-3 py-1.5 w-16">
+                            <th className="text-left text-[#716855] font-medium px-3 py-1.5 w-16">
                               Unit
                             </th>
-                            <th className="text-right text-cream-muted font-medium px-3 py-1.5 w-36">
+                            <th className="text-right text-[#716855] font-medium px-3 py-1.5 w-36">
                               Output / Crew-Hour
                             </th>
                           </tr>
@@ -1674,12 +1674,12 @@ export default function EstimateSummary({
                           {task.items.map((item: any, itemIdx: number) => (
                             <tr
                               key={itemIdx}
-                              className="border-b border-white/3"
+                              className="border-b border-[#eadcc4]"
                             >
-                              <td className="px-6 py-1.5 text-cream/70">
+                              <td className="px-6 py-1.5 text-[#29251c]">
                                 {item.description}
                               </td>
-                              <td className="px-3 py-1.5 text-cream-muted">
+                              <td className="px-3 py-1.5 text-[#716855]">
                                 {item.unit}
                               </td>
                               <td className="px-3 py-1.5 text-right">
@@ -1697,7 +1697,7 @@ export default function EstimateSummary({
                                         val
                                       );
                                   }}
-                                  className="w-24 bg-navy-medium border border-white/10 rounded px-2 py-1 text-right text-cream focus:border-indigo-400/50 focus:outline-none text-xs"
+                                  className="w-24 rounded border border-[#d7c7aa] bg-white px-2 py-1 text-right text-[#171714] focus:border-[#244c91] focus:outline-none text-xs"
                                 />
                               </td>
                             </tr>
@@ -1705,7 +1705,7 @@ export default function EstimateSummary({
                         </tbody>
                       </table>
                       {task.reasoning && (
-                        <p className="px-6 py-2 text-xs text-cream-muted/50 italic">
+                        <p className="px-6 py-2 text-xs text-[#716855] italic">
                           {task.reasoning}
                         </p>
                       )}
@@ -1716,8 +1716,8 @@ export default function EstimateSummary({
             })}
           </div>
 
-          <div className="px-4 py-2.5 border-t border-indigo-500/20 flex items-center justify-between">
-            <p className="text-xs text-cream-muted/60">
+          <div className="px-4 py-2.5 border-t border-blue-200 bg-white/70 flex items-center justify-between">
+            <p className="text-xs text-[#716855]">
               Select your real crew for each task. Expand tasks to edit per-item
               productivity. Toggle ✓/✕ to include or exclude. These assignments
               are a review workflow, not an automatic labor guarantee.
@@ -1726,7 +1726,7 @@ export default function EstimateSummary({
               size="sm"
               onClick={handleConfirmTasks}
               disabled={confirmTasksMutation.isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs"
+              className="bg-[#244c91] hover:bg-[#1b3c74] text-white gap-1.5 text-xs"
             >
               {confirmTasksMutation.isPending ? (
                 <>
@@ -1816,9 +1816,9 @@ export default function EstimateSummary({
                         <td className="px-4 py-2.5 text-[#171714]">
                           <div className="flex items-center gap-2">
                             {collapsedDivisions.has(div) ? (
-                              <ChevronRight className="w-3.5 h-3.5 text-cream-muted" />
+                              <ChevronRight className="w-3.5 h-3.5 text-[#716855]" />
                             ) : (
-                              <ChevronDown className="w-3.5 h-3.5 text-cream-muted" />
+                              <ChevronDown className="w-3.5 h-3.5 text-[#716855]" />
                             )}
                             <span className="font-mono text-[#8a6510] text-xs">
                               {div}
@@ -2327,15 +2327,15 @@ function ResidentialQaPanel({
   }
 
   return (
-    <div className="border border-amber-500/25 bg-amber-500/6 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-amber-500/20 flex items-center justify-between gap-3">
+    <div className="overflow-hidden rounded-xl border border-[#d7b44d] bg-[#fff7da] text-[#171714] shadow-[0_16px_40px_rgba(138,101,16,0.1)]">
+      <div className="px-4 py-3 border-b border-[#d7b44d] bg-[#fff4cb] flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-[#8a6510] shrink-0" />
           <div>
-            <h3 className="text-sm font-semibold text-cream">
+            <h3 className="text-sm font-semibold text-[#171714]">
               Residential Estimate QA
             </h3>
-            <p className="text-xs text-cream-muted">
+            <p className="text-xs text-[#716855]">
               Review scope risks before labor and markups make the estimate feel
               final.
             </p>
@@ -2343,25 +2343,25 @@ function ResidentialQaPanel({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {allowanceCount > 0 && (
-            <Badge className="bg-emerald-500/12 text-emerald-300 border-emerald-500/25 text-[10px]">
+            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
               <ClipboardList className="w-3 h-3 mr-1" />
               {allowanceCount} allowance{allowanceCount !== 1 ? "s" : ""}
             </Badge>
           )}
           {highCount > 0 && (
-            <Badge className="bg-red-500/12 text-red-300 border-red-500/25 text-[10px]">
+            <Badge className="bg-orange-50 text-orange-800 border-orange-300 text-[10px]">
               {highCount} high
             </Badge>
           )}
           {mediumCount > 0 && (
-            <Badge className="bg-amber-500/12 text-amber-300 border-amber-500/25 text-[10px]">
+            <Badge className="bg-white text-[#8a6510] border-[#d7b44d] text-[10px]">
               {mediumCount} review
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-[#eadcc4] bg-white/55">
         {topFindings.map(finding => (
           <div
             key={finding.id}
@@ -2377,24 +2377,24 @@ function ResidentialQaPanel({
                       : "bg-blue-400"
                 }`}
               />
-              <span className="text-xs uppercase tracking-wider text-cream-muted">
+              <span className="text-xs uppercase tracking-wider text-[#716855]">
                 {finding.kind.replace("_", " ")}
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-cream font-medium">{finding.title}</p>
-              <p className="text-xs text-cream-muted mt-0.5">
+              <p className="text-sm text-[#171714] font-medium">{finding.title}</p>
+              <p className="text-xs text-[#716855] mt-0.5">
                 {finding.message}
               </p>
-              <p className="text-xs text-amber-200/80 mt-1">{finding.action}</p>
+              <p className="text-xs text-[#8a6510] mt-1">{finding.action}</p>
               {finding.laborMatchStatus === "review_before_labor" && (
-                <Badge className="bg-indigo-500/12 text-indigo-300 border-indigo-500/25 text-[10px] mt-2">
+                <Badge className="bg-blue-50 text-[#244c91] border-blue-200 text-[10px] mt-2">
                   Review before labor match
                 </Badge>
               )}
               {finding.allowancePreset && (
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <p className="text-xs text-emerald-200/75">
+                  <p className="text-xs text-emerald-800">
                     Suggested allowance: {finding.allowancePreset.description} (
                     {formatCurrency(finding.allowancePreset.amount, currency)})
                   </p>
@@ -2404,7 +2404,7 @@ function ResidentialQaPanel({
                       variant="outline"
                       size="sm"
                       onClick={() => onAddAllowance(finding.allowancePreset!)}
-                      className="h-6 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 text-[10px] px-2"
+                      className="h-6 border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[10px] px-2"
                     >
                       Add allowance
                     </Button>
@@ -2413,7 +2413,7 @@ function ResidentialQaPanel({
               )}
             </div>
             {finding.amountCents ? (
-              <span className="font-mono text-xs text-cream text-right md:pt-0.5">
+              <span className="font-mono text-xs text-[#171714] text-right md:pt-0.5">
                 {formatCurrency(finding.amountCents, currency)}
               </span>
             ) : null}
@@ -2422,7 +2422,7 @@ function ResidentialQaPanel({
       </div>
 
       {findings.length > topFindings.length && (
-        <div className="px-4 py-2 border-t border-white/5 text-xs text-cream-muted">
+        <div className="px-4 py-2 border-t border-[#eadcc4] bg-white/55 text-xs text-[#716855]">
           {findings.length - topFindings.length} additional QA item
           {findings.length - topFindings.length !== 1 ? "s" : ""} will export to
           the Residential QA worksheet.

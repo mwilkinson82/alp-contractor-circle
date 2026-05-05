@@ -2469,7 +2469,7 @@ export default function TakeoffDetail() {
   if (!project) {
     return (
       <div className="text-center py-20">
-        <p className="text-cream-muted">Project not found.</p>
+        <p className="text-[#716855]">Project not found.</p>
         <Button
           variant="outline"
           className="mt-4"
@@ -3130,7 +3130,7 @@ export default function TakeoffDetail() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-12 text-cream-muted">
+              <div className="text-center py-12 text-[#716855]">
                 <FileStack className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>
                   No drawing sheets uploaded yet. Upload PDF or image files
@@ -3162,14 +3162,14 @@ export default function TakeoffDetail() {
               </div>
             )}
             {!items || items.length === 0 ? (
-              <div className="text-center py-16 text-cream-muted">
+              <div className="text-center py-16 text-[#716855]">
                 <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">No quantity items yet.</p>
                 <p className="text-sm mt-1">
                   Upload drawings and run{" "}
                   <span className="font-semibold">
-                    <span className="text-white">Construct</span>
-                    <span className="text-amber-400">Line</span>
+                    <span className="text-[#171714]">Construct</span>
+                    <span className="text-[#d9a21a]">Line</span>
                   </span>{" "}
                   analysis to extract quantities.
                 </p>
@@ -3180,32 +3180,32 @@ export default function TakeoffDetail() {
                 {assemblyBundles.length === 0 && (
                   <div
                     data-tour="takeoff-summary-bar"
-                    className="bg-white/[0.02] border border-white/10 rounded-lg px-4 py-3 space-y-2"
+                    className="rounded-xl border border-[#d7c7aa] bg-white/86 px-4 py-3 space-y-2 text-[#171714] shadow-[0_16px_40px_rgba(41,37,28,0.08)]"
                   >
                     {/* Row 1: Stats + Total + Primary Actions */}
                     <div className="flex items-center justify-between gap-3">
                       {/* Left: Stats */}
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-cream-muted">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-5 text-sm text-[#716855]">
                         {assemblyBundles.length > 0 ? (
-                          <span className="whitespace-normal text-cream">
+                          <span className="whitespace-normal text-[#171714]">
                             Review {highImpactOpenBundles.length} open package
                             {highImpactOpenBundles.length !== 1 ? "s" : ""} in
                             AI Takeoff Review before pricing.
                           </span>
                         ) : (
                           <span className="whitespace-normal">
-                            <span className="text-cream">
+                            <span className="text-[#171714]">
                               {activeItems.length} active
                             </span>
-                            <span className="text-red-300/80">
+                            <span className="text-orange-700/85">
                               {" "}
                               • {excludedItems.length} excluded/boundary
                             </span>
                             <span
                               className={
                                 scopeReviewCount > 0
-                                  ? "text-amber-300/90"
-                                  : "text-cream-muted"
+                                  ? "text-[#8a6510]"
+                                  : "text-[#716855]"
                               }
                             >
                               {" "}
@@ -3218,7 +3218,7 @@ export default function TakeoffDetail() {
                         </span>
                         {project?.lastAnalyzedAt && (
                           <span
-                            className="hidden md:inline whitespace-nowrap text-xs text-cream-muted/60"
+                            className="hidden md:inline whitespace-nowrap text-xs text-[#8a806d]"
                             title={new Date(
                               project.lastAnalyzedAt
                             ).toLocaleString()}
@@ -3237,10 +3237,10 @@ export default function TakeoffDetail() {
                       </div>
                       {/* Right: Total */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-cream-muted text-sm hidden sm:inline">
+                        <span className="text-[#716855] text-sm hidden sm:inline">
                           Current bid:
                         </span>
-                        <span className="text-emerald-300 font-bold text-lg sm:text-xl tabular-nums">
+                        <span className="text-emerald-800 font-bold text-lg sm:text-xl tabular-nums">
                           {formatCurrency(
                             totalCost,
                             project?.currency || "USD"
@@ -3249,7 +3249,7 @@ export default function TakeoffDetail() {
                       </div>
                     </div>
                     {/* Row 2: one primary path, everything else in Actions */}
-                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[#eadcc4] pt-2">
                       <Button
                         size="sm"
                         variant={readyToPrice ? "default" : "outline"}
@@ -3258,7 +3258,7 @@ export default function TakeoffDetail() {
                         className={
                           readyToPrice
                             ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            : "h-8 border-white/10 text-cream-muted"
+                            : "h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#8a806d]"
                         }
                       >
                         <Calculator className="w-3.5 h-3.5 mr-1.5" />
@@ -3269,7 +3269,7 @@ export default function TakeoffDetail() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 border-white/15 text-cream-muted hover:text-cream hover:bg-white/5"
+                            className="h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
                           >
                             <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
                             Actions
@@ -4133,11 +4133,11 @@ export default function TakeoffDetail() {
                                     </div>
                                   ) : (
                                     <div className="min-h-[460px] flex flex-col items-center justify-center gap-2 text-center">
-                                      <FileImage className="w-10 h-10 text-cream-muted/50" />
-                                      <p className="text-sm font-semibold text-cream">
+                                      <FileImage className="w-10 h-10 text-[#8a806d]/50" />
+                                      <p className="text-sm font-semibold text-[#171714]">
                                         No drawing preview linked
                                       </p>
-                                      <p className="max-w-sm text-xs text-cream-muted">
+                                      <p className="max-w-sm text-xs text-[#716855]">
                                         Open the package detail to inspect the
                                         row notes and drawing reference.
                                       </p>
@@ -4466,9 +4466,9 @@ export default function TakeoffDetail() {
                   })()}
 
                 {assemblyBundles.length === 0 && (
-                  <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-100/75 leading-relaxed">
+                  <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                    <Info className="w-4 h-4 text-[#244c91] shrink-0 mt-0.5" />
+                    <p className="text-xs text-[#244c91] leading-relaxed">
                       Quantity Takeoff is the draft review surface for found
                       quantities, scope decisions, material pricing, source
                       drawings, and confidence. The Estimate tab uses the
@@ -5538,41 +5538,41 @@ export default function TakeoffDetail() {
                       (consolidationDiff.currentItemCount || 0) - anns.length;
 
                     return (
-                      <div className="mt-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg px-4 py-3">
+                      <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <GitCompareArrows className="w-4 h-4 text-cyan-400" />
-                          <span className="text-cyan-400 font-semibold text-sm">
+                          <GitCompareArrows className="w-4 h-4 text-[#244c91]" />
+                          <span className="text-[#244c91] font-semibold text-sm">
                             Consolidation Diff
                           </span>
-                          <span className="text-cream-muted text-xs ml-auto">
+                          <span className="text-[#716855] text-xs ml-auto">
                             {consolidationDiff.snapshotItemCount} items before →{" "}
                             {consolidationDiff.currentItemCount} after
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-4 text-xs">
                           {mergedCount > 0 && (
-                            <span className="text-cyan-400">
+                            <span className="text-[#244c91]">
                               <Merge className="w-3 h-3 inline mr-1" />
                               {mergedCount} merged
                             </span>
                           )}
                           {qtyChangedCount > 0 && (
-                            <span className="text-amber-400">
+                            <span className="text-[#8a6510]">
                               {qtyChangedCount} qty changed
                             </span>
                           )}
                           {newCount > 0 && (
-                            <span className="text-emerald-400">
+                            <span className="text-emerald-800">
                               {newCount} new
                             </span>
                           )}
                           {removedCount > 0 && (
-                            <span className="text-red-400">
+                            <span className="text-orange-800">
                               {removedCount} removed
                             </span>
                           )}
                           {unchanged > 0 && (
-                            <span className="text-cream-muted">
+                            <span className="text-[#716855]">
                               {unchanged} unchanged
                             </span>
                           )}
@@ -5586,20 +5586,20 @@ export default function TakeoffDetail() {
                   consolidationDiff?.hasDiff &&
                   consolidationDiff.removedItems &&
                   consolidationDiff.removedItems.length > 0 && (
-                    <div className="mt-4 border border-red-500/20 rounded-lg overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10">
-                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                        <span className="text-red-400 font-semibold text-sm">
+                    <div className="mt-4 overflow-hidden rounded-lg border border-orange-300 bg-white">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-orange-50">
+                        <Trash2 className="w-3.5 h-3.5 text-orange-800" />
+                        <span className="text-orange-800 font-semibold text-sm">
                           Removed During Consolidation
                         </span>
-                        <span className="text-cream-muted text-xs ml-auto">
+                        <span className="text-[#716855] text-xs ml-auto">
                           {consolidationDiff.removedItems.length} items
                         </span>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="bg-navy-deep/50 text-cream-muted text-xs uppercase">
+                            <tr className="bg-[#f4efe4] text-[#716855] text-xs uppercase">
                               <th className="text-left px-4 py-2 w-12">CSI</th>
                               <th className="text-left px-4 py-2">
                                 Description
@@ -5619,21 +5619,21 @@ export default function TakeoffDetail() {
                               (ri: any, idx: number) => (
                                 <tr
                                   key={idx}
-                                  className="border-t border-white/5 opacity-60"
+                                  className="border-t border-[#eadcc4] opacity-65"
                                 >
-                                  <td className="px-4 py-2 text-cream-muted font-mono text-xs line-through">
+                                  <td className="px-4 py-2 text-[#716855] font-mono text-xs line-through">
                                     {ri.csiCode || ri.csiDivision}
                                   </td>
-                                  <td className="px-4 py-2 text-cream line-through">
+                                  <td className="px-4 py-2 text-[#171714] line-through">
                                     {ri.description}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                  <td className="px-4 py-2 text-right text-[#171714] font-mono line-through">
                                     {ri.quantity.toLocaleString()}
                                   </td>
-                                  <td className="px-4 py-2 text-cream-muted line-through">
+                                  <td className="px-4 py-2 text-[#716855] line-through">
                                     {ri.unit}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-cream font-mono line-through">
+                                  <td className="px-4 py-2 text-right text-[#171714] font-mono line-through">
                                     {formatCurrency(
                                       ri.unitCost,
                                       project?.currency || "USD"

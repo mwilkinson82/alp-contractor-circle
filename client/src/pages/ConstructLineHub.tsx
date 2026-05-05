@@ -36,6 +36,10 @@ import {
   PenTool,
   Newspaper,
   TrendingUp,
+  Search,
+  SlidersHorizontal,
+  ClipboardCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { ConstructLineWordmark } from "@/components/ConstructLineBrand";
 import RateSetupWizard, {
@@ -47,12 +51,12 @@ import { trpc } from "@/lib/trpc";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:           { label: "Draft",      color: "text-gray-400",    icon: FileText },
-  uploading:       { label: "Uploading",  color: "text-blue-400",    icon: Upload },
-  processing:      { label: "Processing", color: "text-amber-400",   icon: Loader2 },
-  post_processing: { label: "Processing", color: "text-amber-400",   icon: Loader2 },
-  completed:       { label: "Completed",  color: "text-emerald-400", icon: CheckCircle2 },
-  error:           { label: "Error",      color: "text-red-400",     icon: AlertCircle },
+  draft:           { label: "Draft",      color: "bg-white text-[#716855] border-[#d7c7aa]",    icon: FileText },
+  uploading:       { label: "Uploading",  color: "bg-blue-50 text-[#244c91] border-blue-200",    icon: Upload },
+  processing:      { label: "Processing", color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",   icon: Loader2 },
+  post_processing: { label: "Processing", color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",   icon: Loader2 },
+  completed:       { label: "Completed",  color: "bg-emerald-50 text-emerald-800 border-emerald-300", icon: CheckCircle2 },
+  error:           { label: "Error",      color: "bg-orange-50 text-orange-800 border-orange-300",     icon: AlertCircle },
 };
 
 // ─── Module Cards ──────────────────────────────────────────────────────────────
@@ -64,12 +68,8 @@ const MODULES = [
     description: "Build critical path method schedules, track float, and generate Gantt charts for your projects.",
     icon: GanttChart,
     path: "/portal/scheduler",
-    accent: "from-amber-500/20 to-amber-500/5",
-    border: "hover:border-amber-500/40",
-    iconBg: "bg-amber-500/15",
-    iconColor: "text-amber-400",
-    badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-    glow: "group-hover:shadow-amber-500/15",
+    tone: "amber",
+    proof: "Plan dates, float, and project logic",
     featured: true,
   },
   {
@@ -79,12 +79,8 @@ const MODULES = [
     description: "Upload drawings, auto-detect dimensions, and generate material quantities with the ConstructLine CV engine.",
     icon: Ruler,
     path: "/portal/takeoff",
-    accent: "from-orange-500/15 to-orange-500/5",
-    border: "hover:border-orange-500/30",
-    iconBg: "bg-orange-500/10",
-    iconColor: "text-orange-400",
-    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    glow: "group-hover:shadow-orange-500/10",
+    tone: "green",
+    proof: "Review scope, accept rows, price the bid",
   },
   {
     id: "cost-library",
@@ -93,12 +89,8 @@ const MODULES = [
     description: "Maintain material unit costs across all CSI divisions. Sync ConstructLine baseline pricing or enter your own negotiated rates.",
     icon: Database,
     path: "/portal/cost-library",
-    accent: "from-blue-500/15 to-blue-500/5",
-    border: "hover:border-blue-500/30",
-    iconBg: "bg-blue-500/10",
-    iconColor: "text-blue-400",
-    badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    glow: "group-hover:shadow-blue-500/10",
+    tone: "blue",
+    proof: "Material pricing with audit trail",
   },
   {
     id: "labor-library",
@@ -107,14 +99,54 @@ const MODULES = [
     description: "Configure RS Means-calibrated labor rates for your crews. Set work type, region, and specialty to get accurate fully-burdened rates.",
     icon: HardHat,
     path: "/portal/labor-library",
-    accent: "from-emerald-500/15 to-emerald-500/5",
-    border: "hover:border-emerald-500/30",
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-400",
-    badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    glow: "group-hover:shadow-emerald-500/10",
+    tone: "gray",
+    proof: "Crew labor basis for estimates",
   },
 ];
+
+const WORKFLOW_STEPS = [
+  {
+    label: "Review",
+    detail: "Decide what belongs",
+    icon: ClipboardCheck,
+    tone: "amber",
+  },
+  {
+    label: "Estimate",
+    detail: "Decide what it costs",
+    icon: DollarSign,
+    tone: "green",
+  },
+  {
+    label: "Submit",
+    detail: "Package the bid",
+    icon: ShieldCheck,
+    tone: "blue",
+  },
+];
+
+const toneClasses = {
+  amber: {
+    icon: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
+    badge: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
+    card: "hover:border-[#d7b44d] hover:shadow-[0_24px_70px_rgba(138,101,16,0.14)]",
+  },
+  green: {
+    icon: "bg-emerald-50 text-emerald-800 border-emerald-300",
+    badge: "bg-emerald-50 text-emerald-800 border-emerald-300",
+    card: "hover:border-emerald-300 hover:shadow-[0_24px_70px_rgba(6,95,70,0.12)]",
+  },
+  blue: {
+    icon: "bg-blue-50 text-[#244c91] border-blue-200",
+    badge: "bg-blue-50 text-[#244c91] border-blue-200",
+    card: "hover:border-blue-200 hover:shadow-[0_24px_70px_rgba(36,76,145,0.12)]",
+  },
+  gray: {
+    icon: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
+    badge: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
+    card: "hover:border-[#c8b895] hover:shadow-[0_24px_70px_rgba(41,37,28,0.12)]",
+  },
+} as const;
 
 // ─── Changelog data (mirrors WhatsNewModal) ────────────────────────────────────
 const CHANGELOG = [
@@ -161,9 +193,9 @@ const CHANGELOG = [
 ];
 
 const TAG_STYLES = {
-  new:      "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
-  improved: "bg-amber-500/15 text-amber-300 border-amber-500/25",
-  fix:      "bg-blue-500/15 text-blue-300 border-blue-500/25",
+  new:      "bg-emerald-50 text-emerald-800 border-emerald-300",
+  improved: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]",
+  fix:      "bg-blue-50 text-[#244c91] border-blue-200",
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -222,21 +254,21 @@ export default function ConstructLineHub() {
     : null;
 
   return (
-    <div className="min-h-screen bg-navy-deep">
+    <div className="min-h-screen bg-[#f5f2eb] text-[#171714]">
 
       {/* ── Sticky Header ──────────────────────────────────────────────── */}
-      <div className="border-b border-white/5 bg-navy/70 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <ConstructLineWordmark size="md" showSubtitle />
+      <div className="sticky top-0 z-10 border-b border-[#d7c7aa] bg-[#f7f4ed]/92 shadow-[0_10px_36px_rgba(41,37,28,0.08)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
+          <ConstructLineWordmark size="md" showSubtitle tone="light" />
           <div className="flex items-center gap-3">
             {configSummary && (
-              <span className="text-xs text-cream-muted hidden md:block">{configSummary}</span>
+              <span className="hidden text-xs font-medium text-[#716855] md:block">{configSummary}</span>
             )}
             <Button
               data-tour="hub-configure-rates"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="text-cream-muted hover:text-cream gap-1.5"
+              className="gap-1.5 border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
               onClick={() => setShowWizard(true)}
             >
               <Settings2 className="w-3.5 h-3.5" />
@@ -246,115 +278,153 @@ export default function ConstructLineHub() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 pt-8 pb-20">
-
-        {/* ── Quick Stats Bar ────────────────────────────────────────── */}
-        {totalProjects > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
-              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Total Projects</p>
-              <p className="text-2xl font-bold text-white">{totalProjects}</p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
-              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Est. Portfolio Value</p>
-              <p className="text-2xl font-bold text-amber-400">
-                {totalEstimatedValue > 0
-                  ? `$${(totalEstimatedValue / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-                  : "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-3">
-              <p className="text-[10px] text-cream-muted uppercase tracking-wider mb-1">Last Activity</p>
-              <p className="text-2xl font-bold text-white">
-                {lastActivityDate ? lastActivityDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
-              </p>
-              {activeProjects > 0 && (
-                <p className="text-[10px] text-emerald-400 mt-0.5">{activeProjects} active</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Two-column layout: main content + sidebar ──────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* ── Left: main content (2 cols) ──────────────────────────── */}
-          <div className="lg:col-span-2 space-y-10">
-
-            {/* Hero */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs font-medium">
+      <div className="mx-auto max-w-7xl px-6 py-7">
+        <section className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f7f4ed] shadow-[0_28px_90px_rgba(41,37,28,0.14)]">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="bg-white/58 p-6 lg:p-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Estimating Suite
+                  ConstructLine 2.0
                 </Badge>
                 {rateConfig && (
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs">
+                  <Badge className="border-emerald-300 bg-emerald-50 text-emerald-800">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Configured
+                    Rates configured
                   </Badge>
                 )}
               </div>
-            <h1 data-tour="hub-hero" className="text-4xl font-bold text-white tracking-tight mb-3">
-              Construct<span className="text-amber-400">Line</span>
-            </h1>
-              <p className="text-cream-muted text-base max-w-xl leading-relaxed">
-                Your complete construction estimating platform. Takeoff quantities, build cost libraries, configure labor rates, and generate winning proposals — all in one place.
+              <h1 data-tour="hub-hero" className="mt-4 max-w-3xl text-4xl font-semibold tracking-normal text-[#171714] lg:text-5xl">
+                A cleaner command center for every bid you are building.
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[#5d5546]">
+                Upload drawings, review scope, price accepted work, and package a bid from one decisive estimating cockpit.
               </p>
 
-              {/* Rate config prompt if not configured */}
+              <div className="mt-7 grid gap-3 md:grid-cols-3">
+                {WORKFLOW_STEPS.map((step, index) => {
+                  const StepIcon = step.icon;
+                  const tone = toneClasses[step.tone as keyof typeof toneClasses];
+                  return (
+                    <div key={step.label} className="rounded-xl border border-[#d7c7aa] bg-[#fffdf8] p-4 shadow-[0_14px_34px_rgba(41,37,28,0.07)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${tone.icon}`}>
+                          <StepIcon className="h-5 w-5" />
+                        </div>
+                        <span className="font-mono text-xs font-semibold text-[#8a806d]">0{index + 1}</span>
+                      </div>
+                      <p className="mt-4 text-lg font-semibold text-[#171714]">{step.label}</p>
+                      <p className="text-sm text-[#716855]">{step.detail}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
               {!rateConfig && (
-                <div
-                  className="mt-5 flex items-center gap-3 px-4 py-3.5 rounded-xl bg-amber-500/8 border border-amber-500/25 cursor-pointer hover:bg-amber-500/12 transition-colors"
+                <button
+                  type="button"
+                  className="mt-5 flex w-full items-center gap-3 rounded-xl border border-[#d7b44d] bg-[#fff4cb] px-4 py-3.5 text-left shadow-[0_16px_38px_rgba(138,101,16,0.1)] transition-colors hover:bg-[#ffeaa3]"
                   onClick={() => setShowWizard(true)}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-                    <Settings2 className="w-4 h-4 text-amber-400" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-[#8a6510]">
+                    <Settings2 className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-amber-300 font-semibold">Set up your labor rates to get started</p>
-                    <p className="text-xs text-amber-400/70 mt-0.5">Takes 60 seconds — calibrates all trade rates to your work type and region</p>
+                    <p className="text-sm font-semibold text-[#171714]">Set up your labor rates to get started</p>
+                    <p className="mt-0.5 text-xs text-[#716855]">Takes 60 seconds and calibrates trade rates to your work type and region.</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-amber-400/60 shrink-0" />
-                </div>
+                  <ChevronRight className="w-4 h-4 text-[#8a6510] shrink-0" />
+                </button>
               )}
             </div>
 
-            {/* Recent Projects */}
-            <div data-tour="hub-recent-projects">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-cream-muted" />
-                  <h2 className="text-sm font-semibold text-cream uppercase tracking-wider">Recent Projects</h2>
+            <aside className="border-t border-[#d7c7aa] bg-[#ebe0cc] p-6 lg:border-l lg:border-t-0 lg:p-7">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-[#d7c7aa] bg-white/78 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">Projects</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold text-[#171714]">{totalProjects}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-cream-muted hover:text-cream text-xs gap-1.5"
-                  onClick={() => navigate("/portal/takeoff")}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Project
-                </Button>
+                <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800/70">Portfolio</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold text-emerald-800">
+                    {totalEstimatedValue > 0
+                      ? `$${(totalEstimatedValue / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-800/70">Active</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold text-[#244c91]">{activeProjects}</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white/78 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">Last Activity</p>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-2xl font-semibold text-[#171714]">
+                    {lastActivityDate ? lastActivityDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No projects yet"}
+                  </p>
+                  <Clock className="h-5 w-5 text-[#8a806d]" />
+                </div>
+              </div>
+              <Button
+                data-tour="hub-new-project"
+                className="mt-4 h-11 w-full bg-[#171714] text-white shadow-[0_18px_45px_rgba(23,23,20,0.2)] hover:bg-[#29251c]"
+                onClick={() => navigate("/portal/takeoff")}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Bid
+              </Button>
+            </aside>
+          </div>
+        </section>
+
+        <div className="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-7">
+            <section data-tour="hub-recent-projects" className="rounded-xl border border-[#d7c7aa] bg-white/86 p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#8a806d]" />
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">Recent Projects</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-[#716855]">Open the bid that needs the next decision.</p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="relative min-w-[230px]">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a806d]" />
+                    <div className="h-9 rounded-lg border border-[#d7c7aa] bg-[#faf8f2] pl-9 pr-3 text-left text-xs leading-9 text-[#8a806d]">
+                      Search projects in Takeoff
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-[#c8b895] bg-white text-[#29251c] hover:bg-[#faf8f2]"
+                    onClick={() => navigate("/portal/takeoff")}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                    View All
+                  </Button>
+                </div>
               </div>
 
               {recentProjects.length === 0 ? (
                 <button
                   onClick={() => navigate("/portal/takeoff")}
-                  className="w-full flex items-center gap-3 px-4 py-4 rounded-xl border border-dashed border-white/10 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all group"
+                  className="mt-4 flex w-full items-center gap-3 rounded-xl border border-dashed border-[#d7c7aa] bg-[#faf8f2] px-4 py-5 text-left transition-all hover:border-[#d7b44d] hover:bg-[#fff4cb]"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-amber-500/10">
-                    <FileStack className="w-4 h-4 text-cream-muted group-hover:text-amber-400" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d7c7aa] bg-white">
+                    <FileStack className="w-4 h-4 text-[#8a6510]" />
                   </div>
-                  <div className="text-left">
-                    <p className="text-sm text-cream-muted group-hover:text-cream">No projects yet</p>
-                    <p className="text-xs text-cream-muted/60">Click to start your first takeoff</p>
+                  <div>
+                    <p className="text-sm font-semibold text-[#171714]">No projects yet</p>
+                    <p className="text-xs text-[#716855]">Start the first takeoff and build the bid from Review to Submit.</p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-amber-400/60 ml-auto" />
+                  <ArrowRight className="w-4 h-4 text-[#8a6510] ml-auto" />
                 </button>
               ) : (
-                <div className="space-y-2">
-                  {recentProjects.map((project) => {
+                <div className="mt-4 grid gap-3">
+                  {recentProjects.map((project, index) => {
                     const status = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.draft;
                     const StatusIcon = status.icon;
                     const isSpinning = project.status === "processing" || project.status === "post_processing";
@@ -362,133 +432,141 @@ export default function ConstructLineHub() {
                       <button
                         key={project.id}
                         onClick={() => navigate(`/takeoff/${project.id}`)}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/2 hover:border-amber-500/20 hover:bg-amber-500/5 transition-all group text-left"
+                        className="group grid gap-3 rounded-xl border border-[#e0d2b7] bg-white p-3 text-left shadow-[0_14px_36px_rgba(41,37,28,0.06)] transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:shadow-[0_22px_60px_rgba(41,37,28,0.13)] sm:grid-cols-[104px_minmax(0,1fr)_auto]"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-amber-500/8 flex items-center justify-center shrink-0">
-                          <Ruler className="w-4 h-4 text-amber-400/70" />
+                        <div className="relative h-24 overflow-hidden rounded-lg border border-[#d7c7aa] bg-[#e9e2d4]">
+                          <div
+                            className={`absolute inset-0 ${
+                              index % 3 === 0
+                                ? "bg-[linear-gradient(135deg,#e7d8bd_0%,#f8f5ed_55%,#cbd9d2_100%)]"
+                                : index % 3 === 1
+                                  ? "bg-[linear-gradient(135deg,#d8e4df_0%,#f8f5ed_52%,#d8c6a4_100%)]"
+                                  : "bg-[linear-gradient(135deg,#d8dce5_0%,#f8f5ed_55%,#e4d0aa_100%)]"
+                            }`}
+                          />
+                          <div className="absolute inset-x-4 bottom-4 top-6 rounded-sm border-2 border-white/80 bg-white/35 shadow-sm" />
+                          <div className="absolute bottom-3 left-3 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-[#716855]">
+                            CL
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-cream truncate">{project.name}</p>
-                          <p className="text-xs text-cream-muted/60">
-                            {project.totalSheets} sheet{project.totalSheets !== 1 ? "s" : ""} · {new Date(project.createdAt).toLocaleDateString()}
+                        <div className="min-w-0 py-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={`${status.color} border text-[10px]`}>
+                              <StatusIcon className={`mr-1 h-3 w-3 ${isSpinning ? "animate-spin" : ""}`} />
+                              {status.label}
+                            </Badge>
+                            {(project as any).rateProfileId && profileNameMap.has((project as any).rateProfileId) && (
+                              <Badge className="border-blue-200 bg-blue-50 text-[10px] text-[#244c91]">
+                                {profileNameMap.get((project as any).rateProfileId)}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-2 truncate text-base font-semibold text-[#171714] group-hover:text-[#8a6510]">{project.name}</p>
+                          <p className="mt-1 text-xs text-[#716855]">
+                            {project.totalSheets} sheet{project.totalSheets !== 1 ? "s" : ""} · Updated {new Date(project.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        {(project as any).rateProfileId && profileNameMap.has((project as any).rateProfileId) && (
-                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 truncate max-w-[100px]">
-                            {profileNameMap.get((project as any).rateProfileId)}
-                          </span>
-                        )}
-                        <div className={`flex items-center gap-1.5 text-xs ${status.color} shrink-0`}>
-                          <StatusIcon className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin" : ""}`} />
-                          <span className="hidden sm:inline">{status.label}</span>
+                        <div className="flex items-end justify-between gap-3 sm:flex-col sm:items-end sm:py-1">
+                          <p className="font-mono text-lg font-semibold text-emerald-800">
+                            {project.totalEstimatedCost
+                              ? `$${(project.totalEstimatedCost / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+                              : "—"}
+                          </p>
+                          <ArrowRight className="w-4 h-4 text-[#8a6510] transition-transform group-hover:translate-x-0.5" />
                         </div>
-                        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-amber-400/50 shrink-0" />
                       </button>
                     );
                   })}
-                  {(projects?.length ?? 0) > 3 && (
-                    <button
-                      onClick={() => navigate("/portal/takeoff")}
-                      className="w-full text-center text-xs text-cream-muted hover:text-amber-400 py-2 transition-colors"
-                    >
-                      View all {projects!.length} projects →
-                    </button>
-                  )}
                 </div>
               )}
-            </div>
+            </section>
 
-            {/* Module Cards */}
-            <div data-tour="hub-module-cards">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-cream-muted" />
-                <h2 className="text-sm font-semibold text-cream uppercase tracking-wider">Tools</h2>
+            <section data-tour="hub-module-cards">
+              <div className="mb-4 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#8a806d]" />
+                <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">ConstructLine Tools</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {MODULES.map((mod) => {
                   const Icon = mod.icon;
                   const isFeatured = (mod as any).featured;
+                  const tone = toneClasses[mod.tone as keyof typeof toneClasses];
                   return (
                     <button
                       key={mod.id}
                       onClick={() => navigate(mod.path)}
-                      className={`group text-left rounded-xl border bg-gradient-to-br ${mod.accent} p-5 ${mod.border} hover:shadow-lg ${mod.glow} transition-all duration-200 ${
-                        isFeatured
-                          ? "border-amber-500/30 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5"
-                          : "border-white/8"
+                      className={`group rounded-xl border border-[#e0d2b7] bg-white p-5 text-left shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all hover:-translate-y-0.5 ${tone.card} ${
+                        isFeatured ? "ring-1 ring-[#d7b44d]/50" : ""
                       }`}
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="mb-4 flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-lg ${mod.iconBg} flex items-center justify-center`}>
-                            <Icon className={`w-4.5 h-4.5 ${mod.iconColor}`} />
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${tone.icon}`}>
+                            <Icon className="h-5 w-5" />
                           </div>
-                          <Badge className={`text-xs font-mono ${mod.badgeColor}`}>{mod.label}</Badge>
+                          <Badge className={`font-mono text-xs ${tone.badge}`}>{mod.label}</Badge>
                           {isFeatured && (
-                            <Badge className="text-[10px] bg-amber-500/15 text-amber-300 border-amber-500/25 animate-pulse">
+                            <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[10px] text-[#8a6510]">
                               <Zap className="w-2.5 h-2.5 mr-0.5" />
                               Featured
                             </Badge>
                           )}
                         </div>
-                        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
+                        <ArrowRight className="w-4 h-4 text-[#8a806d] transition-all group-hover:translate-x-0.5 group-hover:text-[#171714]" />
                       </div>
-                      <h3 className="text-base font-semibold text-white mb-1.5">{mod.name}</h3>
-                      <p className="text-sm text-cream-muted leading-relaxed">{mod.description}</p>
+                      <h3 className="text-base font-semibold text-[#171714]">{mod.name}</h3>
+                      <p className="mt-1 text-sm leading-6 text-[#716855]">{mod.description}</p>
+                      <p className="mt-4 border-t border-[#eadcc4] pt-3 text-xs font-medium text-[#5d5546]">{mod.proof}</p>
                     </button>
                   );
                 })}
               </div>
-            </div>
-
+            </section>
           </div>
 
-          {/* ── Right: Changelog sidebar ──────────────────────────────── */}
-          <div data-tour="hub-whats-new" className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Newspaper className="w-4 h-4 text-cream-muted" />
-              <h2 className="text-sm font-semibold text-cream uppercase tracking-wider">What's New</h2>
+          <aside data-tour="hub-whats-new" className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Newspaper className="w-4 h-4 text-[#8a806d]" />
+              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">What's New</h2>
             </div>
 
             <div className="space-y-4">
               {CHANGELOG.map((entry, entryIdx) => (
                 <div
                   key={entry.version}
-                  className={`rounded-xl border border-white/8 overflow-hidden ${entryIdx === 0 ? "border-amber-500/20 bg-amber-500/3" : "bg-white/2"}`}
+                  className={`overflow-hidden rounded-xl border bg-white shadow-[0_18px_50px_rgba(41,37,28,0.07)] ${entryIdx === 0 ? "border-[#d7b44d]" : "border-[#e0d2b7]"}`}
                 >
-                  {/* Entry header */}
-                  <div className={`px-4 py-3 border-b border-white/5 flex items-center justify-between ${entryIdx === 0 ? "bg-amber-500/8" : "bg-white/3"}`}>
+                  <div className={`flex items-center justify-between border-b px-4 py-3 ${entryIdx === 0 ? "border-[#d7b44d] bg-[#fff4cb]" : "border-[#eadcc4] bg-[#faf8f2]"}`}>
                     <div>
-                      <p className="text-xs font-semibold text-cream">{entry.title}</p>
-                      <p className="text-[10px] text-cream-muted/60 mt-0.5">{entry.date}</p>
+                      <p className="text-xs font-semibold text-[#171714]">{entry.title}</p>
+                      <p className="mt-0.5 text-[10px] text-[#716855]">{entry.date}</p>
                     </div>
                     {entryIdx === 0 && (
-                      <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[9px]">
+                      <Badge className="border-[#d7b44d] bg-white/70 text-[9px] text-[#8a6510]">
                         <Zap className="w-2.5 h-2.5 mr-0.5" />
                         Latest
                       </Badge>
                     )}
                   </div>
 
-                  {/* Highlights */}
-                  <div className="divide-y divide-white/5">
+                  <div className="divide-y divide-[#eadcc4]">
                     {entry.highlights.map((h, hi) => {
                       const HIcon = h.icon;
                       return (
-                        <div key={hi} className="px-4 py-3 flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
-                            <HIcon className="w-3 h-3 text-cream-muted" />
+                        <div key={hi} className="flex items-start gap-3 px-4 py-3">
+                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#d7c7aa] bg-[#f7f4ed]">
+                            <HIcon className="w-3.5 h-3.5 text-[#716855]" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                              <p className="text-xs font-medium text-cream">{h.label}</p>
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
+                              <p className="text-xs font-semibold text-[#171714]">{h.label}</p>
                               {h.tag && (
                                 <Badge className={`${TAG_STYLES[h.tag]} text-[9px] font-medium px-1.5 py-0`}>
                                   {h.tag === "new" ? "New" : h.tag === "improved" ? "Improved" : "Fix"}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-[11px] text-cream-muted/70 leading-relaxed">{h.description}</p>
+                            <p className="text-[11px] leading-5 text-[#716855]">{h.description}</p>
                           </div>
                         </div>
                       );
@@ -497,8 +575,7 @@ export default function ConstructLineHub() {
                 </div>
               ))}
             </div>
-          </div>
-
+          </aside>
         </div>
       </div>
 
