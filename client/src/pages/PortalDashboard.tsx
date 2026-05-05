@@ -11,7 +11,6 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowRight,
   Calendar,
   CalendarPlus,
   CheckCircle2,
@@ -529,6 +528,33 @@ export default function PortalDashboard() {
     },
   ];
 
+  const quickActions = [
+    {
+      title: "Replay Library",
+      detail: "Past calls and bootcamps",
+      icon: PlayCircle,
+      onClick: () => navigate("/portal/replays"),
+    },
+    {
+      title: "Templates",
+      detail: "Proposals and contracts",
+      icon: FileDown,
+      onClick: () => navigate("/portal/templates"),
+    },
+    {
+      title: "ConstructLine",
+      detail: "Basis and Baseline",
+      icon: LayoutGrid,
+      onClick: () => navigate("/portal/constructline"),
+    },
+    {
+      title: "Account",
+      detail: "Billing and profile",
+      icon: CircleUserRound,
+      onClick: () => navigate("/portal/account"),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#f8f5ef] text-[#171714]">
       <div className="mx-auto max-w-[1500px] space-y-5 px-6 py-6">
@@ -542,11 +568,17 @@ export default function PortalDashboard() {
           />
         )}
 
-        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="overflow-hidden rounded-xl border border-[#e4d7bf] bg-[#fffdf8] shadow-[0_24px_70px_rgba(41,37,28,0.07)]">
-            <div className="grid gap-6 p-6 lg:grid-cols-[88px_minmax(0,1fr)] lg:items-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.18)] lg:h-20 lg:w-20">
-                <span className="text-3xl font-semibold">C</span>
+        <section className="relative overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#fffdf8] shadow-[0_28px_85px_rgba(41,37,28,0.10)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_0%,rgba(241,181,29,0.16),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e7_56%,#eef5ef_100%)]" />
+          <div className="absolute right-8 top-6 hidden h-44 w-44 rounded-full border border-[#eadcc4]/70 bg-white/25 blur-2xl lg:block" />
+          <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-center">
+            <div className="grid gap-6 md:grid-cols-[112px_minmax(0,1fr)] md:items-center">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] p-3 shadow-[0_22px_55px_rgba(0,0,0,0.18)]">
+                <img
+                  src="/contractor-circle-icon.png"
+                  alt="Contractor Circle"
+                  className="h-full w-full rounded-xl object-cover"
+                />
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
@@ -558,11 +590,10 @@ export default function PortalDashboard() {
                     👋
                   </span>
                 </h1>
-                <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#6d6558]">
-                  Build your business, win better jobs, and stay close to the
-                  calls, tools, and resources that move the work forward.
+                <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#6d6558]">
+                  Build your business. Win better jobs. Create a legacy.
                 </p>
-                <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-xl border border-[#eadcc4] bg-white px-4 py-2 text-sm text-[#5d5546] shadow-inner">
+                <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-xl border border-[#eadcc4] bg-white/78 px-4 py-2 text-sm text-[#5d5546] shadow-inner backdrop-blur">
                   <Sparkles className="h-4 w-4 shrink-0 text-[#b58513]" />
                   <span className="min-w-0">
                     “Discipline in the details today. Freedom in the business
@@ -574,58 +605,58 @@ export default function PortalDashboard() {
                 </div>
               </div>
             </div>
-          </div>
 
-          <aside className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
-                <CircleUserRound className="h-7 w-7" />
+            <aside className="rounded-xl border border-[#d7c7aa] bg-white/82 p-5 shadow-[0_18px_50px_rgba(41,37,28,0.10)] backdrop-blur">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
+                  <CircleUserRound className="h-7 w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-semibold text-[#171714]">
+                    {displayName}
+                  </p>
+                  <p className="text-sm text-[#716855]">
+                    {member?.email ||
+                      member?.discordUsername ||
+                      "Contractor Circle member"}
+                  </p>
+                  <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-800">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    {isSubscribed ? "Active Member" : "Preview"}
+                  </Badge>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-lg font-semibold text-[#171714]">
-                  {displayName}
-                </p>
-                <p className="text-sm text-[#716855]">
-                  {member?.email ||
-                    member?.discordUsername ||
-                    "Contractor Circle member"}
-                </p>
-                <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-800">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  {isSubscribed ? "Active" : "Preview"}
-                </Badge>
+              <div className="mt-5 grid gap-3 border-t border-[#eadcc4] pt-5 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#716855]">Member since</span>
+                  <span className="text-right font-semibold text-[#171714]">
+                    {formatDate(member?.createdAt)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#716855]">Membership</span>
+                  <span className="font-semibold text-emerald-700">
+                    {subscriptionLoading
+                      ? "Checking"
+                      : subscription?.status ||
+                        member?.subscriptionStatus ||
+                        "Active"}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="mt-5 grid gap-3 border-t border-[#eadcc4] pt-5 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-[#716855]">Member since</span>
-                <span className="text-right font-semibold text-[#171714]">
-                  {formatDate(member?.createdAt)}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[#716855]">Membership</span>
-                <span className="font-semibold text-emerald-700">
-                  {subscriptionLoading
-                    ? "Checking"
-                    : subscription?.status ||
-                      member?.subscriptionStatus ||
-                      "Active"}
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              className="mt-5 h-11 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
-              onClick={() => navigate("/portal/account")}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Account Settings
-            </Button>
-          </aside>
+              <Button
+                variant="outline"
+                className="mt-5 h-10 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+                onClick={() => navigate("/portal/account")}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Account Settings
+              </Button>
+            </aside>
+          </div>
         </section>
 
-        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.04fr)_390px]">
+        <section className="grid items-start gap-5 xl:grid-cols-[1.05fr_1fr_0.92fr_300px]">
           <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
@@ -780,6 +811,17 @@ export default function PortalDashboard() {
               </a>
             </div>
           </article>
+
+          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+              Quick Actions
+            </p>
+            <div className="mt-4 space-y-2">
+              {quickActions.map(action => (
+                <QuickActionButton key={action.title} {...action} />
+              ))}
+            </div>
+          </article>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-2">
@@ -801,53 +843,6 @@ export default function PortalDashboard() {
             onClick={() => setTopicOpen(true)}
             stat={`${submittedTopics} submitted`}
           />
-        </section>
-
-        <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
-                Member shortcuts
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#171714]">
-                Get where you need to go
-              </h2>
-            </div>
-            <Button
-              variant="outline"
-              className="rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
-              onClick={() => navigate("/portal/constructline")}
-            >
-              Open ConstructLine
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <ShortcutCard
-              title="Replay Library"
-              detail="Watch past calls and bootcamp sessions."
-              icon={PlayCircle}
-              onClick={() => navigate("/portal/replays")}
-            />
-            <ShortcutCard
-              title="Templates"
-              detail="Download proposal, contract, and operating templates."
-              icon={FileDown}
-              onClick={() => navigate("/portal/templates")}
-            />
-            <ShortcutCard
-              title="ConstructLine"
-              detail="Open Basis, Baseline, and the estimating libraries."
-              icon={LayoutGrid}
-              onClick={() => navigate("/portal/constructline")}
-            />
-            <ShortcutCard
-              title="Account Details"
-              detail="Manage billing, profile, and member settings."
-              icon={CircleUserRound}
-              onClick={() => navigate("/portal/account")}
-            />
-          </div>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
@@ -977,7 +972,7 @@ function ActionCard({
   );
 }
 
-function ShortcutCard({
+function QuickActionButton({
   title,
   detail,
   icon: Icon,
@@ -992,18 +987,16 @@ function ShortcutCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[132px] flex-col rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-colors hover:bg-[#faf8f2]"
+      className="group flex w-full items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3 text-left transition-colors hover:bg-[#faf8f2]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white text-[#b58513]">
-          <Icon className="h-5 w-5" />
-        </div>
-        <ChevronRight className="h-5 w-5 text-[#b58513] transition-transform group-hover:translate-x-1" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#d7c7aa] bg-white text-[#b58513]">
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="mt-auto pt-5">
-        <h3 className="text-lg font-semibold text-[#171714]">{title}</h3>
-        <p className="mt-2 text-sm leading-6 text-[#716855]">{detail}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-[#171714]">{title}</p>
+        <p className="truncate text-xs text-[#716855]">{detail}</p>
       </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-[#b58513] transition-transform group-hover:translate-x-0.5" />
     </button>
   );
 }
