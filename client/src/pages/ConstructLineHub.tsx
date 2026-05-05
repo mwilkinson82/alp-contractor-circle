@@ -38,6 +38,7 @@ import RateSetupWizard, {
   saveRateConfig,
   type RateSetupConfig,
 } from "@/components/RateSetupWizard";
+import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
 
 const STATUS_CONFIG: Record<
@@ -162,58 +163,43 @@ function formatDate(value?: string | Date | null): string {
 function BuildingHeroArt() {
   return (
     <div className="relative hidden min-h-[330px] overflow-hidden lg:block">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_18%,rgba(241,181,29,0.20),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e1_42%,#eef5ef_100%)]" />
-      <div className="absolute right-8 top-8 h-[265px] w-[470px] rounded-2xl border border-[#d7c7aa] bg-[#090b0f] p-5 shadow-[0_34px_90px_rgba(41,37,28,0.26)]">
-        <div className="flex items-start justify-between border-b border-white/10 pb-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f1b51d]">
-              Basis Cockpit
-            </p>
-            <p className="mt-2 text-lg font-semibold text-white">
-              Crystal Car Wash
-            </p>
-          </div>
-          <Badge className="border-emerald-300/35 bg-emerald-300/12 text-emerald-200">
-            Ready to package
-          </Badge>
-        </div>
-        <div className="mt-5 grid gap-3">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_62%_18%,rgba(241,181,29,0.14),transparent_30%),linear-gradient(135deg,#fffdf8_0%,#f7f0df_46%,#eef5ef_100%)]" />
+      <div
+        className="absolute inset-0 bg-no-repeat opacity-95"
+        style={{
+          backgroundImage: "url('/constructline-hub-mock.png')",
+          backgroundPosition: "58% 8%",
+          backgroundSize: "900px auto",
+        }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,253,248,0.98)_0%,rgba(255,253,248,0.74)_18%,rgba(255,253,248,0.08)_57%,rgba(255,253,248,0.88)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#fffdf8] to-transparent" />
+      <div className="absolute right-8 top-8 w-[260px] rounded-2xl border border-[#d7c7aa] bg-white/82 p-4 shadow-[0_24px_70px_rgba(41,37,28,0.16)] backdrop-blur">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.20em] text-[#b58513]">
+          Command Center
+        </p>
+        <div className="mt-4 grid gap-2">
           {[
-            ["Review", "Scope clear", "100%"],
-            ["Estimate", "$546,286", "100%"],
-            ["Submit", "Proposal package", "Ready"],
-          ].map(([label, value, status]) => (
+            ["Basis", "Estimate with source evidence"],
+            ["Baseline", "Plan and track CPM schedules"],
+            ["Libraries", "Keep costs and crews current"],
+          ].map(([label, detail]) => (
             <div
               key={label}
-              className="grid grid-cols-[1fr_auto] items-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3"
+              className="rounded-xl border border-[#eadcc4] bg-white/75 px-3 py-2"
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                  {label}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-white">{value}</p>
-              </div>
-              <p className="font-mono text-xs font-semibold text-[#f1b51d]">
-                {status}
+              <p className="text-sm font-semibold text-[#171714]">{label}</p>
+              <p className="mt-0.5 text-[11px] leading-5 text-[#716855]">
+                {detail}
               </p>
             </div>
           ))}
         </div>
-        <div className="absolute -right-6 bottom-8 w-[170px] rounded-xl border border-[#f1b51d]/25 bg-[#f1b51d]/12 p-4 backdrop-blur">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
-            Outputs
-          </p>
-          <div className="mt-3 space-y-2 text-sm text-white/70">
-            <p>Proposal PDF</p>
-            <p>Bid Summary</p>
-            <p>AIA SOV</p>
-          </div>
-        </div>
       </div>
-      <div className="absolute bottom-9 left-10 rounded-full border border-[#d7c7aa] bg-white/82 px-4 py-2 text-xs font-semibold text-[#5d5546] shadow-[0_14px_40px_rgba(41,37,28,0.12)] backdrop-blur">
+      <div className="absolute bottom-9 left-10 rounded-full border border-[#d7c7aa] bg-white/86 px-4 py-2 text-xs font-semibold text-[#5d5546] shadow-[0_14px_40px_rgba(41,37,28,0.12)] backdrop-blur">
         <span className="inline-flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-[#c48d12]" />
-          AI-assisted estimating cockpit
+          Basis + Baseline workflow
         </span>
       </div>
     </div>
@@ -221,6 +207,7 @@ function BuildingHeroArt() {
 }
 
 export default function ConstructLineHub() {
+  const { member } = useMember();
   const [, navigate] = useLocation();
   const [rateConfig, setRateConfig] = useState<RateSetupConfig | null>(
     loadRateConfig()
@@ -230,6 +217,13 @@ export default function ConstructLineHub() {
   const { data: projects } = trpc.takeoff.listProjects.useQuery();
   const { data: rateProfilesList } =
     trpc.tradeRates.listRateProfiles.useQuery();
+
+  const displayName =
+    member?.displayName || member?.discordUsername || "Marshall";
+  const firstName = displayName.split(" ")[0] || "Marshall";
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const sortedProjects = useMemo(
     () =>
@@ -343,22 +337,21 @@ export default function ConstructLineHub() {
               <div className="flex flex-col justify-center p-7 lg:p-9">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
-                    ConstructLine Hub
+                    {greeting}, {firstName}
                   </p>
                   <h1 className="mt-4 max-w-[560px] text-4xl font-semibold leading-[1.04] tracking-normal text-[#11100c] lg:text-[42px] xl:text-[48px]">
-                    Turn drawings into decisions.
+                    Let’s build something great today.
                   </h1>
                   <p className="mt-4 max-w-[520px] text-[15px] leading-7 text-[#6d6558]">
-                    Basis reads the set, keeps source evidence visible, and
-                    moves the estimator from review to pricing to a bid-ready
-                    package.
+                    Review scope, price accepted work, package bids, and keep
+                    schedules moving from one ConstructLine command center.
                   </p>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {[
-                    "Review scope",
-                    "Price accepted work",
-                    "Package the bid",
+                    "Basis estimating",
+                    "Baseline scheduling",
+                    "Cost + labor libraries",
                   ].map(item => (
                     <span
                       key={item}
