@@ -267,6 +267,179 @@ function getEstimatorCue(item: any): { label: string; className: string } {
   };
 }
 
+type TakeoffAnomalySeverity = "blocker" | "risk" | "review" | "reference";
+
+interface TakeoffAnomaly {
+  id: string;
+  severity: TakeoffAnomalySeverity;
+  category: string;
+  title: string;
+  description: string;
+  amount?: number;
+  items: any[];
+}
+
+const ANOMALY_SEVERITY_STYLE: Record<
+  TakeoffAnomalySeverity,
+  { label: string; className: string; accent: string }
+> = {
+  blocker: {
+    label: "Blocker",
+    className: "border-orange-300 bg-orange-50 text-orange-800",
+    accent: "text-orange-800",
+  },
+  risk: {
+    label: "Risk",
+    className: "border-red-300 bg-red-50 text-red-800",
+    accent: "text-red-800",
+  },
+  review: {
+    label: "Review",
+    className: "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]",
+    accent: "text-[#8a6510]",
+  },
+  reference: {
+    label: "Reference",
+    className: "border-blue-200 bg-blue-50 text-[#244c91]",
+    accent: "text-[#244c91]",
+  },
+};
+
+function normalizeAnomalyKey(value: unknown): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
+  const anomalies: TakeoffAnomaly[] = [];
+  const accepted = items.filter(item => isScopeIncludedItem(item));
+  const excluded = items.filter(item => isScopeExcludedItem(item));
+
+  const scopeConflicts = items.filter(item => {
+    const notes = String(item.notes || "").toLowerCase();
+    return notes.includes("[scope: included]") && notes.includes("[scope: excluded]");
+  });
+  if (scopeConflicts.length > 0) {
+    anomalies.push({
+      id: "scope-conflicts",
+      severity: "risk",
+      category: "Scope",
+      title: "Scope conflict tags found",
+      description: "Rows contain both included and excluded scope signals. These need a deliberate estimator call before packaging.",
+      amount: scopeConflicts.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      items: sortByExtendedCostDesc(scopeConflicts).slice(0, 12),
+    });
+  }
+
+  const zeroAccepted = accepted.filter(item => Number(item.extendedCost || 0) <= 0);
+  if (zeroAccepted.length > 0) {
+    anomalies.push({
+      id: "zero-accepted",
+      severity: "blocker",
+      category: "Pricing",
+      title: "Accepted scope with zero value",
+      description: "Accepted rows are counted as bid scope but have no cost impact. Confirm quantity, unit cost, or labor basis.",
+      items: zeroAccepted.slice(0, 12),
+    });
+  }
+
+  const missingQuantity = accepted.filter(item => Number(item.quantity || 0) <= 0);
+  if (missingQuantity.length > 0) {
+    anomalies.push({
+      id: "missing-quantity",
+      severity: "blocker",
+      category: "Quantity",
+      title: "Accepted rows missing quantity",
+      description: "These items cannot be defended until the quantity is filled or verified from the drawing.",
+      items: missingQuantity.slice(0, 12),
+    });
+  }
+
+  const highValueExcluded = sortByExtendedCostDesc(
+    excluded.filter(item => Number(item.extendedCost || 0) >= 2500000)
+  );
+  if (highValueExcluded.length > 0) {
+    anomalies.push({
+      id: "high-value-excluded",
+      severity: "risk",
+      category: "Scope",
+      title: "High-value excluded items",
+      description: "Large-dollar work is outside the bid. Good if intentional, expensive if it is a miss.",
+      amount: highValueExcluded.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      items: highValueExcluded.slice(0, 12),
+    });
+  }
+
+  const lowConfidence = sortByExtendedCostDesc(
+    items.filter(item => {
+      const confidence = Number(item.confidence || 0);
+      return confidence > 0 && confidence < 70;
+    })
+  );
+  if (lowConfidence.length > 0) {
+    anomalies.push({
+      id: "low-confidence",
+      severity: "review",
+      category: "AI Evidence",
+      title: "Low-confidence takeoff rows",
+      description: "AI confidence is below the review threshold. Verify the sheet source before relying on these rows.",
+      amount: lowConfidence.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      items: lowConfidence.slice(0, 12),
+    });
+  }
+
+  const duplicateGroups = new Map<string, any[]>();
+  for (const item of accepted) {
+    const key = `${normalizeAnomalyKey(item.description)}|${String(item.unit || "").toLowerCase()}`;
+    if (!key.trim() || key === "|") continue;
+    const group = duplicateGroups.get(key) || [];
+    group.push(item);
+    duplicateGroups.set(key, group);
+  }
+  const duplicateItems = Array.from(duplicateGroups.values())
+    .filter(group => group.length > 1)
+    .flat();
+  if (duplicateItems.length > 0) {
+    anomalies.push({
+      id: "possible-duplicates",
+      severity: "review",
+      category: "Duplicate Scope",
+      title: "Possible duplicate accepted rows",
+      description: "Multiple accepted rows share the same normalized description and unit. Review before the bid is packaged.",
+      amount: duplicateItems.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      items: sortByExtendedCostDesc(duplicateItems).slice(0, 12),
+    });
+  }
+
+  const unlinkedAccepted = accepted.filter(item => !item.sheetId);
+  if (unlinkedAccepted.length > 0) {
+    anomalies.push({
+      id: "source-unlinked",
+      severity: "reference",
+      category: "Traceability",
+      title: "Accepted rows without source sheet",
+      description: "These estimate numbers do not have a direct drawing source link yet.",
+      amount: unlinkedAccepted.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      items: sortByExtendedCostDesc(unlinkedAccepted).slice(0, 12),
+    });
+  }
+
+  const severityRank: Record<TakeoffAnomalySeverity, number> = {
+    blocker: 0,
+    risk: 1,
+    review: 2,
+    reference: 3,
+  };
+  return anomalies.sort((a, b) => {
+    const rankDiff = severityRank[a.severity] - severityRank[b.severity];
+    if (rankDiff !== 0) return rankDiff;
+    return Number(b.amount || 0) - Number(a.amount || 0);
+  });
+}
+
 type AssemblyBundleDecision = "include" | "review" | "exclude";
 type AssemblyBundleStatus = AssemblyBundleDecision | "mixed" | "open";
 
@@ -1197,6 +1370,218 @@ function DrawingNavigatorDialog({
   );
 }
 
+function AnomalyCenterDialog({
+  open,
+  anomalies,
+  currency,
+  onClose,
+  onOpenItem,
+}: {
+  open: boolean;
+  anomalies: TakeoffAnomaly[];
+  currency: string;
+  onClose: () => void;
+  onOpenItem: (item: any) => void;
+}) {
+  const [selectedAnomalyId, setSelectedAnomalyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedAnomalyId(anomalies[0]?.id || null);
+  }, [anomalies, open]);
+
+  const activeAnomaly =
+    anomalies.find(anomaly => anomaly.id === selectedAnomalyId) ||
+    anomalies[0] ||
+    null;
+  const blockerCount = anomalies.filter(anomaly => anomaly.severity === "blocker").length;
+  const riskCount = anomalies.filter(anomaly => anomaly.severity === "risk").length;
+  const reviewCount = anomalies.filter(anomaly => anomaly.severity === "review").length;
+
+  return (
+    <Dialog open={open} onOpenChange={value => !value && onClose()}>
+      <DialogContent className="!w-[min(1320px,96vw)] !max-w-[min(1320px,96vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+        <DialogHeader className="border-b border-[#d8c9ad] px-7 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
+            <div>
+              <DialogTitle className="text-2xl text-[#171714]">
+                Discrepancy Review
+              </DialogTitle>
+              <DialogDescription className="text-[#716855]">
+                Find duplicate scope, zero-value accepted rows, high-value exclusions, low confidence, and traceability gaps before the bid is packaged.
+              </DialogDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge className="border-orange-300 bg-orange-50 text-orange-800">
+                {blockerCount} blocker{blockerCount !== 1 ? "s" : ""}
+              </Badge>
+              <Badge className="border-red-300 bg-red-50 text-red-800">
+                {riskCount} risk{riskCount !== 1 ? "s" : ""}
+              </Badge>
+              <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
+                {reviewCount} review
+              </Badge>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {anomalies.length === 0 ? (
+          <div className="p-8">
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-950">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
+                <div>
+                  <p className="font-semibold">No obvious anomalies found</p>
+                  <p className="mt-1 text-sm text-emerald-900/75">
+                    ConstructLine did not detect zero-value accepted scope, high-value exclusions, duplicate accepted rows, low-confidence rows, or source-link gaps in this project snapshot.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid max-h-[78vh] min-h-[620px] grid-cols-[360px_minmax(0,1fr)] overflow-hidden">
+            <aside className="border-r border-[#d7c7aa] bg-[#eee4d2] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                  Review Queue
+                </p>
+                <Badge className="border-[#d7c7aa] bg-white/75 text-[#5d5546]">
+                  {anomalies.length} finding{anomalies.length !== 1 ? "s" : ""}
+                </Badge>
+              </div>
+              <div className="max-h-[calc(78vh-88px)] space-y-2 overflow-y-auto pr-1">
+                {anomalies.map(anomaly => {
+                  const selected = anomaly.id === activeAnomaly?.id;
+                  const style = ANOMALY_SEVERITY_STYLE[anomaly.severity];
+                  return (
+                    <button
+                      key={anomaly.id}
+                      type="button"
+                      onClick={() => setSelectedAnomalyId(anomaly.id)}
+                      className={`w-full rounded-xl border p-3 text-left transition-all ${
+                        selected
+                          ? "border-[#d7b44d] bg-[#fff4cb] shadow-[0_14px_32px_rgba(138,101,16,0.13)]"
+                          : "border-[#d7c7aa] bg-white/78 hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#171714]">
+                            {anomaly.title}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-xs text-[#716855]">
+                            {anomaly.description}
+                          </p>
+                        </div>
+                        <Badge className={`${style.className} shrink-0 border text-[10px]`}>
+                          {style.label}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-[#5d5546]">
+                          {anomaly.items.length} row{anomaly.items.length !== 1 ? "s" : ""}
+                        </span>
+                        {typeof anomaly.amount === "number" && anomaly.amount > 0 && (
+                          <span className={`font-mono font-semibold ${style.accent}`}>
+                            {formatCurrency(anomaly.amount, currency)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <main className="min-w-0 bg-white p-5">
+              {activeAnomaly && (
+                <>
+                  <div className="rounded-xl border border-[#d7c7aa] bg-[#faf8f2] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={`${ANOMALY_SEVERITY_STYLE[activeAnomaly.severity].className} border`}>
+                            {ANOMALY_SEVERITY_STYLE[activeAnomaly.severity].label}
+                          </Badge>
+                          <Badge className="border-[#d7c7aa] bg-white text-[#716855]">
+                            {activeAnomaly.category}
+                          </Badge>
+                        </div>
+                        <h3 className="mt-3 text-2xl font-semibold text-[#171714]">
+                          {activeAnomaly.title}
+                        </h3>
+                        <p className="mt-1 max-w-3xl text-sm leading-6 text-[#716855]">
+                          {activeAnomaly.description}
+                        </p>
+                      </div>
+                      {typeof activeAnomaly.amount === "number" && activeAnomaly.amount > 0 && (
+                        <div className="rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-right">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                            Value at stake
+                          </p>
+                          <p className="mt-1 font-mono text-xl font-semibold text-[#8a6510]">
+                            {formatCurrency(activeAnomaly.amount, currency)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_120px_120px_120px] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                      <span>Description</span>
+                      <span className="text-right">Qty</span>
+                      <span className="text-right">Confidence</span>
+                      <span className="text-right">Value</span>
+                    </div>
+                    <div className="max-h-[430px] overflow-y-auto">
+                      {activeAnomaly.items.map(item => {
+                        const cue = getEstimatorCue(item);
+                        return (
+                          <button
+                            key={`${activeAnomaly.id}-${item.id}`}
+                            type="button"
+                            onClick={() => onOpenItem(item)}
+                            className="grid w-full grid-cols-[minmax(0,1fr)_120px_120px_120px] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3 text-left transition-colors hover:bg-white"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[#171714]">
+                                {item.description || "Untitled item"}
+                              </p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                <Badge className={`${cue.className} border text-[10px]`}>
+                                  {cue.label}
+                                </Badge>
+                                <span className="text-[11px] text-[#716855]">
+                                  {item.csiCode || item.csiDivision || "No CSI"}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-right font-mono text-xs text-[#5d5546]">
+                              {item.quantity || "—"} {item.unit || ""}
+                            </span>
+                            <span className="text-right font-mono text-xs text-[#5d5546]">
+                              {item.confidence ? `${item.confidence}%` : "—"}
+                            </span>
+                            <span className="text-right font-mono text-xs font-semibold text-[#8a6510]">
+                              {formatCurrency(Number(item.extendedCost || 0), currency)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </main>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TakeoffDetail() {
@@ -1240,6 +1625,7 @@ export default function TakeoffDetail() {
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
   const [showDrawingNavigator, setShowDrawingNavigator] = useState(false);
+  const [showAnomalyCenter, setShowAnomalyCenter] = useState(false);
   const [navigatorInitialSheetId, setNavigatorInitialSheetId] = useState<number | null>(null);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
   const [sheetScales, setSheetScales] = useState<
@@ -2723,6 +3109,10 @@ export default function TakeoffDetail() {
     () => (items || []).filter((item: any) => isScopeExcludedItem(item)),
     [items]
   );
+  const takeoffAnomalies = useMemo(
+    () => buildTakeoffAnomalies(items || []),
+    [items]
+  );
   const scopeReviewCount = reviewItems.length;
   const reviewItemsCost = useMemo(
     () =>
@@ -3748,6 +4138,17 @@ export default function TakeoffDetail() {
                     <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[#eadcc4] pt-2">
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => setShowAnomalyCenter(true)}
+                        className={`h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] ${takeoffAnomalies.length > 0 ? "border-orange-300 bg-orange-50 text-orange-800" : ""}`}
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                        {takeoffAnomalies.length > 0
+                          ? `${takeoffAnomalies.length} Anomalies`
+                          : "Review Anomalies"}
+                      </Button>
+                      <Button
+                        size="sm"
                         variant={readyToPrice ? "default" : "outline"}
                         disabled={!readyToPrice}
                         onClick={() => setActiveTab("estimate")}
@@ -4281,6 +4682,17 @@ export default function TakeoffDetail() {
                             />
                           ))}
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAnomalyCenter(true)}
+                          className={`h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] ${takeoffAnomalies.length > 0 ? "border-orange-300 bg-orange-50 text-orange-800" : ""}`}
+                        >
+                          <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                          {takeoffAnomalies.length > 0
+                            ? `${takeoffAnomalies.length} Anomalies`
+                            : "Review Anomalies"}
+                        </Button>
                         <Button
                           size="sm"
                           variant={readyToPrice ? "default" : "outline"}
@@ -6235,6 +6647,17 @@ export default function TakeoffDetail() {
         onOpenTakeoff={() => {
           setActiveTab("items");
           setShowDrawingNavigator(false);
+        }}
+      />
+
+      <AnomalyCenterDialog
+        open={showAnomalyCenter}
+        anomalies={takeoffAnomalies}
+        currency={project?.currency || "USD"}
+        onClose={() => setShowAnomalyCenter(false)}
+        onOpenItem={item => {
+          setSelectedItem(item);
+          setShowAnomalyCenter(false);
         }}
       />
 

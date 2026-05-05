@@ -278,9 +278,9 @@ export default function ConstructLineHub() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-7">
+      <div className="mx-auto max-w-[1180px] px-6 py-7">
         <section className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f7f4ed] shadow-[0_28px_90px_rgba(41,37,28,0.14)]">
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_360px]">
             <div className="bg-white/58 p-6 lg:p-8">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
@@ -294,7 +294,7 @@ export default function ConstructLineHub() {
                   </Badge>
                 )}
               </div>
-              <h1 data-tour="hub-hero" className="mt-4 max-w-3xl text-4xl font-semibold tracking-normal text-[#171714] lg:text-5xl">
+              <h1 data-tour="hub-hero" className="mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-normal text-[#171714] lg:text-[44px]">
                 A cleaner command center for every bid you are building.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-[#5d5546]">
@@ -338,23 +338,23 @@ export default function ConstructLineHub() {
               )}
             </div>
 
-            <aside className="border-t border-[#d7c7aa] bg-[#ebe0cc] p-6 lg:border-l lg:border-t-0 lg:p-7">
-              <div className="grid grid-cols-3 gap-3">
+            <aside className="border-t border-[#d7c7aa] bg-[#ebe0cc] p-6 lg:border-l lg:border-t-0 lg:p-6">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[#d7c7aa] bg-white/78 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">Projects</p>
                   <p className="mt-1 font-mono text-2xl font-semibold text-[#171714]">{totalProjects}</p>
                 </div>
-                <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-800/70">Active</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold text-[#244c91]">{activeProjects}</p>
+                </div>
+                <div className="col-span-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800/70">Portfolio</p>
-                  <p className="mt-1 font-mono text-2xl font-semibold text-emerald-800">
+                  <p className="mt-1 break-words font-mono text-[26px] font-semibold leading-tight text-emerald-800">
                     {totalEstimatedValue > 0
                       ? `$${(totalEstimatedValue / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
                       : "—"}
                   </p>
-                </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-800/70">Active</p>
-                  <p className="mt-1 font-mono text-2xl font-semibold text-[#244c91]">{activeProjects}</p>
                 </div>
               </div>
               <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white/78 p-4">
