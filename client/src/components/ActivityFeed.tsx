@@ -47,12 +47,15 @@ export function ActivityFeedPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-amber-400" />
-          <h3 className="text-sm font-semibold text-cream">Activity Feed</h3>
+          <h3 className="text-sm font-semibold text-cream">Recent Activity</h3>
         </div>
         <span className="text-[11px] text-cream-muted/50">
-          Live · updates every 10s
+          History · updates every 10s
         </span>
       </div>
+      <p className="mb-3 text-[11px] leading-relaxed text-cream-muted/55">
+        This is the recent trail of movement in the portal. It can include members who are no longer live now.
+      </p>
 
       {isLoading ? (
         <div className="text-xs text-cream-muted/50 py-4 text-center">Loading activity...</div>

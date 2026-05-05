@@ -6,42 +6,8 @@
  * - "panel": full admin panel with user list, current pages, session duration
  */
 import { trpc } from "@/lib/trpc";
-import { Users, Circle, Monitor, Clock } from "lucide-react";
-
-// ─── Friendly page name mapping ─────────────────────────────────────────────
-const PAGE_NAMES: Record<string, string> = {
-  "/portal": "Dashboard",
-  "/portal/dashboard": "Dashboard",
-  "/portal/constructline": "ConstructLine Hub",
-  "/portal/takeoff": "Takeoff List",
-  "/portal/cost-library": "Cost Library",
-  "/portal/labor-library": "Trade Rate Library",
-  "/portal/replays": "Replay Library",
-  "/portal/templates": "Templates",
-  "/portal/account": "Account",
-  "/portal/admin": "Admin Panel",
-  "/portal/subscribers": "Subscribers",
-  "/portal/members": "Members",
-  "/portal/analytics": "Analytics",
-  "/portal/drip": "Drip Campaigns",
-  "/portal/feedback": "Feedback",
-};
-
-function friendlyPageName(path: string | null): string {
-  if (!path) return "Unknown";
-  // Exact match
-  if (PAGE_NAMES[path]) return PAGE_NAMES[path];
-  // Takeoff detail
-  if (path.startsWith("/takeoff/")) return "Takeoff Project";
-  // Schedule
-  if (path.startsWith("/schedule/")) return "CPM Schedule";
-  // Closest prefix match
-  const sorted = Object.keys(PAGE_NAMES).sort((a, b) => b.length - a.length);
-  for (const key of sorted) {
-    if (path.startsWith(key)) return PAGE_NAMES[key];
-  }
-  return path;
-}
+import { Users, Circle, Monitor, Clock, Activity } from "lucide-react";
+import { describePresenceWindow, formatPresencePage, formatPresenceWork } from "@shared/presenceLabels";
 
 function formatDuration(start: Date | string): string {
   const ms = Date.now() - new Date(start).getTime();
@@ -51,6 +17,18 @@ function formatDuration(start: Date | string): string {
   const hrs = Math.floor(mins / 60);
   const remainMins = mins % 60;
   return `${hrs}h ${remainMins}m`;
+}
+
+function timeAgo(date: Date | string): string {
+  const ms = Date.now() - new Date(date).getTime();
+  const secs = Math.max(0, Math.floor(ms / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 // ─── Sidebar Badge ──────────────────────────────────────────────────────────
@@ -63,10 +41,13 @@ export function OnlineUsersBadge() {
   if (count === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-cream-muted">
+    <div
+      className="flex items-center gap-2 px-3 py-1.5 text-xs text-cream-muted"
+      title={`Live now means ${describePresenceWindow(data?.onlineWindowSeconds ?? 120)}.`}
+    >
       <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400" />
       <span>
-        {count} online
+        {count} live now
       </span>
     </div>
   );
@@ -80,19 +61,23 @@ export function OnlineUsersPanel() {
 
   const count = data?.count ?? 0;
   const users = data?.users ?? [];
+  const presenceWindow = describePresenceWindow(data?.onlineWindowSeconds ?? 120);
 
   return (
     <div className="rounded-xl border border-white/8 bg-white/2 p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-sm font-semibold text-cream">Online Now</h3>
+          <h3 className="text-sm font-semibold text-cream">Live Now</h3>
         </div>
         <div className="flex items-center gap-1.5">
           <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400 animate-pulse" />
           <span className="text-sm font-bold text-emerald-400">{count}</span>
         </div>
       </div>
+      <p className="mb-3 text-[11px] leading-relaxed text-cream-muted/55">
+        Heartbeat based: members are counted when {presenceWindow}. Activity below is historical and can show people who are no longer live.
+      </p>
 
       {isLoading ? (
         <div className="text-xs text-cream-muted/50 py-4 text-center">Loading...</div>
@@ -107,20 +92,30 @@ export function OnlineUsersPanel() {
           {users.map((u: any) => (
             <div
               key={u.memberId}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/3 border border-white/5"
+              className="flex items-start gap-3 px-3 py-3 rounded-lg bg-white/3 border border-white/5"
             >
-              <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400 shrink-0" />
+              <Circle className="mt-1.5 w-2 h-2 fill-emerald-400 text-emerald-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-cream truncate">
                   {u.displayName || `Member #${u.memberId}`}
                 </p>
-                <div className="flex items-center gap-2 text-[11px] text-cream-muted/60">
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-cream-muted/65">
                   <Monitor className="w-3 h-3" />
-                  <span className="truncate">{friendlyPageName(u.currentPage)}</span>
+                  <span className="truncate">{u.pageLabel || formatPresencePage(u.currentPage)}</span>
                   <span className="text-cream-muted/30">·</span>
                   <Clock className="w-3 h-3" />
                   <span>{formatDuration(u.sessionStart)}</span>
                 </div>
+                <p className="mt-1 text-[11px] text-cream-muted/45 truncate">
+                  {u.workLabel || formatPresenceWork(u.currentPage)}
+                </p>
+                {u.lastActivity ? (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-cream-muted/45">
+                    <Activity className="w-3 h-3" />
+                    <span className="truncate">{u.lastActivity.description}</span>
+                    <span className="shrink-0 text-cream-muted/30">· {timeAgo(u.lastActivity.createdAt)}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

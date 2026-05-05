@@ -6,9 +6,10 @@
  */
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
-import { upsertHeartbeat, getOnlineUsers, removePresence, cleanupStalePresence } from "./presenceDb";
+import { upsertHeartbeat, getOnlineUsers, removePresence, ONLINE_THRESHOLD_MS } from "./presenceDb";
 import { logActivity, getRecentActivity } from "./activityLogDb";
 import { TRPCError } from "@trpc/server";
+import { formatPresencePage, formatPresenceWork } from "../shared/presenceLabels";
 
 export const presenceRouter = router({
   /**
@@ -45,17 +46,31 @@ export const presenceRouter = router({
     // Allow any authenticated user to see online count, but only admin sees details
     const isAdmin = (user as any).role === "admin" || (user as any).memberRole === "admin";
     const onlineUsers = await getOnlineUsers();
+    const onlineWindowSeconds = Math.round(ONLINE_THRESHOLD_MS / 1000);
 
     if (isAdmin) {
+      const recentActivity = await getRecentActivity(200);
+      const latestActivityByMember = new Map<number, (typeof recentActivity)[number]>();
+      for (const entry of recentActivity) {
+        if (!latestActivityByMember.has(entry.memberId)) {
+          latestActivityByMember.set(entry.memberId, entry);
+        }
+      }
+
       return {
         count: onlineUsers.length,
         users: onlineUsers.map((u) => ({
           memberId: u.memberId,
           displayName: u.displayName,
           currentPage: u.currentPage,
+          pageLabel: formatPresencePage(u.currentPage),
+          workLabel: formatPresenceWork(u.currentPage),
           lastSeen: u.lastSeen,
           sessionStart: u.sessionStart,
+          lastActivity: latestActivityByMember.get(u.memberId) ?? null,
         })),
+        onlineWindowSeconds,
+        generatedAt: new Date(),
       };
     }
 
@@ -63,6 +78,8 @@ export const presenceRouter = router({
     return {
       count: onlineUsers.length,
       users: [] as any[],
+      onlineWindowSeconds,
+      generatedAt: new Date(),
     };
   }),
 

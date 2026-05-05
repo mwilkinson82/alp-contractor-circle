@@ -52,4 +52,24 @@ export function usePresenceHeartbeat() {
     heartbeatMutation.mutate({ currentPage: location, isPageChange: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
+
+  // Browser background tabs can throttle intervals. Refresh presence as soon as
+  // the member returns so "live now" does not lag behind the real room.
+  useEffect(() => {
+    if (!user) return;
+
+    const sendReturnHeartbeat = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      heartbeatMutation.mutate({ currentPage: locationRef.current, isPageChange: false });
+    };
+
+    window.addEventListener("focus", sendReturnHeartbeat);
+    document.addEventListener("visibilitychange", sendReturnHeartbeat);
+
+    return () => {
+      window.removeEventListener("focus", sendReturnHeartbeat);
+      document.removeEventListener("visibilitychange", sendReturnHeartbeat);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!user]);
 }

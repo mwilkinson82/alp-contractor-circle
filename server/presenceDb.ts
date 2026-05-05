@@ -6,7 +6,7 @@ import { getDb } from "./db";
 import { userPresence } from "../drizzle/schema";
 import { eq, gte, sql } from "drizzle-orm";
 
-const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+export const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
 /**
  * Upsert a heartbeat for a member — creates or updates their presence row.
