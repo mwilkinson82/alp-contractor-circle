@@ -2,7 +2,14 @@
  * TakeoffDetail — Full takeoff project view with drawing upload,
  * ConstructLine processing status, and quantity review/edit table.
  */
-import { useState, useRef, useCallback, useEffect, useMemo, type RefObject } from "react";
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  type RefObject,
+} from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -65,6 +72,7 @@ import {
   CheckSquare,
   Square,
   Calculator,
+  Send,
   Percent,
   PlusCircle,
   Layers,
@@ -327,7 +335,9 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
 
   const scopeConflicts = openItems.filter(item => {
     const notes = String(item.notes || "").toLowerCase();
-    return notes.includes("[scope: included]") && notes.includes("[scope: excluded]");
+    return (
+      notes.includes("[scope: included]") && notes.includes("[scope: excluded]")
+    );
   });
   if (scopeConflicts.length > 0) {
     anomalies.push({
@@ -335,32 +345,42 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       severity: "risk",
       category: "Scope",
       title: "Scope conflict tags found",
-      description: "Rows contain both included and excluded scope signals. These need a deliberate estimator call before packaging.",
-      amount: scopeConflicts.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      description:
+        "Rows contain both included and excluded scope signals. These need a deliberate estimator call before packaging.",
+      amount: scopeConflicts.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      ),
       items: sortByExtendedCostDesc(scopeConflicts).slice(0, 12),
     });
   }
 
-  const zeroAccepted = openAccepted.filter(item => Number(item.extendedCost || 0) <= 0);
+  const zeroAccepted = openAccepted.filter(
+    item => Number(item.extendedCost || 0) <= 0
+  );
   if (zeroAccepted.length > 0) {
     anomalies.push({
       id: "zero-accepted",
       severity: "blocker",
       category: "Pricing",
       title: "Accepted scope with zero value",
-      description: "Accepted rows are counted as bid scope but have no cost impact. Confirm quantity, unit cost, or labor basis.",
+      description:
+        "Accepted rows are counted as bid scope but have no cost impact. Confirm quantity, unit cost, or labor basis.",
       items: zeroAccepted.slice(0, 12),
     });
   }
 
-  const missingQuantity = openAccepted.filter(item => Number(item.quantity || 0) <= 0);
+  const missingQuantity = openAccepted.filter(
+    item => Number(item.quantity || 0) <= 0
+  );
   if (missingQuantity.length > 0) {
     anomalies.push({
       id: "missing-quantity",
       severity: "blocker",
       category: "Quantity",
       title: "Accepted rows missing quantity",
-      description: "These items cannot be defended until the quantity is filled or verified from the drawing.",
+      description:
+        "These items cannot be defended until the quantity is filled or verified from the drawing.",
       items: missingQuantity.slice(0, 12),
     });
   }
@@ -374,8 +394,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       severity: "risk",
       category: "Scope",
       title: "High-value excluded items",
-      description: "Large-dollar work is outside the bid. Good if intentional, expensive if it is a miss.",
-      amount: highValueExcluded.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      description:
+        "Large-dollar work is outside the bid. Good if intentional, expensive if it is a miss.",
+      amount: highValueExcluded.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      ),
       items: highValueExcluded.slice(0, 12),
     });
   }
@@ -392,8 +416,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       severity: "review",
       category: "AI Evidence",
       title: "Low-confidence takeoff rows",
-      description: "AI confidence is below the review threshold. Verify the sheet source before relying on these rows.",
-      amount: lowConfidence.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      description:
+        "AI confidence is below the review threshold. Verify the sheet source before relying on these rows.",
+      amount: lowConfidence.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      ),
       items: lowConfidence.slice(0, 12),
     });
   }
@@ -415,8 +443,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       severity: "review",
       category: "Duplicate Scope",
       title: "Possible duplicate accepted rows",
-      description: "Multiple accepted rows share the same normalized description and unit. Review before the bid is packaged.",
-      amount: duplicateItems.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      description:
+        "Multiple accepted rows share the same normalized description and unit. Review before the bid is packaged.",
+      amount: duplicateItems.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      ),
       items: sortByExtendedCostDesc(duplicateItems).slice(0, 12),
     });
   }
@@ -428,8 +460,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       severity: "reference",
       category: "Traceability",
       title: "Accepted rows without source sheet",
-      description: "These estimate numbers do not have a direct drawing source link yet.",
-      amount: unlinkedAccepted.reduce((sum, item) => sum + Number(item.extendedCost || 0), 0),
+      description:
+        "These estimate numbers do not have a direct drawing source link yet.",
+      amount: unlinkedAccepted.reduce(
+        (sum, item) => sum + Number(item.extendedCost || 0),
+        0
+      ),
       items: sortByExtendedCostDesc(unlinkedAccepted).slice(0, 12),
     });
   }
@@ -930,7 +966,11 @@ const SHEET_STATUS_CONFIG: Record<
     color: "bg-orange-50 text-orange-800 border-orange-300",
     icon: AlertCircle,
   },
-  skipped: { label: "Skipped", color: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]", icon: X },
+  skipped: {
+    label: "Skipped",
+    color: "bg-[#f1eee6] text-[#716855] border-[#d7c7aa]",
+    icon: X,
+  },
 };
 
 const LIGHT_DROPDOWN_ITEM_CLASS =
@@ -974,7 +1014,10 @@ type DrawingNavigatorFilter =
   | "takeoff"
   | "review";
 
-const DRAWING_NAV_FILTERS: Array<{ id: DrawingNavigatorFilter; label: string }> = [
+const DRAWING_NAV_FILTERS: Array<{
+  id: DrawingNavigatorFilter;
+  label: string;
+}> = [
   { id: "all", label: "All" },
   { id: "architectural", label: "Architectural" },
   { id: "structural", label: "Structural" },
@@ -987,12 +1030,17 @@ const DRAWING_NAV_FILTERS: Array<{ id: DrawingNavigatorFilter; label: string }> 
 ];
 
 function getSheetDiscipline(sheet: any): DrawingNavigatorFilter | "other" {
-  const label = `${sheet?.sheetType || ""} ${getSheetLabel(sheet)}`.toLowerCase();
-  if (label.includes("structural") || /\bs[-\s]?\d/.test(label)) return "structural";
+  const label =
+    `${sheet?.sheetType || ""} ${getSheetLabel(sheet)}`.toLowerCase();
+  if (label.includes("structural") || /\bs[-\s]?\d/.test(label))
+    return "structural";
   if (label.includes("civil") || /\bc[-\s]?\d/.test(label)) return "civil";
-  if (label.includes("plumbing") || /\bp[-\s]?\d/.test(label)) return "plumbing";
-  if (label.includes("electrical") || /\be[-\s]?\d/.test(label)) return "electrical";
-  if (label.includes("architectural") || /\ba[-\s]?\d/.test(label)) return "architectural";
+  if (label.includes("plumbing") || /\bp[-\s]?\d/.test(label))
+    return "plumbing";
+  if (label.includes("electrical") || /\be[-\s]?\d/.test(label))
+    return "electrical";
+  if (label.includes("architectural") || /\ba[-\s]?\d/.test(label))
+    return "architectural";
   return "other";
 }
 
@@ -1009,14 +1057,22 @@ function itemReferencesSheet(
 }
 
 function buildSheetIntelligence(sheets: any[], items: any[]) {
-  const sheetById = new Map((sheets || []).map((sheet: any) => [sheet.id, sheet]));
+  const sheetById = new Map(
+    (sheets || []).map((sheet: any) => [sheet.id, sheet])
+  );
   return (sheets || []).map((sheet: any) => {
     const sheetItems = (items || []).filter((item: any) =>
       itemReferencesSheet(item, sheet, sheetById)
     );
-    const acceptedItems = sheetItems.filter((item: any) => isScopeIncludedItem(item));
-    const reviewItems = sheetItems.filter((item: any) => isScopeReviewItem(item));
-    const excludedItems = sheetItems.filter((item: any) => isScopeExcludedItem(item));
+    const acceptedItems = sheetItems.filter((item: any) =>
+      isScopeIncludedItem(item)
+    );
+    const reviewItems = sheetItems.filter((item: any) =>
+      isScopeReviewItem(item)
+    );
+    const excludedItems = sheetItems.filter((item: any) =>
+      isScopeExcludedItem(item)
+    );
     const openDecisions = reviewItems.filter((item: any) => !item.reviewed);
     const estimateImpact = acceptedItems.reduce(
       (sum, item) => sum + Number(item.extendedCost || 0),
@@ -1091,7 +1147,9 @@ function DrawingNavigatorDialog({
       const matchesSearch =
         !normalizedSearch ||
         sheetLabel.includes(normalizedSearch) ||
-        String(entry.sheet.sheetType || "").toLowerCase().includes(normalizedSearch) ||
+        String(entry.sheet.sheetType || "")
+          .toLowerCase()
+          .includes(normalizedSearch) ||
         itemText.includes(normalizedSearch);
       const matchesFilter =
         filter === "all" ||
@@ -1123,7 +1181,8 @@ function DrawingNavigatorDialog({
                 Drawing Navigator
               </DialogTitle>
               <DialogDescription className="text-[#716855]">
-                Browse the drawing set, jump to source sheets, and see what ConstructLine found on each page.
+                Browse the drawing set, jump to source sheets, and see what
+                ConstructLine found on each page.
               </DialogDescription>
             </div>
             <Badge className="border-blue-200 bg-blue-50 text-[#244c91]">
@@ -1165,7 +1224,8 @@ function DrawingNavigatorDialog({
               {visibleSheets.map(entry => {
                 const active = entry.sheet.id === activeSheet?.id;
                 const statusConfig =
-                  SHEET_STATUS_CONFIG[entry.sheet.status] || SHEET_STATUS_CONFIG.pending;
+                  SHEET_STATUS_CONFIG[entry.sheet.status] ||
+                  SHEET_STATUS_CONFIG.pending;
                 return (
                   <button
                     key={entry.sheet.id}
@@ -1183,10 +1243,13 @@ function DrawingNavigatorDialog({
                           {getSheetLabel(entry.sheet)}
                         </p>
                         <p className="mt-0.5 text-[11px] capitalize text-[#716855]">
-                          {entry.sheet.sheetType?.replace(/_/g, " ") || "Unclassified"}
+                          {entry.sheet.sheetType?.replace(/_/g, " ") ||
+                            "Unclassified"}
                         </p>
                       </div>
-                      <Badge className={`${statusConfig.color} border text-[10px]`}>
+                      <Badge
+                        className={`${statusConfig.color} border text-[10px]`}
+                      >
                         {statusConfig.label}
                       </Badge>
                     </div>
@@ -1225,7 +1288,9 @@ function DrawingNavigatorDialog({
                   Sheet Review Mode
                 </p>
                 <h3 className="truncate text-2xl font-semibold text-[#171714]">
-                  {activeSheet ? getSheetLabel(activeSheet) : "No drawing selected"}
+                  {activeSheet
+                    ? getSheetLabel(activeSheet)
+                    : "No drawing selected"}
                 </h3>
               </div>
               {activeSheet && (
@@ -1257,8 +1322,12 @@ function DrawingNavigatorDialog({
               ) : (
                 <div className="text-center text-[#716855]">
                   <FileImage className="mx-auto mb-3 h-12 w-12 opacity-40" />
-                  <p className="font-semibold text-[#171714]">No preview available</p>
-                  <p className="text-sm">This sheet is indexed, but no image is linked.</p>
+                  <p className="font-semibold text-[#171714]">
+                    No preview available
+                  </p>
+                  <p className="text-sm">
+                    This sheet is indexed, but no image is linked.
+                  </p>
                 </div>
               )}
             </div>
@@ -1319,7 +1388,10 @@ function DrawingNavigatorDialog({
                 <div className="flex items-center justify-between">
                   <span>High-value excluded</span>
                   <span className="font-mono font-semibold text-orange-800">
-                    {formatCurrency(activeEntry?.highValueExcluded || 0, currency)}
+                    {formatCurrency(
+                      activeEntry?.highValueExcluded || 0,
+                      currency
+                    )}
                   </span>
                 </div>
               </div>
@@ -1348,14 +1420,18 @@ function DrawingNavigatorDialog({
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => activeSheet && onOpenItem(item, activeSheet)}
+                      onClick={() =>
+                        activeSheet && onOpenItem(item, activeSheet)
+                      }
                       className="w-full rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3 text-left transition-colors hover:bg-white"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="line-clamp-2 text-sm font-semibold text-[#171714]">
                           {item.description}
                         </p>
-                        <Badge className={`${cue.className} shrink-0 border text-[10px]`}>
+                        <Badge
+                          className={`${cue.className} shrink-0 border text-[10px]`}
+                        >
                           {cue.label}
                         </Badge>
                       </div>
@@ -1364,7 +1440,10 @@ function DrawingNavigatorDialog({
                           {formatScopeReviewStatus(status)}
                         </span>
                         <span className="font-mono font-semibold text-[#8a6510]">
-                          {formatCurrency(Number(item.extendedCost || 0), currency)}
+                          {formatCurrency(
+                            Number(item.extendedCost || 0),
+                            currency
+                          )}
                         </span>
                       </div>
                     </button>
@@ -1372,7 +1451,8 @@ function DrawingNavigatorDialog({
                 })}
                 {topSheetItems.length === 0 && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-[#244c91]">
-                    No AI takeoff rows are tied to this sheet yet. It may be context-only or waiting for analysis.
+                    No AI takeoff rows are tied to this sheet yet. It may be
+                    context-only or waiting for analysis.
                   </div>
                 )}
               </div>
@@ -1411,7 +1491,9 @@ function AnomalyCenterDialog({
   onConfirmQuantity: (item: any) => void;
   onDismissItem: (item: any) => void;
 }) {
-  const [selectedAnomalyId, setSelectedAnomalyId] = useState<string | null>(null);
+  const [selectedAnomalyId, setSelectedAnomalyId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -1422,9 +1504,15 @@ function AnomalyCenterDialog({
     anomalies.find(anomaly => anomaly.id === selectedAnomalyId) ||
     anomalies[0] ||
     null;
-  const blockerCount = anomalies.filter(anomaly => anomaly.severity === "blocker").length;
-  const riskCount = anomalies.filter(anomaly => anomaly.severity === "risk").length;
-  const reviewCount = anomalies.filter(anomaly => anomaly.severity === "review").length;
+  const blockerCount = anomalies.filter(
+    anomaly => anomaly.severity === "blocker"
+  ).length;
+  const riskCount = anomalies.filter(
+    anomaly => anomaly.severity === "risk"
+  ).length;
+  const reviewCount = anomalies.filter(
+    anomaly => anomaly.severity === "review"
+  ).length;
 
   return (
     <Dialog open={open} onOpenChange={value => !value && onClose()}>
@@ -1436,7 +1524,9 @@ function AnomalyCenterDialog({
                 Discrepancy Review
               </DialogTitle>
               <DialogDescription className="text-[#716855]">
-                Find duplicate scope, zero-value accepted rows, high-value exclusions, low confidence, and traceability gaps before the bid is packaged.
+                Find duplicate scope, zero-value accepted rows, high-value
+                exclusions, low confidence, and traceability gaps before the bid
+                is packaged.
               </DialogDescription>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1461,7 +1551,10 @@ function AnomalyCenterDialog({
                 <div>
                   <p className="font-semibold">No obvious anomalies found</p>
                   <p className="mt-1 text-sm text-emerald-900/75">
-                    ConstructLine did not detect zero-value accepted scope, high-value exclusions, duplicate accepted rows, low-confidence rows, or source-link gaps in this project snapshot.
+                    ConstructLine did not detect zero-value accepted scope,
+                    high-value exclusions, duplicate accepted rows,
+                    low-confidence rows, or source-link gaps in this project
+                    snapshot.
                   </p>
                 </div>
               </div>
@@ -1502,19 +1595,25 @@ function AnomalyCenterDialog({
                             {anomaly.description}
                           </p>
                         </div>
-                        <Badge className={`${style.className} shrink-0 border text-[10px]`}>
+                        <Badge
+                          className={`${style.className} shrink-0 border text-[10px]`}
+                        >
                           {style.label}
                         </Badge>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                         <span className="font-semibold text-[#5d5546]">
-                          {anomaly.items.length} row{anomaly.items.length !== 1 ? "s" : ""}
+                          {anomaly.items.length} row
+                          {anomaly.items.length !== 1 ? "s" : ""}
                         </span>
-                        {typeof anomaly.amount === "number" && anomaly.amount > 0 && (
-                          <span className={`font-mono font-semibold ${style.accent}`}>
-                            {formatCurrency(anomaly.amount, currency)}
-                          </span>
-                        )}
+                        {typeof anomaly.amount === "number" &&
+                          anomaly.amount > 0 && (
+                            <span
+                              className={`font-mono font-semibold ${style.accent}`}
+                            >
+                              {formatCurrency(anomaly.amount, currency)}
+                            </span>
+                          )}
                       </div>
                     </button>
                   );
@@ -1529,8 +1628,13 @@ function AnomalyCenterDialog({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={`${ANOMALY_SEVERITY_STYLE[activeAnomaly.severity].className} border`}>
-                            {ANOMALY_SEVERITY_STYLE[activeAnomaly.severity].label}
+                          <Badge
+                            className={`${ANOMALY_SEVERITY_STYLE[activeAnomaly.severity].className} border`}
+                          >
+                            {
+                              ANOMALY_SEVERITY_STYLE[activeAnomaly.severity]
+                                .label
+                            }
                           </Badge>
                           <Badge className="border-[#d7c7aa] bg-white text-[#716855]">
                             {activeAnomaly.category}
@@ -1543,16 +1647,17 @@ function AnomalyCenterDialog({
                           {activeAnomaly.description}
                         </p>
                       </div>
-                      {typeof activeAnomaly.amount === "number" && activeAnomaly.amount > 0 && (
-                        <div className="rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-right">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
-                            Value at stake
-                          </p>
-                          <p className="mt-1 font-mono text-xl font-semibold text-[#8a6510]">
-                            {formatCurrency(activeAnomaly.amount, currency)}
-                          </p>
-                        </div>
-                      )}
+                      {typeof activeAnomaly.amount === "number" &&
+                        activeAnomaly.amount > 0 && (
+                          <div className="rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                              Value at stake
+                            </p>
+                            <p className="mt-1 font-mono text-xl font-semibold text-[#8a6510]">
+                              {formatCurrency(activeAnomaly.amount, currency)}
+                            </p>
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -1572,7 +1677,10 @@ function AnomalyCenterDialog({
                         const description =
                           item.description ||
                           String(item.notes || "")
-                            .replace(/\[Scope:\s*(?:included|review|excluded)\]\s*/gi, "")
+                            .replace(
+                              /\[Scope:\s*(?:included|review|excluded)\]\s*/gi,
+                              ""
+                            )
                             .trim() ||
                           "Untitled takeoff row";
                         return (
@@ -1589,7 +1697,9 @@ function AnomalyCenterDialog({
                                 {description}
                               </p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                <Badge className={`${cue.className} border text-[10px]`}>
+                                <Badge
+                                  className={`${cue.className} border text-[10px]`}
+                                >
                                   {cue.label}
                                 </Badge>
                                 <span className="whitespace-nowrap text-[11px] text-[#716855]">
@@ -1604,7 +1714,10 @@ function AnomalyCenterDialog({
                               {item.confidence ? `${item.confidence}%` : "—"}
                             </span>
                             <span className="whitespace-nowrap text-right font-mono text-xs font-semibold text-[#8a6510]">
-                              {formatCurrency(Number(item.extendedCost || 0), currency)}
+                              {formatCurrency(
+                                Number(item.extendedCost || 0),
+                                currency
+                              )}
                             </span>
                             <div className="flex flex-wrap items-center justify-end gap-1.5 text-right">
                               <Button
@@ -1613,7 +1726,11 @@ function AnomalyCenterDialog({
                                 className="h-7 border-blue-200 bg-blue-50 px-2 text-xs text-[#244c91] hover:!bg-blue-100 hover:!text-[#1f3f78]"
                                 onClick={() => onOpenSource(item)}
                                 disabled={!item.sheetId}
-                                title={item.sheetId ? "Open source drawing" : "No source drawing linked"}
+                                title={
+                                  item.sheetId
+                                    ? "Open source drawing"
+                                    : "No source drawing linked"
+                                }
                               >
                                 <FileImage className="mr-1 h-3 w-3" />
                                 Source
@@ -1633,7 +1750,9 @@ function AnomalyCenterDialog({
                                   variant="outline"
                                   size="sm"
                                   className="h-7 border-[#d7b44d] bg-[#fff7da] px-2 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
-                                  onClick={() => onApplyScopeDecision(item, "review", false)}
+                                  onClick={() =>
+                                    onApplyScopeDecision(item, "review", false)
+                                  }
                                   disabled={isPending}
                                   title="Move to review queue without counting it"
                                 >
@@ -1645,7 +1764,9 @@ function AnomalyCenterDialog({
                                 <Button
                                   size="sm"
                                   className="h-7 bg-emerald-600 px-2 text-xs text-white hover:bg-emerald-700"
-                                  onClick={() => onApplyScopeDecision(item, "included")}
+                                  onClick={() =>
+                                    onApplyScopeDecision(item, "included")
+                                  }
                                   disabled={isPending}
                                   title="Include in active bid total"
                                 >
@@ -1658,7 +1779,9 @@ function AnomalyCenterDialog({
                                   variant="outline"
                                   size="sm"
                                   className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
-                                  onClick={() => onApplyScopeDecision(item, "excluded")}
+                                  onClick={() =>
+                                    onApplyScopeDecision(item, "excluded")
+                                  }
                                   disabled={isPending}
                                   title="Exclude from active bid total"
                                 >
@@ -1731,7 +1854,10 @@ export default function TakeoffDetail() {
         : null;
 
   const [activeTab, setActiveTab] = useState(
-    initialTab === "estimate" || initialTab === "items" || initialTab === "sheets"
+    initialTab === "estimate" ||
+      initialTab === "submit" ||
+      initialTab === "items" ||
+      initialTab === "sheets"
       ? initialTab
       : "sheets"
   );
@@ -1773,7 +1899,9 @@ export default function TakeoffDetail() {
   const [showRollup, setShowRollup] = useState(false);
   const [showDrawingNavigator, setShowDrawingNavigator] = useState(false);
   const [showAnomalyCenter, setShowAnomalyCenter] = useState(false);
-  const [navigatorInitialSheetId, setNavigatorInitialSheetId] = useState<number | null>(null);
+  const [navigatorInitialSheetId, setNavigatorInitialSheetId] = useState<
+    number | null
+  >(null);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
   const [sheetScales, setSheetScales] = useState<
     Record<
@@ -3359,10 +3487,7 @@ export default function TakeoffDetail() {
   );
 
   const setAuditSectionOpen = useCallback(
-    (
-      section: "accepted" | "raw" | "excluded",
-      isOpen: boolean
-    ) => {
+    (section: "accepted" | "raw" | "excluded", isOpen: boolean) => {
       const sectionRef =
         section === "accepted"
           ? acceptedRowsRef
@@ -3614,9 +3739,7 @@ export default function TakeoffDetail() {
                 {project.name}
               </h1>
               {project.description && (
-                <p className="text-xs text-[#716855]">
-                  {project.description}
-                </p>
+                <p className="text-xs text-[#716855]">{project.description}</p>
               )}
             </div>
             {/* Rate Profile Quick-Switch */}
@@ -3827,6 +3950,13 @@ export default function TakeoffDetail() {
               <Calculator className="w-4 h-4 mr-2" />
               Estimate
             </TabsTrigger>
+            <TabsTrigger
+              value="submit"
+              className="data-[state=active]:bg-[#171714] data-[state=active]:text-white data-[state=active]:shadow-sm"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Submit
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── Sheets Tab ──────────────────────────────────────────────── */}
@@ -3835,7 +3965,7 @@ export default function TakeoffDetail() {
             {!(isProcessing && sheets.length > 0) && (
               <div
                 data-tour="takeoff-upload-area"
-                  className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all ${
+                className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all ${
                   dragOver
                     ? "border-[#d9a21a] bg-[#fff4cb]"
                     : "border-[#d7c7aa] hover:border-[#d9a21a] bg-white/80"
@@ -4079,7 +4209,8 @@ export default function TakeoffDetail() {
                   const statusConfig = isContextOnly
                     ? {
                         label: "Context Only",
-                        color: "bg-blue-50 text-[#244c91] border border-blue-200",
+                        color:
+                          "bg-blue-50 text-[#244c91] border border-blue-200",
                         icon: CheckCircle2,
                       }
                     : SHEET_STATUS_CONFIG[sheet.status] ||
@@ -4088,7 +4219,7 @@ export default function TakeoffDetail() {
                   return (
                     <Card
                       key={sheet.id}
-                    className="overflow-hidden border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_45px_rgba(41,37,28,0.1)] transition-all group hover:-translate-y-0.5 hover:border-[#d9a21a]"
+                      className="overflow-hidden border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_45px_rgba(41,37,28,0.1)] transition-all group hover:-translate-y-0.5 hover:border-[#d9a21a]"
                     >
                       {/* Sheet Thumbnail */}
                       <div
@@ -4343,88 +4474,91 @@ export default function TakeoffDetail() {
                         </Button>
                       )}
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowAnomalyCenter(true)}
-                        className={`h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] ${takeoffAnomalies.length > 0 ? "border-orange-300 bg-orange-50 text-orange-800" : ""}`}
-                      >
-                        <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                        {takeoffAnomalies.length > 0
-                          ? `${takeoffAnomalies.length} Anomalies`
-                          : "Review Anomalies"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={readyToPrice ? "default" : "outline"}
-                        disabled={!readyToPrice}
-                        onClick={() => setActiveTab("estimate")}
-                        className={
-                          readyToPrice
-                            ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            : "h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#8a806d]"
-                        }
-                      >
-                        <Calculator className="w-3.5 h-3.5 mr-1.5" />
-                        Price Bid
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAnomalyCenter(true)}
+                          className={`h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] ${takeoffAnomalies.length > 0 ? "border-orange-300 bg-orange-50 text-orange-800" : ""}`}
+                        >
+                          <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                          {takeoffAnomalies.length > 0
+                            ? `${takeoffAnomalies.length} Anomalies`
+                            : "Review Anomalies"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={readyToPrice ? "default" : "outline"}
+                          disabled={!readyToPrice}
+                          onClick={() => setActiveTab("estimate")}
+                          className={
+                            readyToPrice
+                              ? "h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "h-8 border-[#d7c7aa] bg-[#f7f4ed] text-[#8a806d]"
+                          }
+                        >
+                          <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                          Price Bid
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714]"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                              Actions
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]"
                           >
-                            <MoreHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                            Actions
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]">
-                          <DropdownMenuItem
-                            onClick={handleExportExcel}
-                            disabled={!items || items.length === 0}
-                            className={LIGHT_DROPDOWN_ITEM_CLASS}
-                          >
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-                            Export Excel
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={handleExportCsv}
-                            disabled={!items || items.length === 0}
-                            className={LIGHT_DROPDOWN_ITEM_CLASS}
-                          >
-                            <Download className="w-4 h-4 text-[#244c91]" />
-                            Export CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-[#eadcc4]" />
-                          <DropdownMenuItem
-                            onClick={() => setShowAddItem(true)}
-                            className={LIGHT_DROPDOWN_ITEM_CLASS}
-                          >
-                            <PlusCircle className="w-4 h-4 text-emerald-700" />
-                            Add Item
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setOpenSettingsToScope(true);
-                            }}
-                            className={LIGHT_DROPDOWN_ITEM_CLASS}
-                          >
-                            <FileText className="w-4 h-4 text-[#8a6510]" />
-                            Edit Scope
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setShowRollup(true)}
-                            disabled={
-                              !projectMarkups || projectMarkups.length === 0
-                            }
-                            className={LIGHT_DROPDOWN_ITEM_CLASS}
-                          >
-                            <Layers className="w-4 h-4 text-[#8a6510]" />
-                            Measurements
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              onClick={handleExportExcel}
+                              disabled={!items || items.length === 0}
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
+                            >
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                              Export Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={handleExportCsv}
+                              disabled={!items || items.length === 0}
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
+                            >
+                              <Download className="w-4 h-4 text-[#244c91]" />
+                              Export CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#eadcc4]" />
+                            <DropdownMenuItem
+                              onClick={() => setShowAddItem(true)}
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
+                            >
+                              <PlusCircle className="w-4 h-4 text-emerald-700" />
+                              Add Item
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setOpenSettingsToScope(true);
+                              }}
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
+                            >
+                              <FileText className="w-4 h-4 text-[#8a6510]" />
+                              Edit Scope
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setShowRollup(true)}
+                              disabled={
+                                !projectMarkups || projectMarkups.length === 0
+                              }
+                              className={LIGHT_DROPDOWN_ITEM_CLASS}
+                            >
+                              <Layers className="w-4 h-4 text-[#8a6510]" />
+                              Measurements
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <input
                         ref={importFileRef}
@@ -4938,7 +5072,10 @@ export default function TakeoffDetail() {
                               Actions
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]">
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-52 border-[#d7c7aa] bg-white text-[#171714] shadow-[0_18px_50px_rgba(41,37,28,0.16)]"
+                          >
                             <DropdownMenuItem
                               onClick={handleExportExcel}
                               disabled={!items || items.length === 0}
@@ -5272,7 +5409,7 @@ export default function TakeoffDetail() {
                                     </div>
                                   )}
                                 </div>
-                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#716855]">
+                                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#716855]">
                                   <span>
                                     Showing{" "}
                                     <span className="font-semibold text-[#171714]">
@@ -6844,7 +6981,46 @@ export default function TakeoffDetail() {
               excludedBoundaryCount={excludedItems.length}
               acceptedDirectCost={totalCost}
               onOpenReview={() => setActiveTab("items")}
+              onOpenSubmit={() => setActiveTab("submit")}
               onOpenSourceItem={item => setSelectedItem(item)}
+            />
+          </TabsContent>
+
+          {/* ─── Submit Tab ───────────────────────────────────────────── */}
+          <TabsContent value="submit">
+            <EstimateSummary
+              projectId={project.id}
+              projectName={project.name}
+              projectDescription={project.description || undefined}
+              items={activeItems || []}
+              sheets={sheets || []}
+              allowances={projectAllowances}
+              onAddAllowance={allowance => {
+                const existing = projectAllowances.some(
+                  a =>
+                    (a.description || "").toLowerCase() ===
+                    allowance.description.toLowerCase()
+                );
+                if (existing) {
+                  toast.info("Allowance already exists");
+                  return;
+                }
+                settingsMutation.mutate({
+                  projectId,
+                  allowances: [...projectAllowances, allowance],
+                });
+                toast.success("Allowance added");
+              }}
+              currency={project.currency || "USD"}
+              costRegion={project.costRegion}
+              enableResidentialQa={false}
+              reviewQueueCount={highImpactOpenBundles.length}
+              reviewQueueCost={highImpactOpenBundleCost}
+              excludedBoundaryCount={excludedItems.length}
+              acceptedDirectCost={totalCost}
+              onOpenReview={() => setActiveTab("items")}
+              onOpenSourceItem={item => setSelectedItem(item)}
+              submitOnly
             />
           </TabsContent>
         </Tabs>
@@ -6978,7 +7154,10 @@ export default function TakeoffDetail() {
                   const description =
                     previewItem.description ||
                     String(previewItem.notes || "")
-                      .replace(/\[Scope:\s*(?:included|review|excluded)\]\s*/gi, "")
+                      .replace(
+                        /\[Scope:\s*(?:included|review|excluded)\]\s*/gi,
+                        ""
+                      )
                       .trim() ||
                     "Untitled takeoff row";
                   return (
@@ -6990,7 +7169,9 @@ export default function TakeoffDetail() {
                         {description}
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                        <Badge className={`${cue.className} border text-[10px]`}>
+                        <Badge
+                          className={`${cue.className} border text-[10px]`}
+                        >
                           {cue.label}
                         </Badge>
                         <Badge className="border-[#d7c7aa] bg-[#faf8f2] text-[10px] text-[#716855]">
@@ -7004,7 +7185,8 @@ export default function TakeoffDetail() {
                             Quantity
                           </p>
                           <p className="mt-1 font-mono text-sm font-semibold text-[#171714]">
-                            {previewItem.quantity || "—"} {previewItem.unit || ""}
+                            {previewItem.quantity || "—"}{" "}
+                            {previewItem.unit || ""}
                           </p>
                         </div>
                         <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
@@ -7063,7 +7245,10 @@ export default function TakeoffDetail() {
                               size="sm"
                               className="h-9 bg-emerald-600 text-white hover:bg-emerald-700"
                               onClick={() =>
-                                applyPreviewScopeDecision(previewItem, "included")
+                                applyPreviewScopeDecision(
+                                  previewItem,
+                                  "included"
+                                )
                               }
                               disabled={updateItemMutation.isPending}
                             >
@@ -7077,7 +7262,11 @@ export default function TakeoffDetail() {
                               size="sm"
                               className="h-9 border-[#d7b44d] bg-[#fff7da] text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
                               onClick={() =>
-                                applyPreviewScopeDecision(previewItem, "review", false)
+                                applyPreviewScopeDecision(
+                                  previewItem,
+                                  "review",
+                                  false
+                                )
                               }
                               disabled={updateItemMutation.isPending}
                             >
@@ -7091,7 +7280,10 @@ export default function TakeoffDetail() {
                               size="sm"
                               className="h-9 border-orange-300 bg-orange-50 text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
                               onClick={() =>
-                                applyPreviewScopeDecision(previewItem, "excluded")
+                                applyPreviewScopeDecision(
+                                  previewItem,
+                                  "excluded"
+                                )
                               }
                               disabled={updateItemMutation.isPending}
                             >
@@ -7540,9 +7732,7 @@ function AddItemDialog({
               />
             </div>
             <div>
-              <Label className="text-xs text-[#716855] mb-1 block">
-                Unit
-              </Label>
+              <Label className="text-xs text-[#716855] mb-1 block">Unit</Label>
               <select
                 value={unit}
                 onChange={e => setUnit(e.target.value)}
@@ -7664,7 +7854,9 @@ function EditItemDialog({
     <Dialog open={!!item} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
         <DialogHeader>
-          <DialogTitle className="text-[#171714]">Edit Takeoff Item</DialogTitle>
+          <DialogTitle className="text-[#171714]">
+            Edit Takeoff Item
+          </DialogTitle>
           <DialogDescription className="text-[#716855]">
             Update the quantity, unit cost, or description.
           </DialogDescription>
@@ -7691,7 +7883,11 @@ function EditItemDialog({
             </div>
             <div className="space-y-2">
               <Label className="text-[#716855]">Unit</Label>
-              <Input value={unit} onChange={e => setUnit(e.target.value)} className="border-[#d7c7aa] bg-white text-[#171714]" />
+              <Input
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+                className="border-[#d7c7aa] bg-white text-[#171714]"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-[#716855]">
@@ -7729,7 +7925,11 @@ function EditItemDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className={LIGHT_OUTLINE_BUTTON_CLASS}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className={LIGHT_OUTLINE_BUTTON_CLASS}
+          >
             Cancel
           </Button>
           <Button

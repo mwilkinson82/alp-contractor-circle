@@ -279,7 +279,7 @@ export default function ConstructLineHub() {
   const openProject = (projectId: number) => navigate(`/takeoff/${projectId}`);
   const openSubmit = (projectId?: number) => {
     if (projectId) {
-      navigate(`/takeoff/${projectId}?tab=estimate`);
+      navigate(`/takeoff/${projectId}?tab=submit`);
       return;
     }
     navigate("/portal/takeoff");

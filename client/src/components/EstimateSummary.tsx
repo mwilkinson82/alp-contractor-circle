@@ -213,7 +213,9 @@ interface EstimateSummaryProps {
   excludedBoundaryCount?: number;
   acceptedDirectCost?: number;
   onOpenReview?: () => void;
+  onOpenSubmit?: () => void;
   onOpenSourceItem?: (item: any) => void;
+  submitOnly?: boolean;
 }
 
 export default function EstimateSummary({
@@ -232,7 +234,9 @@ export default function EstimateSummary({
   excludedBoundaryCount = 0,
   acceptedDirectCost,
   onOpenReview,
+  onOpenSubmit,
   onOpenSourceItem,
+  submitOnly = false,
 }: EstimateSummaryProps) {
   // ─── Data fetching ───────────────────────────────────────────────────
   const { data: markupData, isLoading: markupsLoading } =
@@ -1100,6 +1104,26 @@ export default function EstimateSummary({
     { label: "Proposal", value: proposalReadinessPct },
   ];
 
+  if (submitOnly) {
+    return (
+      <EstimateOutputs
+        projectName={projectName || `Project ${projectId}`}
+        projectDescription={projectDescription}
+        calculations={calculations}
+        markups={{
+          generalConditionsPct,
+          overheadPct,
+          profitPct,
+          contingencyPct,
+          bondPct,
+          taxPct,
+        }}
+        currency={currency}
+        costRegion={costRegion}
+      />
+    );
+  }
+
   return (
     <div className="space-y-7">
       <div className="overflow-hidden rounded-xl border border-[#cdbb98] bg-[#f7f3ea] text-[#171714] shadow-[0_28px_90px_rgba(40,34,22,0.22)]">
@@ -1381,13 +1405,14 @@ export default function EstimateSummary({
                     Accepted scope, labor basis, and markups are clear. Build
                     the proposal package next.
                   </p>
-                  <a
-                    href="#submit-package"
+                  <button
+                    type="button"
+                    onClick={onOpenSubmit}
                     className="mt-4 inline-flex h-9 items-center justify-center rounded-lg bg-[#171714] px-4 text-xs font-semibold text-white shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition-colors hover:bg-[#29251c]"
                   >
                     <Send className="mr-2 h-3.5 w-3.5" />
                     Open Submit Package
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
@@ -2332,22 +2357,6 @@ export default function EstimateSummary({
           </div>
         </div>
       </div>
-      {/* Export Documents */}
-      <EstimateOutputs
-        projectName={projectName || `Project ${projectId}`}
-        projectDescription={projectDescription}
-        calculations={calculations}
-        markups={{
-          generalConditionsPct,
-          overheadPct,
-          profitPct,
-          contingencyPct,
-          bondPct,
-          taxPct,
-        }}
-        currency={currency}
-        costRegion={costRegion}
-      />
       <Dialog
         open={!!selectedLaborItem}
         onOpenChange={open => {
