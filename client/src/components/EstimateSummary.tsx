@@ -45,6 +45,7 @@ import {
   CheckCircle2,
   Eye,
   FileImage,
+  Send,
 } from "lucide-react";
 import {
   TRADES,
@@ -254,7 +255,8 @@ export default function EstimateSummary({
   );
   const hasUserCrews = userCrews.length > 0;
   const sheetById = useMemo(
-    () => new Map((sheets || []).map((sheet: any) => [String(sheet.id), sheet])),
+    () =>
+      new Map((sheets || []).map((sheet: any) => [String(sheet.id), sheet])),
     [sheets]
   );
 
@@ -385,7 +387,10 @@ export default function EstimateSummary({
     if (!crewId) return 1;
     const descKey = `${(item.description || "").toLowerCase()}|${(item.unit || "").toLowerCase()}`;
     const existingActivity = activityMap.get(descKey);
-    if (existingActivity?.crewId === crewId && existingActivity.productivityPerCrewHr > 0) {
+    if (
+      existingActivity?.crewId === crewId &&
+      existingActivity.productivityPerCrewHr > 0
+    ) {
       return existingActivity.productivityPerCrewHr;
     }
     const crewInfo = crewCostMap.get(crewId);
@@ -398,7 +403,9 @@ export default function EstimateSummary({
 
   const openItemLaborEditor = (item: any) => {
     if (!hasUserCrews) {
-      toast.error("Set up your real crews before confirming labor on this item.");
+      toast.error(
+        "Set up your real crews before confirming labor on this item."
+      );
       window.location.href = "/portal/labor-library?tab=crews";
       return;
     }
@@ -1002,9 +1009,7 @@ export default function EstimateSummary({
       ? `${pctToDisplay(overheadPct + profitPct)}% O/H + profit`
       : "No markup set";
   const acceptedDirect = acceptedDirectCost ?? calculations.directCost;
-  const estimateDirectDelta = calculations.directCost - acceptedDirect;
-  const hasDirectDelta = Math.abs(estimateDirectDelta) >= 1;
-  const markupAndTax = calculations.grandTotal - calculations.directCost;
+  const markupAndTax = Math.max(0, calculations.grandTotal - acceptedDirect);
   const laborBasisOpen = defaultLaborCount + laborNeedsAttention;
   const laborBasisConfirmed = Math.max(
     0,
@@ -1130,7 +1135,9 @@ export default function EstimateSummary({
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.7fr)]">
               <div>
                 <p className="text-sm font-semibold text-[#716855]">
-                  {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
+                  {estimateModeLabel === "Bid-ready"
+                    ? "Ready Bid Total"
+                    : "Draft Bid Total"}
                 </p>
                 <p className="mt-2 text-5xl font-semibold tracking-normal text-[#11100c]">
                   {formatCurrency(calculations.grandTotal, currency)}
@@ -1154,24 +1161,19 @@ export default function EstimateSummary({
                   </div>
                   <div className="flex items-center justify-between gap-4 pt-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#171714]">
-                      {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
+                      {estimateModeLabel === "Bid-ready"
+                        ? "Ready Bid Total"
+                        : "Draft Bid Total"}
                     </span>
                     <span className="font-mono text-lg font-bold text-[#171714]">
                       {formatCurrency(calculations.grandTotal, currency)}
                     </span>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-[#716855]">
-                    Accepted Direct Cost is the top header number. Bid Total adds markup and tax so the estimator sees the final bid math in one place.
+                    Accepted Direct Cost is the top header number. Bid Total
+                    adds markup and tax so the estimator sees the final bid math
+                    in one place.
                   </p>
-                  {hasDirectDelta && (
-                    <p className="mt-2 text-[11px] text-[#8a6510]">
-                      Estimate direct is{" "}
-                      {formatCurrency(Math.abs(estimateDirectDelta), currency)}{" "}
-                      {estimateDirectDelta > 0 ? "higher" : "lower"} than the
-                      takeoff header because Estimate rebuilds the number from
-                      material, labor basis, and allowances.
-                    </p>
-                  )}
                 </div>
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <CommandMetric
@@ -1232,7 +1234,10 @@ export default function EstimateSummary({
                 </p>
                 <div className="mt-4 space-y-2">
                   {readinessChecks.map(check => (
-                    <div key={check.label} className="grid grid-cols-[112px_minmax(0,1fr)_38px] items-center gap-2">
+                    <div
+                      key={check.label}
+                      className="grid grid-cols-[112px_minmax(0,1fr)_38px] items-center gap-2"
+                    >
                       <span className="text-[11px] font-medium text-[#716855]">
                         {check.label}
                       </span>
@@ -1287,9 +1292,7 @@ export default function EstimateSummary({
               <PipelineStep
                 label="Proposal"
                 value={
-                  attentionItems.length > 0
-                    ? "Not ready"
-                    : "Ready to package"
+                  attentionItems.length > 0 ? "Not ready" : "Ready to package"
                 }
                 active={attentionItems.length === 0}
                 complete={attentionItems.length === 0}
@@ -1370,13 +1373,21 @@ export default function EstimateSummary({
                   </div>
                 ))
               ) : (
-                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
-                  <p className="text-sm font-semibold text-emerald-900">
-                    Estimate is ready to package
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
+                  <p className="text-sm font-semibold text-emerald-950">
+                    Estimate is ready to submit
                   </p>
-                  <p className="mt-1 text-xs text-emerald-800">
-                    Accepted scope, labor basis, and markups are clear.
+                  <p className="mt-1 text-xs leading-5 text-emerald-800">
+                    Accepted scope, labor basis, and markups are clear. Build
+                    the proposal package next.
                   </p>
+                  <a
+                    href="#submit-package"
+                    className="mt-4 inline-flex h-9 items-center justify-center rounded-lg bg-[#171714] px-4 text-xs font-semibold text-white shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition-colors hover:bg-[#29251c]"
+                  >
+                    <Send className="mr-2 h-3.5 w-3.5" />
+                    Open Submit Package
+                  </a>
                 </div>
               )}
             </div>
@@ -2005,7 +2016,11 @@ export default function EstimateSummary({
                                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#716855]">
                                   <span
                                     className={`inline-flex max-w-[260px] items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${sourceSheet ? "border-blue-200 bg-blue-50 text-[#244c91]" : "border-[#d7c7aa] bg-white/70 text-[#716855]"}`}
-                                    title={sourceSheet ? getSheetDisplayName(sourceSheet) : "No drawing source is linked to this estimate row yet"}
+                                    title={
+                                      sourceSheet
+                                        ? getSheetDisplayName(sourceSheet)
+                                        : "No drawing source is linked to this estimate row yet"
+                                    }
                                   >
                                     <FileImage className="h-3 w-3 shrink-0" />
                                     <span className="truncate">
@@ -2124,7 +2139,9 @@ export default function EstimateSummary({
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 shadow-[0_16px_40px_rgba(6,95,70,0.1)]">
             <p className="text-[10px] uppercase tracking-wider text-emerald-800/75">
-              {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
+              {estimateModeLabel === "Bid-ready"
+                ? "Ready Bid Total"
+                : "Draft Bid Total"}
             </p>
             <p className="mt-1 font-mono text-2xl font-semibold text-emerald-800">
               {formatCurrency(calculations.grandTotal, currency)}
@@ -2351,7 +2368,9 @@ export default function EstimateSummary({
                   {selectedLaborItem.description}
                 </p>
                 <p className="mt-1 text-xs text-[#716855]">
-                  {parseFloat(selectedLaborItem.quantity || "0").toLocaleString()}{" "}
+                  {parseFloat(
+                    selectedLaborItem.quantity || "0"
+                  ).toLocaleString()}{" "}
                   {selectedLaborItem.unit || "units"} · Division{" "}
                   {selectedLaborItem.csiDivision || "00"}
                 </p>
@@ -2542,9 +2561,9 @@ function StatusBadge({
       ? "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]"
       : normalized.includes("allowance")
         ? "bg-blue-50 text-blue-800 border-blue-200"
-      : normalized.includes("missing") || normalized.includes("draft")
-        ? "bg-orange-50 text-orange-800 border-orange-200"
-        : "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]";
+        : normalized.includes("missing") || normalized.includes("draft")
+          ? "bg-orange-50 text-orange-800 border-orange-200"
+          : "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]";
 
   return (
     <Badge
@@ -2646,10 +2665,10 @@ function ResidentialQaPanel({
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-[#171714] font-medium">{finding.title}</p>
-              <p className="text-xs text-[#716855] mt-0.5">
-                {finding.message}
+              <p className="text-sm text-[#171714] font-medium">
+                {finding.title}
               </p>
+              <p className="text-xs text-[#716855] mt-0.5">{finding.message}</p>
               <p className="text-xs text-[#8a6510] mt-1">{finding.action}</p>
               {finding.laborMatchStatus === "review_before_labor" && (
                 <Badge className="bg-blue-50 text-[#244c91] border-blue-200 text-[10px] mt-2">

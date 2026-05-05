@@ -10,23 +10,52 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import {
-  FileText, FileSpreadsheet, ClipboardList, Download, Loader2,
-  Building2, Settings2,
+  FileText,
+  FileSpreadsheet,
+  ClipboardList,
+  Download,
+  Loader2,
+  Building2,
+  Settings2,
+  Upload,
+  Palette,
+  LayoutTemplate,
+  Send,
+  BadgeCheck,
 } from "lucide-react";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
-  "01": "General Requirements", "02": "Existing Conditions", "03": "Concrete",
-  "04": "Masonry", "05": "Metals", "06": "Wood, Plastics & Composites",
-  "07": "Thermal & Moisture Protection", "08": "Openings", "09": "Finishes",
-  "10": "Specialties", "11": "Equipment", "12": "Furnishings",
-  "13": "Special Construction", "14": "Conveying Equipment",
-  "21": "Fire Suppression", "22": "Plumbing", "23": "HVAC",
-  "26": "Electrical", "27": "Communications", "28": "Electronic Safety & Security",
-  "31": "Earthwork", "32": "Exterior Improvements", "33": "Utilities",
+  "01": "General Requirements",
+  "02": "Existing Conditions",
+  "03": "Concrete",
+  "04": "Masonry",
+  "05": "Metals",
+  "06": "Wood, Plastics & Composites",
+  "07": "Thermal & Moisture Protection",
+  "08": "Openings",
+  "09": "Finishes",
+  "10": "Specialties",
+  "11": "Equipment",
+  "12": "Furnishings",
+  "13": "Special Construction",
+  "14": "Conveying Equipment",
+  "21": "Fire Suppression",
+  "22": "Plumbing",
+  "23": "HVAC",
+  "26": "Electrical",
+  "27": "Communications",
+  "28": "Electronic Safety & Security",
+  "31": "Earthwork",
+  "32": "Exterior Improvements",
+  "33": "Utilities",
 };
 
 function fmtCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(cents / 100);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
 }
 function fmtNum(cents: number): number {
   return Math.round(cents) / 100;
@@ -70,13 +99,24 @@ interface EstimateOutputsProps {
   costRegion?: string | null;
 }
 
-function pctDisplay(bps: number): string { return (bps / 100).toFixed(2); }
+function pctDisplay(bps: number): string {
+  return (bps / 100).toFixed(2);
+}
 
 export default function EstimateOutputs({
-  projectName, projectDescription, calculations, markups, currency, costRegion,
+  projectName,
+  projectDescription,
+  calculations,
+  markups,
+  currency,
+  costRegion,
 }: EstimateOutputsProps) {
   const [generating, setGenerating] = useState<string | null>(null);
-  const [showBranding, setShowBranding] = useState(false);
+  const [showBranding, setShowBranding] = useState(true);
+  const [proposalLayout, setProposalLayout] = useState<
+    "executive" | "formal" | "scope"
+  >("executive");
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
 
   // ─── Company branding fields ──────────────────────────────────────
   const [companyName, setCompanyName] = useState("");
@@ -84,6 +124,36 @@ export default function EstimateOutputs({
   const [companyPhone, setCompanyPhone] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [companyLicense, setCompanyLicense] = useState("");
+
+  const handleLogoUpload = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setLogoDataUrl(reader.result);
+        toast.success("Company logo attached");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const addLogo = (doc: jsPDF, pageW: number, x = pageW - 44, y = 10) => {
+    if (!logoDataUrl) return;
+    try {
+      doc.addImage(
+        logoDataUrl,
+        logoDataUrl.includes("image/png") ? "PNG" : "JPEG",
+        x,
+        y,
+        28,
+        16,
+        undefined,
+        "FAST"
+      );
+    } catch {
+      // If a browser-provided image type cannot be embedded, keep document generation working.
+    }
+  };
 
   // ─── Proposal client fields ───────────────────────────────────────
   const [clientName, setClientName] = useState("");
@@ -111,14 +181,30 @@ export default function EstimateOutputs({
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
       doc.text("BID SUMMARY", 14, 18);
+      addLogo(doc, pageW);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       if (companyName) doc.text(companyName, 14, 26);
       if (companyAddress) doc.text(companyAddress, 14, 32);
-      if (companyPhone || companyEmail) doc.text([companyPhone, companyEmail].filter(Boolean).join(" | "), 14, 38);
+      if (companyPhone || companyEmail)
+        doc.text(
+          [companyPhone, companyEmail].filter(Boolean).join(" | "),
+          14,
+          38
+        );
       doc.text(projectName, pageW - 14, 26, { align: "right" });
-      doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), pageW - 14, 32, { align: "right" });
-      if (costRegion) doc.text(`Region: ${costRegion}`, pageW - 14, 38, { align: "right" });
+      doc.text(
+        new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        pageW - 14,
+        32,
+        { align: "right" }
+      );
+      if (costRegion)
+        doc.text(`Region: ${costRegion}`, pageW - 14, 38, { align: "right" });
 
       let y = 55;
 
@@ -134,17 +220,39 @@ export default function EstimateOutputs({
         ];
       });
       if ((calculations.allowancesTotal || 0) > 0) {
-        divRows.push(["Allowances", "—", "—", fmtCurrency(calculations.allowancesTotal || 0)]);
+        divRows.push([
+          "Allowances",
+          "—",
+          "—",
+          fmtCurrency(calculations.allowancesTotal || 0),
+        ]);
       }
 
       autoTable(doc, {
         startY: y,
         head: [["CSI Division", "Material", "Crew Labor", "Subtotal"]],
         body: divRows,
-        foot: [["DIRECT COSTS TOTAL", fmtCurrency(calculations.totalMaterial), fmtCurrency(calculations.totalLabor), fmtCurrency(calculations.directCost)]],
+        foot: [
+          [
+            "DIRECT COSTS TOTAL",
+            fmtCurrency(calculations.totalMaterial),
+            fmtCurrency(calculations.totalLabor),
+            fmtCurrency(calculations.directCost),
+          ],
+        ],
         theme: "grid",
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontSize: 8, fontStyle: "bold" },
-        footStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontSize: 8,
+          fontStyle: "bold",
+        },
+        footStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: "bold",
+        },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
           0: { cellWidth: 80 },
@@ -161,12 +269,36 @@ export default function EstimateOutputs({
       const waterfallRows: string[][] = [
         ["Direct Costs", fmtCurrency(calculations.directCost)],
       ];
-      if (markups.generalConditionsPct > 0) waterfallRows.push([`+ General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`, fmtCurrency(calculations.generalConditions)]);
-      if (markups.overheadPct > 0) waterfallRows.push([`+ Overhead (${pctDisplay(markups.overheadPct)}%)`, fmtCurrency(calculations.overhead)]);
-      if (markups.profitPct > 0) waterfallRows.push([`+ Profit (${pctDisplay(markups.profitPct)}%)`, fmtCurrency(calculations.profit)]);
-      if (markups.contingencyPct > 0) waterfallRows.push([`+ Contingency (${pctDisplay(markups.contingencyPct)}%)`, fmtCurrency(calculations.contingency)]);
-      if (markups.bondPct > 0) waterfallRows.push([`+ Bond (${pctDisplay(markups.bondPct)}%)`, fmtCurrency(calculations.bond)]);
-      if (markups.taxPct > 0) waterfallRows.push([`+ Sales Tax on Materials (${pctDisplay(markups.taxPct)}%)`, fmtCurrency(calculations.tax)]);
+      if (markups.generalConditionsPct > 0)
+        waterfallRows.push([
+          `+ General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`,
+          fmtCurrency(calculations.generalConditions),
+        ]);
+      if (markups.overheadPct > 0)
+        waterfallRows.push([
+          `+ Overhead (${pctDisplay(markups.overheadPct)}%)`,
+          fmtCurrency(calculations.overhead),
+        ]);
+      if (markups.profitPct > 0)
+        waterfallRows.push([
+          `+ Profit (${pctDisplay(markups.profitPct)}%)`,
+          fmtCurrency(calculations.profit),
+        ]);
+      if (markups.contingencyPct > 0)
+        waterfallRows.push([
+          `+ Contingency (${pctDisplay(markups.contingencyPct)}%)`,
+          fmtCurrency(calculations.contingency),
+        ]);
+      if (markups.bondPct > 0)
+        waterfallRows.push([
+          `+ Bond (${pctDisplay(markups.bondPct)}%)`,
+          fmtCurrency(calculations.bond),
+        ]);
+      if (markups.taxPct > 0)
+        waterfallRows.push([
+          `+ Sales Tax on Materials (${pctDisplay(markups.taxPct)}%)`,
+          fmtCurrency(calculations.tax),
+        ]);
 
       autoTable(doc, {
         startY: y,
@@ -174,8 +306,18 @@ export default function EstimateOutputs({
         body: waterfallRows,
         foot: [["GRAND TOTAL", fmtCurrency(calculations.grandTotal)]],
         theme: "grid",
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontSize: 9, fontStyle: "bold" },
-        footStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontSize: 11, fontStyle: "bold" },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: "bold",
+        },
+        footStyles: {
+          fillColor: [217, 119, 6],
+          textColor: [255, 255, 255],
+          fontSize: 11,
+          fontStyle: "bold",
+        },
         bodyStyles: { fontSize: 9 },
         columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
         margin: { left: 14, right: 14 },
@@ -186,9 +328,14 @@ export default function EstimateOutputs({
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
       doc.text("Generated by ConstructLine — Powered by ALP", 14, pageH - 10);
-      if (companyLicense) doc.text(`License: ${companyLicense}`, pageW - 14, pageH - 10, { align: "right" });
+      if (companyLicense)
+        doc.text(`License: ${companyLicense}`, pageW - 14, pageH - 10, {
+          align: "right",
+        });
 
-      doc.save(`bid-summary-${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      doc.save(
+        `bid-summary-${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`
+      );
       toast.success("Bid Summary PDF downloaded");
     } catch (err) {
       console.error(err);
@@ -212,7 +359,12 @@ export default function EstimateOutputs({
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
-      doc.text("PROPOSAL", 14, 22);
+      doc.text(
+        proposalLayout === "formal" ? "CONTRACT PROPOSAL" : "PROPOSAL",
+        14,
+        22
+      );
+      addLogo(doc, pageW);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       if (companyName) {
@@ -221,7 +373,16 @@ export default function EstimateOutputs({
         if (companyPhone) doc.text(companyPhone, 14, 44);
       }
       doc.text(projectName, pageW - 14, 32, { align: "right" });
-      doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), pageW - 14, 38, { align: "right" });
+      doc.text(
+        new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        pageW - 14,
+        38,
+        { align: "right" }
+      );
 
       let y = 60;
 
@@ -252,7 +413,11 @@ export default function EstimateOutputs({
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
 
-      const scopeText = projectDescription || "Provide all labor, materials, equipment, and supervision necessary to complete the following work as described in the project documents:";
+      const scopeText =
+        projectDescription ||
+        (proposalLayout === "scope"
+          ? "This proposal is organized around the accepted scope extracted from the project documents, including the divisions listed below."
+          : "Provide all labor, materials, equipment, and supervision necessary to complete the following work as described in the project documents:");
       const scopeLines = doc.splitTextToSize(scopeText, pageW - 28);
       doc.text(scopeLines, 14, y);
       y += scopeLines.length * 5 + 5;
@@ -262,9 +427,16 @@ export default function EstimateOutputs({
         const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
         const data = calculations.byDivision[div];
         if (data.items.length > 0) {
-          doc.text(`• Division ${div} — ${divName} (${data.items.length} items)`, 18, y);
+          doc.text(
+            `• Division ${div} — ${divName} (${data.items.length} items)`,
+            18,
+            y
+          );
           y += 5;
-          if (y > pageH - 60) { doc.addPage(); y = 20; }
+          if (y > pageH - 60) {
+            doc.addPage();
+            y = 20;
+          }
         }
       }
 
@@ -279,16 +451,39 @@ export default function EstimateOutputs({
       autoTable(doc, {
         startY: y,
         body: [
-          ["Direct Costs (Material + Crew Labor + Allowances)", fmtCurrency(calculations.directCost)],
-          [`General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`, fmtCurrency(calculations.generalConditions)],
-          ["Overhead & Profit", fmtCurrency(calculations.overhead + calculations.profit)],
-          [`Contingency (${pctDisplay(markups.contingencyPct)}%)`, fmtCurrency(calculations.contingency)],
-          [`Bond (${pctDisplay(markups.bondPct)}%)`, fmtCurrency(calculations.bond)],
-          [`Sales Tax (${pctDisplay(markups.taxPct)}%)`, fmtCurrency(calculations.tax)],
+          [
+            "Direct Costs (Material + Crew Labor + Allowances)",
+            fmtCurrency(calculations.directCost),
+          ],
+          [
+            `General Conditions (${pctDisplay(markups.generalConditionsPct)}%)`,
+            fmtCurrency(calculations.generalConditions),
+          ],
+          [
+            "Overhead & Profit",
+            fmtCurrency(calculations.overhead + calculations.profit),
+          ],
+          [
+            `Contingency (${pctDisplay(markups.contingencyPct)}%)`,
+            fmtCurrency(calculations.contingency),
+          ],
+          [
+            `Bond (${pctDisplay(markups.bondPct)}%)`,
+            fmtCurrency(calculations.bond),
+          ],
+          [
+            `Sales Tax (${pctDisplay(markups.taxPct)}%)`,
+            fmtCurrency(calculations.tax),
+          ],
         ],
         foot: [["TOTAL CONTRACT PRICE", fmtCurrency(calculations.grandTotal)]],
         theme: "plain",
-        footStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontSize: 12, fontStyle: "bold" },
+        footStyles: {
+          fillColor: [217, 119, 6],
+          textColor: [255, 255, 255],
+          fontSize: 12,
+          fontStyle: "bold",
+        },
         bodyStyles: { fontSize: 9 },
         columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
         margin: { left: 14, right: 14 },
@@ -322,7 +517,10 @@ export default function EstimateOutputs({
         "5. This proposal excludes work not specifically described in the scope above.",
       ];
       for (const t of terms) {
-        if (y > pageH - 30) { doc.addPage(); y = 20; }
+        if (y > pageH - 30) {
+          doc.addPage();
+          y = 20;
+        }
         doc.text(t, 14, y);
         y += 5;
       }
@@ -354,11 +552,15 @@ export default function EstimateOutputs({
         doc.setTextColor(150, 150, 150);
         doc.text("Generated by ConstructLine — Powered by ALP", 14, pageH - 10);
         if (totalPages > 1) {
-          doc.text(`Page ${i} of ${totalPages}`, pageW - 14, pageH - 10, { align: "right" });
+          doc.text(`Page ${i} of ${totalPages}`, pageW - 14, pageH - 10, {
+            align: "right",
+          });
         }
       }
 
-      doc.save(`proposal-${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      doc.save(
+        `proposal-${projectName.replace(/\s+/g, "-").toLowerCase()}.pdf`
+      );
       toast.success("Proposal PDF downloaded");
     } catch (err) {
       console.error(err);
@@ -380,48 +582,126 @@ export default function EstimateOutputs({
       const g702Data: (string | number | null)[][] = [];
 
       // Header rows
-      g702Data.push(["AIA DOCUMENT G702 — APPLICATION AND CERTIFICATE FOR PAYMENT"]);
+      g702Data.push([
+        "AIA DOCUMENT G702 — APPLICATION AND CERTIFICATE FOR PAYMENT",
+      ]);
       g702Data.push([]);
-      g702Data.push(["TO OWNER:", ownerName || "(Owner Name)", "", "APPLICATION NO:", "1"]);
+      g702Data.push([
+        "TO OWNER:",
+        ownerName || "(Owner Name)",
+        "",
+        "APPLICATION NO:",
+        "1",
+      ]);
       g702Data.push(["PROJECT:", projectName, "", "PERIOD TO:", today]);
-      g702Data.push(["FROM CONTRACTOR:", companyName || "(Contractor Name)", "", "CONTRACT DATE:", contractDate || today]);
-      g702Data.push(["VIA ARCHITECT:", architectName || "(Architect Name)", "", "PROJECT NO:", projectNo || ""]);
+      g702Data.push([
+        "FROM CONTRACTOR:",
+        companyName || "(Contractor Name)",
+        "",
+        "CONTRACT DATE:",
+        contractDate || today,
+      ]);
+      g702Data.push([
+        "VIA ARCHITECT:",
+        architectName || "(Architect Name)",
+        "",
+        "PROJECT NO:",
+        projectNo || "",
+      ]);
       g702Data.push([]);
       g702Data.push(["CONTRACTOR'S APPLICATION FOR PAYMENT"]);
       g702Data.push([]);
 
       // 9-line calculation
       const originalContractSum = fmtNum(calculations.grandTotal);
-      g702Data.push(["1.", "ORIGINAL CONTRACT SUM", "", "", originalContractSum]);
+      g702Data.push([
+        "1.",
+        "ORIGINAL CONTRACT SUM",
+        "",
+        "",
+        originalContractSum,
+      ]);
       g702Data.push(["2.", "Net Change by Change Orders", "", "", 0]);
-      g702Data.push(["3.", "CONTRACT SUM TO DATE (Line 1 ± 2)", "", "", originalContractSum]);
-      g702Data.push(["4.", "TOTAL COMPLETED & STORED TO DATE (Column G on G703)", "", "", 0]);
+      g702Data.push([
+        "3.",
+        "CONTRACT SUM TO DATE (Line 1 ± 2)",
+        "",
+        "",
+        originalContractSum,
+      ]);
+      g702Data.push([
+        "4.",
+        "TOTAL COMPLETED & STORED TO DATE (Column G on G703)",
+        "",
+        "",
+        0,
+      ]);
       g702Data.push(["5.", "RETAINAGE"]);
       g702Data.push(["", `  a. ${retPct}% of Completed Work`, "", "", 0]);
       g702Data.push(["", `  b. ${retPct}% of Stored Material`, "", "", 0]);
       g702Data.push(["", "  Total Retainage (Lines 5a + 5b)", "", "", 0]);
-      g702Data.push(["6.", "TOTAL EARNED LESS RETAINAGE (Line 4 Less Line 5 Total)", "", "", 0]);
-      g702Data.push(["7.", "LESS PREVIOUS CERTIFICATES FOR PAYMENT", "", "", 0]);
+      g702Data.push([
+        "6.",
+        "TOTAL EARNED LESS RETAINAGE (Line 4 Less Line 5 Total)",
+        "",
+        "",
+        0,
+      ]);
+      g702Data.push([
+        "7.",
+        "LESS PREVIOUS CERTIFICATES FOR PAYMENT",
+        "",
+        "",
+        0,
+      ]);
       g702Data.push(["8.", "CURRENT PAYMENT DUE (Line 6 - Line 7)", "", "", 0]);
-      g702Data.push(["9.", "BALANCE TO FINISH, INCLUDING RETAINAGE (Line 3 - Line 6)", "", "", originalContractSum]);
+      g702Data.push([
+        "9.",
+        "BALANCE TO FINISH, INCLUDING RETAINAGE (Line 3 - Line 6)",
+        "",
+        "",
+        originalContractSum,
+      ]);
       g702Data.push([]);
       g702Data.push(["CONTRACTOR CERTIFICATION"]);
-      g702Data.push(["The undersigned Contractor certifies that to the best of the Contractor's knowledge,"]);
-      g702Data.push(["information and belief the Work covered by this Application for Payment has been"]);
+      g702Data.push([
+        "The undersigned Contractor certifies that to the best of the Contractor's knowledge,",
+      ]);
+      g702Data.push([
+        "information and belief the Work covered by this Application for Payment has been",
+      ]);
       g702Data.push(["completed in accordance with the Contract Documents."]);
       g702Data.push([]);
-      g702Data.push(["Contractor: ___________________________", "", "", "Date: _______________"]);
+      g702Data.push([
+        "Contractor: ___________________________",
+        "",
+        "",
+        "Date: _______________",
+      ]);
       g702Data.push([]);
       g702Data.push(["ARCHITECT'S CERTIFICATE FOR PAYMENT"]);
-      g702Data.push(["In accordance with the Contract Documents, the Architect certifies that to the best"]);
-      g702Data.push(["of the Architect's knowledge, the Work has progressed as indicated."]);
+      g702Data.push([
+        "In accordance with the Contract Documents, the Architect certifies that to the best",
+      ]);
+      g702Data.push([
+        "of the Architect's knowledge, the Work has progressed as indicated.",
+      ]);
       g702Data.push([]);
-      g702Data.push(["Architect: ___________________________", "", "", "Date: _______________"]);
+      g702Data.push([
+        "Architect: ___________________________",
+        "",
+        "",
+        "Date: _______________",
+      ]);
 
       const ws1 = XLSX.utils.aoa_to_sheet(g702Data);
       // Set column widths
       ws1["!cols"] = [
-        { wch: 5 }, { wch: 50 }, { wch: 15 }, { wch: 18 }, { wch: 18 },
+        { wch: 5 },
+        { wch: 50 },
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 18 },
       ];
       XLSX.utils.book_append_sheet(wb, ws1, "G702 - Application");
 
@@ -491,21 +771,25 @@ export default function EstimateOutputs({
 
       // Markup line items
       const markupItems: [string, number][] = [];
-      if (calculations.generalConditions > 0) markupItems.push(["General Conditions", fmtNum(calculations.generalConditions)]);
-      if (calculations.overhead > 0) markupItems.push(["Overhead", fmtNum(calculations.overhead)]);
-      if (calculations.profit > 0) markupItems.push(["Profit", fmtNum(calculations.profit)]);
-      if (calculations.contingency > 0) markupItems.push(["Contingency", fmtNum(calculations.contingency)]);
-      if (calculations.bond > 0) markupItems.push(["Bond", fmtNum(calculations.bond)]);
-      if (calculations.tax > 0) markupItems.push(["Sales Tax", fmtNum(calculations.tax)]);
+      if (calculations.generalConditions > 0)
+        markupItems.push([
+          "General Conditions",
+          fmtNum(calculations.generalConditions),
+        ]);
+      if (calculations.overhead > 0)
+        markupItems.push(["Overhead", fmtNum(calculations.overhead)]);
+      if (calculations.profit > 0)
+        markupItems.push(["Profit", fmtNum(calculations.profit)]);
+      if (calculations.contingency > 0)
+        markupItems.push(["Contingency", fmtNum(calculations.contingency)]);
+      if (calculations.bond > 0)
+        markupItems.push(["Bond", fmtNum(calculations.bond)]);
+      if (calculations.tax > 0)
+        markupItems.push(["Sales Tax", fmtNum(calculations.tax)]);
 
       for (const [name, amount] of markupItems) {
         totalScheduled += amount;
-        g703Data.push([
-          itemNum++,
-          name,
-          amount,
-          0, 0, 0, 0, "0%", amount, 0,
-        ]);
+        g703Data.push([itemNum++, name, amount, 0, 0, 0, 0, "0%", amount, 0]);
       }
 
       // Totals row
@@ -514,7 +798,13 @@ export default function EstimateOutputs({
         "",
         "CONTRACT TOTALS",
         totalScheduled,
-        0, 0, 0, 0, "0%", totalScheduled, 0,
+        0,
+        0,
+        0,
+        0,
+        "0%",
+        totalScheduled,
+        0,
       ]);
 
       const ws2 = XLSX.utils.aoa_to_sheet(g703Data);
@@ -534,7 +824,10 @@ export default function EstimateOutputs({
       XLSX.utils.book_append_sheet(wb, ws2, "G703 - SOV");
 
       // Download
-      XLSX.writeFile(wb, `AIA-G702-G703-SOV-${projectName.replace(/\s+/g, "-").toLowerCase()}.xlsx`);
+      XLSX.writeFile(
+        wb,
+        `AIA-G702-G703-SOV-${projectName.replace(/\s+/g, "-").toLowerCase()}.xlsx`
+      );
       toast.success("AIA G702/G703 SOV Excel downloaded");
     } catch (err) {
       console.error(err);
@@ -545,115 +838,307 @@ export default function EstimateOutputs({
   };
 
   return (
-    <div className="space-y-6 mt-6 rounded-xl border border-[#d7c7aa] bg-[#f4efe4] p-5 text-[#171714] shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
-      {/* Section header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-[#8a6510]" />
-          <div>
-            <h3 className="text-[#171714] font-semibold text-base">Export Documents</h3>
-            <p className="text-xs text-[#716855]">Submit = package the bid for the owner, client, or pay-app workflow.</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => setShowBranding(!showBranding)}
-          className="text-[#5d5546] hover:bg-white/70 hover:text-[#171714] gap-1.5 text-xs">
-          <Settings2 className="w-3.5 h-3.5" />
-          {showBranding ? "Hide" : "Company"} Branding
-        </Button>
-      </div>
-
-      {/* Company Branding Panel */}
-      {showBranding && (
-        <div className="bg-white/60 border border-[#d7c7aa] rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Building2 className="w-4 h-4 text-[#8a6510]" />
-            <h4 className="text-[#171714] font-medium text-sm">Company Branding</h4>
-            <span className="text-[#716855] text-xs">(appears on all documents)</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input placeholder="Company name" value={companyName} onChange={e => setCompanyName(e.target.value)}
-              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Company address" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)}
-              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Phone number" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)}
-              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Email address" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)}
-              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="License number (optional)" value={companyLicense} onChange={e => setCompanyLicense(e.target.value)}
-              className="h-8 text-sm bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Bid Summary */}
-        <div className="bg-white/65 border border-emerald-300 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <h4 className="text-[#171714] font-medium text-sm">Bid Summary</h4>
-          </div>
-          <p className="text-[#716855] text-xs">
-            One-page formatted estimate with division breakdown and markup waterfall. Includes your company branding.
+    <section
+      id="submit-package"
+      className="mt-7 overflow-hidden rounded-xl border border-[#bfae8c] bg-[#07090b] text-white shadow-[0_32px_100px_rgba(20,17,12,0.30)]"
+    >
+      <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="border-b border-white/10 p-6 lg:border-b-0 lg:border-r lg:p-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f1b51d]">
+            Submit
           </p>
-          <Button size="sm" onClick={generateBidSummary} disabled={generating === "bid"}
-            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white gap-1.5">
-            {generating === "bid" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Download PDF
-          </Button>
+          <h3 className="mt-4 text-3xl font-semibold leading-tight tracking-normal">
+            Package the bid like it belongs in the room.
+          </h3>
+          <p className="mt-4 text-sm leading-6 text-white/62">
+            Build the owner-facing package: proposal layout, company letterhead,
+            bid summary, and AIA schedule of values.
+          </p>
+          <div className="mt-6 rounded-lg border border-[#f1b51d]/25 bg-[#f1b51d]/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f1b51d]">
+              Contract total
+            </p>
+            <p className="mt-2 font-mono text-3xl font-semibold text-white">
+              {fmtCurrency(calculations.grandTotal)}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/54">
+              Direct cost, accepted labor basis, markups, bond, and tax are
+              ready for document output.
+            </p>
+          </div>
         </div>
 
-        {/* Proposal */}
-        <div className="bg-white/65 border border-blue-200 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="w-4 h-4 text-blue-400" />
-            <h4 className="text-[#171714] font-medium text-sm">Proposal</h4>
-          </div>
-          <p className="text-[#716855] text-xs">
-            Cover letter + scope + pricing + terms. Fill in client info below.
-          </p>
-          <div className="space-y-1.5">
-            <Input placeholder="Client name" value={clientName} onChange={e => setClientName(e.target.value)}
-              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Client company" value={clientCompany} onChange={e => setClientCompany(e.target.value)}
-              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Project address" value={projectAddress} onChange={e => setProjectAddress(e.target.value)}
-              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-          </div>
-          <Button size="sm" onClick={generateProposal} disabled={generating === "proposal"}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white gap-1.5">
-            {generating === "proposal" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Download PDF
-          </Button>
-        </div>
+        <div className="bg-[#f8f5ef] p-5 text-[#171714] lg:p-6">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
+            <div className="space-y-4">
+              <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <LayoutTemplate className="h-4 w-4 text-[#8a6510]" />
+                      <h4 className="font-semibold text-[#171714]">
+                        Proposal Layout
+                      </h4>
+                    </div>
+                    <p className="mt-1 text-sm text-[#716855]">
+                      Select the presentation style before generating the
+                      client-facing proposal.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBranding(!showBranding)}
+                    className="h-9 border-[#d7c7aa] bg-white text-[#5d5546] hover:!bg-[#faf8f2]"
+                  >
+                    <Settings2 className="mr-2 h-3.5 w-3.5" />
+                    {showBranding ? "Hide Assets" : "Company Assets"}
+                  </Button>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {[
+                    [
+                      "executive",
+                      "Executive",
+                      "Cover-first package with clean price emphasis.",
+                    ],
+                    [
+                      "formal",
+                      "Formal",
+                      "Contract-style proposal for institutional work.",
+                    ],
+                    [
+                      "scope",
+                      "Scope Detail",
+                      "Division-led package for complex trade review.",
+                    ],
+                  ].map(([value, label, detail]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        setProposalLayout(
+                          value as "executive" | "formal" | "scope"
+                        )
+                      }
+                      className={`rounded-lg border p-4 text-left transition-all ${
+                        proposalLayout === value
+                          ? "border-[#d7b44d] bg-[#fff7da] shadow-[0_16px_34px_rgba(138,101,16,0.12)]"
+                          : "border-[#eadcc4] bg-[#fffdf8] hover:border-[#d7b44d]"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-[#171714]">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-[#716855]">
+                        {detail}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-        {/* SOV — AIA G702/G703 Excel */}
-        <div className="bg-white/65 border border-[#d7b44d] rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-amber-400" />
-            <h4 className="text-[#171714] font-medium text-sm">Schedule of Values</h4>
-          </div>
-          <p className="text-[#716855] text-xs">
-            AIA G702/G703 Excel — 2 sheets: Application for Payment + Continuation Sheet (SOV). Editable in Excel.
-          </p>
-          <div className="space-y-1.5">
-            <Input placeholder="Owner name" value={ownerName} onChange={e => setOwnerName(e.target.value)}
-              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <Input placeholder="Architect name" value={architectName} onChange={e => setArchitectName(e.target.value)}
-              className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-            <div className="grid grid-cols-2 gap-1.5">
-              <Input placeholder="Project No." value={projectNo} onChange={e => setProjectNo(e.target.value)}
-                className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
-              <Input placeholder="Retainage %" value={retainagePct} onChange={e => setRetainagePct(e.target.value)}
-                className="h-7 text-xs bg-white/80 border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50" />
+              {showBranding && (
+                <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Palette className="h-4 w-4 text-[#8a6510]" />
+                        <h4 className="font-semibold text-[#171714]">
+                          Company Assets
+                        </h4>
+                      </div>
+                      <p className="mt-1 text-sm text-[#716855]">
+                        Add letterhead details once, then use them across
+                        proposal, bid summary, and SOV.
+                      </p>
+                    </div>
+                    <label className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-[#d7c7aa] bg-[#fffdf8] px-3 text-xs font-semibold text-[#5d5546] hover:bg-[#fff7da]">
+                      <Upload className="mr-2 h-3.5 w-3.5" />
+                      {logoDataUrl ? "Logo Attached" : "Upload Logo"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="hidden"
+                        onChange={e => handleLogoUpload(e.target.files?.[0])}
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <Input
+                      placeholder="Company name"
+                      value={companyName}
+                      onChange={e => setCompanyName(e.target.value)}
+                      className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                    <Input
+                      placeholder="Company address"
+                      value={companyAddress}
+                      onChange={e => setCompanyAddress(e.target.value)}
+                      className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                    <Input
+                      placeholder="Phone number"
+                      value={companyPhone}
+                      onChange={e => setCompanyPhone(e.target.value)}
+                      className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                    <Input
+                      placeholder="Email address"
+                      value={companyEmail}
+                      onChange={e => setCompanyEmail(e.target.value)}
+                      className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                    <Input
+                      placeholder="License number (optional)"
+                      value={companyLicense}
+                      onChange={e => setCompanyLicense(e.target.value)}
+                      className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50 md:col-span-2"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-[#d7c7aa] bg-white p-5 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-[#8a6510]" />
+                  <h4 className="font-semibold text-[#171714]">
+                    Recipient Details
+                  </h4>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <Input
+                    placeholder="Client name"
+                    value={clientName}
+                    onChange={e => setClientName(e.target.value)}
+                    className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                  <Input
+                    placeholder="Client company"
+                    value={clientCompany}
+                    onChange={e => setClientCompany(e.target.value)}
+                    className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                  <Input
+                    placeholder="Project address"
+                    value={projectAddress}
+                    onChange={e => setProjectAddress(e.target.value)}
+                    className="h-10 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                </div>
+              </div>
             </div>
+
+            <aside className="space-y-3">
+              {[
+                {
+                  key: "proposal",
+                  title: "Proposal",
+                  detail: "Client-ready cover, scope, pricing, and terms.",
+                  icon: ClipboardList,
+                  action: generateProposal,
+                  label: "Generate Proposal",
+                },
+                {
+                  key: "bid",
+                  title: "Bid Summary",
+                  detail:
+                    "Internal/external estimate summary with division totals.",
+                  icon: FileText,
+                  action: generateBidSummary,
+                  label: "Generate Summary",
+                },
+                {
+                  key: "sov",
+                  title: "AIA SOV Workbook",
+                  detail: "G702/G703 workbook with scheduled values.",
+                  icon: FileSpreadsheet,
+                  action: generateSOVExcel,
+                  label: "Generate SOV",
+                },
+              ].map(output => {
+                const OutputIcon = output.icon;
+                return (
+                  <div
+                    key={output.key}
+                    className="rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_36px_rgba(41,37,28,0.07)]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800">
+                        <OutputIcon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-[#171714]">
+                            {output.title}
+                          </p>
+                          <BadgeCheck className="h-3.5 w-3.5 text-emerald-700" />
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-[#716855]">
+                          {output.detail}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={output.action}
+                      disabled={generating === output.key}
+                      className="mt-4 h-10 w-full bg-[#171714] text-white hover:bg-[#29251c]"
+                    >
+                      {generating === output.key ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      {output.label}
+                    </Button>
+                  </div>
+                );
+              })}
+
+              <div className="rounded-xl border border-[#d7c7aa] bg-[#fffdf8] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                  SOV setup
+                </p>
+                <div className="mt-3 space-y-2">
+                  <Input
+                    placeholder="Owner name"
+                    value={ownerName}
+                    onChange={e => setOwnerName(e.target.value)}
+                    className="h-9 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                  <Input
+                    placeholder="Architect name"
+                    value={architectName}
+                    onChange={e => setArchitectName(e.target.value)}
+                    className="h-9 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Project No."
+                      value={projectNo}
+                      onChange={e => setProjectNo(e.target.value)}
+                      className="h-9 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                    <Input
+                      placeholder="Retainage %"
+                      value={retainagePct}
+                      onChange={e => setRetainagePct(e.target.value)}
+                      className="h-9 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                    />
+                  </div>
+                  <Input
+                    placeholder="Contract date"
+                    value={contractDate}
+                    onChange={e => setContractDate(e.target.value)}
+                    className="h-9 bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#716855]/50"
+                  />
+                </div>
+              </div>
+            </aside>
           </div>
-          <Button size="sm" onClick={generateSOVExcel} disabled={generating === "sov"}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white gap-1.5">
-            {generating === "sov" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Download AIA G702/G703 Excel
-          </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
