@@ -5,13 +5,18 @@
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
+import {
+  parseMemberCookie,
+  verifyMemberSession,
+  getMemberById,
+} from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
 import { storagePut } from "./storage";
 import {
   updateMemberPreferredCurrency,
-  getMemberPreferredCurrency} from "./memberDb";
+  getMemberPreferredCurrency,
+} from "./memberDb";
 import {
   createTakeoffProject,
   getTakeoffProjectsByMember,
@@ -46,10 +51,22 @@ import { logActivity } from "./activityLogDb";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
 import { normalizeTakeoffProjectType } from "../shared/projectType";
-import { DEFAULT_NEW_TAKEOFF_BID_MODE, normalizeTakeoffBidMode } from "../shared/bidMode";
+import {
+  DEFAULT_NEW_TAKEOFF_BID_MODE,
+  normalizeTakeoffBidMode,
+} from "../shared/bidMode";
 
-const takeoffProjectTypeSchema = z.enum(["commercial", "residential", "civil_sitework", "other"]);
-const takeoffBidModeSchema = z.enum(["full_gc", "trade_package", "fast_scope_check"]);
+const takeoffProjectTypeSchema = z.enum([
+  "commercial",
+  "residential",
+  "civil_sitework",
+  "other",
+]);
+const takeoffBidModeSchema = z.enum([
+  "full_gc",
+  "trade_package",
+  "fast_scope_check",
+]);
 
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
@@ -112,7 +129,8 @@ async function requireMember(req: any) {
   if (member.subscriptionStatus !== "active") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "An active Contractor Circle subscription is required to access this feature.",
+      message:
+        "An active Contractor Circle subscription is required to access this feature.",
     });
   }
   return member;
@@ -144,7 +162,10 @@ export const takeoffRouter = router({
       const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.id);
       if (!project || project.memberId !== member.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
       const sheets = await getDrawingSheetsByProject(input.id);
       return { ...project, sheets };
@@ -175,7 +196,7 @@ export const takeoffRouter = router({
       let divisionsJson: string | null = null;
       if (input.selectedDivisions && input.selectedDivisions.length > 0) {
         // Validate all codes are valid
-        const validCodes = input.selectedDivisions.filter((c) =>
+        const validCodes = input.selectedDivisions.filter(c =>
           ALL_TAKEOFF_DIVISION_CODES.includes(c)
         );
         if (validCodes.length > 0) {
@@ -200,14 +221,24 @@ export const takeoffRouter = router({
         description: input.description || null,
         currency: input.currency || "USD",
         projectType: normalizeTakeoffProjectType(input.projectType),
-        bidMode: normalizeTakeoffBidMode(input.bidMode, DEFAULT_NEW_TAKEOFF_BID_MODE),
+        bidMode: normalizeTakeoffBidMode(
+          input.bidMode,
+          DEFAULT_NEW_TAKEOFF_BID_MODE
+        ),
         selectedDivisions: divisionsJson,
         costRegion,
         costMultiplier,
       });
       // Log activity
-      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName, "takeoff_created", `created takeoff "${input.name}"`, `/portal/takeoff/${id}`);
+      const displayName =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName,
+        "takeoff_created",
+        `created takeoff "${input.name}"`,
+        `/portal/takeoff/${id}`
+      );
       return { id };
     }),
 
@@ -233,20 +264,25 @@ export const takeoffRouter = router({
       }
       const updates: any = {};
       if (input.name !== undefined) updates.name = input.name;
-      if (input.description !== undefined) updates.description = input.description;
-      if (input.rateProfileId !== undefined) updates.rateProfileId = input.rateProfileId;
-      if (input.projectType !== undefined) updates.projectType = normalizeTakeoffProjectType(input.projectType);
-      if (input.bidMode !== undefined) updates.bidMode = normalizeTakeoffBidMode(input.bidMode);
+      if (input.description !== undefined)
+        updates.description = input.description;
+      if (input.rateProfileId !== undefined)
+        updates.rateProfileId = input.rateProfileId;
+      if (input.projectType !== undefined)
+        updates.projectType = normalizeTakeoffProjectType(input.projectType);
+      if (input.bidMode !== undefined)
+        updates.bidMode = normalizeTakeoffBidMode(input.bidMode);
 
       // Handle division update
       if (input.selectedDivisions !== undefined) {
         if (input.selectedDivisions.length === 0) {
           updates.selectedDivisions = null;
         } else {
-          const validCodes = input.selectedDivisions.filter((c) =>
+          const validCodes = input.selectedDivisions.filter(c =>
             ALL_TAKEOFF_DIVISION_CODES.includes(c)
           );
-          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+          updates.selectedDivisions =
+            validCodes.length > 0 ? JSON.stringify(validCodes) : null;
         }
       }
 
@@ -327,8 +363,15 @@ export const takeoffRouter = router({
       });
 
       // Log activity
-      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName, "sheet_uploaded", `uploaded sheet "${input.filename}"`, `/portal/takeoff/${input.projectId}`);
+      const displayName =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName,
+        "sheet_uploaded",
+        `uploaded sheet "${input.filename}"`,
+        `/portal/takeoff/${input.projectId}`
+      );
       return { sheetId, imageUrl: url };
     }),
 
@@ -354,7 +397,11 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const results: Array<{ sheetId: number; pageNumber: number; imageUrl: string }> = [];
+      const results: Array<{
+        sheetId: number;
+        pageNumber: number;
+        imageUrl: string;
+      }> = [];
 
       for (const sheet of input.sheets) {
         const buffer = Buffer.from(sheet.imageData, "base64");
@@ -362,7 +409,11 @@ export const takeoffRouter = router({
         const randomSuffix = Math.random().toString(36).substring(2, 8);
         const fileKey = `takeoff/${member.id}/${input.projectId}/sheet-${sheet.pageNumber}-${randomSuffix}.${ext}`;
 
-        const { url, key } = await storagePut(fileKey, buffer, sheet.contentType);
+        const { url, key } = await storagePut(
+          fileKey,
+          buffer,
+          sheet.contentType
+        );
 
         const sheetId = await createDrawingSheet({
           projectId: input.projectId,
@@ -382,8 +433,15 @@ export const takeoffRouter = router({
       });
 
       // Log activity
-      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName, "sheet_uploaded", `uploaded ${input.sheets.length} sheet${input.sheets.length > 1 ? "s" : ""}`, `/portal/takeoff/${input.projectId}`);
+      const displayName =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName,
+        "sheet_uploaded",
+        `uploaded ${input.sheets.length} sheet${input.sheets.length > 1 ? "s" : ""}`,
+        `/portal/takeoff/${input.projectId}`
+      );
       return { sheets: results };
     }),
 
@@ -391,17 +449,19 @@ export const takeoffRouter = router({
 
   /** Start AI processing for all pending sheets in a project */
   startProcessing: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      /** Optional pre-analysis modal settings */
-      currency: z.enum(["USD", "GBP", "AUD"]).optional(),
-      costRegion: z.string().max(64).nullable().optional(),
-      selectedDivisions: z.array(z.string()).optional(),
-      scopeText: z.string().max(2000).nullable().optional(),
-      selectedSpecialties: z.array(z.string()).nullable().optional(),
-      projectType: takeoffProjectTypeSchema.optional(),
-      bidMode: takeoffBidModeSchema.optional(),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        /** Optional pre-analysis modal settings */
+        currency: z.enum(["USD", "GBP", "AUD"]).optional(),
+        costRegion: z.string().max(64).nullable().optional(),
+        selectedDivisions: z.array(z.string()).optional(),
+        scopeText: z.string().max(2000).nullable().optional(),
+        selectedSpecialties: z.array(z.string()).nullable().optional(),
+        projectType: takeoffProjectTypeSchema.optional(),
+        bidMode: takeoffBidModeSchema.optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
@@ -436,9 +496,10 @@ export const takeoffRouter = router({
       }
 
       if (input.selectedSpecialties !== undefined) {
-        updates.selectedSpecialties = input.selectedSpecialties && input.selectedSpecialties.length > 0
-          ? JSON.stringify(input.selectedSpecialties)
-          : null;
+        updates.selectedSpecialties =
+          input.selectedSpecialties && input.selectedSpecialties.length > 0
+            ? JSON.stringify(input.selectedSpecialties)
+            : null;
       }
 
       if (input.selectedDivisions !== undefined) {
@@ -448,7 +509,8 @@ export const takeoffRouter = router({
           const validCodes = input.selectedDivisions.filter((c: string) =>
             ALL_TAKEOFF_DIVISION_CODES.includes(c)
           );
-          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+          updates.selectedDivisions =
+            validCodes.length > 0 ? JSON.stringify(validCodes) : null;
         }
       }
 
@@ -470,12 +532,22 @@ export const takeoffRouter = router({
       }
 
       // Log activity
-      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName, "analysis_started", `started AI analysis on "${project.name}"`, `/portal/takeoff/${input.projectId}`);
+      const displayName =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName,
+        "analysis_started",
+        `started AI analysis on "${project.name}"`,
+        `/portal/takeoff/${input.projectId}`
+      );
 
       // Start processing in background (don't await)
-      processAllPendingSheets(input.projectId).catch((err) => {
-        console.error(`[Takeoff] Background processing error for project ${input.projectId}:`, err);
+      processAllPendingSheets(input.projectId).catch(err => {
+        console.error(
+          `[Takeoff] Background processing error for project ${input.projectId}:`,
+          err
+        );
       });
 
       return { success: true, message: "Processing started" };
@@ -494,7 +566,10 @@ export const takeoffRouter = router({
       const sheets = await getDrawingSheetsByProject(input.projectId);
       const sheet = sheets.find((s: any) => s.id === input.sheetId);
       if (!sheet || !sheet.imageUrl) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Sheet not found or has no image" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sheet not found or has no image",
+        });
       }
 
       // Parse selected divisions from project
@@ -502,10 +577,16 @@ export const takeoffRouter = router({
       if (project.selectedDivisions) {
         try {
           const parsed = JSON.parse(project.selectedDivisions);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length < ALL_TAKEOFF_DIVISION_CODES.length) {
+          if (
+            Array.isArray(parsed) &&
+            parsed.length > 0 &&
+            parsed.length < ALL_TAKEOFF_DIVISION_CODES.length
+          ) {
             selectedDivisions = parsed;
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       let selectedSpecialties: string[] | null = null;
@@ -513,16 +594,25 @@ export const takeoffRouter = router({
         try {
           const parsed = JSON.parse(project.selectedSpecialties);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            selectedSpecialties = parsed.filter((value) => typeof value === "string");
+            selectedSpecialties = parsed.filter(
+              value => typeof value === "string"
+            );
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       // Reset sheet status and clear previous error
-      await updateDrawingSheet(input.sheetId, { status: "pending" as any, errorMessage: null });
+      await updateDrawingSheet(input.sheetId, {
+        status: "pending" as any,
+        errorMessage: null,
+      });
 
       const markup = await getSheetMarkup(input.sheetId, member.id);
-      const savedScaleRatio = markup ? parseFloat(markup.scaleRatio as unknown as string) : null;
+      const savedScaleRatio = markup
+        ? parseFloat(markup.scaleRatio as unknown as string)
+        : null;
       const savedScaleUnit = markup?.scaleUnit || null;
 
       // Process in background
@@ -535,14 +625,21 @@ export const takeoffRouter = router({
         project.scopeText || null,
         null,
         selectedSpecialties,
-        Number.isFinite(savedScaleRatio) && savedScaleRatio && savedScaleRatio > 0 ? savedScaleRatio : null,
+        Number.isFinite(savedScaleRatio) &&
+          savedScaleRatio &&
+          savedScaleRatio > 0
+          ? savedScaleRatio
+          : null,
         savedScaleUnit,
         project.projectType || "commercial",
         project.bidMode || "trade_package"
       )
         .then(() => recalculateProjectTotal(input.projectId))
-        .catch((err) => {
-          console.error(`[Takeoff] Reprocess error for sheet ${input.sheetId}:`, err);
+        .catch(err => {
+          console.error(
+            `[Takeoff] Reprocess error for sheet ${input.sheetId}:`,
+            err
+          );
         });
 
       return { success: true };
@@ -600,13 +697,16 @@ export const takeoffRouter = router({
       }
 
       const updates: any = {};
-      if (input.description !== undefined) updates.description = input.description;
+      if (input.description !== undefined)
+        updates.description = input.description;
       if (input.quantity !== undefined) updates.quantity = input.quantity;
       if (input.unit !== undefined) updates.unit = input.unit;
       if (input.unitCost !== undefined) updates.unitCost = input.unitCost;
-      if (input.materialCost !== undefined) updates.materialCost = input.materialCost;
+      if (input.materialCost !== undefined)
+        updates.materialCost = input.materialCost;
       if (input.laborCost !== undefined) updates.laborCost = input.laborCost;
-      if (input.csiDivision !== undefined) updates.csiDivision = input.csiDivision;
+      if (input.csiDivision !== undefined)
+        updates.csiDivision = input.csiDivision;
       if (input.csiCode !== undefined) updates.csiCode = input.csiCode;
       if (input.notes !== undefined) updates.notes = input.notes;
       if (input.reviewed !== undefined) updates.reviewed = input.reviewed;
@@ -728,6 +828,36 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       const sheets = await getDrawingSheetsByProject(input.projectId);
+      const completedSheets = sheets.filter(
+        (s: any) => s.status === "completed"
+      );
+      const processingSheets = sheets.filter(
+        (s: any) => s.status === "processing"
+      );
+      const updatedAt = project.updatedAt
+        ? new Date(project.updatedAt).getTime()
+        : Date.now();
+      const postProcessingAgeMs = Date.now() - updatedAt;
+      if (
+        project.status === "post_processing" &&
+        processingSheets.length === 0 &&
+        completedSheets.length > 0 &&
+        postProcessingAgeMs > 6 * 60 * 1000
+      ) {
+        console.warn(
+          `[Takeoff] Project ${input.projectId} was stale in post_processing for ${Math.round(postProcessingAgeMs / 1000)}s; releasing extracted results.`
+        );
+        await recalculateProjectTotal(input.projectId);
+        await updateTakeoffProject(input.projectId, {
+          status: "completed",
+          processedSheets: completedSheets.length,
+          processingTimedOut: true,
+          lastAnalyzedAt: new Date(),
+        } as any);
+        project.status = "completed";
+        project.processedSheets = completedSheets.length;
+        project.processingTimedOut = true;
+      }
       return {
         status: project.status,
         totalSheets: project.totalSheets,
@@ -754,9 +884,13 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       const sheets = await getDrawingSheetsByProject(input.projectId);
-      const completedSheets = sheets.filter((s: any) => s.status === "completed");
+      const completedSheets = sheets.filter(
+        (s: any) => s.status === "completed"
+      );
       const errorSheets = sheets.filter((s: any) => s.status === "error");
-      const processingSheets = sheets.filter((s: any) => s.status === "processing");
+      const processingSheets = sheets.filter(
+        (s: any) => s.status === "processing"
+      );
       let finalStatus: string;
       if (processingSheets.length > 0) {
         finalStatus = "processing";
@@ -770,7 +904,12 @@ export const takeoffRouter = router({
         finalStatus = "completed";
       }
       await updateTakeoffProject(input.projectId, {
-        status: finalStatus as "draft" | "uploading" | "processing" | "completed" | "error",
+        status: finalStatus as
+          | "draft"
+          | "uploading"
+          | "processing"
+          | "completed"
+          | "error",
         processedSheets: completedSheets.length,
       });
       await recalculateProjectTotal(input.projectId);
@@ -811,17 +950,25 @@ export const takeoffRouter = router({
         selectedSpecialties: z.array(z.string()).nullable().optional(),
         scopeText: z.string().max(2000).nullable().optional(),
         /** Contractor-entered allowance items (residential selections etc.) */
-        allowances: z.array(z.object({
-          description: z.string().min(1).max(256),
-          amount: z.number().min(0), // in cents
-        })).nullable().optional(),
+        allowances: z
+          .array(
+            z.object({
+              description: z.string().min(1).max(256),
+              amount: z.number().min(0), // in cents
+            })
+          )
+          .nullable()
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
 
       const updates: any = {};
@@ -849,7 +996,9 @@ export const takeoffRouter = router({
 
       // Handle allowances update
       if (input.allowances !== undefined) {
-        updates.allowances = input.allowances ? JSON.stringify(input.allowances) : null;
+        updates.allowances = input.allowances
+          ? JSON.stringify(input.allowances)
+          : null;
       }
 
       // Handle division update (only affects future extractions, not existing items)
@@ -857,18 +1006,20 @@ export const takeoffRouter = router({
         if (input.selectedDivisions.length === 0) {
           updates.selectedDivisions = null;
         } else {
-          const validCodes = input.selectedDivisions.filter((c) =>
+          const validCodes = input.selectedDivisions.filter(c =>
             ALL_TAKEOFF_DIVISION_CODES.includes(c)
           );
-          updates.selectedDivisions = validCodes.length > 0 ? JSON.stringify(validCodes) : null;
+          updates.selectedDivisions =
+            validCodes.length > 0 ? JSON.stringify(validCodes) : null;
         }
       }
 
       // Handle specialty update (only affects future extractions)
       if (input.selectedSpecialties !== undefined) {
-        updates.selectedSpecialties = input.selectedSpecialties && input.selectedSpecialties.length > 0
-          ? JSON.stringify(input.selectedSpecialties)
-          : null;
+        updates.selectedSpecialties =
+          input.selectedSpecialties && input.selectedSpecialties.length > 0
+            ? JSON.stringify(input.selectedSpecialties)
+            : null;
       }
 
       // Handle region update (recalculates all existing item costs)
@@ -898,7 +1049,11 @@ export const takeoffRouter = router({
 
       // If region changed, recalculate all item costs
       if (regionChanged) {
-        await recalculateItemCosts(input.projectId, oldMultiplier, newMultiplier);
+        await recalculateItemCosts(
+          input.projectId,
+          oldMultiplier,
+          newMultiplier
+        );
       }
 
       return { success: true, regionChanged };
@@ -911,7 +1066,10 @@ export const takeoffRouter = router({
       const member = await requireAdminMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
       if (project.status !== "completed") {
         throw new TRPCError({
@@ -920,26 +1078,48 @@ export const takeoffRouter = router({
         });
       }
       // Run post-processing in background — use post_processing status so frontend shows consolidation overlay
-      await updateTakeoffProject(input.projectId, { status: "post_processing" as any });
-      // Wrap in a 10-minute timeout to prevent infinite hangs
-      const CONSOLIDATION_TIMEOUT_MS = 10 * 60 * 1000;
+      await updateTakeoffProject(input.projectId, {
+        status: "post_processing" as any,
+      });
+      // Keep manual consolidation bounded; the estimator can review preserved
+      // rows if final organization takes too long.
+      const CONSOLIDATION_TIMEOUT_MS = 3 * 60 * 1000;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Consolidation timed out after 5 minutes")), CONSOLIDATION_TIMEOUT_MS)
+        setTimeout(
+          () => reject(new Error("Consolidation timed out after 3 minutes")),
+          CONSOLIDATION_TIMEOUT_MS
+        )
       );
       Promise.race([postProcessTakeoff(input.projectId), timeoutPromise])
-        .then(async (stats) => {
-          console.log(`[Takeoff Router] Consolidation complete for project ${input.projectId}:`, stats);
-          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: false, lastAnalyzedAt: new Date() } as any);
+        .then(async stats => {
+          console.log(
+            `[Takeoff Router] Consolidation complete for project ${input.projectId}:`,
+            stats
+          );
+          await updateTakeoffProject(input.projectId, {
+            status: "completed",
+            processingTimedOut: false,
+            lastAnalyzedAt: new Date(),
+          } as any);
         })
-        .catch(async (err) => {
+        .catch(async err => {
           const isTimeout = err?.message?.includes("timed out");
-          console.error(`[Takeoff Router] Consolidation ${isTimeout ? "timed out" : "failed"} for project ${input.projectId}:`, err.message);
+          console.error(
+            `[Takeoff Router] Consolidation ${isTimeout ? "timed out" : "failed"} for project ${input.projectId}:`,
+            err.message
+          );
           // Recover gracefully — set completed with whatever items were already extracted
           // processingTimedOut flag lets the frontend show a partial-results warning
           await recalculateProjectTotal(input.projectId);
-          await updateTakeoffProject(input.projectId, { status: "completed", processingTimedOut: isTimeout } as any);
+          await updateTakeoffProject(input.projectId, {
+            status: "completed",
+            processingTimedOut: isTimeout,
+          } as any);
         });
-      return { success: true, message: "Post-processing started. Items will be consolidated shortly." };
+      return {
+        success: true,
+        message: "Post-processing started. Items will be consolidated shortly.",
+      };
     }),
 
   getSheetMarkup: publicProcedure
@@ -991,7 +1171,7 @@ export const takeoffRouter = router({
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx.req);
       const results = await Promise.all(
-        input.sheetIds.map((sheetId) =>
+        input.sheetIds.map(sheetId =>
           saveSheetMarkup({
             sheetId,
             memberId: member.id,
@@ -1020,19 +1200,24 @@ export const takeoffRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const { members } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
-      await db.update(members).set({
-        lastScaleIdx: input.lastScaleIdx,
-        lastPaperIdx: input.lastPaperIdx,
-      }).where(eq(members.id, member.id));
+      await db
+        .update(members)
+        .set({
+          lastScaleIdx: input.lastScaleIdx,
+          lastPaperIdx: input.lastPaperIdx,
+        })
+        .where(eq(members.id, member.id));
       return { success: true };
     }),
 
   /** Get member's last-used scale preference */
-  getScalePreference: publicProcedure
-    .query(async ({ ctx }) => {
-      const member = await requireMember(ctx.req);
-      return { lastScaleIdx: member.lastScaleIdx ?? 0, lastPaperIdx: member.lastPaperIdx ?? 0 };
-    }),
+  getScalePreference: publicProcedure.query(async ({ ctx }) => {
+    const member = await requireMember(ctx.req);
+    return {
+      lastScaleIdx: member.lastScaleIdx ?? 0,
+      lastPaperIdx: member.lastPaperIdx ?? 0,
+    };
+  }),
 
   deleteSheetMarkup: publicProcedure
     .input(z.object({ sheetId: z.number() }))
@@ -1047,7 +1232,7 @@ export const takeoffRouter = router({
     .query(async ({ ctx, input }) => {
       const member = await requireMember(ctx.req);
       const rows = await getProjectMarkups(input.projectId, member.id);
-      return rows.map((r) => ({
+      return rows.map(r => ({
         sheetId: r.sheetId,
         sheetName: r.sheetName || `Page ${r.pageNumber}`,
         pageNumber: r.pageNumber,
@@ -1059,16 +1244,18 @@ export const takeoffRouter = router({
 
   // ── Measurement History ─────────────────────────────────────────
   logMeasurementApply: publicProcedure
-    .input(z.object({
-      itemId: z.number(),
-      projectId: z.number(),
-      sheetId: z.number(),
-      measurementType: z.enum(["line", "area", "count"]),
-      rawValue: z.number(),
-      unit: z.string(),
-      sheetName: z.string().optional(),
-      itemDescription: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        itemId: z.number(),
+        projectId: z.number(),
+        sheetId: z.number(),
+        measurementType: z.enum(["line", "area", "count"]),
+        rawValue: z.number(),
+        unit: z.string(),
+        sheetName: z.string().optional(),
+        itemDescription: z.string().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx.req);
       const id = await logMeasurementApply({
@@ -1090,7 +1277,7 @@ export const takeoffRouter = router({
     .query(async ({ ctx, input }) => {
       await requireMember(ctx.req);
       const rows = await getItemMeasurementHistory(input.itemId);
-      return rows.map((r) => ({
+      return rows.map(r => ({
         id: r.id,
         itemId: r.itemId,
         sheetId: r.sheetId,
@@ -1117,32 +1304,39 @@ export const takeoffRouter = router({
    * creates new items for unmatched rows, and optionally removes items not in the import.
    */
   importExcel: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      /** Array of row objects parsed from Excel on the client */
-      rows: z.array(z.object({
-        csiCode: z.string().optional(),
-        description: z.string(),
-        quantity: z.number(),
-        unit: z.string(),
-        unitCost: z.number(), // in dollars (will be converted to cents)
-        confidence: z.number().optional(),
-        reviewed: z.boolean().optional(),
-        notes: z.string().optional(),
-      })),
-      /** If true, items not present in the import will be deleted */
-      removeUnmatched: z.boolean().default(false),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        /** Array of row objects parsed from Excel on the client */
+        rows: z.array(
+          z.object({
+            csiCode: z.string().optional(),
+            description: z.string(),
+            quantity: z.number(),
+            unit: z.string(),
+            unitCost: z.number(), // in dollars (will be converted to cents)
+            confidence: z.number().optional(),
+            reviewed: z.boolean().optional(),
+            notes: z.string().optional(),
+          })
+        ),
+        /** If true, items not present in the import will be deleted */
+        removeUnmatched: z.boolean().default(false),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx.req);
       const project = await getTakeoffProject(input.projectId);
       if (!project || project.memberId !== member.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
 
       // Get existing items for matching
       const existingItems = await getTakeoffItemsByProject(input.projectId);
-      
+
       // Get or create a manual sheet for new items
       const manualSheetId = await getOrCreateManualSheet(input.projectId);
 
@@ -1156,9 +1350,14 @@ export const takeoffRouter = router({
         try {
           // Try to match by description (case-insensitive) + CSI code
           const match = existingItems.find(item => {
-            const descMatch = item.description.toLowerCase().trim() === row.description.toLowerCase().trim();
-            const csiMatch = !row.csiCode || !item.csiCode || 
-              item.csiCode.replace(/\s/g, '') === row.csiCode.replace(/\s/g, '');
+            const descMatch =
+              item.description.toLowerCase().trim() ===
+              row.description.toLowerCase().trim();
+            const csiMatch =
+              !row.csiCode ||
+              !item.csiCode ||
+              item.csiCode.replace(/\s/g, "") ===
+                row.csiCode.replace(/\s/g, "");
             return descMatch && csiMatch && !matchedIds.has(item.id);
           });
 
@@ -1169,7 +1368,7 @@ export const takeoffRouter = router({
           if (match) {
             matchedIds.add(match.id);
             // Check if anything changed
-            const hasChanges = 
+            const hasChanges =
               parseFloat(String(match.quantity)) !== quantityNum ||
               match.unitCost !== unitCostCents ||
               match.unit !== row.unit ||
@@ -1183,7 +1382,9 @@ export const takeoffRouter = router({
                 extendedCost: extendedCostCents,
                 unit: row.unit,
                 ...(row.notes !== undefined ? { notes: row.notes } : {}),
-                ...(row.reviewed !== undefined ? { reviewed: row.reviewed } : {}),
+                ...(row.reviewed !== undefined
+                  ? { reviewed: row.reviewed }
+                  : {}),
               });
               updated++;
             }
@@ -1250,22 +1451,40 @@ export const takeoffRouter = router({
       // Parse snapshot from DB
       const snapshot = project.consolidationSnapshot as any[] | null;
       if (!snapshot || !Array.isArray(snapshot) || snapshot.length === 0) {
-        return { hasDiff: false, itemAnnotations: {} as Record<number, any>, removedItems: [] as any[] };
+        return {
+          hasDiff: false,
+          itemAnnotations: {} as Record<number, any>,
+          removedItems: [] as any[],
+        };
       }
 
       // Get current items
-      const currentItems = await getTakeoffItemsByProject(input.projectId) as any[];
+      const currentItems = (await getTakeoffItemsByProject(
+        input.projectId
+      )) as any[];
 
       // Build a lookup of snapshot items by description+division for fuzzy matching
       type SnapshotItem = {
-        id: number; csiDivision: string | null; csiCode: string | null;
-        description: string; quantity: string; unit: string;
-        unitCost: number; extendedCost: number; confidence: number;
-        notes: string | null; sheetId: number;
+        id: number;
+        csiDivision: string | null;
+        csiCode: string | null;
+        description: string;
+        quantity: string;
+        unit: string;
+        unitCost: number;
+        extendedCost: number;
+        confidence: number;
+        notes: string | null;
+        sheetId: number;
       };
 
       // Normalize description for matching
-      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+      const norm = (s: string) =>
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
 
       // Build map: normalized description → snapshot items
       const snapByDesc = new Map<string, SnapshotItem[]>();
@@ -1279,17 +1498,20 @@ export const takeoffRouter = router({
       const matchedSnapIds = new Set<number>();
 
       // Build per-current-item annotations
-      const itemAnnotations: Record<number, {
-        qtyBefore?: number;
-        qtyAfter?: number;
-        qtyChanged: boolean;
-        mergedFrom: number; // how many original items were combined
-        isNew: boolean;
-        unitCostBefore?: number;
-        unitCostAfter?: number;
-        costChanged: boolean;
-        mergedDescriptions?: string[]; // descriptions of merged source items
-      }> = {};
+      const itemAnnotations: Record<
+        number,
+        {
+          qtyBefore?: number;
+          qtyAfter?: number;
+          qtyChanged: boolean;
+          mergedFrom: number; // how many original items were combined
+          isNew: boolean;
+          unitCostBefore?: number;
+          unitCostAfter?: number;
+          costChanged: boolean;
+          mergedDescriptions?: string[]; // descriptions of merged source items
+        }
+      > = {};
 
       for (const ci of currentItems) {
         const key = `${(ci.csiDivision || "").trim()}|${norm(ci.description)}`;
@@ -1301,7 +1523,9 @@ export const takeoffRouter = router({
           let fuzzyMatches: SnapshotItem[] = [];
           for (const [k, v] of Array.from(snapByDesc.entries())) {
             if (k.startsWith(shortKey)) {
-              fuzzyMatches.push(...v.filter((s: SnapshotItem) => !matchedSnapIds.has(s.id)));
+              fuzzyMatches.push(
+                ...v.filter((s: SnapshotItem) => !matchedSnapIds.has(s.id))
+              );
             }
           }
 
@@ -1315,7 +1539,10 @@ export const takeoffRouter = router({
             };
           } else {
             // Fuzzy matched — treat as merged
-            const totalQtyBefore = fuzzyMatches.reduce((sum, s) => sum + parseFloat(s.quantity || "0"), 0);
+            const totalQtyBefore = fuzzyMatches.reduce(
+              (sum, s) => sum + parseFloat(s.quantity || "0"),
+              0
+            );
             const qtyAfter = parseFloat(ci.quantity || "0");
             for (const fm of fuzzyMatches) matchedSnapIds.add(fm.id);
             itemAnnotations[ci.id] = {
@@ -1327,9 +1554,10 @@ export const takeoffRouter = router({
               unitCostBefore: fuzzyMatches[0]?.unitCost,
               unitCostAfter: ci.unitCost,
               costChanged: fuzzyMatches[0]?.unitCost !== ci.unitCost,
-              mergedDescriptions: fuzzyMatches.length > 1
-                ? fuzzyMatches.map(s => s.description)
-                : undefined,
+              mergedDescriptions:
+                fuzzyMatches.length > 1
+                  ? fuzzyMatches.map(s => s.description)
+                  : undefined,
             };
           }
         } else if (matches.length === 1) {
@@ -1358,7 +1586,10 @@ export const takeoffRouter = router({
           // Multiple matches — items were merged into this one
           const unmatched = matches.filter(s => !matchedSnapIds.has(s.id));
           const toUse = unmatched.length > 0 ? unmatched : matches;
-          const totalQtyBefore = toUse.reduce((sum, s) => sum + parseFloat(s.quantity || "0"), 0);
+          const totalQtyBefore = toUse.reduce(
+            (sum, s) => sum + parseFloat(s.quantity || "0"),
+            0
+          );
           const qtyAfter = parseFloat(ci.quantity || "0");
           for (const m of toUse) matchedSnapIds.add(m.id);
 
@@ -1371,9 +1602,8 @@ export const takeoffRouter = router({
             unitCostBefore: toUse[0]?.unitCost,
             unitCostAfter: ci.unitCost,
             costChanged: toUse[0]?.unitCost !== ci.unitCost,
-            mergedDescriptions: toUse.length > 1
-              ? toUse.map(s => s.description)
-              : undefined,
+            mergedDescriptions:
+              toUse.length > 1 ? toUse.map(s => s.description) : undefined,
           };
         }
       }

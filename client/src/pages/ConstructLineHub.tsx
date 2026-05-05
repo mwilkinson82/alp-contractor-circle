@@ -320,7 +320,11 @@ export default function ConstructLineHub() {
           <Button
             size="sm"
             className="h-10 rounded-xl bg-[#111317] text-white hover:bg-[#1a1d23]"
-            onClick={() => navigate("/portal/takeoff")}
+            onClick={() =>
+              toast.info(
+                "Ask ConstructLine is coming soon. Use Discord for launch questions."
+              )
+            }
           >
             <Sparkles className="mr-2 h-4 w-4 text-[#f1b51d]" />
             Ask ConstructLine
@@ -696,7 +700,10 @@ export default function ConstructLineHub() {
               </section>
             </div>
 
-            <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]">
+            <section
+              id="constructline-tools"
+              className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_18px_55px_rgba(41,37,28,0.07)]"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -713,7 +720,11 @@ export default function ConstructLineHub() {
                   variant="ghost"
                   size="sm"
                   className="text-[#716855] hover:text-[#171714]"
-                  onClick={() => navigate("/portal/takeoff")}
+                  onClick={() =>
+                    document
+                      .getElementById("constructline-tools")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
                 >
                   View All Tools
                   <ArrowRight className="ml-2 h-4 w-4" />
