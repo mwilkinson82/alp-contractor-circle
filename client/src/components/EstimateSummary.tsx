@@ -904,12 +904,33 @@ export default function EstimateSummary({
   const estimateDirectDelta = calculations.directCost - acceptedDirect;
   const hasDirectDelta = Math.abs(estimateDirectDelta) >= 1;
   const markupAndTax = calculations.grandTotal - calculations.directCost;
+  const laborBasisOpen = defaultLaborCount + laborNeedsAttention;
+  const laborBasisConfirmed = Math.max(
+    0,
+    calculations.totalItems - laborBasisOpen
+  );
+  const scopeReadinessPct = hasOpenScope ? 62 : 100;
+  const pricingReadinessPct =
+    calculations.totalItems > 0 ? Math.round(pricedRowsPct * 100) : 100;
+  const laborReadinessPct =
+    calculations.totalItems > 0
+      ? Math.round((laborBasisConfirmed / calculations.totalItems) * 100)
+      : 100;
+  const markupReadinessPct = markupPctTotal > 0 ? 100 : 0;
+  const proposalReadinessPct =
+    hasOpenScope ||
+    materialNeedsAttention > 0 ||
+    laborNeedsAttention > 0 ||
+    defaultLaborCount > 0 ||
+    markupPctTotal === 0
+      ? 0
+      : 100;
   const attentionItems = [
     hasOpenScope
       ? {
           tone: "amber",
           label: "Scope",
-          title: "Review queue still open",
+          title: "Finish scope review",
           detail: `${reviewQueueCount} high-impact package${reviewQueueCount !== 1 ? "s" : ""} holding ${formatCurrency(reviewQueueCost, currency)} out of the bid.`,
           cta: "Open Review",
           action: onOpenReview,
@@ -919,7 +940,7 @@ export default function EstimateSummary({
       ? {
           tone: "red",
           label: "Cost",
-          title: "Missing quantity or material price",
+          title: "Resolve missing pricing",
           detail: `${materialNeedsAttention} accepted item${materialNeedsAttention !== 1 ? "s need" : " needs"} pricing cleanup before submit.`,
           cta: "Review Rows",
           action: undefined as (() => void) | undefined,
@@ -933,7 +954,7 @@ export default function EstimateSummary({
             ? "Confirm labor basis"
             : "Crew labor is not set up",
           detail: hasUserCrews
-            ? `${laborNeedsAttention + defaultLaborCount} item${laborNeedsAttention + defaultLaborCount !== 1 ? "s need" : " needs"} crew labor, library labor confirmation, or an explicit no-labor decision.`
+            ? `${laborBasisOpen} item${laborBasisOpen !== 1 ? "s are" : " is"} using default/library labor or still need an explicit labor call.`
             : "Build your crews once, then apply them to accepted scope.",
           cta: hasUserCrews ? "Confirm Labor" : "Set Up Crews",
           action: handleLaborCta,
@@ -965,11 +986,18 @@ export default function EstimateSummary({
       : defaultLaborCount > 0
         ? "Price review"
         : "Bid-ready";
+  const readinessChecks = [
+    { label: "Scope Review", value: scopeReadinessPct },
+    { label: "Pricing", value: pricingReadinessPct },
+    { label: "Labor Basis", value: laborReadinessPct },
+    { label: "Markup", value: markupReadinessPct },
+    { label: "Proposal", value: proposalReadinessPct },
+  ];
 
   return (
     <div className="space-y-7">
-      <div className="overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-        <div className="border-b border-[#d8c9ad] px-5 py-4 lg:px-6">
+      <div className="overflow-hidden rounded-xl border border-[#cdbb98] bg-[#f7f3ea] text-[#171714] shadow-[0_28px_90px_rgba(40,34,22,0.22)]">
+        <div className="border-b border-[#d8c9ad] bg-white/55 px-5 py-4 lg:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a6a19]">
@@ -997,39 +1025,43 @@ export default function EstimateSummary({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="p-5 lg:p-6">
+          <div className="bg-white/45 p-5 lg:p-6">
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.7fr)]">
               <div>
-                <p className="text-sm font-medium text-[#716855]">
-                  Bid Total = accepted direct + markup/tax
+                <p className="text-sm font-semibold text-[#716855]">
+                  {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
                 </p>
-                <p className="mt-2 text-5xl font-semibold tracking-normal text-[#15120d]">
+                <p className="mt-2 text-5xl font-semibold tracking-normal text-[#11100c]">
                   {formatCurrency(calculations.grandTotal, currency)}
                 </p>
-                <div className="mt-3 rounded-lg border border-[#d7c7aa] bg-white/60 px-3 py-2">
-                  <p className="text-xs font-semibold text-[#5d5546]">
-                    Why this is higher than the top green number:
-                  </p>
-                  <p className="mt-1 text-sm text-[#5d5546]">
-                    Top bar = accepted direct cost. Bid Total = accepted direct
-                    plus markup/tax.
-                  </p>
-                  <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
-                    <span>
-                      Accepted direct:{" "}
-                      <strong>{formatCurrency(acceptedDirect, currency)}</strong>
+                <div className="mt-4 rounded-xl border border-[#cdbb98] bg-[#fffdf8] p-4 shadow-[0_14px_34px_rgba(41,37,28,0.08)]">
+                  <div className="flex items-center justify-between gap-4 border-b border-[#eadcc4] pb-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                      Accepted Direct Cost
                     </span>
-                    <span>
-                      Markup/tax:{" "}
-                      <strong>{formatCurrency(markupAndTax, currency)}</strong>
-                    </span>
-                    <span>
-                      Bid total:{" "}
-                      <strong>
-                        {formatCurrency(calculations.grandTotal, currency)}
-                      </strong>
+                    <span className="font-mono text-sm font-semibold text-emerald-800">
+                      {formatCurrency(acceptedDirect, currency)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between gap-4 border-b border-[#eadcc4] py-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                      Markup + Tax
+                    </span>
+                    <span className="font-mono text-sm font-semibold text-[#8a6510]">
+                      {formatCurrency(markupAndTax, currency)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 pt-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#171714]">
+                      {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
+                    </span>
+                    <span className="font-mono text-lg font-bold text-[#171714]">
+                      {formatCurrency(calculations.grandTotal, currency)}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[#716855]">
+                    Accepted Direct Cost is the top header number. Bid Total adds markup and tax so the estimator sees the final bid math in one place.
+                  </p>
                   {hasDirectDelta && (
                     <p className="mt-2 text-[11px] text-[#8a6510]">
                       Estimate direct is{" "}
@@ -1042,7 +1074,7 @@ export default function EstimateSummary({
                 </div>
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <CommandMetric
-                    label="Accepted direct"
+                    label="Accepted Direct Cost"
                     value={formatCurrency(acceptedDirect, currency)}
                     tone="green"
                   />
@@ -1052,14 +1084,14 @@ export default function EstimateSummary({
                     tone={hasOpenScope ? "amber" : "gray"}
                   />
                   <CommandMetric
-                    label="Crew labor"
-                    value={`${calculations.laborItemsMatched}/${calculations.totalItems}`}
+                    label="Labor Basis"
+                    value={`${laborBasisConfirmed} of ${calculations.totalItems} confirmed`}
                     tone="blue"
                   />
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#d9c9aa] bg-white/65 p-4">
+              <div className="rounded-xl border border-[#cdbb98] bg-[#fffdf8] p-4 shadow-[0_14px_34px_rgba(41,37,28,0.08)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
@@ -1097,12 +1129,36 @@ export default function EstimateSummary({
                   {costedItems} of {calculations.totalItems} accepted rows have
                   pricing.
                 </p>
+                <div className="mt-4 space-y-2">
+                  {readinessChecks.map(check => (
+                    <div key={check.label} className="grid grid-cols-[112px_minmax(0,1fr)_38px] items-center gap-2">
+                      <span className="text-[11px] font-medium text-[#716855]">
+                        {check.label}
+                      </span>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[#ddd2bd]">
+                        <div
+                          className={
+                            check.value >= 80
+                              ? "h-full rounded-full bg-emerald-600"
+                              : check.value >= 50
+                                ? "h-full rounded-full bg-[#d9a21a]"
+                                : "h-full rounded-full bg-orange-600"
+                          }
+                          style={{ width: `${Math.min(100, check.value)}%` }}
+                        />
+                      </div>
+                      <span className="text-right font-mono text-[11px] font-semibold text-[#5d5546]">
+                        {check.value}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
               <PipelineStep
-                label="Review"
+                label="Scope Review"
                 value={
                   hasOpenScope
                     ? `${reviewQueueCount} decisions open`
@@ -1113,10 +1169,10 @@ export default function EstimateSummary({
                 tone="amber"
               />
               <PipelineStep
-                label="Estimate"
+                label="Pricing Review"
                 value={
-                  defaultLaborCount > 0 || laborNeedsAttention > 0
-                    ? `${defaultLaborCount + laborNeedsAttention} labor decisions`
+                  laborBasisOpen > 0
+                    ? `${laborBasisOpen} labor basis decisions`
                     : "Costs ready"
                 }
                 active={!hasOpenScope}
@@ -1128,10 +1184,10 @@ export default function EstimateSummary({
                 tone="blue"
               />
               <PipelineStep
-                label="Submit"
+                label="Proposal"
                 value={
                   attentionItems.length > 0
-                    ? "Not ready yet"
+                    ? "Not ready"
                     : "Ready to package"
                 }
                 active={attentionItems.length === 0}
@@ -1141,7 +1197,7 @@ export default function EstimateSummary({
             </div>
           </div>
 
-          <div className="border-t border-[#d8c9ad] bg-[#eee4d2] p-5 lg:border-l lg:border-t-0 lg:p-6">
+          <div className="border-t border-[#d8c9ad] bg-[#ebe0cc] p-5 lg:border-l lg:border-t-0 lg:p-6">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#5f5542]">
                 Decision Queue
@@ -1168,12 +1224,15 @@ export default function EstimateSummary({
             </div>
             <div className="mt-4 space-y-3">
               {attentionItems.length > 0 ? (
-                attentionItems.slice(0, 3).map(item => (
+                attentionItems.slice(0, 3).map((item, index) => (
                   <div
                     key={`${item.label}-${item.title}`}
-                    className="rounded-lg border border-[#d2c2a1] bg-white/70 p-3"
+                    className="rounded-lg border border-[#d2c2a1] bg-white/78 p-3 shadow-[0_10px_24px_rgba(41,37,28,0.06)]"
                   >
                     <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#171714] text-[11px] font-semibold text-white">
+                        {index + 1}
+                      </span>
                       <span
                         className={`h-2 w-2 rounded-full ${
                           item.tone === "red"
@@ -1193,6 +1252,20 @@ export default function EstimateSummary({
                     <p className="mt-1 text-xs leading-5 text-[#716855]">
                       {item.detail}
                     </p>
+                    {item.action ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={item.action}
+                        disabled={
+                          inferByTasksMutation.isPending ||
+                          saveMutation.isPending
+                        }
+                        className="mt-3 h-8 border-[#c8b895] bg-white text-[#29251c] hover:bg-[#faf8f2]"
+                      >
+                        {item.cta}
+                      </Button>
+                    ) : null}
                   </div>
                 ))
               ) : (
@@ -1903,14 +1976,14 @@ export default function EstimateSummary({
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 shadow-[0_16px_40px_rgba(6,95,70,0.1)]">
             <p className="text-[10px] uppercase tracking-wider text-emerald-800/75">
-              Bid Total
+              {estimateModeLabel === "Bid-ready" ? "Ready Bid Total" : "Draft Bid Total"}
             </p>
             <p className="mt-1 font-mono text-2xl font-semibold text-emerald-800">
               {formatCurrency(calculations.grandTotal, currency)}
             </p>
             <div className="mt-3 space-y-1.5 border-t border-emerald-300 pt-3">
               <WaterfallRow
-                label="Accepted direct"
+                label="Accepted direct cost"
                 value={acceptedDirect}
                 currency={currency}
               />
@@ -1925,10 +1998,10 @@ export default function EstimateSummary({
           <div className="bg-[#f4efe4] border border-[#d7c7aa] rounded-xl p-4 space-y-3 text-[#171714]">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-[#171714] font-semibold text-sm flex items-center gap-2">
-                <Percent className="w-4 h-4 text-amber-400" />
+                <Percent className="w-4 h-4 text-[#8a6510]" />
                 Markup Profile
               </h3>
-              <Badge className="bg-amber-500/12 text-amber-300 border-amber-500/25">
+              <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
                 {markupProfileLabel}
               </Badge>
             </div>
@@ -1990,7 +2063,7 @@ export default function EstimateSummary({
 
           <div className="bg-[#f4efe4] border border-[#d7c7aa] rounded-xl p-4 space-y-2 text-[#171714]">
             <h4 className="text-[#171714] font-medium text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
-              <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+              <TrendingUp className="w-3.5 h-3.5 text-[#8a6510]" />
               Cost Waterfall
             </h4>
             <WaterfallRow
@@ -2061,9 +2134,9 @@ export default function EstimateSummary({
           >
             <div className="flex items-start gap-3">
               {hasOpenScope ? (
-                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 text-[#8a6510]" />
               ) : (
-                <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-400" />
+                <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-700" />
               )}
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-semibold text-[#171714]">
@@ -2084,7 +2157,7 @@ export default function EstimateSummary({
                     size="sm"
                     variant="outline"
                     onClick={onOpenReview}
-                    className="mt-3 h-8 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                    className="mt-3 h-8 border-[#d7b44d] bg-white/80 text-[#8a6510] hover:bg-white"
                   >
                     Open Review
                   </Button>

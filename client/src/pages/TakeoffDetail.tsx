@@ -2621,7 +2621,7 @@ export default function TakeoffDetail() {
                   {formatCurrency(totalCost, project?.currency || "USD")}
                 </span>
                 <span className="text-emerald-700/70 text-xs">
-                  current included
+                  accepted direct cost
                 </span>
               </div>
             )}
