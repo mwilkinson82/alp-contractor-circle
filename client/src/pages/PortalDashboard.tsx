@@ -1,173 +1,188 @@
 /**
- * Member Dashboard — The Contractor Circle portal home.
- * Shows welcome message, subscription status, quick links, and upcoming events.
+ * Contractor Circle member dashboard.
+ *
+ * This is intentionally separate from the ConstructLine Hub. It routes members
+ * to calls, replays, templates, account details, and question/topic submission.
  */
+import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { useMember } from "@/hooks/useMember";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Crown,
+  ArrowRight,
   Calendar,
-  PlayCircle,
-  FileDown,
-  MessageSquare,
-  ExternalLink,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Zap,
-  Send,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Flame,
-  Mic2,
-  Video,
   CalendarPlus,
+  CheckCircle2,
+  ChevronRight,
+  CircleUserRound,
+  Clock,
+  ExternalLink,
+  FileDown,
+  LayoutGrid,
+  MessageSquare,
+  PlayCircle,
+  Send,
+  Settings,
+  Sparkles,
+  Video,
+  X,
 } from "lucide-react";
-import { SuccessStoriesForm } from "@/components/portal/SuccessStoriesForm";
-import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
-import { CalendarIntegration } from "@/components/portal/CalendarIntegration";
 
-const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
+const ZOOM_CALL_LINK =
+  "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
+const DEFAULT_BOOTCAMP_DATE = "2026-04-26";
+const DEFAULT_BOOTCAMP_TIME = "17:00";
+const DEFAULT_BOOTCAMP_DAY = "Sunday";
+const DEFAULT_BOOTCAMP_ZOOM =
+  "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
 
-const BOOTCAMP_POSTER_URL = "/manus-storage/BootcampPoster_6025f4ca.png";
-const BOOTCAMP_ZOOM_DIRECT = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
-
-/**
- * Featured hero banner for bootcamp day.
- * Shows the bootcamp poster image with a pulsing "LIVE TODAY" badge and Join Zoom CTA.
- * Only renders on the day of the bootcamp.
- */
-function BootcampHeroBanner() {
-  const [dismissed, setDismissed] = useState(false);
-
-  // Check if today is bootcamp day (April 26, 2026)
+function getNextCallDate(): Date {
+  const anchor = new Date(Date.UTC(2025, 2, 30, 21, 0, 0));
   const now = new Date();
-  const etOffset = -4; // EDT
-  const etHour = (now.getUTCHours() + etOffset + 24) % 24;
-  const etDate = new Date(now.getTime() + etOffset * 60 * 60 * 1000);
-  const todayStr = etDate.toISOString().slice(0, 10);
-  const isBootcampDay = todayStr === "2026-04-26";
-  const isBeforeEvent = etHour < 19; // Show until 7 PM ET (event ends ~7 PM)
+  const daysSinceAnchor = Math.floor(
+    (now.getTime() - anchor.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const cyclesPassed =
+    daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
+  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
+  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
+  return new Date(anchor.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
+}
 
-  if (dismissed || !isBootcampDay || !isBeforeEvent) return null;
+function getNextCallCycle(): string {
+  return getNextCallDate().toISOString().split("T")[0];
+}
 
+function formatDate(value?: string | Date | null): string {
+  if (!value) return "No date set";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No date set";
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatShortDate(value: Date): { month: string; day: string } {
+  return {
+    month: value
+      .toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })
+      .toUpperCase(),
+    day: value.toLocaleDateString("en-US", {
+      day: "2-digit",
+      timeZone: "UTC",
+    }),
+  };
+}
+
+function formatBootcampDisplay(
+  dateStr: string,
+  dayLabel: string,
+  timeStr: string
+): string {
+  const date = new Date(`${dateStr}T12:00:00Z`);
+  const month = date.toLocaleDateString("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  });
+  const [hour] = timeStr.split(":");
+  const hour24 = Number.parseInt(hour, 10);
+  const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+  const ampm = hour24 >= 12 ? "PM" : "AM";
+  return `${dayLabel}, ${month} ${date.getUTCDate()} at ${hour12} ${ampm} ET`;
+}
+
+function buildCalendarUrl({
+  title,
+  details,
+  start,
+  durationHours = 2,
+  location,
+}: {
+  title: string;
+  details: string;
+  start: Date;
+  durationHours?: number;
+  location: string;
+}) {
+  const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+  const format = (date: Date) =>
+    date
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z$/, "Z");
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+}
+
+function buildBootcampCalendarUrl(
+  dateStr: string,
+  timeStr: string,
+  zoomLink: string
+) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const [hour, minute] = timeStr.split(":").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, day, hour + 4, minute));
+  return buildCalendarUrl({
+    title: "Contractor Circle Monthly Bootcamp",
+    details: `Deep dive training with Contractor Circle.\n\nJoin Zoom:\n${zoomLink}`,
+    start,
+    durationHours: 2,
+    location: zoomLink,
+  });
+}
+
+function ModalShell({
+  title,
+  eyebrow,
+  icon: Icon,
+  children,
+  onClose,
+}: {
+  title: string;
+  eyebrow: string;
+  icon: typeof Send;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
   return (
-    <div className="relative rounded-2xl overflow-hidden border-2 border-ember/40 shadow-[0_0_40px_rgba(212,145,92,0.15)]">
-      {/* Dismiss button */}
-      <button
-        onClick={() => setDismissed(true)}
-        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/60 hover:text-white hover:bg-black/80 transition-all"
-      >
-        <X className="w-4 h-4" />
-      </button>
-
-      {/* Pulsing LIVE TODAY badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-        </span>
-        <span className="text-white text-xs font-bold uppercase tracking-widest bg-red-600/90 px-3 py-1 rounded-full shadow-lg">
-          Live Today — 5 PM ET
-        </span>
-      </div>
-
-      {/* Poster image */}
-      <a href={BOOTCAMP_ZOOM_DIRECT} target="_blank" rel="noopener noreferrer" className="block">
-        <img
-          src={BOOTCAMP_POSTER_URL}
-          alt="Contractor Circle Bootcamp — Today at 5 PM ET"
-          className="w-full object-contain rounded-2xl"
-        />
-      </a>
-
-      {/* CTA overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-center sm:text-left">
-            <p className="text-white font-heading font-bold text-lg sm:text-xl">Bootcamp starts at 5:00 PM ET</p>
-            <p className="text-white/60 text-sm">Click to join the Zoom meeting</p>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={event => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-[#d7c7aa] bg-[#fffdf8] shadow-[0_36px_110px_rgba(41,37,28,0.28)] sm:max-w-xl sm:rounded-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#eadcc4] bg-[#fffdf8]/96 px-6 py-5 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7c7aa] bg-[#fff4cb] text-[#8a6510]">
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
+                {eyebrow}
+              </p>
+              <h3 className="text-lg font-semibold text-[#171714]">{title}</h3>
+            </div>
           </div>
-          <a
-            href={BOOTCAMP_ZOOM_DIRECT}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-ember hover:bg-ember/90 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-ember/40 hover:shadow-ember/60 whitespace-nowrap text-base"
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-[#716855] transition-colors hover:bg-[#faf3e6] hover:text-[#171714]"
           >
-            <Video className="w-5 h-5" />
-            Join Zoom Now
-          </a>
+            <X className="h-4 w-4" />
+          </button>
         </div>
+        <div className="space-y-5 px-6 py-6">{children}</div>
       </div>
     </div>
   );
 }
 
-// Zoom recurring meeting link for bi-weekly Sunday calls at 5 PM ET
-// Update this URL when the Zoom meeting link changes
-const ZOOM_CALL_LINK = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
-
-/**
- * Returns the next Contractor Circle call date as a formatted string.
- * Calls are bi-weekly on Sundays at 5 PM ET, starting March 29, 2025.
- * Easter (April 20, 2025) is an off-week — the schedule skips it naturally
- * because March 29 → April 13 → April 27 (skipping April 20).
- */
-function getNextCallSunday(): string {
-  // Anchor date: first call is Sunday March 30, 2025
-  const ANCHOR = new Date(Date.UTC(2025, 2, 30)); // March 30, 2025 UTC (Sunday)
-  const now = new Date();
-  // Work in UTC days
-  const msSinceAnchor = now.getTime() - ANCHOR.getTime();
-  const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));
-  // How many 14-day cycles have passed?
-  const cyclesPassed = daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
-  // Next call = anchor + (cyclesPassed + 1) * 14 days, unless today IS a call day
-  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
-  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
-  const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
-  return nextCall.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { color: string; bg: string; label: string; icon: any }> = {
-    active: { color: "text-green-400", bg: "bg-green-500/10", label: "Active", icon: CheckCircle2 },
-    trialing: { color: "text-blue-400", bg: "bg-blue-500/10", label: "Trial", icon: Clock },
-    past_due: { color: "text-yellow-400", bg: "bg-yellow-500/10", label: "Past Due", icon: AlertCircle },
-    canceled: { color: "text-red-400", bg: "bg-red-500/10", label: "Canceled", icon: AlertCircle },
-    none: { color: "text-cream-muted", bg: "bg-white/5", label: "No Subscription", icon: AlertCircle },
-  };
-
-  const c = config[status] || config.none;
-  const Icon = c.icon;
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${c.color} ${c.bg}`}>
-      <Icon className="w-3 h-3" />
-      {c.label}
-    </span>
-  );
-}
-
-/**
- * Helper: returns the ISO date string for the next bi-weekly call cycle.
- */
-function getNextCallCycle(): string {
-  const ANCHOR = new Date(Date.UTC(2025, 2, 30)); // March 30, 2025 UTC (Sunday)
-  const now = new Date();
-  const msSinceAnchor = now.getTime() - ANCHOR.getTime();
-  const daysSinceAnchor = Math.floor(msSinceAnchor / (1000 * 60 * 60 * 24));
-  const cyclesPassed = daysSinceAnchor < 0 ? 0 : Math.floor(daysSinceAnchor / 14);
-  const isCallDay = daysSinceAnchor >= 0 && daysSinceAnchor % 14 === 0;
-  const nextCallOffset = isCallDay ? 0 : (cyclesPassed + 1) * 14;
-  const nextCall = new Date(ANCHOR.getTime() + nextCallOffset * 24 * 60 * 60 * 1000);
-  return nextCall.toISOString().split("T")[0];
-}
-
-// ─── Full-screen modal question form ─────────────────────────────────────────
-function QuestionModal({ onClose }: { onClose: () => void }) {
+function SubmitQuestionModal({ onClose }: { onClose: () => void }) {
   const [question, setQuestion] = useState("");
   const [context, setContext] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -183,159 +198,69 @@ function QuestionModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <ModalShell
+      title="Submit a Question"
+      eyebrow="Next live call"
+      icon={Send}
+      onClose={onClose}
     >
-      <div className="bg-[oklch(0.12_0.02_260)] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 sticky top-0 bg-[oklch(0.12_0.02_260)] z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-ember/10 flex items-center justify-center">
-              <Send className="w-4 h-4 text-ember" />
-            </div>
-            <div>
-              <h3 className="font-heading text-base font-bold text-cream">Submit a Question</h3>
-              <p className="text-cream-muted text-xs">Marshall reviews before each call</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+      {submitted ? (
+        <SuccessMessage
+          title="Question submitted"
+          detail="Marshall will review it before the next live call."
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <FieldLabel label="Your question" required />
+          <textarea
+            value={question}
+            onChange={event => setQuestion(event.target.value)}
+            placeholder="What's the most important thing you need clarity on before the next call?"
+            rows={5}
+            maxLength={1000}
+            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+            autoFocus
+          />
+          <FieldLabel label="Context" optional />
+          <textarea
+            value={context}
+            onChange={event => setContext(event.target.value)}
+            placeholder="Project size, what you tried, what is at stake..."
+            rows={3}
+            maxLength={2000}
+            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+          />
+          <Button
+            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20]"
+            disabled={question.trim().length < 10 || submitQuestion.isPending}
+            onClick={() =>
+              submitQuestion.mutate({
+                question,
+                context: context || undefined,
+                callCycle: getNextCallCycle(),
+              })
+            }
           >
-            <X className="w-4 h-4 text-cream-muted" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 py-6 space-y-5">
-          {submitted ? (
-            <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7 text-green-400" />
-              </div>
-              <div>
-                <p className="text-cream font-semibold text-lg">Question Submitted</p>
-                <p className="text-cream-muted text-sm mt-1">Marshall will review it before the next call.</p>
-              </div>
-              <button
-                onClick={onClose}
-                className="mt-2 px-6 py-2.5 rounded-xl bg-ember/10 border border-ember/20 text-ember text-sm font-semibold hover:bg-ember/20 transition-colors"
-              >
-                Done
-              </button>
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
-                  Your Question <span className="text-ember">*</span>
-                </label>
-                <textarea
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="What's the most important thing you need clarity on before the next call?"
-                  rows={4}
-                  maxLength={1000}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
-                  autoFocus
-                />
-                <p className="text-xs text-cream-muted/40 mt-1 text-right">{question.length}/1000</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
-                  Context <span className="text-cream-muted/40">(optional)</span>
-                </label>
-                <textarea
-                  value={context}
-                  onChange={(e) => setContext(e.target.value)}
-                  placeholder="Project size, what you've tried, what's at stake..."
-                  rows={3}
-                  maxLength={2000}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
-                />
-              </div>
-              <button
-                onClick={() => submitQuestion.mutate({ question, context: context || undefined, callCycle: getNextCallCycle() })}
-                disabled={question.trim().length < 10 || submitQuestion.isPending}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Send className="w-4 h-4" />
-                {submitQuestion.isPending ? "Submitting..." : "Submit Question"}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+            <Send className="mr-2 h-4 w-4" />
+            {submitQuestion.isPending ? "Submitting..." : "Submit Question"}
+          </Button>
+        </>
+      )}
+    </ModalShell>
   );
 }
 
-// ─── Monthly Bootcamp Topic Submission ────────────────────────────────────────
-// Fallback defaults (used while settings load or if DB is empty)
-const DEFAULT_BOOTCAMP_DATE = "2026-04-26";
-const DEFAULT_BOOTCAMP_TIME = "17:00";
-const DEFAULT_BOOTCAMP_DAY = "Sunday";
-const DEFAULT_BOOTCAMP_ZOOM = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
-
-/**
- * Generate a Google Calendar add link for the bootcamp.
- * Now accepts dynamic date/time/zoom from admin settings.
- */
-function getBootcampCalendarUrl(dateStr: string, timeStr: string, zoomLink: string) {
-  // Parse date and time into UTC start/end
-  const [year, month, day] = dateStr.split("-");
-  const [hour, minute] = timeStr.split(":");
-  // Convert ET to UTC: ET is UTC-4 (EDT) or UTC-5 (EST). Assume EDT for simplicity.
-  const hourUtc = (parseInt(hour) + 4).toString().padStart(2, "0");
-  const start = `${year}${month}${day}T${hourUtc}${minute}00Z`;
-  // End = start + 2 hours
-  const endHourUtc = (parseInt(hourUtc) + 2).toString().padStart(2, "0");
-  const end = `${year}${month}${day}T${endHourUtc}${minute}00Z`;
-
-  const title = encodeURIComponent("Contractor Circle Monthly Bootcamp");
-  const details = encodeURIComponent(
-    "Monthly Bootcamp \u2014 Deep dive session with Marshall and the Contractor Circle community.\n\n" +
-    "Join Zoom Meeting:\n" + zoomLink + "\n\n" +
-    "Come prepared: water, coffee, pen & paper. 90+ minutes. Audience participation expected."
-  );
-  const location = encodeURIComponent(zoomLink);
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
-}
-
-/**
- * Format a date string like "2026-04-26" + day label into display like "Sunday, April 26 at 5 PM ET"
- */
-function formatBootcampDisplay(dateStr: string, dayLabel: string, timeStr: string): string {
-  const d = new Date(dateStr + "T12:00:00"); // noon to avoid timezone shift
-  const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
-  const dayNum = d.getUTCDate();
-  // Format time: "17:00" → "5 PM"
-  const [h] = timeStr.split(":");
-  const hour24 = parseInt(h);
-  const ampm = hour24 >= 12 ? "PM" : "AM";
-  const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
-  return `${dayLabel}, ${month} ${dayNum} at ${hour12} ${ampm} ET`;
-}
-
-function BootcampTopicWidget() {
+function SubmitTopicModal({
+  onClose,
+  bootcampDate,
+}: {
+  onClose: () => void;
+  bootcampDate: string;
+}) {
   const [topic, setTopic] = useState("");
   const [reason, setReason] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-
-  // Fetch admin settings for dynamic bootcamp date
-  const { data: settingsData } = trpc.member.getSettings.useQuery(undefined, { retry: false, staleTime: 60_000 });
-  const settings = settingsData?.settings || {};
-
-  const NEXT_BOOTCAMP_DATE = settings.bootcamp_date || DEFAULT_BOOTCAMP_DATE;
-  const BOOTCAMP_TIME = settings.bootcamp_time || DEFAULT_BOOTCAMP_TIME;
-  const BOOTCAMP_DAY = settings.bootcamp_day_label || DEFAULT_BOOTCAMP_DAY;
-  const BOOTCAMP_ZOOM_LINK = settings.bootcamp_zoom_link || DEFAULT_BOOTCAMP_ZOOM;
-  const NEXT_BOOTCAMP_DISPLAY = formatBootcampDisplay(NEXT_BOOTCAMP_DATE, BOOTCAMP_DAY, BOOTCAMP_TIME);
-
-  const { data: myTopicsData } = trpc.member.myBootcampTopics.useQuery(undefined, { retry: false });
-  const { data: selectedData } = trpc.member.selectedBootcampTopics.useQuery({ bootcampDate: NEXT_BOOTCAMP_DATE }, { retry: false });
   const utils = trpc.useUtils();
 
   const submitTopic = trpc.member.submitBootcampTopic.useMutation({
@@ -344,546 +269,638 @@ function BootcampTopicWidget() {
       setTopic("");
       setReason("");
       utils.member.myBootcampTopics.invalidate();
-      setTimeout(() => { setSubmitted(false); setShowForm(false); }, 4000);
     },
   });
 
-  const myTopicsForDate = myTopicsData?.topics?.filter(
-    (t: any) => t.bootcampDate === NEXT_BOOTCAMP_DATE
-  ) ?? [];
-
-  // Countdown — compute from dynamic date + time
-  const [h, m] = BOOTCAMP_TIME.split(":");
-  const bootcampDate = new Date(`${NEXT_BOOTCAMP_DATE}T${(parseInt(h) + 4).toString().padStart(2, "0")}:${m}:00Z`); // ET → UTC
-  const now = new Date();
-  const daysUntil = Math.max(0, Math.ceil((bootcampDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-ember/30 bg-gradient-to-br from-ember/[0.08] via-transparent to-ember/[0.04]">
-      {/* Accent glow */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-ember via-[#FF8C42] to-ember" />
-
-      <div className="p-5 sm:p-7">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-ember/15 flex items-center justify-center shrink-0">
-              <Flame className="w-6 h-6 text-ember" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-ember/15 border border-ember/25 text-[10px] font-bold text-ember uppercase tracking-widest">
-                  Monthly Bootcamp
-                </span>
-                {daysUntil > 0 && (
-                  <span className="text-xs text-cream-muted">{daysUntil} day{daysUntil !== 1 ? 's' : ''} away</span>
-                )}
-              </div>
-              <h3 className="font-heading text-lg font-bold text-cream">
-                Submit Your Topic for the Next Bootcamp
-              </h3>
-              <p className="text-cream-muted text-sm mt-0.5">
-                {NEXT_BOOTCAMP_DISPLAY} — Marshall picks the topics, you bring the questions.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Zoom + Calendar action bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-5">
-          <a
-            href={BOOTCAMP_ZOOM_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2D8CFF]/15 border border-[#2D8CFF]/30 text-[#2D8CFF] text-sm font-semibold hover:bg-[#2D8CFF]/25 transition-colors"
+    <ModalShell
+      title="Submit a Bootcamp Topic"
+      eyebrow="Monthly bootcamp"
+      icon={MessageSquare}
+      onClose={onClose}
+    >
+      {submitted ? (
+        <SuccessMessage
+          title="Topic submitted"
+          detail="Marshall will review submissions while shaping the bootcamp."
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <FieldLabel label="Topic" required />
+          <input
+            value={topic}
+            onChange={event => setTopic(event.target.value)}
+            placeholder="e.g. Pricing change orders profitably"
+            maxLength={512}
+            className="h-12 w-full rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+            autoFocus
+          />
+          <FieldLabel label="Why this matters" optional />
+          <textarea
+            value={reason}
+            onChange={event => setReason(event.target.value)}
+            placeholder="What are you trying to solve in the field or in the business?"
+            rows={4}
+            maxLength={2000}
+            className="w-full resize-none rounded-xl border border-[#d7c7aa] bg-white px-4 py-3 text-sm text-[#171714] outline-none transition-colors placeholder:text-[#9d9484] focus:border-[#c48d12]"
+          />
+          <Button
+            className="h-11 w-full rounded-xl bg-[#090b0f] text-[#f1b51d] hover:bg-[#171a20]"
+            disabled={topic.trim().length < 5 || submitTopic.isPending}
+            onClick={() =>
+              submitTopic.mutate({
+                topic,
+                reason: reason || undefined,
+                bootcampDate,
+              })
+            }
           >
-            <Video className="w-4 h-4" />
-            Join on Zoom
-          </a>
-          <a
-            href={getBootcampCalendarUrl(NEXT_BOOTCAMP_DATE, BOOTCAMP_TIME, BOOTCAMP_ZOOM_LINK)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-cream text-sm font-semibold hover:bg-white/10 transition-colors"
-          >
-            <CalendarPlus className="w-4 h-4 text-ember" />
-            Add to Calendar
-          </a>
-        </div>
-
-        {/* Info bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-          <div className="flex items-center gap-2">
-            <Mic2 className="w-4 h-4 text-ember/70" />
-            <span className="text-xs text-cream-muted">90+ min deep dive</span>
-          </div>
-          <div className="w-px h-3 bg-white/10" />
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-ember/70" />
-            <span className="text-xs text-cream-muted">Audience participation expected</span>
-          </div>
-          <div className="w-px h-3 bg-white/10" />
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-ember/70" />
-            <span className="text-xs text-cream-muted">Come prepared: water, coffee, pen & paper</span>
-          </div>
-        </div>
-
-        {/* Submit button or form */}
-        {!showForm && !submitted ? (
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-all duration-300 shadow-lg shadow-ember/20 hover:shadow-ember/40"
-          >
-            <Send className="w-4 h-4" />
-            Submit a Topic for Consideration
-          </button>
-        ) : submitted ? (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-            <CheckCircle2 className="w-5 h-5 text-green-400" />
-            <span className="text-sm font-medium text-green-400">Topic submitted! Marshall will review all submissions and select topics for the bootcamp.</span>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
-                Your Topic <span className="text-ember">*</span>
-              </label>
-              <input
-                type="text"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                placeholder="e.g. How to price change orders profitably, Subcontractor management systems..."
-                maxLength={512}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-cream-muted mb-2 uppercase tracking-wider">
-                Why This Topic? <span className="text-cream-muted/40">(optional)</span>
-              </label>
-              <textarea
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                placeholder="What are you struggling with? What would make this valuable for you?"
-                rows={2}
-                maxLength={2000}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => submitTopic.mutate({ topic, reason: reason || undefined, bootcampDate: NEXT_BOOTCAMP_DATE })}
-                disabled={topic.trim().length < 5 || submitTopic.isPending}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ember text-obsidian text-sm font-bold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Send className="w-4 h-4" />
-                {submitTopic.isPending ? "Submitting..." : "Submit Topic"}
-              </button>
-              <button
-                onClick={() => { setShowForm(false); setTopic(""); setReason(""); }}
-                className="px-4 py-2.5 rounded-xl text-cream-muted text-sm hover:bg-white/5 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Selected Topics — Bootcamp Agenda */}
-        {(selectedData?.topics?.length ?? 0) > 0 && (
-          <div className="mt-5 pt-4 border-t border-white/5">
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle2 className="w-4 h-4 text-green-400" />
-              <p className="text-xs font-semibold text-green-400 uppercase tracking-wider">Confirmed Bootcamp Topics</p>
-            </div>
-            <div className="space-y-2">
-              {selectedData!.topics.map((t: any) => (
-                <div key={t.id} className="flex items-start gap-3 p-3 rounded-lg bg-green-500/[0.06] border border-green-500/15">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-cream text-sm font-medium leading-relaxed">{t.topic}</p>
-                    <p className="text-cream-muted/60 text-xs mt-0.5">Submitted by {t.memberName || t.memberUsername || "a member"}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Previously submitted topics */}
-        {myTopicsForDate.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-white/5">
-            <p className="text-xs font-medium text-cream-muted uppercase tracking-wider mb-3">Your Submitted Topics</p>
-            <div className="space-y-2">
-              {myTopicsForDate.map((t: any) => (
-                <div key={t.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.03]">
-                  <p className="text-cream text-xs leading-relaxed flex-1">{t.topic}</p>
-                  <span className={`text-xs shrink-0 ${
-                    t.status === "selected" ? "text-green-400" :
-                    t.status === "not_selected" ? "text-cream-muted/50" :
-                    "text-cream-muted"
-                  }`}>
-                    {t.status === "selected" ? "Selected \u2713" :
-                     t.status === "not_selected" ? "Not Selected" :
-                     "Submitted"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            <Send className="mr-2 h-4 w-4" />
+            {submitTopic.isPending ? "Submitting..." : "Submit Topic"}
+          </Button>
+        </>
+      )}
+    </ModalShell>
   );
 }
 
-function QuestionSubmitWidget() {
-  const [expanded, setExpanded] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [context, setContext] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const { data: myQuestionsData } = trpc.member.myQuestions.useQuery(undefined, { retry: false });
-  const utils = trpc.useUtils();
-
-  const submitQuestion = trpc.member.submitQuestion.useMutation({
-    onSuccess: () => {
-      setSubmitted(true);
-      setQuestion("");
-      setContext("");
-      utils.member.myQuestions.invalidate();
-      setTimeout(() => setSubmitted(false), 4000);
-    },
-  });
-
-  const pendingCount = myQuestionsData?.questions?.filter(
-    (q: any) => q.status === "pending" || q.status === "selected_for_call" || q.status === "selected_for_bootcamp"
-  ).length ?? 0;
-
-  const statusLabel: Record<string, { label: string; color: string }> = {
-    pending: { label: "Submitted", color: "text-cream-muted" },
-    selected_for_call: { label: "Selected for Call ✓", color: "text-green-400" },
-    selected_for_bootcamp: { label: "Selected for Bootcamp ✓", color: "text-blue-400" },
-    answered: { label: "Answered", color: "text-ember" },
-    archived: { label: "Archived", color: "text-cream-muted/50" },
-  };
-
+function FieldLabel({
+  label,
+  required,
+  optional,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+}) {
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.02] transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-ember/10 flex items-center justify-center shrink-0">
-            <Send className="w-5 h-5 text-ember" />
-          </div>
-          <div>
-            <h3 className="font-heading text-sm font-semibold text-cream">Submit a Question for the Next Call</h3>
-            <p className="text-cream-muted text-xs mt-0.5">
-              {pendingCount > 0
-                ? `${pendingCount} question${pendingCount > 1 ? "s" : ""} submitted — Marshall reviews before each call`
-                : "Marshall selects questions to work through live each session"}
-            </p>
-          </div>
-        </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-cream-muted" /> : <ChevronDown className="w-4 h-4 text-cream-muted" />}
-      </button>
-
-      {/* Expanded form */}
-      {expanded && (
-        <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 border-t border-white/5">
-          {submitted ? (
-            <div className="pt-4 flex items-center gap-3 text-green-400">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Question submitted. Marshall will review it before the next call.</span>
-            </div>
-          ) : (
-            <>
-              <div className="pt-4">
-                <label className="block text-xs font-medium text-cream-muted mb-2 uppercase tracking-wider">
-                  Your Question <span className="text-ember">*</span>
-                </label>
-                <textarea
-                  value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  placeholder="What's the most important thing you need clarity on before the next call?"
-                  rows={3}
-                  maxLength={1000}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
-                />
-                <p className="text-xs text-cream-muted/50 mt-1 text-right">{question.length}/1000</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-cream-muted mb-2 uppercase tracking-wider">
-                  Context / Background <span className="text-cream-muted/50">(optional)</span>
-                </label>
-                <textarea
-                  value={context}
-                  onChange={e => setContext(e.target.value)}
-                  placeholder="Any relevant details — project size, what you've tried, what's at stake..."
-                  rows={2}
-                  maxLength={2000}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-cream text-sm placeholder:text-cream-muted/50 focus:outline-none focus:border-ember/40 resize-none"
-                />
-              </div>
-              <button
-                onClick={() => submitQuestion.mutate({ question, context: context || undefined, callCycle: getNextCallCycle() })}
-                disabled={question.trim().length < 10 || submitQuestion.isPending}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ember text-obsidian text-sm font-semibold hover:bg-ember/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Send className="w-4 h-4" />
-                {submitQuestion.isPending ? "Submitting..." : "Submit Question"}
-              </button>
-            </>
-          )}
-
-          {/* Past questions */}
-          {(myQuestionsData?.questions?.length ?? 0) > 0 && (
-            <div className="pt-2 border-t border-white/5">
-              <p className="text-xs font-medium text-cream-muted uppercase tracking-wider mb-3">Your Submitted Questions</p>
-              <div className="space-y-2">
-                {myQuestionsData!.questions.slice(0, 5).map((q: any) => (
-                  <div key={q.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.03]">
-                    <p className="text-cream text-xs leading-relaxed flex-1">{q.question}</p>
-                    <span className={`text-xs shrink-0 ${statusLabel[q.status]?.color || "text-cream-muted"}`}>
-                      {statusLabel[q.status]?.label || q.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+    <label className="-mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+      {label}
+      {required && <span className="text-[#c48d12]"> *</span>}
+      {optional && (
+        <span className="ml-1 normal-case tracking-normal text-[#9d9484]">
+          optional
+        </span>
       )}
+    </label>
+  );
+}
+
+function SuccessMessage({
+  title,
+  detail,
+  onClose,
+}: {
+  title: string;
+  detail: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center py-8 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+        <CheckCircle2 className="h-7 w-7" />
+      </div>
+      <p className="mt-4 text-lg font-semibold text-[#171714]">{title}</p>
+      <p className="mt-1 max-w-sm text-sm text-[#716855]">{detail}</p>
+      <Button
+        variant="outline"
+        className="mt-5 rounded-xl border-[#d7c7aa] bg-white text-[#171714]"
+        onClick={onClose}
+      >
+        Done
+      </Button>
     </div>
   );
 }
 
 export default function PortalDashboard() {
   const { member, isSubscribed } = useMember();
-  const { data: subscription, isLoading: subLoading } = trpc.member.subscription.useQuery(undefined, {
+  const [, navigate] = useLocation();
+  const [questionOpen, setQuestionOpen] = useState(false);
+  const [topicOpen, setTopicOpen] = useState(false);
+
+  const { data: subscription, isLoading: subscriptionLoading } =
+    trpc.member.subscription.useQuery(undefined, { retry: false });
+  const { data: settingsData } = trpc.member.getSettings.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+  const { data: projects } = trpc.takeoff.listProjects.useQuery(undefined, {
     retry: false,
   });
-  const [questionModalOpen, setQuestionModalOpen] = useState(false);
+  const { data: myQuestionsData } = trpc.member.myQuestions.useQuery(
+    undefined,
+    { retry: false }
+  );
+  const { data: myTopicsData } = trpc.member.myBootcampTopics.useQuery(
+    undefined,
+    { retry: false }
+  );
 
-  const displayName = member?.displayName || member?.discordUsername || "Member";
-  const firstName = displayName.split(" ")[0];
-
-  // Get time-based greeting
+  const displayName =
+    member?.displayName || member?.discordUsername || "Member";
+  const firstName = displayName.split(" ")[0] || "Member";
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const quickLinks = [
+  const settings = settingsData?.settings || {};
+  const bootcampDate = settings.bootcamp_date || DEFAULT_BOOTCAMP_DATE;
+  const bootcampTime = settings.bootcamp_time || DEFAULT_BOOTCAMP_TIME;
+  const bootcampDay = settings.bootcamp_day_label || DEFAULT_BOOTCAMP_DAY;
+  const bootcampZoom = settings.bootcamp_zoom_link || DEFAULT_BOOTCAMP_ZOOM;
+  const bootcampDisplay = formatBootcampDisplay(
+    bootcampDate,
+    bootcampDay,
+    bootcampTime
+  );
+
+  const nextCallDate = useMemo(() => getNextCallDate(), []);
+  const nextCallShort = formatShortDate(nextCallDate);
+  const callCalendarUrl = buildCalendarUrl({
+    title: "Contractor Circle Live Call",
+    details: `Contractor Circle live call with Marshall.\n\nJoin Zoom:\n${ZOOM_CALL_LINK}`,
+    start: nextCallDate,
+    durationHours: 1.5,
+    location: ZOOM_CALL_LINK,
+  });
+
+  const projectCount = projects?.length ?? 0;
+  const completedBids = (projects ?? []).filter(
+    (project: any) => project.status === "completed"
+  ).length;
+  const pendingQuestions = myQuestionsData?.questions?.filter((question: any) =>
+    ["pending", "selected_for_call", "selected_for_bootcamp"].includes(
+      question.status
+    )
+  ).length;
+  const submittedTopics =
+    myTopicsData?.topics?.filter(
+      (topic: any) => topic.bootcampDate === bootcampDate
+    ).length ?? 0;
+
+  const upcomingCalls = [
     {
-      icon: PlayCircle,
-      title: "Replay Library",
-      description: "Watch past calls and bootcamp sessions",
-      href: "/portal/replays",
-      color: "text-blue-accent",
-      bg: "bg-blue-accent/10",
+      date: nextCallDate,
+      title: "Contractor Circle Live Call",
+      detail: "Sunday at 5:00 PM ET",
+      url: ZOOM_CALL_LINK,
     },
     {
-      icon: FileDown,
-      title: "Templates",
-      description: "Download proposal and contract templates",
-      href: "/portal/templates",
-      color: "text-success",
-      bg: "bg-success/10",
+      date: new Date(nextCallDate.getTime() + 14 * 24 * 60 * 60 * 1000),
+      title: "Bid Review and Q&A",
+      detail: "Sunday at 5:00 PM ET",
+      url: ZOOM_CALL_LINK,
     },
     {
-      icon: MessageSquare,
-      title: "Discord Community",
-      description: "Connect with fellow contractors",
-      href: DISCORD_INVITE,
-      external: true,
-      color: "text-[#5865F2]",
-      bg: "bg-[#5865F2]/10",
-    },
-    {
-      icon: Calendar,
-      title: "Next Live Call",
-      description: `${getNextCallSunday()} at 5 PM ET`,
-      href: ZOOM_CALL_LINK,
-      external: true,
-      color: "text-ember",
-      bg: "bg-ember/10",
+      date: new Date(nextCallDate.getTime() + 28 * 24 * 60 * 60 * 1000),
+      title: "Systems and Profit Clinic",
+      detail: "Sunday at 5:00 PM ET",
+      url: ZOOM_CALL_LINK,
     },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Question Modal */}
-      {questionModalOpen && <QuestionModal onClose={() => setQuestionModalOpen(false)} />}
+    <div className="mx-auto max-w-[1500px] space-y-6 px-6 py-7 text-[#171714]">
+      {questionOpen && (
+        <SubmitQuestionModal onClose={() => setQuestionOpen(false)} />
+      )}
+      {topicOpen && (
+        <SubmitTopicModal
+          bootcampDate={bootcampDate}
+          onClose={() => setTopicOpen(false)}
+        />
+      )}
 
-      {/* BOOTCAMP DAY HERO BANNER — Disabled (April 2026 bootcamp is over)
-      <BootcampHeroBanner />
-      */}
-
-      {/* Welcome Header */}
-      <div data-tour="welcome-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-cream-muted mt-1">
-            Welcome to your Contractor Circle member portal.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {member?.memberRole === "founding_member" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ember/10 border border-ember/20">
-              <Crown className="w-3.5 h-3.5 text-ember" />
-              <span className="text-xs font-semibold text-ember uppercase tracking-wider">Founding Member</span>
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Subscription Status Card */}
-      <div data-tour="subscription-status" className="glass-card rounded-2xl p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-ember" />
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="rounded-xl border border-[#e4d7bf] bg-[#fffdf8] p-7 shadow-[0_24px_70px_rgba(41,37,28,0.07)]">
+          <div className="grid gap-7 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] text-[#f1b51d] shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
+              <span className="text-3xl font-semibold">C</span>
             </div>
             <div>
-              <h2 className="font-heading text-lg font-semibold text-cream">
-                {subscription?.plan || "The Contractor Circle"}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
+                Contractor Circle Portal
+              </p>
+              <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-normal text-[#11100c] lg:text-5xl">
+                {greeting}, {firstName}
+              </h1>
+              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#6d6558]">
+                Build your business, win better jobs, and stay close to the
+                calls, tools, and resources that move the work forward.
+              </p>
+              <div className="mt-5 inline-flex rounded-xl border border-[#eadcc4] bg-white px-4 py-2 text-sm text-[#5d5546] shadow-inner">
+                <span>
+                  “Discipline in the details today. Freedom in the business
+                  tomorrow.”
+                </span>
+                <span className="ml-2 font-semibold text-[#b58513]">
+                  Marshall Wilkinson
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
+              <CircleUserRound className="h-7 w-7" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-semibold text-[#171714]">
+                {displayName}
+              </p>
+              <p className="text-sm text-[#716855]">
+                {member?.email ||
+                  member?.discordUsername ||
+                  "Contractor Circle member"}
+              </p>
+              <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-800">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                {isSubscribed ? "Active" : "Preview"}
+              </Badge>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 border-t border-[#eadcc4] pt-5 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-[#716855]">Member since</span>
+              <span className="font-semibold text-[#171714]">
+                {formatDate(member?.createdAt)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-[#716855]">Membership</span>
+              <span className="font-semibold text-emerald-700">
+                {subscriptionLoading
+                  ? "Checking"
+                  : subscription?.status ||
+                    member?.subscriptionStatus ||
+                    "Active"}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            className="mt-5 h-11 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+            onClick={() => navigate("/portal/account")}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Account Settings
+          </Button>
+        </aside>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_420px]">
+        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
+              <Calendar className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                Next Live Call
+              </p>
+              <h2 className="mt-2 text-xl font-semibold leading-tight text-[#171714]">
+                Contractor Circle Live Call
               </h2>
-              <p className="text-cream-muted text-sm mt-0.5">
-                {subLoading ? (
-                  "Loading subscription..."
-                ) : subscription?.currentPeriodEnd ? (
-                  `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-                ) : subscription?.status === "active" ? (
-                  "$497/month subscription"
-                ) : (
-                  "No active subscription"
-                )}
+              <p className="mt-1 text-sm text-[#716855]">
+                {formatDate(nextCallDate)} at 5:00 PM ET
               </p>
             </div>
           </div>
-          <StatusBadge status={subscription?.status || member?.subscriptionStatus || "none"} />
-        </div>
-
-        {/* Member Since */}
-        {member?.createdAt && (
-          <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 text-cream-muted/50" />
-            <span className="text-xs text-cream-muted">
-              Member since {new Date(member.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-            </span>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <a
+              href={ZOOM_CALL_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+            >
+              <Video className="mr-2 h-4 w-4" />
+              Join on Zoom
+            </a>
+            <a
+              href={callCalendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+            >
+              <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
+              Add to Calendar
+            </a>
           </div>
-        )}
-
-        {subscription?.cancelAtPeriodEnd && (
-          <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
-            <p className="text-yellow-400 text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              Your subscription will end at the current billing period.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Calendar Integration — Available to all members */}
-      <CalendarIntegration />
-
-      {/* Monthly Bootcamp — Topic Submission */}
-      {isSubscribed && <BootcampTopicWidget />}
-
-      {/* Gated content for subscribers only */}
-      {isSubscribed ? (
-        <>
-          {/* Submit a Question — Prominent CTA tile */}
-          <button
-            onClick={() => setQuestionModalOpen(true)}
-            className="w-full group glass-card rounded-2xl p-5 sm:p-6 hover:bg-ember/[0.04] border border-ember/15 hover:border-ember/35 transition-all duration-300 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-ember/10 group-hover:bg-ember/15 flex items-center justify-center shrink-0 transition-colors">
-                <Send className="w-6 h-6 text-ember" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-heading text-base font-bold text-cream group-hover:text-ember transition-colors">
-                  Submit a Question for the Next Call
-                </h3>
-                <p className="text-cream-muted text-sm mt-0.5">
-                  Marshall reviews every submission — get your question answered live.
+          <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#eadcc4] bg-[#faf8f2] p-3 text-center">
+            {[
+              ["Projects", projectCount],
+              ["Completed", completedBids],
+              ["Questions", pendingQuestions ?? 0],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <p className="font-mono text-xl font-semibold text-[#171714]">
+                  {value}
+                </p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#716855]">
+                  {label}
                 </p>
               </div>
-              <div className="shrink-0 w-8 h-8 rounded-full bg-ember/10 group-hover:bg-ember/20 flex items-center justify-center transition-colors">
-                <Send className="w-3.5 h-3.5 text-ember" />
-              </div>
-            </div>
-          </button>
-
-          {/* Success Stories Form */}
-          <SuccessStoriesForm />
-        </>
-      ) : (
-        /* Non-subscriber CTA */
-        <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/20 text-center">
-          <div className="w-14 h-14 rounded-full bg-ember/10 flex items-center justify-center mx-auto mb-4">
-            <Crown className="w-7 h-7 text-ember" />
+            ))}
           </div>
-          <h3 className="font-heading text-xl font-bold text-cream mb-2">Unlock Full Portal Access</h3>
-          <p className="text-cream-muted text-sm mb-6 max-w-md mx-auto">
-            You're previewing the Contractor Circle portal. Subscribe to unlock live call access, question submissions, templates, replays, and the private Discord community.
-          </p>
-          <a
-            href="/circle#pricing"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-ember hover:bg-ember/90 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-ember/30 hover:shadow-ember/50"
-          >
-            <Crown className="w-4 h-4" />
-            Become a Member — $497/mo
-          </a>
-        </div>
-      )}
+        </article>
 
-      {/* Quick Links Grid */}
-      <div data-tour="quick-links" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {quickLinks.map(link => (
-          <a
-            key={link.title}
-            href={link.href}
-            target={link.external ? "_blank" : undefined}
-            rel={link.external ? "noopener noreferrer" : undefined}
-            onClick={link.href === "#" ? (e) => e.preventDefault() : undefined}
-            className="group glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-all duration-300 block"
-          >
-            <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-lg ${link.bg} flex items-center justify-center shrink-0`}>
-                <link.icon className={`w-5 h-5 ${link.color}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-heading text-sm font-semibold text-cream group-hover:text-ember transition-colors">
-                    {link.title}
-                  </h3>
-                  {link.external && <ExternalLink className="w-3 h-3 text-cream-muted" />}
-                </div>
-                <p className="text-cream-muted text-xs mt-1">{link.description}</p>
-              </div>
+        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                Upcoming Calls
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-[#171714]">
+                Stay on the rhythm
+              </h2>
             </div>
-          </a>
-        ))}
-      </div>
+            <Clock className="h-5 w-5 text-[#b58513]" />
+          </div>
+          <div className="mt-5 space-y-3">
+            {upcomingCalls.map(call => {
+              const short = formatShortDate(call.date);
+              const calendarUrl = buildCalendarUrl({
+                title: call.title,
+                details: `Contractor Circle live session.\n\nJoin Zoom:\n${call.url}`,
+                start: call.date,
+                durationHours: 1.5,
+                location: call.url,
+              });
+              return (
+                <div
+                  key={`${call.title}-${short.day}`}
+                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3"
+                >
+                  <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] py-2 text-center">
+                    <p className="text-[10px] font-semibold uppercase text-[#b58513]">
+                      {short.month}
+                    </p>
+                    <p className="font-mono text-xl font-semibold text-[#171714]">
+                      {short.day}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#171714]">
+                      {call.title}
+                    </p>
+                    <p className="text-xs text-[#716855]">{call.detail}</p>
+                  </div>
+                  <a
+                    href={calendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-[#d7c7aa] bg-white px-3 py-2 text-xs font-semibold text-[#5d5546] transition-colors hover:bg-[#faf8f2]"
+                  >
+                    Add
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        </article>
 
-      {/* Submit Question for Next Call */}
-      <QuestionSubmitWidget />
+        <article className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
+            Next Bootcamp
+          </p>
+          <h2 className="mt-3 text-xl font-semibold text-[#171714]">
+            Monthly Bootcamp
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#716855]">
+            Deep dive training with real contractor problems, live questions,
+            and working sessions.
+          </p>
+          <p className="mt-4 text-sm font-semibold text-[#171714]">
+            {bootcampDisplay}
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <a
+              href={bootcampZoom}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+            >
+              <Video className="mr-2 h-4 w-4" />
+              Join on Zoom
+            </a>
+            <a
+              href={buildBootcampCalendarUrl(
+                bootcampDate,
+                bootcampTime,
+                bootcampZoom
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+            >
+              <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
+              Add to Calendar
+            </a>
+          </div>
+        </article>
+      </section>
 
-      {/* Motivational Quote */}
-      <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 text-center">
-        <blockquote className="text-cream/80 text-lg md:text-xl font-heading italic leading-relaxed max-w-2xl mx-auto">
-          "The difference between a contractor and a business owner is the system they build around themselves."
-        </blockquote>
-        <p className="text-ember text-sm mt-4 font-medium">— Marshall Wilkinson</p>
-      </div>
+      <section className="grid gap-5 lg:grid-cols-2">
+        <ActionCard
+          eyebrow="Submit your question"
+          title="For the next live call"
+          detail="Marshall reviews every submission and answers the best questions live."
+          icon={Send}
+          buttonLabel="Submit Question"
+          onClick={() => setQuestionOpen(true)}
+          stat={`${pendingQuestions ?? 0} pending`}
+        />
+        <ActionCard
+          eyebrow="Submit your topic"
+          title="For the next bootcamp"
+          detail="Shape the training. Submit what you want Marshall to work through next."
+          icon={MessageSquare}
+          buttonLabel="Submit Topic"
+          onClick={() => setTopicOpen(true)}
+          stat={`${submittedTopics} submitted`}
+        />
+      </section>
+
+      <section className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
+              Member shortcuts
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#171714]">
+              Get where you need to go
+            </h2>
+          </div>
+          <Button
+            variant="outline"
+            className="rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+            onClick={() => navigate("/portal/constructline")}
+          >
+            Open ConstructLine
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <ShortcutCard
+            title="Replay Library"
+            detail="Watch past calls and bootcamp sessions."
+            icon={PlayCircle}
+            onClick={() => navigate("/portal/replays")}
+          />
+          <ShortcutCard
+            title="Templates"
+            detail="Download proposal, contract, and operating templates."
+            icon={FileDown}
+            onClick={() => navigate("/portal/templates")}
+          />
+          <ShortcutCard
+            title="ConstructLine"
+            detail="Open Basis, Baseline, and the estimating libraries."
+            icon={LayoutGrid}
+            onClick={() => navigate("/portal/constructline")}
+          />
+          <ShortcutCard
+            title="Account Details"
+            detail="Manage billing, profile, and member settings."
+            icon={CircleUserRound}
+            onClick={() => navigate("/portal/account")}
+          />
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="rounded-xl border border-[#e4d7bf] bg-[#090b0f] p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
+            What belongs here
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold">
+            The portal is for low-friction member actions.
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-white/62">
+            Calls, questions, bootcamp topics, replays, templates, account
+            details, and direct access to ConstructLine. Community conversation
+            still lives in Discord where members already talk naturally.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {["Calls", "Questions", "Bootcamps", "Replays", "Templates"].map(
+              item => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/75"
+                >
+                  {item}
+                </span>
+              )
+            )}
+          </div>
+        </div>
+
+        <a
+          href="https://discord.gg/rsK5HZcF"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group rounded-xl border border-[#e4d7bf] bg-white p-6 shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b58513]">
+                Community
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold text-[#171714]">
+                Discord stays the clubhouse.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-[#716855]">
+                Project wins, field questions, and fast conversations still
+                belong where contractors already participate.
+              </p>
+            </div>
+            <ExternalLink className="h-5 w-5 text-[#b58513] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </div>
+        </a>
+      </section>
     </div>
+  );
+}
+
+function ActionCard({
+  eyebrow,
+  title,
+  detail,
+  icon: Icon,
+  buttonLabel,
+  onClick,
+  stat,
+}: {
+  eyebrow: string;
+  title: string;
+  detail: string;
+  icon: typeof Send;
+  buttonLabel: string;
+  onClick: () => void;
+  stat: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group rounded-xl border border-[#e4d7bf] bg-white p-5 text-left shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510] transition-colors group-hover:bg-[#f1b51d] group-hover:text-[#171714]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#b58513]">
+              {eyebrow}
+            </p>
+            <Badge className="border-[#d7c7aa] bg-[#faf8f2] text-[#716855]">
+              {stat}
+            </Badge>
+          </div>
+          <h3 className="mt-2 text-xl font-semibold text-[#171714]">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-[#716855]">{detail}</p>
+        </div>
+        <span className="hidden h-11 items-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors group-hover:bg-[#171a20] sm:inline-flex">
+          {buttonLabel}
+          <Send className="ml-2 h-4 w-4" />
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function ShortcutCard({
+  title,
+  detail,
+  icon: Icon,
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  icon: typeof PlayCircle;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-[170px] flex-col rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-4 text-left transition-colors hover:bg-[#faf8f2]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white text-[#b58513]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <ChevronRight className="h-5 w-5 text-[#b58513] transition-transform group-hover:translate-x-1" />
+      </div>
+      <div className="mt-auto pt-8">
+        <h3 className="text-lg font-semibold text-[#171714]">{title}</h3>
+        <p className="mt-2 text-sm leading-6 text-[#716855]">{detail}</p>
+      </div>
+    </button>
   );
 }
