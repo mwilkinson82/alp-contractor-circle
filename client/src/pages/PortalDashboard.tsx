@@ -557,7 +557,7 @@ export default function PortalDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8f5ef] text-[#171714]">
-      <div className="mx-auto max-w-[1500px] space-y-5 px-6 py-6">
+      <div className="mx-auto max-w-[1500px] space-y-6 px-6 py-6">
         {questionOpen && (
           <SubmitQuestionModal onClose={() => setQuestionOpen(false)} />
         )}
@@ -568,23 +568,23 @@ export default function PortalDashboard() {
           />
         )}
 
-        <section className="relative overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#fffdf8] shadow-[0_28px_85px_rgba(41,37,28,0.10)]">
+        <section className="relative overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#fffdf8] shadow-[0_30px_90px_rgba(41,37,28,0.10)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_0%,rgba(241,181,29,0.16),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e7_56%,#eef5ef_100%)]" />
-          <div className="absolute right-8 top-6 hidden h-44 w-44 rounded-full border border-[#eadcc4]/70 bg-white/25 blur-2xl lg:block" />
-          <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-center">
-            <div className="grid gap-6 md:grid-cols-[112px_minmax(0,1fr)] md:items-center">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[#d7c7aa] bg-[#090b0f] p-3 shadow-[0_22px_55px_rgba(0,0,0,0.18)]">
+          <div className="absolute right-10 top-8 hidden h-52 w-52 rounded-full border border-[#eadcc4]/70 bg-white/25 blur-2xl lg:block" />
+          <div className="relative grid gap-8 p-7 lg:grid-cols-[minmax(0,1fr)_370px] lg:items-center xl:p-8">
+            <div className="grid gap-7 md:grid-cols-[128px_minmax(0,1fr)] md:items-center">
+              <div className="flex h-28 w-28 items-center justify-center rounded-[18px] border border-[#d7c7aa] bg-[#090b0f] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.20)]">
                 <img
                   src="/contractor-circle-icon.png"
                   alt="Contractor Circle"
-                  className="h-full w-full rounded-xl object-cover"
+                  className="h-full w-full rounded-[14px] object-cover"
                 />
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
                   Contractor Circle Portal
                 </p>
-                <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-normal text-[#11100c] lg:text-[46px]">
+                <h1 className="mt-3 text-4xl font-semibold leading-[1.03] tracking-normal text-[#11100c] lg:text-[50px]">
                   {greeting}, {firstName}{" "}
                   <span className="inline-block align-[0.04em] text-[0.82em]">
                     👋
@@ -606,7 +606,7 @@ export default function PortalDashboard() {
               </div>
             </div>
 
-            <aside className="rounded-xl border border-[#d7c7aa] bg-white/82 p-5 shadow-[0_18px_50px_rgba(41,37,28,0.10)] backdrop-blur">
+            <aside className="rounded-xl border border-[#d7c7aa] bg-white/86 p-5 shadow-[0_18px_50px_rgba(41,37,28,0.10)] backdrop-blur">
               <div className="flex items-start gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#eef5ef] text-emerald-700">
                   <CircleUserRound className="h-7 w-7" />
@@ -646,7 +646,7 @@ export default function PortalDashboard() {
               </div>
               <Button
                 variant="outline"
-                className="mt-5 h-10 w-full rounded-xl border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+                className="mt-5 h-10 w-full rounded-xl border-[#d7c7aa] bg-white text-[13px] font-semibold text-[#171714] hover:bg-[#faf8f2]"
                 onClick={() => navigate("/portal/account")}
               >
                 <Settings className="mr-2 h-4 w-4" />
@@ -656,17 +656,17 @@ export default function PortalDashboard() {
           </div>
         </section>
 
-        <section className="grid items-start gap-5 xl:grid-cols-[1.05fr_1fr_0.92fr_300px]">
-          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(300px,0.95fr)_minmax(380px,1.15fr)_minmax(300px,0.9fr)_270px]">
+          <article className="h-fit rounded-xl border border-[#dfd0b5] bg-white p-6 shadow-[0_22px_60px_rgba(41,37,28,0.08)]">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510]">
                 <Calendar className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
                   Next Live Call
                 </p>
-                <h2 className="mt-2 text-xl font-semibold leading-tight text-[#171714]">
+                <h2 className="mt-2 text-[22px] font-semibold leading-tight text-[#171714]">
                   Contractor Circle Live Call
                 </h2>
                 <p className="mt-1 text-sm text-[#716855]">
@@ -679,12 +679,12 @@ export default function PortalDashboard() {
                 )}
               </div>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <a
                 href={ZOOM_CALL_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+                className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-[#090b0f] px-4 text-[13px] font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
               >
                 <Video className="mr-2 h-4 w-4" />
                 Join on Zoom
@@ -693,7 +693,7 @@ export default function PortalDashboard() {
                 href={callCalendarUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+                className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl border border-[#d7c7aa] bg-white px-4 text-[13px] font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
               >
                 <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
                 Add to Calendar
@@ -717,7 +717,7 @@ export default function PortalDashboard() {
             </div>
           </article>
 
-          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <article className="h-fit rounded-xl border border-[#dfd0b5] bg-white p-6 shadow-[0_22px_60px_rgba(41,37,28,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
@@ -742,7 +742,7 @@ export default function PortalDashboard() {
                 return (
                   <div
                     key={`${call.title}-${short.day}`}
-                    className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3"
+                    className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3.5"
                   >
                     <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] py-2 text-center">
                       <p className="text-[10px] font-semibold uppercase text-[#b58513]">
@@ -753,7 +753,7 @@ export default function PortalDashboard() {
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#171714]">
+                      <p className="text-sm font-semibold leading-tight text-[#171714]">
                         {call.title}
                       </p>
                       <p className="text-xs text-[#716855]">{call.detail}</p>
@@ -762,7 +762,7 @@ export default function PortalDashboard() {
                       href={calendarUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg border border-[#d7c7aa] bg-white px-3 py-2 text-xs font-semibold text-[#5d5546] transition-colors hover:bg-[#faf8f2]"
+                      className="rounded-lg border border-[#d7c7aa] bg-white px-3.5 py-2 text-xs font-semibold text-[#5d5546] transition-colors hover:bg-[#faf8f2]"
                     >
                       Add
                     </a>
@@ -772,7 +772,7 @@ export default function PortalDashboard() {
             </div>
           </article>
 
-          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <article className="h-fit rounded-xl border border-[#dfd0b5] bg-white p-6 shadow-[0_22px_60px_rgba(41,37,28,0.08)]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
               Next Bootcamp
             </p>
@@ -786,15 +786,15 @@ export default function PortalDashboard() {
             <p className="mt-4 text-sm font-semibold text-[#171714]">
               {bootcampDisplay}
             </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <div className="mt-5 grid grid-cols-2 gap-3">
               <a
                 href={bootcampZoom}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
+                className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-[#090b0f] px-3 text-[13px] font-semibold text-[#f1b51d] transition-colors hover:bg-[#171a20]"
               >
                 <Video className="mr-2 h-4 w-4" />
-                Join on Zoom
+                Join Zoom
               </a>
               <a
                 href={buildBootcampCalendarUrl(
@@ -804,15 +804,15 @@ export default function PortalDashboard() {
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d7c7aa] bg-white px-4 text-sm font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
+                className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl border border-[#d7c7aa] bg-white px-3 text-[13px] font-semibold text-[#171714] transition-colors hover:bg-[#faf8f2]"
               >
                 <CalendarPlus className="mr-2 h-4 w-4 text-[#b58513]" />
-                Add to Calendar
+                Add Calendar
               </a>
             </div>
           </article>
 
-          <article className="h-fit rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
+          <article className="h-fit rounded-xl border border-[#dfd0b5] bg-white p-4 shadow-[0_22px_60px_rgba(41,37,28,0.08)]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#716855]">
               Quick Actions
             </p>
@@ -824,7 +824,7 @@ export default function PortalDashboard() {
           </article>
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-2">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)]">
           <ActionCard
             eyebrow="Submit your question"
             title="For the next live call"
@@ -845,7 +845,7 @@ export default function PortalDashboard() {
           />
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded-xl border border-[#e4d7bf] bg-white p-5 shadow-[0_20px_55px_rgba(41,37,28,0.07)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -898,14 +898,14 @@ export default function PortalDashboard() {
             href="https://discord.gg/rsK5HZcF"
             target="_blank"
             rel="noopener noreferrer"
-            className="group rounded-xl border border-[#e4d7bf] bg-[#090b0f] p-5 text-white shadow-[0_20px_55px_rgba(41,37,28,0.14)] transition-colors hover:bg-[#171a20]"
+            className="group rounded-xl border border-[#14161b] bg-[#090b0f] p-6 text-white shadow-[0_24px_65px_rgba(41,37,28,0.16)] transition-colors hover:bg-[#171a20]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
                   Community
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold">
+                <h2 className="mt-3 text-[26px] font-semibold leading-tight">
                   Discord stays the clubhouse.
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-white/62">
@@ -943,10 +943,10 @@ function ActionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group rounded-xl border border-[#e4d7bf] bg-white p-4 text-left shadow-[0_20px_55px_rgba(41,37,28,0.07)] transition-colors hover:bg-[#fffdf8]"
+      className="group rounded-xl border border-[#dfd0b5] bg-white p-5 text-left shadow-[0_22px_60px_rgba(41,37,28,0.08)] transition-colors hover:bg-[#fffdf8]"
     >
-      <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510] transition-colors group-hover:bg-[#f1b51d] group-hover:text-[#171714]">
+      <div className="flex items-center gap-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#fff4cb] text-[#8a6510] transition-colors group-hover:bg-[#f1b51d] group-hover:text-[#171714]">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -963,7 +963,7 @@ function ActionCard({
           </h3>
           <p className="mt-1 text-sm leading-6 text-[#716855]">{detail}</p>
         </div>
-        <span className="hidden h-10 items-center rounded-xl bg-[#090b0f] px-4 text-sm font-semibold text-[#f1b51d] transition-colors group-hover:bg-[#171a20] sm:inline-flex">
+        <span className="hidden h-11 shrink-0 items-center whitespace-nowrap rounded-xl bg-[#090b0f] px-5 text-[13px] font-semibold text-[#f1b51d] transition-colors group-hover:bg-[#171a20] sm:inline-flex">
           {buttonLabel}
           <Send className="ml-2 h-4 w-4" />
         </span>
@@ -987,14 +987,18 @@ function QuickActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3 text-left transition-colors hover:bg-[#faf8f2]"
+      className="group flex w-full items-center gap-3 rounded-xl border border-[#eadcc4] bg-[#fffdf8] p-3.5 text-left transition-colors hover:bg-[#faf8f2]"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#d7c7aa] bg-white text-[#b58513]">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d7c7aa] bg-white text-[#b58513]">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#171714]">{title}</p>
-        <p className="truncate text-xs text-[#716855]">{detail}</p>
+        <p className="truncate text-[15px] font-semibold text-[#171714]">
+          {title}
+        </p>
+        <p className="truncate text-[12px] leading-5 text-[#716855]">
+          {detail}
+        </p>
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-[#b58513] transition-transform group-hover:translate-x-0.5" />
     </button>
