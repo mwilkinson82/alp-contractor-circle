@@ -460,6 +460,7 @@ export default function ProcessingOverlay({
   const consolidationStartRef = useRef<number | null>(null);
   const [consolidationElapsed, setConsolidationElapsed] = useState(0);
   const extractionStartProcessedRef = useRef(processedSheets);
+  const [stableEtaMs, setStableEtaMs] = useState<number | null>(null);
 
   const currentPhase: AnalysisPhase = useMemo(() => {
     if (projectStatus === "post_processing") return "consolidating";
@@ -540,14 +541,14 @@ export default function ProcessingOverlay({
     return sheets.filter(s => s.status === "error");
   }, [sheets]);
 
-  const CONSOLIDATION_ESTIMATE_MS = 180000;
+  const CONSOLIDATION_ESTIMATE_MS = 6 * 60 * 1000;
+  const CONSOLIDATION_TIMER_CUTOFF_MS = 5 * 60 * 1000;
   const DEFAULT_EXTRACTION_MS_PER_SHEET = 25000;
 
-  const etaMs = useMemo(() => {
+  const rawEtaMs = useMemo(() => {
     if (currentPhase === "indexing") return 0; // No timer during indexing
     if (currentPhase === "consolidating") {
-      // Never let it hit zero — show at least 15s while still in this phase
-      return Math.max(15000, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
+      return Math.max(0, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
     }
     const remaining = totalSheets - processedSheets;
     if (remaining <= 0) return 15000; // Almost done — show minimal time
@@ -571,6 +572,17 @@ export default function ProcessingOverlay({
     phaseElapsed,
     consolidationElapsed,
   ]);
+
+  useEffect(() => {
+    setStableEtaMs(prev => {
+      if (currentPhase === "indexing") return null;
+      if (prev == null || currentPhase === "consolidating") return rawEtaMs;
+      if (rawEtaMs > prev) {
+        return Math.min(rawEtaMs, prev + 15000);
+      }
+      return Math.max(rawEtaMs, prev - 45000);
+    });
+  }, [rawEtaMs, currentPhase]);
 
   const phases = [
     {
@@ -605,12 +617,17 @@ export default function ProcessingOverlay({
   const consolidationPercentage =
     currentPhase === "consolidating"
       ? Math.min(
-          99,
-          Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100)
+          95,
+          Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 95)
         )
       : 0;
   const displayPercentage =
     currentPhase === "consolidating" ? consolidationPercentage : percentage;
+  const showConsolidationTimer =
+    currentPhase === "consolidating" &&
+    consolidationElapsed < CONSOLIDATION_TIMER_CUTOFF_MS &&
+    (stableEtaMs ?? rawEtaMs) > 0;
+  const displayEtaMs = stableEtaMs ?? rawEtaMs;
 
   // ─── Splash Phase ────────────────────────────────────────────────────────
   if (showSplash) {
@@ -701,21 +718,34 @@ export default function ProcessingOverlay({
                   </>
                 ) : currentPhase === "consolidating" ? (
                   <>
-                    <CurrentIcon
-                      className="mb-1 h-8 w-8"
-                      style={{
-                        color: "#7fd1a2",
-                        animation: "cl-icon-pulse 2s ease-in-out infinite",
-                      }}
-                    />
-                    <span className="text-[11px] font-medium text-white/58">
-                      Finalizing
-                    </span>
+                    {showConsolidationTimer ? (
+                      <>
+                        <span className="text-3xl font-bold leading-none tracking-normal text-white sm:text-4xl">
+                          {formatTime(displayEtaMs)}
+                        </span>
+                        <span className="mt-1.5 text-[11px] font-medium text-white/58">
+                          estimated
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <CurrentIcon
+                          className="mb-1 h-8 w-8"
+                          style={{
+                            color: "#7fd1a2",
+                            animation: "cl-icon-pulse 2s ease-in-out infinite",
+                          }}
+                        />
+                        <span className="text-[11px] font-medium text-white/58">
+                          Still finalizing
+                        </span>
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
                     <span className="text-4xl font-bold leading-none tracking-normal text-white sm:text-5xl">
-                      {formatTime(etaMs)}
+                      {formatTime(displayEtaMs)}
                     </span>
                     <span className="mt-1.5 text-[11px] font-medium text-white/58">
                       remaining
@@ -726,7 +756,11 @@ export default function ProcessingOverlay({
             </div>
             {!isIndeterminate && (
               <span className="mt-5 text-sm font-semibold text-[#f1b51d]">
-                {displayPercentage}% complete
+                {currentPhase === "consolidating" && !showConsolidationTimer ? (
+                  <>Finalizing for {formatTime(consolidationElapsed)}</>
+                ) : (
+                  <>{displayPercentage}% complete</>
+                )}
               </span>
             )}
           </div>
