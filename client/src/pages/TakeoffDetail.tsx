@@ -77,6 +77,7 @@ import {
   ClipboardList,
   Info,
   Flag,
+  Search,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -782,6 +783,420 @@ const CSI_DIVISION_NAMES: Record<string, string> = {
   "33": "Utilities",
 };
 
+type DrawingNavigatorFilter =
+  | "all"
+  | "architectural"
+  | "structural"
+  | "civil"
+  | "plumbing"
+  | "electrical"
+  | "estimate"
+  | "takeoff"
+  | "review";
+
+const DRAWING_NAV_FILTERS: Array<{ id: DrawingNavigatorFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "architectural", label: "Architectural" },
+  { id: "structural", label: "Structural" },
+  { id: "civil", label: "Civil" },
+  { id: "plumbing", label: "Plumbing" },
+  { id: "electrical", label: "Electrical" },
+  { id: "estimate", label: "Referenced in Estimate" },
+  { id: "takeoff", label: "Has AI Takeoff" },
+  { id: "review", label: "Needs Review" },
+];
+
+function getSheetDiscipline(sheet: any): DrawingNavigatorFilter | "other" {
+  const label = `${sheet?.sheetType || ""} ${getSheetLabel(sheet)}`.toLowerCase();
+  if (label.includes("structural") || /\bs[-\s]?\d/.test(label)) return "structural";
+  if (label.includes("civil") || /\bc[-\s]?\d/.test(label)) return "civil";
+  if (label.includes("plumbing") || /\bp[-\s]?\d/.test(label)) return "plumbing";
+  if (label.includes("electrical") || /\be[-\s]?\d/.test(label)) return "electrical";
+  if (label.includes("architectural") || /\ba[-\s]?\d/.test(label)) return "architectural";
+  return "other";
+}
+
+function itemReferencesSheet(
+  item: any,
+  sheet: any,
+  sheetById: Map<number, any>
+): boolean {
+  if (!item || !sheet) return false;
+  if (item.sheetId === sheet.id) return true;
+  return getItemSourceLabels(item, sheetById).some(label =>
+    sourceLabelMatchesSheet(label, sheet)
+  );
+}
+
+function buildSheetIntelligence(sheets: any[], items: any[]) {
+  const sheetById = new Map((sheets || []).map((sheet: any) => [sheet.id, sheet]));
+  return (sheets || []).map((sheet: any) => {
+    const sheetItems = (items || []).filter((item: any) =>
+      itemReferencesSheet(item, sheet, sheetById)
+    );
+    const acceptedItems = sheetItems.filter((item: any) => isScopeIncludedItem(item));
+    const reviewItems = sheetItems.filter((item: any) => isScopeReviewItem(item));
+    const excludedItems = sheetItems.filter((item: any) => isScopeExcludedItem(item));
+    const openDecisions = reviewItems.filter((item: any) => !item.reviewed);
+    const estimateImpact = acceptedItems.reduce(
+      (sum, item) => sum + Number(item.extendedCost || 0),
+      0
+    );
+    const highValueExcluded = excludedItems.reduce(
+      (sum, item) => sum + Number(item.extendedCost || 0),
+      0
+    );
+
+    return {
+      sheet,
+      discipline: getSheetDiscipline(sheet),
+      items: sheetItems,
+      acceptedItems,
+      reviewItems,
+      excludedItems,
+      openDecisions,
+      estimateImpact,
+      highValueExcluded,
+      hasAiTakeoff: sheetItems.length > 0,
+      usedInEstimate: acceptedItems.length > 0,
+      needsReview: openDecisions.length > 0,
+    };
+  });
+}
+
+function DrawingNavigatorDialog({
+  open,
+  sheets,
+  items,
+  currency,
+  initialSheetId,
+  onClose,
+  onOpenPreview,
+  onOpenItem,
+  onOpenTakeoff,
+}: {
+  open: boolean;
+  sheets: any[];
+  items: any[];
+  currency: string;
+  initialSheetId?: number | null;
+  onClose: () => void;
+  onOpenPreview: (sheet: any) => void;
+  onOpenItem: (item: any, sheet: any) => void;
+  onOpenTakeoff: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<DrawingNavigatorFilter>("all");
+  const [selectedSheetId, setSelectedSheetId] = useState<number | null>(null);
+
+  const intelligence = useMemo(
+    () => buildSheetIntelligence(sheets, items),
+    [items, sheets]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedSheetId(initialSheetId || sheets[0]?.id || null);
+  }, [initialSheetId, open, sheets]);
+
+  const visibleSheets = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return intelligence.filter(entry => {
+      const sheetLabel = getSheetLabel(entry.sheet).toLowerCase();
+      const itemText = entry.items
+        .slice(0, 25)
+        .map((item: any) => `${item.description || ""} ${item.csiCode || ""}`)
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch =
+        !normalizedSearch ||
+        sheetLabel.includes(normalizedSearch) ||
+        String(entry.sheet.sheetType || "").toLowerCase().includes(normalizedSearch) ||
+        itemText.includes(normalizedSearch);
+      const matchesFilter =
+        filter === "all" ||
+        entry.discipline === filter ||
+        (filter === "estimate" && entry.usedInEstimate) ||
+        (filter === "takeoff" && entry.hasAiTakeoff) ||
+        (filter === "review" && entry.needsReview);
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, intelligence, search]);
+
+  const activeEntry =
+    intelligence.find(entry => entry.sheet.id === selectedSheetId) ||
+    visibleSheets[0] ||
+    intelligence[0] ||
+    null;
+  const activeSheet = activeEntry?.sheet || null;
+  const topSheetItems = activeEntry
+    ? sortByExtendedCostDesc(activeEntry.items).slice(0, 8)
+    : [];
+
+  return (
+    <Dialog open={open} onOpenChange={value => !value && onClose()}>
+      <DialogContent className="max-w-[min(1500px,96vw)] border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+        <DialogHeader className="border-b border-[#d8c9ad] px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
+            <div>
+              <DialogTitle className="text-xl text-[#171714]">
+                Drawing Navigator
+              </DialogTitle>
+              <DialogDescription className="text-[#716855]">
+                Browse the drawing set, jump to source sheets, and see what ConstructLine found on each page.
+              </DialogDescription>
+            </div>
+            <Badge className="border-blue-200 bg-blue-50 text-[#244c91]">
+              {sheets.length} sheet{sheets.length !== 1 ? "s" : ""}
+            </Badge>
+          </div>
+        </DialogHeader>
+
+        <div className="grid max-h-[78vh] min-h-[640px] grid-cols-[330px_minmax(0,1fr)_340px] overflow-hidden">
+          <aside className="border-r border-[#d7c7aa] bg-[#eee4d2]">
+            <div className="space-y-3 border-b border-[#d7c7aa] p-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a806d]" />
+                <Input
+                  value={search}
+                  onChange={event => setSearch(event.target.value)}
+                  placeholder="Search sheets or scope..."
+                  className="h-10 rounded-xl border-[#d7c7aa] bg-white pl-9 text-[#171714] placeholder:text-[#8a806d]"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {DRAWING_NAV_FILTERS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setFilter(option.id)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      filter === option.id
+                        ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]"
+                        : "border-[#d7c7aa] bg-white/70 text-[#5d5546] hover:bg-white hover:text-[#171714]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="max-h-[calc(78vh-132px)] overflow-y-auto p-2">
+              {visibleSheets.map(entry => {
+                const active = entry.sheet.id === activeSheet?.id;
+                const statusConfig =
+                  SHEET_STATUS_CONFIG[entry.sheet.status] || SHEET_STATUS_CONFIG.pending;
+                return (
+                  <button
+                    key={entry.sheet.id}
+                    type="button"
+                    onClick={() => setSelectedSheetId(entry.sheet.id)}
+                    className={`mb-2 w-full rounded-lg border p-3 text-left transition-all ${
+                      active
+                        ? "border-[#d7b44d] bg-[#fff4cb] shadow-[0_14px_32px_rgba(138,101,16,0.14)]"
+                        : "border-[#d7c7aa] bg-white/78 hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-sm font-semibold text-[#171714]">
+                          {getSheetLabel(entry.sheet)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] capitalize text-[#716855]">
+                          {entry.sheet.sheetType?.replace(/_/g, " ") || "Unclassified"}
+                        </p>
+                      </div>
+                      <Badge className={`${statusConfig.color} border text-[10px]`}>
+                        {statusConfig.label}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {entry.usedInEstimate && (
+                        <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                          Used in estimate
+                        </span>
+                      )}
+                      {entry.needsReview && (
+                        <span className="rounded-full border border-[#d7b44d] bg-[#fff4cb] px-2 py-0.5 text-[10px] font-semibold text-[#8a6510]">
+                          {entry.openDecisions.length} open
+                        </span>
+                      )}
+                      {!entry.hasAiTakeoff && (
+                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#244c91]">
+                          Context only
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+              {visibleSheets.length === 0 && (
+                <div className="rounded-lg border border-[#d7c7aa] bg-white/75 p-4 text-center text-sm text-[#716855]">
+                  No sheets match this search.
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <main className="min-w-0 bg-white p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#244c91]">
+                  Sheet Review Mode
+                </p>
+                <h3 className="truncate text-lg font-semibold text-[#171714]">
+                  {activeSheet ? getSheetLabel(activeSheet) : "No drawing selected"}
+                </h3>
+              </div>
+              {activeSheet && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenPreview(activeSheet)}
+                  className={`h-9 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Open Preview
+                </Button>
+              )}
+            </div>
+            <div className="flex min-h-[540px] items-center justify-center overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#faf8f2] shadow-inner">
+              {activeSheet?.imageUrl ? (
+                <img
+                  src={activeSheet.imageUrl}
+                  alt={getSheetLabel(activeSheet)}
+                  className="max-h-[68vh] w-full object-contain"
+                />
+              ) : (
+                <div className="text-center text-[#716855]">
+                  <FileImage className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                  <p className="font-semibold text-[#171714]">No preview available</p>
+                  <p className="text-sm">This sheet is indexed, but no image is linked.</p>
+                </div>
+              )}
+            </div>
+          </main>
+
+          <aside className="border-l border-[#d7c7aa] bg-[#eee4d2] p-4">
+            <div className="rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                Sheet Intelligence
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-700/80">
+                    Estimate Impact
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-emerald-800">
+                    {formatCurrency(activeEntry?.estimateImpact || 0, currency)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[#d7b44d] bg-[#fff4cb] p-3">
+                  <p className="text-[10px] uppercase tracking-wider text-[#8a6510]/80">
+                    Open Decisions
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-[#8a6510]">
+                    {activeEntry?.openDecisions.length || 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3">
+                  <p className="text-[10px] uppercase tracking-wider text-[#716855]">
+                    Accepted
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-[#171714]">
+                    {activeEntry?.acceptedItems.length || 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-orange-300 bg-orange-50 p-3">
+                  <p className="text-[10px] uppercase tracking-wider text-orange-700/80">
+                    Excluded
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-orange-800">
+                    {activeEntry?.excludedItems.length || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-[#5d5546]">
+                <div className="flex items-center justify-between">
+                  <span>AI takeoff</span>
+                  <span className="font-semibold text-[#171714]">
+                    {activeEntry?.hasAiTakeoff ? "Found" : "None"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Used in estimate</span>
+                  <span className="font-semibold text-[#171714]">
+                    {activeEntry?.usedInEstimate ? "Yes" : "No"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>High-value excluded</span>
+                  <span className="font-mono font-semibold text-orange-800">
+                    {formatCurrency(activeEntry?.highValueExcluded || 0, currency)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white p-4 shadow-[0_14px_35px_rgba(41,37,28,0.08)]">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#716855]">
+                  AI Findings
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenTakeoff}
+                  className={`h-8 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                >
+                  Open Takeoff
+                </Button>
+              </div>
+              <div className="max-h-[330px] space-y-2 overflow-y-auto pr-1">
+                {topSheetItems.map((item: any) => {
+                  const cue = getEstimatorCue(item);
+                  const status = getScopeReviewStatus(item);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => activeSheet && onOpenItem(item, activeSheet)}
+                      className="w-full rounded-lg border border-[#d7c7aa] bg-[#faf8f2] p-3 text-left transition-colors hover:bg-white"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="line-clamp-2 text-sm font-semibold text-[#171714]">
+                          {item.description}
+                        </p>
+                        <Badge className={`${cue.className} shrink-0 border text-[10px]`}>
+                          {cue.label}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="capitalize text-[#716855]">
+                          {formatScopeReviewStatus(status)}
+                        </span>
+                        <span className="font-mono font-semibold text-[#8a6510]">
+                          {formatCurrency(Number(item.extendedCost || 0), currency)}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+                {topSheetItems.length === 0 && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-[#244c91]">
+                    No AI takeoff rows are tied to this sheet yet. It may be context-only or waiting for analysis.
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TakeoffDetail() {
@@ -824,6 +1239,8 @@ export default function TakeoffDetail() {
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
+  const [showDrawingNavigator, setShowDrawingNavigator] = useState(false);
+  const [navigatorInitialSheetId, setNavigatorInitialSheetId] = useState<number | null>(null);
   const [calibratingSheet, setCalibratingSheet] = useState<any>(null);
   const [sheetScales, setSheetScales] = useState<
     Record<
@@ -2574,6 +2991,10 @@ export default function TakeoffDetail() {
       });
     }, 0);
   };
+  const openDrawingNavigator = (sheetId?: number | null) => {
+    setNavigatorInitialSheetId(sheetId || null);
+    setShowDrawingNavigator(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#ece9e1] text-[#171714]">
@@ -2666,6 +3087,17 @@ export default function TakeoffDetail() {
                   accepted direct cost
                 </span>
               </div>
+            )}
+            {sheets.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openDrawingNavigator()}
+                className={`h-10 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Drawing Navigator
+              </Button>
             )}
             <div data-tour="takeoff-settings">
               <ProjectSettingsPanel
@@ -2902,44 +3334,54 @@ export default function TakeoffDetail() {
             {/* Shows when: sheets exist AND not currently processing */}
             {sheets.length > 0 && !isProcessing && (
               <div className="mb-6">
-                <Button
-                  data-tour="takeoff-analyze-btn"
-                  onClick={() => setShowPreAnalysis(true)}
-                  disabled={processMutation.isPending}
-                  className={`w-full border font-semibold py-6 text-lg shadow-[0_18px_45px_rgba(41,37,28,0.12)] ${
-                    hasPendingSheets
-                      ? "border-[#d7b44d] bg-[#d9a21a] text-[#171714] hover:bg-[#e5b52f]"
-                      : "border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
-                  }`}
-                >
-                  {processMutation.isPending && (
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  )}
-                  {hasPendingSheets ? (
-                    <>
-                      <span className="font-bold tracking-tight">
-                        <span className="text-[#171714]">Construct</span>
-                        <span className="text-[#6f4d00]">Line</span>
-                      </span>{" "}
-                      Analyze Drawings
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-bold tracking-tight">
-                        <span className="text-[#171714]">Construct</span>
-                        <span className="text-[#d9a21a]">Line</span>
-                      </span>{" "}
-                      Re-Analyze Drawings
-                    </>
-                  )}
-                  <span className="ml-2 text-sm opacity-75">
-                    (
-                    {hasPendingSheets
-                      ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`
-                      : `${sheets.length} sheets — update settings & re-run`}
-                    )
-                  </span>
-                </Button>
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <Button
+                    data-tour="takeoff-analyze-btn"
+                    onClick={() => setShowPreAnalysis(true)}
+                    disabled={processMutation.isPending}
+                    className={`border font-semibold py-6 text-lg shadow-[0_18px_45px_rgba(41,37,28,0.12)] ${
+                      hasPendingSheets
+                        ? "border-[#d7b44d] bg-[#d9a21a] text-[#171714] hover:bg-[#e5b52f]"
+                        : "border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
+                    }`}
+                  >
+                    {processMutation.isPending && (
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    )}
+                    {hasPendingSheets ? (
+                      <>
+                        <span className="font-bold tracking-tight">
+                          <span className="text-[#171714]">Construct</span>
+                          <span className="text-[#6f4d00]">Line</span>
+                        </span>{" "}
+                        Analyze Drawings
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold tracking-tight">
+                          <span className="text-[#171714]">Construct</span>
+                          <span className="text-[#d9a21a]">Line</span>
+                        </span>{" "}
+                        Re-Analyze Drawings
+                      </>
+                    )}
+                    <span className="ml-2 text-sm opacity-75">
+                      (
+                      {hasPendingSheets
+                        ? `${sheets.filter((s: any) => s.status === "pending").length} sheets to analyze`
+                        : `${sheets.length} sheets — update settings & re-run`}
+                      )
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => openDrawingNavigator()}
+                    className={`py-6 text-base font-semibold ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                  >
+                    <Search className="mr-2 h-5 w-5" />
+                    Review Drawing Set
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -3105,6 +3547,18 @@ export default function TakeoffDetail() {
                             )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-[#716855] hover:text-[#8a6510]"
+                              title="Open in Drawing Navigator"
+                              onClick={e => {
+                                e.stopPropagation();
+                                openDrawingNavigator(sheet.id);
+                              }}
+                            >
+                              <Search className="w-3.5 h-3.5" />
+                            </Button>
                             {/* Set Scale button — always visible when sheet has an image */}
                             {sheet.imageUrl && (
                               <Button
@@ -5761,6 +6215,26 @@ export default function TakeoffDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <DrawingNavigatorDialog
+        open={showDrawingNavigator}
+        sheets={sheets}
+        items={items || []}
+        currency={project?.currency || "USD"}
+        initialSheetId={navigatorInitialSheetId}
+        onClose={() => setShowDrawingNavigator(false)}
+        onOpenPreview={sheet => {
+          setPreviewSheet(sheet);
+        }}
+        onOpenItem={(item, sheet) => {
+          setSelectedItem({ ...item, sourceSheetOverrideId: sheet.id });
+          setShowDrawingNavigator(false);
+        }}
+        onOpenTakeoff={() => {
+          setActiveTab("items");
+          setShowDrawingNavigator(false);
+        }}
+      />
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
       <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
