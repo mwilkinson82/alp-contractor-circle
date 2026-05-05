@@ -3521,33 +3521,27 @@ export default function TakeoffDetail() {
       });
     }, 0);
   };
-  const openDrawingNavigator = useCallback((sheetId?: number | null) => {
+  const openDrawingNavigator = (sheetId?: number | null) => {
     setNavigatorInitialSheetId(sheetId || null);
     setShowDrawingNavigator(true);
-  }, []);
+  };
 
-  const openAnomalySource = useCallback(
-    (item: any) => {
-      if (!item?.sheetId) {
-        toast.info("No source drawing is linked to this row yet");
-        return;
-      }
-      openDrawingNavigator(item.sheetId);
-      setShowAnomalyCenter(false);
-    },
-    [openDrawingNavigator]
-  );
+  const openAnomalySource = (item: any) => {
+    if (!item?.sheetId) {
+      toast.info("No source drawing is linked to this row yet");
+      return;
+    }
+    openDrawingNavigator(item.sheetId);
+    setShowAnomalyCenter(false);
+  };
 
-  const markAnomalyItemReviewed = useCallback(
-    (item: any) => {
-      updateItemMutation.mutate({
-        id: item.id,
-        projectId,
-        reviewed: true,
-      });
-    },
-    [projectId, updateItemMutation]
-  );
+  const markAnomalyItemReviewed = (item: any) => {
+    updateItemMutation.mutate({
+      id: item.id,
+      projectId,
+      reviewed: true,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#ece9e1] text-[#171714]">
