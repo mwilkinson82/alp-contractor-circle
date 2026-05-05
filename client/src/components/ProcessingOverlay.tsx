@@ -13,6 +13,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
+  ArrowRight,
+  BookOpen,
   Ruler,
   HardHat,
   Layers,
@@ -28,27 +30,34 @@ import {
   Circle,
   AlertTriangle,
   RefreshCw,
+  ClipboardCheck,
+  Send,
+  Database,
+  FileCheck2,
+  ShieldCheck,
+  Users,
+  Percent,
 } from "lucide-react";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 
 const COLORS = {
-  bg: "#FAF8F5",           // warm cream
-  bgSubtle: "#F3F0EB",     // slightly deeper cream
-  bgCard: "#FFFFFF",        // white card surfaces
-  text: "#2C2825",          // warm charcoal
-  textMuted: "#8A8279",     // muted warm gray
-  textLight: "#B5AEA4",     // light warm gray
-  accent: "#B8865C",        // copper/bronze accent
-  accentLight: "#D4A574",   // lighter copper
+  bg: "#FAF8F5", // warm cream
+  bgSubtle: "#F3F0EB", // slightly deeper cream
+  bgCard: "#FFFFFF", // white card surfaces
+  text: "#2C2825", // warm charcoal
+  textMuted: "#8A8279", // muted warm gray
+  textLight: "#B5AEA4", // light warm gray
+  accent: "#B8865C", // copper/bronze accent
+  accentLight: "#D4A574", // lighter copper
   accentGlow: "rgba(184, 134, 92, 0.25)",
-  success: "#5B8A72",       // sage green
+  success: "#5B8A72", // sage green
   successLight: "rgba(91, 138, 114, 0.15)",
-  active: "#B8865C",        // copper for active states
+  active: "#B8865C", // copper for active states
   activeLight: "rgba(184, 134, 92, 0.12)",
-  error: "#C4645A",         // muted red
-  pending: "#E8E3DC",       // light warm gray for pending
-  border: "#E8E3DC",        // warm border
+  error: "#C4645A", // muted red
+  pending: "#E8E3DC", // light warm gray for pending
+  border: "#E8E3DC", // warm border
   borderAccent: "rgba(184, 134, 92, 0.3)",
 };
 
@@ -56,7 +65,10 @@ const COLORS = {
 
 const PHASE1_MESSAGES = [
   { icon: ScanLine, text: "Scanning drawings — classifying sheet types..." },
-  { icon: FileSearch, text: "Identifying plan views, sections, and details..." },
+  {
+    icon: FileSearch,
+    text: "Identifying plan views, sections, and details...",
+  },
   { icon: Layers, text: "Detecting cover sheets and schedules..." },
   { icon: Ruler, text: "Preparing sheets for extraction..." },
 ];
@@ -69,6 +81,8 @@ const PHASE2_MESSAGES = [
   { icon: Hammer, text: "Preparing rows for pricing and review..." },
 ];
 
+type AnalysisPhase = "indexing" | "extracting" | "consolidating";
+
 const PHASE3_MESSAGES = [
   { icon: Layers, text: "Consolidating duplicate items across all sheets..." },
   { icon: Calculator, text: "Converting lump sums to measured quantities..." },
@@ -78,7 +92,119 @@ const PHASE3_MESSAGES = [
   { icon: ScanLine, text: "Applying regional cost multiplier..." },
 ];
 
-type AnalysisPhase = "indexing" | "extracting" | "consolidating";
+const PHASE_DETAILS = {
+  indexing: {
+    eyebrow: "Pass 1",
+    title: "Building the drawing index",
+    summary:
+      "ConstructLine is sorting the set before takeoff so each sheet gets the right role in the bid.",
+    valueCards: [
+      {
+        icon: FileSearch,
+        title: "Sheet classification",
+        body: "Plans, schedules, details, covers, and notes are separated so high-value sheets move first.",
+      },
+      {
+        icon: Layers,
+        title: "Drawing review",
+        body: "The set is scanned for context that affects scope, sequencing, and trade boundaries.",
+      },
+      {
+        icon: ShieldCheck,
+        title: "Bid guardrails",
+        body: "Context-only sheets stay useful without inflating quantities or active totals.",
+      },
+    ],
+    nudges: [
+      "Confirm the bid mode matches the package you plan to price.",
+      "After indexing, review sheet roles before chasing quantities.",
+    ],
+  },
+  extracting: {
+    eyebrow: "Pass 2",
+    title: "Extracting measurable scope",
+    summary:
+      "Rows are being created with the evidence needed to review, accept, or hold scope decisions.",
+    valueCards: [
+      {
+        icon: ScanLine,
+        title: "Source evidence",
+        body: "Quantities are tied back to drawing context so decisions can be checked later.",
+      },
+      {
+        icon: ClipboardCheck,
+        title: "Review rows",
+        body: "Ambiguous or boundary work is preserved for review instead of silently entering the bid.",
+      },
+      {
+        icon: AlertTriangle,
+        title: "Anomaly traceability",
+        body: "Potential source issues and unusual quantities stay visible for faster cleanup.",
+      },
+    ],
+    nudges: [
+      "Use Review to decide what belongs in the active bid.",
+      "Open source evidence before including uncertain rows.",
+    ],
+  },
+  consolidating: {
+    eyebrow: "Pass 3",
+    title: "Turning takeoff into bid output",
+    summary:
+      "Accepted scope is being grouped, priced, and prepared for the Estimate and Submit workflow.",
+    valueCards: [
+      {
+        icon: Database,
+        title: "Cost library",
+        body: "Material unit costs are matched and organized by CSI-friendly bid structure.",
+      },
+      {
+        icon: HardHat,
+        title: "Trade rates & crews",
+        body: "Labor pricing uses your trade rate library, crew assumptions, and regional setup.",
+      },
+      {
+        icon: Percent,
+        title: "Markups & bid output",
+        body: "Pricing rolls toward a package-ready estimate with bid summary and SOV outputs.",
+      },
+    ],
+    nudges: [
+      "Estimate is where you decide what accepted work costs.",
+      "Submit packages the finished bid after review and pricing are clean.",
+    ],
+  },
+} satisfies Record<
+  AnalysisPhase,
+  {
+    eyebrow: string;
+    title: string;
+    summary: string;
+    valueCards: Array<{ icon: any; title: string; body: string }>;
+    nudges: string[];
+  }
+>;
+
+const NEXT_STEPS = [
+  {
+    label: "Review",
+    detail: "Decide what belongs",
+    icon: ClipboardCheck,
+    color: "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]",
+  },
+  {
+    label: "Estimate",
+    detail: "Decide what it costs",
+    icon: Calculator,
+    color: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  },
+  {
+    label: "Submit",
+    detail: "Package the bid",
+    icon: Send,
+    color: "border-violet-200 bg-violet-50 text-violet-800",
+  },
+];
 
 interface ProcessingOverlayProps {
   totalSheets: number;
@@ -123,10 +249,10 @@ function ProgressRing({
   isIndeterminate: boolean;
   phase: AnalysisPhase;
 }) {
-  const strokeColor = phase === "consolidating" ? COLORS.success : COLORS.accent;
-  const glowColor = phase === "consolidating"
-    ? "rgba(91, 138, 114, 0.3)"
-    : COLORS.accentGlow;
+  const strokeColor =
+    phase === "consolidating" ? COLORS.success : COLORS.accent;
+  const glowColor =
+    phase === "consolidating" ? "rgba(91, 138, 114, 0.3)" : COLORS.accentGlow;
   const trackColor = COLORS.border;
 
   const offset = isIndeterminate
@@ -162,8 +288,12 @@ function ProgressRing({
         style={{
           transform: "rotate(-90deg)",
           transformOrigin: "50% 50%",
-          transition: isIndeterminate ? "none" : "stroke-dashoffset 0.8s ease-out",
-          animation: isIndeterminate ? "cl-ring-spin 2s linear infinite" : "none",
+          transition: isIndeterminate
+            ? "none"
+            : "stroke-dashoffset 0.8s ease-out",
+          animation: isIndeterminate
+            ? "cl-ring-spin 2s linear infinite"
+            : "none",
         }}
       />
     </svg>
@@ -263,7 +393,7 @@ function SplashIntro({ onComplete }: { onComplete: () => void }) {
 
       {/* Loading dots */}
       <div className="flex items-center gap-2 mt-8">
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2].map(i => (
           <div
             key={i}
             className="w-1.5 h-1.5 rounded-full"
@@ -318,7 +448,9 @@ export default function ProcessingOverlay({
         consolidationStartRef.current = Date.now();
       }
       const interval = setInterval(() => {
-        setConsolidationElapsed(Date.now() - (consolidationStartRef.current || Date.now()));
+        setConsolidationElapsed(
+          Date.now() - (consolidationStartRef.current || Date.now())
+        );
       }, 1000);
       return () => clearInterval(interval);
     } else {
@@ -329,9 +461,12 @@ export default function ProcessingOverlay({
 
   const phaseMessages = useMemo(() => {
     switch (currentPhase) {
-      case "indexing": return PHASE1_MESSAGES;
-      case "extracting": return PHASE2_MESSAGES;
-      case "consolidating": return PHASE3_MESSAGES;
+      case "indexing":
+        return PHASE1_MESSAGES;
+      case "extracting":
+        return PHASE2_MESSAGES;
+      case "consolidating":
+        return PHASE3_MESSAGES;
     }
   }, [currentPhase]);
 
@@ -350,24 +485,25 @@ export default function ProcessingOverlay({
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % phaseMessages.length);
+      setMessageIndex(prev => (prev + 1) % phaseMessages.length);
     }, 3500);
     return () => clearInterval(interval);
   }, [phaseMessages]);
 
-  const percentage = totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
+  const percentage =
+    totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
   const currentMessage = phaseMessages[messageIndex % phaseMessages.length];
   const CurrentIcon = currentMessage.icon;
 
   const currentSheet = useMemo(() => {
     if (!sheets) return null;
-    return sheets.find((s) => s.status === "processing");
+    return sheets.find(s => s.status === "processing");
   }, [sheets]);
 
   // Error sheets detection
   const errorSheets = useMemo(() => {
     if (!sheets) return [];
-    return sheets.filter((s) => s.status === "error");
+    return sheets.filter(s => s.status === "error");
   }, [sheets]);
 
   const CONSOLIDATION_ESTIMATE_MS = 180000;
@@ -380,26 +516,55 @@ export default function ProcessingOverlay({
     }
     const remaining = totalSheets - processedSheets;
     if (remaining <= 0) return 15000; // Almost done — show minimal time
-    const avgPerSheet = processedSheets > 0 && phaseElapsed > 5000
-      ? phaseElapsed / processedSheets
-      : 12000;
+    const avgPerSheet =
+      processedSheets > 0 && phaseElapsed > 5000
+        ? phaseElapsed / processedSheets
+        : 12000;
     return Math.max(15000, remaining * avgPerSheet); // Never show less than 15s
-  }, [currentPhase, totalSheets, processedSheets, phaseElapsed, consolidationElapsed]);
+  }, [
+    currentPhase,
+    totalSheets,
+    processedSheets,
+    phaseElapsed,
+    consolidationElapsed,
+  ]);
 
   const phases = [
-    { key: "indexing" as const, label: "Classify Sheets", description: "Identifying sheet types" },
-    { key: "extracting" as const, label: "Extract", description: "Fast AI extraction" },
-    { key: "consolidating" as const, label: "Price & Consolidate", description: "Material + labor pricing" },
+    {
+      key: "indexing" as const,
+      label: "Classify Sheets",
+      description: "Identifying sheet types",
+    },
+    {
+      key: "extracting" as const,
+      label: "Extract",
+      description: "ConstructLine extraction",
+    },
+    {
+      key: "consolidating" as const,
+      label: "Price & Consolidate",
+      description: "Material + labor pricing",
+    },
   ];
 
-  const phaseOrder: AnalysisPhase[] = ["indexing", "extracting", "consolidating"];
+  const phaseOrder: AnalysisPhase[] = [
+    "indexing",
+    "extracting",
+    "consolidating",
+  ];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
+  const phaseDetail = PHASE_DETAILS[currentPhase];
 
   const isIndeterminate = currentPhase === "indexing";
-  const consolidationPercentage = currentPhase === "consolidating"
-    ? Math.min(99, Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100))
-    : 0;
-  const displayPercentage = currentPhase === "consolidating" ? consolidationPercentage : percentage;
+  const consolidationPercentage =
+    currentPhase === "consolidating"
+      ? Math.min(
+          99,
+          Math.round((consolidationElapsed / CONSOLIDATION_ESTIMATE_MS) * 100)
+        )
+      : 0;
+  const displayPercentage =
+    currentPhase === "consolidating" ? consolidationPercentage : percentage;
 
   // ─── Splash Phase ────────────────────────────────────────────────────────
   if (showSplash) {
@@ -427,87 +592,178 @@ export default function ProcessingOverlay({
   // ─── Working Phase ───────────────────────────────────────────────────────
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="overflow-hidden rounded-xl"
       style={{
-        border: `1px solid ${COLORS.border}`,
-        background: `linear-gradient(180deg, ${COLORS.bg} 0%, ${COLORS.bgSubtle} 100%)`,
-        boxShadow: `0 4px 24px rgba(44, 40, 37, 0.08), 0 1px 3px rgba(44, 40, 37, 0.04)`,
+        border: "1px solid #e4d7bf",
+        background: COLORS.bg,
+        boxShadow: "0 22px 70px rgba(41, 37, 28, 0.10)",
         animation: "cl-splash-fade-in 0.6s ease-out",
       }}
     >
-      {/* Top accent bar */}
       <div
-        className="h-1"
-        style={{
-          background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.accentLight}, ${COLORS.accent})`,
-          backgroundSize: "200% 100%",
-          animation: "shimmer 2s ease-in-out infinite",
-        }}
+        className="h-1 bg-[linear-gradient(90deg,#d7b44d,#f1b51d,#d7b44d)] bg-[length:200%_100%]"
+        style={{ animation: "shimmer 2s ease-in-out infinite" }}
       />
 
-      <div className="px-6 sm:px-10 py-10 sm:py-12">
-        {/* ─── HERO: Circular Progress Ring + Countdown ──────────────── */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="relative">
-            <ProgressRing
-              percentage={displayPercentage}
-              isIndeterminate={isIndeterminate}
-              phase={currentPhase}
-            />
-            {/* Center content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {isIndeterminate ? (
-                <>
-                  <CurrentIcon
-                    className="w-8 h-8 mb-1"
-                    style={{
-                      color: COLORS.accent,
-                      animation: "cl-icon-pulse 2s ease-in-out infinite",
-                    }}
-                  />
-                  <span className="text-[11px] font-medium" style={{ color: COLORS.textMuted }}>
-                    Indexing
-                  </span>
-                </>
-              ) : currentPhase === "consolidating" ? (
-                <>
-                  <CurrentIcon
-                    className="w-8 h-8 mb-1"
-                    style={{
-                      color: COLORS.success,
-                      animation: "cl-icon-pulse 2s ease-in-out infinite",
-                    }}
-                  />
-                  <span className="text-[11px] font-medium" style={{ color: COLORS.textMuted }}>
-                    Finalizing
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span
-                    className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight leading-none"
-                    style={{ color: COLORS.text }}
-                  >
-                    {formatTime(etaMs)}
-                  </span>
-                  <span className="text-[11px] font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
-                    remaining
-                  </span>
-                </>
-              )}
+      <div className="grid bg-[#07090b] text-white lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="border-b border-white/10 px-6 py-7 sm:px-8 lg:border-b-0 lg:border-r">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#f1b51d]/30 bg-[#f1b51d]/10 text-[#f1b51d]">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold leading-none">
+                Construct<span className="text-[#f1b51d]">Line</span>
+              </p>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                Processing Bid
+              </p>
             </div>
           </div>
-
-          {/* Percentage row */}
-          {!isIndeterminate && (
-            <div className="flex items-center gap-4 mt-5">
-              <span className="text-sm font-semibold" style={{ color: COLORS.accent }}>
-                {displayPercentage}% complete
-              </span>
-            </div>
-          )}
+          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.20em] text-[#f1b51d]">
+            {phaseDetail.eyebrow}
+          </p>
+          <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-normal">
+            {phaseDetail.title}
+          </h3>
+          <p className="mt-3 text-sm leading-6 text-white/62">
+            {phaseDetail.summary}
+          </p>
         </div>
 
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[230px_minmax(0,1fr)] lg:items-center">
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <ProgressRing
+                percentage={displayPercentage}
+                isIndeterminate={isIndeterminate}
+                phase={currentPhase}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                {isIndeterminate ? (
+                  <>
+                    <CurrentIcon
+                      className="mb-1 h-8 w-8"
+                      style={{
+                        color: COLORS.accentLight,
+                        animation: "cl-icon-pulse 2s ease-in-out infinite",
+                      }}
+                    />
+                    <span className="text-[11px] font-medium text-white/58">
+                      Indexing
+                    </span>
+                  </>
+                ) : currentPhase === "consolidating" ? (
+                  <>
+                    <CurrentIcon
+                      className="mb-1 h-8 w-8"
+                      style={{
+                        color: "#7fd1a2",
+                        animation: "cl-icon-pulse 2s ease-in-out infinite",
+                      }}
+                    />
+                    <span className="text-[11px] font-medium text-white/58">
+                      Finalizing
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-4xl font-bold leading-none tracking-normal text-white sm:text-5xl">
+                      {formatTime(etaMs)}
+                    </span>
+                    <span className="mt-1.5 text-[11px] font-medium text-white/58">
+                      remaining
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            {!isIndeterminate && (
+              <span className="mt-5 text-sm font-semibold text-[#f1b51d]">
+                {displayPercentage}% complete
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {phaseDetail.valueCards.map(card => {
+                const CardIcon = card.icon;
+                return (
+                  <div
+                    key={card.title}
+                    className="rounded-lg border border-white/10 bg-white/[0.04] p-4"
+                  >
+                    <CardIcon className="h-4 w-4 text-[#f1b51d]" />
+                    <p className="mt-3 text-sm font-semibold text-white">
+                      {card.title}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-white/58">
+                      {card.body}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+                <div className="flex items-center gap-2">
+                  <FileCheck2 className="h-4 w-4 text-[#f1b51d]" />
+                  <p className="text-sm font-semibold text-white">
+                    Setup nudges
+                  </p>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {phaseDetail.nudges.map(nudge => (
+                    <div
+                      key={nudge}
+                      className="flex gap-2 text-xs leading-5 text-white/64"
+                    >
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                      <span>{nudge}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[#f1b51d]/25 bg-[#f1b51d]/10 p-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-[#f1b51d]" />
+                  <p className="text-sm font-semibold text-white">Next steps</p>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {NEXT_STEPS.map((step, index) => {
+                    const StepIcon = step.icon;
+                    return (
+                      <div key={step.label} className="flex items-center gap-2">
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg border ${step.color}`}
+                        >
+                          <StepIcon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-white">
+                            {step.label}
+                          </p>
+                          <p className="text-[11px] text-white/52">
+                            {step.detail}
+                          </p>
+                        </div>
+                        {index < NEXT_STEPS.length - 1 && (
+                          <ArrowRight className="h-3.5 w-3.5 text-white/35" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 py-8 sm:px-10">
         {/* ─── 3-Step Phase Progress ─────────────────────────────────── */}
         <div className="max-w-lg mx-auto mb-8">
           <div className="flex items-center justify-between">
@@ -516,15 +772,19 @@ export default function ProcessingOverlay({
               const isActive = i === currentPhaseIndex;
 
               return (
-                <div key={phase.key} className="flex-1 flex flex-col items-center relative">
+                <div
+                  key={phase.key}
+                  className="flex-1 flex flex-col items-center relative"
+                >
                   {/* Connector line */}
                   {i > 0 && (
                     <div
                       className="absolute top-4 right-1/2 w-full h-px -z-10"
                       style={{
-                        backgroundColor: isComplete || isActive
-                          ? COLORS.success
-                          : COLORS.border,
+                        backgroundColor:
+                          isComplete || isActive
+                            ? COLORS.success
+                            : COLORS.border,
                         opacity: isComplete || isActive ? 0.5 : 1,
                       }}
                     />
@@ -550,14 +810,20 @@ export default function ProcessingOverlay({
                     }}
                   >
                     {isComplete ? (
-                      <CheckCircle2 className="w-4 h-4" style={{ color: COLORS.success }} />
+                      <CheckCircle2
+                        className="w-4 h-4"
+                        style={{ color: COLORS.success }}
+                      />
                     ) : isActive ? (
                       <Loader2
                         className="w-4 h-4 animate-spin"
                         style={{ color: COLORS.accent }}
                       />
                     ) : (
-                      <Circle className="w-3 h-3" style={{ color: COLORS.textLight }} />
+                      <Circle
+                        className="w-3 h-3"
+                        style={{ color: COLORS.textLight }}
+                      />
                     )}
                   </div>
 
@@ -586,7 +852,11 @@ export default function ProcessingOverlay({
                           : COLORS.textLight,
                     }}
                   >
-                    {isComplete ? "Done" : isActive ? phase.description : "Waiting"}
+                    {isComplete
+                      ? "Done"
+                      : isActive
+                        ? phase.description
+                        : "Waiting"}
                   </span>
                 </div>
               );
@@ -596,7 +866,10 @@ export default function ProcessingOverlay({
 
         {/* Current phase message with icon */}
         <div className="flex items-center justify-center gap-2.5 mb-8 h-5">
-          <CurrentIcon className="w-4 h-4 shrink-0" style={{ color: `${COLORS.accent}B3` }} />
+          <CurrentIcon
+            className="w-4 h-4 shrink-0"
+            style={{ color: `${COLORS.accent}B3` }}
+          />
           <p
             className="text-sm font-medium"
             style={{
@@ -613,7 +886,10 @@ export default function ProcessingOverlay({
         {currentPhase === "extracting" && (
           <div className="max-w-md mx-auto mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium" style={{ color: COLORS.textMuted }}>
+              <span
+                className="text-xs font-medium"
+                style={{ color: COLORS.textMuted }}
+              >
                 {processedSheets} of {totalSheets} sheets
               </span>
             </div>
@@ -636,7 +912,10 @@ export default function ProcessingOverlay({
                           ? COLORS.accent
                           : "transparent",
                       ...(isActive
-                        ? { animation: "cl-segment-pulse 1.5s ease-in-out infinite" }
+                        ? {
+                            animation:
+                              "cl-segment-pulse 1.5s ease-in-out infinite",
+                          }
                         : {}),
                     }}
                   />
@@ -657,7 +936,8 @@ export default function ProcessingOverlay({
                 border: `1px solid ${COLORS.borderAccent}`,
               }}
             >
-              Analyzing: {currentSheet.sheetName || `Page ${currentSheet.pageNumber}`}
+              Analyzing:{" "}
+              {currentSheet.sheetName || `Page ${currentSheet.pageNumber}`}
             </Badge>
           </div>
         )}
@@ -671,26 +951,38 @@ export default function ProcessingOverlay({
               border: `1px solid rgba(196, 100, 90, 0.25)`,
             }}
           >
-            <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: COLORS.error }} />
+            <AlertTriangle
+              className="w-5 h-5 shrink-0"
+              style={{ color: COLORS.error }}
+            />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold" style={{ color: COLORS.error }}>
-                {errorSheets.length} sheet{errorSheets.length > 1 ? "s" : ""} failed — tap to retry now
+              <p
+                className="text-xs font-semibold"
+                style={{ color: COLORS.error }}
+              >
+                {errorSheets.length} sheet{errorSheets.length > 1 ? "s" : ""}{" "}
+                failed — tap to retry now
               </p>
-              <p className="text-[10px] mt-0.5" style={{ color: COLORS.textMuted }}>
-                {errorSheets.map((s) => s.sheetName || `Page ${s.pageNumber}`).join(", ")}
+              <p
+                className="text-[10px] mt-0.5"
+                style={{ color: COLORS.textMuted }}
+              >
+                {errorSheets
+                  .map(s => s.sheetName || `Page ${s.pageNumber}`)
+                  .join(", ")}
               </p>
             </div>
             {onRetrySheet && (
               <button
-                onClick={() => errorSheets.forEach((s) => onRetrySheet(s.id))}
+                onClick={() => errorSheets.forEach(s => onRetrySheet(s.id))}
                 className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold"
                 style={{
                   backgroundColor: COLORS.error,
                   color: "#FFFFFF",
                   transition: "opacity 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
               >
                 <RefreshCw className="w-3 h-3" />
                 Retry All
@@ -704,7 +996,7 @@ export default function ProcessingOverlay({
           sheets.length > 0 &&
           sheets.length <= 60 && (
             <div className="flex flex-wrap justify-center gap-1.5 max-w-lg mx-auto mb-5">
-              {sheets.map((sheet) => {
+              {sheets.map(sheet => {
                 const isCompleted = sheet.status === "completed";
                 const isProcessing = sheet.status === "processing";
                 const isError = sheet.status === "error";
@@ -738,7 +1030,10 @@ export default function ProcessingOverlay({
                               : COLORS.border
                       }`,
                       ...(isProcessing
-                        ? { animation: "cl-segment-pulse 1.5s ease-in-out infinite" }
+                        ? {
+                            animation:
+                              "cl-segment-pulse 1.5s ease-in-out infinite",
+                          }
                         : {}),
                     }}
                     title={sheet.sheetName || `Page ${sheet.pageNumber}`}
@@ -751,7 +1046,11 @@ export default function ProcessingOverlay({
                         stroke="currentColor"
                         strokeWidth={2.5}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     ) : isProcessing ? (
                       <div
@@ -779,7 +1078,10 @@ export default function ProcessingOverlay({
           )}
 
         {/* Tip */}
-        <p className="text-center text-[11px] mt-5" style={{ color: COLORS.textLight }}>
+        <p
+          className="text-center text-[11px] mt-5"
+          style={{ color: COLORS.textLight }}
+        >
           You can leave this page — analysis continues in the background
         </p>
       </div>
