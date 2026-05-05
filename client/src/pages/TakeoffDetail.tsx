@@ -78,6 +78,10 @@ import {
   Info,
   Flag,
   Search,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from "lucide-react";
 import { MeasurementRollup } from "@/components/MeasurementRollup";
 import SheetScaleCalibrator from "@/components/SheetScaleCalibrator";
@@ -1231,18 +1235,25 @@ function DrawingNavigatorDialog({
                   onClick={() => onOpenPreview(activeSheet)}
                   className={`h-9 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
                 >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Open Preview
+                  <Maximize2 className="mr-2 h-4 w-4" />
+                  Full Screen
                 </Button>
               )}
             </div>
             <div className="flex min-h-[650px] items-center justify-center overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#faf8f2] shadow-inner">
               {activeSheet?.imageUrl ? (
-                <img
-                  src={activeSheet.imageUrl}
-                  alt={getSheetLabel(activeSheet)}
-                  className="h-full max-h-[74vh] w-full object-contain"
-                />
+                <button
+                  type="button"
+                  onClick={() => onOpenPreview(activeSheet)}
+                  className="flex h-full w-full items-center justify-center"
+                  title="Open drawing full screen"
+                >
+                  <img
+                    src={activeSheet.imageUrl}
+                    alt={getSheetLabel(activeSheet)}
+                    className="h-full max-h-[74vh] w-full object-contain transition-transform hover:scale-[1.01]"
+                  />
+                </button>
               ) : (
                 <div className="text-center text-[#716855]">
                   <FileImage className="mx-auto mb-3 h-12 w-12 opacity-40" />
@@ -1709,6 +1720,7 @@ export default function TakeoffDetail() {
 
   const [activeTab, setActiveTab] = useState("sheets");
   const [previewSheet, setPreviewSheet] = useState<any>(null);
+  const [previewZoom, setPreviewZoom] = useState(1);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [collapsedDivisions, setCollapsedDivisions] = useState<Set<string>>(
@@ -1776,6 +1788,10 @@ export default function TakeoffDetail() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [uploading]);
+
+  useEffect(() => {
+    if (previewSheet) setPreviewZoom(1);
+  }, [previewSheet]);
 
   const [markups, setMarkups] = useState({
     labor: 0,
@@ -6838,24 +6854,73 @@ export default function TakeoffDetail() {
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
       <Dialog open={!!previewSheet} onOpenChange={() => setPreviewSheet(null)}>
-        <DialogContent className="max-w-5xl border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
-          <DialogHeader>
-            <DialogTitle className="text-[#171714]">
-              {previewSheet?.sheetName || `Page ${previewSheet?.pageNumber}`}
-            </DialogTitle>
-            <DialogDescription className="text-[#716855]">
-              {previewSheet?.sheetType && previewSheet.sheetType !== "other"
-                ? previewSheet.sheetType.replace(/_/g, " ")
-                : "Drawing sheet preview"}
-            </DialogDescription>
+        <DialogContent className="flex h-[94vh] !w-[min(1920px,98vw)] !max-w-[min(1920px,98vw)] flex-col border-[#d7c7aa] bg-[#f4efe4] p-0 text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&>div:nth-child(2)]:gap-0 [&>div:nth-child(2)]:p-0 [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
+          <DialogHeader className="border-b border-[#d8c9ad] px-6 py-4 pr-12">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="truncate text-2xl text-[#171714]">
+                  {previewSheet?.sheetName ||
+                    `Page ${previewSheet?.pageNumber}`}
+                </DialogTitle>
+                <DialogDescription className="text-[#716855]">
+                  {previewSheet?.sheetType && previewSheet.sheetType !== "other"
+                    ? previewSheet.sheetType.replace(/_/g, " ")
+                    : "Drawing sheet preview"}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-8 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                  onClick={() =>
+                    setPreviewZoom(zoom => Math.max(0.5, zoom - 0.25))
+                  }
+                  disabled={previewZoom <= 0.5}
+                  title="Zoom out"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <div className="min-w-16 rounded-xl border border-[#d7c7aa] bg-white px-3 py-1.5 text-center font-mono text-xs font-semibold text-[#5d5546]">
+                  {Math.round(previewZoom * 100)}%
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-8 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                  onClick={() =>
+                    setPreviewZoom(zoom => Math.min(4, zoom + 0.25))
+                  }
+                  disabled={previewZoom >= 4}
+                  title="Zoom in"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-8 rounded-xl ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+                  onClick={() => setPreviewZoom(1)}
+                  title="Reset zoom"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="max-h-[70vh] overflow-auto rounded-xl border border-[#d7c7aa] bg-white p-3 shadow-inner">
+          <div className="min-h-0 flex-1 overflow-auto bg-[#2f2f2b] p-5">
             {previewSheet?.imageUrl && (
-              <img
-                src={previewSheet.imageUrl}
-                alt={previewSheet.sheetName || "Drawing"}
-                className="h-auto w-full rounded-sm"
-              />
+              <div className="mx-auto flex min-h-full w-max min-w-full items-center justify-center">
+                <img
+                  src={previewSheet.imageUrl}
+                  alt={previewSheet.sheetName || "Drawing"}
+                  className="h-auto rounded-sm bg-white shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
+                  style={{
+                    width: `${previewZoom * 100}%`,
+                    maxWidth: previewZoom <= 1 ? "100%" : "none",
+                  }}
+                />
+              </div>
             )}
           </div>
         </DialogContent>
