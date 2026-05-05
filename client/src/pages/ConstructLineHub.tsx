@@ -161,22 +161,60 @@ function formatDate(value?: string | Date | null): string {
 
 function BuildingHeroArt() {
   return (
-    <div className="relative hidden min-h-[300px] overflow-hidden lg:block">
-      <div
-        className="absolute inset-0 bg-no-repeat opacity-95"
-        style={{
-          backgroundImage: "url('/constructline-hub-mock.png')",
-          backgroundPosition: "55% 7%",
-          backgroundSize: "920px auto",
-        }}
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,253,248,0.98)_0%,rgba(255,253,248,0.78)_18%,rgba(255,253,248,0.08)_58%,rgba(255,253,248,0.92)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fffdf8] to-transparent" />
-      <div className="absolute right-8 top-10 h-40 w-72 rounded-full bg-[#f1b51d]/10 blur-3xl" />
-      <div className="absolute left-10 top-12 h-28 w-28 rounded-full bg-emerald-300/12 blur-2xl" />
-      <div className="absolute bottom-8 right-12 flex items-center gap-2 rounded-full border border-[#d7c7aa] bg-white/80 px-4 py-2 text-xs font-semibold text-[#5d5546] shadow-[0_14px_40px_rgba(41,37,28,0.12)] backdrop-blur">
-        <Sparkles className="h-3.5 w-3.5 text-[#c48d12]" />
-        Premium bid cockpit
+    <div className="relative hidden min-h-[330px] overflow-hidden lg:block">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_18%,rgba(241,181,29,0.20),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e1_42%,#eef5ef_100%)]" />
+      <div className="absolute right-8 top-8 h-[265px] w-[470px] rounded-2xl border border-[#d7c7aa] bg-[#090b0f] p-5 shadow-[0_34px_90px_rgba(41,37,28,0.26)]">
+        <div className="flex items-start justify-between border-b border-white/10 pb-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f1b51d]">
+              Basis Cockpit
+            </p>
+            <p className="mt-2 text-lg font-semibold text-white">
+              Crystal Car Wash
+            </p>
+          </div>
+          <Badge className="border-emerald-300/35 bg-emerald-300/12 text-emerald-200">
+            Ready to package
+          </Badge>
+        </div>
+        <div className="mt-5 grid gap-3">
+          {[
+            ["Review", "Scope clear", "100%"],
+            ["Estimate", "$546,286", "100%"],
+            ["Submit", "Proposal package", "Ready"],
+          ].map(([label, value, status]) => (
+            <div
+              key={label}
+              className="grid grid-cols-[1fr_auto] items-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3"
+            >
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                  {label}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+              </div>
+              <p className="font-mono text-xs font-semibold text-[#f1b51d]">
+                {status}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="absolute -right-6 bottom-8 w-[170px] rounded-xl border border-[#f1b51d]/25 bg-[#f1b51d]/12 p-4 backdrop-blur">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
+            Outputs
+          </p>
+          <div className="mt-3 space-y-2 text-sm text-white/70">
+            <p>Proposal PDF</p>
+            <p>Bid Summary</p>
+            <p>AIA SOV</p>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bottom-9 left-10 rounded-full border border-[#d7c7aa] bg-white/82 px-4 py-2 text-xs font-semibold text-[#5d5546] shadow-[0_14px_40px_rgba(41,37,28,0.12)] backdrop-blur">
+        <span className="inline-flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-[#c48d12]" />
+          AI-assisted estimating cockpit
+        </span>
       </div>
     </div>
   );
@@ -253,23 +291,23 @@ export default function ConstructLineHub() {
 
   return (
     <div className="min-h-screen bg-[#f8f5ef] text-[#171714]">
-      <header className="sticky top-0 z-20 border-b border-black/10 bg-[#07090b] text-white shadow-[0_18px_50px_rgba(0,0,0,0.20)]">
+      <header className="sticky top-0 z-20 border-b border-[#e4d7bf] bg-[#fffdf8]/95 text-[#171714] shadow-[0_12px_38px_rgba(41,37,28,0.08)] backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-6 py-3">
           <div className="min-w-[190px]">
             <p className="text-xl font-semibold leading-none">
               Construct<span className="text-[#f1b51d]">Line</span>
             </p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#716855]">
               Powered by ALP
             </p>
           </div>
           <div className="relative hidden flex-1 md:block">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-            <div className="flex h-10 items-center rounded-xl border border-white/10 bg-white/8 pl-11 pr-3 text-sm text-white/56 shadow-inner">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a806d]" />
+            <div className="flex h-10 items-center rounded-xl border border-[#d7c7aa] bg-white pl-11 pr-3 text-sm text-[#716855] shadow-inner">
               <span className="flex-1">
                 Search projects, drawings, tools...
               </span>
-              <span className="rounded-md border border-white/10 bg-white/8 px-2 py-0.5 font-mono text-[10px] text-white/50">
+              <span className="rounded-md border border-[#eadcc4] bg-[#faf8f2] px-2 py-0.5 font-mono text-[10px] text-[#716855]">
                 ⌘ K
               </span>
             </div>
@@ -278,14 +316,14 @@ export default function ConstructLineHub() {
             data-tour="hub-configure-rates"
             variant="outline"
             size="sm"
-            className="hidden h-10 rounded-xl border-white/10 bg-white/8 text-white hover:!bg-white/14 hover:!text-white lg:inline-flex"
+            className="hidden h-10 rounded-xl border-[#d7c7aa] bg-white text-[#171714] shadow-sm hover:!bg-[#faf8f2] lg:inline-flex"
             onClick={() => setShowWizard(true)}
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Configure
           </Button>
           <div className="relative">
-            <Bell className="h-5 w-5 text-white/70" />
+            <Bell className="h-5 w-5 text-[#5d5546]" />
             {bidsInReview > 0 && (
               <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f1b51d] px-1 text-[10px] font-bold text-black">
                 {bidsInReview}
@@ -301,19 +339,34 @@ export default function ConstructLineHub() {
             data-tour="hub-hero"
             className="overflow-hidden rounded-xl bg-[#fffdf8] shadow-[0_28px_80px_rgba(41,37,28,0.08)]"
           >
-            <div className="grid min-h-[315px] lg:grid-cols-[minmax(430px,0.76fr)_minmax(520px,1fr)]">
+            <div className="grid min-h-[330px] lg:grid-cols-[minmax(430px,0.70fr)_minmax(560px,1fr)]">
               <div className="flex flex-col justify-center p-7 lg:p-9">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
-                    Welcome back, Marshall
+                    ConstructLine Hub
                   </p>
                   <h1 className="mt-4 max-w-[560px] text-4xl font-semibold leading-[1.04] tracking-normal text-[#11100c] lg:text-[42px] xl:text-[48px]">
-                    Good morning! Let’s build something great today.
+                    Turn drawings into decisions.
                   </h1>
                   <p className="mt-4 max-w-[520px] text-[15px] leading-7 text-[#6d6558]">
-                    Upload drawings, review scope, price accepted work, and
-                    package winning bids — all from one powerful cockpit.
+                    Basis reads the set, keeps source evidence visible, and
+                    moves the estimator from review to pricing to a bid-ready
+                    package.
                   </p>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {[
+                    "Review scope",
+                    "Price accepted work",
+                    "Package the bid",
+                  ].map(item => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-[#eadcc4] bg-white px-3 py-1 text-xs font-semibold text-[#5d5546]"
+                    >
+                      {item}
+                    </span>
+                  ))}
                 </div>
                 {!rateConfig && (
                   <button
