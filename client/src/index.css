@@ -467,6 +467,7 @@
 }
 
 .constructline-library-page .bg-navy-medium\/80,
+.constructline-library-page .bg-navy-medium\/70,
 .constructline-library-page .bg-navy-medium\/40,
 .constructline-library-page .bg-navy-medium\/50,
 .constructline-library-page .bg-navy-medium\/30,
@@ -476,7 +477,8 @@
 
 .constructline-library-page .bg-navy-deep,
 .constructline-library-page .bg-navy-deep\/80,
-.constructline-library-page .bg-navy-deep\/45 {
+.constructline-library-page .bg-navy-deep\/45,
+.constructline-library-page .bg-navy-dark {
   background: #fffdf8 !important;
 }
 
@@ -493,6 +495,9 @@
 }
 
 .constructline-library-page .text-cream-muted,
+.constructline-library-page .text-cream-muted\/50,
+.constructline-library-page .text-cream-muted\/60,
+.constructline-library-page .text-cream-muted\/70,
 .constructline-library-page .text-gray-500 {
   color: #716855 !important;
 }
@@ -514,6 +519,19 @@
 .constructline-library-page tbody,
 .constructline-library-page tr {
   color: #171714;
+}
+
+.constructline-library-page thead {
+  background: #e9dfcf !important;
+}
+
+.constructline-library-page th {
+  color: #5f5545 !important;
+  font-weight: 700 !important;
+}
+
+.constructline-library-page td {
+  color: #252119;
 }
 
 .constructline-library-page thead,
@@ -549,4 +567,34 @@
 .constructline-library-page .text-amber-300,
 .constructline-library-page .text-amber-400 {
   color: #8a6510 !important;
+}
+
+.constructline-library-page .bg-green-500\/10,
+.constructline-library-page .bg-green-500\/15,
+.constructline-library-page .bg-emerald-500\/10,
+.constructline-library-page .bg-emerald-500\/15 {
+  background: #e8f7ef !important;
+}
+
+.constructline-library-page .text-green-300,
+.constructline-library-page .text-green-400,
+.constructline-library-page .text-emerald-300,
+.constructline-library-page .text-emerald-400 {
+  color: #24724f !important;
+}
+
+.constructline-library-page .hover\:text-green-300:hover,
+.constructline-library-page .hover\:text-emerald-300:hover {
+  color: #1f6043 !important;
+}
+
+.constructline-library-page .text-red-400,
+.constructline-library-page .text-red-400\/60 {
+  color: #b42318 !important;
+}
+
+.constructline-library-page [class*="bg-[#171714]"],
+.constructline-library-page [class*="from-amber-500"][class*="to-orange-600"],
+.constructline-library-page .bg-emerald-600 {
+  color: #fffdf8 !important;
 }

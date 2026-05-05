@@ -407,63 +407,96 @@ export default function LaborLibrary() {
       </div>
 
       {/* Rate Configuration Summary Card */}
-      <div className="bg-gradient-to-r from-amber-500/5 via-navy-deep to-amber-500/5 border-b border-amber-500/10 px-3 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Config badges */}
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-semibold text-cream">
-                Rate Configuration
-              </span>
+      <div className="border-b border-[#d7c7aa] bg-[#fff8e8] px-3 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-700" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-800">
+                  Active rate configuration
+                </p>
+              </div>
+              <h2 className="mt-1 text-lg font-semibold text-[#171714]">
+                {configLabel} · {regionLabel}
+                {specialtyLabel ? ` · ${specialtyLabel}` : ""}
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm text-[#716855]">
+                Basis uses this profile when confirming labor. Change the setup
+                here, then save named profiles for public work, open-shop work,
+                regions, or specialty bid conditions.
+              </p>
             </div>
-            <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 px-2.5 py-0.5 text-xs font-medium">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                data-tour="labor-library-seed"
+                onClick={() => setShowWizard(true)}
+                className="gap-1.5 border border-[#171714] bg-[#171714] text-xs font-semibold text-white shadow-sm hover:bg-black"
+                size="sm"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Reconfigure Rates
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setActiveView("profiles")}
+                className="gap-1.5 border-[#cdbb9b] bg-white text-xs font-semibold text-[#4f4638] shadow-sm hover:bg-[#fff4d2]"
+                size="sm"
+              >
+                <Bookmark className="h-3.5 w-3.5" />
+                Manage Profiles
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="border-[#d7b44d] bg-[#fff4cb] px-2.5 py-0.5 text-xs font-medium text-[#8a6510]">
               {configLabel}
             </Badge>
-            <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 px-2.5 py-0.5 text-xs font-medium">
+            <Badge className="border-[#8db4f8] bg-[#eff6ff] px-2.5 py-0.5 text-xs font-medium text-[#244c91]">
               {regionLabel}
             </Badge>
             {specialtyLabel && (
-              <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 px-2.5 py-0.5 text-xs font-medium">
+              <Badge className="border-[#c7b4ff] bg-[#f2ecff] px-2.5 py-0.5 text-xs font-medium text-[#5d3fb0]">
                 {specialtyLabel}
               </Badge>
             )}
             {combinedFactor !== "1.00" && (
-              <span className="text-xs text-cream-muted">
+              <span className="rounded-full border border-[#e4d7bf] bg-white px-2.5 py-1 text-xs font-medium text-[#5f5545]">
                 Combined:{" "}
-                <span className="text-amber-400 font-bold">
+                <span className="font-bold text-[#8a6510]">
                   {combinedFactor}x
                 </span>
               </span>
             )}
-            <span className="text-xs text-cream-muted">
+            <span className="rounded-full border border-[#e4d7bf] bg-white px-2.5 py-1 text-xs font-medium text-[#5f5545]">
               Burden:{" "}
-              <span className="text-amber-300 font-medium">
+              <span className="font-bold text-[#8a6510]">
                 {formatPct(totalBurdenPct)}
               </span>
               {fixedBurdenCents > 0 && (
                 <>
                   {" "}
                   +{" "}
-                  <span className="text-amber-300 font-medium">
+                  <span className="font-bold text-[#8a6510]">
                     {formatCents(fixedBurdenCents)}/hr
                   </span>
                 </>
               )}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {/* View toggle */}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div
               data-tour="labor-library-tabs"
-              className="flex items-center gap-1 bg-navy-medium/50 rounded-lg p-1 mr-2"
+              className="flex items-center gap-1 rounded-lg border border-[#e4d7bf] bg-white p-1 shadow-sm"
             >
               <button
                 onClick={() => setActiveView("rates")}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                   activeView === "rates"
-                    ? "bg-white/10 text-cream shadow-sm"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? "bg-[#171714] text-white shadow-sm"
+                    : "text-[#716855] hover:bg-[#f7f0df] hover:text-[#171714]"
                 }`}
               >
                 <HardHat className="w-3 h-3" />
@@ -473,8 +506,8 @@ export default function LaborLibrary() {
                 onClick={() => setActiveView("crews")}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                   activeView === "crews"
-                    ? "bg-white/10 text-cream shadow-sm"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? "bg-[#171714] text-white shadow-sm"
+                    : "text-[#716855] hover:bg-[#f7f0df] hover:text-[#171714]"
                 }`}
               >
                 <Users className="w-3 h-3" />
@@ -484,23 +517,18 @@ export default function LaborLibrary() {
                 onClick={() => setActiveView("profiles")}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                   activeView === "profiles"
-                    ? "bg-white/10 text-cream shadow-sm"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? "bg-[#171714] text-white shadow-sm"
+                    : "text-[#716855] hover:bg-[#f7f0df] hover:text-[#171714]"
                 }`}
               >
                 <Bookmark className="w-3 h-3" />
                 Rate Profiles
               </button>
             </div>
-            <Button
-              data-tour="labor-library-seed"
-              onClick={() => setShowWizard(true)}
-              className="bg-gradient-to-r from-amber-500/20 to-orange-600/20 border border-amber-500/30 text-amber-300 hover:from-amber-500/30 hover:to-orange-600/30 gap-1.5 text-xs font-semibold"
-              size="sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Reconfigure Rates
-            </Button>
+            <p className="text-xs text-[#716855]">
+              Save profiles from the Rate Profiles tab after you finish tuning
+              burden, wages, and crews.
+            </p>
           </div>
         </div>
       </div>
@@ -1454,19 +1482,24 @@ function RateProfilesPanel({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#e4d7bf] bg-[#fffdf8] p-4 shadow-sm">
         <div>
-          <h3 className="text-base font-semibold text-cream">Rate Profiles</h3>
-          <p className="text-xs text-cream-muted mt-0.5">
-            Save named snapshots of your rate configuration for different job
-            types. Assign a profile to any project to override your global hub
-            settings.
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8a6510]">
+            Saved configurations
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-[#171714]">
+            Rate Profiles
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm text-[#716855]">
+            Save named setups for real bid conditions: commercial union, public
+            works, residential open shop, specialty regions, or client-specific
+            burden assumptions.
           </p>
         </div>
         <Button
           size="sm"
           onClick={() => setShowSaveDialog(true)}
-          className="bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 gap-1.5 text-xs"
+          className="gap-1.5 border border-[#171714] bg-[#171714] text-xs font-semibold text-white hover:bg-black"
         >
           <Save className="w-3.5 h-3.5" />
           Save Current as Profile
@@ -1475,24 +1508,24 @@ function RateProfilesPanel({
 
       {/* Current Config Summary */}
       {rateConfig && (
-        <div className="bg-navy-medium/40 border border-white/8 rounded-xl p-4">
-          <p className="text-xs text-cream-muted uppercase tracking-wider font-semibold mb-2">
-            Current Hub Configuration
+        <div className="rounded-xl border border-[#e4d7bf] bg-white p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#716855]">
+            Current Basis Configuration
           </p>
           <div className="flex flex-wrap gap-2">
             {rateConfig.laborType && (
-              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+              <Badge className="border-[#8db4f8] bg-[#eff6ff] text-xs text-[#244c91]">
                 {LABOR_TYPE_DISPLAY_MAP[rateConfig.laborType] ??
                   rateConfig.laborType}
               </Badge>
             )}
             {rateConfig.regionName && (
-              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
+              <Badge className="border-[#9bd8b9] bg-[#e8f7ef] text-xs text-[#24724f]">
                 {rateConfig.regionName}
               </Badge>
             )}
             {rateConfig.specialty && (
-              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+              <Badge className="border-[#d7b44d] bg-[#fff4cb] text-xs text-[#8a6510]">
                 {rateConfig.specialty}
               </Badge>
             )}
@@ -1506,12 +1539,12 @@ function RateProfilesPanel({
           <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
-          <Bookmark className="w-8 h-8 text-cream-muted mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-cream-muted">
+        <div className="rounded-xl border border-dashed border-[#d7c7aa] bg-white/70 py-12 text-center">
+          <Bookmark className="mx-auto mb-3 h-8 w-8 text-[#8a6510] opacity-60" />
+          <p className="text-sm font-medium text-[#171714]">
             No rate profiles saved yet.
           </p>
-          <p className="text-xs text-cream-muted/60 mt-1">
+          <p className="mt-1 text-xs text-[#716855]">
             Save your current configuration as a named profile — e.g.,
             "Commercial Union NYC" or "Residential Open Shop FL".
           </p>
@@ -1521,15 +1554,15 @@ function RateProfilesPanel({
           {profiles.map(profile => (
             <div
               key={profile.id}
-              className="bg-navy-medium/40 border border-white/8 rounded-xl p-4 flex flex-col gap-3"
+              className="flex flex-col gap-3 rounded-xl border border-[#e4d7bf] bg-white p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-cream truncate">
+                  <p className="truncate text-sm font-semibold text-[#171714]">
                     {profile.name}
                   </p>
                   {profile.description && (
-                    <p className="text-xs text-cream-muted mt-0.5 line-clamp-2">
+                    <p className="mt-0.5 line-clamp-2 text-xs text-[#716855]">
                       {profile.description}
                     </p>
                   )}
@@ -1540,7 +1573,7 @@ function RateProfilesPanel({
                       deleteMutation.mutate({ id: profile.id });
                     }
                   }}
-                  className="text-red-400/60 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  className="mt-0.5 shrink-0 text-red-700/70 transition-colors hover:text-red-700"
                   title="Delete profile"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1548,13 +1581,13 @@ function RateProfilesPanel({
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {profile.projectType && (
-                  <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-xs">
+                  <Badge className="border-[#8db4f8] bg-[#eff6ff] text-xs text-[#244c91]">
                     {profile.projectType.charAt(0).toUpperCase() +
                       profile.projectType.slice(1)}
                   </Badge>
                 )}
                 {profile.workType && (
-                  <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 text-xs">
+                  <Badge className="border-[#c7b4ff] bg-[#f2ecff] text-xs text-[#5d3fb0]">
                     {profile.workType === "open_shop"
                       ? "Open Shop"
                       : profile.workType.charAt(0).toUpperCase() +
@@ -1562,14 +1595,14 @@ function RateProfilesPanel({
                   </Badge>
                 )}
                 {profile.region && (
-                  <Badge className="bg-green-500/15 text-green-300 border-green-500/25 text-xs">
+                  <Badge className="border-[#9bd8b9] bg-[#e8f7ef] text-xs text-[#24724f]">
                     {profile.region
                       .replace(/_/g, " ")
                       .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-cream-muted/50">
+              <p className="text-xs text-[#8a806d]">
                 Saved {new Date(profile.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -1580,35 +1613,35 @@ function RateProfilesPanel({
       {/* Save Dialog */}
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-navy-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-base font-semibold text-cream mb-1">
+          <div className="w-full max-w-md rounded-2xl border border-[#d7c7aa] bg-[#fffdf8] p-6 shadow-2xl">
+            <h3 className="mb-1 text-base font-semibold text-[#171714]">
               Save Rate Profile
             </h3>
-            <p className="text-xs text-cream-muted mb-4">
-              Snapshot your current rates and configuration as a named profile.
+            <p className="mb-4 text-xs text-[#716855]">
+              Snapshot the current setup so it can be reused on future bids.
             </p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-cream-muted font-medium mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-[#5f5545]">
                   Profile Name *
                 </label>
                 <Input
                   value={newProfileName}
                   onChange={e => setNewProfileName(e.target.value)}
                   placeholder="e.g. Commercial Union — New York City"
-                  className="bg-white/5 border-white/10 text-cream text-sm"
+                  className="border-[#d7c7aa] bg-white text-sm text-[#171714]"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="text-xs text-cream-muted font-medium mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-[#5f5545]">
                   Notes (optional)
                 </label>
                 <Input
                   value={newProfileDesc}
                   onChange={e => setNewProfileDesc(e.target.value)}
                   placeholder="e.g. For NYC commercial bids, prevailing wage"
-                  className="bg-white/5 border-white/10 text-cream text-sm"
+                  className="border-[#d7c7aa] bg-white text-sm text-[#171714]"
                 />
               </div>
             </div>
@@ -1617,7 +1650,7 @@ function RateProfilesPanel({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowSaveDialog(false)}
-                className="flex-1 border-white/10 text-cream-muted"
+                className="flex-1 border-[#cdbb9b] bg-white text-[#4f4638] hover:bg-[#fff4d2]"
               >
                 Cancel
               </Button>
@@ -1625,7 +1658,7 @@ function RateProfilesPanel({
                 size="sm"
                 onClick={handleSaveCurrentAsProfile}
                 disabled={createMutation.isPending || !newProfileName.trim()}
-                className="flex-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30"
+                className="flex-1 border border-[#171714] bg-[#171714] text-white hover:bg-black disabled:border-[#d7c7aa] disabled:bg-[#e9dfcf] disabled:text-[#8a806d]"
               >
                 {createMutation.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
