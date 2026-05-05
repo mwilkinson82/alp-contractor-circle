@@ -206,6 +206,29 @@ const NEXT_STEPS = [
   },
 ];
 
+const EDUCATION_CARDS = [
+  {
+    title: "After indexing, you can navigate away",
+    body: "ConstructLine keeps extracting in the background. Come back when the badge moves to Estimate or when you are ready to review the bid.",
+  },
+  {
+    title: "Review before pricing",
+    body: "Review is where you decide what belongs in the active bid. Boundary rows stay visible but out of the total until you include them.",
+  },
+  {
+    title: "Use source evidence for judgment calls",
+    body: "When a row feels unusual, open the drawing context before accepting it. The goal is a clean bid, not a blind spreadsheet.",
+  },
+  {
+    title: "Estimate is the pricing room",
+    body: "Once scope is accepted, Estimate is where labor basis, cost library values, markups, tax, and bid total come together.",
+  },
+  {
+    title: "Submit is the finish line",
+    body: "When the estimate is ready, package it into a proposal, bid summary, and SOV with your company assets attached.",
+  },
+];
+
 interface ProcessingOverlayProps {
   totalSheets: number;
   processedSheets: number;
@@ -431,10 +454,12 @@ export default function ProcessingOverlay({
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
+  const [educationIndex, setEducationIndex] = useState(0);
   const phaseStartRef = useRef(Date.now());
   const [phaseElapsed, setPhaseElapsed] = useState(0);
   const consolidationStartRef = useRef<number | null>(null);
   const [consolidationElapsed, setConsolidationElapsed] = useState(0);
+  const extractionStartProcessedRef = useRef(processedSheets);
 
   const currentPhase: AnalysisPhase = useMemo(() => {
     if (projectStatus === "post_processing") return "consolidating";
@@ -479,8 +504,10 @@ export default function ProcessingOverlay({
 
   useEffect(() => {
     phaseStartRef.current = Date.now();
+    extractionStartProcessedRef.current = processedSheets;
     setPhaseElapsed(0);
     setMessageIndex(0);
+    setEducationIndex(0);
   }, [currentPhase]);
 
   useEffect(() => {
@@ -489,6 +516,13 @@ export default function ProcessingOverlay({
     }, 3500);
     return () => clearInterval(interval);
   }, [phaseMessages]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEducationIndex(prev => (prev + 1) % EDUCATION_CARDS.length);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
 
   const percentage =
     totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
@@ -507,6 +541,7 @@ export default function ProcessingOverlay({
   }, [sheets]);
 
   const CONSOLIDATION_ESTIMATE_MS = 180000;
+  const DEFAULT_EXTRACTION_MS_PER_SHEET = 25000;
 
   const etaMs = useMemo(() => {
     if (currentPhase === "indexing") return 0; // No timer during indexing
@@ -516,11 +551,19 @@ export default function ProcessingOverlay({
     }
     const remaining = totalSheets - processedSheets;
     if (remaining <= 0) return 15000; // Almost done — show minimal time
-    const avgPerSheet =
-      processedSheets > 0 && phaseElapsed > 5000
-        ? phaseElapsed / processedSheets
-        : 12000;
-    return Math.max(15000, remaining * avgPerSheet); // Never show less than 15s
+    const processedSincePhaseStart = Math.max(
+      0,
+      processedSheets - extractionStartProcessedRef.current
+    );
+    const observedMsPerSheet =
+      processedSincePhaseStart > 0 && phaseElapsed > 10000
+        ? phaseElapsed / processedSincePhaseStart
+        : DEFAULT_EXTRACTION_MS_PER_SHEET;
+    const blendedMsPerSheet = Math.max(
+      15000,
+      Math.round((observedMsPerSheet + DEFAULT_EXTRACTION_MS_PER_SHEET) / 2)
+    );
+    return Math.max(30000, remaining * blendedMsPerSheet);
   }, [
     currentPhase,
     totalSheets,
@@ -554,6 +597,9 @@ export default function ProcessingOverlay({
   ];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
   const phaseDetail = PHASE_DETAILS[currentPhase];
+  const educationCard =
+    EDUCATION_CARDS[educationIndex % EDUCATION_CARDS.length];
+  const canNavigateAway = currentPhase !== "indexing";
 
   const isIndeterminate = currentPhase === "indexing";
   const consolidationPercentage =
@@ -595,7 +641,7 @@ export default function ProcessingOverlay({
       className="overflow-hidden rounded-xl"
       style={{
         border: "1px solid #e4d7bf",
-        background: COLORS.bg,
+        background: "#07090b",
         boxShadow: "0 22px 70px rgba(41, 37, 28, 0.10)",
         animation: "cl-splash-fade-in 0.6s ease-out",
       }}
@@ -763,7 +809,52 @@ export default function ProcessingOverlay({
         </div>
       </div>
 
-      <div className="px-6 py-8 sm:px-10">
+      <div className="border-t border-white/10 bg-[#07090b] px-6 py-7 text-white sm:px-10">
+        <div
+          className={`mx-auto mb-7 max-w-4xl rounded-xl border p-4 ${
+            canNavigateAway
+              ? "border-emerald-400/30 bg-emerald-400/10"
+              : "border-[#f1b51d]/25 bg-[#f1b51d]/10"
+          }`}
+        >
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-3">
+              <div
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+                  canNavigateAway
+                    ? "border-emerald-300/40 text-emerald-200"
+                    : "border-[#f1b51d]/35 text-[#f1b51d]"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {canNavigateAway
+                    ? "Indexing is complete. You can navigate away."
+                    : "Stay here while ConstructLine indexes the drawing set."}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-white/58">
+                  {canNavigateAway
+                    ? "Extraction continues in the background. Come back when you are ready to review scope and build the estimate."
+                    : "Once the set is indexed, the page can keep working while you move elsewhere in ConstructLine."}
+                </p>
+              </div>
+            </div>
+            <div className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-3 py-2 md:w-[320px]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f1b51d]">
+                Estimating note
+              </p>
+              <p className="mt-1 text-xs font-semibold text-white">
+                {educationCard.title}
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-white/55">
+                {educationCard.body}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* ─── 3-Step Phase Progress ─────────────────────────────────── */}
         <div className="max-w-lg mx-auto mb-8">
           <div className="flex items-center justify-between">
@@ -870,14 +961,7 @@ export default function ProcessingOverlay({
             className="w-4 h-4 shrink-0"
             style={{ color: `${COLORS.accent}B3` }}
           />
-          <p
-            className="text-sm font-medium"
-            style={{
-              color: COLORS.text,
-              transition: "all 0.3s ease",
-              opacity: 0.8,
-            }}
-          >
+          <p className="text-sm font-medium text-white/76 transition-opacity">
             {currentMessage.text}
           </p>
         </div>
@@ -888,7 +972,7 @@ export default function ProcessingOverlay({
             <div className="flex items-center justify-between mb-2">
               <span
                 className="text-xs font-medium"
-                style={{ color: COLORS.textMuted }}
+                style={{ color: "rgba(255,255,255,0.55)" }}
               >
                 {processedSheets} of {totalSheets} sheets
               </span>
@@ -1078,11 +1162,8 @@ export default function ProcessingOverlay({
           )}
 
         {/* Tip */}
-        <p
-          className="text-center text-[11px] mt-5"
-          style={{ color: COLORS.textLight }}
-        >
-          You can leave this page — analysis continues in the background
+        <p className="mt-5 text-center text-[11px] text-white/35">
+          Processing keeps running on the server even if you leave this screen.
         </p>
       </div>
 
