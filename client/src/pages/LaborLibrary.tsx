@@ -39,7 +39,7 @@ import {
 import CrewBuilder from "@/components/CrewBuilder";
 import {
   TRADES,
-  getBaseWage,
+  getResolvedBaseWage,
   LABOR_TYPE_LABELS,
   DEFAULT_BURDENS,
   calculateBurdenedRate,
@@ -261,7 +261,7 @@ export default function LaborLibrary() {
     const map = new Map<string, number>();
     if (tradeRatesQuery.data) {
       for (const r of tradeRatesQuery.data as any[]) {
-        map.set(`${r.tradeName}::${r.classification}`, r.baseWageCents);
+        map.set(`${r.tradeName}|${r.classification}`, r.baseWageCents);
       }
     }
     return map;
@@ -271,8 +271,7 @@ export default function LaborLibrary() {
 
   const getRate = (tradeName: string, classification: string): number => {
     return (
-      userRateMap.get(`${tradeName}::${classification}`) ||
-      getBaseWage(tradeName, classification, laborType) ||
+      getResolvedBaseWage(tradeName, classification, laborType, userRateMap) ||
       0
     );
   };

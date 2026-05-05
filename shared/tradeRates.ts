@@ -590,3 +590,65 @@ export function getBaseWage(
   if (!role) return null;
   return role.rates[laborType];
 }
+
+const LEGACY_ROLE_FALLBACKS: Record<string, string[]> = {
+  journeyman: [
+    "journeyman",
+    "finisher",
+    "bricklayer",
+    "block_layer",
+    "form_carpenter",
+    "operator",
+    "installer",
+    "technician",
+    "mechanic",
+    "laborer",
+  ],
+  apprentice: ["apprentice", "apprentice_2", "helper", "laborer"],
+  apprentice_1: ["apprentice_1", "apprentice", "helper", "laborer"],
+  apprentice_2: ["apprentice_2", "apprentice", "helper", "laborer"],
+  apprentice_3: ["apprentice_3", "apprentice", "helper", "laborer"],
+  apprentice_4: ["apprentice_4", "apprentice", "helper", "laborer"],
+  helper: ["helper", "apprentice", "laborer"],
+  operator: ["operator", "equipment_operator", "pump_operator", "laborer"],
+};
+
+/**
+ * Resolve legacy or generic crew role keys to a valid role for the selected trade.
+ * Older seeded crews used generic classifications like journeyman/apprentice_2
+ * even when a trade has more specific roles such as finisher or laborer.
+ */
+export function resolveTradeRoleKey(tradeName: string, roleKey: string): string | null {
+  const trade = TRADES.find((t) => t.tradeName === tradeName);
+  if (!trade) return null;
+
+  const available = new Set(trade.roles.map((r) => r.roleKey));
+  if (available.has(roleKey)) return roleKey;
+
+  for (const candidate of LEGACY_ROLE_FALLBACKS[roleKey] || []) {
+    if (available.has(candidate)) return candidate;
+  }
+
+  return trade.roles[0]?.roleKey ?? null;
+}
+
+export function getResolvedBaseWage(
+  tradeName: string,
+  roleKey: string,
+  laborType: LaborType,
+  userRateMap?: Map<string, number>
+): number | null {
+  const exactUserRate = userRateMap?.get(`${tradeName}|${roleKey}`);
+  if (exactUserRate !== undefined) return exactUserRate;
+
+  const exactBase = getBaseWage(tradeName, roleKey, laborType);
+  if (exactBase !== null) return exactBase;
+
+  const resolvedRoleKey = resolveTradeRoleKey(tradeName, roleKey);
+  if (!resolvedRoleKey || resolvedRoleKey === roleKey) return null;
+
+  const resolvedUserRate = userRateMap?.get(`${tradeName}|${resolvedRoleKey}`);
+  if (resolvedUserRate !== undefined) return resolvedUserRate;
+
+  return getBaseWage(tradeName, resolvedRoleKey, laborType);
+}

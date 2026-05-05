@@ -13,8 +13,9 @@ import {
   Pencil, DollarSign, HardHat, Save,
 } from "lucide-react";
 import {
-  TRADES, getBaseWage,
-  LABOR_TYPE_LABELS, DEFAULT_BURDENS, calculateBurdenedRate,
+  TRADES,
+  getResolvedBaseWage,
+  calculateBurdenedRate,
   type LaborType, type BurdenDefaults,
 } from "../../../shared/tradeRates";
 
@@ -77,10 +78,7 @@ export default function CrewBuilder({ laborType, burden, regionMultiplier, userR
   });
 
   const getBaseRate = (tradeName: string, cls: string): number => {
-    const userRate = userRateMap.get(`${tradeName}|${cls}`);
-    if (userRate !== undefined) return userRate;
-    const baseWage = getBaseWage(tradeName, cls, laborType);
-    return baseWage ?? 0;
+    return getResolvedBaseWage(tradeName, cls, laborType, userRateMap) ?? 0;
   };
 
   const getBurdenedRate = (baseWageCents: number): number => {

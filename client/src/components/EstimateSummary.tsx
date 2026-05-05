@@ -48,8 +48,7 @@ import {
   Send,
 } from "lucide-react";
 import {
-  TRADES,
-  getBaseWage,
+  getResolvedBaseWage,
   DEFAULT_BURDENS,
   calculateBurdenedRate,
   DEFAULT_CREWS,
@@ -602,10 +601,8 @@ export default function EstimateSummary({
       let totalPerHr = 0;
       const members = JSON.parse(crew.crewMembers || "[]");
       for (const m of members) {
-        const userRate = userRateMap.get(`${m.tradeName}|${m.classification}`);
-        const trade = TRADES.find(t => t.tradeName === m.tradeName);
         const baseWage =
-          userRate ?? getBaseWage(m.tradeName, m.classification, lt) ?? 0;
+          getResolvedBaseWage(m.tradeName, m.classification, lt, userRateMap) ?? 0;
         const burdened = Math.round(
           calculateBurdenedRate(baseWage, burden) * regionMultiplier
         );
