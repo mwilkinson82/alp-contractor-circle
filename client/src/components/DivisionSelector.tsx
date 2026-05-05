@@ -107,26 +107,26 @@ export default function DivisionSelector({
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 rounded-lg border border-white/10 bg-navy-medium/30 hover:bg-navy-medium/50 transition-colors"
+        className="w-full flex items-center justify-between p-3 rounded-lg border border-[#d7c7aa] bg-white/75 hover:bg-white transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-amber-500" />
-          <span className="text-sm font-medium text-cream">CSI Divisions</span>
+          <Layers className="w-4 h-4 text-[#8a6510]" />
+          <span className="text-sm font-medium text-[#171714]">CSI Divisions</span>
           {matchingPreset && (
-            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+            <Badge className="bg-[#fff4cb] text-[#8a6510] border-[#d7b44d] text-xs">
               {matchingPreset}
             </Badge>
           )}
           {!matchingPreset && !allSelected && (
-            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+            <Badge className="bg-blue-50 text-[#244c91] border-blue-200 text-xs">
               {value.length} selected
             </Badge>
           )}
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-cream-muted" />
+          <ChevronUp className="w-4 h-4 text-[#716855]" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-cream-muted" />
+          <ChevronDown className="w-4 h-4 text-[#716855]" />
         )}
       </button>
 
@@ -136,13 +136,13 @@ export default function DivisionSelector({
           {value.slice(0, 8).map((code) => (
             <Badge
               key={code}
-              className="bg-white/5 text-cream-muted border-white/10 text-xs"
+              className="bg-white text-[#716855] border-[#d7c7aa] text-xs"
             >
               {code} — {TAKEOFF_DIVISIONS.find((d) => d.code === code)?.name || code}
             </Badge>
           ))}
           {value.length > 8 && (
-            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+            <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-xs">
               +{value.length - 8} more
             </Badge>
           )}
@@ -151,19 +151,19 @@ export default function DivisionSelector({
 
       {/* Expanded Panel */}
       {expanded && (
-        <div className="border border-white/10 rounded-lg bg-navy-medium/20 overflow-hidden">
+        <div className="border border-[#d7c7aa] rounded-lg bg-white/70 overflow-hidden shadow-sm">
           {/* Quick Presets */}
           {showPresets && (
-            <div className="p-3 border-b border-white/5">
+            <div className="p-3 border-b border-[#eadcc4]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-cream-muted flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-500" />
+                <span className="text-xs font-medium text-[#716855] flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-[#8a6510]" />
                   Quick Presets
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowPresets(false)}
-                  className="text-xs text-cream-muted hover:text-cream"
+                  className="text-xs text-[#716855] hover:text-[#171714]"
                 >
                   Hide
                 </button>
@@ -182,8 +182,8 @@ export default function DivisionSelector({
                       onClick={() => applyPreset(preset.codes)}
                       className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                         isActive
-                          ? "bg-amber-500/30 text-amber-300 border border-amber-500/50"
-                          : "bg-white/5 text-cream-muted border border-white/10 hover:bg-white/10 hover:text-cream"
+                          ? "bg-[#fff4cb] text-[#8a6510] border border-[#d7b44d]"
+                          : "bg-white text-[#716855] border border-[#d7c7aa] hover:bg-[#faf8f2] hover:text-[#171714]"
                       }`}
                       title={preset.description}
                     >
@@ -196,13 +196,13 @@ export default function DivisionSelector({
           )}
 
           {/* Controls */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[#eadcc4]">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs text-cream-muted hover:text-cream"
+                className="h-7 text-xs text-[#716855] hover:bg-[#faf8f2] hover:text-[#171714]"
                 onClick={selectAll}
               >
                 <CheckSquare className="w-3 h-3 mr-1" />
@@ -212,13 +212,13 @@ export default function DivisionSelector({
                 <button
                   type="button"
                   onClick={() => setShowPresets(true)}
-                  className="text-xs text-amber-500 hover:text-amber-400"
+                  className="text-xs text-[#8a6510] hover:text-[#6f4d00]"
                 >
                   Show Presets
                 </button>
               )}
             </div>
-            <span className="text-xs text-cream-muted">
+            <span className="text-xs text-[#716855]">
               {allSelected ? ALL_TAKEOFF_DIVISION_CODES.length : value.length} of {ALL_TAKEOFF_DIVISION_CODES.length}
             </span>
           </div>
@@ -228,7 +228,7 @@ export default function DivisionSelector({
             <div className="p-2 space-y-3">
               {DIVISION_GROUPS.map((group) => (
                 <div key={group.label}>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-cream-muted/60 px-2 mb-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8a806d] px-2 mb-1">
                     {group.label}
                   </div>
                   <div className="space-y-0.5">
@@ -239,19 +239,19 @@ export default function DivisionSelector({
                           key={div.code}
                           className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
                             selected
-                              ? "bg-amber-500/10 hover:bg-amber-500/15"
-                              : "hover:bg-white/5"
+                              ? "bg-[#fff4cb] hover:bg-[#fff0b8]"
+                              : "hover:bg-[#faf8f2]"
                           }`}
                         >
                           <Checkbox
                             checked={selected}
                             onCheckedChange={() => toggleDivision(div.code)}
-                            className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                            className="border-[#c8b895] data-[state=checked]:bg-[#d9a21a] data-[state=checked]:border-[#d9a21a]"
                           />
-                          <span className="text-xs font-mono text-amber-400/80 w-5">
+                          <span className="text-xs font-mono text-[#8a6510] w-5">
                             {div.code}
                           </span>
-                          <span className={`text-sm ${selected ? "text-cream" : "text-cream-muted"}`}>
+                          <span className={`text-sm ${selected ? "text-[#171714]" : "text-[#716855]"}`}>
                             {div.name}
                           </span>
                         </label>

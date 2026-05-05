@@ -213,7 +213,7 @@ export default function ProjectSettingsPanel({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="border-white/10 text-cream-muted hover:text-cream hover:bg-white/5"
+        className="border-[#d7c7aa] bg-white/65 text-[#716855] shadow-sm hover:bg-white hover:text-[#171714]"
       >
         <Settings className="w-4 h-4 mr-2" />
         Edit Settings
@@ -221,55 +221,55 @@ export default function ProjectSettingsPanel({
 
       {/* Settings Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col min-w-0">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col min-w-0 border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
           <DialogHeader>
-            <DialogTitle>Project Settings</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#171714]">Project Settings</DialogTitle>
+            <DialogDescription className="text-[#716855]">
               Edit bid mode, scope boundary, pricing, and review settings for this project.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 space-y-6 py-2 overflow-y-auto overflow-x-hidden overscroll-contain min-h-0 min-w-0 pr-1">
             {/* Current Settings Summary */}
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
-              <div className="text-xs font-medium text-cream-muted">Current Settings</div>
+            <div className="space-y-2 rounded-lg border border-[#d7c7aa] bg-white/70 p-3 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wider text-[#716855]">Current Settings</div>
               <div className="flex flex-wrap gap-2">
-                <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20">
+                <Badge className="border-[#d7c7aa] bg-white text-[#5d5546]">
                   {CURRENCIES.find((c) => c.code === (currentCurrency || "USD"))?.flag}{" "}
                   {currentCurrency || "USD"}
                 </Badge>
-                <Badge className="bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
+                <Badge className="border-blue-200 bg-blue-50 text-[#244c91]">
                   <Building2 className="w-3 h-3 mr-1" />
                   {getTakeoffProjectTypeLabel(currentProjectType)}
                 </Badge>
-                <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20">
+                <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
                   {getBidModeBehavior(currentBidMode).shortLabel}
                 </Badge>
                 {currentDivisions && currentDivisions.length > 0 ? (
-                  <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20">
+                  <Badge className="border-blue-200 bg-blue-50 text-[#244c91]">
                     {currentDivisions.length} divisions
                   </Badge>
                 ) : (
-                  <Badge className="bg-white/5 text-cream-muted border-white/10">
+                  <Badge className="border-[#d7c7aa] bg-white text-[#716855]">
                     All divisions
                   </Badge>
                 )}
                 {currentSpecialties && currentSpecialties.length > 0 ? (
-                  <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20">
+                  <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]">
                     <Wrench className="w-3 h-3 mr-1" />
                     {currentSpecialties.length} specialties
                   </Badge>
                 ) : (
-                  <Badge className="bg-white/5 text-cream-muted border-white/10">
+                  <Badge className="border-[#d7c7aa] bg-white text-[#716855]">
                     Auto-detect specialties
                   </Badge>
                 )}
                 {currentRegion ? (
-                  <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
+                  <Badge className="border-emerald-300 bg-emerald-50 text-emerald-800">
                     {currentRegionName || currentRegion}
                   </Badge>
                 ) : (
-                  <Badge className="bg-white/5 text-cream-muted border-white/10">
+                  <Badge className="border-[#d7c7aa] bg-white text-[#716855]">
                     National Average
                   </Badge>
                 )}
@@ -279,7 +279,7 @@ export default function ProjectSettingsPanel({
                   {currentSpecialtyNames.map((name) => (
                     <Badge
                       key={name}
-                      className="bg-amber-500/10 text-amber-300/70 border-amber-500/15 text-[9px]"
+                      className="border-[#d7b44d] bg-[#fff7da] text-[9px] text-[#8a6510]"
                     >
                       {name}
                     </Badge>
@@ -287,15 +287,15 @@ export default function ProjectSettingsPanel({
                 </div>
               )}
               {currentScopeText && (
-                <div className="mt-1 text-xs text-cream-muted/70 border-t border-white/5 pt-2">
-                  <span className="font-medium text-cream-muted">Scope:</span>{" "}
+                <div className="mt-1 border-t border-[#d8c9ad] pt-2 text-xs text-[#716855]">
+                  <span className="font-medium text-[#5d5546]">Scope:</span>{" "}
                   <span className="italic">{currentScopeText.length > 120 ? currentScopeText.slice(0, 120) + "..." : currentScopeText}</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-3">
-              <div className="text-sm font-medium text-cream">Bid Mode</div>
+              <div className="text-sm font-semibold text-[#171714]">Bid Mode</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {TAKEOFF_BID_MODES.map((mode) => {
                   const option = BID_MODE_BEHAVIORS[mode];
@@ -306,34 +306,34 @@ export default function ProjectSettingsPanel({
                       type="button"
                       onClick={() => setSelectedBidMode(mode)}
                       className={`rounded-lg border p-3 text-left transition-colors ${
-                        isActive ? "border-amber-500/60 bg-amber-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                        isActive ? "border-[#d7b44d] bg-[#fff4cb] shadow-sm" : "border-[#d7c7aa] bg-white/75 hover:bg-white"
                       }`}
                     >
-                      <span className="text-xs font-semibold text-cream">{option.label}</span>
-                      <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
+                      <span className="text-xs font-semibold text-[#171714]">{option.label}</span>
+                      <p className="mt-1 text-[10px] leading-snug text-[#716855]">{option.description}</p>
                     </button>
                   );
                 })}
               </div>
               {bidModeChanged && hasProcessedSheets && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">Bid mode changes apply on the next re-analysis.</span>
+                <div className="flex items-start gap-2 rounded-md border border-[#d7b44d] bg-[#fff7da] p-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#a66d00]" />
+                  <span className="text-xs text-[#8a6510]">Bid mode changes apply on the next re-analysis.</span>
                 </div>
               )}
               {tradePackageNeedsScope && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">Trade Package Takeoff needs a scope boundary, selected divisions, or specialties for strict review/exclude behavior.</span>
+                <div className="flex items-start gap-2 rounded-md border border-[#d7b44d] bg-[#fff7da] p-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#a66d00]" />
+                  <span className="text-xs text-[#8a6510]">Trade Package Takeoff needs a scope boundary, selected divisions, or specialties for strict review/exclude behavior.</span>
                 </div>
               )}
             </div>
 
             {/* Currency Toggle */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream">
+              <div className="text-sm font-semibold text-[#171714]">
                 Currency
-                <span className="text-xs text-cream-muted ml-2">(filters available regions)</span>
+                <span className="ml-2 text-xs font-medium text-[#716855]">(filters available regions)</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {CURRENCIES.map((c) => {
@@ -351,20 +351,20 @@ export default function ProjectSettingsPanel({
                       }}
                       className={`flex items-center gap-2 p-3 rounded-lg border transition-colors text-left ${
                         isActive
-                          ? "border-amber-500/50 bg-amber-500/10"
-                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                          ? "border-[#d7b44d] bg-[#fff4cb] shadow-sm"
+                          : "border-[#d7c7aa] bg-white/75 hover:bg-white"
                       }`}
                     >
                       <span className="text-lg">{c.flag}</span>
                       <div>
                         <div className="flex items-center gap-1">
-                          <span className="text-sm font-semibold text-cream">{c.symbol}</span>
-                          <span className="text-sm font-medium text-cream">{c.code}</span>
+                          <span className="text-sm font-semibold text-[#171714]">{c.symbol}</span>
+                          <span className="text-sm font-medium text-[#171714]">{c.code}</span>
                         </div>
-                        <span className="text-[10px] text-cream-muted">{c.label}</span>
+                        <span className="text-[10px] text-[#716855]">{c.label}</span>
                       </div>
                       {isActive && (
-                        <div className="ml-auto w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                        <div className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-[#d9a21a]">
                           <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
@@ -378,10 +378,10 @@ export default function ProjectSettingsPanel({
 
             {/* Project Type Selector */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#171714]">
+                <Building2 className="h-4 w-4 text-[#8a6510]" />
                 Project Type
-                <span className="text-xs text-cream-muted">(drives QA and allowance defaults)</span>
+                <span className="text-xs font-medium text-[#716855]">(drives QA and allowance defaults)</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 {TAKEOFF_PROJECT_TYPE_OPTIONS.map((option) => {
@@ -393,12 +393,12 @@ export default function ProjectSettingsPanel({
                       onClick={() => setSelectedProjectType(option.value)}
                       className={`rounded-lg border p-3 text-left transition-colors ${
                         isActive
-                          ? "border-amber-500/50 bg-amber-500/10"
-                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                          ? "border-[#d7b44d] bg-[#fff4cb] shadow-sm"
+                          : "border-[#d7c7aa] bg-white/75 hover:bg-white"
                       }`}
                     >
-                      <span className="text-xs font-semibold text-cream">{option.label}</span>
-                      <p className="mt-1 text-[10px] leading-snug text-cream-muted">{option.description}</p>
+                      <span className="text-xs font-semibold text-[#171714]">{option.label}</span>
+                      <p className="mt-1 text-[10px] leading-snug text-[#716855]">{option.description}</p>
                     </button>
                   );
                 })}
@@ -407,10 +407,10 @@ export default function ProjectSettingsPanel({
 
             {/* Division Selector */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream">
+              <div className="text-sm font-semibold text-[#171714]">
                 Bid Package Divisions
               </div>
-              <p className="text-xs text-cream-muted">
+              <p className="text-xs text-[#716855]">
                 Use divisions as the broad trade boundary, then use Scope Description for narrower subcontract scopes.
               </p>
               <DivisionSelector
@@ -419,16 +419,16 @@ export default function ProjectSettingsPanel({
                 defaultExpanded={false}
               />
               {divisionsChanged && hasProcessedSheets && onReAnalyze && (
-                <div className="flex items-start gap-2 p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
-                  <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#244c91]" />
                   <div className="flex-1">
-                    <span className="text-xs text-blue-300 block mb-2">
+                    <span className="mb-2 block text-xs text-[#244c91]">
                       Division changes require re-analysis to extract new line items. Click "Re-Analyze" below to process your drawings with the updated divisions.
                     </span>
                     <Button
                       size="sm"
                       onClick={handleReAnalyze}
-                      className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
+                      className="h-7 border border-blue-200 bg-white text-xs text-[#244c91] hover:bg-blue-50"
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
                       Re-Analyze with New Divisions
@@ -440,10 +440,10 @@ export default function ProjectSettingsPanel({
 
             {/* Trade Specialties */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#171714]">
+                <Wrench className="h-4 w-4 text-[#8a6510]" />
                 Trade Specialties
-                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-normal">
+                <Badge className="border-emerald-300 bg-emerald-50 text-[10px] font-normal text-emerald-800">
                   New
                 </Badge>
               </div>
@@ -454,9 +454,9 @@ export default function ProjectSettingsPanel({
                 detectedSpecialties={detectedSpecialties || []}
               />
               {specialtiesChanged && hasProcessedSheets && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">
+                <div className="flex items-start gap-2 rounded-md border border-[#d7b44d] bg-[#fff7da] p-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#a66d00]" />
+                  <span className="text-xs text-[#8a6510]">
                     Specialty changes will take effect on the next re-analysis.
                   </span>
                 </div>
@@ -465,9 +465,9 @@ export default function ProjectSettingsPanel({
 
             {/* Region Selector */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream">
+              <div className="text-sm font-semibold text-[#171714]">
                 Cost Region
-                <span className="text-xs text-cream-muted ml-2">(recalculates all costs)</span>
+                <span className="ml-2 text-xs font-medium text-[#716855]">(recalculates all costs)</span>
               </div>
               <RegionSelector
                 value={selectedRegion}
@@ -476,9 +476,9 @@ export default function ProjectSettingsPanel({
                 currency={selectedCurrency}
               />
               {regionChanged && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">
+                <div className="flex items-start gap-2 rounded-md border border-[#d7b44d] bg-[#fff7da] p-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#a66d00]" />
+                  <span className="text-xs text-[#8a6510]">
                     Region change will automatically recalculate all item costs based on the new regional multiplier.
                   </span>
                 </div>
@@ -487,17 +487,17 @@ export default function ProjectSettingsPanel({
 
             {/* Rate Profile Selector */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#171714]">
+                <Bookmark className="h-4 w-4 text-[#8a6510]" />
                 Rate Profile
-                <span className="text-xs text-cream-muted">(overrides global hub configuration for this project)</span>
+                <span className="text-xs font-medium text-[#716855]">(overrides global hub configuration for this project)</span>
               </div>
               {profilesQuery.isLoading ? (
-                <div className="flex items-center gap-2 text-xs text-cream-muted py-2">
+                <div className="flex items-center gap-2 py-2 text-xs text-[#716855]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading profiles...
                 </div>
               ) : (profilesQuery.data ?? []).length === 0 ? (
-                <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs text-cream-muted">
+                <div className="rounded-lg border border-[#d7c7aa] bg-white/70 p-3 text-xs text-[#716855]">
                   No rate profiles saved yet. Go to Trade Rate Library → Rate Profiles to create one.
                 </div>
               ) : (
@@ -507,13 +507,13 @@ export default function ProjectSettingsPanel({
                       onClick={() => setSelectedRateProfileId(null)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
                         selectedRateProfileId === null
-                          ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                          : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/8 hover:text-cream"
+                          ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]"
+                          : "border-[#d7c7aa] bg-white/75 text-[#716855] hover:bg-white hover:text-[#171714]"
                       }`}
                     >
                       <Bookmark className="w-3.5 h-3.5 shrink-0" />
                       <span className="font-medium">Use Hub Default</span>
-                      <span className="text-cream-muted/60 ml-1">— global configuration from Trade Rate Library</span>
+                      <span className="ml-1 text-[#8a806d]">- global configuration from Trade Rate Library</span>
                     </button>
                     {(profilesQuery.data ?? []).map(profile => (
                       <button
@@ -521,24 +521,24 @@ export default function ProjectSettingsPanel({
                         onClick={() => setSelectedRateProfileId(profile.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
                           selectedRateProfileId === profile.id
-                            ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                            : "bg-white/5 border-white/10 text-cream-muted hover:bg-white/8 hover:text-cream"
+                            ? "border-[#d7b44d] bg-[#fff4cb] text-[#8a6510]"
+                            : "border-[#d7c7aa] bg-white/75 text-[#716855] hover:bg-white hover:text-[#171714]"
                         }`}
                       >
                         <Bookmark className="w-3.5 h-3.5 shrink-0" />
                         <span className="font-medium">{profile.name}</span>
                         {profile.projectType && (
-                          <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/25 text-[9px] ml-auto">
+                          <Badge className="ml-auto border-blue-200 bg-blue-50 text-[9px] text-[#244c91]">
                             {profile.projectType.charAt(0).toUpperCase() + profile.projectType.slice(1)}
                           </Badge>
                         )}
                         {profile.workType && (
-                          <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/25 text-[9px]">
+                          <Badge className="border-[#d7c7aa] bg-white text-[9px] text-[#5d5546]">
                             {profile.workType === "open_shop" ? "Open Shop" : "Union"}
                           </Badge>
                         )}
                         {profile.region && (
-                          <Badge className="bg-green-500/15 text-green-300 border-green-500/25 text-[9px]">
+                          <Badge className="border-emerald-300 bg-emerald-50 text-[9px] text-emerald-800">
                             {profile.region}
                           </Badge>
                         )}
@@ -551,10 +551,10 @@ export default function ProjectSettingsPanel({
 
             {/* Allowances (Residential Selections) */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-cream flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#171714]">
+                <DollarSign className="h-4 w-4 text-emerald-700" />
                 Allowances
-                <span className="text-xs text-cream-muted">({getTakeoffProjectTypeLabel(selectedProjectType)} presets)</span>
+                <span className="text-xs font-medium text-[#716855]">({getTakeoffProjectTypeLabel(selectedProjectType)} presets)</span>
               </div>
               {/* Quick-add presets */}
               <div className="space-y-2 mb-2">
@@ -567,14 +567,14 @@ export default function ProjectSettingsPanel({
                         key={preset.label}
                         type="button"
                         onClick={() => setAllowances(prev => [...prev, { description: preset.label, amount: preset.amount }])}
-                        className="px-2.5 py-1 text-xs rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors"
+                        className="rounded-md border border-[#d7b44d] bg-[#fff7da] px-2.5 py-1 text-xs text-[#8a6510] transition-colors hover:bg-[#fff4cb]"
                       >
                         + {preset.label}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-cream-muted">No quick-add presets shown for Other / Not sure. Add manual allowances as needed.</p>
+                  <p className="text-xs text-[#716855]">No quick-add presets shown for Other / Not sure. Add manual allowances as needed.</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -588,10 +588,10 @@ export default function ProjectSettingsPanel({
                         setAllowances(updated);
                       }}
                       placeholder="e.g. Kitchen Cabinets"
-                      className="flex-1 h-9 text-sm bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40"
+                      className="h-9 flex-1 border-[#d7c7aa] bg-white text-sm text-[#171714] placeholder:text-[#8a806d]"
                     />
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-cream-muted text-sm">$</span>
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-[#716855]">$</span>
                       <Input
                         type="number"
                         step="100"
@@ -603,13 +603,13 @@ export default function ProjectSettingsPanel({
                           setAllowances(updated);
                         }}
                         placeholder="0"
-                        className="w-32 h-9 text-sm bg-white/5 border-white/10 text-cream pl-6 text-right"
+                        className="h-9 w-32 border-[#d7c7aa] bg-white pl-6 text-right text-sm text-[#171714]"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setAllowances(allowances.filter((_, i) => i !== idx))}
-                      className="p-1.5 rounded hover:bg-red-500/20 text-red-400/60 hover:text-red-400 transition-colors"
+                      className="rounded p-1.5 text-orange-700/70 transition-colors hover:bg-orange-50 hover:text-orange-800"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -618,16 +618,16 @@ export default function ProjectSettingsPanel({
                 <button
                   type="button"
                   onClick={() => setAllowances([...allowances, { description: "", amount: 0 }])}
-                  className="flex items-center gap-1.5 text-xs text-amber-400/80 hover:text-amber-400 transition-colors py-1"
+                  className="flex items-center gap-1.5 py-1 text-xs text-[#8a6510] transition-colors hover:text-[#6f4d00]"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   Add Allowance Item
                 </button>
               </div>
               {allowances.length > 0 && (
-                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2">
-                  <span className="text-xs text-cream-muted">Total Allowances</span>
-                  <span className="text-sm font-semibold text-amber-400 font-mono">
+                <div className="flex items-center justify-between rounded-lg border border-[#d7c7aa] bg-white/75 px-3 py-2">
+                  <span className="text-xs text-[#716855]">Total Allowances</span>
+                  <span className="font-mono text-sm font-semibold text-[#a66d00]">
                     ${(allowances.reduce((sum, a) => sum + a.amount, 0) / 100).toLocaleString()}
                   </span>
                 </div>
@@ -636,10 +636,10 @@ export default function ProjectSettingsPanel({
 
             {/* Scope Text */}
             <div className="space-y-2 min-w-0 overflow-hidden">
-              <div className="text-sm font-medium text-cream flex flex-wrap items-center gap-2 min-w-0">
-                <FileText className="w-4 h-4 text-amber-400" />
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold text-[#171714]">
+                <FileText className="h-4 w-4 text-[#8a6510]" />
                 <span>{selectedBidMode === "full_gc" ? "GC Scope Notes" : selectedBidMode === "fast_scope_check" ? "Scope Check Question" : "Trade Scope Boundary"}</span>
-                <span className="text-xs text-cream-muted break-words">({bidModeBehavior.shortLabel})</span>
+                <span className="break-words text-xs font-medium text-[#716855]">({bidModeBehavior.shortLabel})</span>
               </div>
               <div ref={scopeRef} className="min-w-0">
               <Textarea
@@ -650,29 +650,29 @@ export default function ProjectSettingsPanel({
                   : selectedBidMode === "fast_scope_check"
                     ? "e.g. Quick bid/no-bid read for below-grade waterproofing and drainage risk. Flag concrete and MEP interfaces for review."
                     : "e.g. Below-grade waterproofing only. Include membrane, protection board, waterstops, foundation drains, and vapor barrier. Exclude roofing and above-grade envelope."}
-                className="min-h-[80px] max-h-48 overflow-y-auto bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/40 resize-y break-words"
+                className="min-h-[80px] max-h-48 resize-y overflow-y-auto break-words border-[#d7c7aa] bg-white text-[#171714] placeholder:text-[#8a806d]"
                 maxLength={2000}
               />
               </div>
               {scopeIntent.hasScope && (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 min-w-0 max-w-full overflow-hidden">
+                <div className="max-w-full min-w-0 space-y-2 overflow-hidden rounded-md border border-[#d7b44d] bg-[#fff7da] p-3">
                   <div className="grid gap-2 min-w-0">
-                    <div className="rounded-md border border-amber-500/25 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-semibold leading-relaxed text-amber-300 whitespace-normal break-words [overflow-wrap:anywhere]">
+                    <div className="rounded-md border border-[#d7b44d] bg-white/60 px-2.5 py-1.5 text-[10px] font-semibold leading-relaxed text-[#8a6510] whitespace-normal break-words [overflow-wrap:anywhere]">
                       {scopeIntent.summary}
                     </div>
-                    <p className="min-w-0 text-xs text-cream-muted leading-relaxed whitespace-normal break-words">
+                    <p className="min-w-0 whitespace-normal break-words text-xs leading-relaxed text-[#716855]">
                       {bidModeBehavior.reviewSurface}
                     </p>
                   </div>
                   {(scopeIntent.focusDivisions.length > 0 || scopeIntent.excludedDivisions.length > 0) && (
                     <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
                       {scopeIntent.focusDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`focus-${division}`} className="whitespace-normal bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                        <Badge key={`focus-${division}`} className="whitespace-normal border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
                           Include Div {division}
                         </Badge>
                       ))}
                       {scopeIntent.excludedDivisions.slice(0, 6).map((division) => (
-                        <Badge key={`exclude-${division}`} className="whitespace-normal bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
+                        <Badge key={`exclude-${division}`} className="whitespace-normal border-orange-300 bg-orange-50 text-[10px] text-orange-800">
                           Usually excludes Div {division}
                         </Badge>
                       ))}
@@ -681,19 +681,19 @@ export default function ProjectSettingsPanel({
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-cream-muted/50">
+                <p className="text-[10px] text-[#716855]">
                   {selectedBidMode === "full_gc"
                     ? "Broad GC mode keeps normal trade work active unless you explicitly narrow the bid."
                     : selectedBidMode === "fast_scope_check"
                       ? "Fast checks prioritize likely scope, high-signal sheets, and visible risk rows."
                       : "Upload full drawings, then describe only the work you are bidding."}
                 </p>
-                <span className="text-[10px] text-cream-muted/40">{scopeText.length}/2000</span>
+                <span className="text-[10px] text-[#8a806d]">{scopeText.length}/2000</span>
               </div>
               {scopeChanged && hasProcessedSheets && (
-                <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-amber-300">
+                <div className="flex items-start gap-2 rounded-md border border-[#d7b44d] bg-[#fff7da] p-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#a66d00]" />
+                  <span className="text-xs text-[#8a6510]">
                     Scope changes will take effect on the next re-analysis.
                   </span>
                 </div>
@@ -716,13 +716,14 @@ export default function ProjectSettingsPanel({
                 setOpen(false);
               }}
               disabled={saving}
+              className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={!hasChanges || saving}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+              className="bg-[#171714] text-white hover:bg-[#29251c]"
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

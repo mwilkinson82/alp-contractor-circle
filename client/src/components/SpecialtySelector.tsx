@@ -79,11 +79,11 @@ export default function SpecialtySelector({
   if (totalAvailable === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
-        <Wrench className="w-8 h-8 text-cream-muted/40 mb-2" />
-        <p className="text-sm text-cream-muted">
+        <Wrench className="w-8 h-8 text-[#8a806d] mb-2" />
+        <p className="text-sm text-[#716855]">
           No trade specialties available for the selected CSI divisions.
         </p>
-        <p className="text-xs text-cream-muted/60 mt-1">
+        <p className="text-xs text-[#8a806d] mt-1">
           Specialties are available for Divisions 03, 04, 05, 07, 08, 09, 21,
           23, 26, and 32.
         </p>
@@ -96,11 +96,11 @@ export default function SpecialtySelector({
       {/* Header with count and actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-cream-muted">
+          <span className="text-xs text-[#716855]">
             {value.length} of {totalAvailable} selected
           </span>
           {detectedSpecialties.length > 0 && (
-            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]">
+            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
               <Sparkles className="w-3 h-3 mr-1" />
               {detectedSpecialties.length} auto-detected
             </Badge>
@@ -109,14 +109,14 @@ export default function SpecialtySelector({
         <div className="flex gap-2">
           <button
             onClick={selectAll}
-            className="text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+            className="text-[10px] text-[#8a6510] hover:text-[#6f4d00] transition-colors"
           >
             Select All
           </button>
-          <span className="text-cream-muted/30">|</span>
+          <span className="text-[#b3a481]">|</span>
           <button
             onClick={clearAll}
-            className="text-[10px] text-cream-muted hover:text-cream transition-colors"
+            className="text-[10px] text-[#716855] hover:text-[#171714] transition-colors"
           >
             Clear
           </button>
@@ -124,9 +124,9 @@ export default function SpecialtySelector({
       </div>
 
       {/* Info callout */}
-      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
-        <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] text-cream-muted leading-relaxed">
+      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-[#fff7da] border border-[#d7b44d]">
+        <Info className="w-3.5 h-3.5 text-[#8a6510] flex-shrink-0 mt-0.5" />
+        <p className="text-[11px] text-[#716855] leading-relaxed">
           Trade specialties tell the ConstructLine engine to generate additional
           line items a specialty contractor would include — items that may not be
           explicitly shown on the drawing but are essential for construction.
@@ -142,10 +142,10 @@ export default function SpecialtySelector({
               <div key={divCode}>
                 {/* Division header */}
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8a6510]">
                     Div {divCode} — {TAKEOFF_DIVISION_MAP[divCode] || divCode}
                   </span>
-                  <div className="flex-1 h-px bg-white/5" />
+                  <div className="flex-1 h-px bg-[#eadcc4]" />
                 </div>
 
                 {/* Specialty checkboxes */}
@@ -159,38 +159,38 @@ export default function SpecialtySelector({
                         key={spec.id}
                         className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
                           isSelected
-                            ? "bg-amber-500/10 border border-amber-500/25"
-                            : "bg-white/[0.02] border border-transparent hover:bg-white/5"
+                            ? "bg-[#fff4cb] border border-[#d7b44d]"
+                            : "bg-white/70 border border-transparent hover:bg-white"
                         }`}
                       >
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleSpecialty(spec.id)}
-                          className="mt-0.5 border-white/20 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          className="mt-0.5 border-[#c8b895] data-[state=checked]:bg-[#d9a21a] data-[state=checked]:border-[#d9a21a]"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium text-cream">
+                            <span className="text-sm font-medium text-[#171714]">
                               {spec.name}
                             </span>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {spec.csiSubCode && (
-                                <Badge className="bg-white/5 text-cream-muted/70 border-white/10 text-[9px] font-mono px-1.5 py-0">
+                                <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-[9px] font-mono px-1.5 py-0">
                                   {spec.csiSubCode}
                                 </Badge>
                               )}
                               {isDetected && (
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] px-1.5 py-0">
+                                <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[9px] px-1.5 py-0">
                                   <Sparkles className="w-2.5 h-2.5 mr-0.5" />
                                   Auto-detected
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          <p className="text-[11px] text-cream-muted/70 mt-0.5 leading-relaxed">
+                          <p className="text-[11px] text-[#716855] mt-0.5 leading-relaxed">
                             {spec.description}
                           </p>
-                          <p className="text-[10px] text-cream-muted/50 mt-1">
+                          <p className="text-[10px] text-[#8a806d] mt-1">
                             +{spec.additionalLineItems.length} specialty line
                             items
                           </p>

@@ -106,11 +106,10 @@ export default function RegionSelector({
   const sourceLabel = SOURCE_LABELS[country || "US"] || SOURCE_LABELS.US;
 
   const getMultiplierColor = (multiplier: number) => {
-    if (multiplier >= 12000) return "text-red-400";
-    if (multiplier >= 10500) return "text-amber-400";
-    if (multiplier >= 9500) return "text-cream";
-    if (multiplier >= 9000) return "text-emerald-400";
-    return "text-emerald-300";
+    if (multiplier >= 12000) return "text-orange-700";
+    if (multiplier >= 10500) return "text-[#a66d00]";
+    if (multiplier >= 9500) return "text-[#29251c]";
+    return "text-emerald-700";
   };
 
   return (
@@ -119,46 +118,46 @@ export default function RegionSelector({
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 rounded-lg border border-white/10 bg-navy-medium/30 hover:bg-navy-medium/50 transition-colors"
+        className="w-full flex items-center justify-between p-3 rounded-lg border border-[#d7c7aa] bg-white/75 hover:bg-white transition-colors"
       >
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-amber-500" />
-          <span className="text-sm font-medium text-cream">Cost Region</span>
+          <MapPin className="w-4 h-4 text-emerald-700" />
+          <span className="text-sm font-medium text-[#171714]">Cost Region</span>
           {selectedRegion ? (
-            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs">
               {selectedRegion.name} ({selectedRegion.displayMultiplier})
             </Badge>
           ) : (
-            <Badge className="bg-white/5 text-cream-muted border-white/10 text-xs">
+            <Badge className="bg-white text-[#716855] border-[#d7c7aa] text-xs">
               National Average (1.00x)
             </Badge>
           )}
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-cream-muted" />
+          <ChevronUp className="w-4 h-4 text-[#716855]" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-cream-muted" />
+          <ChevronDown className="w-4 h-4 text-[#716855]" />
         )}
       </button>
 
       {/* Expanded Panel */}
       {expanded && (
-        <div className="border border-white/10 rounded-lg bg-navy-medium/20 overflow-hidden">
+        <div className="border border-[#d7c7aa] rounded-lg bg-white/70 overflow-hidden shadow-sm">
           {/* Search */}
-          <div className="p-2 border-b border-white/5">
+          <div className="p-2 border-b border-[#eadcc4]">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#716855]" />
               <Input
                 placeholder="Search cities..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-sm bg-white/5 border-white/10"
+                className="pl-8 h-8 text-sm bg-white border-[#d7c7aa] text-[#171714] placeholder:text-[#8a806d]"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-cream-muted hover:text-cream"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#716855] hover:text-[#171714]"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -171,7 +170,7 @@ export default function RegionSelector({
             <div className="p-2 space-y-3">
               {filteredGroups.map((group) => (
                 <div key={group.region}>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-cream-muted/60 px-2 mb-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8a806d] px-2 mb-1">
                     {group.region}
                   </div>
                   <div className="space-y-0.5">
@@ -184,13 +183,13 @@ export default function RegionSelector({
                           onClick={() => onChange(isSelected ? null : metro.code)}
                           className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
                             isSelected
-                              ? "bg-amber-500/15 border border-amber-500/30"
-                              : "hover:bg-white/5 border border-transparent"
+                              ? "border border-[#d7b44d] bg-[#fff4cb]"
+                              : "hover:bg-[#faf8f2] border border-transparent"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <MapPin className={`w-3 h-3 ${isSelected ? "text-amber-500" : "text-cream-muted/40"}`} />
-                            <span className={`text-sm ${isSelected ? "text-cream font-medium" : "text-cream-muted"}`}>
+                            <MapPin className={`w-3 h-3 ${isSelected ? "text-emerald-700" : "text-[#8a806d]"}`} />
+                            <span className={`text-sm ${isSelected ? "text-[#171714] font-medium" : "text-[#716855]"}`}>
                               {metro.name}
                             </span>
                           </div>
@@ -204,7 +203,7 @@ export default function RegionSelector({
                 </div>
               ))}
               {filteredGroups.length === 0 && (
-                <div className="text-center py-4 text-cream-muted text-sm">
+                <div className="text-center py-4 text-[#716855] text-sm">
                   No regions match "{search}"
                 </div>
               )}
@@ -212,7 +211,7 @@ export default function RegionSelector({
           </div>
 
           {/* Info footer */}
-          <div className="px-3 py-2 border-t border-white/5 text-[10px] text-cream-muted/50">
+          <div className="px-3 py-2 border-t border-[#eadcc4] text-[10px] text-[#716855]">
             {sourceLabel}
           </div>
         </div>

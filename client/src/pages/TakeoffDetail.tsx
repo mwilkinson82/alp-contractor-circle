@@ -2867,7 +2867,7 @@ export default function TakeoffDetail() {
                   className={`w-full border font-semibold py-6 text-lg shadow-[0_18px_45px_rgba(41,37,28,0.12)] ${
                     hasPendingSheets
                       ? "border-[#d7b44d] bg-[#d9a21a] text-[#171714] hover:bg-[#e5b52f]"
-                      : "border-[#171714] bg-[#171714] text-white hover:bg-[#29251c]"
+                      : "border-[#d7c7aa] bg-white text-[#171714] hover:bg-[#faf8f2]"
                   }`}
                 >
                   {processMutation.isPending && (
@@ -2876,15 +2876,15 @@ export default function TakeoffDetail() {
                   {hasPendingSheets ? (
                     <>
                       <span className="font-bold tracking-tight">
-                        <span className={hasPendingSheets ? "text-[#171714]" : "text-white"}>Construct</span>
-                        <span className={hasPendingSheets ? "text-[#6f4d00]" : "text-amber-300"}>Line</span>
+                        <span className="text-[#171714]">Construct</span>
+                        <span className="text-[#6f4d00]">Line</span>
                       </span>{" "}
                       Analyze Drawings
                     </>
                   ) : (
                     <>
                       <span className="font-bold tracking-tight">
-                        <span className="text-white">Construct</span>
+                        <span className="text-[#171714]">Construct</span>
                         <span className="text-[#d9a21a]">Line</span>
                       </span>{" "}
                       Re-Analyze Drawings
@@ -3403,13 +3403,13 @@ export default function TakeoffDetail() {
                       }).format(v);
 
                     return (
-                      <div className="bg-navy-medium/60 border border-purple-500/20 rounded-lg p-5 mb-4">
+                      <div className="rounded-lg border border-[#d7c7aa] bg-white/80 p-5 mb-4 shadow-[0_14px_36px_rgba(41,37,28,0.08)]">
                         <div className="flex items-center gap-2 mb-4">
-                          <Calculator className="w-4 h-4 text-purple-400" />
-                          <h3 className="text-cream font-semibold text-sm">
+                          <Calculator className="w-4 h-4 text-[#a66d00]" />
+                          <h3 className="text-[#171714] font-semibold text-sm">
                             Bid Markup Calculator
                           </h3>
-                          <span className="text-cream-muted text-xs ml-auto">
+                          <span className="text-[#716855] text-xs ml-auto">
                             Adjust percentages to build your full bid number
                           </span>
                         </div>
@@ -3443,7 +3443,7 @@ export default function TakeoffDetail() {
                             },
                           ].map(({ key, label, hint }) => (
                             <div key={key}>
-                              <Label className="text-cream-muted text-xs mb-1 block">
+                              <Label className="text-[#716855] text-xs mb-1 block">
                                 {label}
                               </Label>
                               <div className="relative">
@@ -3459,91 +3459,91 @@ export default function TakeoffDetail() {
                                       [key]: parseFloat(e.target.value) || 0,
                                     }))
                                   }
-                                  className="h-9 bg-navy-deep/80 border-white/10 text-cream text-sm pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="h-9 border-[#d7c7aa] bg-white text-[#171714] text-sm pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   placeholder="0"
                                 />
-                                <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cream-muted/50" />
+                                <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8a806d]" />
                               </div>
-                              <p className="text-cream-muted/50 text-[10px] mt-0.5">
+                              <p className="text-[#8a806d] text-[10px] mt-0.5">
                                 {hint}
                               </p>
                             </div>
                           ))}
                         </div>
 
-                        <div className="border-t border-white/10 pt-4">
+                        <div className="border-t border-[#eadcc4] pt-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm">
                             <div className="flex justify-between py-1">
-                              <span className="text-cream-muted">
+                              <span className="text-[#716855]">
                                 Material Takeoff Total
                               </span>
-                              <span className="text-cream font-mono">
+                              <span className="text-[#29251c] font-mono">
                                 {fmtDollars(materialTotal)}
                               </span>
                             </div>
                             {markups.labor > 0 && (
                               <div className="flex justify-between py-1">
-                                <span className="text-cream-muted">
+                                <span className="text-[#716855]">
                                   + Labor ({markups.labor}%)
                                 </span>
-                                <span className="text-cream font-mono">
+                                <span className="text-[#29251c] font-mono">
                                   {fmtDollars(laborAmt)}
                                 </span>
                               </div>
                             )}
                             {markups.overhead > 0 && (
                               <div className="flex justify-between py-1">
-                                <span className="text-cream-muted">
+                                <span className="text-[#716855]">
                                   + Overhead ({markups.overhead}%)
                                 </span>
-                                <span className="text-cream font-mono">
+                                <span className="text-[#29251c] font-mono">
                                   {fmtDollars(overheadAmt)}
                                 </span>
                               </div>
                             )}
                             {markups.profit > 0 && (
                               <div className="flex justify-between py-1">
-                                <span className="text-cream-muted">
+                                <span className="text-[#716855]">
                                   + Profit ({markups.profit}%)
                                 </span>
-                                <span className="text-cream font-mono">
+                                <span className="text-[#29251c] font-mono">
                                   {fmtDollars(profitAmt)}
                                 </span>
                               </div>
                             )}
                             {markups.bonds > 0 && (
                               <div className="flex justify-between py-1">
-                                <span className="text-cream-muted">
+                                <span className="text-[#716855]">
                                   + Bonds ({markups.bonds}%)
                                 </span>
-                                <span className="text-cream font-mono">
+                                <span className="text-[#29251c] font-mono">
                                   {fmtDollars(bondsAmt)}
                                 </span>
                               </div>
                             )}
                             {markups.contingency > 0 && (
                               <div className="flex justify-between py-1">
-                                <span className="text-cream-muted">
+                                <span className="text-[#716855]">
                                   + Contingency ({markups.contingency}%)
                                 </span>
-                                <span className="text-cream font-mono">
+                                <span className="text-[#29251c] font-mono">
                                   {fmtDollars(contingencyAmt)}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <div className="flex justify-between items-center mt-3 pt-3 border-t border-amber-500/20">
+                          <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#d7c7aa]">
                             <div>
-                              <span className="text-amber-400 font-bold text-lg">
+                              <span className="text-[#a66d00] font-bold text-lg">
                                 Bid Total
                               </span>
                               {totalMarkupPct > 0 && (
-                                <span className="text-cream-muted text-xs ml-2">
+                                <span className="text-[#716855] text-xs ml-2">
                                   (+{totalMarkupPct.toFixed(1)}% over material)
                                 </span>
                               )}
                             </div>
-                            <span className="text-amber-400 font-bold text-2xl font-mono">
+                            <span className="text-[#a66d00] font-bold text-2xl font-mono">
                               {fmtDollars(grandTotal)}
                             </span>
                           </div>
@@ -5920,13 +5920,13 @@ export default function TakeoffDetail() {
       {/* ─── Excel Import Preview Dialog ──────────────────────────────── */}
       {showImportExcel && importPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <div className="flex max-h-[80vh] w-full max-w-3xl flex-col rounded-xl border border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)]">
+            <div className="flex items-center justify-between border-b border-[#d7c7aa] p-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-[#171714]">
                   Import Excel Preview
                 </h3>
-                <p className="text-xs text-white/50 mt-1">
+                <p className="mt-1 text-xs text-[#716855]">
                   {importPreview.length} rows found — review before importing
                 </p>
               </div>
@@ -5936,7 +5936,7 @@ export default function TakeoffDetail() {
                   setImportPreview(null);
                   if (importFileRef.current) importFileRef.current.value = "";
                 }}
-                className="text-white/40 hover:text-white"
+                className="text-[#716855] hover:text-[#171714]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -5944,7 +5944,7 @@ export default function TakeoffDetail() {
             <div className="flex-1 overflow-auto p-4">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-white/50 border-b border-white/10">
+                  <tr className="border-b border-[#d7c7aa] text-[#716855]">
                     <th className="text-left p-2">CSI Code</th>
                     <th className="text-left p-2">Description</th>
                     <th className="text-right p-2">Qty</th>
@@ -5957,20 +5957,20 @@ export default function TakeoffDetail() {
                   {importPreview.slice(0, 100).map((row, i) => (
                     <tr
                       key={i}
-                      className="border-b border-white/5 hover:bg-white/5"
+                      className="border-b border-[#eadcc4] hover:bg-white/60"
                     >
-                      <td className="p-2 text-white/60">
+                      <td className="p-2 text-[#716855]">
                         {row.csiCode || "—"}
                       </td>
-                      <td className="p-2 text-white">{row.description}</td>
-                      <td className="p-2 text-right text-white">
+                      <td className="p-2 text-[#171714]">{row.description}</td>
+                      <td className="p-2 text-right text-[#171714]">
                         {row.quantity}
                       </td>
-                      <td className="p-2 text-white/60">{row.unit}</td>
-                      <td className="p-2 text-right text-white">
+                      <td className="p-2 text-[#716855]">{row.unit}</td>
+                      <td className="p-2 text-right text-[#171714]">
                         ${row.unitCost.toFixed(2)}
                       </td>
-                      <td className="p-2 text-right text-emerald-400">
+                      <td className="p-2 text-right text-emerald-700">
                         ${(row.quantity * row.unitCost).toFixed(2)}
                       </td>
                     </tr>
@@ -5978,18 +5978,18 @@ export default function TakeoffDetail() {
                 </tbody>
               </table>
               {importPreview.length > 100 && (
-                <p className="text-xs text-white/40 mt-2 text-center">
+                <p className="mt-2 text-center text-xs text-[#716855]">
                   Showing first 100 of {importPreview.length} rows
                 </p>
               )}
             </div>
-            <div className="p-4 border-t border-white/10 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs text-white/60">
+            <div className="flex items-center justify-between border-t border-[#d7c7aa] p-4">
+              <label className="flex items-center gap-2 text-xs text-[#716855]">
                 <input
                   type="checkbox"
                   checked={importRemoveUnmatched}
                   onChange={e => setImportRemoveUnmatched(e.target.checked)}
-                  className="rounded border-white/20"
+                  className="rounded border-[#d7c7aa]"
                 />
                 Remove items not in this import
               </label>
@@ -6009,7 +6009,7 @@ export default function TakeoffDetail() {
                   size="sm"
                   onClick={handleConfirmImport}
                   disabled={importExcelMutation.isPending}
-                  className="bg-amber-500 hover:bg-amber-600 text-black"
+                  className="bg-[#171714] text-white hover:bg-[#29251c]"
                 >
                   {importExcelMutation.isPending
                     ? "Importing..."

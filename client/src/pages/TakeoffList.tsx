@@ -32,11 +32,11 @@ import {
 import { getBidModeBehavior } from "../../../shared/bidMode";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft: { label: "Draft", color: "bg-gray-500/20 text-gray-300 border-gray-500/30", icon: FileText },
-  uploading: { label: "Uploading", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", icon: Upload },
-  processing: { label: "Processing", color: "bg-amber-500/20 text-amber-300 border-amber-500/30", icon: Loader2 },
-  completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30", icon: CheckCircle2 },
-  error: { label: "Error", color: "bg-red-500/20 text-red-300 border-red-500/30", icon: AlertCircle },
+  draft: { label: "Draft", color: "bg-white text-[#716855] border-[#d7c7aa]", icon: FileText },
+  uploading: { label: "Uploading", color: "bg-blue-50 text-[#244c91] border-blue-200", icon: Upload },
+  processing: { label: "Processing", color: "bg-[#fff4cb] text-[#8a6510] border-[#d7b44d]", icon: Loader2 },
+  completed: { label: "Completed", color: "bg-emerald-50 text-emerald-800 border-emerald-300", icon: CheckCircle2 },
+  error: { label: "Error", color: "bg-orange-50 text-orange-800 border-orange-300", icon: AlertCircle },
 };
 
 function formatCurrency(cents: number, currencyCode: string = "USD"): string {
@@ -91,21 +91,21 @@ export default function TakeoffList() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="-m-6 min-h-screen space-y-6 bg-[#ece9e1] px-6 py-7 text-[#171714]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-4">
             {/* ConstructLine Brand Mark */}
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
-              <span className="text-[9px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+              <span className="text-xl font-bold tracking-tight text-[#171714] leading-tight">Construct<span className="text-[#d9a21a]">Line</span></span>
+              <span className="text-[9px] text-[#8a806d] tracking-wider uppercase leading-tight">Powered by ALP</span>
             </div>
-            <div className="w-px h-8 bg-white/10" />
+            <div className="w-px h-8 bg-[#d7c7aa]" />
             <div>
-              <h1 className="text-xl font-bold text-cream">Quantity Takeoff</h1>
-              <p className="text-cream-muted text-sm">
-                Upload construction drawings and let <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> extract quantities, costs, and a schedule of values.
+              <h1 className="text-xl font-bold text-[#171714]">Quantity Takeoff</h1>
+              <p className="text-[#716855] text-sm">
+                Upload construction drawings and let <span className="font-semibold"><span className="text-[#171714]">Construct</span><span className="text-[#d9a21a]">Line</span></span> extract quantities, costs, and a schedule of values.
               </p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export default function TakeoffList() {
         <Button
           data-tour="takeoff-new-project"
           onClick={() => setShowCreate(true)}
-          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg"
+          className="bg-[#171714] text-white font-semibold shadow-[0_18px_45px_rgba(41,37,28,0.18)] hover:bg-[#29251c]"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Takeoff
@@ -126,18 +126,18 @@ export default function TakeoffList() {
           <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
         </div>
       ) : !projects?.length ? (
-        <Card className="bg-navy-medium/50 border-white/10">
+        <Card className="border-[#d7c7aa] bg-white/80 shadow-[0_18px_50px_rgba(41,37,28,0.08)]">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
-              <FileStack className="w-8 h-8 text-amber-500" />
+            <div className="w-16 h-16 rounded-full bg-[#fff4cb] border border-[#d7b44d] flex items-center justify-center mb-4">
+              <FileStack className="w-8 h-8 text-[#8a6510]" />
             </div>
-            <h3 className="text-lg font-semibold text-cream mb-2">No Takeoff Projects Yet</h3>
-            <p className="text-cream-muted text-center max-w-md mb-6">
-              Create your first project, upload construction drawings, and let <span className="font-semibold"><span className="text-white">Construct</span><span className="text-amber-400">Line</span></span> extract a complete quantity takeoff in minutes.
+            <h3 className="text-lg font-semibold text-[#171714] mb-2">No Takeoff Projects Yet</h3>
+            <p className="text-[#716855] text-center max-w-md mb-6">
+              Create your first project, upload construction drawings, and let <span className="font-semibold"><span className="text-[#171714]">Construct</span><span className="text-[#d9a21a]">Line</span></span> extract a complete quantity takeoff in minutes.
             </p>
             <Button
               onClick={() => setShowCreate(true)}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+              className="bg-[#171714] text-white hover:bg-[#29251c]"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create First Takeoff
@@ -161,12 +161,12 @@ export default function TakeoffList() {
             return (
               <Card
                 key={project.id}
-                className="bg-navy-medium/50 border-white/10 hover:border-amber-500/30 transition-all cursor-pointer group"
+                className="group cursor-pointer border-[#d7c7aa] bg-white/80 shadow-[0_18px_50px_rgba(41,37,28,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#d7b44d] hover:bg-white hover:shadow-[0_24px_70px_rgba(41,37,28,0.14)]"
                 onClick={() => navigate(`/takeoff/${project.id}`)}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-cream text-lg group-hover:text-amber-400 transition-colors line-clamp-1">
+                    <CardTitle className="line-clamp-1 text-lg text-[#171714] transition-colors group-hover:text-[#8a6510]">
                       {project.name}
                     </CardTitle>
                     <Badge className={`${statusConfig.color} border text-xs flex items-center gap-1`}>
@@ -175,27 +175,27 @@ export default function TakeoffList() {
                     </Badge>
                   </div>
                   {project.description && (
-                    <CardDescription className="text-cream-muted line-clamp-2">
+                    <CardDescription className="line-clamp-2 text-[#716855]">
                       {project.description}
                     </CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4 text-cream-muted">
+                    <div className="flex items-center gap-4 text-[#716855]">
                       <span className="flex items-center gap-1">
                         <FileStack className="w-3.5 h-3.5" />
                         {project.totalSheets} {project.totalSheets === 1 ? "sheet" : "sheets"}
                       </span>
                       {project.processedSheets > 0 && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                           {project.processedSheets} done
                         </span>
                       )}
                     </div>
                     {project.totalEstimatedCost > 0 && (
-                      <span className="font-semibold text-amber-400">
+                      <span className="font-semibold text-[#a66d00]">
                         {formatCurrency(project.totalEstimatedCost, project.currency || "USD")}
                       </span>
                     )}
@@ -203,37 +203,37 @@ export default function TakeoffList() {
                   {/* Division, Region & Currency badges */}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     {project.currency && project.currency !== "USD" && (
-                      <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-[10px]">
+                      <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[10px] text-[#8a6510]">
                         <DollarSign className="w-2.5 h-2.5 mr-1" />
                         {project.currency}
                       </Badge>
                     )}
-                    <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20 text-[10px]">
+                    <Badge className="border-[#d7b44d] bg-[#fff4cb] text-[10px] text-[#8a6510]">
                       <Target className="w-2.5 h-2.5 mr-1" />
                       {getBidModeBehavior(project.bidMode).shortLabel}
                     </Badge>
                     {divCount !== null && (
-                      <Badge className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px]">
+                      <Badge className="border-blue-200 bg-blue-50 text-[10px] text-[#244c91]">
                         <Layers className="w-2.5 h-2.5 mr-1" />
                         {divCount} div{divCount !== 1 ? "s" : ""}
                       </Badge>
                     )}
                     {!divCount && (
-                      <Badge className="bg-white/5 text-cream-muted/60 border-white/10 text-[10px]">
+                      <Badge className="border-[#d7c7aa] bg-white text-[10px] text-[#716855]">
                         <Layers className="w-2.5 h-2.5 mr-1" />
                         All divs
                       </Badge>
                     )}
                     {project.costRegion && (
-                      <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px]">
+                      <Badge className="border-emerald-300 bg-emerald-50 text-[10px] text-emerald-800">
                         <MapPin className="w-2.5 h-2.5 mr-1" />
                         {project.costRegion}
                         {project.costMultiplier && ` (${(project.costMultiplier / 10000).toFixed(2)}x)`}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                    <span className="text-xs text-cream-muted">
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#eadcc4]">
+                    <span className="text-xs text-[#716855]">
                       {new Date(project.createdAt).toLocaleDateString()}
                     </span>
                     <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function TakeoffList() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-cream-muted hover:text-amber-400"
+                          className="h-7 w-7 p-0 text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
                           title="Recalculate status"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -254,7 +254,7 @@ export default function TakeoffList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-cream-muted hover:text-red-400"
+                        className="h-7 w-7 p-0 text-[#716855] hover:bg-orange-50 hover:text-orange-700"
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteId(project.id);
@@ -262,7 +262,7 @@ export default function TakeoffList() {
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                      <ArrowRight className="w-4 h-4 text-cream-muted group-hover:text-amber-400 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-[#716855] group-hover:text-[#8a6510] transition-colors" />
                     </div>
                   </div>
                 </CardContent>
@@ -274,54 +274,54 @@ export default function TakeoffList() {
 
       {/* Create Dialog — simplified: just name + description */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
           <DialogHeader>
-            <DialogTitle className="text-xl text-cream">New Takeoff Project</DialogTitle>
-            <DialogDescription className="text-cream-muted">
+            <DialogTitle className="text-xl text-[#171714]">New Takeoff Project</DialogTitle>
+            <DialogDescription className="text-[#716855]">
               Name your project, then upload drawings and click "Analyze" to choose the bid mode, scope boundary, currency, and regional pricing.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             {/* Project Name */}
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-cream">Project Name</Label>
+              <Label className="text-sm font-semibold text-[#171714]">Project Name</Label>
               <Input
                 placeholder="e.g. Smith Residence Bid"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 autoFocus
-                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50"
+                className="border-[#d7c7aa] bg-white text-[#171714] placeholder:text-[#8a806d]"
               />
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label className="text-sm text-cream-muted">Description (optional)</Label>
+              <Label className="text-sm text-[#716855]">Description (optional)</Label>
               <Textarea
                 placeholder="Brief description of the project..."
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
                 rows={2}
-                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 resize-none"
+                className="resize-none border-[#d7c7aa] bg-white text-[#171714] placeholder:text-[#8a806d]"
               />
             </div>
 
             {/* Helpful hint */}
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-              <Layers className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-cream-muted">
-                After creating your project, upload your construction drawings and click <strong className="text-amber-400">"Analyze Drawings"</strong>. Start with Full GC Takeoff, Trade Package Takeoff, or Fast Scope Check so the review surface matches the bid.
+            <div className="flex items-start gap-2 rounded-lg border border-[#d7b44d] bg-[#fff7da] p-3">
+              <Layers className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8a6510]" />
+              <p className="text-xs text-[#716855]">
+                After creating your project, upload your construction drawings and click <strong className="text-[#8a6510]">"Analyze Drawings"</strong>. Start with Full GC Takeoff, Trade Package Takeoff, or Fast Scope Check so the review surface matches the bid.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)} className="text-cream-muted hover:text-cream">
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
               Cancel
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!newName.trim() || createMutation.isPending}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+              className="bg-[#171714] text-white hover:bg-[#29251c]"
             >
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -336,15 +336,15 @@ export default function TakeoffList() {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
+        <DialogContent className="border-[#d7c7aa] bg-[#f4efe4] text-[#171714] shadow-[0_32px_90px_rgba(41,37,28,0.34)] [&_[data-slot=dialog-header]]:border-[#d8c9ad] [&_[data-slot=dialog-footer]]:border-[#d8c9ad] [&_[data-slot=dialog-close]]:text-[#716855] [&_[data-slot=dialog-close]]:hover:bg-white [&_[data-slot=dialog-close]]:hover:text-[#171714]">
           <DialogHeader>
-            <DialogTitle>Delete Project?</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#171714]">Delete Project?</DialogTitle>
+            <DialogDescription className="text-[#716855]">
               This will permanently delete the project, all drawing sheets, and extracted quantities. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>
+            <Button variant="outline" onClick={() => setDeleteId(null)} className="border-[#c8b895] bg-white/70 text-[#29251c] hover:bg-white">
               Cancel
             </Button>
             <Button
