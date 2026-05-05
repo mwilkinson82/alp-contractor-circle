@@ -317,8 +317,11 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
   const anomalies: TakeoffAnomaly[] = [];
   const accepted = items.filter(item => isScopeIncludedItem(item));
   const excluded = items.filter(item => isScopeExcludedItem(item));
+  const openItems = items.filter(item => !item.reviewed);
+  const openAccepted = accepted.filter(item => !item.reviewed);
+  const openExcluded = excluded.filter(item => !item.reviewed);
 
-  const scopeConflicts = items.filter(item => {
+  const scopeConflicts = openItems.filter(item => {
     const notes = String(item.notes || "").toLowerCase();
     return notes.includes("[scope: included]") && notes.includes("[scope: excluded]");
   });
@@ -334,7 +337,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
     });
   }
 
-  const zeroAccepted = accepted.filter(item => Number(item.extendedCost || 0) <= 0);
+  const zeroAccepted = openAccepted.filter(item => Number(item.extendedCost || 0) <= 0);
   if (zeroAccepted.length > 0) {
     anomalies.push({
       id: "zero-accepted",
@@ -346,7 +349,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
     });
   }
 
-  const missingQuantity = accepted.filter(item => Number(item.quantity || 0) <= 0);
+  const missingQuantity = openAccepted.filter(item => Number(item.quantity || 0) <= 0);
   if (missingQuantity.length > 0) {
     anomalies.push({
       id: "missing-quantity",
@@ -359,7 +362,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
   }
 
   const highValueExcluded = sortByExtendedCostDesc(
-    excluded.filter(item => Number(item.extendedCost || 0) >= 2500000)
+    openExcluded.filter(item => Number(item.extendedCost || 0) >= 2500000)
   );
   if (highValueExcluded.length > 0) {
     anomalies.push({
@@ -374,7 +377,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
   }
 
   const lowConfidence = sortByExtendedCostDesc(
-    items.filter(item => {
+    openItems.filter(item => {
       const confidence = Number(item.confidence || 0);
       return confidence > 0 && confidence < 70;
     })
@@ -392,7 +395,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
   }
 
   const duplicateGroups = new Map<string, any[]>();
-  for (const item of accepted) {
+  for (const item of openAccepted) {
     const key = `${normalizeAnomalyKey(item.description)}|${String(item.unit || "").toLowerCase()}`;
     if (!key.trim() || key === "|") continue;
     const group = duplicateGroups.get(key) || [];
@@ -414,7 +417,7 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
     });
   }
 
-  const unlinkedAccepted = accepted.filter(item => !item.sheetId);
+  const unlinkedAccepted = openAccepted.filter(item => !item.sheetId);
   if (unlinkedAccepted.length > 0) {
     anomalies.push({
       id: "source-unlinked",
@@ -1374,14 +1377,28 @@ function AnomalyCenterDialog({
   open,
   anomalies,
   currency,
+  isPending,
   onClose,
   onOpenItem,
+  onOpenSource,
+  onApplyScopeDecision,
+  onConfirmQuantity,
+  onDismissItem,
 }: {
   open: boolean;
   anomalies: TakeoffAnomaly[];
   currency: string;
+  isPending?: boolean;
   onClose: () => void;
   onOpenItem: (item: any) => void;
+  onOpenSource: (item: any) => void;
+  onApplyScopeDecision: (
+    item: any,
+    status: "included" | "review" | "excluded",
+    reviewed?: boolean
+  ) => void;
+  onConfirmQuantity: (item: any) => void;
+  onDismissItem: (item: any) => void;
 }) {
   const [selectedAnomalyId, setSelectedAnomalyId] = useState<string | null>(null);
 
@@ -1529,23 +1546,28 @@ function AnomalyCenterDialog({
                   </div>
 
                   <div className="mt-4 overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4]">
-                    <div className="grid grid-cols-[minmax(0,1fr)_120px_120px_120px] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_104px_104px_112px_minmax(300px,auto)] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
                       <span>Description</span>
                       <span className="text-right">Qty</span>
                       <span className="text-right">Confidence</span>
                       <span className="text-right">Value</span>
+                      <span className="text-right">Actions</span>
                     </div>
                     <div className="max-h-[430px] overflow-y-auto">
                       {activeAnomaly.items.map(item => {
                         const cue = getEstimatorCue(item);
+                        const scopeStatus = getScopeReviewStatus(item);
+                        const hasQuantity = Number(item.quantity || 0) > 0;
                         return (
-                          <button
+                          <div
                             key={`${activeAnomaly.id}-${item.id}`}
-                            type="button"
-                            onClick={() => onOpenItem(item)}
-                            className="grid w-full grid-cols-[minmax(0,1fr)_120px_120px_120px] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3 text-left transition-colors hover:bg-white"
+                            className="grid grid-cols-[minmax(0,1fr)_104px_104px_112px_minmax(300px,auto)] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3"
                           >
-                            <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => onOpenItem(item)}
+                              className="min-w-0 text-left"
+                            >
                               <p className="truncate text-sm font-semibold text-[#171714]">
                                 {item.description || "Untitled item"}
                               </p>
@@ -1557,7 +1579,7 @@ function AnomalyCenterDialog({
                                   {item.csiCode || item.csiDivision || "No CSI"}
                                 </span>
                               </div>
-                            </div>
+                            </button>
                             <span className="text-right font-mono text-xs text-[#5d5546]">
                               {item.quantity || "—"} {item.unit || ""}
                             </span>
@@ -1567,7 +1589,103 @@ function AnomalyCenterDialog({
                             <span className="text-right font-mono text-xs font-semibold text-[#8a6510]">
                               {formatCurrency(Number(item.extendedCost || 0), currency)}
                             </span>
-                          </button>
+                            <div className="flex flex-wrap items-center justify-end gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 border-blue-200 bg-blue-50 px-2 text-xs text-[#244c91] hover:!bg-blue-100 hover:!text-[#1f3f78]"
+                                onClick={() => onOpenSource(item)}
+                                disabled={!item.sheetId}
+                                title={item.sheetId ? "Open source drawing" : "No source drawing linked"}
+                              >
+                                <FileImage className="mr-1 h-3 w-3" />
+                                Source
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
+                                onClick={() => onOpenItem(item)}
+                                title="Open item evidence and pricing detail"
+                              >
+                                <Eye className="mr-1 h-3 w-3" />
+                                Evidence
+                              </Button>
+                              {scopeStatus !== "review" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 border-[#d7b44d] bg-[#fff7da] px-2 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
+                                  onClick={() => onApplyScopeDecision(item, "review", false)}
+                                  disabled={isPending}
+                                  title="Move to review queue without counting it"
+                                >
+                                  <Flag className="mr-1 h-3 w-3" />
+                                  Review
+                                </Button>
+                              )}
+                              {scopeStatus !== "included" && (
+                                <Button
+                                  size="sm"
+                                  className="h-7 bg-emerald-600 px-2 text-xs text-white hover:bg-emerald-700"
+                                  onClick={() => onApplyScopeDecision(item, "included")}
+                                  disabled={isPending}
+                                  title="Include in active bid total"
+                                >
+                                  <Check className="mr-1 h-3 w-3" />
+                                  Include
+                                </Button>
+                              )}
+                              {scopeStatus !== "excluded" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
+                                  onClick={() => onApplyScopeDecision(item, "excluded")}
+                                  disabled={isPending}
+                                  title="Exclude from active bid total"
+                                >
+                                  <X className="mr-1 h-3 w-3" />
+                                  Exclude
+                                </Button>
+                              )}
+                              {hasQuantity ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 border-emerald-300 bg-emerald-50 px-2 text-xs text-emerald-800 hover:!bg-emerald-100 hover:!text-emerald-900"
+                                  onClick={() => onConfirmQuantity(item)}
+                                  disabled={isPending}
+                                  title="Mark quantity as confirmed"
+                                >
+                                  <CheckSquare className="mr-1 h-3 w-3" />
+                                  Confirm
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
+                                  onClick={() => onOpenItem(item)}
+                                  title="Open detail to enter quantity"
+                                >
+                                  <Ruler className="mr-1 h-3 w-3" />
+                                  Qty
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-[#716855] hover:bg-[#f1eee6] hover:text-[#171714]"
+                                onClick={() => onDismissItem(item)}
+                                disabled={isPending}
+                                title="Mark this anomaly reviewed"
+                              >
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Dismiss
+                              </Button>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
@@ -1889,7 +2007,13 @@ export default function TakeoffDetail() {
       const isScopeDecision = String(variables?.notes || "").startsWith(
         "[Scope:"
       );
-      if (!isScopeDecision) toast.success("Item updated");
+      if (!isScopeDecision) {
+        toast.success(
+          variables?.reviewed === true
+            ? "Review marked complete"
+            : "Item updated"
+        );
+      }
       if (variables?.id) {
         setOptimisticScopeDecisions(prev => {
           const next = { ...prev };
@@ -3381,10 +3505,33 @@ export default function TakeoffDetail() {
       });
     }, 0);
   };
-  const openDrawingNavigator = (sheetId?: number | null) => {
+  const openDrawingNavigator = useCallback((sheetId?: number | null) => {
     setNavigatorInitialSheetId(sheetId || null);
     setShowDrawingNavigator(true);
-  };
+  }, []);
+
+  const openAnomalySource = useCallback(
+    (item: any) => {
+      if (!item?.sheetId) {
+        toast.info("No source drawing is linked to this row yet");
+        return;
+      }
+      openDrawingNavigator(item.sheetId);
+      setShowAnomalyCenter(false);
+    },
+    [openDrawingNavigator]
+  );
+
+  const markAnomalyItemReviewed = useCallback(
+    (item: any) => {
+      updateItemMutation.mutate({
+        id: item.id,
+        projectId,
+        reviewed: true,
+      });
+    },
+    [projectId, updateItemMutation]
+  );
 
   return (
     <div className="min-h-screen bg-[#ece9e1] text-[#171714]">
@@ -6677,11 +6824,16 @@ export default function TakeoffDetail() {
         open={showAnomalyCenter}
         anomalies={takeoffAnomalies}
         currency={project?.currency || "USD"}
+        isPending={updateItemMutation.isPending}
         onClose={() => setShowAnomalyCenter(false)}
         onOpenItem={item => {
           setSelectedItem(item);
           setShowAnomalyCenter(false);
         }}
+        onOpenSource={openAnomalySource}
+        onApplyScopeDecision={applyScopeDecision}
+        onConfirmQuantity={item => markAnomalyItemReviewed(item)}
+        onDismissItem={item => markAnomalyItemReviewed(item)}
       />
 
       {/* ─── Sheet Preview Modal ─────────────────────────────────────────── */}
