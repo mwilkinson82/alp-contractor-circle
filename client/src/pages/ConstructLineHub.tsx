@@ -467,6 +467,64 @@ export default function ConstructLineHub() {
           </aside>
         </section>
 
+        <section className="mt-6 grid gap-5 lg:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => navigate("/portal/takeoff")}
+            className="group overflow-hidden rounded-xl border border-[#dfb34d]/35 bg-[#090b0f] text-left shadow-[0_26px_70px_rgba(41,37,28,0.16)] transition-transform hover:-translate-y-0.5 hover:border-[#f1b51d]/70"
+            aria-label="Open ConstructLine Basis"
+          >
+            <div className="relative aspect-[3/2] overflow-hidden">
+              <img
+                src="/constructline-basis-2.png"
+                alt="ConstructLine 2.0 Basis estimating tool"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/86 via-black/42 to-transparent p-5 pt-16">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
+                    Basis Estimating
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    Review, estimate, submit
+                  </p>
+                </div>
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#f1b51d]/45 bg-[#f1b51d] text-[#171714] transition-transform group-hover:translate-x-0.5">
+                  <ArrowRight className="h-5 w-5" />
+                </span>
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/portal/scheduler")}
+            className="group overflow-hidden rounded-xl border border-[#2f80ff]/40 bg-[#030712] text-left shadow-[0_26px_70px_rgba(47,128,255,0.16)] transition-transform hover:-translate-y-0.5 hover:border-[#60a5fa]/80"
+            aria-label="Open ConstructLine Baseline"
+          >
+            <div className="relative aspect-[3/2] overflow-hidden">
+              <img
+                src="/constructline-baseline-2.png"
+                alt="ConstructLine 2.0 Baseline CPM schedule tool"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/86 via-black/42 to-transparent p-5 pt-16">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#60a5fa]">
+                    Baseline CPM Schedule
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    Plan, update, report
+                  </p>
+                </div>
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#60a5fa]/45 bg-[#2f80ff] text-white transition-transform group-hover:translate-x-0.5">
+                  <ArrowRight className="h-5 w-5" />
+                </span>
+              </div>
+            </div>
+          </button>
+        </section>
+
         <section className="mt-6 overflow-hidden rounded-xl border border-black/10 bg-[#07090b] p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.20em] text-[#f1b51d]">
             The Estimating Flow
