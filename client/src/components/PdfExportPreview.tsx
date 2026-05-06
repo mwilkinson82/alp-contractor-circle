@@ -1383,10 +1383,10 @@ export function PdfExportPreview({
   };
 
   const renderColumnEditor = (type: "header" | "footer", columns: ColumnData[], columnCount: number) => (
-    <div className="space-y-1.5">
+    <div className={`grid gap-2 ${columnCount === 5 ? "grid-cols-5" : "grid-cols-3"}`}>
       {columns.map((col, idx) => (
-        <div key={idx}>
-          <Label className="text-[9px] text-gray-600 mb-0.5 block">{getColLabel(idx, columnCount)}</Label>
+        <div key={idx} className="rounded-lg border border-white/10 bg-[#11141d] p-2">
+          <Label className="text-[9px] text-gray-500 mb-1 block uppercase tracking-wider">{getColLabel(idx, columnCount)}</Label>
           <Select value={col.content} onValueChange={(v) => handleColumnContentChange(type, idx, v)}>
             <SelectTrigger className="border-white/15 text-[11px] bg-white/5 text-gray-200 h-7 w-full">
               <SelectValue />
@@ -1523,9 +1523,10 @@ export function PdfExportPreview({
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden px-6 py-3 min-h-0">
-          <div className="flex gap-5 h-full">
+          <div className="flex h-full flex-col gap-3">
+            <div className="grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_20rem] gap-5">
             {/* Left: Multi-page scrollable preview */}
-            <div className="flex-1 min-w-0 flex flex-col" ref={containerRef}>
+            <div className="min-w-0 flex flex-col" ref={containerRef}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-gray-600" />
@@ -1622,7 +1623,7 @@ export function PdfExportPreview({
             </div>
 
             {/* Right: Configuration Panel */}
-            <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto">
+            <div className="min-h-0 flex flex-col gap-3 overflow-y-auto pr-1">
               {/* Page Settings */}
               <div className="bg-white/5 rounded-lg border border-white/10 p-3 space-y-3">
                 <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Page Settings</Label>
@@ -1794,140 +1795,123 @@ export function PdfExportPreview({
                 </p>
               </div>
 
-              {/* Header/Footer Configuration */}
-              <div className="bg-white/5 rounded-lg border border-white/10 p-3">
-                <Tabs defaultValue="header" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-8">
+            </div>
+            </div>
+
+            <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-3">
+              <Tabs defaultValue="header" className="w-full">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Printed Page Bands</Label>
+                    <p className="mt-0.5 text-[10px] text-gray-600">Edit the sheet header and footer in the same top/bottom language used on the printed output.</p>
+                  </div>
+                  <TabsList className="h-8 w-52 grid-cols-2">
                     <TabsTrigger value="header" className="text-xs">Header</TabsTrigger>
                     <TabsTrigger value="footer" className="text-xs">Footer</TabsTrigger>
                   </TabsList>
+                </div>
 
-                  <TabsContent value="header" className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-[10px] text-gray-400 shrink-0">Columns:</Label>
-                      {([3, 5] as const).map(c => (
-                        <Button key={c} size="sm" variant={headerColumnCount === c ? "default" : "outline"}
-                          className={`h-6 text-[10px] px-2.5 ${headerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
-                          onClick={() => handleColumnCountChange("header", c)}>
-                          {c}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Header Color Picker */}
-                    <div className="mt-2 pt-2 border-t border-white/10">
-                      <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Header Style</Label>
-                      <div className="grid grid-cols-3 gap-1.5 mb-2">
-                        {[
-                          { bg: "#0d1b2a", accent: "#c9a84c", text: "#e2e8f0", label: "Navy/Gold" },
-                          { bg: "#1e293b", accent: "#3b82f6", text: "#e2e8f0", label: "Slate/Blue" },
-                          { bg: "#374151", accent: "#f59e0b", text: "#f3f4f6", label: "Gray/Amber" },
-                          { bg: "#1a1a2e", accent: "#e94560", text: "#eaeaea", label: "Dark/Red" },
-                          { bg: "#f1f5f9", accent: "#2563eb", text: "#1e293b", label: "Light/Blue" },
-                          { bg: "transparent", accent: "#6b7280", text: "#374151", label: "No Color" },
-                        ].map((preset) => (
-                          <button
-                            key={preset.label}
-                            className={`h-7 rounded border text-[9px] font-medium flex items-center justify-center gap-1 transition-all ${
-                              headerBgColor === preset.bg && headerAccentColor === preset.accent
-                                ? "ring-2 ring-blue-500 ring-offset-1 border-blue-400"
-                                : "border-white/15 hover:border-gray-400"
-                            }`}
-                            style={{ backgroundColor: preset.bg === "transparent" ? "#fff" : preset.bg, color: preset.bg === "transparent" ? "#374151" : preset.text }}
-                            onClick={() => { setHeaderBgColor(preset.bg); setHeaderAccentColor(preset.accent); setHeaderTextColor(preset.text); }}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
+                <TabsContent value="header" className="mt-0">
+                  <div className="grid grid-cols-[17rem_minmax(0,1fr)] gap-3">
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-[#11141d] p-3">
                       <div className="flex items-center gap-2">
-                        <Label className="text-[9px] text-gray-600">Custom:</Label>
-                        <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-600">BG</label>
-                          <input type="color" value={headerBgColor === "transparent" ? "#ffffff" : headerBgColor} onChange={e => setHeaderBgColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-600">Accent</label>
-                          <input type="color" value={headerAccentColor} onChange={e => setHeaderAccentColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <label className="text-[8px] text-gray-600">Text</label>
-                          <input type="color" value={headerTextColor} onChange={e => setHeaderTextColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Header Height Control */}
-                    <div className="mt-2 pt-2 border-t border-white/10">
-                      <Label className="text-[10px] text-gray-400 mb-0.5 block">Height: {headerHeightMm}mm</Label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="range"
-                          min={14}
-                          max={60}
-                          step={2}
-                          value={headerHeightMm}
-                          onChange={(e) => setHeaderHeightMm(Number(e.target.value))}
-                          className="flex-1 h-1.5 accent-amber-500"
-                        />
-                        <span className="text-[10px] text-gray-500 w-10 text-right">{headerHeightMm}mm</span>
-                      </div>
-                      <div className="flex gap-1 mt-1">
-                        {[14, 22, 30, 40, 50].map(h => (
-                          <Button key={h} size="sm" variant={headerHeightMm === h ? "default" : "outline"}
-                            className={`h-5 text-[9px] px-1.5 ${headerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
-                            onClick={() => setHeaderHeightMm(h)}>
-                            {h === 14 ? "XS" : h === 22 ? "S" : h === 30 ? "M" : h === 40 ? "L" : "XL"}
+                        <Label className="text-[10px] text-gray-400 shrink-0">Header columns</Label>
+                        {([3, 5] as const).map(c => (
+                          <Button key={c} size="sm" variant={headerColumnCount === c ? "default" : "outline"}
+                            className={`h-6 text-[10px] px-2.5 ${headerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            onClick={() => handleColumnCountChange("header", c)}>
+                            {c}
                           </Button>
                         ))}
                       </div>
+                      <div>
+                        <Label className="text-[10px] text-gray-400 mb-1 block">Height: {headerHeightMm}mm</Label>
+                        <div className="flex items-center gap-2">
+                          <input type="range" min={14} max={60} step={2} value={headerHeightMm} onChange={(e) => setHeaderHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-amber-500" />
+                          <span className="text-[10px] text-gray-500 w-10 text-right">{headerHeightMm}mm</span>
+                        </div>
+                        <div className="flex gap-1 mt-1">
+                          {[14, 22, 30, 40, 50].map(h => (
+                            <Button key={h} size="sm" variant={headerHeightMm === h ? "default" : "outline"}
+                              className={`h-5 text-[9px] px-1.5 ${headerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                              onClick={() => setHeaderHeightMm(h)}>
+                              {h === 14 ? "XS" : h === 22 ? "S" : h === 30 ? "M" : h === 40 ? "L" : "XL"}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Header style</Label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            { bg: "#0d1b2a", accent: "#c9a84c", text: "#e2e8f0", label: "Navy/Gold" },
+                            { bg: "#1e293b", accent: "#3b82f6", text: "#e2e8f0", label: "Slate/Blue" },
+                            { bg: "#374151", accent: "#f59e0b", text: "#f3f4f6", label: "Gray/Amber" },
+                            { bg: "transparent", accent: "#6b7280", text: "#374151", label: "No Color" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              className={`h-7 rounded border text-[9px] font-medium transition-all ${
+                                headerBgColor === preset.bg && headerAccentColor === preset.accent
+                                  ? "ring-2 ring-amber-500/70 border-amber-400"
+                                  : "border-white/15 hover:border-gray-400"
+                              }`}
+                              style={{ backgroundColor: preset.bg === "transparent" ? "#fff" : preset.bg, color: preset.bg === "transparent" ? "#374151" : preset.text }}
+                              onClick={() => { setHeaderBgColor(preset.bg); setHeaderAccentColor(preset.accent); setHeaderTextColor(preset.text); }}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Label className="text-[9px] text-gray-600">Custom</Label>
+                          <input type="color" value={headerBgColor === "transparent" ? "#ffffff" : headerBgColor} onChange={e => setHeaderBgColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" title="Header background" />
+                          <input type="color" value={headerAccentColor} onChange={e => setHeaderAccentColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" title="Header accent" />
+                          <input type="color" value={headerTextColor} onChange={e => setHeaderTextColor(e.target.value)} className="w-5 h-5 rounded border border-white/15 cursor-pointer" title="Header text" />
+                        </div>
+                      </div>
                     </div>
-
                     {renderColumnEditor("header", headerColumns, headerColumnCount)}
-                  </TabsContent>
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="footer" className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-[10px] text-gray-400 shrink-0">Columns:</Label>
-                      {([3, 5] as const).map(c => (
-                        <Button key={c} size="sm" variant={footerColumnCount === c ? "default" : "outline"}
-                          className={`h-6 text-[10px] px-2.5 ${footerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
-                          onClick={() => handleColumnCountChange("footer", c)}>
-                          {c}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Footer Height Control */}
-                    <div>
-                      <Label className="text-[10px] text-gray-400 mb-0.5 block">Height: {footerHeightMm}mm</Label>
+                <TabsContent value="footer" className="mt-0">
+                  <div className="grid grid-cols-[17rem_minmax(0,1fr)] gap-3">
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-[#11141d] p-3">
                       <div className="flex items-center gap-2">
-                        <input
-                          type="range"
-                          min={10}
-                          max={60}
-                          step={2}
-                          value={footerHeightMm}
-                          onChange={(e) => setFooterHeightMm(Number(e.target.value))}
-                          className="flex-1 h-1.5 accent-amber-500"
-                        />
-                        <span className="text-[10px] text-gray-500 w-10 text-right">{footerHeightMm}mm</span>
-                      </div>
-                      <div className="flex gap-1 mt-1">
-                        {[10, 14, 22, 30, 40].map(h => (
-                          <Button key={h} size="sm" variant={footerHeightMm === h ? "default" : "outline"}
-                            className={`h-5 text-[9px] px-1.5 ${footerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
-                            onClick={() => setFooterHeightMm(h)}>
-                            {h === 10 ? "XS" : h === 14 ? "S" : h === 22 ? "M" : h === 30 ? "L" : "XL"}
+                        <Label className="text-[10px] text-gray-400 shrink-0">Footer columns</Label>
+                        {([3, 5] as const).map(c => (
+                          <Button key={c} size="sm" variant={footerColumnCount === c ? "default" : "outline"}
+                            className={`h-6 text-[10px] px-2.5 ${footerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            onClick={() => handleColumnCountChange("footer", c)}>
+                            {c}
                           </Button>
                         ))}
                       </div>
+                      <div>
+                        <Label className="text-[10px] text-gray-400 mb-1 block">Height: {footerHeightMm}mm</Label>
+                        <div className="flex items-center gap-2">
+                          <input type="range" min={10} max={60} step={2} value={footerHeightMm} onChange={(e) => setFooterHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-amber-500" />
+                          <span className="text-[10px] text-gray-500 w-10 text-right">{footerHeightMm}mm</span>
+                        </div>
+                        <div className="flex gap-1 mt-1">
+                          {[10, 14, 22, 30, 40].map(h => (
+                            <Button key={h} size="sm" variant={footerHeightMm === h ? "default" : "outline"}
+                              className={`h-5 text-[9px] px-1.5 ${footerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                              onClick={() => setFooterHeightMm(h)}>
+                              {h === 10 ? "XS" : h === 14 ? "S" : h === 22 ? "M" : h === 30 ? "L" : "XL"}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-2 text-[10px] leading-4 text-gray-500">
+                        The footer can carry the P6-style legend, page numbers, client-facing title block, company logo, or update metadata.
+                      </div>
                     </div>
-
                     {renderColumnEditor("footer", footerColumns, footerColumnCount)}
-                  </TabsContent>
-                </Tabs>
-              </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
