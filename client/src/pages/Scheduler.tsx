@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
+import { activityOverlapsWindow, activityStartsInRange, getLookaheadDays, parseScheduleDate } from "../../../shared/schedulerFilters";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 import ResourcePanel from "@/components/ResourcePanel";
 
@@ -73,9 +74,7 @@ const formatDate = (d: Date | null | undefined) => {
 };
 
 const parseDateSafe = (v: any): Date | null => {
-  if (!v) return null;
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
+  return parseScheduleDate(v);
 };
 
 /* ── Column Definitions ─────────────────────────────────────────────────── */
@@ -739,12 +738,12 @@ export default function Scheduler() {
     }
 
     if (filterLookahead !== "none" && dataDate) {
-      const days = filterLookahead === "1week" ? 7 : filterLookahead === "2week" ? 14 : 28;
-      const cutoff = new Date(dataDate.getTime() + days * 86400000);
-      acts = acts.filter((a) => {
-        const es = parseDateSafe(a.earlyStart);
-        return es && es <= cutoff;
-      });
+      const days = getLookaheadDays(filterLookahead);
+      if (days !== null) {
+        const cutoff = new Date(dataDate.getTime() + days * 86400000);
+        cutoff.setHours(23, 59, 59, 999);
+        acts = acts.filter((a) => activityOverlapsWindow(a, dataDate, cutoff));
+      }
     }
 
     if (filterFloatMin !== "") {
@@ -758,17 +757,11 @@ export default function Scheduler() {
 
     if (filterDateStart) {
       const start = new Date(filterDateStart + "T00:00:00");
-      acts = acts.filter((a) => {
-        const es = parseDateSafe(a.earlyStart);
-        return es && es >= start;
-      });
+      acts = acts.filter((a) => activityStartsInRange(a, start, null));
     }
     if (filterDateEnd) {
       const end = new Date(filterDateEnd + "T23:59:59");
-      acts = acts.filter((a) => {
-        const ef = parseDateSafe(a.earlyFinish);
-        return ef && ef <= end;
-      });
+      acts = acts.filter((a) => activityStartsInRange(a, null, end));
     }
 
      if (filterOpenEnds) {
@@ -1415,39 +1408,39 @@ export default function Scheduler() {
   }, [activities, openActivityDetail]);
 
   /* ── Loading / Error ──────────────────────────────────────────────────── */
-  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-[#0f1219] text-gray-300">Invalid schedule ID</div>;
+  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-[#100f0c] text-[#d8c9aa]">Invalid schedule ID</div>;
   if (scheduleQuery.isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#0f1219]">
+      <div className="h-screen flex items-center justify-center bg-[#100f0c]">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Loading schedule...</p>
+          <p className="text-[#d8c9aa] text-sm">Loading schedule...</p>
         </div>
       </div>
     );
   }
-  if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#0f1219] text-gray-300">Schedule not found</div>;
+  if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#100f0c] text-[#d8c9aa]">Schedule not found</div>;
 
   const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0 || filterActivityId.trim() !== "" || filterActivityName.trim() !== "" || filterWbs.trim() !== "";
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen flex flex-col bg-[#0f1219] text-gray-100">
+    <div className="h-screen flex flex-col bg-[#100f0c] text-[#f7eddb]">
       {/* ── Top Toolbar ── ConstructLine SaaS Ribbon ────────────────────── */}
-      <div className="border-b border-white/10 bg-[#151a28] shrink-0">
+      <div className="border-b border-[#d9a21a]/20 bg-[#171512] shrink-0 shadow-[0_16px_45px_rgba(0,0,0,0.22)]">
         {/* Row 1: Title bar with ConstructLine branding */}
-        <div className="h-11 flex items-center px-4 gap-3 border-b border-white/5">
-          <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+        <div className="h-11 flex items-center px-4 gap-3 border-b border-[#d9a21a]/10">
+          <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-[#d8c9aa] hover:text-white transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="w-px h-5 bg-white/10" />
           {/* ConstructLine Brand Mark */}
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-amber-400">Line</span></span>
-            <span className="text-[8px] text-gray-500 tracking-wider uppercase leading-tight">Powered by ALP</span>
+            <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-[#d9a21a]">Line</span></span>
+            <span className="text-[8px] text-[#8b806f] tracking-wider uppercase leading-tight">Baseline CPM</span>
           </div>
           <div className="w-px h-5 bg-white/10" />
-          <h1 className="text-sm font-medium text-gray-300 truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
+          <h1 className="text-sm font-medium text-[#f7eddb] truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
           <div className="flex-1" />
           {/* Search */}
           {showSearch && (
@@ -1457,7 +1450,7 @@ export default function Scheduler() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search ID, name, description, WBS..."
-                className="h-8 text-xs pl-8 w-52 border-white/15 bg-white/5 text-gray-100 placeholder:text-gray-500 rounded-lg"
+                className="h-8 text-xs pl-8 w-52 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f] rounded-lg"
                 autoFocus
                 onBlur={() => { if (!searchQuery) setShowSearch(false); }}
               />
@@ -1465,7 +1458,7 @@ export default function Scheduler() {
           )}
           <Button
             size="sm" variant="ghost"
-            className={`h-8 w-8 p-0 rounded-lg ${searchQuery ? "text-amber-400" : "text-gray-400 hover:text-white"}`}
+            className={`h-8 w-8 p-0 rounded-lg ${searchQuery ? "text-[#d9a21a]" : "text-[#d8c9aa] hover:text-white"}`}
             onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearchQuery(""); }}
           >
             <Search className="w-4 h-4" />
@@ -1512,7 +1505,7 @@ export default function Scheduler() {
                 size="sm" variant="outline"
                 className={`h-8 text-xs gap-1.5 rounded-md ${
                   dataDate
-                    ? "border-sky-500/25 text-sky-300 bg-sky-500/8 hover:bg-sky-500/15"
+                    ? "border-emerald-500/25 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15"
                     : "border-amber-500/40 text-amber-400 bg-amber-500/10 animate-pulse"
                 }`}
                 onClick={() => {
@@ -1543,7 +1536,7 @@ export default function Scheduler() {
                     <Plus className="w-4 h-4 mr-2 text-emerald-400" /> New Activity
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBulkAddDialog(true)}>
-                    <Plus className="w-4 h-4 mr-2 text-sky-400" /> Bulk Add
+                    <Plus className="w-4 h-4 mr-2 text-emerald-400" /> Bulk Add
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowCsvImportDialog(true)}>
@@ -1578,7 +1571,7 @@ export default function Scheduler() {
                   <button
                     key={z}
                     onClick={() => setMagnificationZoom(z)}
-                    className={`px-2 text-[10px] h-full transition-all font-medium ${magnificationZoom === z ? "bg-cyan-500/20 text-cyan-300 shadow-inner shadow-cyan-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                    className={`px-2 text-[10px] h-full transition-all font-medium ${magnificationZoom === z ? "bg-emerald-500/20 text-emerald-300 shadow-inner shadow-emerald-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
                     title={`Zoom ${z}% - scales row heights`}
                   >
                     {z}%
@@ -1830,7 +1823,7 @@ export default function Scheduler() {
                     disabled={autoAssignWbsMut.isPending}
                     title="Automatically assigns Submittal and Fabrication activities to matching WBS groups based on their names and CSI codes"
                   >
-                    <Target className="w-4 h-4 mr-2 text-cyan-400" /> Auto-Assign WBS
+                    <Target className="w-4 h-4 mr-2 text-emerald-400" /> Auto-Assign WBS
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowCodeManager(true)}>
                     <Palette className="w-4 h-4 mr-2" /> Activity Code Manager
@@ -1987,7 +1980,7 @@ export default function Scheduler() {
 
       {/* ── Activity Code Filter Bar ───────────────────────────────────────── */}
       {showFilterPanel && codeCategories.length > 0 && (
-        <div className="border-b border-white/10 bg-[#151a28] px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
+        <div className="border-b border-[#d9a21a]/15 bg-[#1f1c16] px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
           {codeCategories.map((cat: any) => (
             <div key={cat.id} className="flex items-center gap-2 shrink-0">
               <span className="text-xs text-gray-400 font-medium">{cat.name}:</span>
@@ -2677,7 +2670,7 @@ export default function Scheduler() {
               </div>
 
               {/* Constraints */}
-              <div className="border border-blue-100 bg-amber-500/10/30 rounded-lg p-3">
+              <div className="border border-[#d9a21a]/20 bg-amber-500/10 rounded-lg p-3">
                 <Label className="text-xs text-amber-300 font-semibold mb-2 block">Date Constraints</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -3674,7 +3667,7 @@ export default function Scheduler() {
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {/* Create New Calendar */}
-            <div className="border border-dashed border-blue-300 bg-amber-500/10/30 rounded-lg p-3">
+            <div className="border border-dashed border-[#d9a21a]/30 bg-amber-500/10 rounded-lg p-3">
               <Label className="text-xs text-amber-300 font-semibold mb-2 block">Create New Calendar</Label>
               <div className="grid grid-cols-3 gap-2">
                 <Input
@@ -3752,7 +3745,7 @@ export default function Scheduler() {
                             <button
                               key={day}
                               className={`px-2 py-1 text-[10px] rounded font-medium transition-colors ${
-                                isWork ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-white/8 text-gray-600 border border-white/10"
+                                isWork ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-white/[0.08] text-gray-600 border border-white/10"
                               }`}
                               title={isWork ? `${day} is a work day (click to toggle)` : `${day} is a non-work day (click to toggle)`}
                             >
@@ -3864,7 +3857,7 @@ export default function Scheduler() {
 
       {/* ── Schedule Health Dialog ───────────────────────────────────────────── */}
       <Dialog open={showScheduleHealth} onOpenChange={setShowScheduleHealth}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Schedule Health Check</DialogTitle>
             <DialogDescription>Review schedule integrity and identify issues.</DialogDescription>
@@ -3872,15 +3865,15 @@ export default function Scheduler() {
           <div className="space-y-4">
             {/* Summary stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="text-center p-3 bg-white/5 rounded-lg">
+              <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
                 <div className="text-2xl font-bold text-gray-100">{activities.length}</div>
                 <div className="text-xs text-gray-400">Total Activities</div>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-center p-3 bg-red-500/10 rounded-lg border border-red-500/20">
                 <div className="text-2xl font-bold text-red-400">{activities.filter((a) => a.isCritical).length}</div>
                 <div className="text-xs text-gray-400">Critical Activities</div>
               </div>
-              <div className="text-center p-3 bg-white/5 rounded-lg">
+              <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
                 <div className="text-2xl font-bold text-gray-100">{relationships.length}</div>
                 <div className="text-xs text-gray-400">Relationships</div>
               </div>
@@ -3899,17 +3892,17 @@ export default function Scheduler() {
 
               {openEnds.openStarts.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-xs text-amber-600 font-medium mb-1">
+                  <div className="text-xs text-amber-300 font-medium mb-1">
                     Missing Predecessors ({openEnds.openStarts.length})
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {openEnds.openStarts.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-gray-400 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
+                        className="text-xs text-[#d8c9aa] px-2 py-1 bg-amber-500/10 rounded cursor-pointer hover:bg-amber-500/15"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
-                        <span className="font-mono text-amber-700">{a.activityId || `A${a.id}`}</span> — {a.name}
+                        <span className="font-mono text-amber-300">{a.activityId || `A${a.id}`}</span> — {a.name}
                       </div>
                     ))}
                   </div>
@@ -3918,17 +3911,17 @@ export default function Scheduler() {
 
               {openEnds.openFinishes.length > 0 && (
                 <div>
-                  <div className="text-xs text-amber-600 font-medium mb-1">
+                  <div className="text-xs text-amber-300 font-medium mb-1">
                     Missing Successors ({openEnds.openFinishes.length})
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {openEnds.openFinishes.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-gray-400 px-2 py-1 bg-amber-50 rounded cursor-pointer hover:bg-amber-100"
+                        className="text-xs text-[#d8c9aa] px-2 py-1 bg-amber-500/10 rounded cursor-pointer hover:bg-amber-500/15"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
-                        <span className="font-mono text-amber-700">{a.activityId || `A${a.id}`}</span> — {a.name}
+                        <span className="font-mono text-amber-300">{a.activityId || `A${a.id}`}</span> — {a.name}
                       </div>
                     ))}
                   </div>
@@ -3936,7 +3929,7 @@ export default function Scheduler() {
               )}
 
               {openEnds.openStarts.length === 0 && openEnds.openFinishes.length === 0 && (
-                <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded">
+                <div className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded">
                   All activities have predecessors and successors. Schedule logic is complete.
                 </div>
               )}
@@ -3953,7 +3946,7 @@ export default function Scheduler() {
                   {activities.filter((a) => (a.totalFloat ?? 0) < 0).map((a) => (
                     <div
                       key={a.id}
-                      className="text-xs text-gray-400 px-2 py-1 bg-red-50 rounded cursor-pointer hover:bg-red-500/15"
+                      className="text-xs text-[#d8c9aa] px-2 py-1 bg-red-500/10 rounded cursor-pointer hover:bg-red-500/15"
                       onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                     >
                       <span className="font-mono text-red-300">{a.activityId || `A${a.id}`}</span> — {a.name}
@@ -4530,25 +4523,25 @@ export default function Scheduler() {
 
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-lg">Advanced Filters</DialogTitle>
-            <DialogDescription>Filter activities by various criteria.</DialogDescription>
+            <DialogTitle className="font-semibold text-lg text-[#f7eddb]">Advanced Filters</DialogTitle>
+            <DialogDescription className="text-[#d8c9aa]">Filter the active CPM table and Gantt without changing the schedule.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             {/* Text-based filters */}
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-gray-600">Activity ID</Label>
-                <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Activity ID</Label>
+                <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
               <div>
-                <Label className="text-xs text-gray-600">Activity Name / Description</Label>
-                <Input value={filterActivityName} onChange={(e) => setFilterActivityName(e.target.value)} placeholder="e.g. concrete, steel" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Activity Name / Description</Label>
+                <Input value={filterActivityName} onChange={(e) => setFilterActivityName(e.target.value)} placeholder="e.g. concrete, steel" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
               <div>
-                <Label className="text-xs text-gray-600">WBS Code</Label>
-                <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">WBS Code</Label>
+                <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
             </div>
 
@@ -4568,9 +4561,9 @@ export default function Scheduler() {
             </div>
 
             <div>
-              <Label className="text-xs text-gray-600">Lookahead</Label>
+              <Label className="text-xs text-[#d8c9aa]">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
-                <SelectTrigger className="mt-1 border-white/15 bg-white/5 text-gray-200"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
                 <SelectContent className="">
                   <SelectItem value="none" className="">No lookahead filter</SelectItem>
                   <SelectItem value="1week" className="">1-Week Lookahead</SelectItem>
@@ -4582,29 +4575,29 @@ export default function Scheduler() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-600">Float Min (days)</Label>
-                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Float Min (days)</Label>
+                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
               <div>
-                <Label className="text-xs text-gray-600">Float Max (days)</Label>
-                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Float Max (days)</Label>
+                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-600">Start Date From</Label>
-                <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Start Date From</Label>
+                <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
               </div>
               <div>
-                <Label className="text-xs text-gray-600">Start Date To</Label>
-                <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-white/15 bg-white/5 text-gray-200" />
+                <Label className="text-xs text-[#d8c9aa]">Start Date To</Label>
+                <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
               </div>
             </div>
 
             {codeCategories.length > 0 && (
               <div>
-                <Label className="text-xs text-gray-600 mb-2 block">Activity Codes</Label>
+                <Label className="text-xs text-[#d8c9aa] mb-2 block">Activity Codes</Label>
                 <div className="space-y-2">
                   {codeCategories.map((cat: any) => (
                     <div key={cat.id} className="grid grid-cols-[6rem_1fr] gap-2 items-start">
