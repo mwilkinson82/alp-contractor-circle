@@ -667,6 +667,14 @@ export default function Scheduler() {
   const dataDate = useMemo(() => parseDateSafe(schedule?.schedule?.dataDate), [schedule?.schedule?.dataDate]);
   const lastCalculatedAt = useMemo(() => parseDateSafe(schedule?.schedule?.lastCalculatedAt), [schedule?.schedule?.lastCalculatedAt]);
   const defaultCalName = useMemo(() => calendars.find((c: any) => c.isDefault)?.name || "Default", [calendars]);
+  const lookaheadWindowLabel = useMemo(() => {
+    const days = getLookaheadDays(filterLookahead);
+    if (!days) return null;
+    if (!dataDate) return "Lookahead uses the schedule Data Date. Set a Data Date to activate this window.";
+    const cutoff = new Date(dataDate.getTime() + days * 86400000);
+    cutoff.setHours(23, 59, 59, 999);
+    return `${formatDate(dataDate)} - ${formatDate(cutoff)} based on the schedule Data Date. Start Date From/To is an additional filter.`;
+  }, [dataDate, filterLookahead]);
 
   const target1Map = useMemo(() => {
     const m = new Map<number, any>();
@@ -4575,6 +4583,12 @@ export default function Scheduler() {
                   <SelectItem value="4week" className="">4-Week Lookahead</SelectItem>
                 </SelectContent>
               </Select>
+              {lookaheadWindowLabel && (
+                <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-[#d8c9aa]">
+                  <span className="font-semibold text-amber-300">Active lookahead window:</span>{" "}
+                  {lookaheadWindowLabel}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
