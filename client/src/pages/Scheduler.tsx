@@ -369,7 +369,7 @@ export default function Scheduler() {
 
   /* ── View State ───────────────────────────────────────────────────────── */
   const [zoom, setZoom] = useState<"day" | "week" | "month" | "custom">("week");
-  const [magnificationZoom, setMagnificationZoom] = useState(100); // 50, 75, 100, 125, 150 - for row height scaling
+  const [magnificationZoom, setMagnificationZoom] = useState(75); // 50, 75, 100, 125, 150 - for row height scaling
   const [customPpd, setCustomPpd] = useState<number>(14); // pixels per day for custom zoom
   const [showArrows, setShowArrows] = useState(true);
   const [showDataDateLine, setShowDataDateLine] = useState(true);
