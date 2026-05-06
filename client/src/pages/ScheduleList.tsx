@@ -224,12 +224,8 @@ export default function ScheduleList() {
 
   const schedules = (schedulesQuery.data || []) as ScheduleSummary[];
   const templates = templatesQuery.data || [];
-  const archiveSchedules = useMemo(
-    () => schedules.filter((s) => !(s.id === 1 && s.name.toLowerCase().includes("smith residence"))),
-    [schedules],
-  );
-  const activeSchedules = useMemo(() => archiveSchedules.filter((s) => s.status === "active"), [archiveSchedules]);
-  const archivedSchedules = useMemo(() => archiveSchedules.filter((s) => s.status === "archived"), [archiveSchedules]);
+  const activeSchedules = useMemo(() => schedules.filter((s) => s.status === "active"), [schedules]);
+  const archivedSchedules = useMemo(() => schedules.filter((s) => s.status === "archived"), [schedules]);
   const totals = useMemo(() => {
     const activityCount = activeSchedules.reduce((sum, s) => sum + (s.activityCount ?? 0), 0);
     const criticalCount = activeSchedules.reduce((sum, s) => sum + (s.criticalCount ?? 0), 0);
