@@ -100,6 +100,7 @@ interface GanttChartProps {
 export const BASE_ROW_HEIGHT = 44;
 export const COST_ROW_HEIGHT = 60; // Taller rows when cost overlay is active to prevent clipping
 export const HEADER_HEIGHT = 48;
+const BOTTOM_SCROLL_BUFFER = 96;
 
 // P6-style variable row heights: parent WBS rows are slightly taller than children
 // Balanced proportions — no dramatic size jumps between levels
@@ -1444,7 +1445,7 @@ export default function GanttChart({
           Release to set new duration
         </div>
       )}
-      <div style={{ width: Math.max(totalWidth, containerWidth), height: totalHeight, position: "relative" }}>
+      <div style={{ width: Math.max(totalWidth, containerWidth), height: totalHeight + BOTTOM_SCROLL_BUFFER, position: "relative" }}>
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}

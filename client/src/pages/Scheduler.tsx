@@ -2501,6 +2501,7 @@ export default function Scheduler() {
                 <Plus className="w-4 h-4" /> Add Activity
               </button>
             </div>
+            <div className="h-24 shrink-0" aria-hidden="true" />
           </div>
         </ResizablePanel>
 
