@@ -655,6 +655,8 @@ export function PdfExportPreview({
       wbs: { header: "WBS", minFrac: 0.07, grow: false, getValue: (a) => (a as any).wbs || "\u2014" },
     };
     const activeColKeys = visibleColumns.filter(k => colDefs[k]);
+    if (!activeColKeys.includes("activityId")) activeColKeys.unshift("activityId");
+    if (!activeColKeys.includes("name")) activeColKeys.splice(1, 0, "name");
     const activeCols = activeColKeys.map(k => colDefs[k]);
 
     // ── Content area — dynamic table width based on column count ──
@@ -672,9 +674,9 @@ export function PdfExportPreview({
       const appWidths = activeColKeys.map(key => {
         const cssVal = appColumnWidths[key];
         if (!cssVal) return 50;
+        if (cssVal.includes('fr')) return 400;
         const pxMatch = cssVal.match(/(\d+)/);
         if (pxMatch) return parseInt(pxMatch[1]);
-        if (cssVal.includes('fr')) return 400;
         return 50;
       });
       const totalAppPx = appWidths.reduce((s, w) => s + w, 0);

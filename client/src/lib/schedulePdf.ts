@@ -863,8 +863,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       freeFloat: { header: "FF", minWidth: 10, grow: false, getValue: (a) => a.freeFloat != null ? `${a.freeFloat}d` : "\u2014" },
       wbs: { header: "WBS", minWidth: 12, grow: false, getValue: (a) => a.wbs || "\u2014" },
     };
-    const ganttActiveCols = columns.filter(k => ganttColDefs[k]).map(k => ganttColDefs[k]);
     const ganttActiveKeys = columns.filter(k => ganttColDefs[k]);
+    if (!ganttActiveKeys.includes("activityId")) ganttActiveKeys.unshift("activityId");
+    if (!ganttActiveKeys.includes("name")) ganttActiveKeys.splice(1, 0, "name");
+    const ganttActiveCols = ganttActiveKeys.map(k => ganttColDefs[k]);
 
     // Compute column widths using app proportions when available
     const usableWidth = pageWidth - 2 * margin;
@@ -877,10 +879,10 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       const appWidths: number[] = ganttActiveKeys.map(key => {
         const cssVal = options.appColumnWidths![key];
         if (!cssVal) return ganttColDefs[key].minWidth;
-        const pxMatch = cssVal.match(/(\d+)/);
-        if (pxMatch) return parseInt(pxMatch[1]);
         // 1fr or other flexible units — give it a large default (Name column)
         if (cssVal.includes('fr')) return 400;
+        const pxMatch = cssVal.match(/(\d+)/);
+        if (pxMatch) return parseInt(pxMatch[1]);
         return ganttColDefs[key].minWidth;
       });
       const totalAppPx = appWidths.reduce((s, w) => s + w, 0);
