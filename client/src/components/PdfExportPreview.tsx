@@ -147,6 +147,15 @@ const CONTENT_OPTIONS = [
   { value: "empty", label: "(Empty)" },
 ];
 
+const RICH_TEXT_INSERTS = [
+  { label: "Project", token: "{projectName}" },
+  { label: "Schedule", token: "{scheduleName}" },
+  { label: "Data Date", token: "Data Date: {dataDate}" },
+  { label: "Page #", token: "Page {page} of {total}" },
+  { label: "Company", token: "{companyName}" },
+  { label: "Export Date", token: "{date}" },
+];
+
 // Paper sizes in inches (width x height in portrait)
 const PAPER_SIZES: Record<string, { w: number; h: number; label: string }> = {
   letter:  { w: 8.5,  h: 11,   label: "Letter (8.5×11)" },
@@ -350,7 +359,14 @@ export function PdfExportPreview({
   const handleColumnContentChange = (type: "header" | "footer", pos: number, content: string) => {
     const setter = type === "header" ? setHeaderColumns : setFooterColumns;
     const current = type === "header" ? [...headerColumns] : [...footerColumns];
-    current[pos] = { ...current[pos], content };
+    const previous = current[pos];
+    current[pos] = {
+      ...previous,
+      content,
+      richTextLines: content === "custom" && !previous.richTextLines?.length
+        ? [{ text: "", fontSize: 8, bold: false, italic: false, underline: false, color: "#374151" }]
+        : previous.richTextLines,
+    };
     setter(current);
   };
 
@@ -367,6 +383,18 @@ export function PdfExportPreview({
     const current = type === "header" ? [...headerColumns] : [...footerColumns];
     const lines = [...(current[colIdx].richTextLines || []), { text: "", fontSize: 8, bold: false, italic: false, underline: false, color: "#374151" }];
     current[colIdx] = { ...current[colIdx], richTextLines: lines };
+    setter(current);
+  };
+
+  const handleInsertRichToken = (type: "header" | "footer", colIdx: number, token: string) => {
+    const setter = type === "header" ? setHeaderColumns : setFooterColumns;
+    const current = type === "header" ? [...headerColumns] : [...footerColumns];
+    const lines = [...(current[colIdx].richTextLines || [])];
+    const emptyIndex = lines.findIndex(line => !line.text.trim());
+    const nextLine = { text: token, fontSize: 8, bold: false, italic: false, underline: false, color: "#374151" };
+    if (emptyIndex >= 0) lines[emptyIndex] = { ...lines[emptyIndex], text: token };
+    else lines.push(nextLine);
+    current[colIdx] = { ...current[colIdx], content: "custom", richTextLines: lines };
     setter(current);
   };
 
@@ -407,6 +435,17 @@ export function PdfExportPreview({
     reader.readAsDataURL(file);
   };
 
+  const resolveRichTextPreview = useCallback((text: string, pageNum: number, total: number): string => {
+    return (text || "")
+      .replace(/\{page\}/g, String(pageNum))
+      .replace(/\{total\}/g, String(total))
+      .replace(/\{date\}/g, new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }))
+      .replace(/\{scheduleName\}/g, scheduleName || "Schedule Name")
+      .replace(/\{dataDate\}/g, dataDate ? dataDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Not set")
+      .replace(/\{companyName\}/g, companyName || "Company Name")
+      .replace(/\{projectName\}/g, projectName || "Project Name");
+  }, [companyName, projectName, scheduleName, dataDate]);
+
   const getContentPreview = useCallback((col: ColumnData, pageNum: number, total: number): string => {
     switch (col.content) {
       case "company": return companyName || "Company Name";
@@ -418,7 +457,7 @@ export function PdfExportPreview({
       case "constructline": return "\u00A9 ConstructLine";
       case "custom": {
         if (col.richTextLines && col.richTextLines.length > 0) {
-          return col.richTextLines.map(l => l.text).filter(Boolean).join(" | ") || "Custom Text";
+          return col.richTextLines.map(l => resolveRichTextPreview(l.text, pageNum, total)).filter(Boolean).join(" | ") || "Custom Text";
         }
         return col.customText || "Custom Text";
       }
@@ -426,7 +465,7 @@ export function PdfExportPreview({
       case "empty": return "";
       default: return "";
     }
-  }, [companyName, projectName, scheduleName, dataDate]);
+  }, [companyName, projectName, scheduleName, dataDate, resolveRichTextPreview]);
 
   // Build the ordered list of preview rows (WBS group headers + activities)
   const previewRows = useMemo(() => {
@@ -614,9 +653,10 @@ export function PdfExportPreview({
           ctx.fillStyle = line.color || headerTextColor;
           ctx.textAlign = align;
           ctx.textBaseline = "top";
-          ctx.fillText(line.text || "", tx, curY);
-          if (line.underline && line.text) {
-            const tw = ctx.measureText(line.text).width;
+          const text = resolveRichTextPreview(line.text || "", pageNum, numPages);
+          ctx.fillText(text, tx, curY);
+          if (line.underline && text) {
+            const tw = ctx.measureText(text).width;
             let ulX = tx;
             if (align === "center") ulX = tx - tw / 2;
             else if (align === "right") ulX = tx - tw;
@@ -1278,9 +1318,10 @@ export function PdfExportPreview({
           ctx.fillStyle = line.color || "#64748b";
           ctx.textAlign = align;
           ctx.textBaseline = "top";
-          ctx.fillText(line.text || "", tx, curY);
-          if (line.underline && line.text) {
-            const tw = ctx.measureText(line.text).width;
+          const text = resolveRichTextPreview(line.text || "", pageNum, numPages);
+          ctx.fillText(text, tx, curY);
+          if (line.underline && text) {
+            const tw = ctx.measureText(text).width;
             let ulX = tx;
             if (align === "center") ulX = tx - tw / 2;
             else if (align === "right") ulX = tx - tw;
@@ -1305,7 +1346,7 @@ export function PdfExportPreview({
   }, [
     canvasDims, paperDims, rowsPerPage, headerColumns, footerColumns, headerColumnCount, footerColumnCount,
     showGantt, showLogicLines, previewRows, companyName, projectName, scheduleName, dataDate,
-    getContentPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
+    getContentPreview, resolveRichTextPreview, headerBgColor, headerAccentColor, headerTextColor, relationships, dbIdToActivityId,
     getRowHeightPdf, gridlineInterval, timescaleLabels, headerHeightMm, footerHeightMm,
     annotations, ganttPixelsPerDay, ganttScreenWidth, ganttRangeStartMs,
   ]);
@@ -1407,6 +1448,18 @@ export function PdfExportPreview({
           </Select>
           {col.content === "custom" && (
             <div className="mt-1 space-y-1 border border-white/10 rounded p-1.5 bg-white/[0.02]">
+              <div className="flex flex-wrap gap-1 border-b border-white/10 pb-1">
+                {RICH_TEXT_INSERTS.filter(insert => type === "footer" || insert.label !== "Page #").map(insert => (
+                  <button
+                    key={insert.label}
+                    type="button"
+                    onClick={() => handleInsertRichToken(type, idx, insert.token)}
+                    className="rounded border border-blue-400/20 bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-blue-200 hover:bg-blue-500/20"
+                  >
+                    {insert.label}
+                  </button>
+                ))}
+              </div>
               {(col.richTextLines || []).map((line, li) => (
                 <div key={li} className="space-y-0.5">
                   <div className="flex items-center gap-1">

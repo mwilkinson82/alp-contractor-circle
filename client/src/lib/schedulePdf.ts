@@ -283,8 +283,10 @@ function calcMinSlotHeight(config: { left: string; center: string; right: string
   return maxH;
 }
 
+type PdfTokenContext = { pageNum: number; totalPages: number; scheduleName: string; dataDate: Date | null; projectStartDate: Date; companyName: string; projectName: string };
+
 /** Render rich text lines vertically centered in a slot */
-function renderRichText(doc: any, lines: RichTextLine[], x: number, y: number, slotH: number, align: "left" | "center" | "right" = "left") {
+function renderRichText(doc: any, lines: RichTextLine[], x: number, y: number, slotH: number, align: "left" | "center" | "right" = "left", ctx?: PdfTokenContext) {
   if (!lines || lines.length === 0) return;
   // Calculate total height of all lines
   const lineSpacing = 1.2; // mm between lines
@@ -302,10 +304,11 @@ function renderRichText(doc: any, lines: RichTextLine[], x: number, y: number, s
       const hex = line.color.replace('#', '');
       doc.setTextColor(parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16));
     }
-    doc.text(line.text || "", x, curY, { align });
+    const text = ctx ? resolveToken(line.text || "", ctx) : line.text || "";
+    doc.text(text, x, curY, { align });
     // Draw underline manually
-    if (line.underline && line.text) {
-      const textW = doc.getTextWidth(line.text);
+    if (line.underline && text) {
+      const textW = doc.getTextWidth(text);
       let ulX = x;
       if (align === "center") ulX = x - textW / 2;
       else if (align === "right") ulX = x - textW;
@@ -433,7 +436,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
       if (isImageToken(headerConfig.left)) {
         addImageToDoc(doc, headerConfig.left, margin + hdrPad, 1, headerHeight - 2, "left", hdrSlotMaxW - 2 - hdrPad);
       } else if (isRichTextToken(headerConfig.left)) {
-        renderRichText(doc, parseRichTextToken(headerConfig.left), margin + hdrPad, 0, headerHeight, "left");
+        renderRichText(doc, parseRichTextToken(headerConfig.left), margin + hdrPad, 0, headerHeight, "left", ctx);
       } else {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
@@ -450,7 +453,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
         if (isImageToken(token)) {
           addImageToDoc(doc, token, x, 1, headerHeight - 2, align, hdrSlotMaxW - 2);
         } else if (isRichTextToken(token)) {
-          renderRichText(doc, parseRichTextToken(token), x, 0, headerHeight, align);
+          renderRichText(doc, parseRichTextToken(token), x, 0, headerHeight, align, ctx);
           // Reset font after rich text
           doc.setFont("helvetica", "normal");
           doc.setFontSize(7.5);
@@ -591,7 +594,7 @@ export async function generateSchedulePdf(options: PdfExportOptions): Promise<vo
           addImageToDoc(doc, token, x, y + legendRowH + 1, footerHeight - legendRowH - 2, align, slotMaxW - 2);
         } else if (isRichTextToken(token)) {
           const lines = parseRichTextToken(token);
-          renderRichText(doc, lines, x, y + legendRowH, footerHeight - legendRowH, align);
+          renderRichText(doc, lines, x, y + legendRowH, footerHeight - legendRowH, align, ctx);
           // Reset font after rich text
           doc.setFont("helvetica", "normal");
           doc.setFontSize(6.5);
