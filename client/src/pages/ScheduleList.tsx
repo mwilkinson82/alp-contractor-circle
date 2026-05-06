@@ -88,9 +88,9 @@ function getScheduleStatus(schedule: ScheduleSummary) {
 }
 
 function statusClasses(tone: "green" | "amber" | "red") {
-  if (tone === "green") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700";
-  if (tone === "red") return "border-red-500/25 bg-red-500/10 text-red-700";
-  return "border-amber-500/30 bg-amber-500/10 text-amber-800";
+  if (tone === "green") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-300";
+  if (tone === "red") return "border-red-500/25 bg-red-500/10 text-red-300";
+  return "border-amber-500/30 bg-amber-500/10 text-amber-200";
 }
 
 export default function ScheduleList() {
@@ -236,22 +236,22 @@ export default function ScheduleList() {
 
   if (memberLoading || betaLoading) {
     return (
-      <div className="min-h-screen bg-[#f6f0e4] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#c58a12]" />
+      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#2f80ff]" />
       </div>
     );
   }
 
   if (!isAllowed) {
     return (
-      <div className="min-h-screen bg-[#f6f0e4] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full border-[#1b1a17]/10 bg-[#fffaf0] shadow-xl">
+      <div className="min-h-screen bg-[#030712] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full border-[#2f80ff]/20 bg-[#07111f] shadow-xl">
           <CardContent className="p-8 text-center space-y-6">
-            <Calendar className="w-16 h-16 text-[#c58a12] mx-auto" />
-            <h1 className="text-2xl font-heading font-bold text-[#171512]">Baseline</h1>
-            <p className="text-[#625a4b]">Sign in to open your CPM schedules, updates, and construction templates.</p>
+            <Calendar className="w-16 h-16 text-[#2f80ff] mx-auto" />
+            <h1 className="text-2xl font-heading font-bold text-[#f8fbff]">Baseline</h1>
+            <p className="text-[#b8c7e6]">Sign in to open your CPM schedules, updates, and construction templates.</p>
             <a href={getLoginUrl("/portal/scheduler")}>
-              <Button className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f] w-full">
+              <Button className="bg-[#2f80ff] text-white hover:bg-[#2563eb] w-full">
                 Sign In with Discord
               </Button>
             </a>
@@ -262,22 +262,22 @@ export default function ScheduleList() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f0e4] text-[#171512]">
-      <div className="border-b border-[#171512]/10 bg-[#171512] text-[#f7eddb] sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-[#030712] text-[#f8fbff]">
+      <div className="sticky top-0 z-50 border-b border-[#2f80ff]/20 bg-[#07111f] text-white shadow-[0_12px_40px_rgba(47,128,255,0.12)]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => setLocation("/portal/constructline")}
-              className="p-2 rounded-md text-[#d8c9aa] hover:text-white hover:bg-white/10 transition-colors"
+              className="p-2 rounded-md text-[#b8c7e6] hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Back to ConstructLine Hub"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="w-px h-9 bg-white/10" />
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[#d9a21a] font-bold">ConstructLine Baseline</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#60a5fa] font-bold">ConstructLine Baseline</p>
               <h1 className="text-xl font-heading font-bold truncate">Schedule Desk</h1>
-              <p className="text-sm text-[#d8c9aa] truncate">
+              <p className="text-sm text-[#b8c7e6] truncate">
                 CPM schedules, updates, P6 imports, and delay-ready reporting.
               </p>
             </div>
@@ -286,14 +286,14 @@ export default function ScheduleList() {
             <Button
               variant="outline"
               onClick={() => setShowXerImport(true)}
-              className="border-[#d9a21a]/40 bg-white/5 text-[#f7eddb] hover:bg-[#d9a21a]/15 hover:text-white"
+              className="border-[#2f80ff]/40 bg-white/5 text-[#f8fbff] hover:bg-[#2f80ff]/15 hover:text-white"
             >
               <FileUp className="w-4 h-4 mr-2" />
               Import P6 XER
             </Button>
             <Button
               onClick={() => setShowCreate(true)}
-              className="bg-[#d9a21a] text-[#171512] hover:bg-[#e3b23c] font-semibold"
+              className="bg-[#2f80ff] text-white hover:bg-[#2563eb] font-semibold shadow-[0_0_24px_rgba(47,128,255,0.24)]"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Schedule
@@ -312,21 +312,21 @@ export default function ScheduleList() {
 
         {schedulesQuery.isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#c58a12]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#2f80ff]" />
           </div>
         ) : activeSchedules.length === 0 && archivedSchedules.length === 0 ? (
-          <section className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-10 text-center shadow-sm">
-            <Calendar className="w-14 h-14 text-[#c58a12] mx-auto mb-5" />
+          <section className="rounded-lg border border-[#f8fbff]/10 bg-[#07111f] p-10 text-center shadow-sm">
+            <Calendar className="w-14 h-14 text-[#2f80ff] mx-auto mb-5" />
             <h2 className="text-2xl font-heading font-bold mb-3">Start your first Baseline schedule</h2>
-            <p className="text-[#625a4b] mb-7 max-w-xl mx-auto">
+            <p className="text-[#b8c7e6] mb-7 max-w-xl mx-auto">
               Build from a construction template, start blank, or import a Primavera P6 XER file and keep working from the same CPM cockpit.
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Button onClick={() => setShowCreate(true)} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+              <Button onClick={() => setShowCreate(true)} className="bg-[#2f80ff] text-white hover:bg-[#2563eb]">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Schedule
               </Button>
-              <Button variant="outline" onClick={() => setShowXerImport(true)} className="border-[#171512]/20">
+              <Button variant="outline" onClick={() => setShowXerImport(true)} className="border-[#2f80ff]/40 bg-white/5 text-[#f8fbff] hover:bg-[#2f80ff]/15 hover:text-white">
                 <Upload className="w-4 h-4 mr-2" />
                 Import XER
               </Button>
@@ -334,22 +334,22 @@ export default function ScheduleList() {
           </section>
         ) : (
           <>
-            <section className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] px-4 py-3 shadow-sm">
+            <section className="rounded-lg border border-[#f8fbff]/10 bg-[#07111f] px-4 py-3 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#171512] text-[#d9a21a]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#2f80ff]/15 text-[#60a5fa]">
                     <SlidersHorizontal className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6a12]">Update controls</p>
-                    <p className="truncate text-sm text-[#625a4b]">Set data date, calculate CPM, review logic, save the update, then report.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#60a5fa]">Update controls</p>
+                    <p className="truncate text-sm text-[#b8c7e6]">Set data date, calculate CPM, review logic, save the update, then report.</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#625a4b]">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#b8c7e6]">
                   <WorkflowChip icon={Calendar} label="Data date" />
                   <WorkflowChip icon={AlertTriangle} label="Logic review" />
                   <WorkflowChip icon={Copy} label="Duplicate update" />
-                  <Button onClick={() => setShowCreate(true)} size="sm" className="h-8 bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+                  <Button onClick={() => setShowCreate(true)} size="sm" className="h-8 bg-[#2f80ff] text-white hover:bg-[#2563eb]">
                     <Plus className="mr-1.5 h-3.5 w-3.5" />
                     New
                   </Button>
@@ -360,10 +360,10 @@ export default function ScheduleList() {
             <section>
               <div className="flex items-end justify-between mb-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Schedule archive</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#60a5fa]">Schedule archive</p>
                   <h2 className="text-xl font-heading font-bold">Active Baseline schedules</h2>
                 </div>
-                <p className="text-sm text-[#625a4b]">{activeSchedules.length} active, {archivedSchedules.length} archived</p>
+                <p className="text-sm text-[#b8c7e6]">{activeSchedules.length} active, {archivedSchedules.length} archived</p>
               </div>
               {activeSchedules.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -387,7 +387,7 @@ export default function ScheduleList() {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-dashed border-[#171512]/20 bg-[#fffaf0] p-8 text-center text-[#625a4b]">
+                <div className="rounded-lg border border-dashed border-[#f8fbff]/20 bg-[#07111f] p-8 text-center text-[#b8c7e6]">
                   No active schedules. Restore one from the archive or create a new Baseline schedule.
                 </div>
               )}
@@ -396,7 +396,7 @@ export default function ScheduleList() {
             <section>
               <div className="flex items-end justify-between mb-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Starting points</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#60a5fa]">Starting points</p>
                   <h2 className="text-xl font-heading font-bold">Construction templates</h2>
                 </div>
               </div>
@@ -426,7 +426,7 @@ export default function ScheduleList() {
 
             {archivedSchedules.length > 0 && (
               <section>
-                <h2 className="text-lg font-heading font-semibold text-[#625a4b] mb-4">Archived schedules</h2>
+                <h2 className="text-lg font-heading font-semibold text-[#b8c7e6] mb-4">Archived schedules</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 opacity-80">
                   {archivedSchedules.map((s) => (
                     <ScheduleCard
@@ -478,24 +478,24 @@ export default function ScheduleList() {
       />
 
       <Dialog open={showDuplicate !== null} onOpenChange={() => setShowDuplicate(null)}>
-        <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-xl text-base [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
-          <DialogHeader className="border-b-[#171512]/10">
-            <DialogTitle className="font-heading text-[#171512]">Duplicate Schedule as Update</DialogTitle>
-            <DialogDescription className="text-[#625a4b]">
+        <DialogContent className="bg-[#07111f] text-[#f8fbff] border-[#f8fbff]/10 max-w-xl text-base [&_[data-slot=dialog-close]]:text-[#64748b] [&_[data-slot=dialog-close]:hover]:text-[#f8fbff] [&_[data-slot=dialog-close]:hover]:bg-[#f8fbff]/5">
+          <DialogHeader className="border-b-[#f8fbff]/10">
+            <DialogTitle className="font-heading text-[#f8fbff]">Duplicate Schedule as Update</DialogTitle>
+            <DialogDescription className="text-[#b8c7e6]">
               Create a full copy with activities, logic, WBS, resources, annotations, and layouts. Set the new data date for the update period.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-[#625a4b]">New Schedule Name</Label>
-              <Input value={duplicateName} onChange={(e) => setDuplicateName(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" autoFocus />
+              <Label className="text-[#b8c7e6]">New Schedule Name</Label>
+              <Input value={duplicateName} onChange={(e) => setDuplicateName(e.target.value)} className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b]" autoFocus />
             </div>
             <div>
-              <Label className="text-[#625a4b]">New Data Date</Label>
-              <Input type="date" value={duplicateDataDate} onChange={(e) => setDuplicateDataDate(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512]" />
+              <Label className="text-[#b8c7e6]">New Data Date</Label>
+              <Input type="date" value={duplicateDataDate} onChange={(e) => setDuplicateDataDate(e.target.value)} className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff]" />
             </div>
           </div>
-          <DialogFooter className="border-t-[#171512]/10">
+          <DialogFooter className="border-t-[#f8fbff]/10">
             <Button variant="outline" onClick={() => setShowDuplicate(null)}>Cancel</Button>
             <Button
               onClick={() =>
@@ -507,7 +507,7 @@ export default function ScheduleList() {
                 })
               }
               disabled={!duplicateName.trim() || duplicateMutation.isPending}
-              className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]"
+              className="bg-[#2f80ff] text-white hover:bg-[#2563eb]"
             >
               {duplicateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Duplicate and Open
@@ -550,18 +550,18 @@ function MetricTile({
 }) {
   const color =
     tone === "gold"
-      ? "text-[#8a6a12] bg-[#d9a21a]/15"
+      ? "text-[#60a5fa] bg-[#2f80ff]/15"
       : tone === "green"
-        ? "text-emerald-700 bg-emerald-600/10"
+        ? "text-emerald-300 bg-emerald-400/10"
         : tone === "red"
-          ? "text-red-700 bg-red-600/10"
-          : "text-[#171512] bg-[#171512]/5";
+          ? "text-red-300 bg-red-600/10"
+          : "text-[#f8fbff] bg-[#f8fbff]/5";
 
   return (
-    <div className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-4 shadow-sm">
+    <div className="rounded-lg border border-[#f8fbff]/10 bg-[#07111f] p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#625a4b]">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#b8c7e6]">{label}</p>
           <p className="text-2xl font-heading font-bold mt-1">{value.toLocaleString()}</p>
         </div>
         <div className={`h-10 w-10 rounded-md flex items-center justify-center ${color}`}>
@@ -574,8 +574,8 @@ function MetricTile({
 
 function WorkflowChip({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#171512]/10 bg-[#f6f0e4] px-3 font-semibold text-[#625a4b]">
-      <Icon className="h-3.5 w-3.5 text-[#8a6a12]" />
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#f8fbff]/10 bg-[#030712] px-3 font-semibold text-[#b8c7e6]">
+      <Icon className="h-3.5 w-3.5 text-[#60a5fa]" />
       {label}
     </span>
   );
@@ -601,23 +601,23 @@ function ScheduleCard({
   const openEnds = (schedule.openStartCount ?? 0) + (schedule.openFinishCount ?? 0);
 
   return (
-    <Card className="group cursor-pointer overflow-hidden border-[#171512]/10 bg-[#fffaf0] shadow-sm transition-all hover:border-[#d9a21a]/50 hover:shadow-md" onClick={onOpen}>
+    <Card className="group cursor-pointer overflow-hidden border-[#f8fbff]/10 bg-[#07111f] shadow-sm transition-all hover:border-[#2f80ff]/50 hover:shadow-md" onClick={onOpen}>
       <CardContent className="p-0">
-        <div className="flex items-start justify-between gap-4 border-b border-[#171512]/10 p-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[#f8fbff]/10 p-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-heading text-lg font-bold text-[#171512] truncate">{schedule.name}</h3>
+              <h3 className="font-heading text-lg font-bold text-[#f8fbff] truncate">{schedule.name}</h3>
               <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${statusClasses(status.tone)}`}>
                 {status.label}
               </span>
             </div>
-            {schedule.description && <p className="mt-1 truncate text-sm text-[#625a4b]">{schedule.description}</p>}
+            {schedule.description && <p className="mt-1 truncate text-sm text-[#b8c7e6]">{schedule.description}</p>}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="rounded-md p-1.5 text-[#625a4b] opacity-0 transition-colors hover:bg-[#171512]/5 hover:text-[#171512] group-hover:opacity-100"
+                className="rounded-md p-1.5 text-[#b8c7e6] opacity-0 transition-colors hover:bg-[#f8fbff]/5 hover:text-[#f8fbff] group-hover:opacity-100"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -643,14 +643,14 @@ function ScheduleCard({
           </DropdownMenu>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#171512]/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#f8fbff]/10">
           <CardStat label="Activities" value={(schedule.activityCount ?? 0).toLocaleString()} />
           <CardStat label="Critical" value={(schedule.criticalCount ?? 0).toLocaleString()} tone={schedule.criticalCount ? "gold" : undefined} />
           <CardStat label="Logic review" value={openEnds.toLocaleString()} tone={openEnds ? "gold" : "green"} />
           <CardStat label="Complete" value={`${completion}%`} tone={completion >= 100 ? "green" : undefined} />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-[#625a4b]">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-[#b8c7e6]">
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
@@ -665,7 +665,7 @@ function ScheduleCard({
               Finish {formatDate(schedule.projectFinish, { month: "short", day: "numeric" })}
             </span>
           </div>
-          <span className="font-semibold text-[#8a6a12]">Open Baseline</span>
+          <span className="font-semibold text-[#60a5fa]">Open Baseline</span>
         </div>
       </CardContent>
     </Card>
@@ -673,10 +673,10 @@ function ScheduleCard({
 }
 
 function CardStat({ label, value, tone }: { label: string; value: string; tone?: "gold" | "green" | "red" }) {
-  const color = tone === "gold" ? "text-[#8a6a12]" : tone === "green" ? "text-emerald-700" : tone === "red" ? "text-red-700" : "text-[#171512]";
+  const color = tone === "gold" ? "text-[#60a5fa]" : tone === "green" ? "text-emerald-300" : tone === "red" ? "text-red-300" : "text-[#f8fbff]";
   return (
-    <div className="border-r border-[#171512]/10 p-3 last:border-r-0">
-      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b806f]">{label}</p>
+    <div className="border-r border-[#f8fbff]/10 p-3 last:border-r-0">
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b]">{label}</p>
       <p className={`mt-1 text-lg font-heading font-bold ${color}`}>{value}</p>
     </div>
   );
@@ -699,14 +699,14 @@ function TemplateCard({
     <button
       onClick={onClick}
       className={`text-left rounded-lg border p-5 shadow-sm transition-all hover:shadow-md ${
-        featured ? "border-emerald-600/25 bg-emerald-700/10" : "border-[#171512]/10 bg-[#fffaf0]"
+        featured ? "border-emerald-400/25 bg-emerald-300/10" : "border-[#f8fbff]/10 bg-[#07111f]"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-heading font-bold text-[#171512]">{title}</h3>
-        <span className="rounded-full bg-[#171512]/5 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#625a4b]">{meta}</span>
+        <h3 className="font-heading font-bold text-[#f8fbff]">{title}</h3>
+        <span className="rounded-full bg-[#f8fbff]/5 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b8c7e6]">{meta}</span>
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-[#625a4b]">{description}</p>
+      <p className="mt-3 text-sm leading-relaxed text-[#b8c7e6]">{description}</p>
     </button>
   );
 }
@@ -742,41 +742,41 @@ function CreateScheduleDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
-        <DialogHeader className="shrink-0 border-b-[#171512]/10">
-          <DialogTitle className="font-heading text-[#171512]">Create Baseline Schedule</DialogTitle>
-          <DialogDescription className="text-[#625a4b]">Name the project, choose the start date, and pick a construction starting point.</DialogDescription>
+      <DialogContent className="bg-[#07111f] text-[#f8fbff] border-[#f8fbff]/10 max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden [&_[data-slot=dialog-close]]:text-[#64748b] [&_[data-slot=dialog-close]:hover]:text-[#f8fbff] [&_[data-slot=dialog-close]:hover]:bg-[#f8fbff]/5">
+        <DialogHeader className="shrink-0 border-b-[#f8fbff]/10">
+          <DialogTitle className="font-heading text-[#f8fbff]">Create Baseline Schedule</DialogTitle>
+          <DialogDescription className="text-[#b8c7e6]">Name the project, choose the start date, and pick a construction starting point.</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 pr-1 space-y-5 py-2">
           <div className="space-y-3">
             <div>
-              <Label className="text-[#625a4b]">Project Name</Label>
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Smith Residence - New Build" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
+              <Label className="text-[#b8c7e6]">Project Name</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Smith Residence - New Build" className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-[#625a4b]">Description</Label>
-                <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief project description" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
+                <Label className="text-[#b8c7e6]">Description</Label>
+                <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief project description" className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
               <div>
-                <Label className="text-[#625a4b]">Project Start Date</Label>
-                <Input type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512]" />
+                <Label className="text-[#b8c7e6]">Project Start Date</Label>
+                <Input type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff]" />
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[#171512]/10 bg-[#f6f0e4] p-4">
-            <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#8a6a12]">Choose a starting point</p>
+          <div className="rounded-lg border border-[#f8fbff]/10 bg-[#030712] p-4">
+            <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#60a5fa]">Choose a starting point</p>
             <div className="mt-3 grid grid-cols-1 gap-2">
               <button
                 onClick={() => setSelectedTemplate(null)}
                 className={`rounded-md border p-3 text-left transition-all ${
-                  selectedTemplate === null ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-[#d9a21a]/40"
+                  selectedTemplate === null ? "border-[#2f80ff] bg-[#2f80ff]/10" : "border-[#f8fbff]/10 bg-[#07111f] hover:border-[#2f80ff]/40"
                 }`}
               >
-                <div className="font-semibold text-[#171512]">Blank Schedule</div>
-                <div className="text-xs text-[#625a4b]">Start with an empty CPM file and add your own activities.</div>
+                <div className="font-semibold text-[#f8fbff]">Blank Schedule</div>
+                <div className="text-xs text-[#b8c7e6]">Start with an empty CPM file and add your own activities.</div>
               </button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -787,12 +787,12 @@ function CreateScheduleDialog({
                       key={template.id}
                       onClick={() => setSelectedTemplate(template.id)}
                       className={`rounded-md border p-3 text-left transition-all ${
-                        isSelected ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-emerald-700/30"
+                        isSelected ? "border-[#2f80ff] bg-[#2f80ff]/10" : "border-[#f8fbff]/10 bg-[#07111f] hover:border-emerald-300/30"
                       }`}
                     >
-                      <div className="font-semibold leading-tight text-[#171512]">{template.name}</div>
-                      <div className="mt-1 line-clamp-2 text-xs text-[#625a4b]">{template.description}</div>
-                      <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+                      <div className="font-semibold leading-tight text-[#f8fbff]">{template.name}</div>
+                      <div className="mt-1 line-clamp-2 text-xs text-[#b8c7e6]">{template.description}</div>
+                      <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-300">
                         {template.activityCount} activities
                       </div>
                     </button>
@@ -803,9 +803,9 @@ function CreateScheduleDialog({
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-[#171512]/10 pt-4">
+        <DialogFooter className="shrink-0 border-t border-[#f8fbff]/10 pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onCreate} disabled={!newName.trim() || isPending} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+          <Button onClick={onCreate} disabled={!newName.trim() || isPending} className="bg-[#2f80ff] text-white hover:bg-[#2563eb]">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Create Schedule
           </Button>
@@ -838,17 +838,17 @@ function XerImportDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-2xl text-base [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
-        <DialogHeader className="border-b-[#171512]/10">
-          <DialogTitle className="font-heading text-lg text-[#171512]">Import Primavera P6 XER File</DialogTitle>
-          <DialogDescription className="text-[#625a4b]">
+      <DialogContent className="bg-[#07111f] text-[#f8fbff] border-[#f8fbff]/10 max-w-2xl text-base [&_[data-slot=dialog-close]]:text-[#64748b] [&_[data-slot=dialog-close]:hover]:text-[#f8fbff] [&_[data-slot=dialog-close]:hover]:bg-[#f8fbff]/5">
+        <DialogHeader className="border-b-[#f8fbff]/10">
+          <DialogTitle className="font-heading text-lg text-[#f8fbff]">Import Primavera P6 XER File</DialogTitle>
+          <DialogDescription className="text-[#b8c7e6]">
             Upload an XER export. Baseline will import activities, relationships, WBS, calendars, constraints, and milestones.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div
             className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-              file ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/20 hover:border-[#d9a21a]/60"
+              file ? "border-[#2f80ff] bg-[#2f80ff]/10" : "border-[#f8fbff]/20 hover:border-[#2f80ff]/60"
             }`}
             onClick={() => document.getElementById("xer-file-input")?.click()}
             onDragOver={(e) => {
@@ -882,32 +882,32 @@ function XerImportDialog({
             />
             {file ? (
               <div className="space-y-2">
-                <FileUp className="w-10 h-10 text-[#8a6a12] mx-auto" />
-                <p className="font-medium text-[#171512]">{file.name}</p>
-                <p className="text-sm text-[#625a4b]">{(file.size / 1024).toFixed(1)} KB</p>
+                <FileUp className="w-10 h-10 text-[#60a5fa] mx-auto" />
+                <p className="font-medium text-[#f8fbff]">{file.name}</p>
+                <p className="text-sm text-[#b8c7e6]">{(file.size / 1024).toFixed(1)} KB</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <Upload className="w-10 h-10 text-[#625a4b] mx-auto" />
-                <p className="font-medium text-[#171512]">Drop your XER file here</p>
-                <p className="text-sm text-[#625a4b]">or click to browse</p>
+                <Upload className="w-10 h-10 text-[#b8c7e6] mx-auto" />
+                <p className="font-medium text-[#f8fbff]">Drop your XER file here</p>
+                <p className="text-sm text-[#b8c7e6]">or click to browse</p>
               </div>
             )}
           </div>
 
           <div>
-            <Label className="text-[#625a4b]">Schedule Name</Label>
-            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
+            <Label className="text-[#b8c7e6]">Schedule Name</Label>
+            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b]" />
           </div>
 
-          <div className="rounded-lg bg-[#f6f0e4] p-4 text-sm text-[#625a4b]">
-            <p className="font-semibold text-[#171512]">Imported schedules open directly in the Baseline cockpit.</p>
+          <div className="rounded-lg bg-[#030712] p-4 text-sm text-[#b8c7e6]">
+            <p className="font-semibold text-[#f8fbff]">Imported schedules open directly in the Baseline cockpit.</p>
             <p className="mt-1">After import, calculate CPM, verify open ends, then save your first baseline snapshot before issuing the update.</p>
           </div>
         </div>
-        <DialogFooter className="border-t-[#171512]/10">
+        <DialogFooter className="border-t-[#f8fbff]/10">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onImport} disabled={!file || importing} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+          <Button onClick={onImport} disabled={!file || importing} className="bg-[#2f80ff] text-white hover:bg-[#2563eb]">
             {importing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
