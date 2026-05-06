@@ -704,6 +704,51 @@ export default function Scheduler() {
     target1Map, target2Map, calendars, defaultCalName, codeAssignments, codeCategories,
   }), [target1Map, target2Map, calendars, defaultCalName, codeAssignments, codeCategories]);
 
+  /* ── Column Model ────────────────────────────────────────────────────── */
+  // Dynamic activity code columns must be available before sorting runs.
+  const codeColumns: ColumnDef[] = useMemo(() => {
+    return codeCategories.map((cat: any) => ({
+      key: `code_${cat.id}`,
+      label: cat.name,
+      shortLabel: cat.name.length > 8 ? cat.name.slice(0, 8) + "\u2026" : cat.name,
+      align: "left" as const,
+      width: "80px",
+      editable: false,
+      sortable: true,
+      getSortValue: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        if (!assignment) return "";
+        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
+        return val?.value || "";
+      },
+      render: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        if (!assignment) return "\u2014";
+        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
+        return val?.value || "\u2014";
+      },
+      renderClass: (act: any, ctx: any) => {
+        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
+        return assignment ? "text-gray-900" : "text-gray-400 italic";
+      },
+    }));
+  }, [codeCategories]);
+
+  const allColumnsWithCodes = useMemo(() => [...ALL_COLUMNS, ...codeColumns], [codeColumns]);
+  const sortableColumns = useMemo(() => allColumnsWithCodes.filter((col) => col.sortable && col.getSortValue), [allColumnsWithCodes]);
+  const currentSortLabel = useMemo(() => {
+    if (!sortState.key || !sortState.dir) return "Manual / WBS order";
+    const col = allColumnsWithCodes.find((c) => c.key === sortState.key);
+    return `${col?.label || sortState.key} ${sortState.dir === "asc" ? "ascending" : "descending"}`;
+  }, [allColumnsWithCodes, sortState]);
+  const currentGroupLabel = useMemo(() => {
+    if (!groupBy) return "No grouping";
+    if (groupBy === "wbs") return "WBS";
+    if (groupBy === "critical") return "Critical Path";
+    const category = codeCategories.find((cat: any) => String(cat.id) === groupBy);
+    return category ? `Activity Code: ${category.name}` : "Custom group";
+  }, [codeCategories, groupBy]);
+
   /* ── Open Ends Detection ──────────────────────────────────────────────── */
   const openEnds = useMemo(() => {
     const predSet = new Set<number>();
@@ -829,7 +874,7 @@ export default function Scheduler() {
       return sortState.dir === "asc" ? na - nb : nb - na;
     });
     return sorted;
-  }, [filteredActivities, sortState, renderCtx]);
+  }, [filteredActivities, sortState, renderCtx, allColumnsWithCodes]);
 
   /* ── Grouping ─────────────────────────────────────────────────────────── */
   const groupedActivitiesRef = useRef<any[]>([]);
@@ -946,51 +991,6 @@ export default function Scheduler() {
   useEffect(() => { groupedActivitiesRef.current = groupedActivities; }, [groupedActivities]);
 
   /* ── Active Columns ───────────────────────────────────────────────────── */
-  // Dynamic activity code columns derived from codeCategories
-  const codeColumns: ColumnDef[] = useMemo(() => {
-    return codeCategories.map((cat: any) => ({
-      key: `code_${cat.id}`,
-      label: cat.name,
-      shortLabel: cat.name.length > 8 ? cat.name.slice(0, 8) + "\u2026" : cat.name,
-      align: "left" as const,
-      width: "80px",
-      editable: false,
-      sortable: true,
-      getSortValue: (act: any, ctx: any) => {
-        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
-        if (!assignment) return "";
-        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
-        return val?.value || "";
-      },
-      render: (act: any, ctx: any) => {
-        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
-        if (!assignment) return "\u2014";
-        const val = cat.values?.find((v: any) => v.id === assignment.valueId);
-        return val?.value || "\u2014";
-      },
-      renderClass: (act: any, ctx: any) => {
-        const assignment = ctx.codeAssignments?.find((ca: any) => ca.activityId === act.id && ca.categoryId === cat.id);
-        return assignment ? "text-gray-900" : "text-gray-400 italic";
-      },
-    }));
-  }, [codeCategories]);
-
-  // Merge static + dynamic columns
-  const allColumnsWithCodes = useMemo(() => [...ALL_COLUMNS, ...codeColumns], [codeColumns]);
-  const sortableColumns = useMemo(() => allColumnsWithCodes.filter((col) => col.sortable && col.getSortValue), [allColumnsWithCodes]);
-  const currentSortLabel = useMemo(() => {
-    if (!sortState.key || !sortState.dir) return "Manual / WBS order";
-    const col = allColumnsWithCodes.find((c) => c.key === sortState.key);
-    return `${col?.label || sortState.key} ${sortState.dir === "asc" ? "ascending" : "descending"}`;
-  }, [allColumnsWithCodes, sortState]);
-  const currentGroupLabel = useMemo(() => {
-    if (!groupBy) return "No grouping";
-    if (groupBy === "wbs") return "WBS";
-    if (groupBy === "critical") return "Critical Path";
-    const category = codeCategories.find((cat: any) => String(cat.id) === groupBy);
-    return category ? `Activity Code: ${category.name}` : "Custom group";
-  }, [codeCategories, groupBy]);
-
   const activeColumns = useMemo(() => {
     return allColumnsWithCodes.filter((col) => {
       if (col.alwaysVisible) return true;
