@@ -684,6 +684,10 @@ export default function Scheduler() {
 
   const t1Activities = useMemo(() => target1Query.data?.activities || [], [target1Query.data]);
   const t2Activities = useMemo(() => target2Query.data?.activities || [], [target2Query.data]);
+  const visiblePdfAnnotations = useMemo(
+    () => (!hideAnnotations && (showAnnotations || ganttAnnotations.length > 0) ? ganttAnnotations : []),
+    [ganttAnnotations, hideAnnotations, showAnnotations]
+  );
 
   const renderCtx = useMemo(() => ({
     target1Map, target2Map, calendars, defaultCalName, codeAssignments, codeCategories,
@@ -4691,7 +4695,7 @@ export default function Scheduler() {
         groupBy={groupBy}
         relationships={relationships as any}
         savedPdfConfig={savedPdfConfig}
-        annotations={ganttAnnotations as any}
+        annotations={visiblePdfAnnotations as any}
         ganttScreenWidth={ganttDimensions.totalWidth}
         ganttPixelsPerDay={ganttDimensions.pixelsPerDay}
         ganttRangeStartMs={ganttDimensions.rangeStartMs}
@@ -4814,7 +4818,7 @@ export default function Scheduler() {
                 wbsTextColor: g.wbsTextColor,
                 ancestorColors: g.ancestorColors,
               })) : undefined,
-              annotations: ganttAnnotations,
+              annotations: visiblePdfAnnotations,
               ganttScreenWidth: ganttDimensions.totalWidth,
               ganttScreenHeight: ganttDimensions.totalHeight,
               ganttPixelsPerDay: ganttDimensions.pixelsPerDay,
