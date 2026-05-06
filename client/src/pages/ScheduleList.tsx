@@ -478,24 +478,24 @@ export default function ScheduleList() {
       />
 
       <Dialog open={showDuplicate !== null} onOpenChange={() => setShowDuplicate(null)}>
-        <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-xl text-base">
-          <DialogHeader>
-            <DialogTitle className="font-heading">Duplicate Schedule as Update</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-xl text-base [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
+          <DialogHeader className="border-b-[#171512]/10">
+            <DialogTitle className="font-heading text-[#171512]">Duplicate Schedule as Update</DialogTitle>
+            <DialogDescription className="text-[#625a4b]">
               Create a full copy with activities, logic, WBS, resources, annotations, and layouts. Set the new data date for the update period.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>New Schedule Name</Label>
-              <Input value={duplicateName} onChange={(e) => setDuplicateName(e.target.value)} className="mt-1" autoFocus />
+              <Label className="text-[#625a4b]">New Schedule Name</Label>
+              <Input value={duplicateName} onChange={(e) => setDuplicateName(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" autoFocus />
             </div>
             <div>
-              <Label>New Data Date</Label>
-              <Input type="date" value={duplicateDataDate} onChange={(e) => setDuplicateDataDate(e.target.value)} className="mt-1" />
+              <Label className="text-[#625a4b]">New Data Date</Label>
+              <Input type="date" value={duplicateDataDate} onChange={(e) => setDuplicateDataDate(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512]" />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t-[#171512]/10">
             <Button variant="outline" onClick={() => setShowDuplicate(null)}>Cancel</Button>
             <Button
               onClick={() =>
@@ -742,26 +742,26 @@ function CreateScheduleDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="font-heading">Create Baseline Schedule</DialogTitle>
-          <DialogDescription>Name the project, choose the start date, and pick a construction starting point.</DialogDescription>
+      <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
+        <DialogHeader className="shrink-0 border-b-[#171512]/10">
+          <DialogTitle className="font-heading text-[#171512]">Create Baseline Schedule</DialogTitle>
+          <DialogDescription className="text-[#625a4b]">Name the project, choose the start date, and pick a construction starting point.</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 pr-1 space-y-5 py-2">
           <div className="space-y-3">
             <div>
-              <Label>Project Name</Label>
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Smith Residence - New Build" className="mt-1" />
+              <Label className="text-[#625a4b]">Project Name</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Smith Residence - New Build" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Description</Label>
-                <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief project description" className="mt-1" />
+                <Label className="text-[#625a4b]">Description</Label>
+                <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief project description" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
               </div>
               <div>
-                <Label>Project Start Date</Label>
-                <Input type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} className="mt-1" />
+                <Label className="text-[#625a4b]">Project Start Date</Label>
+                <Input type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} className="mt-1 border-[#171512]/10 bg-white text-[#171512]" />
               </div>
             </div>
           </div>
@@ -775,7 +775,7 @@ function CreateScheduleDialog({
                   selectedTemplate === null ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-[#d9a21a]/40"
                 }`}
               >
-                <div className="font-semibold">Blank Schedule</div>
+                <div className="font-semibold text-[#171512]">Blank Schedule</div>
                 <div className="text-xs text-[#625a4b]">Start with an empty CPM file and add your own activities.</div>
               </button>
 
@@ -790,7 +790,7 @@ function CreateScheduleDialog({
                         isSelected ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-emerald-700/30"
                       }`}
                     >
-                      <div className="font-semibold leading-tight">{template.name}</div>
+                      <div className="font-semibold leading-tight text-[#171512]">{template.name}</div>
                       <div className="mt-1 line-clamp-2 text-xs text-[#625a4b]">{template.description}</div>
                       <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
                         {template.activityCount} activities
@@ -838,10 +838,10 @@ function XerImportDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-2xl text-base">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-lg">Import Primavera P6 XER File</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="bg-[#fffaf0] text-[#171512] border-[#171512]/10 max-w-2xl text-base [&_[data-slot=dialog-close]]:text-[#8b806f] [&_[data-slot=dialog-close]:hover]:text-[#171512] [&_[data-slot=dialog-close]:hover]:bg-[#171512]/5">
+        <DialogHeader className="border-b-[#171512]/10">
+          <DialogTitle className="font-heading text-lg text-[#171512]">Import Primavera P6 XER File</DialogTitle>
+          <DialogDescription className="text-[#625a4b]">
             Upload an XER export. Baseline will import activities, relationships, WBS, calendars, constraints, and milestones.
           </DialogDescription>
         </DialogHeader>
@@ -896,8 +896,8 @@ function XerImportDialog({
           </div>
 
           <div>
-            <Label>Schedule Name</Label>
-            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1" />
+            <Label className="text-[#625a4b]">Schedule Name</Label>
+            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1 border-[#171512]/10 bg-white text-[#171512] placeholder:text-[#8b806f]" />
           </div>
 
           <div className="rounded-lg bg-[#f6f0e4] p-4 text-sm text-[#625a4b]">
@@ -905,7 +905,7 @@ function XerImportDialog({
             <p className="mt-1">After import, calculate CPM, verify open ends, then save your first baseline snapshot before issuing the update.</p>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="border-t-[#171512]/10">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onImport} disabled={!file || importing} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
             {importing ? (
