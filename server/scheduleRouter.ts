@@ -360,7 +360,32 @@ export const scheduleRouter = router({
 
   list: publicProcedure.query(async ({ ctx }) => {
     const member = await requireMember(ctx.req);
-    return sdb.getSchedulesByMember(member.id);
+    const schedules = await sdb.getSchedulesByMember(member.id);
+    return Promise.all(
+      schedules.map(async (schedule) => {
+        const [activities, relationships] = await Promise.all([
+          sdb.getActivitiesBySchedule(schedule.id),
+          sdb.getRelationshipsBySchedule(schedule.id),
+        ]);
+        const datedFinishes = activities
+          .map((activity) => activity.earlyFinish)
+          .filter((date): date is Date => !!date);
+        const projectFinish = datedFinishes.length
+          ? new Date(Math.max(...datedFinishes.map((date) => date.getTime())))
+          : null;
+
+        return {
+          ...schedule,
+          activityCount: activities.length,
+          completedCount: activities.filter((activity) => parseFloat(String(activity.percentComplete)) >= 100).length,
+          relationshipCount: relationships.length,
+          criticalCount: activities.filter((activity) => activity.isCritical).length,
+          openStartCount: activities.filter((activity) => !relationships.some((relationship) => relationship.successorId === activity.id)).length,
+          openFinishCount: activities.filter((activity) => !relationships.some((relationship) => relationship.predecessorId === activity.id)).length,
+          projectFinish,
+        };
+      }),
+    );
   }),
 
   get: publicProcedure

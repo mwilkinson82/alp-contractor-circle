@@ -13,6 +13,13 @@ describe("presence labels", () => {
     expect(formatPresencePage("/portal/labor-library")).toBe("Basis Trade Rate Library");
   });
 
+  it("labels Baseline schedule desk and cockpit routes", () => {
+    expect(formatPresencePage("/portal/scheduler")).toBe("Baseline");
+    expect(formatPresenceWork("/portal/scheduler")).toBe("Reviewing Baseline schedules");
+    expect(formatPresencePage("/scheduler/42")).toBe("ConstructLine Baseline");
+    expect(formatPresenceWork("/scheduler/42")).toBe("Working inside a Baseline schedule");
+  });
+
   it("describes heartbeat windows in human language", () => {
     expect(describePresenceWindow(45)).toBe("seen in the last 45 seconds");
     expect(describePresenceWindow(120)).toBe("seen in the last 2 minutes");

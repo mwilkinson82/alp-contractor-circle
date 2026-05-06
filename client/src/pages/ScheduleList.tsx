@@ -1,8 +1,7 @@
 /**
- * Schedule List — Dashboard showing all saved schedules.
- * Members can create new schedules (blank or from template), duplicate, archive, or open them.
+ * ScheduleList - Baseline schedule archive and command desk.
  */
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMember } from "@/hooks/useMember";
 import { useBetaUser } from "@/hooks/useBetaUser";
@@ -13,10 +12,10 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -26,21 +25,73 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
 import {
-  Plus,
-  Calendar,
-  Clock,
-  MoreVertical,
-  Copy,
-  Trash2,
+  AlertTriangle,
   Archive,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Copy,
+  FileUp,
   FolderOpen,
+  GitBranch,
   LayoutGrid,
   Loader2,
-  ArrowLeft,
+  MoreVertical,
+  Plus,
+  Target,
+  Trash2,
   Upload,
-  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
+
+type ScheduleSummary = {
+  id: number;
+  name: string;
+  description?: string | null;
+  projectStartDate: string | Date;
+  dataDate?: string | Date | null;
+  updatedAt: string | Date;
+  status: "active" | "archived";
+  activityCount?: number;
+  completedCount?: number;
+  relationshipCount?: number;
+  criticalCount?: number;
+  openStartCount?: number;
+  openFinishCount?: number;
+  projectFinish?: string | Date | null;
+};
+
+const formatDate = (value: string | Date | null | undefined, options?: Intl.DateTimeFormatOptions) => {
+  if (!value) return "Not set";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleDateString("en-US", options ?? { month: "short", day: "numeric", year: "numeric" });
+};
+
+const pct = (done = 0, total = 0) => {
+  if (!total) return 0;
+  return Math.round((done / total) * 100);
+};
+
+function getScheduleStatus(schedule: ScheduleSummary) {
+  const activityCount = schedule.activityCount ?? 0;
+  const openEnds = (schedule.openStartCount ?? 0) + (schedule.openFinishCount ?? 0);
+  const relationshipCount = schedule.relationshipCount ?? 0;
+  const completion = pct(schedule.completedCount, activityCount);
+
+  if (!activityCount) return { label: "Needs activities", tone: "amber" as const };
+  if (openEnds > 0) return { label: `${openEnds} open ends`, tone: "red" as const };
+  if (relationshipCount < Math.max(1, activityCount - 1)) return { label: "Logic light", tone: "amber" as const };
+  if (completion >= 100) return { label: "Complete", tone: "green" as const };
+  return { label: "Ready to update", tone: "green" as const };
+}
+
+function statusClasses(tone: "green" | "amber" | "red") {
+  if (tone === "green") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700";
+  if (tone === "red") return "border-red-500/25 bg-red-500/10 text-red-700";
+  return "border-amber-500/30 bg-amber-500/10 text-amber-800";
+}
 
 export default function ScheduleList() {
   const { member, loading: memberLoading, isAuthenticated, getLoginUrl } = useMember();
@@ -48,12 +99,9 @@ export default function ScheduleList() {
   const isAllowed = isAuthenticated || !!betaUser;
   const [, setLocation] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
-  const [creatingShowcase, setCreatingShowcase] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newStartDate, setNewStartDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showDuplicate, setShowDuplicate] = useState<number | null>(null);
   const [duplicateName, setDuplicateName] = useState("");
@@ -64,21 +112,16 @@ export default function ScheduleList() {
   const [xerImporting, setXerImporting] = useState(false);
   const [xerProgress, setXerProgress] = useState("");
 
-  const schedulesQuery = trpc.schedule.list.useQuery(undefined, {
-    enabled: isAllowed,
-  });
-  const templatesQuery = trpc.schedule.templates.useQuery(undefined, {
-    enabled: isAllowed,
-  });
+  const schedulesQuery = trpc.schedule.list.useQuery(undefined, { enabled: isAllowed });
+  const templatesQuery = trpc.schedule.templates.useQuery(undefined, { enabled: isAllowed });
 
   const createMutation = trpc.schedule.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Schedule created");
+      toast.success("Baseline schedule created");
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
       setSelectedTemplate(null);
-      // Navigate to the scheduler
       window.open(`/scheduler/${data.id}`, "_blank");
       schedulesQuery.refetch();
     },
@@ -87,7 +130,7 @@ export default function ScheduleList() {
 
   const duplicateMutation = trpc.schedule.duplicate.useMutation({
     onSuccess: (data) => {
-      toast.success("Schedule duplicated");
+      toast.success("Schedule update created");
       setShowDuplicate(null);
       setDuplicateName("");
       window.open(`/scheduler/${data.id}`, "_blank");
@@ -106,55 +149,45 @@ export default function ScheduleList() {
 
   const archiveMutation = trpc.schedule.update.useMutation({
     onSuccess: () => {
-      toast.success("Schedule archived");
+      toast.success("Schedule archive updated");
       schedulesQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
   });
 
-  // Async XER import: upload file via FormData, then poll for progress
   const handleXerImport = async () => {
     if (!xerFile) return;
     setXerImporting(true);
     setXerProgress("Preparing upload...");
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let safetyTimeout: ReturnType<typeof setTimeout> | null = null;
+
     try {
       setXerProgress(`Uploading ${(xerFile.size / 1024 / 1024).toFixed(1)} MB...`);
-
-      // Step 1: Upload XER file via FormData (multipart — much more efficient for large files)
       const formData = new FormData();
       formData.append("xerFile", xerFile);
       if (xerScheduleName) formData.append("scheduleName", xerScheduleName);
 
-      const uploadRes = await fetch("/api/xer/upload", {
-        method: "POST",
-        body: formData,
-        // No Content-Type header — browser sets multipart boundary automatically
-      });
-
+      const uploadRes = await fetch("/api/xer/upload", { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const err = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
         throw new Error(err.error || `Upload failed (${uploadRes.status})`);
       }
 
       const { jobId } = await uploadRes.json();
-      setXerProgress("Import started — parsing XER file...");
-
-      // Step 2: Poll for progress every 2 seconds
+      setXerProgress("Parsing XER file...");
       pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/xer/status/${jobId}`);
           if (!statusRes.ok) return;
           const job = await statusRes.json();
-
           setXerProgress(job.progressMessage || "Processing...");
 
           if (job.status === "complete") {
             if (pollInterval) clearInterval(pollInterval);
             if (safetyTimeout) clearTimeout(safetyTimeout);
             const result = job.result as any;
-            toast.success(`Imported "${result?.scheduleName || "Schedule"}" — ${result?.activitiesImported || 0} activities, ${result?.relationshipsImported || 0} relationships, ${result?.wbsNodesImported || 0} WBS nodes`);
+            toast.success(`Imported ${result?.activitiesImported || 0} activities and ${result?.relationshipsImported || 0} relationships`);
             setShowXerImport(false);
             setXerFile(null);
             setXerScheduleName("");
@@ -170,67 +203,55 @@ export default function ScheduleList() {
             setXerProgress("");
           }
         } catch {
-          // Polling error — keep trying
+          // Keep polling; transient status errors are common during large imports.
         }
       }, 2000);
 
-      // Safety timeout: stop polling after 10 minutes
       safetyTimeout = setTimeout(() => {
         if (pollInterval) clearInterval(pollInterval);
-        toast.error("Import is taking longer than expected. Check your schedule list — it may still complete.");
+        toast.error("Import is taking longer than expected. Check the list again shortly.");
         setXerImporting(false);
         setXerProgress("");
       }, 600000);
     } catch (e: any) {
       if (pollInterval) clearInterval(pollInterval);
       if (safetyTimeout) clearTimeout(safetyTimeout);
-      const msg = e.message || "Unknown error";
-      // Provide helpful message for network/timeout errors
-      if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("timeout")) {
-        toast.error("Upload failed — network error. Please check your connection and try again.");
-      } else {
-        toast.error(`XER import failed: ${msg}`);
-      }
+      toast.error(`XER import failed: ${e.message || "Unknown error"}`);
       setXerImporting(false);
       setXerProgress("");
     }
   };
 
-  const schedules = schedulesQuery.data || [];
+  const schedules = (schedulesQuery.data || []) as ScheduleSummary[];
   const templates = templatesQuery.data || [];
-  const activeSchedules = useMemo(
-    () => schedules.filter((s: any) => s.status === "active"),
-    [schedules]
-  );
-  const archivedSchedules = useMemo(
-    () => schedules.filter((s: any) => s.status === "archived"),
-    [schedules]
-  );
+  const activeSchedules = useMemo(() => schedules.filter((s) => s.status === "active"), [schedules]);
+  const archivedSchedules = useMemo(() => schedules.filter((s) => s.status === "archived"), [schedules]);
+  const totals = useMemo(() => {
+    const activityCount = activeSchedules.reduce((sum, s) => sum + (s.activityCount ?? 0), 0);
+    const criticalCount = activeSchedules.reduce((sum, s) => sum + (s.criticalCount ?? 0), 0);
+    const openEnds = activeSchedules.reduce((sum, s) => sum + (s.openStartCount ?? 0) + (s.openFinishCount ?? 0), 0);
+    const relationshipCount = activeSchedules.reduce((sum, s) => sum + (s.relationshipCount ?? 0), 0);
+    return { activityCount, criticalCount, openEnds, relationshipCount };
+  }, [activeSchedules]);
 
-  // Auth gate
   if (memberLoading || betaLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-ember" />
+      <div className="min-h-screen bg-[#f6f0e4] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#c58a12]" />
       </div>
     );
   }
 
   if (!isAllowed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-card border-border">
+      <div className="min-h-screen bg-[#f6f0e4] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full border-[#1b1a17]/10 bg-[#fffaf0] shadow-xl">
           <CardContent className="p-8 text-center space-y-6">
-            <Calendar className="w-16 h-16 text-ember mx-auto" />
-            <h1 className="text-2xl font-heading font-bold text-foreground">
-              CPM Schedule Builder
-            </h1>
-            <p className="text-muted-foreground">
-              Sign in to your Contractor Circle account to access the scheduling
-              tool.
-            </p>
+            <Calendar className="w-16 h-16 text-[#c58a12] mx-auto" />
+            <h1 className="text-2xl font-heading font-bold text-[#171512]">Baseline</h1>
+            <p className="text-[#625a4b]">Sign in to open your CPM schedules, updates, and construction templates.</p>
             <a href={getLoginUrl("/portal/scheduler")}>
-              <Button className="bg-ember text-primary-foreground hover:bg-ember-dark w-full">
+              <Button className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f] w-full">
                 Sign In with Discord
               </Button>
             </a>
@@ -241,44 +262,38 @@ export default function ScheduleList() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-[#f6f0e4] text-[#171512]">
+      <div className="border-b border-[#171512]/10 bg-[#171512] text-[#f7eddb] sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <button
-              onClick={() => setLocation("/portal")}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setLocation("/portal/constructline")}
+              className="p-2 rounded-md text-[#d8c9aa] hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Back to ConstructLine Hub"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-heading font-bold text-foreground">
-                CPM Schedule Builder
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {activeSchedules.length} active schedule
-                {activeSchedules.length !== 1 ? "s" : ""}
+            <div className="w-px h-9 bg-white/10" />
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#d9a21a] font-bold">ConstructLine Baseline</p>
+              <h1 className="text-xl font-heading font-bold truncate">Schedule Desk</h1>
+              <p className="text-sm text-[#d8c9aa] truncate">
+                CPM schedules, updates, P6 imports, and delay-ready reporting.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <Button
-                disabled
-                variant="outline"
-                className="border-border/30 text-muted-foreground/50 cursor-not-allowed opacity-50"
-              >
-                <FileUp className="w-4 h-4 mr-2" />
-                Import P6 XER
-              </Button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-card border border-border rounded-md text-xs text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                Coming Soon — Under Testing
-              </div>
-            </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowXerImport(true)}
+              className="border-[#d9a21a]/40 bg-white/5 text-[#f7eddb] hover:bg-[#d9a21a]/15 hover:text-white"
+            >
+              <FileUp className="w-4 h-4 mr-2" />
+              Import P6 XER
+            </Button>
             <Button
               onClick={() => setShowCreate(true)}
-              className="bg-ember text-primary-foreground hover:bg-ember-dark"
+              className="bg-[#d9a21a] text-[#171512] hover:bg-[#e3b23c] font-semibold"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Schedule
@@ -287,90 +302,96 @@ export default function ScheduleList() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <MetricTile label="Active schedules" value={activeSchedules.length} icon={LayoutGrid} />
+          <MetricTile label="Activities planned" value={totals.activityCount} icon={Calendar} />
+          <MetricTile label="Critical activities" value={totals.criticalCount} icon={Target} tone="gold" />
+          <MetricTile label="Open logic ends" value={totals.openEnds} icon={AlertTriangle} tone={totals.openEnds ? "red" : "green"} />
+        </section>
+
         {schedulesQuery.isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-ember" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#c58a12]" />
           </div>
         ) : activeSchedules.length === 0 && archivedSchedules.length === 0 ? (
-          /* Empty state */
-          <div className="text-center py-20">
-            <LayoutGrid className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6" />
-            <h2 className="text-2xl font-heading font-bold text-foreground mb-3">
-              No schedules yet
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              Create your first CPM schedule from scratch or start with a
-              pre-built construction template.
+          <section className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-10 text-center shadow-sm">
+            <Calendar className="w-14 h-14 text-[#c58a12] mx-auto mb-5" />
+            <h2 className="text-2xl font-heading font-bold mb-3">Start your first Baseline schedule</h2>
+            <p className="text-[#625a4b] mb-7 max-w-xl mx-auto">
+              Build from a construction template, start blank, or import a Primavera P6 XER file and keep working from the same CPM cockpit.
             </p>
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="bg-ember text-primary-foreground hover:bg-ember-dark"
-              size="lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create Your First Schedule
-            </Button>
-          </div>
+            <div className="flex items-center justify-center gap-3">
+              <Button onClick={() => setShowCreate(true)} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Schedule
+              </Button>
+              <Button variant="outline" onClick={() => setShowXerImport(true)} className="border-[#171512]/20">
+                <Upload className="w-4 h-4 mr-2" />
+                Import XER
+              </Button>
+            </div>
+          </section>
         ) : (
           <>
-            {/* Smith Residence Showcase Template — always visible as a default template */}
-            <div className="mb-8">
-              <h2 className="text-lg font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
-                <span>Showcase Template</span>
-                <span className="text-xs font-normal text-muted-foreground">— click to open a pre-built example</span>
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card
-                  className="bg-gradient-to-br from-emerald-950/40 to-card border-emerald-500/40 hover:border-emerald-400/70 transition-all cursor-pointer group relative overflow-hidden shadow-lg"
-                  onClick={() => {
-                    // Always open the canonical Smith Residence template (ID 1)
-                    window.open("/scheduler/1", "_blank");
-                  }}
-                >
-                  {/* Green glow accent line at top */}
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white shadow-sm">
-                      ✦ Template
-                    </span>
+            <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-5">
+              <div className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Next schedule action</p>
+                    <h2 className="text-lg font-heading font-bold">Keep the update cycle moving</h2>
                   </div>
-                  <CardContent className="p-5 pt-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <LayoutGrid className="w-4 h-4 text-emerald-400" />
-                      <h3 className="font-heading font-bold text-foreground text-base">
-                        Smith Residence
-                      </h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Full residential new build — WBS layout, submittals, fabrication &amp; construction phases. See exactly how a CPM schedule looks.
-                    </p>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <span>70+ activities</span>
-                        <span>·</span>
-                        <span>WBS grouped</span>
-                        <span>·</span>
-                        <span>Critical path</span>
-                      </div>
-                      <span className="text-emerald-400 font-semibold group-hover:underline">
-                        Open →
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+                  <Button onClick={() => setShowCreate(true)} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <WorkflowCue
+                    icon={Calendar}
+                    title="Set the data date"
+                    text="Open a schedule and confirm the as-of date before calculating."
+                  />
+                  <WorkflowCue
+                    icon={GitBranch}
+                    title="Close the logic"
+                    text="Use open-end and critical path checks before sharing updates."
+                  />
+                  <WorkflowCue
+                    icon={Copy}
+                    title="Duplicate as update"
+                    text="Create the next update period without losing baselines or logic."
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Active Schedules */}
-            {activeSchedules.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-lg font-heading font-semibold text-foreground mb-4">
-                  Active Schedules
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeSchedules.map((s: any) => (
+              <div className="rounded-lg border border-[#171512]/10 bg-[#171512] p-5 text-[#f7eddb] shadow-sm">
+                <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#d9a21a]">Basis to Baseline</p>
+                <h2 className="text-lg font-heading font-bold mt-1">Bid, plan, update, report.</h2>
+                <p className="text-sm text-[#d8c9aa] mt-2">
+                  Baseline is the scheduling side of ConstructLine: CPM logic, WBS, calendars, resources, snapshots, reports, and P6 handoff in one contractor cockpit.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  {["WBS grouped Gantt", "Critical path", "Schedule updates", "Delay reports"].map((item) => (
+                    <span key={item} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-[#f7eddb]">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Schedule archive</p>
+                  <h2 className="text-xl font-heading font-bold">Active Baseline schedules</h2>
+                </div>
+                <p className="text-sm text-[#625a4b]">{activeSchedules.length} active, {archivedSchedules.length} archived</p>
+              </div>
+              {activeSchedules.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {activeSchedules.map((s) => (
                     <ScheduleCard
                       key={s.id}
                       schedule={s}
@@ -380,58 +401,70 @@ export default function ScheduleList() {
                         setDuplicateName(`${s.name} - Update`);
                         setDuplicateDataDate(new Date().toISOString().slice(0, 10));
                       }}
-                      onArchive={() =>
-                        archiveMutation.mutate({
-                          id: s.id,
-                          status: "archived",
-                        })
-                      }
+                      onArchive={() => archiveMutation.mutate({ id: s.id, status: "archived" })}
                       onDelete={() => {
-                        if (
-                          confirm(
-                            "Are you sure you want to permanently delete this schedule?"
-                          )
-                        ) {
+                        if (confirm("Are you sure you want to permanently delete this schedule?")) {
                           deleteMutation.mutate({ id: s.id });
                         }
                       }}
                     />
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="rounded-lg border border-dashed border-[#171512]/20 bg-[#fffaf0] p-8 text-center text-[#625a4b]">
+                  No active schedules. Restore one from the archive or create a new Baseline schedule.
+                </div>
+              )}
+            </section>
 
-            {/* Archived Schedules */}
+            <section>
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Starting points</p>
+                  <h2 className="text-xl font-heading font-bold">Construction templates</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <TemplateCard
+                  title="Smith Residence"
+                  description="Residential CPM example with WBS, submittals, fabrication, construction phases, and a critical path."
+                  meta="70+ activities"
+                  onClick={() => window.open("/scheduler/1", "_blank")}
+                  featured
+                />
+                {templates.slice(0, 2).map((template: any) => (
+                  <TemplateCard
+                    key={template.id}
+                    title={template.name}
+                    description={template.description}
+                    meta={`${template.activityCount} activities${template.wbsNodeCount ? `, ${template.wbsNodeCount} WBS nodes` : ""}`}
+                    onClick={() => {
+                      setSelectedTemplate(template.id);
+                      setNewName(template.name.replace(/ template/i, ""));
+                      setShowCreate(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+
             {archivedSchedules.length > 0 && (
-              <div>
-                <h2 className="text-lg font-heading font-semibold text-muted-foreground mb-4">
-                  Archived
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
-                  {archivedSchedules.map((s: any) => (
+              <section>
+                <h2 className="text-lg font-heading font-semibold text-[#625a4b] mb-4">Archived schedules</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 opacity-80">
+                  {archivedSchedules.map((s) => (
                     <ScheduleCard
                       key={s.id}
                       schedule={s}
-                      onOpen={() =>
-                        window.open(`/scheduler/${s.id}`, "_blank")
-                      }
+                      onOpen={() => window.open(`/scheduler/${s.id}`, "_blank")}
                       onDuplicate={() => {
                         setShowDuplicate(s.id);
                         setDuplicateName(`${s.name} - Update`);
                         setDuplicateDataDate(new Date().toISOString().slice(0, 10));
                       }}
-                      onArchive={() =>
-                        archiveMutation.mutate({
-                          id: s.id,
-                          status: "active",
-                        })
-                      }
+                      onArchive={() => archiveMutation.mutate({ id: s.id, status: "active" })}
                       onDelete={() => {
-                        if (
-                          confirm(
-                            "Are you sure you want to permanently delete this schedule?"
-                          )
-                        ) {
+                        if (confirm("Are you sure you want to permanently delete this schedule?")) {
                           deleteMutation.mutate({ id: s.id });
                         }
                       }}
@@ -439,325 +472,138 @@ export default function ScheduleList() {
                     />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
           </>
         )}
-      </div>
+      </main>
 
-      {/* Create Schedule Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-card border-border max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="font-heading">
-              Create New Schedule
-            </DialogTitle>
-            <DialogDescription>
-              Name your project, then pick a starting point below.
-            </DialogDescription>
-          </DialogHeader>
+      <CreateScheduleDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        newName={newName}
+        setNewName={setNewName}
+        newDesc={newDesc}
+        setNewDesc={setNewDesc}
+        newStartDate={newStartDate}
+        setNewStartDate={setNewStartDate}
+        selectedTemplate={selectedTemplate}
+        setSelectedTemplate={setSelectedTemplate}
+        templates={templates}
+        isPending={createMutation.isPending}
+        onCreate={() =>
+          createMutation.mutate({
+            name: newName,
+            description: newDesc || undefined,
+            projectStartDate: new Date(`${newStartDate}T00:00:00`),
+            templateId: selectedTemplate || undefined,
+          })
+        }
+      />
 
-          <div className="overflow-y-auto flex-1 pr-1 space-y-5 py-2">
-            {/* ── Project Details ── */}
-            <div className="space-y-3">
-              <div>
-                <Label>Project Name</Label>
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g., Smith Residence — New Build"
-                  className="mt-1"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Description (optional)</Label>
-                  <Input
-                    value={newDesc}
-                    onChange={(e) => setNewDesc(e.target.value)}
-                    placeholder="Brief project description"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Project Start Date</Label>
-                  <Input
-                    type="date"
-                    value={newStartDate}
-                    onChange={(e) => setNewStartDate(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Template Picker ── */}
-            <div className="rounded-xl border-2 border-emerald-500/40 bg-emerald-500/[0.03] p-4" style={{ boxShadow: '0 0 20px rgba(16,185,129,0.08), inset 0 1px 0 rgba(16,185,129,0.1)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-sm font-semibold text-emerald-400 tracking-wide uppercase">Choose a Starting Template</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">Pick a pre-built schedule with WBS, activities, logic ties &amp; activity codes — or start blank.</p>
-
-              <div className="grid grid-cols-1 gap-2">
-                {/* Blank option */}
-                <button
-                  onClick={() => setSelectedTemplate(null)}
-                  className={`text-left p-3 rounded-lg border-2 transition-all ${
-                    selectedTemplate === null
-                      ? "border-ember bg-ember/10 text-foreground shadow-[0_0_12px_rgba(217,119,6,0.15)]"
-                      : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                      <Plus className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Blank Schedule</div>
-                      <div className="text-xs opacity-60">Start from scratch — add your own activities</div>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Template grid — 2 columns for better visual density */}
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  {templates.map((t: any) => {
-                    const isSelected = selectedTemplate === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => setSelectedTemplate(t.id)}
-                        className={`text-left rounded-lg border-2 transition-all overflow-hidden ${
-                          isSelected
-                            ? "border-ember bg-ember/10 text-foreground shadow-[0_0_12px_rgba(217,119,6,0.15)]"
-                            : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
-                        }`}
-                      >
-                        {/* Thumbnail preview */}
-                        {t.thumbnail && (
-                          <div className="w-full h-20 bg-zinc-900/50 border-b border-white/5">
-                            <img
-                              src={t.thumbnail}
-                              alt={`${t.name} preview`}
-                              className="w-full h-full object-cover opacity-80"
-                            />
-                          </div>
-                        )}
-                        <div className="p-3">
-                          <div className="font-medium text-sm leading-tight">{t.name}</div>
-                          <div className="text-[11px] mt-1 opacity-60 leading-snug line-clamp-2">{t.description}</div>
-                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                              isSelected ? "bg-ember/20 text-ember" : "bg-emerald-500/10 text-emerald-400"
-                            }`}>
-                              {t.activityCount} activities
-                            </span>
-                            {t.wbsNodeCount > 0 && (
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                isSelected ? "bg-ember/20 text-ember" : "bg-blue-500/10 text-blue-400"
-                              }`}>
-                                {t.wbsNodeCount} WBS nodes
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="shrink-0 border-t border-border pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowCreate(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                createMutation.mutate({
-                  name: newName,
-                  description: newDesc || undefined,
-                  projectStartDate: new Date(newStartDate + "T00:00:00"),
-                  templateId: selectedTemplate || undefined,
-                })
-              }
-              disabled={!newName.trim() || createMutation.isPending}
-              className="bg-ember text-primary-foreground hover:bg-ember-dark"
-            >
-              {createMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Create Schedule
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Duplicate Dialog */}
-      <Dialog
-        open={showDuplicate !== null}
-        onOpenChange={() => setShowDuplicate(null)}
-      >
-        <DialogContent className="bg-card border-border max-w-xl text-base">
+      <Dialog open={showDuplicate !== null} onOpenChange={() => setShowDuplicate(null)}>
+        <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-xl text-base">
           <DialogHeader>
-            <DialogTitle className="font-heading">
-              Duplicate Schedule as Update
-            </DialogTitle>
+            <DialogTitle className="font-heading">Duplicate Schedule as Update</DialogTitle>
             <DialogDescription>
-              Creates a full copy with all activities, logic, WBS, resources, annotations, and layouts. Set a new data date to advance the update period.
+              Create a full copy with activities, logic, WBS, resources, annotations, and layouts. Set the new data date for the update period.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>New Schedule Name</Label>
-              <Input
-                value={duplicateName}
-                onChange={(e) => setDuplicateName(e.target.value)}
-                className="mt-1"
-                autoFocus
-              />
+              <Input value={duplicateName} onChange={(e) => setDuplicateName(e.target.value)} className="mt-1" autoFocus />
             </div>
             <div>
-              <Label>New Data Date <span className="text-muted-foreground text-xs">(as-of date for CPM recalculation)</span></Label>
-              <Input
-                type="date"
-                value={duplicateDataDate}
-                onChange={(e) => setDuplicateDataDate(e.target.value)}
-                className="mt-1"
-              />
+              <Label>New Data Date</Label>
+              <Input type="date" value={duplicateDataDate} onChange={(e) => setDuplicateDataDate(e.target.value)} className="mt-1" />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDuplicate(null)}
-            >
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setShowDuplicate(null)}>Cancel</Button>
             <Button
               onClick={() =>
                 showDuplicate &&
                 duplicateMutation.mutate({
                   id: showDuplicate,
                   name: duplicateName,
-                  dataDate: duplicateDataDate ? new Date(duplicateDataDate + "T00:00:00") : undefined,
+                  dataDate: duplicateDataDate ? new Date(`${duplicateDataDate}T00:00:00`) : undefined,
                 })
               }
               disabled={!duplicateName.trim() || duplicateMutation.isPending}
-              className="bg-ember text-primary-foreground hover:bg-ember-dark"
+              className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]"
             >
-              {duplicateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Duplicate &amp; Open
+              {duplicateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Duplicate and Open
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Import P6 XER Dialog */}
-      <Dialog open={showXerImport} onOpenChange={(open) => { setShowXerImport(open); if (!open) { setXerFile(null); setXerScheduleName(""); } }}>
-        <DialogContent className="bg-card border-border max-w-2xl text-base">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-lg">Import Primavera P6 XER File</DialogTitle>
-            <DialogDescription>
-              Upload an .xer file exported from Oracle Primavera P6. Activities, relationships, WBS, calendars, and constraints will be imported.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {/* File drop zone */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-                xerFile ? "border-ember/60 bg-ember/5" : "border-border hover:border-ember/40"
-              }`}
-              onClick={() => document.getElementById("xer-file-input")?.click()}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const file = e.dataTransfer.files[0];
-                if (file && (file.name.endsWith(".xer") || file.name.endsWith(".XER"))) {
-                  setXerFile(file);
-                  if (!xerScheduleName) setXerScheduleName(file.name.replace(/\.xer$/i, ""));
-                } else {
-                  toast.error("Please upload a .xer file");
-                }
-              }}
-            >
-              <input
-                id="xer-file-input"
-                type="file"
-                accept=".xer,.XER"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setXerFile(file);
-                    if (!xerScheduleName) setXerScheduleName(file.name.replace(/\.xer$/i, ""));
-                  }
-                }}
-              />
-              {xerFile ? (
-                <div className="space-y-2">
-                  <FileUp className="w-10 h-10 text-ember mx-auto" />
-                  <p className="text-foreground font-medium">{xerFile.name}</p>
-                  <p className="text-sm text-muted-foreground">{(xerFile.size / 1024).toFixed(1)} KB</p>
-                  <p className="text-xs text-muted-foreground">Click or drop to replace</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto" />
-                  <p className="text-foreground font-medium">Drop your .xer file here</p>
-                  <p className="text-sm text-muted-foreground">or click to browse</p>
-                </div>
-              )}
-            </div>
+      <XerImportDialog
+        open={showXerImport}
+        onOpenChange={(open) => {
+          setShowXerImport(open);
+          if (!open) {
+            setXerFile(null);
+            setXerScheduleName("");
+          }
+        }}
+        file={xerFile}
+        setFile={setXerFile}
+        scheduleName={xerScheduleName}
+        setScheduleName={setXerScheduleName}
+        importing={xerImporting}
+        progress={xerProgress}
+        onImport={handleXerImport}
+      />
+    </div>
+  );
+}
 
-            {/* Schedule name override */}
-            <div>
-              <Label>Schedule Name (optional — defaults to P6 project name)</Label>
-              <Input
-                value={xerScheduleName}
-                onChange={(e) => setXerScheduleName(e.target.value)}
-                placeholder="Leave blank to use P6 project name"
-                className="mt-1"
-              />
-            </div>
+function MetricTile({
+  label,
+  value,
+  icon: Icon,
+  tone = "dark",
+}: {
+  label: string;
+  value: number;
+  icon: any;
+  tone?: "dark" | "gold" | "green" | "red";
+}) {
+  const color =
+    tone === "gold"
+      ? "text-[#8a6a12] bg-[#d9a21a]/15"
+      : tone === "green"
+        ? "text-emerald-700 bg-emerald-600/10"
+        : tone === "red"
+          ? "text-red-700 bg-red-600/10"
+          : "text-[#171512] bg-[#171512]/5";
 
-            {/* Info box */}
-            <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">What gets imported:</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                <li>All activities with durations, dates, and percent complete</li>
-                <li>Predecessor/successor relationships (FS, SS, FF, SF) with lag</li>
-                <li>WBS hierarchy with color coding</li>
-                <li>Calendars with work weeks and holidays</li>
-                <li>Constraint types (SNET, SNLT, FNET, FNLT, MSO, MFO)</li>
-                <li>Milestones and activity types</li>
-              </ul>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowXerImport(false)}>Cancel</Button>
-            <Button
-              onClick={handleXerImport}
-              disabled={!xerFile || xerImporting}
-              className="bg-ember text-primary-foreground hover:bg-ember-dark"
-            >
-              {xerImporting ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" />{xerProgress || "Importing..."}</>
-              ) : (
-                <><FileUp className="w-4 h-4 mr-2" />Import Schedule</>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  return (
+    <div className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#625a4b]">{label}</p>
+          <p className="text-2xl font-heading font-bold mt-1">{value.toLocaleString()}</p>
+        </div>
+        <div className={`h-10 w-10 rounded-md flex items-center justify-center ${color}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowCue({ icon: Icon, title, text }: { icon: any; title: string; text: string }) {
+  return (
+    <div className="rounded-md border border-[#171512]/10 bg-[#f6f0e4] p-3">
+      <div className="flex items-center gap-2 text-[#171512] font-semibold">
+        <Icon className="w-4 h-4 text-[#8a6a12]" />
+        <span>{title}</span>
+      </div>
+      <p className="text-xs text-[#625a4b] mt-2 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -770,63 +616,53 @@ function ScheduleCard({
   onDelete,
   isArchived,
 }: {
-  schedule: any;
+  schedule: ScheduleSummary;
   onOpen: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   onDelete: () => void;
   isArchived?: boolean;
 }) {
-  const startDate = new Date(schedule.projectStartDate);
-  const updatedAt = new Date(schedule.updatedAt);
+  const status = getScheduleStatus(schedule);
+  const completion = pct(schedule.completedCount, schedule.activityCount);
+  const openEnds = (schedule.openStartCount ?? 0) + (schedule.openFinishCount ?? 0);
 
   return (
-    <Card
-      className="bg-card border-border hover:border-ember/30 transition-all cursor-pointer group"
-      onClick={onOpen}
-    >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-heading font-semibold text-foreground truncate">
-              {schedule.name}
-            </h3>
-            {schedule.description && (
-              <p className="text-sm text-muted-foreground truncate mt-0.5">
-                {schedule.description}
-              </p>
-            )}
+    <Card className="group cursor-pointer overflow-hidden border-[#171512]/10 bg-[#fffaf0] shadow-sm transition-all hover:border-[#d9a21a]/50 hover:shadow-md" onClick={onOpen}>
+      <CardContent className="p-0">
+        <div className="flex items-start justify-between gap-4 border-b border-[#171512]/10 p-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-heading text-lg font-bold text-[#171512] truncate">{schedule.name}</h3>
+              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${statusClasses(status.tone)}`}>
+                {status.label}
+              </span>
+            </div>
+            {schedule.description && <p className="mt-1 truncate text-sm text-[#625a4b]">{schedule.description}</p>}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors opacity-0 group-hover:opacity-100"
+                className="rounded-md p-1.5 text-[#625a4b] opacity-0 transition-colors hover:bg-[#171512]/5 hover:text-[#171512] group-hover:opacity-100"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="bg-popover border-border"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={onOpen}>
                 <FolderOpen className="w-4 h-4 mr-2" />
-                Open
+                Open Cockpit
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDuplicate}>
                 <Copy className="w-4 h-4 mr-2" />
-                Duplicate
+                Duplicate as Update
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onArchive}>
                 <Archive className="w-4 h-4 mr-2" />
                 {isArchived ? "Restore" : "Archive"}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={onDelete}
-                className="text-destructive focus:text-destructive"
-              >
+              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -834,24 +670,285 @@ function ScheduleCard({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {startDate.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            {updatedAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
+        <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#171512]/10">
+          <CardStat label="Activities" value={(schedule.activityCount ?? 0).toLocaleString()} />
+          <CardStat label="Critical" value={(schedule.criticalCount ?? 0).toLocaleString()} tone={schedule.criticalCount ? "gold" : undefined} />
+          <CardStat label="Open ends" value={openEnds.toLocaleString()} tone={openEnds ? "red" : "green"} />
+          <CardStat label="Complete" value={`${completion}%`} tone={completion >= 100 ? "green" : undefined} />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5 text-xs text-[#625a4b]">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              Start {formatDate(schedule.projectStartDate, { month: "short", day: "numeric", year: "numeric" })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              Data date {formatDate(schedule.dataDate, { month: "short", day: "numeric" })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Finish {formatDate(schedule.projectFinish, { month: "short", day: "numeric" })}
+            </span>
+          </div>
+          <span className="font-semibold text-[#8a6a12]">Open Baseline</span>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function CardStat({ label, value, tone }: { label: string; value: string; tone?: "gold" | "green" | "red" }) {
+  const color = tone === "gold" ? "text-[#8a6a12]" : tone === "green" ? "text-emerald-700" : tone === "red" ? "text-red-700" : "text-[#171512]";
+  return (
+    <div className="border-r border-[#171512]/10 p-4 last:border-r-0">
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b806f]">{label}</p>
+      <p className={`mt-1 text-lg font-heading font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function TemplateCard({
+  title,
+  description,
+  meta,
+  onClick,
+  featured,
+}: {
+  title: string;
+  description: string;
+  meta: string;
+  onClick: () => void;
+  featured?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-left rounded-lg border p-5 shadow-sm transition-all hover:shadow-md ${
+        featured ? "border-emerald-600/25 bg-emerald-700/10" : "border-[#171512]/10 bg-[#fffaf0]"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-heading font-bold text-[#171512]">{title}</h3>
+        <span className="rounded-full bg-[#171512]/5 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#625a4b]">{meta}</span>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-[#625a4b]">{description}</p>
+    </button>
+  );
+}
+
+function CreateScheduleDialog({
+  open,
+  onOpenChange,
+  newName,
+  setNewName,
+  newDesc,
+  setNewDesc,
+  newStartDate,
+  setNewStartDate,
+  selectedTemplate,
+  setSelectedTemplate,
+  templates,
+  isPending,
+  onCreate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  newName: string;
+  setNewName: (value: string) => void;
+  newDesc: string;
+  setNewDesc: (value: string) => void;
+  newStartDate: string;
+  setNewStartDate: (value: string) => void;
+  selectedTemplate: string | null;
+  setSelectedTemplate: (value: string | null) => void;
+  templates: any[];
+  isPending: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-2xl text-base max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="font-heading">Create Baseline Schedule</DialogTitle>
+          <DialogDescription>Name the project, choose the start date, and pick a construction starting point.</DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-y-auto flex-1 pr-1 space-y-5 py-2">
+          <div className="space-y-3">
+            <div>
+              <Label>Project Name</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Smith Residence - New Build" className="mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Description</Label>
+                <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief project description" className="mt-1" />
+              </div>
+              <div>
+                <Label>Project Start Date</Label>
+                <Input type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} className="mt-1" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#171512]/10 bg-[#f6f0e4] p-4">
+            <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#8a6a12]">Choose a starting point</p>
+            <div className="mt-3 grid grid-cols-1 gap-2">
+              <button
+                onClick={() => setSelectedTemplate(null)}
+                className={`rounded-md border p-3 text-left transition-all ${
+                  selectedTemplate === null ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-[#d9a21a]/40"
+                }`}
+              >
+                <div className="font-semibold">Blank Schedule</div>
+                <div className="text-xs text-[#625a4b]">Start with an empty CPM file and add your own activities.</div>
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                {templates.map((template: any) => {
+                  const isSelected = selectedTemplate === template.id;
+                  return (
+                    <button
+                      key={template.id}
+                      onClick={() => setSelectedTemplate(template.id)}
+                      className={`rounded-md border p-3 text-left transition-all ${
+                        isSelected ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/10 bg-[#fffaf0] hover:border-emerald-700/30"
+                      }`}
+                    >
+                      <div className="font-semibold leading-tight">{template.name}</div>
+                      <div className="mt-1 line-clamp-2 text-xs text-[#625a4b]">{template.description}</div>
+                      <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+                        {template.activityCount} activities
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="shrink-0 border-t border-[#171512]/10 pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onCreate} disabled={!newName.trim() || isPending} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Create Schedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function XerImportDialog({
+  open,
+  onOpenChange,
+  file,
+  setFile,
+  scheduleName,
+  setScheduleName,
+  importing,
+  progress,
+  onImport,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  file: File | null;
+  setFile: (file: File | null) => void;
+  scheduleName: string;
+  setScheduleName: (value: string) => void;
+  importing: boolean;
+  progress: string;
+  onImport: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#fffaf0] border-[#171512]/10 max-w-2xl text-base">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg">Import Primavera P6 XER File</DialogTitle>
+          <DialogDescription>
+            Upload an XER export. Baseline will import activities, relationships, WBS, calendars, constraints, and milestones.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div
+            className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+              file ? "border-[#d9a21a] bg-[#d9a21a]/10" : "border-[#171512]/20 hover:border-[#d9a21a]/60"
+            }`}
+            onClick={() => document.getElementById("xer-file-input")?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const dropped = e.dataTransfer.files[0];
+              if (dropped && dropped.name.toLowerCase().endsWith(".xer")) {
+                setFile(dropped);
+                if (!scheduleName) setScheduleName(dropped.name.replace(/\.xer$/i, ""));
+              } else {
+                toast.error("Please upload an XER file");
+              }
+            }}
+          >
+            <input
+              id="xer-file-input"
+              type="file"
+              accept=".xer,.XER"
+              className="hidden"
+              onChange={(e) => {
+                const selected = e.target.files?.[0];
+                if (selected) {
+                  setFile(selected);
+                  if (!scheduleName) setScheduleName(selected.name.replace(/\.xer$/i, ""));
+                }
+              }}
+            />
+            {file ? (
+              <div className="space-y-2">
+                <FileUp className="w-10 h-10 text-[#8a6a12] mx-auto" />
+                <p className="font-medium text-[#171512]">{file.name}</p>
+                <p className="text-sm text-[#625a4b]">{(file.size / 1024).toFixed(1)} KB</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Upload className="w-10 h-10 text-[#625a4b] mx-auto" />
+                <p className="font-medium text-[#171512]">Drop your XER file here</p>
+                <p className="text-sm text-[#625a4b]">or click to browse</p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label>Schedule Name</Label>
+            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1" />
+          </div>
+
+          <div className="rounded-lg bg-[#f6f0e4] p-4 text-sm text-[#625a4b]">
+            <p className="font-semibold text-[#171512]">Imported schedules open directly in the Baseline cockpit.</p>
+            <p className="mt-1">After import, calculate CPM, verify open ends, then save your first baseline snapshot before issuing the update.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onImport} disabled={!file || importing} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+            {importing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                {progress || "Importing..."}
+              </>
+            ) : (
+              <>
+                <FileUp className="w-4 h-4 mr-2" />
+                Import Schedule
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
