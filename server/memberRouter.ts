@@ -28,12 +28,25 @@ function getDb() {
  * Middleware that extracts the member from the Discord session cookie.
  * Returns null if not authenticated (for public queries).
  */
+// Whitelisted member IDs that bypass subscription checks (beta testers)
+const PORTAL_RUNTIME_WHITELIST = new Set([360002, 1320007]);
+
 async function getMemberFromRequest(req: any): Promise<Member | null> {
   const cookie = parseMemberCookie(req);
   const session = await verifyMemberSession(cookie);
   if (!session) return null;
   const member = await getMemberById(session.memberId);
-  return member || null;
+  if (!member) return null;
+  // Runtime subscription gate: if member is not active/trialing and not whitelisted,
+  // treat them as logged out. This immediately revokes access when status changes in DB.
+  if (
+    member.subscriptionStatus !== "active" &&
+    member.subscriptionStatus !== "trialing" &&
+    !PORTAL_RUNTIME_WHITELIST.has(member.id)
+  ) {
+    return null;
+  }
+  return member;
 }
 
 export const memberRouter = router({

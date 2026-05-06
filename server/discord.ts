@@ -488,18 +488,19 @@ export function registerDiscordOAuthRoutes(app: Express) {
           }
         }
 
-        // ── Strategy 3: Find any unmerged placeholder with active subscription ──
-        // Last resort: if there's exactly one MySQL record with discordId starting
-        // with "email:" and subscriptionStatus "active", it's almost certainly
-        // the member who just purchased.
-        if (!merged) {
+        // ── Strategy 3: Find unmerged placeholder matching the Discord user's email ──
+        // Only merge if the placeholder email matches the Discord user's verified email.
+        // NEVER blindly merge a placeholder just because it's the only one — that allows
+        // random users to steal comped/paid slots.
+        if (!merged && discordUser.email) {
           try {
+            const placeholderDiscordId = `email:${discordUser.email}`;
             const placeholders = await db
               .select()
               .from(members)
               .where(
                 and(
-                  like(members.discordId, "email:%"),
+                  eq(members.discordId, placeholderDiscordId),
                   eq(members.subscriptionStatus, "active")
                 )
               );
@@ -513,15 +514,12 @@ export function registerDiscordOAuthRoutes(app: Express) {
                   discordUsername: discordUser.username,
                   discordDisplayName: discordUser.global_name || discordUser.username,
                   discordAvatar: discordUser.avatar,
-                  // Prefer existing placeholder email over null Discord email
                   email: discordUser.email || placeholder.email || undefined,
                   lastSignedIn: new Date(),
                 })
                 .where(eq(members.id, placeholder.id));
-              console.log(`[Discord OAuth] Strategy 3: Merged sole unlinked active placeholder (id=${placeholder.id}, email=${placeholder.email}) with Discord ID ${discordUser.id}`);
+              console.log(`[Discord OAuth] Strategy 3: Merged email-matched placeholder (id=${placeholder.id}, email=${placeholder.email}) with Discord ID ${discordUser.id}`);
               merged = true;
-            } else if (placeholders.length > 1) {
-              console.warn(`[Discord OAuth] Strategy 3: Found ${placeholders.length} unlinked active placeholders — cannot auto-merge. Manual intervention needed.`);
             }
           } catch (e) {
             console.warn("[Discord OAuth] Strategy 3 failed:", e);
