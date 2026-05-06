@@ -144,7 +144,7 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
         {/* Progress bar */}
         <div className="h-1 bg-zinc-800">
           <div
-            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-500 ease-out"
+            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-out"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -162,8 +162,8 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
         <div className="p-8">
           {/* Step indicator */}
           <div className="flex items-center gap-2 mb-6">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/15 border border-amber-500/30">
-              <Icon className="w-5 h-5 text-amber-400" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/15 border border-blue-500/30">
+              <Icon className="w-5 h-5 text-blue-400" />
             </div>
             <div className="flex-1">
               <div className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
@@ -174,7 +174,7 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
 
           {/* Title */}
           <h2 className="text-xl font-bold text-white mb-1">{current.title}</h2>
-          <p className="text-sm text-amber-400/80 font-medium mb-5">{current.subtitle}</p>
+          <p className="text-sm text-blue-400/80 font-medium mb-5">{current.subtitle}</p>
 
           {/* Content paragraphs */}
           <div className="space-y-3 mb-5">
@@ -187,9 +187,9 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
 
           {/* Tip */}
           {current.tip && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-6">
-              <Lightbulb className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-300/90 leading-relaxed">{current.tip}</p>
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-6">
+              <Lightbulb className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-300/90 leading-relaxed">{current.tip}</p>
             </div>
           )}
 
@@ -214,9 +214,9 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
                   onClick={() => setStep(i)}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     i === step
-                      ? "bg-amber-400 w-6"
+                      ? "bg-blue-400 w-6"
                       : i < step
-                      ? "bg-amber-400/40"
+                      ? "bg-blue-400/40"
                       : "bg-zinc-600"
                   }`}
                 />
@@ -227,7 +227,7 @@ export function CpmOnboarding({ onComplete, onSkip }: CpmOnboardingProps) {
               <Button
                 size="sm"
                 onClick={onComplete}
-                className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                className="bg-blue-500 hover:bg-blue-400 text-white font-semibold"
               >
                 Get Started
                 <Rocket className="w-4 h-4 ml-1" />

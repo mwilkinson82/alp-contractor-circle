@@ -1466,39 +1466,39 @@ export default function Scheduler() {
   }, [activities, openActivityDetail]);
 
   /* ── Loading / Error ──────────────────────────────────────────────────── */
-  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-[#100f0c] text-[#d8c9aa]">Invalid schedule ID</div>;
+  if (!scheduleId) return <div className="h-screen flex items-center justify-center bg-[#030712] text-[#b8c7e6]">Invalid schedule ID</div>;
   if (scheduleQuery.isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#100f0c]">
+      <div className="h-screen flex items-center justify-center bg-[#030712]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-3" />
-          <p className="text-[#d8c9aa] text-sm">Loading schedule...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+          <p className="text-[#b8c7e6] text-sm">Loading schedule...</p>
         </div>
       </div>
     );
   }
-  if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#100f0c] text-[#d8c9aa]">Schedule not found</div>;
+  if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#030712] text-[#b8c7e6]">Schedule not found</div>;
 
   const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterFinishDateStart || filterFinishDateEnd || filterOpenEnds || activeFilters.size > 0 || filterActivityId.trim() !== "" || filterActivityName.trim() !== "" || filterWbs.trim() !== "";
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen flex flex-col bg-[#100f0c] text-[#f7eddb]">
+    <div className="h-screen flex flex-col bg-[#030712] text-[#f8fbff]">
       {/* ── Top Toolbar ── ConstructLine SaaS Ribbon ────────────────────── */}
-      <div className="border-b border-[#d9a21a]/20 bg-[#171512] shrink-0 shadow-[0_16px_45px_rgba(0,0,0,0.22)]">
+      <div className="border-b border-[#2f80ff]/20 bg-[#07111f] shrink-0 shadow-[0_16px_45px_rgba(0,0,0,0.22)]">
         {/* Row 1: Title bar with ConstructLine branding */}
-        <div className="h-11 flex items-center px-4 gap-3 border-b border-[#d9a21a]/10">
-          <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-[#d8c9aa] hover:text-white transition-colors">
+        <div className="h-11 flex items-center px-4 gap-3 border-b border-[#2f80ff]/10">
+          <button onClick={() => window.close()} className="p-1.5 rounded-lg hover:bg-white/10 text-[#b8c7e6] hover:text-white transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="w-px h-5 bg-white/10" />
           {/* ConstructLine Brand Mark */}
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-[#d9a21a]">Line</span></span>
-            <span className="text-[8px] text-[#8b806f] tracking-wider uppercase leading-tight">Baseline CPM</span>
+            <span className="text-sm font-bold tracking-tight text-white leading-tight">Construct<span className="text-[#2f80ff]">Line</span></span>
+            <span className="text-[8px] text-[#64748b] tracking-wider uppercase leading-tight">Baseline CPM</span>
           </div>
           <div className="w-px h-5 bg-white/10" />
-          <h1 className="text-sm font-medium text-[#f7eddb] truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
+          <h1 className="text-sm font-medium text-[#f8fbff] truncate max-w-[280px] tracking-tight">{schedule.schedule.name}</h1>
           <div className="flex-1" />
           {/* Search */}
           {showSearch && (
@@ -1508,7 +1508,7 @@ export default function Scheduler() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search ID, name, description, WBS..."
-                className="h-8 text-xs pl-8 w-52 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f] rounded-lg"
+                className="h-8 text-xs pl-8 w-52 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b] rounded-lg"
                 autoFocus
                 onBlur={() => { if (!searchQuery) setShowSearch(false); }}
               />
@@ -1516,7 +1516,7 @@ export default function Scheduler() {
           )}
           <Button
             size="sm" variant="ghost"
-            className={`h-8 w-8 p-0 rounded-lg ${searchQuery ? "text-[#d9a21a]" : "text-[#d8c9aa] hover:text-white"}`}
+            className={`h-8 w-8 p-0 rounded-lg ${searchQuery ? "text-[#2f80ff]" : "text-[#b8c7e6] hover:text-white"}`}
             onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearchQuery(""); }}
           >
             <Search className="w-4 h-4" />
@@ -1531,7 +1531,7 @@ export default function Scheduler() {
             <div className="flex items-center gap-1 flex-1">
               <Button
                 size="sm" variant="outline"
-                className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/15 bg-amber-500/10 font-semibold rounded-md shadow-sm shadow-amber-500/10"
+                className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/15 bg-blue-500/10 font-semibold rounded-md shadow-sm shadow-blue-500/10"
                 onClick={() => scheduleId && recalcMut.mutate({ scheduleId })}
                 disabled={recalcMut.isPending}
               >
@@ -1564,7 +1564,7 @@ export default function Scheduler() {
                 className={`h-8 text-xs gap-1.5 rounded-md ${
                   dataDate
                     ? "border-emerald-500/25 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15"
-                    : "border-amber-500/40 text-amber-400 bg-amber-500/10 animate-pulse"
+                    : "border-blue-500/40 text-blue-400 bg-blue-500/10 animate-pulse"
                 }`}
                 onClick={() => {
                   const today = new Date().toISOString().split("T")[0];
@@ -1577,7 +1577,7 @@ export default function Scheduler() {
                 DD: {dataDate ? formatDate(dataDate) : "Set"}
               </Button>
             </div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Schedule</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Schedule</span>
           </div>
 
           {/* ── GROUP: Activities ── */}
@@ -1603,7 +1603,7 @@ export default function Scheduler() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Activities</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Activities</span>
           </div>
 
           {/* ── GROUP: View ── */}
@@ -1615,7 +1615,7 @@ export default function Scheduler() {
                   <button
                     key={z}
                     onClick={() => { setZoom(z); setCustomPpd(z === "day" ? 40 : z === "week" ? 14 : 4); }}
-                    className={`px-2.5 text-[11px] h-full transition-all font-medium ${zoom === z ? "bg-amber-500/20 text-amber-300 shadow-inner shadow-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                    className={`px-2.5 text-[11px] h-full transition-all font-medium ${zoom === z ? "bg-blue-500/20 text-blue-300 shadow-inner shadow-blue-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
                   >
                     {z.charAt(0).toUpperCase() + z.slice(1)}
                   </button>
@@ -1638,7 +1638,7 @@ export default function Scheduler() {
               </div>
               {/* Toggle Group */}
               <div className="flex items-center bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
-                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showArrows ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showArrows ? "text-blue-400 bg-blue-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
                   onClick={() => setShowArrows(!showArrows)} title="Logic lines (relationship arrows)">
                   {/* P6-style right-angle arrow icon for logic lines */}
                   <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1647,12 +1647,12 @@ export default function Scheduler() {
                   </svg>
                 </Button>
                 <div className="w-px h-4 bg-white/[0.06]" />
-                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showDataDateLine ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showDataDateLine ? "text-blue-400 bg-blue-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
                   onClick={() => setShowDataDateLine(!showDataDateLine)} title="Data date line">
                   <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">DD</div>
                 </Button>
                 <div className="w-px h-4 bg-white/[0.06]" />
-                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showTodayLine ? "text-amber-400 bg-amber-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-none ${showTodayLine ? "text-blue-400 bg-blue-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.06]"}`}
                   onClick={() => setShowTodayLine(!showTodayLine)} title="Today line">
                   <div className="w-4 h-4 flex items-center justify-center text-[9px] font-bold">TD</div>
                 </Button>
@@ -1673,12 +1673,12 @@ export default function Scheduler() {
                 </Button>
               </div>
               {/* Annotate + Hide toggle */}
-              <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-8 text-xs gap-1 rounded-md ${showAnnotations ? "bg-amber-500 text-gray-950 hover:bg-amber-400 shadow-sm shadow-amber-500/20" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+              <Button size="sm" variant={showAnnotations ? "default" : "ghost"} className={`h-8 text-xs gap-1 rounded-md ${showAnnotations ? "bg-blue-500 text-white hover:bg-blue-400 shadow-sm shadow-blue-500/20" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
                 onClick={() => { setShowAnnotations(!showAnnotations); if (hideAnnotations) setHideAnnotations(false); }} title="Annotation overlay for delay analysis">
                 <Pencil className="w-3.5 h-3.5" /> Annotate
               </Button>
               {ganttAnnotations.length > 0 && (
-                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-md ${hideAnnotations ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
+                <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 rounded-md ${hideAnnotations ? "text-blue-400 bg-blue-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}
                   onClick={() => setHideAnnotations(!hideAnnotations)} title={hideAnnotations ? "Show annotations" : "Hide annotations"}>
                   {hideAnnotations ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </Button>
@@ -1687,9 +1687,9 @@ export default function Scheduler() {
               {/* Columns, Filter, Group — consolidated into View Options dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1.5 rounded-md ${hasActiveFilters || groupBy ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}>
+                  <Button size="sm" variant="ghost" className={`h-8 text-xs gap-1.5 rounded-md ${hasActiveFilters || groupBy ? "text-blue-400 bg-blue-500/10" : "text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"}`}>
                     <Layers className="w-3.5 h-3.5" /> View <ChevronDown className="w-3 h-3 opacity-60" />
-                    {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                    {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
@@ -1697,28 +1697,28 @@ export default function Scheduler() {
                   <DropdownMenuItem onClick={() => setShowColumnPicker(true)}>
                     <Columns3 className="w-4 h-4 mr-2" /> Column Picker
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowAdvancedFilter(true)} className={hasActiveFilters ? "text-amber-400" : ""}>
+                  <DropdownMenuItem onClick={() => setShowAdvancedFilter(true)} className={hasActiveFilters ? "text-blue-400" : ""}>
                     <Filter className="w-4 h-4 mr-2" /> Filter Activities
-                    {hasActiveFilters && <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Active</span>}
+                    {hasActiveFilters && <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Active</span>}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowGroupSortDialog(true)} className={groupBy || sortState.dir ? "text-amber-400" : ""}>
+                  <DropdownMenuItem onClick={() => setShowGroupSortDialog(true)} className={groupBy || sortState.dir ? "text-blue-400" : ""}>
                     <ArrowUpDown className="w-4 h-4 mr-2" /> Group &amp; Sort
-                    {(groupBy || sortState.dir) && <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Set</span>}
+                    {(groupBy || sortState.dir) && <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Set</span>}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] tracking-wider uppercase text-gray-500">Group By</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => setGroupBy(null)}>
-                    {!groupBy && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {!groupBy && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-blue-400" />}
                     {groupBy && <span className="w-3.5 h-3.5 mr-2" />}
                     None
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setGroupBy("wbs")}>
-                    {groupBy === "wbs" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {groupBy === "wbs" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-blue-400" />}
                     {groupBy !== "wbs" && <span className="w-3.5 h-3.5 mr-2" />}
                     WBS
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setGroupBy("critical")}>
-                    {groupBy === "critical" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                    {groupBy === "critical" && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-blue-400" />}
                     {groupBy !== "critical" && <span className="w-3.5 h-3.5 mr-2" />}
                     Critical Path
                   </DropdownMenuItem>
@@ -1728,7 +1728,7 @@ export default function Scheduler() {
                       <div className="px-2 py-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase">Activity Codes</div>
                       {codeCategories.map((cat: any) => (
                         <DropdownMenuItem key={cat.id} onClick={() => setGroupBy(String(cat.id))}>
-                          {groupBy === String(cat.id) && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-400" />}
+                          {groupBy === String(cat.id) && <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-blue-400" />}
                           {groupBy !== String(cat.id) && <span className="w-3.5 h-3.5 mr-2" />}
                           {cat.name}
                         </DropdownMenuItem>
@@ -1752,7 +1752,7 @@ export default function Scheduler() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">View</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">View</span>
           </div>
 
           {/* ── GROUP: Tools ── */}
@@ -1767,7 +1767,7 @@ export default function Scheduler() {
                 </Button>
               </Link>
             </div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Tools</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Tools</span>
           </div>
 
           {/* ── Settings ── */}
@@ -1775,7 +1775,7 @@ export default function Scheduler() {
             <div className="flex items-center gap-0.5 flex-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-200 font-semibold rounded-md shadow-sm shadow-amber-500/10">
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 font-semibold rounded-md shadow-sm shadow-blue-500/10">
                   <Settings className="w-3.5 h-3.5" /> Settings
                 </Button>
               </DropdownMenuTrigger>
@@ -1838,12 +1838,12 @@ export default function Scheduler() {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuItem onClick={() => setTarget1Id(null)}>
-                        <span className={!target1Id ? "font-semibold text-amber-400" : ""}>None</span>
+                        <span className={!target1Id ? "font-semibold text-blue-400" : ""}>None</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       {baselines.map((b: any) => (
                         <DropdownMenuItem key={b.id} onClick={() => setTarget1Id(b.id)}>
-                          <span className={target1Id === b.id ? "font-semibold text-amber-400" : ""}>
+                          <span className={target1Id === b.id ? "font-semibold text-blue-400" : ""}>
                             {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
                           </span>
                         </DropdownMenuItem>
@@ -1856,12 +1856,12 @@ export default function Scheduler() {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuItem onClick={() => setTarget2Id(null)}>
-                        <span className={!target2Id ? "font-semibold text-amber-400" : ""}>None</span>
+                        <span className={!target2Id ? "font-semibold text-blue-400" : ""}>None</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       {baselines.map((b: any) => (
                         <DropdownMenuItem key={b.id} onClick={() => setTarget2Id(b.id)}>
-                          <span className={target2Id === b.id ? "font-semibold text-amber-400" : ""}>
+                          <span className={target2Id === b.id ? "font-semibold text-blue-400" : ""}>
                             {b.name} {b.snapshotType === "update" ? `(${new Date(b.createdAt).toLocaleDateString()})` : ""}
                           </span>
                         </DropdownMenuItem>
@@ -1923,9 +1923,9 @@ export default function Scheduler() {
                 </DropdownMenuItem>
                 {layouts.filter((l: any) => l.name !== "__autosave__").length > 0 && <DropdownMenuSeparator />}
                 {layouts.filter((l: any) => l.name !== "__autosave__").map((layout: any) => (
-                  <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config, layout.id)} className={activeLayoutId === layout.id ? "bg-amber-500/10" : ""}>
-                    {activeLayoutId === layout.id && <CheckCircle2 className="w-3 h-3 mr-1 text-amber-400 flex-shrink-0" />}
-                    {layout.isDefault && <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500 flex-shrink-0" />}
+                  <DropdownMenuItem key={layout.id} onClick={() => applyLayoutConfig(layout.config, layout.id)} className={activeLayoutId === layout.id ? "bg-blue-500/10" : ""}>
+                    {activeLayoutId === layout.id && <CheckCircle2 className="w-3 h-3 mr-1 text-blue-400 flex-shrink-0" />}
+                    {layout.isDefault && <Star className="w-3 h-3 mr-1 text-blue-500 fill-blue-500 flex-shrink-0" />}
                     <span className="flex-1 truncate">{layout.name}</span>
                     <button
                       className="ml-2 text-gray-400 hover:text-red-400"
@@ -1984,7 +1984,7 @@ export default function Scheduler() {
            </DropdownMenuContent>
           </DropdownMenu>
             </div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-amber-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Settings</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/60 uppercase text-center mt-1 border-t border-white/[0.04] pt-0.5">Settings</span>
           </div>
         </div>{/* end ribbon row */}
       </div>{/* end toolbar */}
@@ -2042,7 +2042,7 @@ export default function Scheduler() {
 
       {/* ── Activity Code Filter Bar ───────────────────────────────────────── */}
       {showFilterPanel && codeCategories.length > 0 && (
-        <div className="border-b border-[#d9a21a]/15 bg-[#1f1c16] px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
+        <div className="border-b border-[#2f80ff]/15 bg-[#0b1626] px-4 py-2 flex items-center gap-4 overflow-x-auto shrink-0">
           {codeCategories.map((cat: any) => (
             <div key={cat.id} className="flex items-center gap-2 shrink-0">
               <span className="text-xs text-gray-400 font-medium">{cat.name}:</span>
@@ -2060,7 +2060,7 @@ export default function Scheduler() {
                         else set.add(val.id);
                         setActiveFilters(newFilters);
                       }}
-                      className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${isActive ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"}`}
+                      className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${isActive ? "bg-blue-500/20 border-blue-500/40 text-blue-300" : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"}`}
                     >
                       {val.value}
                     </button>
@@ -2120,14 +2120,14 @@ export default function Scheduler() {
                       <span className="truncate">{col.shortLabel}</span>
                       {col.sortable && (
                         <span className="shrink-0">
-                          {isSorted && sortState.dir === "asc" && <ChevronUp className="w-3 h-3 text-amber-400" />}
-                          {isSorted && sortState.dir === "desc" && <ChevronDown className="w-3 h-3 text-amber-400" />}
+                          {isSorted && sortState.dir === "asc" && <ChevronUp className="w-3 h-3 text-blue-400" />}
+                          {isSorted && sortState.dir === "desc" && <ChevronDown className="w-3 h-3 text-blue-400" />}
                           {!isSorted && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
                         </span>
                       )}
                       {/* Column resize handle */}
                       <div
-                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-amber-500/50 transition-colors ${resizingCol === col.key ? "bg-amber-500" : "bg-transparent group-hover/col:bg-gray-300/50"}`}
+                        className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/50 transition-colors ${resizingCol === col.key ? "bg-blue-500" : "bg-transparent group-hover/col:bg-gray-300/50"}`}
                         onMouseDown={(e) => handleColResizeStart(e, col.key)}
                         title="Drag to resize column"
                       />
@@ -2275,11 +2275,11 @@ export default function Scheduler() {
                         data-activity-id={act.id}
                         className={`text-sm items-center gap-1.5 cursor-pointer transition-colors border-b border-gray-100 relative ${
                           isSelected
-                            ? "bg-amber-50 ring-1 ring-amber-500/20"
+                            ? "bg-blue-50 ring-1 ring-blue-500/20"
                             : act.id === selectedActivityId
                             ? "bg-blue-100 ring-1 ring-blue-400/30"
                             : act.isCritical
-                            ? "hover:bg-amber-50/60"
+                            ? "hover:bg-blue-50/60"
                             : hasOpenEnd
                             ? "hover:bg-yellow-50"
                             : "hover:bg-gray-50"
@@ -2360,7 +2360,7 @@ export default function Scheduler() {
                               }
                               setLastClickedId(act.id);
                             }}
-                            className="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0"
+                            className="w-3.5 h-3.5 accent-blue-500 cursor-pointer shrink-0"
                             title="Click to select, Shift+click to select range"
                           />
                           {hasOpenEnd && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
@@ -2404,7 +2404,7 @@ export default function Scheduler() {
                                   onBlur={commitEdit}
                                   onKeyDown={handleEditKeyDown}
                                   autoFocus
-                                  className="h-8 text-sm px-2 py-0 border-amber-500/60 bg-white text-gray-900 border"
+                                  className="h-8 text-sm px-2 py-0 border-blue-500/60 bg-white text-gray-900 border"
                                   type={col.key === "duration" || col.key === "percentComplete" ? "number" : "text"}
                                 />
                               </div>
@@ -2446,7 +2446,7 @@ export default function Scheduler() {
                                     open={true}
                                     onOpenChange={(open) => { if (!open) setEditingCodeCell(null); }}
                                   >
-                                    <SelectTrigger className="h-7 text-xs border-amber-500/60 bg-white text-gray-900">
+                                    <SelectTrigger className="h-7 text-xs border-blue-500/60 bg-white text-gray-900">
                                       <SelectValue placeholder="Not assigned" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -2463,7 +2463,7 @@ export default function Scheduler() {
                                   </Select>
                                 ) : (
                                   <div
-                                    className={`cursor-pointer hover:bg-amber-50 px-1 py-0.5 rounded text-sm truncate ${cellClass}`}
+                                    className={`cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-sm truncate ${cellClass}`}
                                     onClick={() => setEditingCodeCell({ activityId: act.id, categoryId: catId })}
                                     title={`Click to assign ${cat?.name || "code"}`}
                                   >
@@ -2496,7 +2496,7 @@ export default function Scheduler() {
             <div className="px-3 py-2 border-t border-gray-200">
               <button
                 onClick={() => setShowActivityDialog(true)}
-                className="text-sm text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1.5"
+                className="text-sm text-gray-500 hover:text-blue-400 transition-colors flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" /> Add Activity
               </button>
@@ -2625,7 +2625,7 @@ export default function Scheduler() {
 
       {/* ── Activity Detail Modal ───────────────────────────────────────────── */}
       <Dialog open={showActivityDetailModal} onOpenChange={setShowActivityDetailModal}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="max-w-5xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Activity Details</DialogTitle>
             <DialogDescription>Edit all properties of this activity.</DialogDescription>
@@ -2640,12 +2640,12 @@ export default function Scheduler() {
                 <Label className="text-sm text-gray-600">Type</Label>
                 <div className="flex gap-2 mt-1">
                   <Button size="sm" variant={detailActivityType === "task" ? "default" : "outline"}
-                    className={detailActivityType === "task" ? "bg-amber-500 text-white" : "border-white/15 text-gray-300"}
+                    className={detailActivityType === "task" ? "bg-blue-500 text-white" : "border-white/15 text-gray-300"}
                     onClick={() => setDetailActivityType("task")}>
                     Task
                   </Button>
                   <Button size="sm" variant={detailActivityType === "milestone" ? "default" : "outline"}
-                    className={detailActivityType === "milestone" ? "bg-amber-600 text-white" : "border-white/15 text-gray-300"}
+                    className={detailActivityType === "milestone" ? "bg-blue-600 text-white" : "border-white/15 text-gray-300"}
                     onClick={() => { setDetailActivityType("milestone"); setDetailDuration("0"); }}>
                     ◆ Milestone
                   </Button>
@@ -2732,8 +2732,8 @@ export default function Scheduler() {
               </div>
 
               {/* Constraints */}
-              <div className="border border-[#d9a21a]/20 bg-amber-500/10 rounded-lg p-3">
-                <Label className="text-xs text-amber-300 font-semibold mb-2 block">Date Constraints</Label>
+              <div className="border border-[#2f80ff]/20 bg-blue-500/10 rounded-lg p-3">
+                <Label className="text-xs text-blue-300 font-semibold mb-2 block">Date Constraints</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-[10px] text-gray-400">Constraint Type</Label>
@@ -2783,10 +2783,10 @@ export default function Scheduler() {
                   <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">Activity must finish on or before this date. Use for hard deadlines (e.g., "Receive Building Permit" must be done by a specific date).</p>
                 )}
                 {detailConstraintType === "MSO" && (
-                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-amber-400">Hard constraint.</strong> Activity must start exactly on this date. Use for milestones like "Notice to Proceed" or "Contract Start" that are fixed to a specific date.</p>
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-blue-400">Hard constraint.</strong> Activity must start exactly on this date. Use for milestones like "Notice to Proceed" or "Contract Start" that are fixed to a specific date.</p>
                 )}
                 {detailConstraintType === "MFO" && (
-                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-amber-400">Hard constraint.</strong> Activity must finish exactly on this date. Use for contractual deadlines like "Substantial Completion" or "Final Completion" dates.</p>
+                  <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed"><strong className="text-blue-400">Hard constraint.</strong> Activity must finish exactly on this date. Use for contractual deadlines like "Substantial Completion" or "Final Completion" dates.</p>
                 )}
               </div>
               </div>
@@ -2804,7 +2804,7 @@ export default function Scheduler() {
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">Pred:</span>
                           <span className="font-medium text-gray-400">{pred?.activityId || pred?.name || `#${r.predecessorId}`}</span>
-                          <span className="text-amber-400 font-mono text-[10px] bg-amber-500/15 px-1 rounded">{r.relationshipType}</span>
+                          <span className="text-blue-400 font-mono text-[10px] bg-blue-500/15 px-1 rounded">{r.relationshipType}</span>
                           {r.lagDays ? <span className="text-gray-600">+{r.lagDays}d</span> : null}
                         </div>
                         <button onClick={() => { if (scheduleId) deleteRelMut.mutate({ id: r.id, scheduleId }); }}
@@ -2821,7 +2821,7 @@ export default function Scheduler() {
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">Succ:</span>
                           <span className="font-medium text-gray-400">{succ?.activityId || succ?.name || `#${r.successorId}`}</span>
-                          <span className="text-amber-400 font-mono text-[10px] bg-amber-500/15 px-1 rounded">{r.relationshipType}</span>
+                          <span className="text-blue-400 font-mono text-[10px] bg-blue-500/15 px-1 rounded">{r.relationshipType}</span>
                           {r.lagDays ? <span className="text-gray-600">+{r.lagDays}d</span> : null}
                         </div>
                         <button onClick={() => { if (scheduleId) deleteRelMut.mutate({ id: r.id, scheduleId }); }}
@@ -2855,7 +2855,7 @@ export default function Scheduler() {
                       .map((a) => (
                         <div
                           key={a.id}
-                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelPred ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelPred ? "bg-blue-500/20 text-blue-300" : "text-gray-400"}`}
                           onClick={() => setNewDetailRelPred(String(a.id))}
                         >
                           <span className="font-mono text-gray-500 w-20 shrink-0">{a.activityId || `A${a.id}`}</span>
@@ -2882,7 +2882,7 @@ export default function Scheduler() {
                       <Input type="number" value={newDetailRelLag} onChange={(e) => setNewDetailRelLag(e.target.value)}
                         className="w-16 h-7 text-xs border-white/15" placeholder="0" />
                     </div>
-                    <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
+                    <Button size="sm" className="h-7 bg-blue-500 text-white hover:bg-blue-400 font-semibold text-xs px-2"
                       disabled={!newDetailRelPred || !scheduleId}
                       onClick={() => {
                         if (scheduleId && newDetailRelPred) {
@@ -2922,7 +2922,7 @@ export default function Scheduler() {
                       .map((a) => (
                         <div
                           key={a.id}
-                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelSucc ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                          className={`flex items-center px-2 py-1 text-xs cursor-pointer hover:bg-white/10 ${String(a.id) === newDetailRelSucc ? "bg-blue-500/20 text-blue-300" : "text-gray-400"}`}
                           onClick={() => setNewDetailRelSucc(String(a.id))}
                         >
                           <span className="font-mono text-gray-500 w-20 shrink-0">{a.activityId || `A${a.id}`}</span>
@@ -2949,7 +2949,7 @@ export default function Scheduler() {
                       <Input type="number" value={newDetailRelSuccLag} onChange={(e) => setNewDetailRelSuccLag(e.target.value)}
                         className="w-16 h-7 text-xs border-white/15" placeholder="0" />
                     </div>
-                    <Button size="sm" className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs px-2"
+                    <Button size="sm" className="h-7 bg-blue-500 text-white hover:bg-blue-400 font-semibold text-xs px-2"
                       disabled={!newDetailRelSucc || !scheduleId}
                       onClick={() => {
                         if (scheduleId && newDetailRelSucc) {
@@ -3013,7 +3013,7 @@ export default function Scheduler() {
               {codeCategories.length > 0 && (
                 <div className="border border-white/10 rounded-lg p-3 bg-white/5">
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-xs text-amber-300 font-semibold">Activity Codes</Label>
+                    <Label className="text-xs text-blue-300 font-semibold">Activity Codes</Label>
                     <Button size="sm" variant="ghost" className="h-6 text-[10px] text-gray-500 hover:text-gray-300" onClick={() => setShowCodeManager(true)}>
                       Manage Codes
                     </Button>
@@ -3073,7 +3073,7 @@ export default function Scheduler() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowActivityDetailModal(false)} className="border-white/15">Cancel</Button>
-            <Button onClick={saveActivityDetail} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold" disabled={updateActivityMut.isPending}>
+            <Button onClick={saveActivityDetail} className="bg-blue-500 text-white hover:bg-blue-400 font-semibold" disabled={updateActivityMut.isPending}>
               Save Changes
             </Button>
           </DialogFooter>
@@ -3082,7 +3082,7 @@ export default function Scheduler() {
 
       {/* ── Add Activity Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Add Activity</DialogTitle>
             <DialogDescription>Create a new task or milestone in this schedule.</DialogDescription>
@@ -3093,12 +3093,12 @@ export default function Scheduler() {
               <Label className="text-xs text-gray-600">Type</Label>
               <div className="flex gap-2 mt-1">
                 <Button size="sm" variant={newActType === "task" ? "default" : "outline"}
-                  className={newActType === "task" ? "bg-amber-500 text-white" : "border-white/15 text-gray-300"}
+                  className={newActType === "task" ? "bg-blue-500 text-white" : "border-white/15 text-gray-300"}
                   onClick={() => setNewActType("task")}>
                   Task
                 </Button>
                 <Button size="sm" variant={newActType === "milestone" ? "default" : "outline"}
-                  className={newActType === "milestone" ? "bg-amber-600 text-white" : "border-white/15 text-gray-300"}
+                  className={newActType === "milestone" ? "bg-blue-600 text-white" : "border-white/15 text-gray-300"}
                   onClick={() => { setNewActType("milestone"); setNewActDuration("0"); }}>
                   ◆ Milestone
                 </Button>
@@ -3152,7 +3152,7 @@ export default function Scheduler() {
                   setNewActName(""); setNewActDuration("5"); setNewActWbs(""); setNewActType("task"); setNewActActivityId(""); setShowActivityDialog(false);
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!newActName.trim() || addActivityMut.isPending}
             >
               Add
@@ -3163,7 +3163,7 @@ export default function Scheduler() {
 
       {/* ── Bulk Add Activities Dialog ──────────────────────────────────────── */}
       <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Bulk Add Activities</DialogTitle>
             <DialogDescription>Create multiple activities at once with auto-generated IDs.</DialogDescription>
@@ -3191,7 +3191,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={bulkAddMut.isPending}
             >
               {bulkAddMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
@@ -3203,7 +3203,7 @@ export default function Scheduler() {
 
       {/* ── CSV Import Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showCsvImportDialog} onOpenChange={(open) => { setShowCsvImportDialog(open); if (!open) { setCsvParsedRows([]); setCsvFileName(""); } }}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="max-w-5xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-gray-100 flex items-center gap-2">
               <Upload className="w-5 h-5 text-emerald-600" /> Import Activities from CSV
@@ -3352,7 +3352,7 @@ export default function Scheduler() {
 
       {/* ── Activity ID Settings Dialog ─────────────────────────────────────── */}
       <Dialog open={showIdSettingsDialog} onOpenChange={setShowIdSettingsDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Activity ID Settings</DialogTitle>
             <DialogDescription>Configure how new Activity IDs are generated.</DialogDescription>
@@ -3388,7 +3388,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={updateIdSettingsMut.isPending}
             >
               Save Settings
@@ -3399,7 +3399,7 @@ export default function Scheduler() {
 
       {/* ── Add Relationship Dialog ─────────────────────────────────────────── */}
       <Dialog open={showRelationshipDialog} onOpenChange={setShowRelationshipDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Add Relationship</DialogTitle>
             <DialogDescription>Define a logic tie between two activities.</DialogDescription>
@@ -3454,7 +3454,7 @@ export default function Scheduler() {
                   addRelMut.mutate({ scheduleId, predecessorId: parseInt(newRelPred), successorId: parseInt(newRelSucc), relationshipType: newRelType as any, lagDays: parseInt(newRelLag) || 0 });
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!newRelPred || !newRelSucc || addRelMut.isPending}
             >
               Add
@@ -3465,7 +3465,7 @@ export default function Scheduler() {
 
       {/* ── Save Baseline Dialog ────────────────────────────────────────────── */}
       <Dialog open={showBaselineDialog} onOpenChange={setShowBaselineDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Save Baseline</DialogTitle>
             <DialogDescription>Save the current schedule as the original baseline for comparison.</DialogDescription>
@@ -3483,7 +3483,7 @@ export default function Scheduler() {
                   setNewBaselineName("");
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!newBaselineName.trim() || saveBaselineMut.isPending}
             >
               Save Baseline
@@ -3494,7 +3494,7 @@ export default function Scheduler() {
 
       {/* ── Save Update Dialog ──────────────────────────────────────────────── */}
       <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Save Schedule Update</DialogTitle>
             <DialogDescription>
@@ -3521,7 +3521,7 @@ export default function Scheduler() {
                   setUpdateNotes("");
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={saveUpdateMut.isPending}
             >
               Save Update
@@ -3532,7 +3532,7 @@ export default function Scheduler() {
 
       {/* ── Set Data Date Dialog ────────────────────────────────────────────── */}
       <Dialog open={showDataDatePicker} onOpenChange={setShowDataDatePicker}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Set Data Date</DialogTitle>
             <DialogDescription>The data date is the "as-of" date for CPM calculations. It is independent of today's calendar date.</DialogDescription>
@@ -3564,7 +3564,7 @@ export default function Scheduler() {
                   });
                 }
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!dataDateInput || updateScheduleMut.isPending}
             >
               {updateScheduleMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Calendar className="w-4 h-4 mr-2" />}
@@ -3576,7 +3576,7 @@ export default function Scheduler() {
 
       {/* ── Duplicate as Update Dialog ──────────────────────────────────────── */}
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Duplicate Schedule as Update</DialogTitle>
             <DialogDescription>
@@ -3603,7 +3603,7 @@ export default function Scheduler() {
                 className="border-white/15 bg-white/5 text-gray-100"
               />
             </div>
-            <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-300">
+            <div className="rounded-md bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-xs text-blue-300">
               <strong>What gets copied:</strong> All activities (with actual dates, constraints, bar colors), logic ties, calendars &amp; exceptions, WBS structure, activity codes, resources, cost accounts, layouts, and annotations. CPM will be recalculated with the new data date.
             </div>
           </div>
@@ -3618,7 +3618,7 @@ export default function Scheduler() {
                   dataDate: duplicateDataDate ? new Date(duplicateDataDate + "T00:00:00") : undefined,
                 });
               }}
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!duplicateName.trim() || duplicateAsUpdateMut.isPending}
             >
               {duplicateAsUpdateMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
@@ -3631,10 +3631,10 @@ export default function Scheduler() {
       {/* ── Compare with Another Schedule Dialog ─────────────────────────── */}
       {showCompareDialog && (
         <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
             <DialogHeader>
               <DialogTitle className="font-semibold text-lg flex items-center gap-2">
-                <GitCompareArrows className="w-5 h-5 text-amber-400" />
+                <GitCompareArrows className="w-5 h-5 text-blue-400" />
                 Compare with Another Schedule
               </DialogTitle>
               <DialogDescription>
@@ -3656,7 +3656,7 @@ export default function Scheduler() {
                   setShowCompareDialog(false);
                   window.open(`/scheduler/${scheduleId}/reports?report=comparison`, '_blank');
                 }}
-                className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               >
                 <GitCompareArrows className="w-4 h-4 mr-2" />
                 Open Variance Report
@@ -3668,7 +3668,7 @@ export default function Scheduler() {
 
       {/* ── Baseline Overlay Picker Dialog ──────────────────────────────── */}
       <Dialog open={showBaselinePickerDialog} onOpenChange={setShowBaselinePickerDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg flex items-center gap-2">
               <GitCompareArrows className="w-5 h-5 text-indigo-400" />
@@ -3722,15 +3722,15 @@ export default function Scheduler() {
       </Dialog>
       {/* ── Calendar Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Project Calendars</DialogTitle>
             <DialogDescription>Create and manage work calendars, set work days, and mark holidays.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {/* Create New Calendar */}
-            <div className="border border-dashed border-[#d9a21a]/30 bg-amber-500/10 rounded-lg p-3">
-              <Label className="text-xs text-amber-300 font-semibold mb-2 block">Create New Calendar</Label>
+            <div className="border border-dashed border-[#2f80ff]/30 bg-blue-500/10 rounded-lg p-3">
+              <Label className="text-xs text-blue-300 font-semibold mb-2 block">Create New Calendar</Label>
               <div className="grid grid-cols-3 gap-2">
                 <Input
                   placeholder="Calendar name"
@@ -3749,7 +3749,7 @@ export default function Scheduler() {
                 </Select>
                 <Button
                   size="sm"
-                  className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs"
+                  className="bg-blue-500 text-white hover:bg-blue-400 font-semibold text-xs"
                   onClick={() => {
                     const nameEl = document.getElementById("newCalName") as HTMLInputElement;
                     const name = nameEl?.value?.trim();
@@ -3781,11 +3781,11 @@ export default function Scheduler() {
                   <div className="flex items-center justify-between px-3 py-2 bg-white/5 border-b border-white/10">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-gray-100">{cal.name}</span>
-                      {cal.isDefault && <span className="text-[10px] bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full font-medium">Default</span>}
+                      {cal.isDefault && <span className="text-[10px] bg-blue-500/15 text-blue-300 px-2 py-0.5 rounded-full font-medium">Default</span>}
                     </div>
                     <div className="flex items-center gap-1">
                       {!cal.isDefault && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-amber-400 hover:bg-amber-500/10"
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-blue-400 hover:bg-blue-500/10"
                           onClick={() => { if (scheduleId) addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: true, addUSHolidays: false }); }}
                         >Set Default</Button>
                       )}
@@ -3823,7 +3823,7 @@ export default function Scheduler() {
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-[10px] text-gray-400">Holidays / Non-Work Days ({holidays.length})</Label>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-5 text-[10px] text-amber-400 hover:bg-amber-500/10 px-1"
+                          <Button size="sm" variant="ghost" className="h-5 text-[10px] text-blue-400 hover:bg-blue-500/10 px-1"
                             onClick={() => {
                               if (!scheduleId) return;
                               addCalendarMut.mutate({ scheduleId, name: cal.name, workWeek: cal.workWeek, workDaysMask: cal.workDaysMask, isDefault: cal.isDefault, addUSHolidays: true });
@@ -3919,7 +3919,7 @@ export default function Scheduler() {
 
       {/* ── Schedule Health Dialog ───────────────────────────────────────────── */}
       <Dialog open={showScheduleHealth} onOpenChange={setShowScheduleHealth}>
-        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Schedule Health Check</DialogTitle>
             <DialogDescription>Review schedule integrity and identify issues.</DialogDescription>
@@ -3954,17 +3954,17 @@ export default function Scheduler() {
 
               {openEnds.openStarts.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-xs text-amber-300 font-medium mb-1">
+                  <div className="text-xs text-blue-300 font-medium mb-1">
                     Missing Predecessors ({openEnds.openStarts.length})
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {openEnds.openStarts.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-[#d8c9aa] px-2 py-1 bg-amber-500/10 rounded cursor-pointer hover:bg-amber-500/15"
+                        className="text-xs text-[#b8c7e6] px-2 py-1 bg-blue-500/10 rounded cursor-pointer hover:bg-blue-500/15"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
-                        <span className="font-mono text-amber-300">{a.activityId || `A${a.id}`}</span> — {a.name}
+                        <span className="font-mono text-blue-300">{a.activityId || `A${a.id}`}</span> — {a.name}
                       </div>
                     ))}
                   </div>
@@ -3973,17 +3973,17 @@ export default function Scheduler() {
 
               {openEnds.openFinishes.length > 0 && (
                 <div>
-                  <div className="text-xs text-amber-300 font-medium mb-1">
+                  <div className="text-xs text-blue-300 font-medium mb-1">
                     Missing Successors ({openEnds.openFinishes.length})
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {openEnds.openFinishes.map((a) => (
                       <div
                         key={a.id}
-                        className="text-xs text-[#d8c9aa] px-2 py-1 bg-amber-500/10 rounded cursor-pointer hover:bg-amber-500/15"
+                        className="text-xs text-[#b8c7e6] px-2 py-1 bg-blue-500/10 rounded cursor-pointer hover:bg-blue-500/15"
                         onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                       >
-                        <span className="font-mono text-amber-300">{a.activityId || `A${a.id}`}</span> — {a.name}
+                        <span className="font-mono text-blue-300">{a.activityId || `A${a.id}`}</span> — {a.name}
                       </div>
                     ))}
                   </div>
@@ -4008,7 +4008,7 @@ export default function Scheduler() {
                   {activities.filter((a) => (a.totalFloat ?? 0) < 0).map((a) => (
                     <div
                       key={a.id}
-                      className="text-xs text-[#d8c9aa] px-2 py-1 bg-red-500/10 rounded cursor-pointer hover:bg-red-500/15"
+                      className="text-xs text-[#b8c7e6] px-2 py-1 bg-red-500/10 rounded cursor-pointer hover:bg-red-500/15"
                       onClick={() => { setSelectedActivityId(a.id); setShowScheduleHealth(false); }}
                     >
                       <span className="font-mono text-red-300">{a.activityId || `A${a.id}`}</span> — {a.name}
@@ -4027,7 +4027,7 @@ export default function Scheduler() {
 
       {/* ── Schedule Info Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showScheduleInfo} onOpenChange={setShowScheduleInfo}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Schedule Settings</DialogTitle>
             <DialogDescription>Configure schedule details, project info for PDF exports, and view statistics.</DialogDescription>
@@ -4036,7 +4036,7 @@ export default function Scheduler() {
             {/* Left: Editable Settings */}
             <div className="space-y-4">
               <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
-                <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Project Details</Label>
+                <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Project Details</Label>
                 <p className="text-[10px] text-gray-500">These fields auto-populate PDF header/footer tokens.</p>
                 <div>
                   <Label className="text-xs text-gray-400 mb-1 block">Project Name</Label>
@@ -4067,7 +4067,7 @@ export default function Scheduler() {
                 </div>
               </div>
               <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
-                <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Company Override</Label>
+                <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Company Override</Label>
                 <p className="text-[10px] text-gray-500">Leave blank to use your account defaults.</p>
                 <div>
                   <Label className="text-xs text-gray-400 mb-1 block">Company Name (override)</Label>
@@ -4082,7 +4082,7 @@ export default function Scheduler() {
             </div>
             {/* Right: Statistics */}
             <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
-              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Schedule Statistics</Label>
+              <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Schedule Statistics</Label>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-400">Project Start</span><span className="text-gray-100 font-medium">{formatDate(schedule.schedule.projectStartDate ? new Date(schedule.schedule.projectStartDate) : null)}</span></div>
                 <div className="flex justify-between"><span className="text-gray-400">Data Date</span><span className="text-gray-100 font-medium">{dataDate ? formatDate(dataDate) : "Not set"}</span></div>
@@ -4112,7 +4112,7 @@ export default function Scheduler() {
                 }
               }}
               disabled={updateSchedSettingsMut.isPending}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-blue-600 hover:bg-blue-500 text-white"
             >
               {updateSchedSettingsMut.isPending ? "Saving..." : "Save Settings"}
             </Button>
@@ -4129,7 +4129,7 @@ export default function Scheduler() {
           }
           setShowGanttSettings(open);
         }}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Gantt Display Settings</DialogTitle>
             <DialogDescription>Customize how activity labels and bars appear on the Gantt chart.</DialogDescription>
@@ -4137,7 +4137,7 @@ export default function Scheduler() {
           <div className="grid grid-cols-2 gap-5">
             {/* ── Bar Colors Section ── */}
             <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
-              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Gantt Bar Colors</Label>
+              <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Gantt Bar Colors</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-gray-400 mb-1.5 block">Critical Path Bars</Label>
@@ -4196,7 +4196,7 @@ export default function Scheduler() {
                 </Button>
                 <Button
                   size="sm"
-                  className="text-xs bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                  className="text-xs bg-blue-500 text-white hover:bg-blue-400 font-semibold"
                   disabled={updateBarColorsMut.isPending}
                   onClick={() => {
                     if (!scheduleId) return;
@@ -4214,7 +4214,7 @@ export default function Scheduler() {
 
             {/* ── Cost Overlay Font Size ── */}
             <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3">
-              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Cost Overlay Font</Label>
+              <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Cost Overlay Font</Label>
               <p className="text-[11px] text-gray-500">Controls the font size of dollar values displayed on Gantt bars when cost overlay is enabled.</p>
               <div className="flex items-center gap-3">
                 <Label className="text-xs text-gray-400 shrink-0">Font Size (px)</Label>
@@ -4302,7 +4302,7 @@ export default function Scheduler() {
           </div>
           <DialogFooter className="pt-4 pb-2 px-2">
             <Button variant="outline" onClick={() => { setGanttFontSize(9); setGanttFontColor("#374151"); setGanttFontFamily("DM Sans"); setCostFontSize(9); }} className="border-white/15 text-gray-100">Reset All Fonts</Button>
-            <Button onClick={() => setShowGanttSettings(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">Done</Button>
+            <Button onClick={() => setShowGanttSettings(false)} className="bg-blue-500 text-white hover:bg-blue-400 font-semibold">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -4319,15 +4319,15 @@ export default function Scheduler() {
 
       {/* ── WBS Manager Dialog ────────────────────────────────────────────── */}
       <Dialog open={showWbsManager} onOpenChange={setShowWbsManager}>
-        <DialogContent className="max-w-5xl !max-h-[90vh] [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-[calc(90vh-2rem)]">
+        <DialogContent className="max-w-5xl !max-h-[90vh] [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-[calc(90vh-2rem)] bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="font-semibold text-lg">WBS Manager — Work Breakdown Structure</DialogTitle>
             <DialogDescription>Build your project hierarchy. Drag nodes to reorder. Click color swatch to change group color. Click ▶ to expand/collapse.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
             {/* Add new WBS node — prominent at top */}
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
-              <Label className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Add New WBS Node</Label>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-2">
+              <Label className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">Add New WBS Node</Label>
               <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                 <div>
                   <Label className="text-[10px] text-gray-500">WBS Code</Label>
@@ -4351,7 +4351,7 @@ export default function Scheduler() {
                 </div>
                 <Button
                   size="sm"
-                  className="h-8 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold px-4"
+                  className="h-8 bg-blue-500 text-white hover:bg-blue-400 font-semibold px-4"
                   disabled={!newWbsCode.trim() || !newWbsName.trim() || addWbsMut.isPending}
                   onClick={() => {
                     if (scheduleId && newWbsCode.trim() && newWbsName.trim()) {
@@ -4451,7 +4451,7 @@ export default function Scheduler() {
                               className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
                               style={{ backgroundColor: colors.border }}
                             />
-                            <span className="font-mono text-amber-400 mr-2 w-6">{div.code}</span>
+                            <span className="font-mono text-blue-400 mr-2 w-6">{div.code}</span>
                             <span className="">{div.name}</span>
                             {alreadyExists && <span className="ml-auto text-gray-600 text-[10px]">Added</span>}
                           </label>
@@ -4510,7 +4510,7 @@ export default function Scheduler() {
 
       {/* ── Save Layout Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Save Layout</DialogTitle>
             <DialogDescription>Save your current view settings (columns, grouping, sort, zoom, filters) as a reusable layout.</DialogDescription>
@@ -4528,7 +4528,7 @@ export default function Scheduler() {
                 const existing = layouts.find((l: any) => l.name !== "__autosave__" && l.name.toLowerCase() === layoutName.trim().toLowerCase());
                 if (existing && layoutName.trim()) {
                   return (
-                    <p className="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
+                    <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
                       A layout named "{existing.name}" already exists — saving will overwrite it.
                     </p>
@@ -4548,7 +4548,7 @@ export default function Scheduler() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowLayoutDialog(false)} className="border-white/15">Cancel</Button>
             <Button
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               disabled={!layoutName.trim() || saveLayoutMut.isPending || updateLayoutMut.isPending}
               onClick={() => {
                 if (scheduleId && layoutName.trim()) {
@@ -4585,21 +4585,21 @@ export default function Scheduler() {
 
       {/* ── Group & Sort Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showGroupSortDialog} onOpenChange={setShowGroupSortDialog}>
-        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-lg text-[#f7eddb]">Group &amp; Sort</DialogTitle>
-            <DialogDescription className="text-[#d8c9aa]">
+            <DialogTitle className="font-semibold text-lg text-[#f8fbff]">Group &amp; Sort</DialogTitle>
+            <DialogDescription className="text-[#b8c7e6]">
               Organize the filtered schedule without changing activity dates or logic.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-[1fr_1.15fr] gap-4">
-            <div className="rounded-lg border border-[#d9a21a]/15 bg-[#0f1219] p-4">
-              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Group Rows</Label>
+            <div className="rounded-lg border border-[#2f80ff]/15 bg-[#0f1219] p-4">
+              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Group Rows</Label>
               <Select
                 value={groupBy || "__none__"}
                 onValueChange={(value) => setGroupBy(value === "__none__" ? null : value)}
               >
-                <SelectTrigger className="border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">No grouping</SelectItem>
                   <SelectItem value="wbs">WBS hierarchy</SelectItem>
@@ -4613,11 +4613,11 @@ export default function Scheduler() {
                   )}
                 </SelectContent>
               </Select>
-              <p className="mt-3 text-xs leading-5 text-[#a99d88]">
-                Current grouping: <span className="font-semibold text-[#f7eddb]">{currentGroupLabel}</span>
+              <p className="mt-3 text-xs leading-5 text-[#8aa4d6]">
+                Current grouping: <span className="font-semibold text-[#f8fbff]">{currentGroupLabel}</span>
               </p>
               <div className="mt-4 flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setCollapsedGroups(new Set())} className="border-white/15 text-[#f7eddb]">
+                <Button size="sm" variant="outline" onClick={() => setCollapsedGroups(new Set())} className="border-white/15 text-[#f8fbff]">
                   <Maximize2 className="mr-1.5 h-3.5 w-3.5" /> Expand All
                 </Button>
                 <Button
@@ -4628,18 +4628,18 @@ export default function Scheduler() {
                     const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
                     setCollapsedGroups(allKeys);
                   }}
-                  className="border-white/15 text-[#f7eddb]"
+                  className="border-white/15 text-[#f8fbff]"
                 >
                   <Minimize2 className="mr-1.5 h-3.5 w-3.5" /> Collapse All
                 </Button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#d9a21a]/15 bg-[#0f1219] p-4">
-              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Sort Rows</Label>
+            <div className="rounded-lg border border-[#2f80ff]/15 bg-[#0f1219] p-4">
+              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Sort Rows</Label>
               <div className="grid grid-cols-[1fr_11rem] gap-3">
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Sort Field</Label>
+                  <Label className="text-xs text-[#b8c7e6]">Sort Field</Label>
                   <Select
                     value={sortState.key || "__none__"}
                     onValueChange={(value) => {
@@ -4647,7 +4647,7 @@ export default function Scheduler() {
                       else setSortState({ key: value, dir: sortState.dir || "asc" });
                     }}
                   >
-                    <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Manual / current order</SelectItem>
                       {sortableColumns.map((col) => (
@@ -4657,13 +4657,13 @@ export default function Scheduler() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Direction</Label>
+                  <Label className="text-xs text-[#b8c7e6]">Direction</Label>
                   <Select
                     value={sortState.dir || "asc"}
                     disabled={!sortState.key}
                     onValueChange={(value) => setSortState((prev) => ({ key: prev.key || "earlyStart", dir: value as SortDir }))}
                   >
-                    <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="asc">Ascending</SelectItem>
                       <SelectItem value="desc">Descending</SelectItem>
@@ -4671,8 +4671,8 @@ export default function Scheduler() {
                   </Select>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-5 text-[#a99d88]">
-                Current sort: <span className="font-semibold text-[#f7eddb]">{currentSortLabel}</span>. Column headers can still be clicked for quick sorting.
+              <p className="mt-3 text-xs leading-5 text-[#8aa4d6]">
+                Current sort: <span className="font-semibold text-[#f8fbff]">{currentSortLabel}</span>. Column headers can still be clicked for quick sorting.
               </p>
               <div className="mt-4 rounded-md border border-blue-400/15 bg-blue-500/10 px-3 py-2 text-xs leading-5 text-blue-100">
                 Filter first, then group and sort. Saved layouts remember columns, filters, group, sort, zoom, and PDF settings.
@@ -4682,7 +4682,7 @@ export default function Scheduler() {
           <DialogFooter>
             <Button
               variant="outline"
-              className="border-white/15 text-[#f7eddb]"
+              className="border-white/15 text-[#f8fbff]"
               onClick={() => {
                 setGroupBy(null);
                 setSortState({ key: "", dir: null });
@@ -4690,7 +4690,7 @@ export default function Scheduler() {
             >
               Reset Group &amp; Sort
             </Button>
-            <Button onClick={() => setShowGroupSortDialog(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">
+            <Button onClick={() => setShowGroupSortDialog(false)} className="bg-blue-500 text-white hover:bg-blue-400 font-semibold">
               Apply
             </Button>
           </DialogFooter>
@@ -4699,10 +4699,10 @@ export default function Scheduler() {
 
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
-        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
-            <DialogTitle className="font-semibold text-lg text-[#f7eddb]">Advanced Filters</DialogTitle>
-            <DialogDescription className="text-[#d8c9aa]">
+            <DialogTitle className="font-semibold text-lg text-[#f8fbff]">Advanced Filters</DialogTitle>
+            <DialogDescription className="text-[#b8c7e6]">
               Build P6-style activity filters. Criteria are additive, so selected codes, dates, float, and text filters must all match.
             </DialogDescription>
           </DialogHeader>
@@ -4710,27 +4710,27 @@ export default function Scheduler() {
             {/* Text-based filters */}
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Identity</Label>
-                <span className="text-[10px] text-[#8b806f]">Contains matching, like P6 filter text</span>
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Identity</Label>
+                <span className="text-[10px] text-[#64748b]">Contains matching, like P6 filter text</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-[#d8c9aa]">Activity ID</Label>
-                <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
+                <Label className="text-xs text-[#b8c7e6]">Activity ID</Label>
+                <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
               <div>
-                <Label className="text-xs text-[#d8c9aa]">Activity Name / Description</Label>
-                <Input value={filterActivityName} onChange={(e) => setFilterActivityName(e.target.value)} placeholder="e.g. concrete, steel" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
+                <Label className="text-xs text-[#b8c7e6]">Activity Name / Description</Label>
+                <Input value={filterActivityName} onChange={(e) => setFilterActivityName(e.target.value)} placeholder="e.g. concrete, steel" className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
               <div>
-                <Label className="text-xs text-[#d8c9aa]">WBS Code</Label>
-                <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
+                <Label className="text-xs text-[#b8c7e6]">WBS Code</Label>
+                <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
               </div>
             </div>
 
             <div>
-              <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Status &amp; Logic</Label>
+              <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Status &amp; Logic</Label>
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterCriticalOnly} onCheckedChange={(c) => setFilterCriticalOnly(!!c)} />
@@ -4748,9 +4748,9 @@ export default function Scheduler() {
             </div>
 
             <div>
-              <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Lookahead</Label>
+              <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
-                <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]"><SelectValue /></SelectTrigger>
                 <SelectContent className="">
                   <SelectItem value="none" className="">No lookahead filter</SelectItem>
                   <SelectItem value="1week" className="">1-Week Lookahead</SelectItem>
@@ -4759,8 +4759,8 @@ export default function Scheduler() {
                 </SelectContent>
               </Select>
               {lookaheadWindowLabel && (
-                <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-[#d8c9aa]">
-                  <span className="font-semibold text-amber-300">Active lookahead window:</span>{" "}
+                <div className="mt-2 rounded-md border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs leading-5 text-[#b8c7e6]">
+                  <span className="font-semibold text-blue-300">Active lookahead window:</span>{" "}
                   {lookaheadWindowLabel}
                 </div>
               )}
@@ -4768,45 +4768,45 @@ export default function Scheduler() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Dates</Label>
-                <span className="text-[10px] text-[#8b806f]">Start and finish windows are independent filters</span>
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Dates</Label>
+                <span className="text-[10px] text-[#64748b]">Start and finish windows are independent filters</span>
               </div>
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Early Start From</Label>
-                  <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                  <Label className="text-xs text-[#b8c7e6]">Early Start From</Label>
+                  <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]" />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Early Start To</Label>
-                  <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                  <Label className="text-xs text-[#b8c7e6]">Early Start To</Label>
+                  <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]" />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Early Finish From</Label>
-                  <Input type="date" value={filterFinishDateStart} onChange={(e) => setFilterFinishDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                  <Label className="text-xs text-[#b8c7e6]">Early Finish From</Label>
+                  <Input type="date" value={filterFinishDateStart} onChange={(e) => setFilterFinishDateStart(e.target.value)} className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]" />
                 </div>
                 <div>
-                  <Label className="text-xs text-[#d8c9aa]">Early Finish To</Label>
-                  <Input type="date" value={filterFinishDateEnd} onChange={(e) => setFilterFinishDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                  <Label className="text-xs text-[#b8c7e6]">Early Finish To</Label>
+                  <Input type="date" value={filterFinishDateEnd} onChange={(e) => setFilterFinishDateEnd(e.target.value)} className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff]" />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-[#d8c9aa]">Float Min (days)</Label>
-                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
+                <Label className="text-xs text-[#b8c7e6]">Float Min (days)</Label>
+                <Input type="number" value={filterFloatMin} onChange={(e) => setFilterFloatMin(e.target.value)} placeholder="Any" className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
               <div>
-                <Label className="text-xs text-[#d8c9aa]">Float Max (days)</Label>
-                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
+                <Label className="text-xs text-[#b8c7e6]">Float Max (days)</Label>
+                <Input type="number" value={filterFloatMax} onChange={(e) => setFilterFloatMax(e.target.value)} placeholder="Any" className="mt-1 border-[#2f80ff]/20 bg-white/[0.08] text-[#f8fbff] placeholder:text-[#64748b]" />
               </div>
             </div>
 
             {codeCategories.length > 0 && (
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Activity Codes</Label>
-                  <span className="text-[10px] text-[#8b806f]">OR within a code category, AND across categories</span>
+                  <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Activity Codes</Label>
+                  <span className="text-[10px] text-[#64748b]">OR within a code category, AND across categories</span>
                 </div>
                 <div className="space-y-2">
                   {codeCategories.map((cat: any) => (
@@ -4820,7 +4820,7 @@ export default function Scheduler() {
                             key={val.id}
                             className={`text-xs px-2 py-0.5 rounded border transition-colors ${
                               isActive
-                                ? "bg-amber-500/20 border-amber-500 text-amber-300"
+                                ? "bg-blue-500/20 border-blue-500 text-blue-300"
                                 : "border-white/15 text-gray-400 hover:border-white/30"
                             }`}
                             onClick={() => {
@@ -4872,7 +4872,7 @@ export default function Scheduler() {
             >
               Clear All
             </Button>
-            <Button onClick={() => setShowAdvancedFilter(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">
+            <Button onClick={() => setShowAdvancedFilter(false)} className="bg-blue-500 text-white hover:bg-blue-400 font-semibold">
               Apply
             </Button>
           </DialogFooter>
@@ -5053,7 +5053,7 @@ export default function Scheduler() {
           <Button
             size="sm"
             variant="outline"
-            className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
             onClick={() => { setBulkWbsTarget(""); setShowBulkWbsDialog(true); }}
           >
             <FolderTree className="w-3.5 h-3.5 mr-1.5" /> Assign WBS
@@ -5110,7 +5110,7 @@ export default function Scheduler() {
 
       {/* ── Bulk Activity Code Assignment Dialog ──────────────────────────── */}
       <Dialog open={showBulkCodeDialog} onOpenChange={setShowBulkCodeDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="text-lg">Assign Activity Code to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
@@ -5192,7 +5192,7 @@ export default function Scheduler() {
 
       {/* ── Bulk WBS Assignment Dialog ─────────────────────────────────────── */}
       <Dialog open={showBulkWbsDialog} onOpenChange={setShowBulkWbsDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="text-lg">Assign WBS to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
@@ -5213,7 +5213,7 @@ export default function Scheduler() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkWbsDialog(false)} className="border-white/15">Cancel</Button>
             <Button
-              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               onClick={() => {
                 if (!scheduleId) return;
                 const wbsValue = bulkWbsTarget || null;
@@ -5233,7 +5233,7 @@ export default function Scheduler() {
 
       {/* ── Bulk Predecessor Assignment Dialog ─────────────────────────── */}
       <Dialog open={showBulkPredecessorDialog} onOpenChange={setShowBulkPredecessorDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="text-lg">Assign Predecessor to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
@@ -5258,7 +5258,7 @@ export default function Scheduler() {
                 .map((a) => (
                   <div
                     key={a.id}
-                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkPredecessorTarget ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkPredecessorTarget ? "bg-blue-500/20 text-blue-300" : "text-gray-400"}`}
                     onClick={() => setBulkPredecessorTarget(String(a.id))}
                   >
                     <span className="font-mono text-gray-500 w-24 shrink-0">{a.activityId || `A${a.id}`}</span>
@@ -5268,7 +5268,7 @@ export default function Scheduler() {
                 ))}
             </div>
             {bulkPredecessorTarget && (
-              <div className="text-sm text-amber-400">
+              <div className="text-sm text-blue-400">
                 Selected: {activities.find(a => String(a.id) === bulkPredecessorTarget)?.activityId} — {activities.find(a => String(a.id) === bulkPredecessorTarget)?.name}
               </div>
             )}
@@ -5324,7 +5324,7 @@ export default function Scheduler() {
 
       {/* ── Bulk Successor Assignment Dialog ───────────────────────────── */}
       <Dialog open={showBulkSuccessorDialog} onOpenChange={setShowBulkSuccessorDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="text-lg">Assign Successor to {selectedActivityIds.size} Activities</DialogTitle>
             <DialogDescription className="text-gray-600">
@@ -5349,7 +5349,7 @@ export default function Scheduler() {
                 .map((a) => (
                   <div
                     key={a.id}
-                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkSuccessorTarget ? "bg-amber-500/20 text-amber-300" : "text-gray-400"}`}
+                    className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-white/10 ${String(a.id) === bulkSuccessorTarget ? "bg-blue-500/20 text-blue-300" : "text-gray-400"}`}
                     onClick={() => setBulkSuccessorTarget(String(a.id))}
                   >
                     <span className="font-mono text-gray-500 w-24 shrink-0">{a.activityId || `A${a.id}`}</span>
@@ -5359,7 +5359,7 @@ export default function Scheduler() {
                 ))}
             </div>
             {bulkSuccessorTarget && (
-              <div className="text-sm text-amber-400">
+              <div className="text-sm text-blue-400">
                 Selected: {activities.find(a => String(a.id) === bulkSuccessorTarget)?.activityId} — {activities.find(a => String(a.id) === bulkSuccessorTarget)?.name}
               </div>
             )}
@@ -5425,7 +5425,7 @@ export default function Scheduler() {
 
       {/* ── CPM Feedback Dialog ──────────────────────────────────────────── */}
       <Dialog open={showCpmFeedback} onOpenChange={setShowCpmFeedback}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg">Send Feedback</DialogTitle>
             <DialogDescription>Help us improve the CPM Schedule Builder. Your feedback is valuable.</DialogDescription>
@@ -5434,7 +5434,7 @@ export default function Scheduler() {
             <div className="grid grid-cols-2 gap-2">
               {(["bug", "feature", "general", "other"] as const).map((cat) => {
                 const labels = { bug: "Bug Report", feature: "Feature Request", general: "General", other: "Other" };
-                const colors = { bug: "border-red-500/30 bg-red-500/10 text-red-400", feature: "border-amber-500/30 bg-amber-500/10 text-amber-400", general: "border-blue-500/30 bg-blue-500/10 text-blue-400", other: "border-purple-500/30 bg-purple-500/10 text-purple-400" };
+                const colors = { bug: "border-red-500/30 bg-red-500/10 text-red-400", feature: "border-blue-500/30 bg-blue-500/10 text-blue-400", general: "border-blue-500/30 bg-blue-500/10 text-blue-400", other: "border-purple-500/30 bg-purple-500/10 text-purple-400" };
                 return (
                   <button
                     key={cat}
@@ -5474,7 +5474,7 @@ export default function Scheduler() {
                 }
               }}
               disabled={cpmFeedbackMut.isPending}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-blue-600 hover:bg-blue-500 text-white"
             >
               {cpmFeedbackMut.isPending ? "Sending..." : "Send Feedback"}
             </Button>

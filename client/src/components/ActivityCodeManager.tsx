@@ -152,7 +152,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Activity Code Manager</DialogTitle>
           <DialogDescription>Create and manage custom activity code categories and values for filtering and grouping.</DialogDescription>
@@ -175,7 +175,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
               <Button
                 onClick={handleAddCategory}
                 disabled={createCategoryMut.isPending}
-                className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
               >
                 <Plus className="w-4 h-4 mr-1" /> Add
               </Button>
@@ -220,7 +220,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
                               size="sm"
                               onClick={() => handleUpdateCategory(category.id)}
                               disabled={updateCategoryMut.isPending}
-                              className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                              className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
                             >
                               Save
                             </Button>
@@ -310,7 +310,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
                                       size="sm"
                                       onClick={() => handleUpdateValue(value.id)}
                                       disabled={updateValueMut.isPending}
-                                      className="h-7 bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold text-xs"
+                                      className="h-7 bg-blue-500 text-white hover:bg-blue-400 font-semibold text-xs"
                                     >
                                       Save
                                     </Button>
@@ -393,7 +393,7 @@ export function ActivityCodeManager({ open, onOpenChange, scheduleId, codeCatego
                                 size="sm"
                                 onClick={() => handleAddValue(category.id)}
                                 disabled={addValueMut.isPending}
-                                className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold"
+                                className="bg-blue-500 text-white hover:bg-blue-400 font-semibold"
                               >
                                 <Plus className="w-3 h-3 mr-1" /> Add
                               </Button>

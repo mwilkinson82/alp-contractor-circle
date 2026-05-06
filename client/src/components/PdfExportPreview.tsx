@@ -1426,19 +1426,19 @@ export function PdfExportPreview({
                   <div className="flex items-center gap-0.5 flex-wrap">
                     <button
                       onClick={() => handleUpdateRichLine(type, idx, li, { bold: !line.bold })}
-                      className={`p-0.5 rounded text-[9px] ${line.bold ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                      className={`p-0.5 rounded text-[9px] ${line.bold ? "bg-blue-500/30 text-blue-300" : "text-gray-500 hover:text-gray-300"}`}
                     >
                       <Bold className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => handleUpdateRichLine(type, idx, li, { italic: !line.italic })}
-                      className={`p-0.5 rounded text-[9px] ${line.italic ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                      className={`p-0.5 rounded text-[9px] ${line.italic ? "bg-blue-500/30 text-blue-300" : "text-gray-500 hover:text-gray-300"}`}
                     >
                       <Italic className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => handleUpdateRichLine(type, idx, li, { underline: !line.underline })}
-                      className={`p-0.5 rounded text-[9px] ${line.underline ? "bg-amber-500/30 text-amber-300" : "text-gray-500 hover:text-gray-300"}`}
+                      className={`p-0.5 rounded text-[9px] ${line.underline ? "bg-blue-500/30 text-blue-300" : "text-gray-500 hover:text-gray-300"}`}
                     >
                       <Underline className="w-3 h-3" />
                     </button>
@@ -1462,7 +1462,7 @@ export function PdfExportPreview({
               ))}
               <button
                 onClick={() => handleAddRichLine(type, idx)}
-                className="flex items-center gap-1 text-[9px] text-amber-400 hover:text-amber-300 mt-0.5"
+                className="flex items-center gap-1 text-[9px] text-blue-400 hover:text-blue-300 mt-0.5"
               >
                 <Plus className="w-3 h-3" /> Add Line
               </button>
@@ -1489,7 +1489,7 @@ export function PdfExportPreview({
                   </Button>
                 </div>
               ) : (
-                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-amber-400 hover:text-amber-300">
+                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-blue-400 hover:text-blue-300">
                   <ImageIcon className="w-3 h-3" />
                   Upload Image
                   <input
@@ -1514,10 +1514,10 @@ export function PdfExportPreview({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!p-0 !max-w-[94vw] !w-[94vw] !h-[90vh] !max-h-[90vh] [&>div:nth-child(2)]:!p-0 [&>div:nth-child(2)]:!overflow-hidden [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-full">
+      <DialogContent className="!p-0 !max-w-[94vw] !w-[94vw] !h-[90vh] !max-h-[90vh] [&>div:nth-child(2)]:!p-0 [&>div:nth-child(2)]:!overflow-hidden [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:h-full bg-[#07111f] text-[#f8fbff] border-[#2f80ff]/20">
         <DialogHeader className="px-6 pt-5 pb-0 shrink-0">
           <DialogTitle className="font-semibold flex items-center gap-2">
-            <Eye className="w-5 h-5 text-amber-400" /> PDF Export Preview
+            <Eye className="w-5 h-5 text-blue-400" /> PDF Export Preview
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-400">
             Multi-page preview — scroll to see all pages. {totalActivities} activities across {totalPages} page{totalPages !== 1 ? "s" : ""}.
@@ -1534,7 +1534,7 @@ export function PdfExportPreview({
                   <FileText className="w-4 h-4 text-gray-600" />
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Preview</span>
                   {groupBy === "wbs" && (
-                    <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded px-1.5 py-0.5 font-medium">WBS Grouped</span>
+                    <span className="text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/25 rounded px-1.5 py-0.5 font-medium">WBS Grouped</span>
                   )}
                   {showLogicLines && relationships.length > 0 && (
                     <span className="text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/25 rounded px-1.5 py-0.5 font-medium">{relationships.length} relationships</span>
@@ -1761,7 +1761,7 @@ export function PdfExportPreview({
                       key={z}
                       size="sm"
                       variant={pdfZoom === z ? "default" : "outline"}
-                      className={`h-6 text-[10px] px-2 ${pdfZoom === z ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                      className={`h-6 text-[10px] px-2 ${pdfZoom === z ? "bg-blue-500 text-white font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
                       onClick={() => setPdfZoom(z)}
                     >
                       {z}%
@@ -1771,7 +1771,7 @@ export function PdfExportPreview({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-full h-7 text-[10px] border-white/15 text-amber-400 bg-white/5 hover:bg-amber-500/10 font-medium"
+                  className="w-full h-7 text-[10px] border-white/15 text-blue-400 bg-white/5 hover:bg-blue-500/10 font-medium"
                   onClick={() => {
                     // Calculate zoom to fit all content on one page
                     const { ppi, contentH, headerRowH } = rowsPerPage;
@@ -1820,7 +1820,7 @@ export function PdfExportPreview({
                         <Label className="text-[10px] text-gray-400 shrink-0">Header columns</Label>
                         {([3, 5] as const).map(c => (
                           <Button key={c} size="sm" variant={headerColumnCount === c ? "default" : "outline"}
-                            className={`h-6 text-[10px] px-2.5 ${headerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            className={`h-6 text-[10px] px-2.5 ${headerColumnCount === c ? "bg-blue-500 text-white font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
                             onClick={() => handleColumnCountChange("header", c)}>
                             {c}
                           </Button>
@@ -1829,13 +1829,13 @@ export function PdfExportPreview({
                       <div>
                         <Label className="text-[10px] text-gray-400 mb-1 block">Height: {headerHeightMm}mm</Label>
                         <div className="flex items-center gap-2">
-                          <input type="range" min={14} max={60} step={2} value={headerHeightMm} onChange={(e) => setHeaderHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-amber-500" />
+                          <input type="range" min={14} max={60} step={2} value={headerHeightMm} onChange={(e) => setHeaderHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-blue-500" />
                           <span className="text-[10px] text-gray-500 w-10 text-right">{headerHeightMm}mm</span>
                         </div>
                         <div className="flex gap-1 mt-1">
                           {[14, 22, 30, 40, 50].map(h => (
                             <Button key={h} size="sm" variant={headerHeightMm === h ? "default" : "outline"}
-                              className={`h-5 text-[9px] px-1.5 ${headerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                              className={`h-5 text-[9px] px-1.5 ${headerHeightMm === h ? "bg-blue-500 text-white font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
                               onClick={() => setHeaderHeightMm(h)}>
                               {h === 14 ? "XS" : h === 22 ? "S" : h === 30 ? "M" : h === 40 ? "L" : "XL"}
                             </Button>
@@ -1855,7 +1855,7 @@ export function PdfExportPreview({
                               key={preset.label}
                               className={`h-7 rounded border text-[9px] font-medium transition-all ${
                                 headerBgColor === preset.bg && headerAccentColor === preset.accent
-                                  ? "ring-2 ring-amber-500/70 border-amber-400"
+                                  ? "ring-2 ring-blue-500/70 border-blue-400"
                                   : "border-white/15 hover:border-gray-400"
                               }`}
                               style={{ backgroundColor: preset.bg === "transparent" ? "#fff" : preset.bg, color: preset.bg === "transparent" ? "#374151" : preset.text }}
@@ -1884,7 +1884,7 @@ export function PdfExportPreview({
                         <Label className="text-[10px] text-gray-400 shrink-0">Footer columns</Label>
                         {([3, 5] as const).map(c => (
                           <Button key={c} size="sm" variant={footerColumnCount === c ? "default" : "outline"}
-                            className={`h-6 text-[10px] px-2.5 ${footerColumnCount === c ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                            className={`h-6 text-[10px] px-2.5 ${footerColumnCount === c ? "bg-blue-500 text-white font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
                             onClick={() => handleColumnCountChange("footer", c)}>
                             {c}
                           </Button>
@@ -1893,13 +1893,13 @@ export function PdfExportPreview({
                       <div>
                         <Label className="text-[10px] text-gray-400 mb-1 block">Height: {footerHeightMm}mm</Label>
                         <div className="flex items-center gap-2">
-                          <input type="range" min={10} max={60} step={2} value={footerHeightMm} onChange={(e) => setFooterHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-amber-500" />
+                          <input type="range" min={10} max={60} step={2} value={footerHeightMm} onChange={(e) => setFooterHeightMm(Number(e.target.value))} className="flex-1 h-1.5 accent-blue-500" />
                           <span className="text-[10px] text-gray-500 w-10 text-right">{footerHeightMm}mm</span>
                         </div>
                         <div className="flex gap-1 mt-1">
                           {[10, 14, 22, 30, 40].map(h => (
                             <Button key={h} size="sm" variant={footerHeightMm === h ? "default" : "outline"}
-                              className={`h-5 text-[9px] px-1.5 ${footerHeightMm === h ? "bg-amber-500 text-gray-950 font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
+                              className={`h-5 text-[9px] px-1.5 ${footerHeightMm === h ? "bg-blue-500 text-white font-semibold" : "border-white/15 text-gray-400 bg-white/5"}`}
                               onClick={() => setFooterHeightMm(h)}>
                               {h === 10 ? "XS" : h === 14 ? "S" : h === 22 ? "M" : h === 30 ? "L" : "XL"}
                             </Button>
@@ -1918,14 +1918,14 @@ export function PdfExportPreview({
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-3 border-t border-gray-100 shrink-0 flex items-center justify-between">
+        <DialogFooter className="px-6 py-3 border-t border-white/10 shrink-0 flex items-center justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/15 text-gray-400">
             Cancel
           </Button>
           <Button
             onClick={handleExport}
             disabled={isExporting}
-            className="bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400"
+            className="bg-blue-500 text-white font-semibold hover:bg-blue-400"
           >
             {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
             Export PDF
