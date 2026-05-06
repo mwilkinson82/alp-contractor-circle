@@ -34,11 +34,11 @@ import {
   Copy,
   FileUp,
   FolderOpen,
-  GitBranch,
   LayoutGrid,
   Loader2,
   MoreVertical,
   Plus,
+  SlidersHorizontal,
   Target,
   Trash2,
   Upload,
@@ -81,7 +81,7 @@ function getScheduleStatus(schedule: ScheduleSummary) {
   const completion = pct(schedule.completedCount, activityCount);
 
   if (!activityCount) return { label: "Needs activities", tone: "amber" as const };
-  if (openEnds > 0) return { label: `${openEnds} open ends`, tone: "red" as const };
+  if (openEnds > 0) return { label: `${openEnds} logic review`, tone: "amber" as const };
   if (relationshipCount < Math.max(1, activityCount - 1)) return { label: "Logic light", tone: "amber" as const };
   if (completion >= 100) return { label: "Complete", tone: "green" as const };
   return { label: "Ready to update", tone: "green" as const };
@@ -224,8 +224,12 @@ export default function ScheduleList() {
 
   const schedules = (schedulesQuery.data || []) as ScheduleSummary[];
   const templates = templatesQuery.data || [];
-  const activeSchedules = useMemo(() => schedules.filter((s) => s.status === "active"), [schedules]);
-  const archivedSchedules = useMemo(() => schedules.filter((s) => s.status === "archived"), [schedules]);
+  const archiveSchedules = useMemo(
+    () => schedules.filter((s) => !(s.id === 1 && s.name.toLowerCase().includes("smith residence"))),
+    [schedules],
+  );
+  const activeSchedules = useMemo(() => archiveSchedules.filter((s) => s.status === "active"), [archiveSchedules]);
+  const archivedSchedules = useMemo(() => archiveSchedules.filter((s) => s.status === "archived"), [archiveSchedules]);
   const totals = useMemo(() => {
     const activityCount = activeSchedules.reduce((sum, s) => sum + (s.activityCount ?? 0), 0);
     const criticalCount = activeSchedules.reduce((sum, s) => sum + (s.criticalCount ?? 0), 0);
@@ -302,12 +306,12 @@ export default function ScheduleList() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-5 py-5 space-y-5">
         <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <MetricTile label="Active schedules" value={activeSchedules.length} icon={LayoutGrid} />
           <MetricTile label="Activities planned" value={totals.activityCount} icon={Calendar} />
           <MetricTile label="Critical activities" value={totals.criticalCount} icon={Target} tone="gold" />
-          <MetricTile label="Open logic ends" value={totals.openEnds} icon={AlertTriangle} tone={totals.openEnds ? "red" : "green"} />
+          <MetricTile label="Logic items to review" value={totals.openEnds} icon={AlertTriangle} tone={totals.openEnds ? "gold" : "green"} />
         </section>
 
         {schedulesQuery.isLoading ? (
@@ -334,49 +338,25 @@ export default function ScheduleList() {
           </section>
         ) : (
           <>
-            <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-5">
-              <div className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#8a6a12]">Next schedule action</p>
-                    <h2 className="text-lg font-heading font-bold">Keep the update cycle moving</h2>
+            <section className="rounded-lg border border-[#171512]/10 bg-[#fffaf0] px-4 py-3 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#171512] text-[#d9a21a]">
+                    <SlidersHorizontal className="h-4 w-4" />
                   </div>
-                  <Button onClick={() => setShowCreate(true)} className="bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
-                    <Plus className="w-4 h-4 mr-2" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6a12]">Update controls</p>
+                    <p className="truncate text-sm text-[#625a4b]">Set data date, calculate CPM, review logic, save the update, then report.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#625a4b]">
+                  <WorkflowChip icon={Calendar} label="Data date" />
+                  <WorkflowChip icon={AlertTriangle} label="Logic review" />
+                  <WorkflowChip icon={Copy} label="Duplicate update" />
+                  <Button onClick={() => setShowCreate(true)} size="sm" className="h-8 bg-[#171512] text-[#f7eddb] hover:bg-[#2a261f]">
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
                     New
                   </Button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <WorkflowCue
-                    icon={Calendar}
-                    title="Set the data date"
-                    text="Open a schedule and confirm the as-of date before calculating."
-                  />
-                  <WorkflowCue
-                    icon={GitBranch}
-                    title="Close the logic"
-                    text="Use open-end and critical path checks before sharing updates."
-                  />
-                  <WorkflowCue
-                    icon={Copy}
-                    title="Duplicate as update"
-                    text="Create the next update period without losing baselines or logic."
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-[#171512]/10 bg-[#171512] p-5 text-[#f7eddb] shadow-sm">
-                <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#d9a21a]">Basis to Baseline</p>
-                <h2 className="text-lg font-heading font-bold mt-1">Bid, plan, update, report.</h2>
-                <p className="text-sm text-[#d8c9aa] mt-2">
-                  Baseline is the scheduling side of ConstructLine: CPM logic, WBS, calendars, resources, snapshots, reports, and P6 handoff in one contractor cockpit.
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  {["WBS grouped Gantt", "Critical path", "Schedule updates", "Delay reports"].map((item) => (
-                    <span key={item} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-[#f7eddb]">
-                      {item}
-                    </span>
-                  ))}
                 </div>
               </div>
             </section>
@@ -596,15 +576,12 @@ function MetricTile({
   );
 }
 
-function WorkflowCue({ icon: Icon, title, text }: { icon: any; title: string; text: string }) {
+function WorkflowChip({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <div className="rounded-md border border-[#171512]/10 bg-[#f6f0e4] p-3">
-      <div className="flex items-center gap-2 text-[#171512] font-semibold">
-        <Icon className="w-4 h-4 text-[#8a6a12]" />
-        <span>{title}</span>
-      </div>
-      <p className="text-xs text-[#625a4b] mt-2 leading-relaxed">{text}</p>
-    </div>
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#171512]/10 bg-[#f6f0e4] px-3 font-semibold text-[#625a4b]">
+      <Icon className="h-3.5 w-3.5 text-[#8a6a12]" />
+      {label}
+    </span>
   );
 }
 
@@ -630,7 +607,7 @@ function ScheduleCard({
   return (
     <Card className="group cursor-pointer overflow-hidden border-[#171512]/10 bg-[#fffaf0] shadow-sm transition-all hover:border-[#d9a21a]/50 hover:shadow-md" onClick={onOpen}>
       <CardContent className="p-0">
-        <div className="flex items-start justify-between gap-4 border-b border-[#171512]/10 p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-[#171512]/10 p-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-heading text-lg font-bold text-[#171512] truncate">{schedule.name}</h3>
@@ -673,11 +650,11 @@ function ScheduleCard({
         <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#171512]/10">
           <CardStat label="Activities" value={(schedule.activityCount ?? 0).toLocaleString()} />
           <CardStat label="Critical" value={(schedule.criticalCount ?? 0).toLocaleString()} tone={schedule.criticalCount ? "gold" : undefined} />
-          <CardStat label="Open ends" value={openEnds.toLocaleString()} tone={openEnds ? "red" : "green"} />
+          <CardStat label="Logic review" value={openEnds.toLocaleString()} tone={openEnds ? "gold" : "green"} />
           <CardStat label="Complete" value={`${completion}%`} tone={completion >= 100 ? "green" : undefined} />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 p-5 text-xs text-[#625a4b]">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-[#625a4b]">
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
@@ -702,7 +679,7 @@ function ScheduleCard({
 function CardStat({ label, value, tone }: { label: string; value: string; tone?: "gold" | "green" | "red" }) {
   const color = tone === "gold" ? "text-[#8a6a12]" : tone === "green" ? "text-emerald-700" : tone === "red" ? "text-red-700" : "text-[#171512]";
   return (
-    <div className="border-r border-[#171512]/10 p-4 last:border-r-0">
+    <div className="border-r border-[#171512]/10 p-3 last:border-r-0">
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b806f]">{label}</p>
       <p className={`mt-1 text-lg font-heading font-bold ${color}`}>{value}</p>
     </div>
