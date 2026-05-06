@@ -43,3 +43,15 @@ export function activityStartsInRange(
   if (rangeEnd && earlyStart > rangeEnd) return false;
   return true;
 }
+
+export function activityFinishesInRange(
+  activity: ScheduleFilterActivity,
+  rangeStart?: Date | null,
+  rangeEnd?: Date | null
+): boolean {
+  const earlyFinish = parseScheduleDate(activity.earlyFinish);
+  if (!earlyFinish) return false;
+  if (rangeStart && earlyFinish < rangeStart) return false;
+  if (rangeEnd && earlyFinish > rangeEnd) return false;
+  return true;
+}

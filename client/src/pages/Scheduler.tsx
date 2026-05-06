@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { CSI_ACTIVE_DIVISIONS, WBS_GROUP_COLORS, type CsiDivision } from "../../../shared/csiDivisions";
-import { activityOverlapsWindow, activityStartsInRange, getLookaheadDays, parseScheduleDate } from "../../../shared/schedulerFilters";
+import { activityFinishesInRange, activityOverlapsWindow, activityStartsInRange, getLookaheadDays, parseScheduleDate } from "../../../shared/schedulerFilters";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 import ResourcePanel from "@/components/ResourcePanel";
 
@@ -462,6 +462,7 @@ export default function Scheduler() {
   const [showWbsManager, setShowWbsManager] = useState(false);
   const [showCodeManager, setShowCodeManager] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [showGroupSortDialog, setShowGroupSortDialog] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
   const [showResourcePanel, setShowResourcePanel] = useState(false);
   const [showCostOverlay, setShowCostOverlay] = useState(false);
@@ -637,6 +638,8 @@ export default function Scheduler() {
   const [filterFloatMax, setFilterFloatMax] = useState("");
   const [filterDateStart, setFilterDateStart] = useState("");
   const [filterDateEnd, setFilterDateEnd] = useState("");
+  const [filterFinishDateStart, setFilterFinishDateStart] = useState("");
+  const [filterFinishDateEnd, setFilterFinishDateEnd] = useState("");
   const [filterOpenEnds, setFilterOpenEnds] = useState(false);
   const [filterActivityId, setFilterActivityId] = useState("");
   const [filterActivityName, setFilterActivityName] = useState("");
@@ -775,6 +778,14 @@ export default function Scheduler() {
       const end = new Date(filterDateEnd + "T23:59:59");
       acts = acts.filter((a) => activityStartsInRange(a, null, end));
     }
+    if (filterFinishDateStart) {
+      const start = new Date(filterFinishDateStart + "T00:00:00");
+      acts = acts.filter((a) => activityFinishesInRange(a, start, null));
+    }
+    if (filterFinishDateEnd) {
+      const end = new Date(filterFinishDateEnd + "T23:59:59");
+      acts = acts.filter((a) => activityFinishesInRange(a, null, end));
+    }
 
      if (filterOpenEnds) {
       const openIds = new Set([
@@ -800,7 +811,7 @@ export default function Scheduler() {
       acts = acts.filter((a) => a.wbs && a.wbs.toLowerCase().includes(q));
     }
     return acts;
-  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLongestPath, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, openEnds, filterActivityId, filterActivityName, filterWbs]);
+  }, [activities, searchQuery, activeFilters, codeAssignments, filterCriticalOnly, filterLongestPath, filterLookahead, dataDate, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterFinishDateStart, filterFinishDateEnd, filterOpenEnds, openEnds, filterActivityId, filterActivityName, filterWbs]);
 
   /* ── Sorting ──────────────────────────────────────────────────────────── */
   const sortedActivities = useMemo(() => {
@@ -966,6 +977,19 @@ export default function Scheduler() {
 
   // Merge static + dynamic columns
   const allColumnsWithCodes = useMemo(() => [...ALL_COLUMNS, ...codeColumns], [codeColumns]);
+  const sortableColumns = useMemo(() => allColumnsWithCodes.filter((col) => col.sortable && col.getSortValue), [allColumnsWithCodes]);
+  const currentSortLabel = useMemo(() => {
+    if (!sortState.key || !sortState.dir) return "Manual / WBS order";
+    const col = allColumnsWithCodes.find((c) => c.key === sortState.key);
+    return `${col?.label || sortState.key} ${sortState.dir === "asc" ? "ascending" : "descending"}`;
+  }, [allColumnsWithCodes, sortState]);
+  const currentGroupLabel = useMemo(() => {
+    if (!groupBy) return "No grouping";
+    if (groupBy === "wbs") return "WBS";
+    if (groupBy === "critical") return "Critical Path";
+    const category = codeCategories.find((cat: any) => String(cat.id) === groupBy);
+    return category ? `Activity Code: ${category.name}` : "Custom group";
+  }, [codeCategories, groupBy]);
 
   const activeColumns = useMemo(() => {
     return allColumnsWithCodes.filter((col) => {
@@ -1205,10 +1229,16 @@ export default function Scheduler() {
       filterFloatMax,
       filterDateStart,
       filterDateEnd,
+      filterFinishDateStart,
+      filterFinishDateEnd,
       filterOpenEnds,
+      filterActivityId,
+      filterActivityName,
+      filterWbs,
+      activeFilters: Array.from(activeFilters.entries()).map(([categoryId, valueIds]) => [categoryId, Array.from(valueIds)]),
       savedPdfConfig,
     });
-  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, savedPdfConfig]);
+  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterFinishDateStart, filterFinishDateEnd, filterOpenEnds, filterActivityId, filterActivityName, filterWbs, activeFilters, savedPdfConfig]);
 
   const applyLayoutConfig = useCallback((configJson: string, layoutId?: number) => {
     try {
@@ -1230,7 +1260,15 @@ export default function Scheduler() {
       if (cfg.filterFloatMax !== undefined) setFilterFloatMax(cfg.filterFloatMax);
       if (cfg.filterDateStart !== undefined) setFilterDateStart(cfg.filterDateStart);
       if (cfg.filterDateEnd !== undefined) setFilterDateEnd(cfg.filterDateEnd);
+      if (cfg.filterFinishDateStart !== undefined) setFilterFinishDateStart(cfg.filterFinishDateStart);
+      if (cfg.filterFinishDateEnd !== undefined) setFilterFinishDateEnd(cfg.filterFinishDateEnd);
       if (cfg.filterOpenEnds !== undefined) setFilterOpenEnds(cfg.filterOpenEnds);
+      if (cfg.filterActivityId !== undefined) setFilterActivityId(cfg.filterActivityId);
+      if (cfg.filterActivityName !== undefined) setFilterActivityName(cfg.filterActivityName);
+      if (cfg.filterWbs !== undefined) setFilterWbs(cfg.filterWbs);
+      if (Array.isArray(cfg.activeFilters)) {
+        setActiveFilters(new Map(cfg.activeFilters.map(([categoryId, valueIds]: [number, number[]]) => [categoryId, new Set(valueIds)])));
+      }
       if (cfg.savedPdfConfig) setSavedPdfConfig(cfg.savedPdfConfig);
       if (layoutId !== undefined) setActiveLayoutId(layoutId);
       toast.success("Layout applied");
@@ -1263,7 +1301,15 @@ export default function Scheduler() {
         if (cfg.filterFloatMax !== undefined) setFilterFloatMax(cfg.filterFloatMax);
         if (cfg.filterDateStart !== undefined) setFilterDateStart(cfg.filterDateStart);
         if (cfg.filterDateEnd !== undefined) setFilterDateEnd(cfg.filterDateEnd);
+        if (cfg.filterFinishDateStart !== undefined) setFilterFinishDateStart(cfg.filterFinishDateStart);
+        if (cfg.filterFinishDateEnd !== undefined) setFilterFinishDateEnd(cfg.filterFinishDateEnd);
         if (cfg.filterOpenEnds !== undefined) setFilterOpenEnds(cfg.filterOpenEnds);
+        if (cfg.filterActivityId !== undefined) setFilterActivityId(cfg.filterActivityId);
+        if (cfg.filterActivityName !== undefined) setFilterActivityName(cfg.filterActivityName);
+        if (cfg.filterWbs !== undefined) setFilterWbs(cfg.filterWbs);
+        if (Array.isArray(cfg.activeFilters)) {
+          setActiveFilters(new Map(cfg.activeFilters.map(([categoryId, valueIds]: [number, number[]]) => [categoryId, new Set(valueIds)])));
+        }
         if (cfg.savedPdfConfig) setSavedPdfConfig(cfg.savedPdfConfig);
       } catch {}
       setDefaultLayoutApplied(true);
@@ -1294,7 +1340,7 @@ export default function Scheduler() {
       }
     }, 3000);
     return () => { if (autoSaveLayoutRef.current) clearTimeout(autoSaveLayoutRef.current); };
-  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterOpenEnds, scheduleId, defaultLayoutApplied]);
+  }, [visibleColumns, groupBy, sortState, zoom, customPpd, showArrows, showDataDateLine, showTodayLine, ganttFontSize, ganttFontColor, ganttFontFamily, filterCriticalOnly, filterLongestPath, filterLookahead, filterFloatMin, filterFloatMax, filterDateStart, filterDateEnd, filterFinishDateStart, filterFinishDateEnd, filterOpenEnds, filterActivityId, filterActivityName, filterWbs, activeFilters, scheduleId, defaultLayoutApplied]);
 
   /* ── Handlers ─────────────────────────────────────────────────────────────── */
   /* Column resize handlers */
@@ -1433,7 +1479,7 @@ export default function Scheduler() {
   }
   if (!schedule) return <div className="h-screen flex items-center justify-center bg-[#100f0c] text-[#d8c9aa]">Schedule not found</div>;
 
-  const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterOpenEnds || activeFilters.size > 0 || filterActivityId.trim() !== "" || filterActivityName.trim() !== "" || filterWbs.trim() !== "";
+  const hasActiveFilters = filterCriticalOnly || filterLongestPath || filterLookahead !== "none" || filterFloatMin || filterFloatMax || filterDateStart || filterDateEnd || filterFinishDateStart || filterFinishDateEnd || filterOpenEnds || activeFilters.size > 0 || filterActivityId.trim() !== "" || filterActivityName.trim() !== "" || filterWbs.trim() !== "";
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
@@ -1654,6 +1700,10 @@ export default function Scheduler() {
                   <DropdownMenuItem onClick={() => setShowAdvancedFilter(true)} className={hasActiveFilters ? "text-amber-400" : ""}>
                     <Filter className="w-4 h-4 mr-2" /> Filter Activities
                     {hasActiveFilters && <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Active</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowGroupSortDialog(true)} className={groupBy || sortState.dir ? "text-amber-400" : ""}>
+                    <ArrowUpDown className="w-4 h-4 mr-2" /> Group &amp; Sort
+                    {(groupBy || sortState.dir) && <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Set</span>}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] tracking-wider uppercase text-gray-500">Group By</DropdownMenuLabel>
@@ -4533,16 +4583,137 @@ export default function Scheduler() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Group & Sort Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={showGroupSortDialog} onOpenChange={setShowGroupSortDialog}>
+        <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-lg text-[#f7eddb]">Group &amp; Sort</DialogTitle>
+            <DialogDescription className="text-[#d8c9aa]">
+              Organize the filtered schedule without changing activity dates or logic.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-[1fr_1.15fr] gap-4">
+            <div className="rounded-lg border border-[#d9a21a]/15 bg-[#0f1219] p-4">
+              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Group Rows</Label>
+              <Select
+                value={groupBy || "__none__"}
+                onValueChange={(value) => setGroupBy(value === "__none__" ? null : value)}
+              >
+                <SelectTrigger className="border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No grouping</SelectItem>
+                  <SelectItem value="wbs">WBS hierarchy</SelectItem>
+                  <SelectItem value="critical">Critical / Non-critical</SelectItem>
+                  {codeCategories.length > 0 && (
+                    <>
+                      {codeCategories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={String(cat.id)}>Activity Code: {cat.name}</SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="mt-3 text-xs leading-5 text-[#a99d88]">
+                Current grouping: <span className="font-semibold text-[#f7eddb]">{currentGroupLabel}</span>
+              </p>
+              <div className="mt-4 flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setCollapsedGroups(new Set())} className="border-white/15 text-[#f7eddb]">
+                  <Maximize2 className="mr-1.5 h-3.5 w-3.5" /> Expand All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!groupBy}
+                  onClick={() => {
+                    const allKeys = new Set(groupedActivities.map(g => g.group || "all"));
+                    setCollapsedGroups(allKeys);
+                  }}
+                  className="border-white/15 text-[#f7eddb]"
+                >
+                  <Minimize2 className="mr-1.5 h-3.5 w-3.5" /> Collapse All
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[#d9a21a]/15 bg-[#0f1219] p-4">
+              <Label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Sort Rows</Label>
+              <div className="grid grid-cols-[1fr_11rem] gap-3">
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Sort Field</Label>
+                  <Select
+                    value={sortState.key || "__none__"}
+                    onValueChange={(value) => {
+                      if (value === "__none__") setSortState({ key: "", dir: null });
+                      else setSortState({ key: value, dir: sortState.dir || "asc" });
+                    }}
+                  >
+                    <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Manual / current order</SelectItem>
+                      {sortableColumns.map((col) => (
+                        <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Direction</Label>
+                  <Select
+                    value={sortState.dir || "asc"}
+                    disabled={!sortState.key}
+                    onValueChange={(value) => setSortState((prev) => ({ key: prev.key || "earlyStart", dir: value as SortDir }))}
+                  >
+                    <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-[#a99d88]">
+                Current sort: <span className="font-semibold text-[#f7eddb]">{currentSortLabel}</span>. Column headers can still be clicked for quick sorting.
+              </p>
+              <div className="mt-4 rounded-md border border-blue-400/15 bg-blue-500/10 px-3 py-2 text-xs leading-5 text-blue-100">
+                Filter first, then group and sort. Saved layouts remember columns, filters, group, sort, zoom, and PDF settings.
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="border-white/15 text-[#f7eddb]"
+              onClick={() => {
+                setGroupBy(null);
+                setSortState({ key: "", dir: null });
+              }}
+            >
+              Reset Group &amp; Sort
+            </Button>
+            <Button onClick={() => setShowGroupSortDialog(false)} className="bg-amber-500 text-gray-950 hover:bg-amber-400 font-semibold">
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Advanced Filter Dialog ───────────────────────────────────────────── */}
       <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
         <DialogContent className="max-w-4xl bg-[#171512] text-[#f7eddb] border-[#d9a21a]/20">
           <DialogHeader>
             <DialogTitle className="font-semibold text-lg text-[#f7eddb]">Advanced Filters</DialogTitle>
-            <DialogDescription className="text-[#d8c9aa]">Filter the active CPM table and Gantt without changing the schedule.</DialogDescription>
+            <DialogDescription className="text-[#d8c9aa]">
+              Build P6-style activity filters. Criteria are additive, so selected codes, dates, float, and text filters must all match.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             {/* Text-based filters */}
-            <div className="grid grid-cols-3 gap-3">
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Identity</Label>
+                <span className="text-[10px] text-[#8b806f]">Contains matching, like P6 filter text</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs text-[#d8c9aa]">Activity ID</Label>
                 <Input value={filterActivityId} onChange={(e) => setFilterActivityId(e.target.value)} placeholder="e.g. GC, FAB" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
@@ -4555,8 +4726,11 @@ export default function Scheduler() {
                 <Label className="text-xs text-[#d8c9aa]">WBS Code</Label>
                 <Input value={filterWbs} onChange={(e) => setFilterWbs(e.target.value)} placeholder="e.g. 1.2, Foundation" className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb] placeholder:text-[#8b806f]" />
               </div>
+              </div>
             </div>
 
+            <div>
+              <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Status &amp; Logic</Label>
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={filterCriticalOnly} onCheckedChange={(c) => setFilterCriticalOnly(!!c)} />
@@ -4571,9 +4745,10 @@ export default function Scheduler() {
                 <span className="text-sm text-gray-100">Open Ends Only</span>
               </label>
             </div>
+            </div>
 
             <div>
-              <Label className="text-xs text-[#d8c9aa]">Lookahead</Label>
+              <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Lookahead</Label>
               <Select value={filterLookahead} onValueChange={(v) => setFilterLookahead(v as any)}>
                 <SelectTrigger className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]"><SelectValue /></SelectTrigger>
                 <SelectContent className="">
@@ -4591,6 +4766,31 @@ export default function Scheduler() {
               )}
             </div>
 
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Dates</Label>
+                <span className="text-[10px] text-[#8b806f]">Start and finish windows are independent filters</span>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Early Start From</Label>
+                  <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                </div>
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Early Start To</Label>
+                  <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                </div>
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Early Finish From</Label>
+                  <Input type="date" value={filterFinishDateStart} onChange={(e) => setFilterFinishDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                </div>
+                <div>
+                  <Label className="text-xs text-[#d8c9aa]">Early Finish To</Label>
+                  <Input type="date" value={filterFinishDateEnd} onChange={(e) => setFilterFinishDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-[#d8c9aa]">Float Min (days)</Label>
@@ -4602,20 +4802,12 @@ export default function Scheduler() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-[#d8c9aa]">Start Date From</Label>
-                <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
-              </div>
-              <div>
-                <Label className="text-xs text-[#d8c9aa]">Start Date To</Label>
-                <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="mt-1 border-[#d9a21a]/20 bg-white/[0.08] text-[#f7eddb]" />
-              </div>
-            </div>
-
             {codeCategories.length > 0 && (
               <div>
-                <Label className="text-xs text-[#d8c9aa] mb-2 block">Activity Codes</Label>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">Activity Codes</Label>
+                  <span className="text-[10px] text-[#8b806f]">OR within a code category, AND across categories</span>
+                </div>
                 <div className="space-y-2">
                   {codeCategories.map((cat: any) => (
                     <div key={cat.id} className="grid grid-cols-[6rem_1fr] gap-2 items-start">
@@ -4669,6 +4861,8 @@ export default function Scheduler() {
                 setFilterFloatMax("");
                 setFilterDateStart("");
                 setFilterDateEnd("");
+                setFilterFinishDateStart("");
+                setFilterFinishDateEnd("");
                 setFilterOpenEnds(false);
                 setFilterActivityId("");
                 setFilterActivityName("");

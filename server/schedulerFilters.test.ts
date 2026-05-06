@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityFinishesInRange,
   activityOverlapsWindow,
   activityStartsInRange,
   getLookaheadDays,
@@ -48,6 +49,21 @@ describe("scheduler filters", () => {
 
     expect(activityStartsInRange({
       earlyStart: "2026-03-08",
+      earlyFinish: "2026-03-08",
+    }, rangeStart, rangeEnd)).toBe(false);
+  });
+
+  it("uses early finish for both finish-date boundaries", () => {
+    const rangeStart = new Date("2026-03-05T00:00:00");
+    const rangeEnd = new Date("2026-03-07T23:59:59");
+
+    expect(activityFinishesInRange({
+      earlyStart: "2026-03-01",
+      earlyFinish: "2026-03-06",
+    }, rangeStart, rangeEnd)).toBe(true);
+
+    expect(activityFinishesInRange({
+      earlyStart: "2026-03-06",
       earlyFinish: "2026-03-08",
     }, rangeStart, rangeEnd)).toBe(false);
   });
