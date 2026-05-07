@@ -19,7 +19,7 @@ import multer from "multer";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { storageGet, storagePut } from "./storage";
 import * as sdb from "./scheduleDb";
-import { processChunkedXerImportStep } from "./xerImport";
+import { processChunkedXerImportSteps } from "./xerImport";
 
 // ─── Multer config for multipart file upload ───────────────────────────────
 // Store in memory (we'll pass the buffer to background processing)
@@ -169,9 +169,22 @@ async function advanceXerImportJob(
 
     await updateProgress("importing", "Reading P6 tables from XER file...");
 
-    const step = await processChunkedXerImportStep(xerText, memberId, scheduleName, rawState, async (message) => {
-      await updateProgress("importing", message);
-    });
+    const step = await processChunkedXerImportSteps(
+      xerText,
+      memberId,
+      scheduleName,
+      rawState,
+      async (message) => {
+        await updateProgress("importing", message);
+      },
+      {
+        // Stay comfortably below common proxy/request limits while still doing
+        // several DB chunks per active poll. This avoids reparsing the same XER
+        // once for every 1,000 activities on large P6 exports.
+        maxDurationMs: 45_000,
+        maxSteps: 25,
+      },
+    );
 
     if (step.complete && step.result) {
       await sdb.updateXerImportJob(jobId, {

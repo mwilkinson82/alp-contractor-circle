@@ -342,8 +342,8 @@ type ChunkedXerStepResult = {
   result?: XerImportResult;
 };
 
-const ACTIVITY_IMPORT_CHUNK = 1000;
-const RELATIONSHIP_IMPORT_CHUNK = 2000;
+const ACTIVITY_IMPORT_CHUNK = 5000;
+const RELATIONSHIP_IMPORT_CHUNK = 10000;
 
 function initialChunkState(): ChunkedXerImportState {
   return {
@@ -460,11 +460,49 @@ export async function processChunkedXerImportStep(
   rawState: unknown,
   onProgress?: XerImportProgress,
 ): Promise<ChunkedXerStepResult> {
+  const context = getImportContext(xerText, overrideName);
+  return processChunkedXerImportContextStep(context, memberId, rawState, onProgress);
+}
+
+export async function processChunkedXerImportSteps(
+  xerText: string,
+  memberId: number,
+  overrideName: string | undefined,
+  rawState: unknown,
+  onProgress?: XerImportProgress,
+  options: { maxDurationMs?: number; maxSteps?: number } = {},
+): Promise<ChunkedXerStepResult> {
+  const context = getImportContext(xerText, overrideName);
+  const maxDurationMs = options.maxDurationMs ?? 45_000;
+  const maxSteps = options.maxSteps ?? 25;
+  const startedAt = Date.now();
+  let state = normalizeChunkState(rawState);
+  let lastStep: ChunkedXerStepResult | null = null;
+
+  for (let stepCount = 0; stepCount < maxSteps; stepCount++) {
+    lastStep = await processChunkedXerImportContextStep(context, memberId, state, onProgress);
+    if (lastStep.complete) return lastStep;
+
+    state = lastStep.state;
+    if (Date.now() - startedAt >= maxDurationMs) return lastStep;
+  }
+
+  return lastStep || {
+    state,
+    complete: false,
+  };
+}
+
+async function processChunkedXerImportContextStep(
+  context: ReturnType<typeof getImportContext>,
+  memberId: number,
+  rawState: unknown,
+  onProgress?: XerImportProgress,
+): Promise<ChunkedXerStepResult> {
   const progress = async (message: string) => {
     await onProgress?.(message);
   };
   const state = normalizeChunkState(rawState);
-  const context = getImportContext(xerText, overrideName);
 
   if (state.phase === "complete" && state.scheduleId && state.scheduleName) {
     return {
@@ -700,7 +738,7 @@ export async function processChunkedXerImportStep(
     const result: XerImportResult = {
       scheduleId: state.scheduleId,
       scheduleName: state.scheduleName || context.scheduleName,
-      activitiesImported: state.activitiesImported,
+      activitiesImported: nextState.activitiesImported,
       relationshipsImported: end,
       wbsNodesImported: state.wbsNodesImported,
       calendarsImported: state.calendarsImported,
