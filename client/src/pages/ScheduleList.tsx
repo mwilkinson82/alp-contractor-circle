@@ -81,6 +81,8 @@ const formatElapsed = (seconds: number) => {
   return `${mins}m ${secs.toString().padStart(2, "0")}s`;
 };
 
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
 function getScheduleStatus(schedule: ScheduleSummary) {
   const activityCount = schedule.activityCount ?? 0;
   const openEnds = (schedule.openStartCount ?? 0) + (schedule.openFinishCount ?? 0);
@@ -181,8 +183,6 @@ export default function ScheduleList() {
     setXerImporting(true);
     setXerStartedAt(Date.now());
     setXerProgress("Preparing upload...");
-    let pollInterval: ReturnType<typeof setInterval> | null = null;
-    let safetyTimeout: ReturnType<typeof setTimeout> | null = null;
 
     try {
       setXerProgress(`Uploading ${(xerFile.size / 1024 / 1024).toFixed(1)} MB...`);
@@ -198,49 +198,46 @@ export default function ScheduleList() {
 
       const { jobId } = await uploadRes.json();
       setXerProgress("Parsing XER file...");
-      pollInterval = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/xer/status/${jobId}`);
-          if (!statusRes.ok) return;
-          const job = await statusRes.json();
-          setXerProgress(job.progressMessage || "Processing...");
 
-          if (job.status === "complete") {
-            if (pollInterval) clearInterval(pollInterval);
-            if (safetyTimeout) clearTimeout(safetyTimeout);
-            const result = job.result as any;
-            toast.success(`Imported ${result?.activitiesImported || 0} activities and ${result?.relationshipsImported || 0} relationships`);
-            setShowXerImport(false);
-            setXerFile(null);
-            setXerScheduleName("");
-            setXerImporting(false);
-            setXerProgress("");
-            setXerStartedAt(null);
-            if (job.scheduleId) window.open(`/scheduler/${job.scheduleId}`, "_blank");
-            schedulesQuery.refetch();
-          } else if (job.status === "failed") {
-            if (pollInterval) clearInterval(pollInterval);
-            if (safetyTimeout) clearTimeout(safetyTimeout);
-            toast.error(`XER import failed: ${job.errorMessage || "Unknown error"}`);
-            setXerImporting(false);
-            setXerProgress("");
-            setXerStartedAt(null);
-          }
-        } catch {
-          // Keep polling; transient status errors are common during large imports.
+      const deadline = Date.now() + 15 * 60 * 1000;
+      let transientErrors = 0;
+
+      while (Date.now() < deadline) {
+        const statusRes = await fetch(`/api/xer/status/${jobId}`);
+        if (!statusRes.ok) {
+          transientErrors++;
+          if (transientErrors >= 3) setXerProgress("Import is still running — waiting for server status...");
+          await wait(2000);
+          continue;
         }
-      }, 2000);
 
-      safetyTimeout = setTimeout(() => {
-        if (pollInterval) clearInterval(pollInterval);
-        toast.error("Import is taking longer than expected. Check the list again shortly.");
-        setXerImporting(false);
-        setXerProgress("");
-        setXerStartedAt(null);
-      }, 600000);
+        transientErrors = 0;
+        const job = await statusRes.json();
+        setXerProgress(job.progressMessage || "Processing...");
+
+        if (job.status === "complete") {
+          const result = job.result as any;
+          toast.success(`Imported ${result?.activitiesImported || 0} activities and ${result?.relationshipsImported || 0} relationships`);
+          setShowXerImport(false);
+          setXerFile(null);
+          setXerScheduleName("");
+          setXerImporting(false);
+          setXerProgress("");
+          setXerStartedAt(null);
+          if (job.scheduleId) window.open(`/scheduler/${job.scheduleId}`, "_blank");
+          schedulesQuery.refetch();
+          return;
+        }
+
+        if (job.status === "failed") {
+          throw new Error(job.errorMessage || "Unknown error");
+        }
+
+        await wait(2000);
+      }
+
+      throw new Error("Import is taking longer than expected. Check the schedule archive again shortly.");
     } catch (e: any) {
-      if (pollInterval) clearInterval(pollInterval);
-      if (safetyTimeout) clearTimeout(safetyTimeout);
       toast.error(`XER import failed: ${e.message || "Unknown error"}`);
       setXerImporting(false);
       setXerProgress("");

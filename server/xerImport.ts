@@ -321,25 +321,23 @@ export async function importXerFile(
 ): Promise<XerImportResult> {
   const warnings: string[] = [];
   const t0 = Date.now();
+  let createdScheduleId: number | null = null;
   const progress = async (message: string) => {
     await onProgress?.(message);
   };
 
-  // ─── Parse the XER file ──────────────────────────────────────────────────
-  console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
-  await progress(`Reading P6 tables from XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
-  let xer: ParsedXer;
   try {
+    // ─── Parse the XER file ──────────────────────────────────────────────────
+    console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+    await progress(`Reading P6 tables from XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+    let xer: ParsedXer;
     xer = parseXerTables(xerText);
-  } catch (e: any) {
-    throw new Error(`Failed to parse XER file: ${e.message}. Make sure this is a valid Primavera P6 XER export.`);
-  }
-  console.log(`[XER Import] Parsed in ${Date.now() - t0}ms — ${xer.projects.length} projects, ${xer.tasks.length} tasks, ${xer.taskPredecessors.length} predecessors`);
-  await progress(`Parsed ${xer.tasks.length.toLocaleString()} tasks, ${xer.taskPredecessors.length.toLocaleString()} relationships, ${xer.projWBS.length.toLocaleString()} WBS nodes.`);
+    console.log(`[XER Import] Parsed in ${Date.now() - t0}ms — ${xer.projects.length} projects, ${xer.tasks.length} tasks, ${xer.taskPredecessors.length} predecessors`);
+    await progress(`Parsed ${xer.tasks.length.toLocaleString()} tasks, ${xer.taskPredecessors.length.toLocaleString()} relationships, ${xer.projWBS.length.toLocaleString()} WBS nodes.`);
 
-  if (xer.projects.length === 0) {
-    throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
-  }
+    if (xer.projects.length === 0) {
+      throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
+    }
 
   // P6 exports can include baseline/related projects. Import the project with the real task set.
   const project = selectImportProject(xer, overrideName);
@@ -360,6 +358,7 @@ export async function importXerFile(
     projectStartDate: projectStart,
     dataDate,
   });
+  createdScheduleId = scheduleId;
   console.log(`[XER Import] Created schedule #${scheduleId}: "${scheduleName}"`);
   await progress(`Created Baseline schedule "${scheduleName}" — importing calendars...`);
 
@@ -438,7 +437,8 @@ export async function importXerFile(
   // Pass 1: Create all WBS nodes without parent references
   let colorIdx = 0;
   const wbsInsertOrder: { p6Id: number; p6ParentId: number | undefined }[] = [];
-  
+  const wbsRows: Parameters<typeof sdb.bulkCreateWbsNodes>[0] = [];
+
   for (const wbs of projectWbs) {
     // Skip the project-level WBS node (projNodeFlag)
     if (wbs.projNodeFlag) {
@@ -446,7 +446,7 @@ export async function importXerFile(
       continue;
     }
 
-    const { id: wbsId } = await sdb.createWbsNode({
+    wbsRows.push({
       scheduleId,
       parentId: undefined, // set in pass 2
       code: wbs.wbsShortName || `WBS-${wbs.wbsId}`,
@@ -455,10 +455,13 @@ export async function importXerFile(
       groupColor: WBS_COLORS[colorIdx % WBS_COLORS.length],
       groupTextColor: "#FFFFFF",
     });
-
-    wbsIdMap.set(wbs.wbsId, wbsId);
     wbsInsertOrder.push({ p6Id: wbs.wbsId, p6ParentId: wbs.parentWbsId || undefined });
     colorIdx++;
+  }
+
+  const wbsIds = await sdb.bulkCreateWbsNodes(wbsRows);
+  for (let i = 0; i < wbsInsertOrder.length; i++) {
+    wbsIdMap.set(wbsInsertOrder[i].p6Id, wbsIds[i].id);
   }
 
   // Pass 2: Update parent references
@@ -610,4 +613,16 @@ export async function importXerFile(
     calendarsImported: calendarIdMap.size,
     warnings,
   };
+  } catch (e: any) {
+    if (createdScheduleId) {
+      try {
+        await sdb.deleteSchedule(createdScheduleId);
+      } catch (cleanupErr) {
+        console.error(`[XER Import] Failed to clean up partial schedule #${createdScheduleId}:`, cleanupErr);
+      }
+    }
+    if (e?.message?.startsWith("Failed to parse XER file:")) throw e;
+    if (e?.message?.includes("No projects found in XER file")) throw e;
+    throw new Error(`Failed to import XER file: ${e.message || "Unknown error"}`);
+  }
 }
