@@ -1,14 +1,13 @@
 /**
  * XER Import Service — converts Primavera P6 XER files into our schedule format.
- * Uses the xer-parser library for parsing, then maps to our DB schema.
+ * Uses a lean table parser for the P6 tables Baseline imports, then maps to our DB schema.
  * 
  * Optimized for large files (14MB+, 2000+ activities) with:
  * - Bulk DB inserts (batched) instead of one-at-a-time
  * - Two-pass WBS import (create all, then update parent references)
- * - Streaming-capable XER parser
+ * - Lightweight XER table parsing without full third-party entity hydration
  * - Detailed error messages
  */
-import { XER } from "xer-parser";
 import * as sdb from "./scheduleDb";
 import { getUSConstructionHolidays } from "../shared/cpmEngine";
 
@@ -86,10 +85,213 @@ export interface XerImportResult {
 
 type XerImportProgress = (message: string) => Promise<void> | void;
 
-async function* chunkXerText(xerText: string, chunkSize = 256 * 1024) {
-  for (let offset = 0; offset < xerText.length; offset += chunkSize) {
-    yield xerText.slice(offset, offset + chunkSize);
+type XerProject = {
+  projId: number;
+  projShortName?: string;
+  clndrId?: number;
+  lastRecalcDate?: Date;
+  planStartDate?: Date;
+};
+
+type XerCalendar = {
+  clndrId: number;
+  defaultFlag: boolean;
+  clndrName?: string;
+  dayHrCnt?: number;
+  weekHrCnt?: number;
+  clndrData?: string;
+};
+
+type XerWbs = {
+  wbsId: number;
+  projId: number;
+  seqNum?: number;
+  projNodeFlag: boolean;
+  wbsShortName?: string;
+  wbsName?: string;
+  parentWbsId?: number;
+};
+
+type XerTask = {
+  taskId: number;
+  projId: number;
+  wbsId?: number;
+  clndrId?: number;
+  physCompletePct?: number;
+  taskType?: string;
+  taskCode?: string;
+  taskName?: string;
+  targetDrtnHrCnt?: number;
+  cstrDate?: Date;
+  cstrType?: string;
+  actStartDate?: Date;
+  actEndDate?: Date;
+};
+
+type XerTaskPred = {
+  taskId: number;
+  predTaskId: number;
+  projId: number;
+  predType?: string;
+  lagHrCnt?: number;
+};
+
+type ParsedXer = {
+  projects: XerProject[];
+  calendars: XerCalendar[];
+  projWBS: XerWbs[];
+  tasks: XerTask[];
+  taskPredecessors: XerTaskPred[];
+};
+
+const TARGET_TABLES = new Set(["PROJECT", "CALENDAR", "PROJWBS", "TASK", "TASKPRED"]);
+
+function parseNumber(value: string | undefined): number | undefined {
+  if (value == null || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseFlag(value: string | undefined) {
+  return value === "Y";
+}
+
+function parseXerDate(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  const date = new Date(value.replace(" ", "T"));
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function read(row: string[], index: Map<string, number>, key: string) {
+  const column = index.get(key);
+  return column == null ? undefined : row[column];
+}
+
+function parseXerTables(xerText: string): ParsedXer {
+  const parsed: ParsedXer = {
+    projects: [],
+    calendars: [],
+    projWBS: [],
+    tasks: [],
+    taskPredecessors: [],
+  };
+
+  let activeTable = "";
+  let headers: string[] = [];
+  let headerIndex = new Map<string, number>();
+  let start = 0;
+
+  const processLine = (line: string) => {
+    if (!line) return;
+    const row = line.split("\t");
+    const marker = row[0];
+
+    if (marker === "%T") {
+      activeTable = TARGET_TABLES.has(row[1]) ? row[1] : "";
+      headers = [];
+      headerIndex = new Map();
+      return;
+    }
+
+    if (!activeTable) return;
+
+    if (marker === "%F") {
+      headers = row.slice(1);
+      headerIndex = new Map(headers.map((header, index) => [header, index]));
+      return;
+    }
+
+    if (marker !== "%R" || headers.length === 0) return;
+
+    const values = row.slice(1);
+    switch (activeTable) {
+      case "PROJECT": {
+        const projId = parseNumber(read(values, headerIndex, "proj_id"));
+        if (projId == null) return;
+        parsed.projects.push({
+          projId,
+          projShortName: read(values, headerIndex, "proj_short_name"),
+          clndrId: parseNumber(read(values, headerIndex, "clndr_id")),
+          lastRecalcDate: parseXerDate(read(values, headerIndex, "last_recalc_date")),
+          planStartDate: parseXerDate(read(values, headerIndex, "plan_start_date")),
+        });
+        break;
+      }
+      case "CALENDAR": {
+        const clndrId = parseNumber(read(values, headerIndex, "clndr_id"));
+        if (clndrId == null) return;
+        parsed.calendars.push({
+          clndrId,
+          defaultFlag: parseFlag(read(values, headerIndex, "default_flag")),
+          clndrName: read(values, headerIndex, "clndr_name"),
+          dayHrCnt: parseNumber(read(values, headerIndex, "day_hr_cnt")),
+          weekHrCnt: parseNumber(read(values, headerIndex, "week_hr_cnt")),
+          clndrData: read(values, headerIndex, "clndr_data"),
+        });
+        break;
+      }
+      case "PROJWBS": {
+        const wbsId = parseNumber(read(values, headerIndex, "wbs_id"));
+        const projId = parseNumber(read(values, headerIndex, "proj_id"));
+        if (wbsId == null || projId == null) return;
+        parsed.projWBS.push({
+          wbsId,
+          projId,
+          seqNum: parseNumber(read(values, headerIndex, "seq_num")),
+          projNodeFlag: parseFlag(read(values, headerIndex, "proj_node_flag")),
+          wbsShortName: read(values, headerIndex, "wbs_short_name"),
+          wbsName: read(values, headerIndex, "wbs_name"),
+          parentWbsId: parseNumber(read(values, headerIndex, "parent_wbs_id")),
+        });
+        break;
+      }
+      case "TASK": {
+        const taskId = parseNumber(read(values, headerIndex, "task_id"));
+        const projId = parseNumber(read(values, headerIndex, "proj_id"));
+        if (taskId == null || projId == null) return;
+        parsed.tasks.push({
+          taskId,
+          projId,
+          wbsId: parseNumber(read(values, headerIndex, "wbs_id")),
+          clndrId: parseNumber(read(values, headerIndex, "clndr_id")),
+          physCompletePct: parseNumber(read(values, headerIndex, "phys_complete_pct")),
+          taskType: read(values, headerIndex, "task_type"),
+          taskCode: read(values, headerIndex, "task_code"),
+          taskName: read(values, headerIndex, "task_name"),
+          targetDrtnHrCnt: parseNumber(read(values, headerIndex, "target_drtn_hr_cnt")),
+          cstrDate: parseXerDate(read(values, headerIndex, "cstr_date")),
+          cstrType: read(values, headerIndex, "cstr_type"),
+          actStartDate: parseXerDate(read(values, headerIndex, "act_start_date")),
+          actEndDate: parseXerDate(read(values, headerIndex, "act_end_date")),
+        });
+        break;
+      }
+      case "TASKPRED": {
+        const taskId = parseNumber(read(values, headerIndex, "task_id"));
+        const predTaskId = parseNumber(read(values, headerIndex, "pred_task_id"));
+        const projId = parseNumber(read(values, headerIndex, "proj_id"));
+        if (taskId == null || predTaskId == null || projId == null) return;
+        parsed.taskPredecessors.push({
+          taskId,
+          predTaskId,
+          projId,
+          predType: read(values, headerIndex, "pred_type"),
+          lagHrCnt: parseNumber(read(values, headerIndex, "lag_hr_cnt")),
+        });
+        break;
+      }
+    }
+  };
+
+  for (let i = 0; i <= xerText.length; i++) {
+    if (i === xerText.length || xerText.charCodeAt(i) === 10) {
+      const end = i > start && xerText.charCodeAt(i - 1) === 13 ? i - 1 : i;
+      processLine(xerText.slice(start, end));
+      start = i + 1;
+    }
   }
+
+  return parsed;
 }
 
 export async function importXerFile(
@@ -106,10 +308,10 @@ export async function importXerFile(
 
   // ─── Parse the XER file ──────────────────────────────────────────────────
   console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
-  await progress(`Streaming parse for XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
-  let xer: InstanceType<typeof XER>;
+  await progress(`Reading P6 tables from XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+  let xer: ParsedXer;
   try {
-    xer = await XER.fromStream(chunkXerText(xerText));
+    xer = parseXerTables(xerText);
   } catch (e: any) {
     throw new Error(`Failed to parse XER file: ${e.message}. Make sure this is a valid Primavera P6 XER export.`);
   }
@@ -125,8 +327,8 @@ export async function importXerFile(
   const scheduleName = overrideName || project.projShortName || "Imported Schedule";
 
   // Get data date from project
-  const dataDate = project.lastRecalcDate?.toDate() || new Date();
-  const projectStart = project.planStartDate?.toDate() || new Date();
+  const dataDate = project.lastRecalcDate || new Date();
+  const projectStart = project.planStartDate || new Date();
 
   // Create the schedule
   const { id: scheduleId } = await sdb.createSchedule({
@@ -142,6 +344,7 @@ export async function importXerFile(
   // ─── Import Calendars ──────────────────────────────────────────────────────
 
   const calendarIdMap = new Map<number, number>(); // P6 clndr_id → our calendar id
+  const calendarByP6Id = new Map(xer.calendars.map((cal) => [cal.clndrId, cal]));
   let defaultCalendarId: number | null = null;
 
   for (const cal of xer.calendars) {
@@ -193,6 +396,7 @@ export async function importXerFile(
   // ─── Import WBS (two-pass for parent references) ──────────────────────────
 
   const wbsIdMap = new Map<number, number>(); // P6 wbs_id → our wbs id
+  const wbsByP6Id = new Map(xer.projWBS.map((wbs) => [wbs.wbsId, wbs]));
   const WBS_COLORS = [
     "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6",
     "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
@@ -252,7 +456,7 @@ export async function importXerFile(
   // ─── Import Activities (bulk insert) ──────────────────────────────────────
 
   const activityIdMap = new Map<number, number>(); // P6 task_id → our activity DB id
-  const projectTasks = xer.tasks.filter(t => t.project?.projId === project.projId);
+  const projectTasks = xer.tasks.filter(t => t.projId === project.projId);
 
   // Sort by P6 sequence / task_code
   const sortedTasks = [...projectTasks].sort((a, b) => {
@@ -277,8 +481,9 @@ export async function importXerFile(
     const isMilestone = task.taskType === "TT_Mile" || task.taskType === "TT_FinMile";
 
     // Convert duration from hours to days
-    const dayHrCnt = task.calendar?.dayHrCnt || 8;
-    const durationDays = isMilestone ? 0 : Math.max(1, Math.round((task.targetDrtn?.hours || 0) / dayHrCnt));
+    const taskCalendar = task.clndrId ? calendarByP6Id.get(task.clndrId) : undefined;
+    const dayHrCnt = taskCalendar?.dayHrCnt || 8;
+    const durationDays = isMilestone ? 0 : Math.max(1, Math.round((task.targetDrtnHrCnt || 0) / dayHrCnt));
 
     // Map constraint type
     let constraintType = "ASAP";
@@ -289,22 +494,22 @@ export async function importXerFile(
     // Map constraint date
     let constraintDate: Date | undefined;
     if (task.cstrDate) {
-      constraintDate = task.cstrDate.toDate();
+      constraintDate = task.cstrDate;
     }
 
     // Map percent complete
     const percentComplete = (task.physCompletePct ?? 0).toFixed(2);
 
     // Map actual dates
-    const actualStart = task.actStartDate?.toDate() || undefined;
-    const actualFinish = task.actEndDate?.toDate() || undefined;
+    const actualStart = task.actStartDate || undefined;
+    const actualFinish = task.actEndDate || undefined;
 
     // Map WBS
-    const wbsNode = task.wbs;
+    const wbsNode = task.wbsId ? wbsByP6Id.get(task.wbsId) : undefined;
     const ourWbsId = wbsNode ? wbsIdMap.get(wbsNode.wbsId) : undefined;
 
     // Map calendar
-    const calId = task.calendar ? calendarIdMap.get(task.calendar.clndrId) : undefined;
+    const calId = task.clndrId ? calendarIdMap.get(task.clndrId) : undefined;
 
     activityRows.push({
       scheduleId,
@@ -353,11 +558,11 @@ export async function importXerFile(
     }
 
     // Map relationship type
-    const relType = P6_REL_MAP[pred.predType] || "FS";
+    const relType = (pred.predType ? P6_REL_MAP[pred.predType] : undefined) || "FS";
 
     // Convert lag from hours to days
     const dayHrCnt = 8; // default
-    const lagDays = Math.round((pred.lag?.hours || 0) / dayHrCnt);
+    const lagDays = Math.round((pred.lagHrCnt || 0) / dayHrCnt);
 
     relRows.push({
       scheduleId,
