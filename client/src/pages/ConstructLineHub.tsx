@@ -167,7 +167,7 @@ function BuildingHeroArt() {
       <div
         className="absolute inset-0 bg-no-repeat opacity-95"
         style={{
-          backgroundImage: "url('/constructline-hub-mock.png')",
+          backgroundImage: "url('/manus-storage/constructline-hub-mock_ddfb4940.png')",
           backgroundPosition: "58% 8%",
           backgroundSize: "900px auto",
         }}
@@ -476,7 +476,7 @@ export default function ConstructLineHub() {
           >
             <div className="relative aspect-[3/2] overflow-hidden">
               <img
-                src="/constructline-basis-2.png"
+                src="/manus-storage/constructline-basis-2_b652b82d.png"
                 alt="ConstructLine 2.0 Basis estimating tool"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
               />
@@ -504,7 +504,7 @@ export default function ConstructLineHub() {
           >
             <div className="relative aspect-[3/2] overflow-hidden">
               <img
-                src="/constructline-baseline-2.png"
+                src="/manus-storage/constructline-baseline-2_7a04b367.png"
                 alt="ConstructLine 2.0 Baseline CPM schedule tool"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
               />
