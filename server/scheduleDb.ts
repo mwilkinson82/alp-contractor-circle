@@ -2,7 +2,7 @@
  * Database helpers for the CPM Schedule Builder.
  * All queries return raw Drizzle rows — business logic lives in the router.
  */
-import { and, eq, desc, asc } from "drizzle-orm";
+import { and, eq, desc, asc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   schedules,
@@ -658,4 +658,20 @@ export async function getXerImportJob(id: number) {
 export async function updateXerImportJob(id: number, data: Partial<InsertXerImportJob>) {
   const db = requireDb();
   await db.update(xerImportJobs).set(data).where(eq(xerImportJobs.id, id));
+}
+
+export async function claimXerImportJob(id: number, memberId: number) {
+  const db = requireDb();
+  const [result] = await db
+    .update(xerImportJobs)
+    .set({
+      status: "importing",
+      progressMessage: "Import worker claimed job — loading XER file...",
+    })
+    .where(and(
+      eq(xerImportJobs.id, id),
+      eq(xerImportJobs.memberId, memberId),
+      inArray(xerImportJobs.status, ["pending", "parsing"]),
+    ));
+  return ((result as any)?.affectedRows ?? 0) > 0;
 }
