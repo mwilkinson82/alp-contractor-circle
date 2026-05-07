@@ -190,7 +190,9 @@ async function processXerImport(
     // Step 2: Parse and import
     await updateProgress("parsing", "Parsing XER file...");
 
-    const result = await importXerFile(xerText, memberId, scheduleName);
+    const result = await importXerFile(xerText, memberId, scheduleName, async (message) => {
+      await updateProgress("parsing", message);
+    });
 
     // Step 3: Mark complete
     await sdb.updateXerImportJob(jobId, {

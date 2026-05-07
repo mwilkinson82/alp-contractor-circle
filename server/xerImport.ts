@@ -84,16 +84,23 @@ export interface XerImportResult {
   warnings: string[];
 }
 
+type XerImportProgress = (message: string) => Promise<void> | void;
+
 export async function importXerFile(
   xerText: string,
   memberId: number,
   overrideName?: string,
+  onProgress?: XerImportProgress,
 ): Promise<XerImportResult> {
   const warnings: string[] = [];
   const t0 = Date.now();
+  const progress = async (message: string) => {
+    await onProgress?.(message);
+  };
 
   // ─── Parse the XER file ──────────────────────────────────────────────────
   console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+  await progress(`Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
   let xer: InstanceType<typeof XER>;
   try {
     xer = new XER(xerText);
@@ -101,6 +108,7 @@ export async function importXerFile(
     throw new Error(`Failed to parse XER file: ${e.message}. Make sure this is a valid Primavera P6 XER export.`);
   }
   console.log(`[XER Import] Parsed in ${Date.now() - t0}ms — ${xer.projects.length} projects, ${xer.tasks.length} tasks, ${xer.taskPredecessors.length} predecessors`);
+  await progress(`Parsed ${xer.tasks.length.toLocaleString()} tasks, ${xer.taskPredecessors.length.toLocaleString()} relationships, ${xer.projWBS.length.toLocaleString()} WBS nodes.`);
 
   if (xer.projects.length === 0) {
     throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
@@ -123,6 +131,7 @@ export async function importXerFile(
     dataDate,
   });
   console.log(`[XER Import] Created schedule #${scheduleId}: "${scheduleName}"`);
+  await progress(`Created Baseline schedule "${scheduleName}" — importing calendars...`);
 
   // ─── Import Calendars ──────────────────────────────────────────────────────
 
@@ -159,6 +168,7 @@ export async function importXerFile(
     defaultCalendarId = calId;
   }
   console.log(`[XER Import] Imported ${calendarIdMap.size} calendars`);
+  await progress(`Imported ${calendarIdMap.size.toLocaleString()} calendars — importing WBS structure...`);
 
   // Add US construction holidays (bulk insert)
   const startYear = projectStart.getFullYear();
@@ -231,6 +241,7 @@ export async function importXerFile(
 
   const wbsCount = wbsInsertOrder.length;
   console.log(`[XER Import] Imported ${wbsCount} WBS nodes`);
+  await progress(`Imported ${wbsCount.toLocaleString()} WBS nodes — preparing activities...`);
 
   // ─── Import Activities (bulk insert) ──────────────────────────────────────
 
@@ -309,6 +320,7 @@ export async function importXerFile(
   }
 
   console.log(`[XER Import] Inserting ${activityRows.length} activities (skipped ${skippedWbsSummary} WBS summaries)...`);
+  await progress(`Inserting ${activityRows.length.toLocaleString()} activities...`);
   const actIds = await sdb.bulkCreateActivities(activityRows);
 
   // Map P6 task IDs to our DB IDs
@@ -316,6 +328,7 @@ export async function importXerFile(
     activityIdMap.set(taskIdOrder[i], actIds[i].id);
   }
   console.log(`[XER Import] Inserted ${actIds.length} activities`);
+  await progress(`Inserted ${actIds.length.toLocaleString()} activities — preparing logic relationships...`);
 
   // ─── Import Relationships (bulk insert) ────────────────────────────────────
 
@@ -350,8 +363,10 @@ export async function importXerFile(
   }
 
   console.log(`[XER Import] Inserting ${relRows.length} relationships...`);
+  await progress(`Inserting ${relRows.length.toLocaleString()} logic relationships...`);
   await sdb.bulkCreateRelationships(relRows);
   console.log(`[XER Import] Done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  await progress(`Finalizing import — ${activityIdMap.size.toLocaleString()} activities and ${relRows.length.toLocaleString()} relationships imported.`);
 
   return {
     scheduleName,

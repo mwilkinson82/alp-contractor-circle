@@ -1,7 +1,7 @@
 /**
  * ScheduleList - Baseline schedule archive and command desk.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMember } from "@/hooks/useMember";
 import { useBetaUser } from "@/hooks/useBetaUser";
@@ -74,6 +74,13 @@ const pct = (done = 0, total = 0) => {
   return Math.round((done / total) * 100);
 };
 
+const formatElapsed = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+};
+
 function getScheduleStatus(schedule: ScheduleSummary) {
   const activityCount = schedule.activityCount ?? 0;
   const openEnds = (schedule.openStartCount ?? 0) + (schedule.openFinishCount ?? 0);
@@ -111,6 +118,8 @@ export default function ScheduleList() {
   const [xerScheduleName, setXerScheduleName] = useState("");
   const [xerImporting, setXerImporting] = useState(false);
   const [xerProgress, setXerProgress] = useState("");
+  const [xerStartedAt, setXerStartedAt] = useState<number | null>(null);
+  const [xerElapsedSeconds, setXerElapsedSeconds] = useState(0);
 
   const schedulesQuery = trpc.schedule.list.useQuery(undefined, { enabled: isAllowed });
   const templatesQuery = trpc.schedule.templates.useQuery(undefined, { enabled: isAllowed });
@@ -155,9 +164,22 @@ export default function ScheduleList() {
     onError: (err) => toast.error(err.message),
   });
 
+  useEffect(() => {
+    if (!xerStartedAt || !xerImporting) {
+      setXerElapsedSeconds(0);
+      return;
+    }
+
+    const updateElapsed = () => setXerElapsedSeconds(Math.max(0, Math.floor((Date.now() - xerStartedAt) / 1000)));
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(timer);
+  }, [xerImporting, xerStartedAt]);
+
   const handleXerImport = async () => {
     if (!xerFile) return;
     setXerImporting(true);
+    setXerStartedAt(Date.now());
     setXerProgress("Preparing upload...");
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let safetyTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -193,6 +215,7 @@ export default function ScheduleList() {
             setXerScheduleName("");
             setXerImporting(false);
             setXerProgress("");
+            setXerStartedAt(null);
             if (job.scheduleId) window.open(`/scheduler/${job.scheduleId}`, "_blank");
             schedulesQuery.refetch();
           } else if (job.status === "failed") {
@@ -201,6 +224,7 @@ export default function ScheduleList() {
             toast.error(`XER import failed: ${job.errorMessage || "Unknown error"}`);
             setXerImporting(false);
             setXerProgress("");
+            setXerStartedAt(null);
           }
         } catch {
           // Keep polling; transient status errors are common during large imports.
@@ -212,6 +236,7 @@ export default function ScheduleList() {
         toast.error("Import is taking longer than expected. Check the list again shortly.");
         setXerImporting(false);
         setXerProgress("");
+        setXerStartedAt(null);
       }, 600000);
     } catch (e: any) {
       if (pollInterval) clearInterval(pollInterval);
@@ -219,6 +244,7 @@ export default function ScheduleList() {
       toast.error(`XER import failed: ${e.message || "Unknown error"}`);
       setXerImporting(false);
       setXerProgress("");
+      setXerStartedAt(null);
     }
   };
 
@@ -523,6 +549,7 @@ export default function ScheduleList() {
           if (!open) {
             setXerFile(null);
             setXerScheduleName("");
+            setXerStartedAt(null);
           }
         }}
         file={xerFile}
@@ -531,6 +558,7 @@ export default function ScheduleList() {
         setScheduleName={setXerScheduleName}
         importing={xerImporting}
         progress={xerProgress}
+        elapsedSeconds={xerElapsedSeconds}
         onImport={handleXerImport}
       />
     </div>
@@ -824,6 +852,7 @@ function XerImportDialog({
   setScheduleName,
   importing,
   progress,
+  elapsedSeconds,
   onImport,
 }: {
   open: boolean;
@@ -834,10 +863,17 @@ function XerImportDialog({
   setScheduleName: (value: string) => void;
   importing: boolean;
   progress: string;
+  elapsedSeconds: number;
   onImport: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (importing && !nextOpen) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="bg-[#07111f] text-[#f8fbff] border-[#f8fbff]/10 max-w-2xl text-base [&_[data-slot=dialog-close]]:text-[#64748b] [&_[data-slot=dialog-close]:hover]:text-[#f8fbff] [&_[data-slot=dialog-close]:hover]:bg-[#f8fbff]/5">
         <DialogHeader className="border-b-[#f8fbff]/10">
           <DialogTitle className="font-heading text-lg text-[#f8fbff]">Import Primavera P6 XER File</DialogTitle>
@@ -850,7 +886,9 @@ function XerImportDialog({
             className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
               file ? "border-[#2f80ff] bg-[#2f80ff]/10" : "border-[#f8fbff]/20 hover:border-[#2f80ff]/60"
             }`}
-            onClick={() => document.getElementById("xer-file-input")?.click()}
+            onClick={() => {
+              if (!importing) document.getElementById("xer-file-input")?.click();
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -858,6 +896,7 @@ function XerImportDialog({
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (importing) return;
               const dropped = e.dataTransfer.files[0];
               if (dropped && dropped.name.toLowerCase().endsWith(".xer")) {
                 setFile(dropped);
@@ -871,6 +910,7 @@ function XerImportDialog({
               id="xer-file-input"
               type="file"
               accept=".xer,.XER"
+              disabled={importing}
               className="hidden"
               onChange={(e) => {
                 const selected = e.target.files?.[0];
@@ -897,21 +937,41 @@ function XerImportDialog({
 
           <div>
             <Label className="text-[#b8c7e6]">Schedule Name</Label>
-            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} placeholder="Leave blank to use P6 project name" className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b]" />
+            <Input value={scheduleName} onChange={(e) => setScheduleName(e.target.value)} disabled={importing} placeholder="Leave blank to use P6 project name" className="mt-1 border-[#f8fbff]/10 bg-white/5 text-[#f8fbff] placeholder:text-[#64748b] disabled:opacity-70" />
           </div>
 
           <div className="rounded-lg bg-[#030712] p-4 text-sm text-[#b8c7e6]">
             <p className="font-semibold text-[#f8fbff]">Imported schedules open directly in the Baseline cockpit.</p>
             <p className="mt-1">After import, calculate CPM, verify open ends, then save your first baseline snapshot before issuing the update.</p>
           </div>
+
+          {importing ? (
+            <div className="rounded-lg border border-[#2f80ff]/30 bg-[#2f80ff]/10 p-4 text-sm text-[#dbeafe]">
+              <div className="flex items-start gap-3">
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[#60a5fa]" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-[#f8fbff]">Import in progress</p>
+                    <span className="rounded-full border border-[#f8fbff]/10 bg-[#07111f]/80 px-2 py-0.5 text-xs font-semibold text-[#b8c7e6]">
+                      {formatElapsed(elapsedSeconds)}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-words">{progress || "Starting import..."}</p>
+                  <p className="mt-2 text-xs text-[#8ba4d6]">
+                    Large P6 files can take a minute while Baseline imports WBS, calendars, activities, and logic ties.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
         <DialogFooter className="border-t-[#f8fbff]/10">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>Cancel</Button>
           <Button onClick={onImport} disabled={!file || importing} className="bg-[#2f80ff] text-white hover:bg-[#2563eb]">
             {importing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                {progress || "Importing..."}
+                Importing...
               </>
             ) : (
               <>
