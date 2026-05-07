@@ -294,6 +294,25 @@ function parseXerTables(xerText: string): ParsedXer {
   return parsed;
 }
 
+function selectImportProject(xer: ParsedXer, overrideName?: string) {
+  const taskCounts = new Map<number, number>();
+  for (const task of xer.tasks) {
+    taskCounts.set(task.projId, (taskCounts.get(task.projId) || 0) + 1);
+  }
+
+  const normalizedOverride = overrideName?.trim().toLowerCase();
+  if (normalizedOverride) {
+    const exactMatch = xer.projects.find((project) => project.projShortName?.trim().toLowerCase() === normalizedOverride);
+    if (exactMatch) return exactMatch;
+  }
+
+  return [...xer.projects].sort((a, b) => {
+    const taskDelta = (taskCounts.get(b.projId) || 0) - (taskCounts.get(a.projId) || 0);
+    if (taskDelta !== 0) return taskDelta;
+    return a.projId - b.projId;
+  })[0];
+}
+
 export async function importXerFile(
   xerText: string,
   memberId: number,
@@ -322,9 +341,12 @@ export async function importXerFile(
     throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
   }
 
-  // Use the first project
-  const project = xer.projects[0];
+  // P6 exports can include baseline/related projects. Import the project with the real task set.
+  const project = selectImportProject(xer, overrideName);
+  const selectedProjectTaskCount = xer.tasks.filter(t => t.projId === project.projId).length;
   const scheduleName = overrideName || project.projShortName || "Imported Schedule";
+  console.log(`[XER Import] Selected project ${project.projId}: "${project.projShortName}" (${selectedProjectTaskCount} tasks)`);
+  await progress(`Selected P6 project "${project.projShortName || project.projId}" with ${selectedProjectTaskCount.toLocaleString()} tasks.`);
 
   // Get data date from project
   const dataDate = project.lastRecalcDate || new Date();
