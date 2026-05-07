@@ -19,7 +19,7 @@ import multer from "multer";
 import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
 import { storageGet, storagePut } from "./storage";
 import * as sdb from "./scheduleDb";
-import { importXerFile } from "./xerImport";
+import { processChunkedXerImportStep } from "./xerImport";
 
 // ─── Multer config for multipart file upload ───────────────────────────────
 // Store in memory (we'll pass the buffer to background processing)
@@ -46,9 +46,10 @@ async function authenticateMember(req: Request) {
   return member;
 }
 
-// ─── In-memory progress tracker for active imports ─────────────────────────
+// ─── In-memory progress tracker for active import requests ─────────────────
 
 const activeJobs = new Map<number, { status: string; message: string }>();
+const runningJobs = new Set<number>();
 
 // ─── Routes ────────────────────────────────────────────────────────────────
 
@@ -119,11 +120,13 @@ export function registerXerImportRoutes(app: Express) {
       if (!job) return res.status(404).json({ error: "Import job not found" });
       if (job.memberId !== member.id) return res.status(403).json({ error: "Not your import" });
 
-      if (job.status === "pending" || job.status === "parsing") {
+      if ((job.status === "pending" || job.status === "parsing") && !runningJobs.has(jobId)) {
         const claimed = await sdb.claimXerImportJob(job.id, member.id);
         if (claimed) {
-          await processXerImport(job.id, member.id, job.fileUrl, job.scheduleName || undefined);
+          await advanceXerImportJob(job.id, member.id, job.fileUrl, job.scheduleName || undefined, job.result);
         }
+      } else if (job.status === "importing" && !runningJobs.has(jobId)) {
+        await advanceXerImportJob(job.id, member.id, job.fileUrl, job.scheduleName || undefined, job.result);
       }
 
       const latestJob = await sdb.getXerImportJob(jobId);
@@ -138,13 +141,14 @@ export function registerXerImportRoutes(app: Express) {
   });
 }
 
-// ─── Background processor ──────────────────────────────────────────────────
+// ─── Chunked request processor ─────────────────────────────────────────────
 
-async function processXerImport(
+async function advanceXerImportJob(
   jobId: number,
   memberId: number,
   fileKey: string,
   scheduleName?: string,
+  rawState?: unknown,
 ) {
   const updateProgress = async (status: string, message: string) => {
     activeJobs.set(jobId, { status, message });
@@ -158,33 +162,53 @@ async function processXerImport(
     }
   };
 
+  runningJobs.add(jobId);
   try {
     await updateProgress("importing", "Loading uploaded XER file from storage...");
     const xerText = await loadStoredXerText(fileKey);
 
-    await updateProgress("importing", "Parsing XER file...");
+    await updateProgress("importing", "Reading P6 tables from XER file...");
 
-    const result = await importXerFile(xerText, memberId, scheduleName, async (message) => {
+    const step = await processChunkedXerImportStep(xerText, memberId, scheduleName, rawState, async (message) => {
       await updateProgress("importing", message);
     });
 
-    await sdb.updateXerImportJob(jobId, {
-      status: "complete",
-      progressMessage: `Import complete — ${result.activitiesImported} activities, ${result.relationshipsImported} relationships, ${result.wbsNodesImported} WBS nodes`,
-      scheduleId: result.scheduleId,
-      result: result as any,
-    });
+    if (step.complete && step.result) {
+      await sdb.updateXerImportJob(jobId, {
+        status: "complete",
+        progressMessage: `Import complete — ${step.result.activitiesImported.toLocaleString()} activities, ${step.result.relationshipsImported.toLocaleString()} relationships, ${step.result.wbsNodesImported.toLocaleString()} WBS nodes`,
+        scheduleId: step.result.scheduleId,
+        result: step.result as any,
+      });
+      activeJobs.delete(jobId);
+      console.log(`[XER Async] Job ${jobId} complete: schedule #${step.result.scheduleId}`);
+      return;
+    }
 
-    activeJobs.delete(jobId);
-    console.log(`[XER Async] Job ${jobId} complete: schedule #${result.scheduleId}`);
+    await sdb.updateXerImportJob(jobId, {
+      status: "importing",
+      progressMessage: activeJobs.get(jobId)?.message || "Import is still running...",
+      scheduleId: step.state.scheduleId,
+      result: step.state as any,
+    });
   } catch (err: any) {
     console.error(`[XER Async] Job ${jobId} failed:`, err);
+    const state = rawState && typeof rawState === "object" ? rawState as { scheduleId?: number } : null;
+    if (state?.scheduleId) {
+      try {
+        await sdb.deleteSchedule(state.scheduleId);
+      } catch (cleanupErr) {
+        console.error(`[XER Async] Failed to clean up partial schedule #${state.scheduleId}:`, cleanupErr);
+      }
+    }
     await sdb.updateXerImportJob(jobId, {
       status: "failed",
       progressMessage: "Import failed",
       errorMessage: err.message || "Unknown error",
     });
     activeJobs.delete(jobId);
+  } finally {
+    runningJobs.delete(jobId);
   }
 }
 

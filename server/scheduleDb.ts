@@ -127,6 +127,19 @@ export async function getActivitiesBySchedule(scheduleId: number) {
     .orderBy(asc(activities.sortOrder));
 }
 
+export async function getActivityIdsBySchedule(scheduleId: number) {
+  const db = requireDb();
+  return db
+    .select({
+      id: activities.id,
+      activityId: activities.activityId,
+      sortOrder: activities.sortOrder,
+    })
+    .from(activities)
+    .where(eq(activities.scheduleId, scheduleId))
+    .orderBy(asc(activities.sortOrder));
+}
+
 export async function updateActivity(id: number, data: Partial<InsertActivity>) {
   const db = requireDb();
   await db.update(activities).set(data).where(eq(activities.id, id));

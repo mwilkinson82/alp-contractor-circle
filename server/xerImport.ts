@@ -167,7 +167,7 @@ function read(row: string[], index: Map<string, number>, key: string) {
   return column == null ? undefined : row[column];
 }
 
-function parseXerTables(xerText: string): ParsedXer {
+export function parseXerTables(xerText: string): ParsedXer {
   const parsed: ParsedXer = {
     projects: [],
     calendars: [],
@@ -294,7 +294,7 @@ function parseXerTables(xerText: string): ParsedXer {
   return parsed;
 }
 
-function selectImportProject(xer: ParsedXer, overrideName?: string) {
+export function selectImportProject(xer: ParsedXer, overrideName?: string) {
   const taskCounts = new Map<number, number>();
   for (const task of xer.tasks) {
     taskCounts.set(task.projId, (taskCounts.get(task.projId) || 0) + 1);
@@ -311,6 +311,406 @@ function selectImportProject(xer: ParsedXer, overrideName?: string) {
     if (taskDelta !== 0) return taskDelta;
     return a.projId - b.projId;
   })[0];
+}
+
+type ChunkPhase = "init" | "activities" | "relationships" | "complete";
+
+export type ChunkedXerImportState = {
+  version: 2;
+  phase: ChunkPhase;
+  scheduleId?: number;
+  scheduleName?: string;
+  projectId?: number;
+  projectName?: string;
+  activityOffset: number;
+  relationshipOffset: number;
+  totalActivities: number;
+  totalRelationships: number;
+  activitiesImported: number;
+  relationshipsImported: number;
+  wbsNodesImported: number;
+  calendarsImported: number;
+  skippedWbsSummary: number;
+  warnings: string[];
+  calendarIdMap: Record<string, number>;
+  wbsIdMap: Record<string, number>;
+};
+
+type ChunkedXerStepResult = {
+  state: ChunkedXerImportState;
+  complete: boolean;
+  result?: XerImportResult;
+};
+
+const ACTIVITY_IMPORT_CHUNK = 1000;
+const RELATIONSHIP_IMPORT_CHUNK = 2000;
+
+function initialChunkState(): ChunkedXerImportState {
+  return {
+    version: 2,
+    phase: "init",
+    activityOffset: 0,
+    relationshipOffset: 0,
+    totalActivities: 0,
+    totalRelationships: 0,
+    activitiesImported: 0,
+    relationshipsImported: 0,
+    wbsNodesImported: 0,
+    calendarsImported: 0,
+    skippedWbsSummary: 0,
+    warnings: [],
+    calendarIdMap: {},
+    wbsIdMap: {},
+  };
+}
+
+function normalizeChunkState(value: unknown): ChunkedXerImportState {
+  const state = value && typeof value === "object" ? value as Partial<ChunkedXerImportState> : {};
+  if (state.version !== 2) return initialChunkState();
+  return {
+    ...initialChunkState(),
+    ...state,
+    calendarIdMap: state.calendarIdMap || {},
+    wbsIdMap: state.wbsIdMap || {},
+    warnings: Array.isArray(state.warnings) ? state.warnings : [],
+  };
+}
+
+function getImportContext(xerText: string, overrideName?: string) {
+  const xer = parseXerTables(xerText);
+  if (xer.projects.length === 0) {
+    throw new Error("No projects found in XER file. Make sure you exported at least one project from P6.");
+  }
+
+  const project = selectImportProject(xer, overrideName);
+  if (!project) {
+    throw new Error("No importable project found in XER file.");
+  }
+
+  const scheduleName = overrideName || project.projShortName || "Imported Schedule";
+  const projectTasks = xer.tasks.filter(t => t.projId === project.projId);
+  const sortedTasks = [...projectTasks].sort((a, b) => (a.taskCode || "").localeCompare(b.taskCode || ""));
+  const projectRelationships = xer.taskPredecessors.filter(pred => pred.projId === project.projId);
+
+  return {
+    xer,
+    project,
+    scheduleName,
+    dataDate: project.lastRecalcDate || new Date(),
+    projectStart: project.planStartDate || new Date(),
+    sortedTasks,
+    projectRelationships,
+  };
+}
+
+function buildActivityRows(
+  context: ReturnType<typeof getImportContext>,
+  calendarIdMap: Map<number, number>,
+  wbsIdMap: Map<number, number>,
+) {
+  const calendarByP6Id = new Map(context.xer.calendars.map((cal) => [cal.clndrId, cal]));
+  const wbsByP6Id = new Map(context.xer.projWBS.map((wbs) => [wbs.wbsId, wbs]));
+  const rows: Parameters<typeof sdb.bulkCreateActivities>[0] = [];
+  const taskIdOrder: number[] = [];
+  const warnings: string[] = [];
+  let skippedWbsSummary = 0;
+  let sortOrder = 0;
+
+  for (const task of context.sortedTasks) {
+    if ((task.taskType as string) === "TT_WBS") {
+      skippedWbsSummary++;
+      warnings.push(`Skipped WBS summary task: ${task.taskCode} - ${task.taskName}`);
+      continue;
+    }
+
+    const isMilestone = task.taskType === "TT_Mile" || task.taskType === "TT_FinMile";
+    const taskCalendar = task.clndrId ? calendarByP6Id.get(task.clndrId) : undefined;
+    const dayHrCnt = taskCalendar?.dayHrCnt || 8;
+    const durationDays = isMilestone ? 0 : Math.max(1, Math.round((task.targetDrtnHrCnt || 0) / dayHrCnt));
+    const constraintType = task.cstrType ? P6_CONSTRAINT_MAP[task.cstrType] || "ASAP" : "ASAP";
+    const wbsNode = task.wbsId ? wbsByP6Id.get(task.wbsId) : undefined;
+    const ourWbsId = wbsNode ? wbsIdMap.get(wbsNode.wbsId) : undefined;
+    const calId = task.clndrId ? calendarIdMap.get(task.clndrId) : undefined;
+
+    rows.push({
+      scheduleId: context.project.projId, // replaced by caller
+      activityId: task.taskCode || `IMP-${sortOrder}`,
+      name: task.taskName || "Unnamed Activity",
+      duration: durationDays,
+      percentComplete: (task.physCompletePct ?? 0).toFixed(2),
+      actualStart: task.actStartDate || undefined,
+      actualFinish: task.actEndDate || undefined,
+      sortOrder: sortOrder++,
+      calendarId: calId || undefined,
+      wbsId: ourWbsId && ourWbsId > 0 ? ourWbsId : undefined,
+      activityType: isMilestone ? "milestone" : "task",
+      constraintType,
+      constraintDate: task.cstrDate || undefined,
+    });
+    taskIdOrder.push(task.taskId);
+  }
+
+  return { rows, taskIdOrder, skippedWbsSummary, warnings };
+}
+
+export async function processChunkedXerImportStep(
+  xerText: string,
+  memberId: number,
+  overrideName: string | undefined,
+  rawState: unknown,
+  onProgress?: XerImportProgress,
+): Promise<ChunkedXerStepResult> {
+  const progress = async (message: string) => {
+    await onProgress?.(message);
+  };
+  const state = normalizeChunkState(rawState);
+  const context = getImportContext(xerText, overrideName);
+
+  if (state.phase === "complete" && state.scheduleId && state.scheduleName) {
+    return {
+      state,
+      complete: true,
+      result: {
+        scheduleId: state.scheduleId,
+        scheduleName: state.scheduleName,
+        activitiesImported: state.activitiesImported,
+        relationshipsImported: state.relationshipsImported,
+        wbsNodesImported: state.wbsNodesImported,
+        calendarsImported: state.calendarsImported,
+        warnings: state.warnings,
+      },
+    };
+  }
+
+  if (state.phase === "init") {
+    await progress(`Selected P6 project "${context.project.projShortName || context.project.projId}" with ${context.sortedTasks.length.toLocaleString()} tasks.`);
+
+    const { id: scheduleId } = await sdb.createSchedule({
+      memberId,
+      name: context.scheduleName,
+      description: `Imported from P6 XER file. Original project: ${context.project.projShortName}`,
+      projectStartDate: context.projectStart,
+      dataDate: context.dataDate,
+    });
+
+    const calendarIdMap = new Map<number, number>();
+    let defaultCalendarId: number | null = null;
+
+    await progress(`Created Baseline schedule "${context.scheduleName}" — importing calendars...`);
+    for (const cal of context.xer.calendars) {
+      const { workDaysMask, workWeek } = parseP6CalendarWorkDays(cal);
+      const { id: calId } = await sdb.createCalendar({
+        scheduleId,
+        name: cal.clndrName || "Imported Calendar",
+        workWeek,
+        workDaysMask,
+        isDefault: cal.defaultFlag || false,
+      });
+
+      calendarIdMap.set(cal.clndrId, calId);
+      if (cal.defaultFlag || context.project.clndrId === cal.clndrId) defaultCalendarId = calId;
+    }
+
+    if (!defaultCalendarId) {
+      const { id: calId } = await sdb.createCalendar({
+        scheduleId,
+        name: "Standard 5-Day",
+        workWeek: "5day",
+        workDaysMask: 31,
+        isDefault: true,
+      });
+      defaultCalendarId = calId;
+    }
+
+    const holidays = [
+      ...getUSConstructionHolidays(context.projectStart.getFullYear()),
+      ...getUSConstructionHolidays(context.projectStart.getFullYear() + 1),
+    ];
+    await sdb.bulkCreateCalendarExceptions(holidays.map(h => ({
+      calendarId: defaultCalendarId!,
+      exceptionDate: new Date(h.date + "T00:00:00"),
+      exceptionType: "holiday" as const,
+      description: h.description,
+    })));
+
+    await progress(`Imported ${calendarIdMap.size.toLocaleString()} calendars — importing WBS structure...`);
+
+    const WBS_COLORS = [
+      "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6",
+      "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
+      "#14B8A6", "#E11D48", "#0EA5E9", "#A855F7", "#D97706",
+    ];
+    const projectWbs = context.xer.projWBS
+      .filter(w => w.projId === context.project.projId)
+      .sort((a, b) => {
+        if (!a.parentWbsId && b.parentWbsId) return -1;
+        if (a.parentWbsId && !b.parentWbsId) return 1;
+        return (a.seqNum || 0) - (b.seqNum || 0);
+      });
+
+    const wbsIdMap = new Map<number, number>();
+    const wbsInsertOrder: { p6Id: number; p6ParentId: number | undefined }[] = [];
+    const wbsRows: Parameters<typeof sdb.bulkCreateWbsNodes>[0] = [];
+
+    let colorIdx = 0;
+    for (const wbs of projectWbs) {
+      if (wbs.projNodeFlag) {
+        wbsIdMap.set(wbs.wbsId, -1);
+        continue;
+      }
+      wbsRows.push({
+        scheduleId,
+        parentId: undefined,
+        code: wbs.wbsShortName || `WBS-${wbs.wbsId}`,
+        name: wbs.wbsName || wbs.wbsShortName || "Unnamed WBS",
+        sortOrder: wbs.seqNum || 0,
+        groupColor: WBS_COLORS[colorIdx % WBS_COLORS.length],
+        groupTextColor: "#FFFFFF",
+      });
+      wbsInsertOrder.push({ p6Id: wbs.wbsId, p6ParentId: wbs.parentWbsId || undefined });
+      colorIdx++;
+    }
+
+    const wbsIds = await sdb.bulkCreateWbsNodes(wbsRows);
+    for (let i = 0; i < wbsInsertOrder.length; i++) {
+      wbsIdMap.set(wbsInsertOrder[i].p6Id, wbsIds[i].id);
+    }
+
+    for (const { p6Id, p6ParentId } of wbsInsertOrder) {
+      if (!p6ParentId) continue;
+      const ourId = wbsIdMap.get(p6Id);
+      const parentOurId = wbsIdMap.get(p6ParentId);
+      if (ourId && ourId > 0 && parentOurId && parentOurId > 0) {
+        await sdb.updateWbsNode(ourId, { parentId: parentOurId });
+      }
+    }
+
+    const activityPrep = buildActivityRows(context, calendarIdMap, wbsIdMap);
+    const nextState: ChunkedXerImportState = {
+      ...state,
+      phase: "activities",
+      scheduleId,
+      scheduleName: context.scheduleName,
+      projectId: context.project.projId,
+      projectName: context.project.projShortName,
+      totalActivities: activityPrep.rows.length,
+      totalRelationships: context.projectRelationships.length,
+      wbsNodesImported: wbsInsertOrder.length,
+      calendarsImported: calendarIdMap.size,
+      skippedWbsSummary: activityPrep.skippedWbsSummary,
+      warnings: activityPrep.warnings.slice(0, 200),
+      calendarIdMap: Object.fromEntries(calendarIdMap),
+      wbsIdMap: Object.fromEntries(wbsIdMap),
+    };
+
+    await progress(`Imported ${wbsInsertOrder.length.toLocaleString()} WBS nodes — ready to insert ${activityPrep.rows.length.toLocaleString()} activities.`);
+    return { state: nextState, complete: false };
+  }
+
+  if (!state.scheduleId) {
+    throw new Error("XER import job lost its schedule state. Please upload the XER again.");
+  }
+
+  const calendarIdMap = new Map<number, number>(Object.entries(state.calendarIdMap).map(([key, value]) => [Number(key), value]));
+  const wbsIdMap = new Map<number, number>(Object.entries(state.wbsIdMap).map(([key, value]) => [Number(key), value]));
+
+  if (state.phase === "activities") {
+    const activityPrep = buildActivityRows(context, calendarIdMap, wbsIdMap);
+    const rows = activityPrep.rows.map(row => ({ ...row, scheduleId: state.scheduleId! }));
+    const start = state.activityOffset;
+    const end = Math.min(start + ACTIVITY_IMPORT_CHUNK, rows.length);
+    const chunk = rows.slice(start, end);
+
+    if (chunk.length > 0) {
+      await progress(`Inserting activities ${start + 1}-${end} of ${rows.length.toLocaleString()}...`);
+      await sdb.bulkCreateActivities(chunk);
+    }
+
+    const nextState: ChunkedXerImportState = {
+      ...state,
+      totalActivities: rows.length,
+      activityOffset: end,
+      activitiesImported: end,
+      phase: end >= rows.length ? "relationships" : "activities",
+      skippedWbsSummary: activityPrep.skippedWbsSummary,
+      warnings: activityPrep.warnings.slice(0, 200),
+    };
+
+    const message = end >= rows.length
+      ? `Inserted ${end.toLocaleString()} activities — preparing ${context.projectRelationships.length.toLocaleString()} logic ties.`
+      : `Inserted ${end.toLocaleString()} of ${rows.length.toLocaleString()} activities.`;
+    await progress(message);
+    return { state: nextState, complete: false };
+  }
+
+  if (state.phase === "relationships") {
+    const dbActivities = await sdb.getActivityIdsBySchedule(state.scheduleId);
+    const codeToDbId = new Map(dbActivities.map(activity => [activity.activityId, activity.id]));
+    const taskIdToDbId = new Map<number, number>();
+    for (const task of context.sortedTasks) {
+      if ((task.taskType as string) === "TT_WBS") continue;
+      const dbId = codeToDbId.get(task.taskCode || "");
+      if (dbId) taskIdToDbId.set(task.taskId, dbId);
+    }
+
+    const relRows: Parameters<typeof sdb.bulkCreateRelationships>[0] = [];
+    const warnings = [...state.warnings];
+    for (const pred of context.projectRelationships) {
+      const successorDbId = taskIdToDbId.get(pred.taskId);
+      const predecessorDbId = taskIdToDbId.get(pred.predTaskId);
+      if (!successorDbId || !predecessorDbId) {
+        if (warnings.length < 200) {
+          warnings.push(`Skipped relationship: predecessor ${pred.predTaskId} → successor ${pred.taskId} (activity not found)`);
+        }
+        continue;
+      }
+      relRows.push({
+        scheduleId: state.scheduleId,
+        predecessorId: predecessorDbId,
+        successorId: successorDbId,
+        relationshipType: (pred.predType ? P6_REL_MAP[pred.predType] : undefined) || "FS",
+        lagDays: Math.round((pred.lagHrCnt || 0) / 8),
+      });
+    }
+
+    const start = state.relationshipOffset;
+    const end = Math.min(start + RELATIONSHIP_IMPORT_CHUNK, relRows.length);
+    const chunk = relRows.slice(start, end);
+
+    if (chunk.length > 0) {
+      await progress(`Inserting logic ties ${start + 1}-${end} of ${relRows.length.toLocaleString()}...`);
+      await sdb.bulkCreateRelationships(chunk);
+    }
+
+    const isComplete = end >= relRows.length;
+    const nextState: ChunkedXerImportState = {
+      ...state,
+      phase: isComplete ? "complete" : "relationships",
+      relationshipOffset: end,
+      totalRelationships: relRows.length,
+      relationshipsImported: end,
+      warnings,
+    };
+
+    if (!isComplete) {
+      await progress(`Inserted ${end.toLocaleString()} of ${relRows.length.toLocaleString()} logic ties.`);
+      return { state: nextState, complete: false };
+    }
+
+    const result: XerImportResult = {
+      scheduleId: state.scheduleId,
+      scheduleName: state.scheduleName || context.scheduleName,
+      activitiesImported: state.activitiesImported,
+      relationshipsImported: end,
+      wbsNodesImported: state.wbsNodesImported,
+      calendarsImported: state.calendarsImported,
+      warnings,
+    };
+    await progress(`Finalized import — ${result.activitiesImported.toLocaleString()} activities and ${result.relationshipsImported.toLocaleString()} relationships imported.`);
+    return { state: nextState, complete: true, result };
+  }
+
+  throw new Error(`Unsupported XER import phase: ${state.phase}`);
 }
 
 export async function importXerFile(
