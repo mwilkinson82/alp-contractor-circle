@@ -86,6 +86,12 @@ export interface XerImportResult {
 
 type XerImportProgress = (message: string) => Promise<void> | void;
 
+async function* chunkXerText(xerText: string, chunkSize = 256 * 1024) {
+  for (let offset = 0; offset < xerText.length; offset += chunkSize) {
+    yield xerText.slice(offset, offset + chunkSize);
+  }
+}
+
 export async function importXerFile(
   xerText: string,
   memberId: number,
@@ -100,10 +106,10 @@ export async function importXerFile(
 
   // ─── Parse the XER file ──────────────────────────────────────────────────
   console.log(`[XER Import] Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
-  await progress(`Parsing XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
+  await progress(`Streaming parse for XER file (${(xerText.length / 1024 / 1024).toFixed(1)} MB)...`);
   let xer: InstanceType<typeof XER>;
   try {
-    xer = new XER(xerText);
+    xer = await XER.fromStream(chunkXerText(xerText));
   } catch (e: any) {
     throw new Error(`Failed to parse XER file: ${e.message}. Make sure this is a valid Primavera P6 XER export.`);
   }
