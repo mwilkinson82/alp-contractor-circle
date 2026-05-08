@@ -725,36 +725,25 @@ export default function PortalDashboard() {
             href={ALP_OPERATING_SYSTEM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="group overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#fffdf8] text-left shadow-[0_26px_70px_rgba(41,37,28,0.12)] transition-transform hover:-translate-y-0.5 hover:border-[#d7a331]"
+            className="group overflow-hidden rounded-xl border border-[#dfb34d]/45 bg-[#090b0f] text-left shadow-[0_26px_70px_rgba(41,37,28,0.16)] transition-transform hover:-translate-y-0.5 hover:border-[#f1b51d]/75"
             aria-label="Open ALP Operating System"
           >
-            <div className="relative flex aspect-[3/2] min-h-[260px] flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_75%_10%,rgba(47,128,255,0.16),transparent_30%),radial-gradient(circle_at_12%_18%,rgba(241,181,29,0.22),transparent_28%),linear-gradient(135deg,#fffdf8_0%,#f8f1e7_54%,#eef5ef_100%)] p-6">
-              <div className="absolute -right-14 top-8 h-44 w-44 rounded-full border border-[#d7c7aa]/60 bg-white/40 blur-2xl" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#d7c7aa] bg-white/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a6510]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Member Tool
+            <div className="relative aspect-[3/2] overflow-hidden">
+              <img
+                src="/alp-operating-system.png"
+                alt="ALP Operating System contractor leadership tool"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/88 via-black/42 to-transparent p-5 pt-16">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f1b51d]">
+                    ALP Operating System
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    Open company rhythm
+                  </p>
                 </div>
-                <h2 className="mt-5 max-w-[11ch] text-4xl font-semibold leading-[0.96] tracking-tight text-[#11100c]">
-                  ALP Operating System
-                </h2>
-                <p className="mt-4 max-w-sm text-sm leading-6 text-[#5d5546]">
-                  Run your leadership rhythm: V/TO, Accountability Chart,
-                  Rocks, Scorecard, Issues, To-Dos, and weekly L10 meetings.
-                </p>
-              </div>
-              <div className="relative flex items-end justify-between gap-4">
-                <div className="flex flex-wrap gap-2">
-                  {["V/TO", "Rocks", "Scorecard", "L10"].map(label => (
-                    <span
-                      key={label}
-                      className="rounded-full border border-[#eadcc4] bg-white/72 px-2.5 py-1 text-[11px] font-semibold text-[#5d5546]"
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d7a331]/45 bg-[#090b0f] text-[#f1b51d] transition-transform group-hover:translate-x-0.5">
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#f1b51d]/45 bg-[#f1b51d] text-[#171714] transition-transform group-hover:translate-x-0.5">
                   <ExternalLink className="h-5 w-5" />
                 </span>
               </div>
