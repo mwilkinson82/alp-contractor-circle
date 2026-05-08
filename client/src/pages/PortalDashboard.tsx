@@ -583,7 +583,7 @@ export default function PortalDashboard() {
             <div className="grid gap-7 md:grid-cols-[128px_minmax(0,1fr)] md:items-center">
               <div className="flex h-28 w-28 items-center justify-center rounded-[18px] border border-[#d7c7aa] bg-[#090b0f] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.20)]">
                 <img
-                  src="/contractor-circle-icon.png"
+                  src="/manus-storage/contractor-circle-icon_3f2d5240.png"
                   alt="Contractor Circle"
                   className="h-full w-full rounded-[14px] object-cover"
                 />
@@ -673,7 +673,7 @@ export default function PortalDashboard() {
           >
             <div className="relative aspect-[3/2] overflow-hidden">
               <img
-                src="/constructline-basis-2.png"
+                src="/manus-storage/constructline-basis-2_b652b82d.png"
                 alt="ConstructLine 2.0 Basis estimating tool"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
               />
@@ -701,7 +701,7 @@ export default function PortalDashboard() {
           >
             <div className="relative aspect-[3/2] overflow-hidden">
               <img
-                src="/constructline-baseline-2.png"
+                src="/manus-storage/constructline-baseline-2_7a04b367.png"
                 alt="ConstructLine 2.0 Baseline CPM schedule tool"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
               />
