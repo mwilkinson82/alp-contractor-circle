@@ -2400,11 +2400,24 @@ export default function TakeoffDetail() {
     [projectId, project, uploadMutation]
   );
 
+  const resolvePdfWorkerSrc = async () => {
+    const candidates = ["/pdf.worker.min.mjs", "/pdf.worker.v4.min.mjs"];
+    for (const candidate of candidates) {
+      try {
+        const response = await fetch(candidate, { method: "HEAD" });
+        if (response.ok) return candidate;
+      } catch {
+        // Try the next bundled worker filename.
+      }
+    }
+    return candidates[0];
+  };
+
   const handlePdfUpload = async (file: File, startPage: number) => {
     // Use pdf.js to render PDF pages to images
     // Worker file is copied to public/ dir so it's served as a static asset
     const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.v4.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = await resolvePdfWorkerSrc();
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
