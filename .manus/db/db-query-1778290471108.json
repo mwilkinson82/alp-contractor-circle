@@ -1,0 +1,66 @@
+{
+  "query": "SELECT id, discordDisplayName, discordUsername, email, subscriptionStatus, memberRole FROM members WHERE subscriptionStatus = 'active' ORDER BY discordDisplayName ASC LIMIT 10 OFFSET 18;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordDisplayName, discordUsername, email, subscriptionStatus, memberRole FROM members WHERE subscriptionStatus = 'active' ORDER BY discordDisplayName ASC LIMIT 10 OFFSET 18;",
+  "rows": [
+    {
+      "id": "30001",
+      "discordDisplayName": "Marshall Wilkinson",
+      "discordUsername": "marshallwilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "subscriptionStatus": "active",
+      "memberRole": "admin"
+    },
+    {
+      "id": "150001",
+      "discordDisplayName": "Michael E",
+      "discordUsername": "3argledup_86404",
+      "email": "michael@mecontractingpros.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1050001",
+      "discordDisplayName": "Miguel Lee - NYCC",
+      "discordUsername": "nycc01",
+      "email": "mlee@newyorkconcrete.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "60001",
+      "discordDisplayName": "Nathan Oliveira",
+      "discordUsername": "olivetreebuilds",
+      "email": "nathan@olivetreebuilds.ca",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1350001",
+      "discordDisplayName": "Preston Falbo",
+      "discordUsername": "preston_18086",
+      "email": "preston@barcbuildergroup.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "90001",
+      "discordDisplayName": "Ronnie Silva",
+      "discordUsername": "ronniesilva0858",
+      "email": "office@sageconstructiondevelopment.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "660001",
+      "discordDisplayName": "Tony Muñoz",
+      "discordUsername": "tony.munoz",
+      "email": "tony@munozsuarez.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordDisplayName\tdiscordUsername\temail\tsubscriptionStatus\tmemberRole\n30001\tMarshall Wilkinson\tmarshallwilkinson\tmwilkinson@saxumcapital.com\tactive\tadmin\n150001\tMichael E\t3argledup_86404\tmichael@mecontractingpros.com\tactive\tfounding_member\n1050001\tMiguel Lee - NYCC\tnycc01\tmlee@newyorkconcrete.com\tactive\tfounding_member\n60001\tNathan Oliveira\tolivetreebuilds\tnathan@olivetreebuilds.ca\tactive\tfounding_member\n1350001\tPreston Falbo\tpreston_18086\tpreston@barcbuildergroup.com\tactive\tfounding_member\n90001\tRonnie Silva\tronniesilva0858\toffice@sageconstructiondevelopment.com\tactive\tfounding_member\n660001\tTony Muñoz\ttony.munoz\ttony@munozsuarez.com\tactive\tfounding_member\n",
+  "stderr": "",
+  "execution_time_ms": 604
+}

@@ -1,0 +1,210 @@
+{
+  "query": "SELECT id, discordDisplayName, discordUsername, email, subscriptionStatus, memberRole FROM members WHERE subscriptionStatus = 'active' ORDER BY discordDisplayName ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordDisplayName, discordUsername, email, subscriptionStatus, memberRole FROM members WHERE subscriptionStatus = 'active' ORDER BY discordDisplayName ASC;",
+  "rows": [
+    {
+      "id": "60002",
+      "discordDisplayName": "AJ Hoover",
+      "discordUsername": "aj_hoover",
+      "email": "ajhoover@mac.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "390001",
+      "discordDisplayName": "Caleb Morrow",
+      "discordUsername": "calebmorrow1",
+      "email": "caleb@morrow-builds.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "840001",
+      "discordDisplayName": "Carson H",
+      "discordUsername": "carsonh_54613",
+      "email": "carson@holdenexcavating.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "330001",
+      "discordDisplayName": "danbillingsley",
+      "discordUsername": "danbillingsley",
+      "email": "dan@heatwaveflorida.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1440004",
+      "discordDisplayName": "Daniel G",
+      "discordUsername": "danielg02629",
+      "email": "kingconstructionofny@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "450002",
+      "discordDisplayName": "DB3T",
+      "discordUsername": "db3t",
+      "email": "darianb280@hotmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "180001",
+      "discordDisplayName": "Delbuilder1",
+      "discordUsername": "delbuilder1",
+      "email": "dan@delmontebuilders.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "810001",
+      "discordDisplayName": "FRIGC",
+      "discordUsername": "frigc",
+      "email": "nav@fiveriversig.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "480010",
+      "discordDisplayName": "Henrico",
+      "discordUsername": "bastardsonofzeus6025",
+      "email": "henklop@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "750003",
+      "discordDisplayName": "Intricate Chris",
+      "discordUsername": "intricatechris",
+      "email": "intricatehvac@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "720001",
+      "discordDisplayName": "Jake Huffman",
+      "discordUsername": "jhuffman34",
+      "email": "jhuffman@huffmancc.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "750002",
+      "discordDisplayName": "Jake Nichter",
+      "discordUsername": "jakewes87",
+      "email": "jake@nciconstruction.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "150002",
+      "discordDisplayName": "Joaquin Lescano",
+      "discordUsername": "joaquinlescano_43897",
+      "email": "lescano0456@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "300001",
+      "discordDisplayName": "Joey D",
+      "discordUsername": "joey_15201",
+      "email": "joey@mcmdlusso.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1650003",
+      "discordDisplayName": "Julian Hache",
+      "discordUsername": "NULL",
+      "email": "hacheconstruction@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1470002",
+      "discordDisplayName": "Justin Orellana",
+      "discordUsername": "brndofsacrifice",
+      "email": "brandofsacrificeshogun@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "900002",
+      "discordDisplayName": "Justin Ramirez",
+      "discordUsername": "justinramirez1",
+      "email": "justinraymondramirez@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1020001",
+      "discordDisplayName": "Marco Chaidez",
+      "discordUsername": "marcochaidez_02951",
+      "email": "marco@nxlgroup.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "30001",
+      "discordDisplayName": "Marshall Wilkinson",
+      "discordUsername": "marshallwilkinson",
+      "email": "mwilkinson@saxumcapital.com",
+      "subscriptionStatus": "active",
+      "memberRole": "admin"
+    },
+    {
+      "id": "150001",
+      "discordDisplayName": "Michael E",
+      "discordUsername": "3argledup_86404",
+      "email": "michael@mecontractingpros.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1050001",
+      "discordDisplayName": "Miguel Lee - NYCC",
+      "discordUsername": "nycc01",
+      "email": "mlee@newyorkconcrete.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "60001",
+      "discordDisplayName": "Nathan Oliveira",
+      "discordUsername": "olivetreebuilds",
+      "email": "nathan@olivetreebuilds.ca",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1350001",
+      "discordDisplayName": "Preston Falbo",
+      "discordUsername": "preston_18086",
+      "email": "preston@barcbuildergroup.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "90001",
+      "discordDisplayName": "Ronnie Silva",
+      "discordUsername": "ronniesilva0858",
+      "email": "office@sageconstructiondevelopment.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "660001",
+      "discordDisplayName": "Tony Muñoz",
+      "discordUsername": "tony.munoz",
+      "email": "tony@munozsuarez.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordDisplayName\tdiscordUsername\temail\tsubscriptionStatus\tmemberRole\n60002\tAJ Hoover\taj_hoover\tajhoover@mac.com\tactive\tfounding_member\n390001\tCaleb Morrow\tcalebmorrow1\tcaleb@morrow-builds.com\tactive\tfounding_member\n840001\tCarson H\tcarsonh_54613\tcarson@holdenexcavating.com\tactive\tfounding_member\n330001\tdanbillingsley\tdanbillingsley\tdan@heatwaveflorida.com\tactive\tfounding_member\n1440004\tDaniel G\tdanielg02629\tkingconstructionofny@gmail.com\tactive\tfounding_member\n450002\tDB3T\tdb3t\tdarianb280@hotmail.com\tactive\tfounding_member\n180001\tDelbuilder1\tdelbuilder1\tdan@delmontebuilders.com\tactive\tfounding_member\n810001\tFRIGC\tfrigc\tnav@fiveriversig.com\tactive\tfounding_member\n480010\tHenrico\tbastardsonofzeus6025\thenklop@gmail.com\tactive\tfounding_member\n750003\tIntricate Chris\tintricatechris\tintricatehvac@gmail.com\tactive\tfounding_member\n720001\tJake Huffman\tjhuffman34\tjhuffman@huffmancc.com\tactive\tfounding_member\n750002\tJake Nichter\tjakewes87\tjake@nciconstruction.com\tactive\tfounding_member\n150002\tJoaquin Lescano\tjoaquinlescano_43897\tlescano0456@gmail.com\tactive\tfounding_member\n300001\tJoey D\tjoey_15201\tjoey@mcmdlusso.com\tactive\tfounding_member\n1650003\tJulian Hache\tNULL\thacheconstruction@gmail.com\tactive\tfounding_member\n1470002\tJustin Orellana\tbrndofsacrifice\tbrandofsacrificeshogun@gmail.com\tactive\tfounding_member\n900002\tJustin Ramirez\tjustinramirez1\tjustinraymondramirez@gmail.com\tactive\tfounding_member\n1020001\tMarco Chaidez\tmarcochaidez_02951\tmarco@nxlgroup.com\tactive\tfounding_member\n30001\tMarshall Wilkinson\tmarshallwilkinson\tmwilkinson@saxumcapital.com\tactive\tadmin\n150001\tMichael E\t3argledup_86404\tmichael@mecontractingpros.com\tactive\tfounding_member\n1050001\tMiguel Lee - NYCC\tnycc01\tmlee@newyorkconcrete.com\tactive\tfounding_member\n60001\tNathan Oliveira\tolivetreebuilds\tnathan@olivetreebuilds.ca\tactive\tfounding_member\n1350001\tPreston Falbo\tpreston_18086\tpreston@barcbuildergroup.com\tactive\tfounding_member\n90001\tRonnie Silva\tronniesilva0858\toffice@sageconstructiondevelopment.com\tactive\tfounding_member\n660001\tTony Muñoz\ttony.munoz\ttony@munozsuarez.com\tactive\tfounding_member\n",
+  "stderr": "",
+  "execution_time_ms": 569
+}
