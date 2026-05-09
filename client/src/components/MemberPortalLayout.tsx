@@ -67,7 +67,6 @@ import { resetTakeoffTours } from "@/components/TakeoffOnboardingTour";
 import { resetConstructLineTours } from "@/components/ConstructLineHubTour";
 import { OnlineUsersBadge } from "@/components/OnlineUsersWidget";
 import { WhatsNewModal, useWhatsNew } from "@/components/WhatsNewModal";
-import { CallTonightPopup, useCallTonightPopup } from "@/components/CallTonightPopup";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import RateSetupWizard, {
   loadRateConfig,
@@ -385,7 +384,6 @@ export default function MemberPortalLayout({
     dismiss: dismissWhatsNew,
     openManually: openWhatsNew,
   } = useWhatsNew();
-  const { show: showCallPopup, dismiss: dismissCallPopup } = useCallTonightPopup();
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1006,9 +1004,6 @@ export default function MemberPortalLayout({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Call Tonight Reminder Popup */}
-      <CallTonightPopup open={showCallPopup} onClose={dismissCallPopup} />
 
       {/* What's New Changelog Modal */}
       <WhatsNewModal open={showWhatsNew} onClose={dismissWhatsNew} />

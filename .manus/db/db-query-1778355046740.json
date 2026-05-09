@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole FROM members WHERE id IN (1560002, 1650002, 1650003, 1650004);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole FROM members WHERE id IN (1560002, 1650002, 1650003, 1650004);",
+  "rows": [
+    {
+      "id": "1650003",
+      "discordId": "590300702799036436",
+      "discordUsername": "juice4444",
+      "discordDisplayName": "Julian Hache",
+      "email": "hacheconstruction@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tsubscriptionStatus\tmemberRole\n1650003\t590300702799036436\tjuice4444\tJulian Hache\thacheconstruction@gmail.com\tactive\tfounding_member\n",
+  "stderr": "",
+  "execution_time_ms": 570
+}

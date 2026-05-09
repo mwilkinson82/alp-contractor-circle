@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE members SET discordId = '590300702799036436', discordUsername = 'juice4444', email = 'hacheconstruction@gmail.com', updatedAt = NOW() WHERE id = 1650003;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute UPDATE members SET discordId = '590300702799036436', discordUsername = 'juice4444', email = 'hacheconstruction@gmail.com', updatedAt = NOW() WHERE id = 1650003;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 578
+}

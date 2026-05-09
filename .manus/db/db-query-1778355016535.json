@@ -1,0 +1,46 @@
+{
+  "query": "SELECT id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole FROM members WHERE email IN ('admin@bloomcap.io', 'kevin.hessam@gmail.com', 'hulianjache@gmail.com', 'hacheconstruction@gmail.com') OR discordUsername IN ('kevhes', 'jakeyates');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole FROM members WHERE email IN ('admin@bloomcap.io', 'kevin.hessam@gmail.com', 'hulianjache@gmail.com', 'hacheconstruction@gmail.com') OR discordUsername IN ('kevhes', 'jakeyates');",
+  "rows": [
+    {
+      "id": "1560002",
+      "discordId": "1455173623022354482",
+      "discordUsername": "jakeyates_64551",
+      "discordDisplayName": "Jake Yates",
+      "email": "admin@bloomcap.io",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "1650002",
+      "discordId": "727265239539646464",
+      "discordUsername": "kevhes",
+      "discordDisplayName": "kevhes",
+      "email": "kevin.hessam@gmail.com",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    },
+    {
+      "id": "1650003",
+      "discordId": "email:hacheconstruction@gmail.com",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Julian Hache",
+      "email": "hacheconstruction@gmail.com",
+      "subscriptionStatus": "active",
+      "memberRole": "founding_member"
+    },
+    {
+      "id": "1650004",
+      "discordId": "590300702799036436",
+      "discordUsername": "juice4444",
+      "discordDisplayName": "Julian",
+      "email": "hulianjache@gmail.com",
+      "subscriptionStatus": "none",
+      "memberRole": "member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tsubscriptionStatus\tmemberRole\n1560002\t1455173623022354482\tjakeyates_64551\tJake Yates\tadmin@bloomcap.io\tnone\tmember\n1650002\t727265239539646464\tkevhes\tkevhes\tkevin.hessam@gmail.com\tnone\tmember\n1650003\temail:hacheconstruction@gmail.com\tNULL\tJulian Hache\thacheconstruction@gmail.com\tactive\tfounding_member\n1650004\t590300702799036436\tjuice4444\tJulian\thulianjache@gmail.com\tnone\tmember\n",
+  "stderr": "",
+  "execution_time_ms": 556
+}

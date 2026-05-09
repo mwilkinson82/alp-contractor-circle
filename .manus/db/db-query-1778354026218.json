@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO members (id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole, createdAt, updatedAt) VALUES (1650010, 'placeholder_andy_ramirez', 'andy.ramirez', 'Andy Ramirez', 'Andy.j.ramirez@outlook.com', 'active', 'founding_member', NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute INSERT INTO members (id, discordId, discordUsername, discordDisplayName, email, subscriptionStatus, memberRole, createdAt, updatedAt) VALUES (1650010, 'placeholder_andy_ramirez', 'andy.ramirez', 'Andy Ramirez', 'Andy.j.ramirez@outlook.com', 'active', 'founding_member', NOW(), NOW());",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 589
+}
