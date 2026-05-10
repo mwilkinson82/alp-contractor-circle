@@ -208,6 +208,58 @@ export const memberRouter = router({
     }),
 
   /**
+   * Admin: Update an existing replay without changing the database shape.
+   */
+  updateReplay: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        category: z.enum(["weekly_calls", "bootcamp", "masterclass", "q_and_a"]),
+        videoSource: z.enum(["cloudflare", "zoom_clips"]).default("cloudflare"),
+        cloudflareStreamId: z.string().optional(),
+        zoomClipsUrl: z.string().optional(),
+        duration: z.string().optional(),
+        callDate: z.date(),
+        featured: z.boolean().default(false),
+      }).refine(
+        (data) => {
+          if (data.videoSource === "cloudflare") return !!data.cloudflareStreamId;
+          if (data.videoSource === "zoom_clips") return !!data.zoomClipsUrl;
+          return false;
+        },
+        { message: "Cloudflare Stream ID or Zoom Clips URL is required based on video source" }
+      )
+    )
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberFromRequest(ctx.req);
+      if (!member) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not logged in" });
+      }
+      if (member.memberRole !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      const db = getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not configured" });
+
+      await db.update(replays).set({
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        videoSource: input.videoSource,
+        cloudflareStreamId: input.videoSource === "cloudflare" ? input.cloudflareStreamId! : null,
+        zoomClipsUrl: input.videoSource === "zoom_clips" ? input.zoomClipsUrl! : null,
+        duration: input.duration,
+        callDate: input.callDate,
+        featured: input.featured,
+      }).where(eq(replays.id, input.id));
+
+      return { success: true };
+    }),
+
+  /**
    * Admin: Delete a replay.
    */
   deleteReplay: publicProcedure

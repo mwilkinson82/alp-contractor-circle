@@ -728,6 +728,19 @@ export default function PortalAdmin() {
     },
   });
 
+  const updateMutation = trpc.member.updateReplay.useMutation({
+    onSuccess: () => {
+      utils.member.replays.invalidate();
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success("Replay updated.");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
   const deleteMutation = trpc.member.deleteReplay.useMutation({
     onSuccess: () => {
       utils.member.replays.invalidate();
@@ -753,7 +766,7 @@ export default function PortalAdmin() {
       toast.error("Zoom Clips embed URL is required.");
       return;
     }
-    addMutation.mutate({
+    const payload = {
       title: form.title,
       description: form.description || undefined,
       category: form.category,
@@ -763,7 +776,14 @@ export default function PortalAdmin() {
       duration: form.duration || undefined,
       callDate: new Date(form.callDate),
       featured: form.featured,
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...payload });
+      return;
+    }
+
+    addMutation.mutate(payload);
   }
 
   function handleEdit(replay: typeof replays[0]) {
@@ -810,42 +830,44 @@ export default function PortalAdmin() {
       <BootcampTopicsReviewPanel />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="overflow-hidden rounded-lg border border-[#d7c7aa]/14 bg-[#f8f5ef] text-[#171714] shadow-[0_28px_80px_rgba(0,0,0,0.22)]">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-ember" />
-            <span className="text-xs font-semibold text-ember uppercase tracking-wider">Admin Panel</span>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[#d7c7aa] bg-white/70 px-3 py-1.5">
+            <Shield className="w-4 h-4 text-[#9b6d23]" />
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9b6d23]">Admin Panel</span>
           </div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold text-cream">
+          <h1 className="font-heading text-2xl font-semibold tracking-normal text-[#11100c] md:text-4xl">
             Replay Library Manager
           </h1>
-          <p className="text-cream-muted mt-1 text-sm">
-            Add Cloudflare Stream video IDs to publish replays to members.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6d6558]">
+            Publish calls, bootcamps, and masterclasses with clean member-facing titles, summaries, thumbnails, and featured placement.
           </p>
         </div>
         {!showForm && (
           <Button
             onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(true); }}
-            className="bg-ember hover:bg-ember/90 text-white shrink-0"
+            className="shrink-0 bg-ember text-white shadow-[0_12px_30px_rgba(212,145,92,0.24)] hover:bg-ember/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Replay
           </Button>
         )}
+        </div>
       </div>
 
       {/* Cloudflare Workflow Guide */}
-      <div className="glass-card rounded-xl p-5 border border-ember/10">
+      <div className="rounded-lg border border-white/10 bg-[#0b0e11] p-4 sm:p-5">
         <h3 className="font-heading text-sm font-semibold text-cream mb-3 flex items-center gap-2">
           <Video className="w-4 h-4 text-ember" />
-          How to add a new replay after each Sunday call
+          Publishing checklist
         </h3>
-        <ol className="space-y-2 text-sm text-cream-muted">
-          <li className="flex gap-3">
+        <ol className="grid gap-2 text-sm text-cream-muted lg:grid-cols-2">
+          <li className="flex gap-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">
             <span className="w-5 h-5 rounded-full bg-ember/10 text-ember text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
             <span>Zoom sends you the recording link automatically after the call ends.</span>
           </li>
-          <li className="flex gap-3">
+          <li className="flex gap-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">
             <span className="w-5 h-5 rounded-full bg-ember/10 text-ember text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
             <span>
               Open{" "}
@@ -855,23 +877,26 @@ export default function PortalAdmin() {
               {" "}→ Upload → "Upload via URL" → paste the Zoom recording link.
             </span>
           </li>
-          <li className="flex gap-3">
+          <li className="flex gap-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">
             <span className="w-5 h-5 rounded-full bg-ember/10 text-ember text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
             <span>Once processed, copy the <strong className="text-cream">Video ID</strong> from Cloudflare Stream (it looks like: <code className="text-ember bg-ember/5 px-1 rounded text-xs">a4eXaMpLeId123</code>).</span>
           </li>
-          <li className="flex gap-3">
+          <li className="flex gap-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">
             <span className="w-5 h-5 rounded-full bg-ember/10 text-ember text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
-            <span>Click <strong className="text-cream">"Add Replay"</strong> above, fill in the details, paste the Video ID, and hit Save. Done.</span>
+            <span>Add the replay, write a short useful summary, and feature only the sessions members should see first.</span>
           </li>
         </ol>
       </div>
 
       {/* Add / Edit Form */}
       {showForm && (
-        <div className="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border border-ember/20">
-          <h2 className="font-heading text-lg font-semibold text-cream mb-6">
+        <div className="rounded-lg border border-ember/20 bg-[#0b0e11] p-4 sm:p-6 md:p-8">
+          <h2 className="font-heading text-lg font-semibold text-cream mb-1">
             {editingId ? "Edit Replay" : "Add New Replay"}
           </h2>
+          <p className="mb-6 text-sm text-cream-muted">
+            Member-facing copy should help someone decide what to watch in five seconds.
+          </p>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Title */}
@@ -1067,10 +1092,10 @@ export default function PortalAdmin() {
             <div className="flex gap-3 pt-2">
               <Button
                 type="submit"
-                disabled={addMutation.isPending}
+                disabled={addMutation.isPending || updateMutation.isPending}
                 className="bg-ember hover:bg-ember/90 text-white"
               >
-                {addMutation.isPending ? (
+                {addMutation.isPending || updateMutation.isPending ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                 ) : (
                   <><CheckCircle2 className="w-4 h-4 mr-2" /> {editingId ? "Update Replay" : "Add Replay"}</>
@@ -1091,9 +1116,15 @@ export default function PortalAdmin() {
 
       {/* Replay List */}
       <div>
-        <h2 className="font-heading text-lg font-semibold text-cream mb-4">
-          All Replays ({replays.length})
-        </h2>
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ember">Published Library</p>
+            <h2 className="font-heading text-xl font-semibold text-cream">
+              All Replays ({replays.length})
+            </h2>
+          </div>
+          <p className="text-sm text-cream-muted">Newest sessions appear first for members.</p>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -1109,10 +1140,10 @@ export default function PortalAdmin() {
             {replays.map(replay => (
               <div
                 key={replay.id}
-                className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                className="rounded-lg border border-white/10 bg-[#0e1114] p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:border-ember/20 hover:bg-[#12161a]"
               >
                 {/* Thumbnail */}
-                <div className="w-full sm:w-28 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+                <div className="w-full sm:w-32 h-20 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
                   {replay.thumbnailUrl ? (
                     <img
                       src={replay.thumbnailUrl}
@@ -1138,6 +1169,11 @@ export default function PortalAdmin() {
                     )}
                   </div>
                   <h3 className="font-heading text-sm font-semibold text-cream truncate">{replay.title}</h3>
+                  {replay.description && (
+                    <p className="mt-1 line-clamp-1 text-xs text-cream-muted">
+                      {replay.description}
+                    </p>
+                  )}
                   <p className="text-xs text-cream-muted mt-0.5">
                     {new Date(replay.callDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     {replay.duration && ` · ${replay.duration}`}

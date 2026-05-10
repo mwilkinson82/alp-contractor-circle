@@ -454,6 +454,7 @@ export default function MemberPortalLayout({
   const activeLabel =
     activeItem?.label ||
     (location.startsWith("/portal/scheduler") ? "Baseline" : "Portal");
+  const isReplayLibraryPage = location.startsWith("/portal/replays");
 
   const visibleTopItems = topMenuItems.filter(
     item => !item.adminOnly || isAdmin
@@ -463,25 +464,35 @@ export default function MemberPortalLayout({
   );
 
   return (
-    <div className="min-h-screen bg-navy-deep flex">
+    <div className={`min-h-screen flex ${isReplayLibraryPage ? "bg-[#f8f3e7] text-[#171714]" : "bg-navy-deep"}`}>
       {/* Desktop Sidebar */}
       {!isMobile && !hideSidebar && (
-        <aside className="w-64 bg-navy border-r border-white/5 flex flex-col shrink-0 sticky top-0 h-screen">
+        <aside className={`w-64 flex flex-col shrink-0 sticky top-0 h-screen ${
+          isReplayLibraryPage
+            ? "bg-[#fbf6ea] border-r border-[#e4d7bf] shadow-[12px_0_38px_rgba(41,37,28,0.04)]"
+            : "bg-navy border-r border-white/5"
+        }`}>
           {/* Logo / Brand */}
-          <div className="p-5 border-b border-white/5">
+          <div className={`p-5 ${isReplayLibraryPage ? "border-b border-[#e4d7bf]" : "border-b border-white/5"}`}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center">
-                <img
-                  src="/manus-storage/contractor_circle_icon_v5_7747cde6.webp"
-                  alt="Contractor Circle"
-                  className="w-9 h-9 object-contain"
-                />
+              <div className={`w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center ${
+                isReplayLibraryPage ? "bg-[#11100c] text-[#d7a83c] font-display text-lg font-bold" : ""
+              }`}>
+                {isReplayLibraryPage ? (
+                  "C"
+                ) : (
+                  <img
+                    src="/manus-storage/contractor_circle_icon_v5_7747cde6.webp"
+                    alt="Contractor Circle"
+                    className="w-9 h-9 object-contain"
+                  />
+                )}
               </div>
               <div>
-                <h2 className="font-heading text-sm font-semibold text-cream tracking-tight">
+                <h2 className={`text-sm font-semibold tracking-tight ${isReplayLibraryPage ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
                   The Circle
                 </h2>
-                <p className="text-[10px] text-cream-muted uppercase tracking-widest">
+                <p className={`text-[10px] uppercase tracking-widest ${isReplayLibraryPage ? "text-[#716855]" : "text-cream-muted"}`}>
                   Member Portal
                 </p>
               </div>
@@ -516,19 +527,23 @@ export default function MemberPortalLayout({
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
                       : isActive
-                        ? "bg-ember/10 text-ember font-medium"
-                        : "text-cream-muted hover:text-cream hover:bg-white/5"
+                        ? isReplayLibraryPage
+                          ? "bg-[#f4dfaa] text-[#171714] font-semibold"
+                          : "bg-ember/10 text-ember font-medium"
+                        : isReplayLibraryPage
+                          ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
+                          : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
                   <item.icon
-                    className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`}
+                    className={`w-4 h-4 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
                   />
                   <span>{item.label}</span>
                   {isLocked ? (
                     <Lock className="w-3 h-3 ml-auto opacity-60" />
                   ) : (
                     isActive && (
-                      <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                      <ChevronRight className={`w-3 h-3 ml-auto ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember/50"}`} />
                     )
                   )}
                 </button>
@@ -553,7 +568,7 @@ export default function MemberPortalLayout({
 
             {/* Separator before bottom items */}
             {visibleBottomItems.length > 0 && (
-              <div className="border-t border-white/5 my-1" />
+              <div className={`border-t my-1 ${isReplayLibraryPage ? "border-[#e4d7bf]" : "border-white/5"}`} />
             )}
 
             {/* Bottom items */}
@@ -581,19 +596,23 @@ export default function MemberPortalLayout({
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
                       : isActive
-                        ? "bg-ember/10 text-ember font-medium"
-                        : "text-cream-muted hover:text-cream hover:bg-white/5"
+                        ? isReplayLibraryPage
+                          ? "bg-[#f4dfaa] text-[#171714] font-semibold"
+                          : "bg-ember/10 text-ember font-medium"
+                        : isReplayLibraryPage
+                          ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
+                          : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
                   <item.icon
-                    className={`w-4 h-4 ${isActive && !isLocked ? "text-ember" : ""}`}
+                    className={`w-4 h-4 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
                   />
                   <span>{item.label}</span>
                   {isLocked ? (
                     <Lock className="w-3 h-3 ml-auto opacity-60" />
                   ) : (
                     isActive && (
-                      <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+                      <ChevronRight className={`w-3 h-3 ml-auto ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember/50"}`} />
                     )
                   )}
                 </button>
@@ -602,18 +621,18 @@ export default function MemberPortalLayout({
           </nav>
 
           {/* User Profile */}
-          <div className="p-3 border-t border-white/5">
+          <div className={`p-3 border-t ${isReplayLibraryPage ? "border-[#e4d7bf]" : "border-white/5"}`}>
             <div className="flex items-center gap-3 px-3 py-2">
               <img
                 src={avatarUrl || ""}
                 alt={displayName}
-                className="w-9 h-9 rounded-full border border-white/10"
+                className={`w-9 h-9 rounded-full ${isReplayLibraryPage ? "border border-[#d7c7aa]" : "border border-white/10"}`}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-cream truncate">
+                <p className={`text-sm font-medium truncate ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`}>
                   {displayName}
                 </p>
-                <p className="text-[10px] text-ember uppercase tracking-wider">
+                <p className={`text-[10px] uppercase tracking-wider ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember"}`}>
                   {roleLabel}
                 </p>
               </div>
@@ -621,21 +640,27 @@ export default function MemberPortalLayout({
             <OnlineUsersBadge />
             <button
               onClick={openWhatsNew}
-              className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"
+              className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
+                isReplayLibraryPage ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
+              }`}
             >
               <Sparkles className="w-4 h-4" />
               <span>What's New</span>
             </button>
             <button
               onClick={resetTour}
-              className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-amber-400 hover:bg-amber-500/5 transition-all"
+              className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
+                isReplayLibraryPage ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
+              }`}
             >
               <RotateCcw className="w-4 h-4" />
               <span>Restart Tour</span>
             </button>
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-cream-muted hover:text-red-400 hover:bg-red-500/5 transition-all"
+              className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
+                isReplayLibraryPage ? "text-[#5d5546] hover:text-red-700 hover:bg-red-50" : "text-cream-muted hover:text-red-400 hover:bg-red-500/5"
+              }`}
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
@@ -648,33 +673,35 @@ export default function MemberPortalLayout({
       <div className="flex-1 flex flex-col">
         {/* Mobile Header */}
         {isMobile && !hideSidebar && (
-          <header className="sticky top-0 z-50 bg-navy/95 backdrop-blur-lg border-b border-white/5 px-4 h-14 flex items-center justify-between">
+          <header className={`sticky top-0 z-50 backdrop-blur-lg px-4 h-14 flex items-center justify-between ${
+            isReplayLibraryPage ? "bg-[#fffdf8]/95 border-b border-[#e4d7bf]" : "bg-navy/95 border-b border-white/5"
+          }`}>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center"
+                className={`w-9 h-9 rounded-lg flex items-center justify-center ${isReplayLibraryPage ? "bg-[#f4dfaa] text-[#171714]" : "bg-white/5"}`}
               >
                 {mobileMenuOpen ? (
-                  <X className="w-4 h-4 text-cream" />
+                  <X className={`w-4 h-4 ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`} />
                 ) : (
-                  <Menu className="w-4 h-4 text-cream" />
+                  <Menu className={`w-4 h-4 ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`} />
                 )}
               </button>
-              <span className="font-heading text-sm font-semibold text-cream">
+              <span className={`text-sm font-semibold ${isReplayLibraryPage ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
                 {activeLabel}
               </span>
             </div>
             <img
               src={avatarUrl || ""}
               alt={displayName}
-              className="w-8 h-8 rounded-full border border-white/10"
+              className={`w-8 h-8 rounded-full ${isReplayLibraryPage ? "border border-[#d7c7aa]" : "border border-white/10"}`}
             />
           </header>
         )}
 
         {/* Mobile Menu Overlay */}
         {isMobile && !hideSidebar && mobileMenuOpen && (
-          <div className="fixed inset-0 z-40 bg-navy-deep/95 backdrop-blur-lg pt-14 overflow-y-auto">
+          <div className={`fixed inset-0 z-40 backdrop-blur-lg pt-14 overflow-y-auto ${isReplayLibraryPage ? "bg-[#fbf6ea]/98" : "bg-navy-deep/95"}`}>
             <nav className="p-4 space-y-2">
               {/* Top items */}
               {visibleTopItems.map(item => {
@@ -698,12 +725,16 @@ export default function MemberPortalLayout({
                       isLocked
                         ? "opacity-40 cursor-pointer"
                         : isActive
-                          ? "bg-ember/10 text-ember font-medium"
-                          : "text-cream-muted hover:text-cream hover:bg-white/5"
+                          ? isReplayLibraryPage
+                            ? "bg-[#f4dfaa] text-[#171714] font-semibold"
+                            : "bg-ember/10 text-ember font-medium"
+                          : isReplayLibraryPage
+                            ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
+                            : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
                     <item.icon
-                      className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`}
+                      className={`w-5 h-5 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
                     />
                     <span>{item.label}</span>
                     {isLocked && (
@@ -858,7 +889,9 @@ export default function MemberPortalLayout({
         )}
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto relative">
+        <main className={`flex-1 overflow-auto relative ${
+          isReplayLibraryPage ? "bg-[#f8f3e7] p-0" : "p-4 sm:p-6 md:p-8"
+        }`}>
           {isBetaUser && !betaUser?.discordConnected && (
             <div className="mb-4 p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
