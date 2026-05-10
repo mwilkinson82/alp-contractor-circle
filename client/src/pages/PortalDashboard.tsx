@@ -592,7 +592,7 @@ export default function PortalDashboard() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b58513]">
                   Contractor Circle Portal
                 </p>
-                <h1 className="mt-3 text-4xl font-semibold leading-[1.03] tracking-normal text-[#11100c] lg:text-[50px]">
+                <h1 className="font-display mt-3 text-4xl font-semibold leading-[1.03] tracking-normal text-[#11100c] lg:text-[50px]">
                   {greeting}, {firstName}{" "}
                   <span className="inline-block align-[0.04em] text-[0.82em]">
                     👋

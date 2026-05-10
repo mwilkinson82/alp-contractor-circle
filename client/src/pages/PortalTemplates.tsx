@@ -1092,7 +1092,7 @@ export default function PortalTemplates() {
 
   return (
     <SubscriptionGate isSubscribed={isSubscribed}>
-    <>
+    <div className="member-warm-page">
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div>
@@ -1282,7 +1282,7 @@ export default function PortalTemplates() {
           />
         )}
       </AnimatePresence>
-    </>
+    </div>
     </SubscriptionGate>
   );
 }

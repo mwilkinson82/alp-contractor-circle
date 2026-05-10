@@ -288,6 +288,110 @@
   border: 1px solid oklch(0.93 0.02 80 / 0.06);
 }
 
+.member-warm-page {
+  color: #171714;
+}
+
+.member-warm-page .glass-card {
+  background: #fffdf8;
+  border: 1px solid #dfd0b5;
+  box-shadow: 0 22px 60px rgba(41, 37, 28, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.member-warm-page .text-cream,
+.member-warm-page .text-white {
+  color: #171714;
+}
+
+.member-warm-page .text-cream-muted,
+.member-warm-page .text-cream-muted\/40,
+.member-warm-page .text-cream-muted\/50,
+.member-warm-page .text-cream-muted\/60,
+.member-warm-page .text-cream-muted\/70,
+.member-warm-page .text-gray-400 {
+  color: #5d5546;
+}
+
+.member-warm-page .text-ember,
+.member-warm-page .text-amber-400,
+.member-warm-page .text-yellow-400 {
+  color: #8a6510;
+}
+
+.member-warm-page .text-green-400 {
+  color: #047857;
+}
+
+.member-warm-page .text-blue-400 {
+  color: #244c91;
+}
+
+.member-warm-page .text-red-400 {
+  color: #b42318;
+}
+
+.member-warm-page .bg-white\/5,
+.member-warm-page .bg-white\/10,
+.member-warm-page .bg-white\/\[0\.02\],
+.member-warm-page .bg-white\/\[0\.04\] {
+  background-color: #faf8f2;
+}
+
+.member-warm-page .hover\:bg-white\/10:hover,
+.member-warm-page .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: #f3eadb;
+}
+
+.member-warm-page .bg-ember\/10,
+.member-warm-page .bg-ember\/15,
+.member-warm-page .bg-ember\/20,
+.member-warm-page .bg-yellow-500\/5 {
+  background-color: #fff4cb;
+}
+
+.member-warm-page .bg-green-500\/10 {
+  background-color: #e8f5ee;
+}
+
+.member-warm-page .bg-blue-500\/10 {
+  background-color: #eaf2ff;
+}
+
+.member-warm-page .bg-red-500\/10,
+.member-warm-page .bg-red-500\/20 {
+  background-color: #fff1f0;
+}
+
+.member-warm-page .border-white\/5,
+.member-warm-page .border-white\/10,
+.member-warm-page .border-white\/15,
+.member-warm-page .border-ember\/10,
+.member-warm-page .border-ember\/20,
+.member-warm-page .border-ember\/30 {
+  border-color: #d7c7aa;
+}
+
+.member-warm-page input,
+.member-warm-page textarea {
+  background-color: #fffdf8;
+  border-color: #d7c7aa;
+  color: #171714;
+}
+
+.member-warm-page input::placeholder,
+.member-warm-page textarea::placeholder,
+.member-warm-page .placeholder\:text-cream-muted\/40::placeholder,
+.member-warm-page .placeholder\:text-cream-muted\/50::placeholder {
+  color: #9d9484;
+}
+
+.member-warm-page .bg-ember {
+  background-color: #090b0f;
+  color: #f1b51d;
+}
+
 .ember-glow {
   box-shadow: 0 0 0 0 oklch(0.72 0.12 55 / 0);
   transition: box-shadow 0.4s ease;
