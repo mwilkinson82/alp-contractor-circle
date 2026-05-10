@@ -1,5 +1,5 @@
 /**
- * Member Portal Layout — Midnight Ember themed sidebar navigation.
+ * Member Portal Layout — warm ALP sidebar navigation.
  * Uses Discord auth (useMember) instead of Manus auth (useAuth).
  *
  * Sidebar structure:
@@ -214,6 +214,9 @@ function ConstructLineNav({
   const isCostLibraryActive = location === "/portal/cost-library";
   const isLaborLibraryActive = location === "/portal/labor-library";
   const isParentActive = isOnConstructLine;
+  const parentActiveClass = "bg-[#f4dfaa] text-[#171714] font-semibold";
+  const itemActiveClass = "bg-[#fff4cb] text-[#8a6510] font-semibold";
+  const itemIdleClass = "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]";
 
   const navigate = (path: string) => {
     setLocation(path);
@@ -232,26 +235,24 @@ function ConstructLineNav({
           setExpanded(true);
         }}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-          isParentActive
-            ? "bg-ember/10 font-medium"
-            : "text-cream-muted hover:text-cream hover:bg-white/5"
+          isParentActive ? parentActiveClass : itemIdleClass
         }`}
       >
         <HardHat
-          className={`w-4 h-4 shrink-0 ${isParentActive ? "text-ember" : ""}`}
+          className={`w-4 h-4 shrink-0 ${isParentActive ? "text-[#b58513]" : ""}`}
         />
         <span className="flex-1 text-left font-bold tracking-tight">
-          <span className={isParentActive ? "text-white" : "text-cream-muted"}>
+          <span className={isParentActive ? "text-[#171714]" : "text-[#5d5546]"}>
             Construct
           </span>
-          <span className="text-amber-400">Line</span>
+          <span className="text-[#d99a16]">Line</span>
         </span>
         <button
           onClick={e => {
             e.stopPropagation();
             setExpanded(!expanded);
           }}
-          className="p-0.5 hover:bg-white/10 rounded"
+          className="p-0.5 hover:bg-[#fffdf8] rounded"
         >
           {expanded ? (
             <ChevronDown className="w-3.5 h-3.5 opacity-60" />
@@ -263,23 +264,21 @@ function ConstructLineNav({
 
       {/* Children */}
       {expanded && (
-        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/8 pl-3">
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-[#e4d7bf] pl-3">
           {/* Hub */}
           <button
             data-tour="nav-constructline-hub"
             onClick={() => navigate("/portal/constructline")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isHubActive
-                ? "bg-ember/10 text-ember font-medium"
-                : "text-cream-muted hover:text-cream hover:bg-white/5"
+              isHubActive ? itemActiveClass : itemIdleClass
             }`}
           >
             <LayoutDashboard
-              className={`w-3.5 h-3.5 shrink-0 ${isHubActive ? "text-ember" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isHubActive ? "text-[#b58513]" : ""}`}
             />
             <span>Hub</span>
             {isHubActive && (
-              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+              <ChevronRight className="w-3 h-3 ml-auto text-[#8a6510]" />
             )}
           </button>
 
@@ -288,17 +287,15 @@ function ConstructLineNav({
             data-tour="nav-takeoff"
             onClick={() => navigate("/portal/takeoff")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isTakeoffActive
-                ? "bg-ember/10 text-ember font-medium"
-                : "text-cream-muted hover:text-cream hover:bg-white/5"
+              isTakeoffActive ? itemActiveClass : itemIdleClass
             }`}
           >
             <Ruler
-              className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-ember" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isTakeoffActive ? "text-[#b58513]" : ""}`}
             />
             <span>Basis</span>
             {isTakeoffActive && (
-              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+              <ChevronRight className="w-3 h-3 ml-auto text-[#8a6510]" />
             )}
           </button>
 
@@ -306,17 +303,15 @@ function ConstructLineNav({
           <button
             onClick={() => navigate("/portal/cost-library")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isCostLibraryActive
-                ? "bg-ember/10 text-ember font-medium"
-                : "text-cream-muted hover:text-cream hover:bg-white/5"
+              isCostLibraryActive ? itemActiveClass : itemIdleClass
             }`}
           >
             <Database
-              className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-ember" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isCostLibraryActive ? "text-[#b58513]" : ""}`}
             />
             <span>Cost Library</span>
             {isCostLibraryActive && (
-              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+              <ChevronRight className="w-3 h-3 ml-auto text-[#8a6510]" />
             )}
           </button>
 
@@ -324,17 +319,15 @@ function ConstructLineNav({
           <button
             onClick={() => navigate("/portal/labor-library")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isLaborLibraryActive
-                ? "bg-ember/10 text-ember font-medium"
-                : "text-cream-muted hover:text-cream hover:bg-white/5"
+              isLaborLibraryActive ? itemActiveClass : itemIdleClass
             }`}
           >
             <HardHat
-              className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-ember" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isLaborLibraryActive ? "text-[#b58513]" : ""}`}
             />
             <span>Trade Rate Library</span>
             {isLaborLibraryActive && (
-              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+              <ChevronRight className="w-3 h-3 ml-auto text-[#8a6510]" />
             )}
           </button>
 
@@ -343,17 +336,15 @@ function ConstructLineNav({
             data-tour="nav-scheduler"
             onClick={() => navigate("/portal/scheduler")}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200 ${
-              isSchedulerActive
-                ? "bg-ember/10 text-ember font-medium"
-                : "text-cream-muted hover:text-cream hover:bg-white/5"
+              isSchedulerActive ? itemActiveClass : itemIdleClass
             }`}
           >
             <GanttChart
-              className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-ember" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isSchedulerActive ? "text-[#b58513]" : ""}`}
             />
             <span>Baseline</span>
             {isSchedulerActive && (
-              <ChevronRight className="w-3 h-3 ml-auto text-ember/50" />
+              <ChevronRight className="w-3 h-3 ml-auto text-[#8a6510]" />
             )}
           </button>
         </div>
@@ -455,6 +446,14 @@ export default function MemberPortalLayout({
     activeItem?.label ||
     (location.startsWith("/portal/scheduler") ? "Baseline" : "Portal");
   const isReplayLibraryPage = location.startsWith("/portal/replays");
+  const useWarmPortalShell = true;
+  const mobileNavActiveClass = useWarmPortalShell
+    ? "bg-[#f4dfaa] text-[#171714] font-semibold"
+    : "bg-ember/10 text-ember font-medium";
+  const mobileNavIdleClass = useWarmPortalShell
+    ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
+    : "text-cream-muted hover:text-cream hover:bg-white/5";
+  const mobileActiveIconClass = useWarmPortalShell ? "text-[#b58513]" : "text-ember";
 
   const visibleTopItems = topMenuItems.filter(
     item => !item.adminOnly || isAdmin
@@ -464,21 +463,21 @@ export default function MemberPortalLayout({
   );
 
   return (
-    <div className={`min-h-screen flex ${isReplayLibraryPage ? "bg-[#f8f3e7] text-[#171714]" : "bg-navy-deep"}`}>
+    <div className={`min-h-screen flex ${useWarmPortalShell ? "bg-[#f8f3e7] text-[#171714]" : "bg-navy-deep"}`}>
       {/* Desktop Sidebar */}
       {!isMobile && !hideSidebar && (
         <aside className={`w-64 flex flex-col shrink-0 sticky top-0 h-screen ${
-          isReplayLibraryPage
+          useWarmPortalShell
             ? "bg-[#fbf6ea] border-r border-[#e4d7bf] shadow-[12px_0_38px_rgba(41,37,28,0.04)]"
             : "bg-navy border-r border-white/5"
         }`}>
           {/* Logo / Brand */}
-          <div className={`p-5 ${isReplayLibraryPage ? "border-b border-[#e4d7bf]" : "border-b border-white/5"}`}>
+          <div className={`p-5 ${useWarmPortalShell ? "border-b border-[#e4d7bf]" : "border-b border-white/5"}`}>
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center ${
-                isReplayLibraryPage ? "bg-[#11100c] text-[#d7a83c] font-display text-lg font-bold" : ""
+                useWarmPortalShell ? "bg-[#11100c] text-[#d7a83c] font-display text-lg font-bold" : ""
               }`}>
-                {isReplayLibraryPage ? (
+                {useWarmPortalShell ? (
                   "C"
                 ) : (
                   <img
@@ -489,10 +488,10 @@ export default function MemberPortalLayout({
                 )}
               </div>
               <div>
-                <h2 className={`text-sm font-semibold tracking-tight ${isReplayLibraryPage ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
+                <h2 className={`text-sm font-semibold tracking-tight ${useWarmPortalShell ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
                   The Circle
                 </h2>
-                <p className={`text-[10px] uppercase tracking-widest ${isReplayLibraryPage ? "text-[#716855]" : "text-cream-muted"}`}>
+                <p className={`text-[10px] uppercase tracking-widest ${useWarmPortalShell ? "text-[#716855]" : "text-cream-muted"}`}>
                   Member Portal
                 </p>
               </div>
@@ -527,23 +526,23 @@ export default function MemberPortalLayout({
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
                       : isActive
-                        ? isReplayLibraryPage
+                        ? useWarmPortalShell
                           ? "bg-[#f4dfaa] text-[#171714] font-semibold"
                           : "bg-ember/10 text-ember font-medium"
-                        : isReplayLibraryPage
+                        : useWarmPortalShell
                           ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
                           : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
                   <item.icon
-                    className={`w-4 h-4 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
+                    className={`w-4 h-4 ${isActive && !isLocked ? (useWarmPortalShell ? "text-[#b58513]" : "text-ember") : ""}`}
                   />
                   <span>{item.label}</span>
                   {isLocked ? (
                     <Lock className="w-3 h-3 ml-auto opacity-60" />
                   ) : (
                     isActive && (
-                      <ChevronRight className={`w-3 h-3 ml-auto ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember/50"}`} />
+                      <ChevronRight className={`w-3 h-3 ml-auto ${useWarmPortalShell ? "text-[#8a6510]" : "text-ember/50"}`} />
                     )
                   )}
                 </button>
@@ -568,7 +567,7 @@ export default function MemberPortalLayout({
 
             {/* Separator before bottom items */}
             {visibleBottomItems.length > 0 && (
-              <div className={`border-t my-1 ${isReplayLibraryPage ? "border-[#e4d7bf]" : "border-white/5"}`} />
+              <div className={`border-t my-1 ${useWarmPortalShell ? "border-[#e4d7bf]" : "border-white/5"}`} />
             )}
 
             {/* Bottom items */}
@@ -596,23 +595,23 @@ export default function MemberPortalLayout({
                     isLocked
                       ? "opacity-40 cursor-pointer hover:opacity-60"
                       : isActive
-                        ? isReplayLibraryPage
+                        ? useWarmPortalShell
                           ? "bg-[#f4dfaa] text-[#171714] font-semibold"
                           : "bg-ember/10 text-ember font-medium"
-                        : isReplayLibraryPage
+                        : useWarmPortalShell
                           ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
                           : "text-cream-muted hover:text-cream hover:bg-white/5"
                   }`}
                 >
                   <item.icon
-                    className={`w-4 h-4 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
+                    className={`w-4 h-4 ${isActive && !isLocked ? (useWarmPortalShell ? "text-[#b58513]" : "text-ember") : ""}`}
                   />
                   <span>{item.label}</span>
                   {isLocked ? (
                     <Lock className="w-3 h-3 ml-auto opacity-60" />
                   ) : (
                     isActive && (
-                      <ChevronRight className={`w-3 h-3 ml-auto ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember/50"}`} />
+                      <ChevronRight className={`w-3 h-3 ml-auto ${useWarmPortalShell ? "text-[#8a6510]" : "text-ember/50"}`} />
                     )
                   )}
                 </button>
@@ -621,18 +620,18 @@ export default function MemberPortalLayout({
           </nav>
 
           {/* User Profile */}
-          <div className={`p-3 border-t ${isReplayLibraryPage ? "border-[#e4d7bf]" : "border-white/5"}`}>
+          <div className={`p-3 border-t ${useWarmPortalShell ? "border-[#e4d7bf]" : "border-white/5"}`}>
             <div className="flex items-center gap-3 px-3 py-2">
               <img
                 src={avatarUrl || ""}
                 alt={displayName}
-                className={`w-9 h-9 rounded-full ${isReplayLibraryPage ? "border border-[#d7c7aa]" : "border border-white/10"}`}
+                className={`w-9 h-9 rounded-full ${useWarmPortalShell ? "border border-[#d7c7aa]" : "border border-white/10"}`}
               />
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`}>
+                <p className={`text-sm font-medium truncate ${useWarmPortalShell ? "text-[#171714]" : "text-cream"}`}>
                   {displayName}
                 </p>
-                <p className={`text-[10px] uppercase tracking-wider ${isReplayLibraryPage ? "text-[#8a6510]" : "text-ember"}`}>
+                <p className={`text-[10px] uppercase tracking-wider ${useWarmPortalShell ? "text-[#8a6510]" : "text-ember"}`}>
                   {roleLabel}
                 </p>
               </div>
@@ -641,7 +640,7 @@ export default function MemberPortalLayout({
             <button
               onClick={openWhatsNew}
               className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
-                isReplayLibraryPage ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
+                useWarmPortalShell ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
               }`}
             >
               <Sparkles className="w-4 h-4" />
@@ -650,7 +649,7 @@ export default function MemberPortalLayout({
             <button
               onClick={resetTour}
               className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
-                isReplayLibraryPage ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
+                useWarmPortalShell ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]" : "text-cream-muted hover:text-amber-400 hover:bg-amber-500/5"
               }`}
             >
               <RotateCcw className="w-4 h-4" />
@@ -659,7 +658,7 @@ export default function MemberPortalLayout({
             <button
               onClick={logout}
               className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm transition-all ${
-                isReplayLibraryPage ? "text-[#5d5546] hover:text-red-700 hover:bg-red-50" : "text-cream-muted hover:text-red-400 hover:bg-red-500/5"
+                useWarmPortalShell ? "text-[#5d5546] hover:text-red-700 hover:bg-red-50" : "text-cream-muted hover:text-red-400 hover:bg-red-500/5"
               }`}
             >
               <LogOut className="w-4 h-4" />
@@ -674,34 +673,34 @@ export default function MemberPortalLayout({
         {/* Mobile Header */}
         {isMobile && !hideSidebar && (
           <header className={`sticky top-0 z-50 backdrop-blur-lg px-4 h-14 flex items-center justify-between ${
-            isReplayLibraryPage ? "bg-[#fffdf8]/95 border-b border-[#e4d7bf]" : "bg-navy/95 border-b border-white/5"
+            useWarmPortalShell ? "bg-[#fffdf8]/95 border-b border-[#e4d7bf]" : "bg-navy/95 border-b border-white/5"
           }`}>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center ${isReplayLibraryPage ? "bg-[#f4dfaa] text-[#171714]" : "bg-white/5"}`}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center ${useWarmPortalShell ? "bg-[#f4dfaa] text-[#171714]" : "bg-white/5"}`}
               >
                 {mobileMenuOpen ? (
-                  <X className={`w-4 h-4 ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`} />
+                  <X className={`w-4 h-4 ${useWarmPortalShell ? "text-[#171714]" : "text-cream"}`} />
                 ) : (
-                  <Menu className={`w-4 h-4 ${isReplayLibraryPage ? "text-[#171714]" : "text-cream"}`} />
+                  <Menu className={`w-4 h-4 ${useWarmPortalShell ? "text-[#171714]" : "text-cream"}`} />
                 )}
               </button>
-              <span className={`text-sm font-semibold ${isReplayLibraryPage ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
+              <span className={`text-sm font-semibold ${useWarmPortalShell ? "font-display text-[#171714]" : "font-heading text-cream"}`}>
                 {activeLabel}
               </span>
             </div>
             <img
               src={avatarUrl || ""}
               alt={displayName}
-              className={`w-8 h-8 rounded-full ${isReplayLibraryPage ? "border border-[#d7c7aa]" : "border border-white/10"}`}
+              className={`w-8 h-8 rounded-full ${useWarmPortalShell ? "border border-[#d7c7aa]" : "border border-white/10"}`}
             />
           </header>
         )}
 
         {/* Mobile Menu Overlay */}
         {isMobile && !hideSidebar && mobileMenuOpen && (
-          <div className={`fixed inset-0 z-40 backdrop-blur-lg pt-14 overflow-y-auto ${isReplayLibraryPage ? "bg-[#fbf6ea]/98" : "bg-navy-deep/95"}`}>
+          <div className={`fixed inset-0 z-40 backdrop-blur-lg pt-14 overflow-y-auto ${useWarmPortalShell ? "bg-[#fbf6ea]/98" : "bg-navy-deep/95"}`}>
             <nav className="p-4 space-y-2">
               {/* Top items */}
               {visibleTopItems.map(item => {
@@ -725,16 +724,16 @@ export default function MemberPortalLayout({
                       isLocked
                         ? "opacity-40 cursor-pointer"
                         : isActive
-                          ? isReplayLibraryPage
+                          ? useWarmPortalShell
                             ? "bg-[#f4dfaa] text-[#171714] font-semibold"
                             : "bg-ember/10 text-ember font-medium"
-                          : isReplayLibraryPage
+                          : useWarmPortalShell
                             ? "text-[#5d5546] hover:text-[#171714] hover:bg-[#fffdf8]"
                             : "text-cream-muted hover:text-cream hover:bg-white/5"
                     }`}
                   >
                     <item.icon
-                      className={`w-5 h-5 ${isActive && !isLocked ? (isReplayLibraryPage ? "text-[#b58513]" : "text-ember") : ""}`}
+                      className={`w-5 h-5 ${isActive && !isLocked ? (useWarmPortalShell ? "text-[#b58513]" : "text-ember") : ""}`}
                     />
                     <span>{item.label}</span>
                     {isLocked && (
@@ -747,8 +746,8 @@ export default function MemberPortalLayout({
               {/* ConstructLine (mobile) — available to all members */}
               <div className="px-4 pt-2 pb-1">
                 <p className="text-[10px] tracking-widest font-bold">
-                  <span className="text-cream-muted/60">Construct</span>
-                  <span className="text-amber-400/60">Line</span>
+                  <span className="text-[#5d5546]">Construct</span>
+                  <span className="text-[#d99a16]">Line</span>
                 </p>
               </div>
               <button
@@ -758,11 +757,11 @@ export default function MemberPortalLayout({
                 }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location === "/portal/constructline"
-                    ? "bg-ember/10 text-ember font-medium"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? mobileNavActiveClass
+                    : mobileNavIdleClass
                 }`}
               >
-                <LayoutDashboard className="w-5 h-5" />
+                <LayoutDashboard className={`w-5 h-5 ${location === "/portal/constructline" ? mobileActiveIconClass : ""}`} />
                 <span>Hub</span>
               </button>
               <button
@@ -772,11 +771,11 @@ export default function MemberPortalLayout({
                 }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location.startsWith("/portal/takeoff")
-                    ? "bg-ember/10 text-ember font-medium"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? mobileNavActiveClass
+                    : mobileNavIdleClass
                 }`}
               >
-                <Ruler className="w-5 h-5" />
+                <Ruler className={`w-5 h-5 ${location.startsWith("/portal/takeoff") ? mobileActiveIconClass : ""}`} />
                 <span>Basis</span>
               </button>
               <button
@@ -786,11 +785,11 @@ export default function MemberPortalLayout({
                 }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location.startsWith("/portal/cost-library")
-                    ? "bg-ember/10 text-ember font-medium"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? mobileNavActiveClass
+                    : mobileNavIdleClass
                 }`}
               >
-                <Database className="w-5 h-5" />
+                <Database className={`w-5 h-5 ${location.startsWith("/portal/cost-library") ? mobileActiveIconClass : ""}`} />
                 <span>Cost Library</span>
               </button>
               <button
@@ -800,11 +799,11 @@ export default function MemberPortalLayout({
                 }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location.startsWith("/portal/labor-library")
-                    ? "bg-ember/10 text-ember font-medium"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? mobileNavActiveClass
+                    : mobileNavIdleClass
                 }`}
               >
-                <HardHat className="w-5 h-5" />
+                <HardHat className={`w-5 h-5 ${location.startsWith("/portal/labor-library") ? mobileActiveIconClass : ""}`} />
                 <span>Trade Rate Library</span>
               </button>
               <button
@@ -814,11 +813,11 @@ export default function MemberPortalLayout({
                 }}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base transition-all ${
                   location.startsWith("/portal/scheduler")
-                    ? "bg-ember/10 text-ember font-medium"
-                    : "text-cream-muted hover:text-cream hover:bg-white/5"
+                    ? mobileNavActiveClass
+                    : mobileNavIdleClass
                 }`}
               >
-                <GanttChart className="w-5 h-5" />
+                <GanttChart className={`w-5 h-5 ${location.startsWith("/portal/scheduler") ? mobileActiveIconClass : ""}`} />
                 <span>Baseline</span>
               </button>
 
@@ -835,7 +834,7 @@ export default function MemberPortalLayout({
 
               {/* Bottom items */}
               {visibleBottomItems.length > 0 && (
-                <div className="border-t border-white/5 pt-2 mt-2 space-y-2">
+                <div className={`border-t pt-2 mt-2 space-y-2 ${useWarmPortalShell ? "border-[#e4d7bf]" : "border-white/5"}`}>
                   {visibleBottomItems.map(item => {
                     const isActive =
                       location === item.path ||
@@ -858,12 +857,12 @@ export default function MemberPortalLayout({
                           isLocked
                             ? "opacity-40 cursor-pointer"
                             : isActive
-                              ? "bg-ember/10 text-ember font-medium"
-                              : "text-cream-muted hover:text-cream hover:bg-white/5"
+                              ? mobileNavActiveClass
+                              : mobileNavIdleClass
                         }`}
                       >
                         <item.icon
-                          className={`w-5 h-5 ${isActive && !isLocked ? "text-ember" : ""}`}
+                          className={`w-5 h-5 ${isActive && !isLocked ? mobileActiveIconClass : ""}`}
                         />
                         <span>{item.label}</span>
                         {isLocked && (
@@ -875,10 +874,12 @@ export default function MemberPortalLayout({
                 </div>
               )}
 
-              <div className="border-t border-white/5 pt-4 mt-4">
+              <div className={`border-t pt-4 mt-4 ${useWarmPortalShell ? "border-[#e4d7bf]" : "border-white/5"}`}>
                 <button
                   onClick={logout}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base text-cream-muted hover:text-red-400"
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-base ${
+                    useWarmPortalShell ? "text-[#5d5546] hover:text-red-700 hover:bg-red-50" : "text-cream-muted hover:text-red-400"
+                  }`}
                 >
                   <LogOut className="w-5 h-5" />
                   <span>Sign Out</span>
