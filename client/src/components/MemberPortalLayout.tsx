@@ -463,7 +463,13 @@ export default function MemberPortalLayout({
   );
 
   return (
-    <div className={`min-h-screen flex ${useWarmPortalShell ? "bg-[#f8f3e7] text-[#171714]" : "bg-navy-deep"}`}>
+    <div
+      className={`min-h-screen flex ${
+        useWarmPortalShell
+          ? "member-warm-page bg-[#f8f3e7] text-[#171714]"
+          : "bg-navy-deep"
+      }`}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && !hideSidebar && (
         <aside className={`w-64 flex flex-col shrink-0 sticky top-0 h-screen ${
