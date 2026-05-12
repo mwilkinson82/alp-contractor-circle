@@ -1,0 +1,23 @@
+{
+  "query": "SELECT id, discordId, discordUsername, discordDisplayName, email, memberRole, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, lastSignedIn, updatedAt FROM members WHERE id = 1740003 OR email = 'barrett@mdmservices.com' OR discordDisplayName LIKE '%Barrett%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordUsername, discordDisplayName, email, memberRole, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, lastSignedIn, updatedAt FROM members WHERE id = 1740003 OR email = 'barrett@mdmservices.com' OR discordDisplayName LIKE '%Barrett%';",
+  "rows": [
+    {
+      "id": "1740003",
+      "discordId": "1503570079634423878",
+      "discordUsername": "barrett6.",
+      "discordDisplayName": "Barrett6",
+      "email": "barrett@mdmservices.com",
+      "memberRole": "founding_member",
+      "stripeCustomerId": "cus_UV5DNT1R9D9UAw",
+      "stripeSubscriptionId": "sub_1TW53KJdDAUSVXbNVGsV1s4h",
+      "subscriptionStatus": "active",
+      "lastSignedIn": "2026-05-12 01:36:48",
+      "updatedAt": "2026-05-12 01:36:47"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tmemberRole\tstripeCustomerId\tstripeSubscriptionId\tsubscriptionStatus\tlastSignedIn\tupdatedAt\n1740003\t1503570079634423878\tbarrett6.\tBarrett6\tbarrett@mdmservices.com\tfounding_member\tcus_UV5DNT1R9D9UAw\tsub_1TW53KJdDAUSVXbNVGsV1s4h\tactive\t2026-05-12 01:36:48\t2026-05-12 01:36:47\n",
+  "stderr": "",
+  "execution_time_ms": 618
+}

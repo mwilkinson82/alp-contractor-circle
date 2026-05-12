@@ -1,0 +1,36 @@
+{
+  "query": "SELECT * FROM drip_enrollments WHERE email = 'barrett@mdmservices.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT * FROM drip_enrollments WHERE email = 'barrett@mdmservices.com';",
+  "rows": [
+    {
+      "id": "1110001",
+      "email": "barrett@mdmservices.com",
+      "firstName": "Barrett",
+      "sequenceId": "q1q2_single",
+      "currentStep": "9",
+      "status": "completed",
+      "enrolledAt": "2026-04-15 23:14:47",
+      "nextSendAt": "NULL",
+      "convertedAt": "NULL",
+      "createdAt": "2026-04-15 23:14:47",
+      "updatedAt": "2026-05-10 12:17:40"
+    },
+    {
+      "id": "1170001",
+      "email": "barrett@mdmservices.com",
+      "firstName": "Barrett",
+      "sequenceId": "double_dipper",
+      "currentStep": "6",
+      "status": "completed",
+      "enrolledAt": "2026-04-16 00:03:53",
+      "nextSendAt": "NULL",
+      "convertedAt": "NULL",
+      "createdAt": "2026-04-16 00:03:53",
+      "updatedAt": "2026-05-11 12:03:19"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tfirstName\tsequenceId\tcurrentStep\tstatus\tenrolledAt\tnextSendAt\tconvertedAt\tcreatedAt\tupdatedAt\n1110001\tbarrett@mdmservices.com\tBarrett\tq1q2_single\t9\tcompleted\t2026-04-15 23:14:47\tNULL\tNULL\t2026-04-15 23:14:47\t2026-05-10 12:17:40\n1170001\tbarrett@mdmservices.com\tBarrett\tdouble_dipper\t6\tcompleted\t2026-04-16 00:03:53\tNULL\tNULL\t2026-04-16 00:03:53\t2026-05-11 12:03:19\n",
+  "stderr": "",
+  "execution_time_ms": 576
+}

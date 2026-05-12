@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, discordId, discordUsername, discordDisplayName, email, memberRole, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, createdAt FROM members WHERE discordDisplayName LIKE '%Barrett%' OR discordDisplayName LIKE '%barrett%' OR discordUsername LIKE '%Barrett%' OR discordUsername LIKE '%barrett%' OR email LIKE '%barrett%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 7EZSjjtPPBiui5U.ec5bc85f83b3 --database JYLdJEaFQZebZwtiasWNpQ --execute SELECT id, discordId, discordUsername, discordDisplayName, email, memberRole, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, createdAt FROM members WHERE discordDisplayName LIKE '%Barrett%' OR discordDisplayName LIKE '%barrett%' OR discordUsername LIKE '%Barrett%' OR discordUsername LIKE '%barrett%' OR email LIKE '%barrett%';",
+  "rows": [
+    {
+      "id": "1740003",
+      "discordId": "email:barrett@mdmservices.com",
+      "discordUsername": "NULL",
+      "discordDisplayName": "Barrett Sathianathan",
+      "email": "barrett@mdmservices.com",
+      "memberRole": "founding_member",
+      "stripeCustomerId": "cus_UV5DNT1R9D9UAw",
+      "stripeSubscriptionId": "sub_1TW53KJdDAUSVXbNVGsV1s4h",
+      "subscriptionStatus": "active",
+      "createdAt": "2026-05-12 01:24:09"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdiscordId\tdiscordUsername\tdiscordDisplayName\temail\tmemberRole\tstripeCustomerId\tstripeSubscriptionId\tsubscriptionStatus\tcreatedAt\n1740003\temail:barrett@mdmservices.com\tNULL\tBarrett Sathianathan\tbarrett@mdmservices.com\tfounding_member\tcus_UV5DNT1R9D9UAw\tsub_1TW53KJdDAUSVXbNVGsV1s4h\tactive\t2026-05-12 01:24:09\n",
+  "stderr": "",
+  "execution_time_ms": 588
+}
