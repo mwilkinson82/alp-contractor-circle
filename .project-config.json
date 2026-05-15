@@ -1,0 +1,53 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "db",
+    "server",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://7EZSjjtPPBiui5U.ec5bc85f83b3:C5D4JF7w2ZmBvAGz7W8J@gateway04.us-east-1.prod.aws.tidbcloud.com:4000/JYLdJEaFQZebZwtiasWNpQ?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663332724241/JYLdJEaFQZebZwtiasWNpQ",
+    "access_key_id": "ASIAZV3A2ECZGKESSYFA",
+    "secret_access_key": "44k4y6CUFLouW+PzXl7gka1/OiN9POxm8Agt8YiK",
+    "session_token": "IQoJb3JpZ2luX2VjELH//////////wEaCXVzLWVhc3QtMSJGMEQCIDK0n9XHxc3nMdOIJJ1ZfghIJO9QFLFCPE997+4WooKoAiB6M8xNfHm1/2ws0z1/YRACYImrEmpRoiffiJ1pfhaZHyr2Awh6EAQaDDY2NTM4NjA5ODg2NiIMnX1K5ehvL6lWZ9HIKtMDS4oKRW2OQIl/HgL7/DxlJ5Xa1Dmue9zwnfNpjXunnxcC235iiWnG73nbzttqtMKowrxHR/fsoxOQxzD0TQbzT1ZBgmqGiu7y4ugML7Jq2JZJHEHRXzjFHNhmnZCS2fn0dFq4/vP3IG7yCHONxP9LkidWS5TzIlL8eWnz4n8gLMYMUivvykn+ZtT0QiazD+NNa/6z4FjaO73yYV370nSwPMrIniYjPeAd8Mw4TbtGxAt+9mIkC04i/Kx1LDE+kDiDldClb+X0Dv8XC9RTkIbirnw2EzIcboU0cdRodQ3nV4SFHdxI2wc2dWP3cxQT2efPB6TCO5z3aTewZrONndLwOb3dlo7YwoV7DxsTpjvdoHiS+bKbkSpH6LgslZ3sjA7hHc+2BBrNmDfmaPX5F9moIW+0ghuRAk3U4trT5rQ+hzp3I0FGxnKrHhUZVCKJv3ex1zrtsM+z28FdHhFOKAqZMqgx/gJWATKYbpCH8Y8X6y3wAX4coPKBhuEizIe+jR8PuFqo+aSzU0SX4e5FBdhxTbB1PLhfsGGpb45euq1Pc+uv7afaHOJDk0SaLtoUevey84crxjrm7FTXQYk2GRAlrXvVtERNMvqnjit/GsyQWPzAR64wsZyd0AY6ngEb79ES+sNvF4iQO1MnVlKLK1q/h1KwVJTRPzDbqSXD2Nr15HStqm64xZiKsWcpy/KQtDB3+lS/9ilYxODL/S/39pXjk0iHhKXC6ehMXW5Cv4DY49aWDstvjcnNQlqgPRQ8SZf3rsyN9xzs7we19MOndDlFaFaKStq6HoK1cJhjeiYWSf7HaEocghkGMDkIAKjTasx/rUemOo6y4kpyvQ==",
+    "expiration": "2026-05-16T04:47:45.000Z"
+  },
+  "name": "alp-contractor-portal",
+  "path": "/home/ubuntu/alp-contractor-portal",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "FsqDW2VjXwZn6V5zQXjLmz",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "DISCORD_BOT_TOKEN": "MTQ4NDY0MzIyOTk0MDA1NjE2Ng.GLkaMG.4_HAt4AR_G9CpsvhXYR0ketXWnVLTPtkDj7bOA",
+    "DISCORD_CLIENT_ID": "1484197179953512532",
+    "DISCORD_CLIENT_SECRET": "HuJ6z5qXiMREtuc8ITbvJloZoOeE3RL9",
+    "DISCORD_GUILD_ID": "927273292354711613",
+    "JWT_SECRET": "F5Qp8eA8rqrNiBc6YnVfFu",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Marshall Wilkinson",
+    "OWNER_OPEN_ID": "3TNP3dYxtqzHJhjZ474Fbf",
+    "RESEND_API_KEY": "re_NXyyTUdE_pinASgLG6Y9GUBMSqEu9kXuP",
+    "STRIPE_SECRET_KEY": "sk_test_51TDFY58gDcQKKL89yPrqD8tP48gGrOb0Yunw1e5VxrRmG3TfNX2jikD8sy0rnPP3iUBztbZKFfMNOI0EgCnFFh4h00xCNeXRL8",
+    "STRIPE_WEBHOOK_SECRET": "whsec_6Q1pSdeBTldu9zDwwGYCZfu1Pk4hjxBy",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYndpdXFhcWp0YnZ4a3ZxcGxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNjEzNjMsImV4cCI6MjA4OTYzNzM2M30.Sv2T50J_uq3-KgOtI2OpFgHrBCZH2-BnnWCU2BOdkpY",
+    "SUPABASE_URL": "https://qqbwiuqaqjtbvxkvqplo.supabase.co",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "b600370f-3a3a-4329-903e-a6b8c2a00034",
+    "VITE_APP_ID": "JYLdJEaFQZebZwtiasWNpQ",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663332724241/ykzIHSFtAQOXBtVL.png",
+    "VITE_APP_TITLE": "ALP Contractor Circle | Elite Contractor Community",
+    "VITE_FRONTEND_FORGE_API_KEY": "BaYpKAqt4vNDqnvh3zQzne",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im",
+    "VITE_STRIPE_PUBLISHABLE_KEY": "pk_test_51TDFY58gDcQKKL890hLiIvmJNzCiTcEksysxeF3EiDwbPMAYmgbykdL6vdvP7Xbfw4vzVUGmdV37S2moLi4YWFtp00iz6A9rU7"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}
