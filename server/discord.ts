@@ -673,7 +673,7 @@ export function registerDiscordOAuthRoutes(app: Express) {
             axios.post(
               `${DISCORD_API_BASE}/channels/${GENERAL_CHAT_CHANNEL_ID}/messages`,
               {
-                content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Log in to the member portal at **alpcontractorcircle.com/portal** to access all your resources. We're glad you're here — let's build.`,
+                content: `🎉 Welcome to **The Contractor Circle**, <@${discordUser.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Log in to the member portal at **app.alpcontractorcircle.com/login** to access all your resources. We're glad you're here — let's build.`,
               },
               { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
             ).catch((e: any) => console.warn("[Discord] Welcome message failed:", e?.message));

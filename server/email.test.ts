@@ -56,7 +56,7 @@ describe("Welcome Email #1 — HTML", () => {
   it("includes the portal login CTA", () => {
     const html = buildWelcomeEmailHtml({ name: "Test User" });
     expect(html).toContain("Access Your Member Portal");
-    expect(html).toContain("alpcontractorcircle.com/portal");
+    expect(html).toContain("app.alpcontractorcircle.com/login");
   });
 
   it("includes the membership benefits list", () => {
@@ -150,7 +150,7 @@ describe("Founding Member Email #2 — HTML", () => {
   it("includes the portal CTA", () => {
     const html = buildFoundingMemberEmailHtml({ name: "Test User" });
     expect(html).toContain("Access Your Member Portal");
-    expect(html).toContain("alpcontractorcircle.com/portal");
+    expect(html).toContain("app.alpcontractorcircle.com/login");
   });
 
   it("uses the Midnight Ember color scheme", () => {

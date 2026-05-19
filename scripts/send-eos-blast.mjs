@@ -15,8 +15,8 @@ if (!resendApiKey) {
 const resend = new Resend(resendApiKey);
 
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
 const BASE_STYLES = `
   background-color:#08090D;

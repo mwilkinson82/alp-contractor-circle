@@ -47,8 +47,8 @@ console.log("\n✅ Done — both emails sent to jake@nciconstruction.com");
 
 function buildEosScorecardHtml(name) {
   const firstName = name.split(" ")[0];
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-  const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+  const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
@@ -115,12 +115,12 @@ function buildEosScorecardHtml(name) {
 
 function buildEosScorecardText(name) {
   const firstName = name.split(" ")[0];
-  return `CONTRACTOR CIRCLE — NEW TEMPLATE\n\n${firstName}, the ALP/EOS Scorecard is live.\n\nA new template has been added to your Contractor Circle member library. Your one-page reference for the ALP/EOS Data Component is now under Operations.\n\n✓ The Scorecard — 5-15 numbers max, one owner per number\n✓ Leading vs. Lagging — track activities, not just results\n✓ Find Your One Number — for contractors: backlog in months\n✓ Everyone Gets a Measurable — cascade to every seat\n✓ Red Flags — signs your Scorecard is broken\n✓ Sample Scorecard Structure with weekly tracking\n\n→ Download: https://alpcontractorcircle.com/portal/templates\n\nData doesn't replace your gut. It confirms it or challenges it.\n\n— Marshall`;
+  return `CONTRACTOR CIRCLE — NEW TEMPLATE\n\n${firstName}, the ALP/EOS Scorecard is live.\n\nA new template has been added to your Contractor Circle member library. Your one-page reference for the ALP/EOS Data Component is now under Operations.\n\n✓ The Scorecard — 5-15 numbers max, one owner per number\n✓ Leading vs. Lagging — track activities, not just results\n✓ Find Your One Number — for contractors: backlog in months\n✓ Everyone Gets a Measurable — cascade to every seat\n✓ Red Flags — signs your Scorecard is broken\n✓ Sample Scorecard Structure with weekly tracking\n\n→ Download: https://app.alpcontractorcircle.com/login\n\nData doesn't replace your gut. It confirms it or challenges it.\n\n— Marshall`;
 }
 
 function buildBootcampHtml(name) {
   const firstName = name.split(" ")[0];
-  const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+  const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
@@ -216,5 +216,5 @@ function buildBootcampHtml(name) {
 
 function buildBootcampText(name) {
   const firstName = name.split(" ")[0];
-  return `CONTRACTOR CIRCLE — MONTHLY BOOTCAMP\n\n${firstName}, we want your input.\n\nThe next Contractor Circle Monthly Bootcamp is coming up.\n\nSaturday, April 26 at 5 PM Eastern\n\nMarshall will choose one or multiple topics submitted by members for a deep dive together as a community.\n\n✓ 90+ minutes — a deep dive, not a surface skim\n✓ Audience participation expected — come ready to engage\n✓ Be prepared: water, coffee, pen and paper\n✓ Your topic could be the one we go deep on\n\n→ Submit Your Topic: https://alpcontractorcircle.com/portal\n  Log in → Dashboard → Monthly Bootcamp\n\nThis is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines — submit your topic and let's get to work.\n\n— Marshall`;
+  return `CONTRACTOR CIRCLE — MONTHLY BOOTCAMP\n\n${firstName}, we want your input.\n\nThe next Contractor Circle Monthly Bootcamp is coming up.\n\nSaturday, April 26 at 5 PM Eastern\n\nMarshall will choose one or multiple topics submitted by members for a deep dive together as a community.\n\n✓ 90+ minutes — a deep dive, not a surface skim\n✓ Audience participation expected — come ready to engage\n✓ Be prepared: water, coffee, pen and paper\n✓ Your topic could be the one we go deep on\n\n→ Submit Your Topic: https://app.alpcontractorcircle.com/login\n  Log in → Dashboard → Monthly Bootcamp\n\nThis is your community. The bootcamp is built around what you need right now. Don't sit on the sidelines — submit your topic and let's get to work.\n\n— Marshall`;
 }

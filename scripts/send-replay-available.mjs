@@ -53,7 +53,7 @@ function buildHtml(firstName) {
       <p style="font-size:16px;color:rgba(245,240,232,0.85);line-height:1.7;margin:0 0 20px;">Whether you were on the call and want to rewatch, or you missed it — the full replay is ready for you inside the portal.</p>
 
       <div style="text-align:center;margin:32px 0 16px;">
-        <a href="https://alpcontractorcircle.com/portal/replays" style="display:inline-block;background:linear-gradient(135deg,#c4783e,#a0622f);color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">Watch the Replay →</a>
+        <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;background:linear-gradient(135deg,#c4783e,#a0622f);color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">Watch the Replay →</a>
       </div>
 
       <p style="font-size:16px;color:rgba(245,240,232,0.85);line-height:1.7;margin:24px 0 0;">Don't sleep on this one.</p>

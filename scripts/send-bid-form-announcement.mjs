@@ -5,8 +5,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const pool = mysql.createPool(process.env.DATABASE_URL);
 
 const FROM_ADDRESS = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const BASE_STYLES = "font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;";
 
 function buildHtml(name) {
@@ -175,7 +175,7 @@ Standardize how your subs submit bids. Level the playing field and compare apple
 ✓ Exclusions & clarifications — what's NOT included
 ✓ Terms, warranty, and authorization signatures
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Estimating
 
 ─────────────────────────────────────
@@ -188,7 +188,7 @@ Stop chasing subs for missing info. Send them this form and get clean, comparabl
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal`.trim();
+Portal: https://app.alpcontractorcircle.com/login`.trim();
 }
 
 // Get all active CC members

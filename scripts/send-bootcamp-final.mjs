@@ -4,8 +4,8 @@ import mysql from "mysql2/promise";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const TEMPLATES_URL = "https://alpcontractorcircle.com/portal/templates";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const TEMPLATES_URL = "https://app.alpcontractorcircle.com/login";
 const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
 
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
@@ -200,7 +200,7 @@ If time allows, we may also get into SOVs, transitioning to development, and sub
 
 JOIN DISCORD: There are a few members who haven't joined the Discord yet or introduced themselves. We want to meet you. We want you to get the most out of this opportunity. Get in there and introduce yourself: https://discord.gg/rsK5HZcF
 
-TEMPLATE LIBRARY: Updated weekly with detailed, high-level resources. Log into the portal and take advantage of everything in there: https://alpcontractorcircle.com/portal/templates
+TEMPLATE LIBRARY: Updated weekly with detailed, high-level resources. Log into the portal and take advantage of everything in there: https://app.alpcontractorcircle.com/login
 
 ---
 

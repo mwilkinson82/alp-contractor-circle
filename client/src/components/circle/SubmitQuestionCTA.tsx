@@ -69,7 +69,7 @@ export function SubmitQuestionCTA() {
             </ul>
 
             <button
-              onClick={() => navigate("/portal")}
+              onClick={() => window.location.href = "https://app.alpcontractorcircle.com/login"}
               className="group inline-flex items-center gap-3 px-6 py-3.5 bg-ember hover:bg-ember-light text-midnight font-bold text-sm rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-ember/20 cursor-pointer"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >

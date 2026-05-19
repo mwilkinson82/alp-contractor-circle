@@ -4,9 +4,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <marshall@notifications.marshallwilkinson.com>";
 const REPLY_TO = "marshall@marshallwilkinson.com";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-const REPLAY_URL = "https://alpcontractorcircle.com/portal/replays";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+const REPLAY_URL = "https://app.alpcontractorcircle.com/login";
 const DISCORD_INVITE = "https://discord.gg/2pagscG2Np";
 const BASE_STYLES = "font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background-color:#08090D;";
 
@@ -290,7 +290,7 @@ Execute this week. Don't just consume the content — put it to work. Drop your 
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorcircle.com
-Portal: https://alpcontractorcircle.com/portal`;
+Portal: https://app.alpcontractorcircle.com/login`;
 }
 
 async function main() {

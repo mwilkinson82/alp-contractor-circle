@@ -5,8 +5,8 @@ import mysql from "mysql2/promise";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const REPLAY_URL = "https://alpcontractorcircle.com/portal/replays";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const REPLAY_URL = "https://app.alpcontractorcircle.com/login";
 
 const BASE_STYLES = `
   background-color:#08090D;

@@ -100,7 +100,7 @@ export function startDiscordBot() {
       const channel = await member.guild.channels.fetch(GENERAL_CHAT_CHANNEL_ID);
       if (channel && channel.isTextBased()) {
         await (channel as any).send({
-          content: `🎉 Welcome to **The Contractor Circle**, <@${member.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Log in to the member portal at **alpcontractorcircle.com/portal** to access all your resources. We're glad you're here — let's build.`,
+          content: `🎉 Welcome to **The Contractor Circle**, <@${member.id}>!\n\nYou now have access to **#circle-chat**, **#templates-resources**, and **#replays**. Log in to the member portal at **app.alpcontractorcircle.com/login** to access all your resources. We're glad you're here — let's build.`,
         });
         console.log(`[DiscordBot] Welcome message sent for ${displayName}`);
       }

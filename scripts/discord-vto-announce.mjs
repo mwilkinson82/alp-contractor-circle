@@ -19,7 +19,7 @@ The V/TO just dropped in the template library. This is the two-page document tha
 Covers all 8 questions: Core Values, Core Focus, 10-Year Target, Marketing Strategy, 3-Year Picture, 1-Year Plan, Quarterly Rocks, and Issues List. Includes a completed example for a mid-size GC so you can see exactly what a finished one looks like.
 
 Log in to the portal → **Templates → Operations** to download it.
-🔗 https://alpcontractorcircle.com/portal/templates`,
+🔗 https://app.alpcontractorcircle.com/login`,
     });
 
     console.log("Message posted in #general-chat");

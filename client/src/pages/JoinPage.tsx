@@ -519,7 +519,7 @@ function HeroSection() {
             ConstructLine
           </a>
           <a
-            href="/portal"
+            href="https://app.alpcontractorcircle.com/login"
             className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
@@ -3094,7 +3094,7 @@ function JoinFooter() {
           <a href="/" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Home
           </a>
-          <a href="/portal" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <a href="https://app.alpcontractorcircle.com/login" className="text-xs text-cream/25 hover:text-cream/50 transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Member Login
           </a>
           <a

@@ -3,8 +3,8 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_ADDRESS = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 const BASE_STYLES = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#08090D;";
 
 function buildHtml(firstName) {
@@ -146,7 +146,7 @@ A systematic process for accurate, reviewable estimates. Stop estimating from me
 ✓ General Conditions & Indirect Costs
 ✓ Escalation & Market Conditions
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Estimating
 
 ─────────────────────────────────────
@@ -159,7 +159,7 @@ This is how you stop leaving money on the table. Download it, print it, and run 
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal`;
+Portal: https://app.alpcontractorcircle.com/login`;
 }
 
 // Fetch active members from the running server's API

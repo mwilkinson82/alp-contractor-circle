@@ -262,7 +262,7 @@ export function registerStripeWebhook(app: Express) {
                   `--- PORTAL STATUS ---`,
                   `Active founding members: ${activeCount} of 50`,
                   ``,
-                  `NEXT: Member needs to log in via Discord at alpcontractorcircle.com/portal.`,
+                  `NEXT: Member needs to log in via Discord at app.alpcontractorcircle.com/login.`,
                   `If their Discord email differs from ${memberEmail || "their Stripe email"}, the merge system will handle it automatically.`,
                 ].join("\n"),
               });

@@ -2,8 +2,8 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const BASE_STYLES = "background-color:#08090D;font-family:Georgia,'Times New Roman',serif;";
 const FROM = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
 
@@ -212,7 +212,7 @@ Submit the topic you want covered in the next monthly bootcamp. Your business, y
 
 ---
 
-Browse the Template Library: https://alpcontractorcircle.com/portal/templates
+Browse the Template Library: https://app.alpcontractorcircle.com/login
 Log in to the portal -> Templates
 
 These are exclusive to Contractor Circle members. Log in, download what you need, and put them to work this week.
@@ -223,7 +223,7 @@ These are exclusive to Contractor Circle members. Log in, download what you need
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal`;
+Portal: https://app.alpcontractorcircle.com/login`;
 }
 
 const recipients = [

@@ -208,8 +208,8 @@ export function HeroSection() {
       action: "TEMPLATE",
       text: "ALP Contractor Circle — Live Call with Marshall Wilkinson",
       dates: `${fmt(nextCall)}/${fmt(end)}`,
-      details: "Join the ALP Contractor Circle live call. Members: log in at alpcontractorcircle.com/portal for the Zoom link.",
-      location: "alpcontractorcircle.com/portal",
+      details: "Join the ALP Contractor Circle live call. Members: log in at app.alpcontractorcircle.com/login for the Zoom link.",
+      location: "app.alpcontractorcircle.com/login",
     });
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   };
@@ -304,7 +304,7 @@ export function HeroSection() {
             <span>ConstructLine</span>
           </a>
           <a
-            href="/portal"
+            href="https://app.alpcontractorcircle.com/login"
             className="flex items-center gap-2 px-4 py-2 rounded-full border border-cream/20 bg-cream/5 hover:border-ember/50 hover:bg-ember/10 transition-all duration-300 text-cream/75 hover:text-cream text-sm font-medium backdrop-blur-sm"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >

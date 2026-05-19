@@ -2,8 +2,8 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const BASE_STYLES = "background-color:#08090D;font-family:Georgia,'Times New Roman',serif;";
 
 const firstName = "Henrico";
@@ -139,7 +139,7 @@ Henrico, the ALP/EOS V/TO is live.
 
 A new template has been added to your Contractor Circle member library. The Vision/Traction Organizer — the two-page document that captures your company's entire strategic plan — is now under Operations.
 
-Download: https://alpcontractorcircle.com/portal/templates
+Download: https://app.alpcontractorcircle.com/login
 
 — Marshall`,
 });

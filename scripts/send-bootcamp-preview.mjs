@@ -3,8 +3,8 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
-const TEMPLATES_URL = "https://alpcontractorcircle.com/portal/templates";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
+const TEMPLATES_URL = "https://app.alpcontractorcircle.com/login";
 const DISCORD_INVITE = "https://discord.gg/thecontractorcircle";
 
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";

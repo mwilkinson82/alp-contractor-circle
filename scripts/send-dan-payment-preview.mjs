@@ -35,7 +35,7 @@ const html = `
 <!-- CTA Button -->
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
 <tr><td align="center">
-  <a href="https://alpcontractorcircle.com/portal/account" 
+  <a href="https://app.alpcontractorcircle.com/login" 
      style="display:inline-block;padding:14px 36px;background:#c97a3a;color:#fff;text-decoration:none;font-weight:700;font-size:15px;border-radius:8px;letter-spacing:0.3px;">
     Update Payment Details
   </a>

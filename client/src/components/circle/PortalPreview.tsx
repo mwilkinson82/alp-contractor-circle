@@ -121,7 +121,7 @@ export function PortalPreview() {
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="bg-white/[0.06] rounded-md px-4 py-1 text-xs text-cream/30 font-mono max-w-xs w-full text-center">
-                  alpcontractorcircle.com/portal
+                  app.alpcontractorcircle.com/login
                 </div>
               </div>
               <div className="w-12" />

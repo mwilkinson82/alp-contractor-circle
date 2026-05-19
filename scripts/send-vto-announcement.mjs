@@ -4,8 +4,8 @@ import mysql from "mysql2/promise";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
-const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const BASE_STYLES = "background-color:#08090D;font-family:Georgia,'Times New Roman',serif;";
 const FROM = "Marshall Wilkinson <marshall@notifications.marshallwilkinson.com>";
 
@@ -173,7 +173,7 @@ The two-page strategic tool that aligns your entire leadership team on where you
 - Quarterly Rocks & Issues List — 90-day priorities and the IDS process
 - Complete example V/TO for a mid-size general contractor
 
--> Download: https://alpcontractorcircle.com/portal/templates
+-> Download: https://app.alpcontractorcircle.com/login
    Log in to the portal -> Templates -> Operations
 
 ---
@@ -186,7 +186,7 @@ Without a V/TO, every person on your leadership team has a different version of 
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal`;
+Portal: https://app.alpcontractorcircle.com/login`;
 }
 
 // ─── Send to all active members ─────────────────────────────────────────────

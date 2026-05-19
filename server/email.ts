@@ -10,7 +10,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
-const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
 const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
@@ -127,7 +127,7 @@ export function buildWelcomeEmailHtml(params: { name: string }): string {
           <tr><td style="height:8px;"></td></tr>
           <tr>
             <td align="center" style="color:rgba(237,230,219,0.4);font-size:12px;">
-              Create your account at alpcontractorcircle.com/portal — templates, replays, and your Zoom link are all inside.
+              Create your account at app.alpcontractorcircle.com/login — templates, replays, and your Zoom link are all inside.
             </td>
           </tr>
           <tr><td style="height:32px;"></td></tr>
@@ -687,7 +687,7 @@ function buildPurchaseNotificationHtml(params: { memberName: string; memberEmail
       <p style="font-size:12px;color:rgba(245,240,232,0.3);margin:0;">Session: ${params.sessionId}</p>
     </div>
     <div style="text-align:center;margin-top:32px;">
-      <a href="https://alpcontractorcircle.com/portal" style="display:inline-block;padding:12px 32px;background:#c4783e;color:#0a0a0f;font-weight:700;font-size:14px;text-decoration:none;border-radius:8px;">View in Admin Panel</a>
+      <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;padding:12px 32px;background:#c4783e;color:#0a0a0f;font-weight:700;font-size:14px;text-decoration:none;border-radius:8px;">View in Admin Panel</a>
     </div>
     <p style="text-align:center;font-size:11px;color:rgba(245,240,232,0.2);margin-top:32px;">ALP Contractor Circle &middot; Purchase Notification</p>
   </div>
@@ -1027,7 +1027,7 @@ export async function sendLeadMagnetNotification(params: {
 
 function buildEosDeckAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
   return `
 <!DOCTYPE html>
@@ -1186,7 +1186,7 @@ The complete EOS operating system breakdown tailored for contractors:
 ✓ IDS Process — Identify, Discuss, Solve
 ✓ Core Processes & People Analyzer
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Operations
 
 ─────────────────────────────────────
@@ -1199,7 +1199,7 @@ Great call today. Download this, review it, and start implementing.
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -1485,7 +1485,7 @@ export async function sendQ2FrameworkEmail(params: {
 
 function buildEstimatingChecklistAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
   return `
 <!DOCTYPE html>
@@ -1648,7 +1648,7 @@ A systematic process for accurate, reviewable estimates. Stop estimating from me
 ✓ General Conditions & Indirect Costs
 ✓ Escalation & Market Conditions
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Estimating
 
 ─────────────────────────────────────
@@ -1661,7 +1661,7 @@ This is how you stop leaving money on the table. Download it, print it, and run 
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -1952,7 +1952,7 @@ const EOS_PLAYBOOK_URL = "https://d2xsxph8kpxj0f.cloudfront.net/3105196633327242
 
 function buildEosPlaybookAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
   return `
 <!DOCTYPE html>
@@ -2123,7 +2123,7 @@ The foundational business framework for ALP Contractor Circle:
 ✓ 12-Month Implementation Roadmap
 ✓ Construction-Specific Applications & Glossary
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Operations
 
 ─────────────────────────────────────
@@ -2136,7 +2136,7 @@ This is the operating system we run. Download it, study it, and start implementi
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -2176,7 +2176,7 @@ export async function sendEosPlaybookAnnouncementEmail(params: {
 
 function buildEosScorecardAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
   return `
 <!DOCTYPE html>
@@ -2343,7 +2343,7 @@ Everything you need to build and maintain an effective weekly Scorecard:
 ✓ Red Flags — signs your Scorecard is broken
 ✓ Sample Scorecard Structure with weekly tracking
 
-→ Download: https://alpcontractorcircle.com/portal/templates
+→ Download: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Operations
 
 ─────────────────────────────────────
@@ -2356,7 +2356,7 @@ Data doesn't replace your gut. It confirms it or challenges it. Either way, you 
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -2548,7 +2548,7 @@ export async function sendDiscordInviteEmail(params: {
 // ─── Monthly Bootcamp Announcement Email ─────────────────────────────────────
 function buildBootcampAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const PORTAL_URL = "https://alpcontractorcircle.com/portal";
+  const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
   const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
 
   return `
@@ -2783,7 +2783,7 @@ HOW IT WORKS
 3. Marshall reviews all submissions and selects the bootcamp agenda
 4. Show up April 26 ready to work — this is where we get involved as a community
 
-→ Submit Your Topic: https://alpcontractorcircle.com/portal
+→ Submit Your Topic: https://app.alpcontractorcircle.com/login
   Log in to the portal → Dashboard → Monthly Bootcamp
 
 ─────────────────────────────────────
@@ -2796,7 +2796,7 @@ This is your community. The bootcamp is built around what you need right now. Do
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -2887,7 +2887,7 @@ export async function sendBootcampTopicNotification(params: {
         </td></tr>
         <tr><td style="height:24px;"></td></tr>
         <tr><td align="center">
-          <a href="https://alpcontractorcircle.com/portal/admin" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;">
+          <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;">
             Review in Admin Panel →
           </a>
         </td></tr>
@@ -2898,7 +2898,7 @@ export async function sendBootcampTopicNotification(params: {
 </body>
 </html>
       `.trim(),
-      text: `New Bootcamp Topic Submitted\n\nFrom: ${params.memberName}\nBootcamp: ${params.bootcampDate}\n\nTopic: ${params.topic}\n${params.reason ? `\nWhy: ${params.reason}` : ""}\n\nReview at: https://alpcontractorcircle.com/portal/admin`,
+      text: `New Bootcamp Topic Submitted\n\nFrom: ${params.memberName}\nBootcamp: ${params.bootcampDate}\n\nTopic: ${params.topic}\n${params.reason ? `\nWhy: ${params.reason}` : ""}\n\nReview at: https://app.alpcontractorcircle.com/login`,
     });
 
     if (error) {
@@ -3013,7 +3013,7 @@ export async function sendTopicSelectedEmail(params: {
 
         <!-- CTA -->
         <tr><td align="center" style="padding:0 24px 28px 24px;">
-          <a href="https://alpcontractorcircle.com/portal" style="display:inline-block;background:#22c55e;color:#08090D;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:14px;font-weight:700;">
+          <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;background:#22c55e;color:#08090D;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:14px;font-weight:700;">
             View in Portal →
           </a>
         </td></tr>
@@ -3032,7 +3032,7 @@ export async function sendTopicSelectedEmail(params: {
 </body>
 </html>
       `.trim(),
-      text: `${params.name}, your topic was selected for the Contractor Circle Monthly Bootcamp!\n\nTopic: ${params.topic}\n\nDate: Saturday, April 26, 2026\nTime: 5:00 PM Eastern\nDuration: 90+ minutes\n\nCome prepared with questions and real-world scenarios. Bring water, coffee, pen & paper.\n\nView in Portal: https://alpcontractorcircle.com/portal`,
+      text: `${params.name}, your topic was selected for the Contractor Circle Monthly Bootcamp!\n\nTopic: ${params.topic}\n\nDate: Saturday, April 26, 2026\nTime: 5:00 PM Eastern\nDuration: 90+ minutes\n\nCome prepared with questions and real-world scenarios. Bring water, coffee, pen & paper.\n\nView in Portal: https://app.alpcontractorcircle.com/login`,
     });
 
     if (error) {
@@ -3147,7 +3147,7 @@ export async function sendFeedbackNotification(params: {
 
         <!-- CTA -->
         <tr><td align="center" style="padding:24px 24px 28px 24px;">
-          <a href="https://alpcontractorcircle.com/portal/feedback" style="display:inline-block;background:#E8622C;color:#08090D;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:700;">
+          <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;background:#E8622C;color:#08090D;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:700;">
             View in Admin Portal →
           </a>
         </td></tr>
@@ -3166,7 +3166,7 @@ export async function sendFeedbackNotification(params: {
 </body>
 </html>
       `.trim(),
-      text: `New feedback from ${params.memberName}\n\nCategory: ${categoryLabel}\nPage: ${params.page}\nScreenshot: ${params.hasScreenshot ? 'Yes' : 'No'}\n\nMessage:\n${params.message}\n\nView in admin portal: https://alpcontractorcircle.com/portal/feedback`,
+      text: `New feedback from ${params.memberName}\n\nCategory: ${categoryLabel}\nPage: ${params.page}\nScreenshot: ${params.hasScreenshot ? 'Yes' : 'No'}\n\nMessage:\n${params.message}\n\nView in admin portal: https://app.alpcontractorcircle.com/login`,
     });
 
     if (error) {
@@ -3677,7 +3677,7 @@ export async function sendThreeSilosEmail(params: {
 
 function buildNewTemplatesAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const TEMPLATE_URL = "https://alpcontractorcircle.com/portal/templates";
+  const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
   return `
 <!DOCTYPE html>
@@ -3886,7 +3886,7 @@ Why we build the operating system in this exact sequence:
 
 ─────────────────────────────────────
 
-→ Download Both: https://alpcontractorcircle.com/portal/templates
+→ Download Both: https://app.alpcontractorcircle.com/login
   Log in to the portal → Templates → Operations
 
 ─────────────────────────────────────
@@ -3899,7 +3899,7 @@ The Three Silos Framework shows you where your business is breaking. The Connect
 Altitude Logic Pressure
 Instagram: https://instagram.com/realmarshallwilkinson
 Website: https://alpcontractorschool.com
-Portal: https://alpcontractorcircle.com/portal
+Portal: https://app.alpcontractorcircle.com/login
   `.trim();
 }
 
@@ -3977,7 +3977,7 @@ export function buildFailedPaymentEmailHtml(params: {
           <tr><td style="height:24px;"></td></tr>
           <tr>
             <td align="center">
-              <a href="https://alpcontractorcircle.com/portal/account" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;font-size:16px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;">
+              <a href="https://app.alpcontractorcircle.com/login" style="display:inline-block;background:linear-gradient(135deg,#D4915C,#C9A96E);color:#08090D;font-size:16px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;">
                 Update Payment Details
               </a>
             </td>
@@ -4420,7 +4420,7 @@ export function buildDiscordIntroEmailHtml(params: { name: string }): string {
         <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px 0;font-weight:600;">Your Portal</p>
         <p style="color:#EDE6DB;font-size:18px;font-weight:600;margin:0 0 8px 0;">Access Templates, Replays & More</p>
         <p style="color:rgba(237,230,219,0.6);font-size:14px;line-height:1.6;margin:0 0 4px 0;">
-          Your member portal has everything you need \u{2014} contractor templates, call replays, your Zoom link, and more. Log in anytime at <a href="${PORTAL_URL}" style="color:#D4915C;text-decoration:underline;">alpcontractorcircle.com/portal</a>.
+          Your member portal has everything you need \u{2014} contractor templates, call replays, your Zoom link, and more. Log in anytime at <a href="${PORTAL_URL}" style="color:#D4915C;text-decoration:underline;">app.alpcontractorcircle.com/login</a>.
         </p>
       </td>
     </tr></table>
