@@ -11,6 +11,8 @@
   --cc-orange: #db6a3f;
   --cc-orange-dark: #a84425;
   --cc-orange-soft: #fff1ea;
+  --cc-aos-blue: #1687c5;
+  --cc-aos-blue-dark: #0f6797;
   --cc-shadow: 0 28px 90px rgb(0 0 0 / 0.24);
   --cc-caption-ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--cc-paper);
@@ -41,7 +43,9 @@
 .cc-page h2,
 .cc-page h3 {
   margin: 0;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -49,7 +53,9 @@
 .cc-page em {
   position: relative;
   display: inline-block;
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-style: italic;
   font-weight: 500;
   letter-spacing: 0;
@@ -85,8 +91,18 @@
   gap: 10px;
 }
 
+.cc-brand {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cc-brand-mark,
 .cc-brand span:first-child {
   color: var(--cc-orange);
+}
+
+.cc-brand-name {
+  color: inherit;
 }
 
 .cc-nav-actions {
@@ -109,6 +125,7 @@
 .cc-video-hero {
   position: relative;
   min-height: 100svh;
+  min-height: 100dvh;
   overflow: hidden;
   background: #050505;
 }
@@ -149,8 +166,18 @@
   z-index: 2;
   inset: 0;
   background:
-    linear-gradient(180deg, rgb(0 0 0 / 0.38) 0%, rgb(0 0 0 / 0.06) 46%, rgb(0 0 0 / 0.42) 100%),
-    linear-gradient(90deg, rgb(0 0 0 / 0.34) 0%, transparent 36%, rgb(0 0 0 / 0.18) 100%);
+    linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.38) 0%,
+      rgb(0 0 0 / 0.06) 46%,
+      rgb(0 0 0 / 0.42) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.34) 0%,
+      transparent 36%,
+      rgb(0 0 0 / 0.18) 100%
+    );
   pointer-events: none;
 }
 
@@ -294,14 +321,15 @@
 .cc-card-stack {
   position: relative;
   min-height: 100svh;
-  background:
-    linear-gradient(180deg, #f5f1ea 0%, #ebe4d8 42%, #f8f5ef 100%);
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #f5f1ea 0%, #ebe4d8 42%, #f8f5ef 100%);
 }
 
 .cc-stack-sticky {
   position: relative;
   top: 0;
   height: 100svh;
+  height: 100dvh;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -314,7 +342,9 @@
   left: 50%;
   width: min(1180px, calc(100vw - 40px));
   min-height: min(680px, calc(100svh - 124px));
+  min-height: min(680px, calc(100dvh - 124px));
   max-height: calc(100svh - 80px);
+  max-height: calc(100dvh - 80px);
   overflow: hidden;
   border: 1px solid rgb(21 21 21 / 0.12);
   border-radius: 8px;
@@ -337,15 +367,16 @@
   background: #f6f1e9;
   color: var(--cc-ink);
   width: min(1500px, calc(100vw - 32px));
-  min-height: min(850px, calc(100svh - 44px));
-  max-height: calc(100svh - 36px);
+  min-height: min(820px, calc(100svh - 120px));
+  min-height: min(820px, calc(100dvh - 120px));
+  max-height: calc(100svh - 96px);
+  max-height: calc(100dvh - 96px);
   padding: clamp(12px, 1.6vw, 24px);
 }
 
 .cc-stack-card-pricing,
 .cc-stack-card-close {
-  background:
-    linear-gradient(135deg, #171715 0%, #0b0b0b 100%);
+  background: linear-gradient(135deg, #171715 0%, #0b0b0b 100%);
   color: #ffffff;
 }
 
@@ -353,7 +384,11 @@
   isolation: isolate;
   background:
     radial-gradient(circle at 78% 18%, rgb(219 106 63 / 0.26), transparent 28%),
-    radial-gradient(circle at 10% 92%, rgb(255 255 255 / 0.09), transparent 28%),
+    radial-gradient(
+      circle at 10% 92%,
+      rgb(255 255 255 / 0.09),
+      transparent 28%
+    ),
     linear-gradient(135deg, #191917 0%, #080808 100%);
 }
 
@@ -367,7 +402,13 @@
     linear-gradient(90deg, rgb(255 255 255 / 0.055) 1px, transparent 1px),
     linear-gradient(0deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
   background-size: 82px 82px;
-  mask-image: linear-gradient(135deg, transparent 0%, #000 24%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    #000 24%,
+    #000 72%,
+    transparent 100%
+  );
   opacity: 0.42;
 }
 
@@ -375,7 +416,9 @@
   content: "AOS";
   inset: auto 2vw -0.25em auto;
   color: rgb(255 255 255 / 0.045);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(10rem, 22vw, 20rem);
   font-weight: 700;
   line-height: 0.8;
@@ -390,13 +433,18 @@
   display: flex;
   align-items: center;
   width: min(1500px, calc(100vw - 32px));
-  min-height: min(850px, calc(100svh - 44px));
-  max-height: calc(100svh - 36px);
+  min-height: min(820px, calc(100svh - 120px));
+  min-height: min(820px, calc(100dvh - 120px));
+  max-height: calc(100svh - 96px);
+  max-height: calc(100dvh - 96px);
   background:
     linear-gradient(90deg, rgb(21 21 21 / 0.022) 1px, transparent 1px),
     linear-gradient(0deg, rgb(21 21 21 / 0.018) 1px, transparent 1px),
     linear-gradient(180deg, #fffdf8 0%, #f4efe6 100%);
-  background-size: 76px 76px, 76px 76px, auto;
+  background-size:
+    76px 76px,
+    76px 76px,
+    auto;
   color: var(--cc-ink);
   padding: clamp(22px, 2.7vw, 42px);
 }
@@ -405,13 +453,18 @@
   display: flex;
   align-items: center;
   width: min(1500px, calc(100vw - 32px));
-  min-height: min(850px, calc(100svh - 44px));
-  max-height: calc(100svh - 36px);
+  min-height: min(820px, calc(100svh - 120px));
+  min-height: min(820px, calc(100dvh - 120px));
+  max-height: calc(100svh - 96px);
+  max-height: calc(100dvh - 96px);
   background:
     linear-gradient(90deg, rgb(21 21 21 / 0.026) 1px, transparent 1px),
     linear-gradient(0deg, rgb(21 21 21 / 0.022) 1px, transparent 1px),
     linear-gradient(180deg, #fffdf8 0%, #f5f0e7 100%);
-  background-size: 76px 76px, 76px 76px, auto;
+  background-size:
+    76px 76px,
+    76px 76px,
+    auto;
   padding: clamp(22px, 2.7vw, 42px);
 }
 
@@ -424,13 +477,18 @@
 .cc-stack-card-product-proof {
   isolation: isolate;
   width: min(1500px, calc(100vw - 32px));
-  min-height: min(880px, calc(100svh - 44px));
-  max-height: calc(100svh - 36px);
+  min-height: min(820px, calc(100svh - 120px));
+  min-height: min(820px, calc(100dvh - 120px));
+  max-height: calc(100svh - 96px);
+  max-height: calc(100dvh - 96px);
   background:
     linear-gradient(90deg, rgb(21 21 21 / 0.026) 1px, transparent 1px),
     linear-gradient(0deg, rgb(21 21 21 / 0.022) 1px, transparent 1px),
     linear-gradient(180deg, #fffdf8 0%, #f5f0e7 100%);
-  background-size: 76px 76px, 76px 76px, auto;
+  background-size:
+    76px 76px,
+    76px 76px,
+    auto;
   color: var(--cc-ink);
   padding: clamp(22px, 2.7vw, 42px);
 }
@@ -589,9 +647,11 @@
   border: 1px solid #d9d2c7;
   background:
     linear-gradient(90deg, rgb(21 21 21 / 0.035) 1px, transparent 1px),
-    linear-gradient(0deg, rgb(21 21 21 / 0.03) 1px, transparent 1px),
-    #fbf8f2;
-  background-size: 72px 72px, 72px 72px, auto;
+    linear-gradient(0deg, rgb(21 21 21 / 0.03) 1px, transparent 1px), #fbf8f2;
+  background-size:
+    72px 72px,
+    72px 72px,
+    auto;
   padding: clamp(24px, 3.4vw, 54px);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
@@ -648,7 +708,9 @@
 .cc-aos-ad .cc-shift-caption h2 {
   max-width: min(640px, 100%);
   color: var(--cc-ink);
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(4.2rem, 7.2vw, 7.7rem);
   font-weight: 500;
   line-height: 0.88;
@@ -664,7 +726,11 @@
   min-height: 470px;
   border: 1px solid #d7d0c4;
   background:
-    repeating-linear-gradient(0deg, rgb(21 21 21 / 0.035) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(
+      0deg,
+      rgb(21 21 21 / 0.035) 0 1px,
+      transparent 1px 14px
+    ),
     #fffdf8;
   color: var(--cc-ink);
   padding: clamp(22px, 3vw, 34px);
@@ -697,7 +763,9 @@
 
 .cc-scorecard-sheet h3 {
   margin-top: 12px;
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(1.55rem, 2.4vw, 2.28rem);
   font-weight: 500;
   line-height: 1;
@@ -730,7 +798,9 @@
 }
 
 .cc-scorecard-row span {
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(1.2rem, 2.1vw, 1.7rem);
   line-height: 1;
 }
@@ -746,7 +816,9 @@
 
 .cc-scorecard-sheet p {
   margin: 30px 0 0;
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(1.05rem, 1.7vw, 1.42rem);
   line-height: 1.2;
 }
@@ -760,7 +832,9 @@
 .cc-scorecard-note {
   position: absolute;
   color: var(--cc-orange-dark);
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(1.1rem, 2.1vw, 1.62rem);
   font-style: italic;
   line-height: 1;
@@ -859,7 +933,13 @@
   align-items: center;
   gap: 18px;
   margin: clamp(24px, 3vw, 38px) 0;
-  background: linear-gradient(90deg, transparent, rgb(219 106 63 / 0.76), transparent) center / 100% 1px no-repeat;
+  background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(219 106 63 / 0.76),
+      transparent
+    )
+    center / 100% 1px no-repeat;
 }
 
 .cc-aos-core > * {
@@ -888,7 +968,9 @@
     radial-gradient(circle, rgb(219 106 63 / 0.28), transparent 62%),
     rgb(255 255 255 / 0.06);
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 1.08rem;
   box-shadow: 0 0 46px rgb(219 106 63 / 0.26);
 }
@@ -915,7 +997,9 @@
 
 .cc-aos-row strong {
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(1rem, 1.4vw, 1.2rem);
   font-weight: 600;
 }
@@ -988,8 +1072,11 @@
 .cc-install-item:focus-within {
   z-index: 2;
   outline: none;
-  background:
-    linear-gradient(180deg, rgba(255, 241, 234, 0.96), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 241, 234, 0.96),
+    rgba(255, 255, 255, 0.98)
+  );
   box-shadow:
     inset 0 0 0 1px rgba(168, 68, 37, 0.24),
     0 22px 52px rgb(21 21 21 / 0.16);
@@ -1026,7 +1113,9 @@
   display: block;
   margin-bottom: 14px;
   color: var(--cc-orange-dark);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 1.18rem;
   font-weight: 700;
 }
@@ -1090,6 +1179,77 @@
   line-height: 1.48;
 }
 
+.cc-aos-walkthrough-strip {
+  display: grid;
+  gap: 7px;
+  max-width: 720px;
+  margin-top: 18px;
+  border: 1px solid rgb(22 135 197 / 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(
+      135deg,
+      rgb(22 135 197 / 0.12),
+      rgb(255 255 255 / 0.78) 58%
+    ),
+    #ffffff;
+  padding: 16px 18px;
+  box-shadow: 0 18px 42px rgb(22 135 197 / 0.1);
+  transition:
+    border-color 260ms var(--cc-caption-ease),
+    box-shadow 260ms var(--cc-caption-ease),
+    transform 260ms var(--cc-caption-ease);
+}
+
+.cc-aos-walkthrough-strip:hover,
+.cc-aos-walkthrough-strip:focus-visible {
+  border-color: rgb(22 135 197 / 0.62);
+  box-shadow: 0 24px 58px rgb(22 135 197 / 0.18);
+  transform: translateY(-2px);
+}
+
+.cc-aos-walkthrough-strip span {
+  color: var(--cc-aos-blue-dark);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.cc-aos-walkthrough-strip strong {
+  color: var(--cc-ink);
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
+  font-size: clamp(1rem, 1.25vw, 1.2rem);
+  font-weight: 650;
+  line-height: 1.24;
+}
+
+.cc-aos-walkthrough-strip small {
+  max-width: 620px;
+  color: #625d55;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.cc-aos-walkthrough-strip b {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  color: var(--cc-aos-blue);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cc-aos-walkthrough-strip svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.3;
+}
+
 .cc-product-links {
   display: flex;
   flex-wrap: wrap;
@@ -1123,6 +1283,24 @@
   color: #ffffff;
 }
 
+.cc-stack-card-product-proof .cc-product-links a.cc-product-link-blue,
+.cc-stack-card-product-proof
+  .cc-product-links
+  a.cc-product-link-blue:first-child {
+  border-color: var(--cc-aos-blue);
+  background: var(--cc-aos-blue);
+  color: #ffffff;
+  box-shadow: 0 16px 36px rgb(22 135 197 / 0.22);
+}
+
+.cc-stack-card-product-proof .cc-product-links a.cc-product-link-blue:hover,
+.cc-stack-card-product-proof
+  .cc-product-links
+  a.cc-product-link-blue:focus-visible {
+  border-color: var(--cc-aos-blue-dark);
+  background: var(--cc-aos-blue-dark);
+}
+
 .cc-product-links svg {
   width: 16px;
   height: 16px;
@@ -1137,7 +1315,10 @@
     linear-gradient(90deg, rgb(255 255 255 / 0.055) 1px, transparent 1px),
     linear-gradient(0deg, rgb(255 255 255 / 0.045) 1px, transparent 1px),
     linear-gradient(145deg, #181816 0%, #080808 100%);
-  background-size: 72px 72px, 72px 72px, auto;
+  background-size:
+    72px 72px,
+    72px 72px,
+    auto;
   color: #ffffff;
   box-shadow: 0 28px 70px rgb(0 0 0 / 0.24);
 }
@@ -1194,7 +1375,9 @@
 
 .cc-artifact-row strong {
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(1.02rem, 1.5vw, 1.28rem);
   line-height: 1.18;
 }
@@ -1259,7 +1442,9 @@
 
 .cc-proof-point strong {
   color: var(--cc-ink);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(0.98rem, 1.25vw, 1.12rem);
   font-weight: 600;
   line-height: 1.35;
@@ -1273,8 +1458,9 @@
   border: 1px solid rgb(21 21 21 / 0.14);
   border-radius: 8px;
   background: #f4f0e8;
-  height: min(570px, calc(100svh - 318px));
-  min-height: 360px;
+  height: clamp(260px, calc(100svh - 318px), 570px);
+  height: clamp(260px, calc(100dvh - 318px), 570px);
+  min-height: min(360px, 42svh);
   box-shadow:
     0 30px 86px rgb(21 21 21 / 0.18),
     inset 0 1px 0 rgb(255 255 255 / 0.8);
@@ -1356,7 +1542,9 @@
 .cc-proof-stat strong {
   display: block;
   color: var(--cc-orange-dark);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(1.55rem, 2.45vw, 2.7rem);
   font-weight: 800;
   line-height: 1;
@@ -1401,7 +1589,9 @@
 .cc-member-result strong {
   display: block;
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 0.96rem;
   font-weight: 800;
   line-height: 1.16;
@@ -1425,7 +1615,9 @@
   background: rgb(219 106 63 / 0.12);
   color: #efaa74;
   padding: 6px 9px;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 800;
@@ -1460,7 +1652,9 @@
 .cc-member-result dd {
   margin: 0;
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 1rem;
   font-weight: 800;
 }
@@ -1500,7 +1694,9 @@
 
 .cc-testimonial figcaption {
   color: var(--cc-ink);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 0.86rem;
   font-weight: 800;
 }
@@ -1571,9 +1767,11 @@
   border-radius: 8px;
   background:
     linear-gradient(90deg, rgb(21 21 21 / 0.035) 1px, transparent 1px),
-    linear-gradient(0deg, rgb(21 21 21 / 0.03) 1px, transparent 1px),
-    #fbfaf7;
-  background-size: 58px 58px, 58px 58px, auto;
+    linear-gradient(0deg, rgb(21 21 21 / 0.03) 1px, transparent 1px), #fbfaf7;
+  background-size:
+    58px 58px,
+    58px 58px,
+    auto;
   padding: clamp(22px, 3vw, 34px);
 }
 
@@ -1591,7 +1789,9 @@
 .cc-owner-panel strong {
   display: block;
   margin-top: 16px;
-  font-family: "ITC Garamond Std", "ITC Garamond", "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  font-family:
+    "ITC Garamond Std", "ITC Garamond", "Instrument Serif",
+    "Cormorant Garamond", Georgia, serif;
   font-size: clamp(2.2rem, 3.6vw, 3.9rem);
   font-weight: 500;
   line-height: 0.95;
@@ -1752,7 +1952,9 @@
 
 .cc-onboarding-step > span {
   color: var(--cc-orange-dark);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 1.02rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -1761,7 +1963,9 @@
 .cc-onboarding-step h3 {
   margin: 0;
   color: var(--cc-ink);
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: clamp(1rem, 1.2vw, 1.16rem);
   font-weight: 700;
   line-height: 1.25;
@@ -1843,7 +2047,9 @@
 .cc-stat p {
   margin: 0;
   color: #ffffff;
-  font-family: "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans", Arial, sans-serif;
+  font-family:
+    "Google Sans", "Google Sans Display", "Google Sans Text", "Fira Sans",
+    Arial, sans-serif;
   font-size: 1.22rem;
   font-weight: 600;
 }
@@ -1876,6 +2082,173 @@
   display: none;
 }
 
+@media (min-width: 861px) and (max-height: 840px) {
+  .cc-stack-sticky {
+    height: 100dvh;
+    min-height: 0;
+    padding: 10px max(3vw, 28px) 72px;
+  }
+
+  .cc-stack-card,
+  .cc-stack-card-shift,
+  .cc-stack-card-proof,
+  .cc-stack-card-onboarding,
+  .cc-stack-card-product-proof {
+    width: min(1120px, calc(100vw - 88px));
+    height: min(560px, calc(100svh - 176px));
+    height: min(560px, calc(100dvh - 176px));
+    min-height: 0;
+    max-height: calc(100svh - 176px);
+    max-height: calc(100dvh - 176px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(12px, 1.25vw, 18px);
+    scrollbar-width: thin;
+  }
+
+  .cc-product-proof {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(340px, 0.48fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: clamp(8px, 1vw, 12px);
+  }
+
+  .cc-product-proof-copy {
+    grid-template-columns: 1fr;
+    align-content: start;
+    align-items: start;
+    gap: clamp(10px, 1.2vw, 14px);
+  }
+
+  .cc-product-copy-main {
+    max-width: 640px;
+  }
+
+  .cc-product-proof-copy h2 {
+    font-size: clamp(1.92rem, 3.55vw, 3.25rem);
+    line-height: 0.94;
+  }
+
+  .cc-product-proof-copy .cc-subhead {
+    max-width: 580px;
+    margin-top: 10px;
+    font-size: 0.86rem;
+    line-height: 1.44;
+  }
+
+  .cc-proof-points {
+    grid-template-columns: 1fr;
+    align-self: start;
+  }
+
+  .cc-proof-point {
+    gap: 4px;
+    min-height: 58px;
+    padding: 8px 10px;
+  }
+
+  .cc-proof-point span {
+    font-size: 0.56rem;
+    line-height: 1.18;
+  }
+
+  .cc-proof-point strong {
+    font-size: clamp(0.74rem, 0.9vw, 0.86rem);
+    line-height: 1.18;
+  }
+
+  .cc-aos-walkthrough-strip {
+    gap: 4px;
+    margin-top: 10px;
+    padding: 12px 14px;
+  }
+
+  .cc-aos-walkthrough-strip strong {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .cc-aos-walkthrough-strip small {
+    display: none;
+  }
+
+  .cc-aos-walkthrough-strip span,
+  .cc-aos-walkthrough-strip b {
+    font-size: 0.58rem;
+  }
+
+  .cc-product-links {
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .cc-product-links a {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.58rem;
+  }
+
+  .cc-product-shot {
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .cc-product-shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: top center;
+    transform: none;
+  }
+}
+
+@media (min-width: 861px) and (max-height: 720px) {
+  .cc-stack-sticky {
+    height: 100dvh;
+    min-height: 0;
+    padding: 8px max(3vw, 24px) 78px;
+  }
+
+  .cc-stack-card,
+  .cc-stack-card-shift,
+  .cc-stack-card-proof,
+  .cc-stack-card-onboarding,
+  .cc-stack-card-product-proof {
+    width: min(1040px, calc(100vw - 84px));
+    height: min(500px, calc(100svh - 184px));
+    height: min(500px, calc(100dvh - 184px));
+    max-height: calc(100svh - 184px);
+    max-height: calc(100dvh - 184px);
+    padding: 12px;
+  }
+
+  .cc-product-proof-copy h2 {
+    font-size: clamp(1.85rem, 3.4vw, 3.05rem);
+  }
+
+  .cc-product-proof-copy .cc-subhead {
+    font-size: 0.78rem;
+    line-height: 1.38;
+  }
+
+  .cc-proof-point {
+    min-height: 50px;
+    padding: 7px 9px;
+  }
+
+  .cc-proof-point strong {
+    font-size: 0.72rem;
+  }
+
+  .cc-product-shot {
+    min-height: 150px;
+  }
+}
+
 @media (max-width: 1120px) {
   .cc-problem-grid,
   .cc-install-grid {
@@ -1887,39 +2260,92 @@
   }
 }
 
+@media (min-width: 861px) and (max-width: 1120px) and (max-height: 840px) {
+  .cc-stack-card {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 @media (max-width: 860px) {
   .cc-page {
     padding-bottom: 84px;
   }
 
   .cc-nav {
-    padding: 20px;
-    font-size: 0.76rem;
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) max-content;
+    align-items: center;
+    gap: clamp(8px, 2.5vw, 12px);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) clamp(12px, 4vw, 20px) 0;
+    font-size: clamp(0.62rem, 1.7vw, 0.74rem);
+  }
+
+  .cc-brand {
+    display: inline-flex;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: none;
+    gap: 6px;
+    font-weight: 800;
+    line-height: 1.08;
+    white-space: nowrap;
+  }
+
+  .cc-brand-mark {
+    flex: 0 0 auto;
+  }
+
+  .cc-brand-name {
+    display: inline;
+    flex: 0 0 auto;
+    max-width: none;
+    overflow: visible;
+    white-space: nowrap;
   }
 
   .cc-nav-actions {
-    gap: 10px;
+    flex: 0 0 auto;
+    justify-self: end;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .cc-nav-link {
+    display: inline-flex;
+    min-height: 34px;
+    padding: 0 2px;
   }
 
   .cc-nav-button {
-    padding: 0 12px;
+    min-height: 34px;
+    padding: 0 10px;
   }
 
   .cc-video-hero {
-    min-height: 68svh;
+    min-height: clamp(390px, 52svh, 520px);
     display: grid;
-    place-items: center;
-    padding: 86px 0 76px;
+    align-items: start;
+    justify-items: stretch;
+    padding: calc(env(safe-area-inset-top, 0px) + 84px) clamp(12px, 4vw, 22px)
+      76px;
   }
 
   .cc-video-media {
     position: relative;
     top: auto;
     left: auto;
+    justify-self: stretch;
     width: 100%;
+    max-width: 780px;
     height: auto;
+    margin: 0 auto;
     aspect-ratio: 16 / 9;
-    border-block: 1px solid rgb(255 255 255 / 0.16);
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 8px;
     box-shadow: 0 24px 80px rgb(0 0 0 / 0.34);
     transform: none;
   }
@@ -1931,8 +2357,19 @@
 
   .cc-video-shade {
     background:
-      linear-gradient(180deg, rgb(0 0 0 / 0.5) 0%, transparent 18%, transparent 76%, rgb(0 0 0 / 0.62) 100%),
-      linear-gradient(90deg, rgb(0 0 0 / 0.16), transparent 34%, rgb(0 0 0 / 0.16));
+      linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.5) 0%,
+        transparent 18%,
+        transparent 76%,
+        rgb(0 0 0 / 0.62) 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.16),
+        transparent 34%,
+        rgb(0 0 0 / 0.16)
+      );
   }
 
   .cc-sound-button {
@@ -1960,31 +2397,83 @@
   .cc-card-stack {
     height: auto;
     min-height: auto;
-    padding: 20px 0;
+    padding: 18px 0 132px;
   }
 
   .cc-stack-sticky {
     position: relative;
     height: auto;
     display: grid;
-    gap: 20px;
+    gap: clamp(42px, 10svh, 76px);
+    align-content: start;
     overflow: visible;
-    padding: 20px;
+    padding: 22px clamp(14px, 4vw, 22px) 132px;
   }
 
   .cc-stack-card {
-    position: relative;
-    top: auto;
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 74px);
     left: auto;
     width: 100%;
-    min-height: auto;
-    max-height: none;
+    min-height: min(620px, calc(100svh - 144px));
+    min-height: min(620px, calc(100dvh - 144px));
+    max-height: calc(100svh - 144px);
+    max-height: calc(100dvh - 144px);
     margin-bottom: 0;
-    overflow: visible;
-    padding: 28px 22px;
-    transform: none !important;
-    filter: none !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(24px, 6vw, 38px) clamp(18px, 5vw, 30px)
+      max(92px, clamp(36px, 8vw, 54px));
+    transform: none;
+    transform-origin: center top;
+    filter: none;
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 82px);
     box-shadow: 0 20px 56px rgb(21 21 21 / 0.14);
+    scrollbar-width: thin;
+    will-change: transform, opacity, filter;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(1) {
+    z-index: 1;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(2) {
+    z-index: 2;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(3) {
+    z-index: 3;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(4) {
+    z-index: 4;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(5) {
+    z-index: 5;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(6) {
+    z-index: 6;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(7) {
+    z-index: 7;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(8) {
+    z-index: 8;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(9) {
+    z-index: 9;
+  }
+
+  .cc-product-shot img,
+  .cc-chaos-panel img,
+  [data-caption] {
+    will-change: transform, opacity, filter;
   }
 
   .cc-stack-copy,
@@ -2012,7 +2501,7 @@
 
   .cc-stack-card-shift {
     display: grid;
-    min-height: auto;
+    min-height: min(620px, calc(100dvh - 118px));
   }
 
   .cc-aos-ad-image {
@@ -2153,10 +2642,9 @@
   .cc-product-shot img {
     width: 100%;
     height: auto;
-    aspect-ratio: 3456 / 1952;
-    max-height: 440px;
+    aspect-ratio: auto;
+    max-height: min(46svh, 360px);
     object-fit: contain;
-    transform: none;
   }
 
   .cc-product-shot {
@@ -2183,7 +2671,7 @@
   }
 
   .cc-problem-card {
-    min-height: 118px;
+    min-height: 92px;
   }
 
   .cc-proof-grid img,
@@ -2259,6 +2747,12 @@
     pointer-events: auto;
   }
 
+  .cc-mobile-sticky-cta span {
+    color: #ffffff;
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 14px rgb(0 0 0 / 0.32);
+  }
+
   .cc-mobile-sticky-cta strong {
     color: var(--cc-orange);
     font-size: 0.78rem;
@@ -2266,16 +2760,58 @@
 }
 
 @media (max-width: 560px) {
-  .cc-brand span:nth-child(2),
-  .cc-brand span:nth-child(3),
+  .cc-nav {
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 0;
+    font-size: clamp(0.56rem, 2.65vw, 0.64rem);
+  }
+
+  .cc-brand {
+    gap: 4px;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .cc-brand-mark {
+    flex: 0 0 auto;
+  }
+
+  .cc-brand-name {
+    display: inline;
+    flex-basis: auto;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .cc-nav-actions {
+    align-items: center;
+    gap: 6px;
+  }
+
   .cc-nav-link {
-    display: none;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 48px;
+    min-height: 32px;
+    padding: 0 2px;
+    font-size: 0.6rem;
+  }
+
+  .cc-nav-button {
+    min-height: 32px;
+    padding: 0 7px;
+    font-size: 0.6rem;
   }
 
   .cc-hero-copy h1,
   .cc-stack-card h2,
   .cc-pricing h2 {
     font-size: clamp(2.55rem, 15vw, 4.2rem);
+  }
+
+  .cc-stack-card {
+    top: calc(env(safe-area-inset-top, 0px) + 82px);
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 90px);
   }
 
   .cc-shift-caption h2 {
@@ -2326,7 +2862,7 @@
 
   .cc-onboarding-step {
     grid-template-columns: 1fr;
-    transform: none !important;
+    transform: none;
   }
 
   .cc-centered-copy h2 {
@@ -2342,6 +2878,119 @@
   .cc-button,
   .cc-inline-link {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .cc-nav {
+    grid-template-columns: minmax(104px, 1fr) max-content;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cc-brand {
+    width: auto;
+    max-width: 126px;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 1px;
+    column-gap: 4px;
+    font-size: clamp(0.52rem, 2.45vw, 0.6rem);
+    line-height: 1;
+    white-space: normal;
+  }
+
+  .cc-brand-mark {
+    line-height: 1.04;
+  }
+
+  .cc-brand-name {
+    display: block;
+    flex: 0 0 100%;
+    line-height: 1.04;
+    white-space: nowrap;
+  }
+
+  .cc-nav-actions {
+    width: auto;
+    justify-self: end;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .cc-nav-link {
+    min-width: auto;
+    justify-content: center;
+    min-height: 32px;
+    font-size: 0.56rem;
+  }
+
+  .cc-nav-button {
+    min-width: 94px;
+    min-height: 32px;
+    padding: 0 7px;
+    font-size: 0.56rem;
+  }
+
+  .cc-stack-card {
+    top: calc(env(safe-area-inset-top, 0px) + 88px);
+    min-height: min(620px, calc(100svh - 166px));
+    min-height: min(620px, calc(100dvh - 166px));
+    max-height: calc(100svh - 166px);
+    max-height: calc(100dvh - 166px);
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 88px);
+  }
+}
+
+@media (max-width: 390px) {
+  .cc-nav {
+    gap: 6px;
+    font-size: 0.55rem;
+  }
+
+  .cc-brand {
+    max-width: 116px;
+    font-size: 0.52rem;
+  }
+
+  .cc-nav-actions {
+    gap: 4px;
+  }
+
+  .cc-nav-link,
+  .cc-nav-button {
+    min-height: 30px;
+    font-size: 0.54rem;
+  }
+
+  .cc-nav-link {
+    min-width: 44px;
+  }
+
+  .cc-nav-button {
+    min-width: 90px;
+    padding: 0 5px;
+  }
+}
+
+@media (max-width: 340px) {
+  .cc-brand {
+    max-width: 104px;
+    font-size: 0.49rem;
+  }
+
+  .cc-nav-link,
+  .cc-nav-button {
+    font-size: 0.5rem;
+  }
+
+  .cc-nav-link {
+    min-width: 40px;
+  }
+
+  .cc-nav-button {
+    min-width: 84px;
   }
 }
 
