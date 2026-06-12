@@ -36,6 +36,7 @@ import BetaLogin from "./pages/BetaLogin";
 import ConstructLineLanding from "./pages/ConstructLineLanding";
 import ConstructLineHub from "./pages/ConstructLineHub";
 import JoinPage from "./pages/JoinPage";
+import HomepageNew from "./pages/HomepageNew";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
       <Route path={"/"} component={ContractorCircle} />
       <Route path={"/circle"} component={ContractorCircle} />
       <Route path={"/join"} component={JoinPage} />
+      <Route path={"/new"} component={HomepageNew} />
       <Route path={"/circle/welcome"} component={CircleWelcome} />
       <Route path={"/q2"} component={Q2LeadMagnet} />
       <Route path={"/q2/thank-you"} component={Q2ThankYou} />

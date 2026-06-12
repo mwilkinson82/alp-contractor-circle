@@ -48,7 +48,7 @@ const CLOUDFLARE_STREAM_ID = "5867cd561f133a4299bfb06e9e2f01d1";
 const CLOUDFLARE_STREAM_SCRIPT_SRC =
   "https://embed.cloudflarestream.com/embed/sdk.latest.js";
 const CLOUDFLARE_STREAM_IFRAME_SRC = `https://iframe.videodelivery.net/${CLOUDFLARE_STREAM_ID}?autoplay=true&muted=true&loop=true&controls=false&preload=auto&letterboxColor=transparent`;
-const HERO_VIDEO_POSTER = "/contractor-circle/media/alp-hero-poster.webp";
+const HERO_VIDEO_POSTER = "/manus-storage/alp-hero-poster_167efce2.webp";
 const AOS_URL = "https://alpos.alpcontractorcircle.com";
 const HANDBOOK_URL = "https://alphandbook.com";
 const PORTAL_LOGIN_URL = "https://app.alpcontractorcircle.com/login";
@@ -130,7 +130,7 @@ const productProofItems: Array<{
     headlineLines: ["The command center", "between calls."],
     body:
       "The portal is the front door of the Circle: Ask Marshall, calls, submissions, tools, templates, the vault, and the daily move all live in one place.",
-    image: "/contractor-circle/proof/portal-ask-marshall.png",
+    image: "/manus-storage/portal-ask-marshall_2e6c40e1.png",
     imageAlt: "ALP Contractor Circle member portal command center",
     points: [
       { label: "Command", value: "Ask, access, act." },
@@ -147,7 +147,7 @@ const productProofItems: Array<{
     headlineLines: ["The room is live.", "The work is real."],
     body:
       "The live room and monthly bootcamps are where owner pressure becomes a decision, a tool, a template, or a system the company can use on Monday. The replays keep that leverage available after the call.",
-    image: "/contractor-circle/proof/exact-bootcamp.png",
+    image: "/manus-storage/exact-bootcamp_9c719283.png",
     imageAlt: "Contractor Circle bi-weekly call replay and bootcamp screen",
     points: [
       { label: "Live room", value: "Bring the real issue." },
@@ -161,7 +161,7 @@ const productProofItems: Array<{
     headlineLines: ["The operating system", "is included."],
     body:
       "AOS is the weekly operating cadence: vision, people, data, issues, process, and traction in one application. Members get unlimited workspaces and unlimited seats.",
-    image: "/contractor-circle/proof/exact-aos.png",
+    image: "/manus-storage/exact-aos_3819276c.png",
     imageAlt: "AOS scorecard showing weekly operating metrics and 13-week history",
     points: [
       { label: "Workspaces", value: "Unlimited companies and divisions." },
@@ -179,7 +179,7 @@ const productProofItems: Array<{
     headlineLines: ["Templates that install", "the missing system."],
     body:
       "Templates give the team a starting point for work that should never live only in memory: preconstruction, buyout, change orders, billing, closeout, and recurring management.",
-    image: "/contractor-circle/proof/exact-templates.png",
+    image: "/manus-storage/exact-templates_b1f9f2d4.png",
     imageAlt: "Contractor Circle template library page",
     points: [
       { label: "Library", value: "26 deployable templates." },
@@ -193,7 +193,7 @@ const productProofItems: Array<{
     headlineLines: ["The field manual", "comes with it."],
     body:
       "Members get the ALP Handbook as a full web experience: the doctrine, operating language, and field manual for building the company behind the projects.",
-    image: "/contractor-circle/proof/exact-handbook.png",
+    image: "/manus-storage/exact-handbook_5cfe7914.png",
     imageAlt: "ALP Handbook full web experience",
     points: [
       { label: "Format", value: "Full web handbook." },
@@ -210,7 +210,7 @@ const productProofItems: Array<{
     headlineLines: ["Discord is where", "the work continues."],
     body:
       "The private Discord server is the room between sessions: wins, estimating debates, numbers, field leadership, and the issues that earn time on the next call.",
-    image: "/contractor-circle/proof/exact-community.png",
+    image: "/manus-storage/exact-community_e45de5f2.png",
     imageAlt: "Contractor Circle Discord community page",
     points: [
       { label: "Members only", value: "Every account is active." },
@@ -224,7 +224,7 @@ const productProofItems: Array<{
     headlineLines: ["Ask the issue.", "Get the read."],
     body:
       "The reply page is where a vague owner problem becomes a clearer read, a recommendation, and a move the contractor can actually make.",
-    image: "/contractor-circle/proof/portal-ask-reply.png",
+    image: "/manus-storage/portal-ask-reply_d776f93c.png",
     imageAlt: "Ask Marshall reply page with a detailed contractor issue response",
     points: [
       { label: "Context", value: "One question, one operating read." },
@@ -241,7 +241,7 @@ const productProofItems: Array<{
     headlineLines: ["The SOP is not a doc.", "It is the machine."],
     body:
       "The SOP Builder turns a seat, department, and constraint into a usable operating procedure with purpose, scope, triggers, inputs, steps, outputs, KPIs, and escalation rules.",
-    image: "/contractor-circle/proof/exact-sop-builder.png",
+    image: "/manus-storage/exact-sop-builder_b6175c39.png",
     imageAlt: "SOP Priority Builder in the Operator's Workbench",
     points: [
       { label: "Seat", value: "Built by department and owner." },
@@ -255,7 +255,7 @@ const productProofItems: Array<{
     headlineLines: ["Vague problems become", "command packets."],
     body:
       "Upload the contract. The scan reads for cash, schedule, scope, and margin risk before the owner signs the thing that can hurt the job.",
-    image: "/contractor-circle/proof/tool-contract-readiness.png",
+    image: "/manus-storage/tool-contract-readiness_8ec4fb39.png",
     imageAlt: "Contract readiness scan tool with contract risk findings",
     points: [
       { label: "Cash", value: "Payment and collection risk." },
@@ -583,7 +583,7 @@ export default function ContractorCircle() {
 
         <section className="cc-chaos-panel" aria-label="From to-do lists to AOS">
           <img
-            src="/contractor-circle/hero-chaos-aos.png"
+            src="/manus-storage/hero-chaos-aos_591af67c.png"
             alt="From to-do lists that run your week to a system that runs your company"
           />
         </section>
@@ -637,7 +637,7 @@ export default function ContractorCircle() {
               <div className="cc-aos-ad cc-caption" aria-label="AOS memory is not management graphic">
                 <img
                   className="cc-aos-ad-image cc-detail-reveal"
-                  src="/contractor-circle/proof/aos-memory-graphic.png"
+                  src="/manus-storage/aos-memory-graphic_832a187b.png"
                   alt="AOS page graphic that says Memory is not management"
                 />
               </div>
