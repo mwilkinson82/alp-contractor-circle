@@ -109,8 +109,8 @@ async function startServer() {
   // Start Discord gateway bot (listens for guildMemberAdd, etc.)
   try { startDiscordBot(); } catch (e) { console.error('[DiscordBot] Failed to start:', e); }
 
-  // Start drip campaign engine (checks every 15 minutes for pending sends)
-  try { startDripEngine(); } catch (e) { console.error('[DripEngine] Failed to start:', e); }
+  // DISABLED: All drip campaigns and emails ceased per owner request (2026-06-12)
+  // try { startDripEngine(); } catch (e) { console.error('[DripEngine] Failed to start:', e); }
 
   // Increase server timeout to 5 minutes for large XER imports
   server.timeout = 300000;
