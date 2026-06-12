@@ -211,9 +211,39 @@ export const appRouter = router({
           source: `lead_magnet_${input.source}`,
         }).catch((err) => console.error("[Leads] Failed to insert Supabase lead:", err));
 
-        // DISABLED: All emails and drip campaigns ceased per owner request (2026-06-12)
-        // sendQ2FrameworkEmail, sendEstimatingChecklistEmail, sendThreeSilosEmail,
-        // sendLeadMagnetNotification, autoEnrollLeadMagnet — ALL DISABLED
+        // Send the Q2 framework PDF delivery email
+        if (input.source === "q1-q2-framework") {
+          sendQ2FrameworkEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send Q2 framework email:", err));
+        }
+
+        // Send the Estimating Checklist PDF delivery email
+        if (input.source === "estimating-checklist") {
+          sendEstimatingChecklistEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send estimating checklist email:", err));
+        }
+
+        // Send the Three Silos Framework PDF delivery email
+        if (input.source === "three-silos-framework") {
+          sendThreeSilosEmail({
+            to: input.email,
+            firstName: input.firstName,
+          }).catch((err) => console.error("[Leads] Failed to send Three Silos email:", err));
+        }
+
+        // Notify Marshall of every lead magnet download
+        sendLeadMagnetNotification({
+          email: input.email,
+          firstName: input.firstName,
+          source: input.source,
+        }).catch((err) => console.error("[Leads] Failed to send lead magnet notification:", err));
+
+        // DISABLED: Drip auto-enrollment stopped per owner request (2026-06-12)
+        // autoEnrollLeadMagnet({ email, firstName, source }) — DISABLED
 
         return {
           success: true,
@@ -235,8 +265,16 @@ export const appRouter = router({
           source: "contractor-circle-subscribe",
         }).catch((err) => console.error("[Leads] Failed to insert Supabase lead:", err));
 
-        // DISABLED: All emails and drip campaigns ceased per owner request (2026-06-12)
-        // sendSubscriberNotification and autoEnrollHomepageSubscriber — ALL DISABLED
+        // 3. Send notification email to Marshall
+        if (result.success) {
+          await sendSubscriberNotification({
+            email: input.email,
+            isNew: result.isNew,
+          });
+        }
+
+        // DISABLED: Drip auto-enrollment stopped per owner request (2026-06-12)
+        // autoEnrollHomepageSubscriber({ email }) — DISABLED
 
         return {
           success: result.success,
