@@ -30,13 +30,8 @@ import TakeoffList from "./pages/TakeoffList";
 import TakeoffDetail from "./pages/TakeoffDetail";
 import CostLibrary from "./pages/CostLibrary";
 import LaborLibrary from "./pages/LaborLibrary";
-import { FeedbackWidget } from "./components/FeedbackWidget";
-import { OnboardingTour } from "./components/OnboardingTour";
-import { TakeoffOnboardingTour } from "./components/TakeoffOnboardingTour";
-import { ConstructLineHubTour } from "@/components/ConstructLineHubTour";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import AdminFeedback from "./pages/AdminFeedback";
-import BetaSignup from "./pages/BetaSignup";
 import BetaLogin from "./pages/BetaLogin";
 import ConstructLineLanding from "./pages/ConstructLineLanding";
 import ConstructLineHub from "./pages/ConstructLineHub";
@@ -47,7 +42,7 @@ function Router() {
     <Switch>
       {/* Public pages — Circle landing is the homepage */}
       <Route path={"/"} component={ContractorCircle} />
-       <Route path={"circle"} component={ContractorCircle} />
+      <Route path={"/circle"} component={ContractorCircle} />
       <Route path={"/join"} component={JoinPage} />
       <Route path={"/circle/welcome"} component={CircleWelcome} />
       <Route path={"/q2"} component={Q2LeadMagnet} />
@@ -171,10 +166,6 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
-          <FeedbackWidget />
-          <OnboardingTour />
-          <TakeoffOnboardingTour />
-          <ConstructLineHubTour />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
