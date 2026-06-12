@@ -49,7 +49,7 @@ declare global {
 }
 
 const CHECKOUT_URL =
-  "https://checkout.stripe.com/c/pay/cs_live_b1eP29EJOBpUJ28uzK8888hg0lmTJ8gKGVEZZE0DFsAAcFCGXOMBsqlVuw#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWmlsc2BaMDRNVUk8QU9hQURQVlNdZ0s8dX1zMVdhcFN%2FMW5KXVB9UjF3MnFkZzdtYnVsal9BM040Z2dHQWpHT19wcUxAaXxXX3FJQGEyfEJzQ25QbHZHZ1E9fVFfa0Q1NXVuMTxxalxGJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmdnYDVjYycpJ2lkfGpwcVF8dWAnPydocGlxbFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl";
+  "https://buy.stripe.com/28EcN66xPcXk53GdXIeQM18";
 const CLOUDFLARE_STREAM_ID = "5867cd561f133a4299bfb06e9e2f01d1";
 const CLOUDFLARE_STREAM_SCRIPT_SRC =
   "https://embed.cloudflarestream.com/embed/sdk.latest.js";
