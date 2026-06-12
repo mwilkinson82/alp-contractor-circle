@@ -2268,7 +2268,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 860px), (hover: none) and (pointer: coarse) {
   .cc-page {
     padding-bottom: 84px;
   }
@@ -2991,6 +2991,62 @@
 
   .cc-nav-button {
     min-width: 84px;
+  }
+}
+
+@media (max-width: 860px), (hover: none) and (pointer: coarse) {
+  .cc-card-stack {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    padding: 18px 0 116px;
+  }
+
+  .cc-stack-sticky {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(28px, 8vw, 48px);
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    padding: 22px clamp(14px, 4vw, 22px) 116px;
+  }
+
+  .cc-stack-card,
+  .cc-stack-card-problem,
+  .cc-stack-card-installed,
+  .cc-stack-card-install-detail,
+  .cc-stack-card-product-proof,
+  .cc-stack-card-fit,
+  .cc-stack-card-shift,
+  .cc-stack-card-proof,
+  .cc-stack-card-onboarding,
+  .cc-stack-card-pricing,
+  .cc-stack-card-close {
+    position: relative;
+    top: auto;
+    left: auto;
+    z-index: auto;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+    overscroll-behavior: auto;
+    scrollbar-width: auto;
+    touch-action: pan-y;
+  }
+
+  .cc-stack-sticky .cc-stack-card:nth-child(n) {
+    z-index: auto;
+  }
+
+  .cc-stack-card {
+    box-shadow:
+      0 18px 50px rgb(21 21 21 / 0.12),
+      0 0 0 1px rgb(21 21 21 / 0.06);
   }
 }
 

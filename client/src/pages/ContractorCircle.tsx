@@ -1213,7 +1213,11 @@ function useContractorCircleMotion(rootRef: RefObject<HTMLDivElement | null>) {
         return;
       }
 
-      const isCompact = window.matchMedia("(max-width: 860px)").matches;
+      const touchStackRisk = window.matchMedia(
+        "(hover: none) and (pointer: coarse)"
+      ).matches;
+      const isCompact =
+        window.matchMedia("(max-width: 860px)").matches || touchStackRisk;
       root.dataset.motionMode = isCompact ? "compact" : "desktop";
 
       if (isCompact) {
@@ -1350,6 +1354,12 @@ function useContractorCircleMotion(rootRef: RefObject<HTMLDivElement | null>) {
         const mobileStackCards =
           gsap.utils.toArray<HTMLElement>(".cc-stack-card");
         gsap.set(mobileStackCards, {
+          autoAlpha: 0.82,
+          y: 38,
+          scale: 0.985,
+          filter: "blur(5px)",
+        });
+        gsap.set(mobileStackCards[0], {
           autoAlpha: 1,
           y: 0,
           scale: 1,
@@ -1371,9 +1381,9 @@ function useContractorCircleMotion(rootRef: RefObject<HTMLDivElement | null>) {
           const cardTimeline = gsap.timeline({
             scrollTrigger: {
               trigger: card,
-              start: "top 100%",
-              end: "top 64%",
-              scrub: 0.55,
+              start: "top 94%",
+              end: "top 58%",
+              scrub: 0.65,
               invalidateOnRefresh: true,
             },
           });
@@ -1765,7 +1775,7 @@ function useContractorCircleMotion(rootRef: RefObject<HTMLDivElement | null>) {
       const stack = root.querySelector<HTMLElement>(".cc-card-stack");
       const stackStage = root.querySelector<HTMLElement>(".cc-stack-sticky");
       const stackCards = gsap.utils.toArray<HTMLElement>(".cc-stack-card");
-      const usePinnedStack = !window.matchMedia("(max-width: 860px)").matches;
+      const usePinnedStack = !isCompact;
       if (stack && stackStage && stackCards.length && usePinnedStack) {
         const compactPinnedStack = window.matchMedia(
           "(max-height: 840px)"
