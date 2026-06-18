@@ -1,7 +1,7 @@
 /**
  * ConstructLine Login Page — Login for returning ConstructLine users.
  * Email + password login form.
- * After successful login, redirects to /portal/scheduler.
+ * After successful login, redirects to /portal/constructline.
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -41,8 +41,7 @@ export default function BetaLogin() {
         throw new Error(data.error || "Login failed");
       }
 
-      // Redirect to ConstructLine tools on success
-      setLocation("/portal/scheduler");
+      setLocation("/portal/constructline");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

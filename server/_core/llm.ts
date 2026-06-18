@@ -11,7 +11,7 @@ export type ImageContent = {
   type: "image_url";
   image_url: {
     url: string;
-    detail?: "auto" | "low" | "high";
+    detail?: "auto" | "low" | "high" | "original";
   };
 };
 
@@ -211,14 +211,37 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+const isOpenAiDirect = () => ENV.openAiApiKey.trim().length > 0;
+
+const resolveApiUrl = () => {
+  if (isOpenAiDirect()) {
+    const baseUrl = ENV.openAiBaseUrl || "https://api.openai.com/v1";
+    return `${baseUrl.replace(/\/$/, "")}/chat/completions`;
+  }
+
+  return ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
     : "https://forge.manus.im/v1/chat/completions";
+};
+
+const resolveApiKey = () => ENV.openAiApiKey || ENV.forgeApiKey;
+
+const resolveModel = () => {
+  if (ENV.openAiModel) return ENV.openAiModel;
+  return isOpenAiDirect() ? "gpt-5.5" : "gemini-2.5-flash";
+};
+
+const resolveMaxTokens = () => {
+  const raw = process.env.LLM_MAX_TOKENS || process.env.OPENAI_MAX_COMPLETION_TOKENS;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 32768;
+};
 
 const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!resolveApiKey()) {
+    throw new Error(
+      "No LLM API key configured. Set OPENAI_API_KEY for direct OpenAI billing, or BUILT_IN_FORGE_API_KEY for the legacy Manus-compatible provider."
+    );
   }
 };
 
@@ -302,7 +325,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: resolveModel(),
     messages: messages.map(normalizeMessage),
   };
 
@@ -318,9 +341,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  if (isOpenAiDirect()) {
+    payload.max_completion_tokens = resolveMaxTokens();
+  } else {
+    payload.max_tokens = resolveMaxTokens();
+    payload.thinking = {
+      "budget_tokens": Number.parseInt(process.env.LLM_THINKING_BUDGET_TOKENS || "128", 10),
+    };
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -338,7 +365,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${resolveApiKey()}`,
     },
     body: JSON.stringify(payload),
     ...(signal ? { signal } : {}),

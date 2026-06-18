@@ -21,15 +21,11 @@ import { stripe } from "./stripe";
 import { webhookEvents } from "../drizzle/schema";
 import { seedSmithResidenceForMember } from "./seedSmithResidence";
 import { seedDefaultCrewsForMember, seedDefaultTradeRatesForMember } from "./seedDefaultCrews";
+import { RUNTIME_FLAGS, resolveAllowedOrigin } from "./_core/runtimeFlags";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-// Production domain — must be registered in Discord Developer Portal
-const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
-// All allowed redirect origins (must match Discord Developer Portal exactly)
-const ALLOWED_ORIGINS = new Set([
-  "https://alpcontractorcircle.com",
-  "https://www.alpcontractorcircle.com",
-]);
+// Production domain must be registered in Discord Developer Portal.
+const PRODUCTION_ORIGIN = RUNTIME_FLAGS.productionOrigin;
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 // Guild / channel / role IDs for ALP Discord server
@@ -233,7 +229,7 @@ export function registerDiscordOAuthRoutes(app: Express) {
     // The fallback to req.get("host") would return the internal Cloud Run hostname
     // in production, which is NOT registered and causes "Invalid OAuth2 redirect_uri".
     const rawOrigin = (req.query.origin as string) || req.headers.origin || "";
-    const origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+    const origin = resolveAllowedOrigin(rawOrigin);
     const returnPath = (req.query.returnPath as string) || "/portal";
     const redirectUri = `${origin}/api/discord/callback`;
 
@@ -271,9 +267,8 @@ export function registerDiscordOAuthRoutes(app: Express) {
     try {
       const stateData = JSON.parse(Buffer.from(stateParam, "base64url").toString());
       // Normalise origin: must match what was sent to Discord (and what is registered).
-      // If the stored origin is not in ALLOWED_ORIGINS, fall back to PRODUCTION_ORIGIN.
       const rawOrigin = stateData.origin || "";
-      origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+      origin = resolveAllowedOrigin(rawOrigin);
       returnPath = stateData.returnPath || "/portal";
     } catch {
       res.status(400).json({ error: "Invalid state parameter" });

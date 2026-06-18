@@ -20,6 +20,7 @@ export default function ConstructLineSignup() {
     password: "",
     name: "",
     companyName: "",
+    inviteCode: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,7 +47,7 @@ export default function ConstructLineSignup() {
 
       // Show success briefly then redirect
       setSuccess(true);
-      setTimeout(() => setLocation("/portal"), 2000);
+      setTimeout(() => setLocation("/portal/constructline"), 2000);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -195,6 +196,22 @@ export default function ConstructLineSignup() {
                 className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 h-11"
               />
               <p className="text-xs text-cream-muted/60 mt-1">You'll receive your login credentials by email.</p>
+            </div>
+
+            <div>
+              <Label htmlFor="inviteCode" className="text-cream text-sm font-medium mb-1.5 block">
+                Invite Code
+              </Label>
+              <Input
+                id="inviteCode"
+                name="inviteCode"
+                type="text"
+                placeholder="Enter your client access code"
+                value={formData.inviteCode}
+                onChange={handleChange}
+                autoComplete="off"
+                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 h-11"
+              />
             </div>
 
             <Button

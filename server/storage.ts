@@ -1,9 +1,40 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+// Storage helpers for ConstructLine uploads.
+// Supports the legacy Manus/Forge storage proxy and a local mounted storage mode
+// for standalone hosts like Railway.
 
+import fs from "fs/promises";
+import path from "path";
+import express, { type Express } from "express";
 import { ENV } from './_core/env';
+import { RUNTIME_FLAGS } from "./_core/runtimeFlags";
 
 type StorageConfig = { baseUrl: string; apiKey: string };
+
+function getStorageProvider() {
+  return (process.env.STORAGE_PROVIDER || "forge").trim().toLowerCase();
+}
+
+function getLocalStorageDir(): string {
+  const configured = process.env.STORAGE_LOCAL_DIR?.trim();
+  if (configured) return path.resolve(configured);
+
+  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+  if (volumePath) return path.join(volumePath, "storage");
+
+  return path.join(process.cwd(), "data", "storage");
+}
+
+function getPublicUploadsBaseUrl(): string {
+  const origin = RUNTIME_FLAGS.publicAppOrigin || "";
+  return origin ? `${origin}/uploads` : "/uploads";
+}
+
+function encodeKeyPath(key: string): string {
+  return key
+    .split("/")
+    .map(part => encodeURIComponent(part))
+    .join("/");
+}
 
 function getStorageConfig(): StorageConfig {
   const baseUrl = ENV.forgeApiUrl;
@@ -72,6 +103,24 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
+  if (getStorageProvider() === "local") {
+    const key = normalizeKey(relKey);
+    const storageDir = getLocalStorageDir();
+    const destination = path.join(storageDir, key);
+    const relative = path.relative(storageDir, destination);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      throw new Error("Invalid storage key");
+    }
+
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.writeFile(destination, data);
+
+    return {
+      key,
+      url: `${getPublicUploadsBaseUrl()}/${encodeKeyPath(key)}`,
+    };
+  }
+
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   const uploadUrl = buildUploadUrl(baseUrl, key);
@@ -93,10 +142,32 @@ export async function storagePut(
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
+  if (getStorageProvider() === "local") {
+    const key = normalizeKey(relKey);
+    return {
+      key,
+      url: `${getPublicUploadsBaseUrl()}/${encodeKeyPath(key)}`,
+    };
+  }
+
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   return {
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),
   };
+}
+
+export function registerLocalStorageRoutes(app: Express) {
+  if (getStorageProvider() !== "local") return;
+
+  const storageDir = getLocalStorageDir();
+  app.use(
+    "/uploads",
+    express.static(storageDir, {
+      fallthrough: false,
+      maxAge: "1d",
+    })
+  );
+  console.log(`[Storage] Serving local uploads from ${storageDir}`);
 }

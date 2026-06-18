@@ -38,10 +38,20 @@ import ConstructLineHub from "./pages/ConstructLineHub";
 import JoinPage from "./pages/JoinPage";
 
 function Router() {
+  const constructLineOnly = import.meta.env.VITE_CONSTRUCTLINE_ONLY === "true";
+
   return (
     <Switch>
       {/* Public pages — Circle landing is the homepage */}
-      <Route path={"/"} component={ContractorCircle} />
+      <Route path={"/"}>
+        {() => {
+          if (constructLineOnly) {
+            window.location.href = "/constructline/login";
+            return null;
+          }
+          return <ContractorCircle />;
+        }}
+      </Route>
       <Route path={"/circle"} component={ContractorCircle} />
       <Route path={"/join"} component={JoinPage} />
       <Route path={"/circle/welcome"} component={CircleWelcome} />

@@ -16,6 +16,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import axios from "axios";
 import { betaUsers, type BetaUser } from "../drizzle/schema";
 import { sendConstructLineWelcomeEmail } from "./email";
+import { RUNTIME_FLAGS, resolveAllowedOrigin } from "./_core/runtimeFlags";
 
 const BETA_COOKIE_NAME = "beta_session";
 const BETA_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
@@ -73,7 +74,9 @@ async function ensureConstructLineRole(): Promise<string | null> {
 }
 
 // Kick off role lookup at startup (non-blocking)
-ensureConstructLineRole().catch(() => {});
+if (RUNTIME_FLAGS.enableDiscordBot) {
+  ensureConstructLineRole().catch(() => {});
+}
 
 function getSessionSecret() {
   const secret = process.env.JWT_SECRET || "dev-secret-change-me";
@@ -162,12 +165,25 @@ function getDiscordClientSecret(): string {
   return process.env.DISCORD_CLIENT_SECRET || "";
 }
 
-/** Allowed production origins for redirect_uri */
-const ALLOWED_ORIGINS = new Set([
-  "https://alpcontractorcircle.com",
-  "https://www.alpcontractorcircle.com",
-]);
-const PRODUCTION_ORIGIN = "https://alpcontractorcircle.com";
+const PRODUCTION_ORIGIN = RUNTIME_FLAGS.productionOrigin;
+
+function getSignupAccessError(inviteCode: unknown): string | null {
+  if (RUNTIME_FLAGS.constructLineSignupCode) {
+    if (
+      typeof inviteCode !== "string" ||
+      inviteCode.trim() !== RUNTIME_FLAGS.constructLineSignupCode
+    ) {
+      return "Enter the invite code Marshall gave you.";
+    }
+    return null;
+  }
+
+  if (!RUNTIME_FLAGS.allowPublicConstructLineSignup) {
+    return "ConstructLine access is invite-only right now. Ask Marshall for an invite code.";
+  }
+
+  return null;
+}
 
 /** Add a Discord user to the guild and assign ConstructLine role */
 async function addToGuildAndAssignRole(
@@ -215,7 +231,7 @@ export function registerBetaAuthRoutes(app: Express) {
   // POST /api/beta/signup
   app.post("/api/beta/signup", async (req: Request, res: Response) => {
     try {
-      const { email, password, name, companyName } = req.body;
+      const { email, password, name, companyName, inviteCode } = req.body;
 
       if (!email || !password || !name) {
         return res.status(400).json({ error: "Email, password, and name are required." });
@@ -223,6 +239,11 @@ export function registerBetaAuthRoutes(app: Express) {
 
       if (typeof password !== "string" || password.length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters." });
+      }
+
+      const signupAccessError = getSignupAccessError(inviteCode);
+      if (signupAccessError) {
+        return res.status(403).json({ error: signupAccessError });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -369,7 +390,7 @@ export function registerBetaAuthRoutes(app: Express) {
     }
 
     const rawOrigin = (req.query.origin as string) || req.headers.origin || "";
-    const origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+    const origin = resolveAllowedOrigin(rawOrigin);
     const returnPath = (req.query.returnPath as string) || "/portal";
 
     const redirectUri = `${origin}/api/beta/discord/callback`;
@@ -411,7 +432,7 @@ export function registerBetaAuthRoutes(app: Express) {
     try {
       const stateData = JSON.parse(Buffer.from(stateParam, "base64url").toString());
       const rawOrigin = stateData.origin || "";
-      origin = ALLOWED_ORIGINS.has(rawOrigin) ? rawOrigin : PRODUCTION_ORIGIN;
+      origin = resolveAllowedOrigin(rawOrigin);
       returnPath = stateData.returnPath || "/portal";
       betaUserId = Number(stateData.betaUserId) || null;
     } catch {

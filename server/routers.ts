@@ -19,6 +19,7 @@ import { getDripEmail, getMaxStep, ALL_DRIP_EMAILS } from "./dripEmails";
 import { autoEnrollLeadMagnet, autoEnrollHomepageSubscriber } from "./dripAutoEnroll";
 import { sendSubscriberNotification, sendEosDeckAnnouncementEmail, sendQ2FrameworkEmail, sendLeadMagnetNotification, sendEstimatingChecklistEmail, sendThreeSilosEmail } from "./email";
 import { getSupabaseClient, insertSupabaseLead, insertTemplateRequest } from "./supabaseClient";
+import { RUNTIME_FLAGS, requireDripRoutesEnabled } from "./_core/runtimeFlags";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -41,6 +42,13 @@ export const appRouter = router({
      * Stripe handles all payment collection and customer creation.
      */
     createCircleCheckout: publicProcedure.mutation(async ({ ctx }) => {
+      if (!RUNTIME_FLAGS.enableStripeCheckout) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Stripe checkout is disabled for this deployment.",
+        });
+      }
+
       const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || "https://localhost:3000";
 
       const checkoutUrl = await createCircleCheckoutSession({
@@ -60,6 +68,10 @@ export const appRouter = router({
     verifyCheckout: publicProcedure
       .input(z.object({ sessionId: z.string() }))
       .query(async ({ input }) => {
+        if (!RUNTIME_FLAGS.enableStripeCheckout) {
+          return { verified: false, customerName: null, customerEmail: null };
+        }
+
         if (!stripe) {
           return { verified: false, customerName: null, customerEmail: null };
         }
@@ -243,11 +255,13 @@ export const appRouter = router({
         }).catch((err) => console.error("[Leads] Failed to send lead magnet notification:", err));
 
         // Auto-enroll into drip sequence (fire-and-forget)
-        autoEnrollLeadMagnet({
-          email: input.email,
-          firstName: input.firstName,
-          source: input.source,
-        }).catch((err) => console.error("[Leads] Failed to auto-enroll in drip:", err));
+        if (RUNTIME_FLAGS.enableDripEngine) {
+          autoEnrollLeadMagnet({
+            email: input.email,
+            firstName: input.firstName,
+            source: input.source,
+          }).catch((err) => console.error("[Leads] Failed to auto-enroll in drip:", err));
+        }
 
         return {
           success: true,
@@ -278,7 +292,7 @@ export const appRouter = router({
         }
         
         // Auto-enroll new homepage subscribers into drip (fire-and-forget)
-        if (result.isNew) {
+        if (result.isNew && RUNTIME_FLAGS.enableDripEngine) {
           autoEnrollHomepageSubscriber({ email: input.email })
             .catch((err) => console.error("[Email] Failed to auto-enroll homepage subscriber in drip:", err));
         }
@@ -295,6 +309,7 @@ export const appRouter = router({
   drip: router({
     /** Get dashboard overview stats */
     status: publicProcedure.query(async () => {
+      requireDripRoutesEnabled();
       const mysql = await import("mysql2/promise");
       const conn = await mysql.createConnection(process.env.DATABASE_URL!);
       try {
@@ -375,6 +390,7 @@ export const appRouter = router({
         offset: z.number().default(0),
       }))
       .query(async ({ input }) => {
+        requireDripRoutesEnabled();
         const mysql = await import("mysql2/promise");
         const conn = await mysql.createConnection(process.env.DATABASE_URL!);
         try {
@@ -407,6 +423,7 @@ export const appRouter = router({
     togglePause: publicProcedure
       .input(z.object({ enrollmentId: z.number(), action: z.enum(["pause", "resume"]) }))
       .mutation(async ({ input }) => {
+        requireDripRoutesEnabled();
         const mysql = await import("mysql2/promise");
         const conn = await mysql.createConnection(process.env.DATABASE_URL!);
         try {
@@ -436,6 +453,7 @@ export const appRouter = router({
     trigger: publicProcedure
       .input(z.object({ dryRun: z.boolean().default(true) }))
       .mutation(async ({ input }) => {
+        requireDripRoutesEnabled();
         const result = await processDripSends({ dryRun: input.dryRun });
         return result;
       }),
@@ -448,6 +466,7 @@ export const appRouter = router({
         firstName: z.string().default("Contractor"),
       }))
       .query(({ input }) => {
+        requireDripRoutesEnabled();
         const emailDef = getDripEmail(input.sequenceId, input.stepNumber);
         if (!emailDef) {
           return { found: false as const, html: "", text: "", subject: "" };
@@ -467,6 +486,7 @@ export const appRouter = router({
         dryRun: z.boolean().default(true),
       }))
       .mutation(async ({ input, ctx }) => {
+        requireDripRoutesEnabled();
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const mysql = await import("mysql2/promise");
         const conn = await mysql.createConnection(process.env.DATABASE_URL!);
@@ -530,6 +550,7 @@ export const appRouter = router({
 
     /** List all available drip email definitions (for the admin preview panel) */
     listEmails: publicProcedure.query(() => {
+      requireDripRoutesEnabled();
       const sequences = new Map<string, { stepNumber: number; subject: string }[]>();
       for (const def of ALL_DRIP_EMAILS) {
         if (!sequences.has(def.sequenceId)) {

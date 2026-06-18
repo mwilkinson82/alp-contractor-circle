@@ -13,7 +13,9 @@ import { registerUnsubscribeRoutes } from "../unsubscribe";
 import { registerXerImportRoutes } from "../xerAsyncImport";
 import { registerBetaAuthRoutes } from "../betaAuth";
 import { appRouter } from "../routers";
+import { registerLocalStorageRoutes } from "../storage";
 import { createContext } from "./context";
+import { RUNTIME_FLAGS } from "./runtimeFlags";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -39,7 +41,11 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   // Register Stripe webhook BEFORE express.json() middleware
-  registerStripeWebhook(app);
+  if (RUNTIME_FLAGS.enableStripeWebhook) {
+    registerStripeWebhook(app);
+  } else {
+    console.log("[Stripe] Webhook route disabled by ENABLE_STRIPE_WEBHOOK.");
+  }
   
   // 350MB limit: supports 250MB raw construction drawing PDFs with base64 encoding overhead (~33%)
   app.use(express.json({ limit: "350mb" }));
@@ -75,6 +81,7 @@ async function startServer() {
   });
 
   // OAuth routes
+  registerLocalStorageRoutes(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerDiscordOAuthRoutes(app);
@@ -92,6 +99,12 @@ async function startServer() {
       createContext,
     })
   );
+
+  if (RUNTIME_FLAGS.constructLineOnly) {
+    app.get("/", (_req, res) => res.redirect(302, "/constructline/login"));
+    app.get("/portal", (_req, res) => res.redirect(302, "/portal/constructline"));
+  }
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -107,10 +120,18 @@ async function startServer() {
   }
 
   // Start Discord gateway bot (listens for guildMemberAdd, etc.)
-  try { startDiscordBot(); } catch (e) { console.error('[DiscordBot] Failed to start:', e); }
+  if (RUNTIME_FLAGS.enableDiscordBot) {
+    try { startDiscordBot(); } catch (e) { console.error('[DiscordBot] Failed to start:', e); }
+  } else {
+    console.log("[DiscordBot] Gateway bot disabled by ENABLE_DISCORD_BOT.");
+  }
 
   // Start drip campaign engine (checks every 15 minutes for pending sends)
-  try { startDripEngine(); } catch (e) { console.error('[DripEngine] Failed to start:', e); }
+  if (RUNTIME_FLAGS.enableDripEngine) {
+    try { startDripEngine(); } catch (e) { console.error('[DripEngine] Failed to start:', e); }
+  } else {
+    console.log("[DripEngine] Disabled by ENABLE_DRIP_ENGINE.");
+  }
 
   // Increase server timeout to 5 minutes for large XER imports
   server.timeout = 300000;
@@ -120,8 +141,9 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[Runtime] ConstructLine-only mode: ${RUNTIME_FLAGS.constructLineOnly ? "on" : "off"}`);
     console.log(`[Discord] OAuth configured for guild: ${process.env.DISCORD_GUILD_ID || "927273292354711613"}`);
-    console.log(`[Stripe] Webhook endpoint: /api/stripe/webhook`);
+    console.log(`[Stripe] Webhook endpoint: ${RUNTIME_FLAGS.enableStripeWebhook ? "/api/stripe/webhook" : "disabled"}`);
   });
 }
 

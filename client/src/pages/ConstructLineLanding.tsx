@@ -88,6 +88,7 @@ export default function ConstructLineLanding() {
     password: "",
     name: "",
     companyName: "",
+    inviteCode: "",
   });
   const signupRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -122,8 +123,7 @@ export default function ConstructLineLanding() {
         throw new Error(data.error || "Signup failed");
       }
 
-      // Beta users go directly to ConstructLine tools (scheduler)
-      setLocation("/portal/scheduler");
+      setLocation("/portal/constructline");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -1207,6 +1207,22 @@ export default function ConstructLineLanding() {
                 onChange={handleChange}
                 required
                 minLength={6}
+                className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 h-12"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="inviteCode" className="text-cream text-sm font-medium mb-2 block">
+                Invite Code
+              </Label>
+              <Input
+                id="inviteCode"
+                name="inviteCode"
+                type="text"
+                placeholder="Enter your client access code"
+                value={formData.inviteCode}
+                onChange={handleChange}
+                autoComplete="off"
                 className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 h-12"
               />
             </div>
