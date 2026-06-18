@@ -1,4 +1,5 @@
 import { ENV } from "./env";
+import { RUNTIME_FLAGS } from "./runtimeFlags";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -116,6 +117,25 @@ const ensureArray = (
   value: MessageContent | MessageContent[]
 ): MessageContent[] => (Array.isArray(value) ? value : [value]);
 
+function normalizePublicImageUrl(rawUrl: string): string {
+  const value = rawUrl.trim();
+  if (!value || value.startsWith("data:")) return value;
+
+  if (value.startsWith("/")) {
+    return `${RUNTIME_FLAGS.productionOrigin.replace(/\/$/, "")}${value}`;
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    return value;
+  }
+
+  try {
+    return new URL(`https://${value}`).toString();
+  } catch {
+    return value;
+  }
+}
+
 const normalizeContentPart = (
   part: MessageContent
 ): TextContent | ImageContent | FileContent => {
@@ -128,7 +148,13 @@ const normalizeContentPart = (
   }
 
   if (part.type === "image_url") {
-    return part;
+    return {
+      ...part,
+      image_url: {
+        ...part.image_url,
+        url: normalizePublicImageUrl(part.image_url.url),
+      },
+    };
   }
 
   if (part.type === "file_url") {
