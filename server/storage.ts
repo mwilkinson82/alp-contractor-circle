@@ -36,6 +36,40 @@ function encodeKeyPath(key: string): string {
     .join("/");
 }
 
+function decodeKeyPath(keyPath: string): string {
+  return keyPath
+    .split("/")
+    .map(part => decodeURIComponent(part))
+    .join("/");
+}
+
+function guessContentType(key: string): string {
+  const ext = path.extname(key).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".pdf") return "application/pdf";
+  return "application/octet-stream";
+}
+
+function localUploadUrlToKey(urlOrKey: string): string | null {
+  const rawValue = urlOrKey.trim();
+  if (!rawValue || rawValue.startsWith("data:")) return null;
+
+  let pathname = rawValue;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(rawValue)) {
+    try {
+      pathname = new URL(rawValue).pathname;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!pathname.startsWith("/uploads/")) return null;
+  return normalizeKey(decodeKeyPath(pathname.slice("/uploads/".length)));
+}
+
 function getStorageConfig(): StorageConfig {
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
@@ -156,6 +190,24 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),
   };
+}
+
+export async function storageUrlToDataUrl(urlOrKey: string): Promise<string | null> {
+  if (getStorageProvider() !== "local") return null;
+
+  const key = localUploadUrlToKey(urlOrKey);
+  if (!key) return null;
+
+  const storageDir = getLocalStorageDir();
+  const source = path.join(storageDir, key);
+  const relative = path.relative(storageDir, source);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error("Invalid storage key");
+  }
+
+  const data = await fs.readFile(source);
+  const contentType = guessContentType(key);
+  return `data:${contentType};base64,${data.toString("base64")}`;
 }
 
 export function registerLocalStorageRoutes(app: Express) {

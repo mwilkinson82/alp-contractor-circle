@@ -9,6 +9,7 @@
  */
 import { invokeLLM } from "./_core/llm";
 import { getDrawingSheetsByProject, updateDrawingSheet } from "./takeoffDb";
+import { storageUrlToDataUrl } from "./storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -224,6 +225,7 @@ async function indexSingleSheet(
   imageUrl: string,
   pageNumber: number,
 ): Promise<Omit<SheetIndexEntry, "sheetId" | "pageNumber">> {
+  const llmImageUrl = (await storageUrlToDataUrl(imageUrl)) || imageUrl;
   const response = await invokeLLM({
     messages: [
       { role: "system", content: SHEET_INDEX_SYSTEM_PROMPT },
@@ -236,7 +238,7 @@ async function indexSingleSheet(
           },
           {
             type: "image_url",
-            image_url: { url: imageUrl, detail: "high" },
+            image_url: { url: llmImageUrl, detail: "high" },
           },
         ],
       },

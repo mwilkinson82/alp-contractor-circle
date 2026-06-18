@@ -40,6 +40,7 @@ import {
 } from "../shared/scopeIntent";
 import { TRADE_SPECIALTIES } from "../shared/tradeSpecialties";
 import { getBidModeBehavior } from "../shared/bidMode";
+import { storageUrlToDataUrl } from "./storage";
 
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
@@ -757,12 +758,13 @@ export async function processDrawingSheet(
   const MAX_AUTO_RETRIES = 1; // Auto-retry once on transient 500 errors
   try {
     await updateDrawingSheet(sheetId, { status: "processing" as any });
+    const llmImageUrl = (await storageUrlToDataUrl(imageUrl)) || imageUrl;
 
     console.log(
       `[Takeoff AI] Pass 1 — Extracting sheet ${sheetId}${_retryAttempt > 0 ? ` (auto-retry #${_retryAttempt})` : ""}...`
     );
     const extracted = await extractPass(
-      imageUrl,
+      llmImageUrl,
       _scopeText,
       _projectContext,
       _scaleRatio,
@@ -785,7 +787,7 @@ export async function processDrawingSheet(
       console.log(
         `[Takeoff AI] Pass 2 — Verifying sheet ${sheetId} (${verificationDecision.reason})...`
       );
-      result = await verifyPass(imageUrl, extracted, _scaleRatio, _scaleUnit);
+      result = await verifyPass(llmImageUrl, extracted, _scaleRatio, _scaleUnit);
       console.log(
         `[Takeoff AI] Pass 2 complete: ${result.items.length} items final`
       );
