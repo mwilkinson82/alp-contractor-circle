@@ -196,6 +196,16 @@ function getSheetDisplayName(sheet: any): string {
   );
 }
 
+type EstimateQaAnomaly = {
+  id?: string;
+  severity?: string;
+  category?: string;
+  title?: string;
+  description?: string;
+  amount?: number;
+  items?: any[];
+};
+
 interface EstimateSummaryProps {
   projectId: number;
   projectName?: string;
@@ -211,6 +221,7 @@ interface EstimateSummaryProps {
   reviewQueueCost?: number;
   excludedBoundaryCount?: number;
   acceptedDirectCost?: number;
+  qaAnomalies?: EstimateQaAnomaly[];
   onOpenReview?: () => void;
   onOpenSubmit?: () => void;
   onOpenSourceItem?: (item: any) => void;
@@ -232,6 +243,7 @@ export default function EstimateSummary({
   reviewQueueCost = 0,
   excludedBoundaryCount = 0,
   acceptedDirectCost,
+  qaAnomalies = [],
   onOpenReview,
   onOpenSubmit,
   onOpenSourceItem,
@@ -842,6 +854,18 @@ export default function EstimateSummary({
     projectName,
     projectDescription,
   ]);
+  const qaActionAnomalies = useMemo(
+    () => qaAnomalies.filter(anomaly => anomaly.severity !== "reference"),
+    [qaAnomalies]
+  );
+  const qaBlockerCount = qaActionAnomalies.filter(
+    anomaly => anomaly.severity === "blocker"
+  ).length;
+  const qaReviewCount = qaActionAnomalies.length;
+  const qaReviewAmount = qaActionAnomalies.reduce(
+    (sum, anomaly) => sum + Number(anomaly.amount || 0),
+    0
+  );
 
   const handleExportEstimate = () => {
     if (!calculations) return;
@@ -925,6 +949,31 @@ export default function EstimateSummary({
         "Residential QA"
       );
     }
+    if (qaAnomalies.length > 0) {
+      const qaRows = qaAnomalies.map(anomaly => ({
+        Severity: String(anomaly.severity || "review").toUpperCase(),
+        Category: anomaly.category || "",
+        Finding: anomaly.title || "",
+        "Rows Shown": anomaly.items?.length || 0,
+        "Value At Stake": anomaly.amount
+          ? (Number(anomaly.amount) / 100).toFixed(2)
+          : "",
+        "Estimator Action":
+          anomaly.severity === "blocker"
+            ? "Resolve before packaging"
+            : anomaly.severity === "risk"
+              ? "Review before sending"
+              : anomaly.severity === "reference"
+                ? "Trace source if needed"
+                : "Estimator review recommended",
+        Description: anomaly.description || "",
+      }));
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet(qaRows),
+        "ConstructLine QA"
+      );
+    }
     XLSX.writeFile(wb, `estimate-summary-project-${projectId}.xlsx`);
     toast.success("Estimate exported to Excel");
   };
@@ -968,6 +1017,7 @@ export default function EstimateSummary({
     calculations.materialItemsMissing + calculations.quantityItemsMissing;
   const defaultLaborCount = calculations.laborItemsDefaulted;
   const hasOpenScope = reviewQueueCount > 0;
+  const hasQaBlockers = qaBlockerCount > 0;
   const markupPctTotal =
     generalConditionsPct +
     overheadPct +
@@ -985,20 +1035,20 @@ export default function EstimateSummary({
   );
   const pricedRowsPct =
     calculations.totalItems > 0 ? costedItems / calculations.totalItems : 0;
-  const readinessPct = Math.min(
-    100,
-    Math.round(
-      pricedRowsPct * 45 +
-        (hasOpenScope ? 0 : 25) +
-        (defaultLaborCount > 0 || laborNeedsAttention > 0
-          ? calculations.laborItemsMatched > 0
-            ? 10
-            : 0
-          : 20) +
-        (markupPctTotal > 0 ? 10 : 0)
-    )
-  );
-  const readinessDetail = hasOpenScope
+  const readinessScore =
+    pricedRowsPct * 45 +
+    (hasOpenScope ? 0 : 25) +
+    (defaultLaborCount > 0 || laborNeedsAttention > 0
+      ? calculations.laborItemsMatched > 0
+        ? 10
+        : 0
+      : 20) +
+    (markupPctTotal > 0 ? 10 : 0) -
+    (hasQaBlockers ? 20 : qaReviewCount > 0 ? 8 : 0);
+  const readinessPct = Math.min(100, Math.max(0, Math.round(readinessScore)));
+  const readinessDetail = hasQaBlockers
+    ? `${qaBlockerCount} ConstructLine QA blocker${qaBlockerCount !== 1 ? "s need" : " needs"} estimator review.`
+    : hasOpenScope
     ? `${reviewQueueCount} scope package${reviewQueueCount !== 1 ? "s" : ""} still pending.`
     : defaultLaborCount > 0
       ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with library labor awaiting confirmation.`
@@ -1024,8 +1074,10 @@ export default function EstimateSummary({
       ? Math.round((laborBasisConfirmed / calculations.totalItems) * 100)
       : 100;
   const markupReadinessPct = markupPctTotal > 0 ? 100 : 0;
+  const qaReadinessPct = hasQaBlockers ? 0 : qaReviewCount > 0 ? 72 : 100;
   const proposalReadinessPct =
     hasOpenScope ||
+    hasQaBlockers ||
     materialNeedsAttention > 0 ||
     laborNeedsAttention > 0 ||
     defaultLaborCount > 0 ||
@@ -1043,6 +1095,25 @@ export default function EstimateSummary({
           action: onOpenReview,
         }
       : null,
+    hasQaBlockers
+      ? {
+          tone: "red",
+          label: "QA",
+          title: "Estimator review required",
+          detail: `${qaBlockerCount} ConstructLine QA blocker${qaBlockerCount !== 1 ? "s are" : " is"} holding ${formatCurrency(qaReviewAmount, currency)} in reviewed value.`,
+          cta: "Open QA Review",
+          action: onOpenReview,
+        }
+      : qaReviewCount > 0
+        ? {
+            tone: "amber",
+            label: "QA",
+            title: "AI review items remain",
+            detail: `${qaReviewCount} ConstructLine QA finding${qaReviewCount !== 1 ? "s" : ""} should be checked before sending.`,
+            cta: "Open Review",
+            action: onOpenReview,
+          }
+        : null,
     materialNeedsAttention > 0
       ? {
           tone: "red",
@@ -1088,7 +1159,9 @@ export default function EstimateSummary({
   }>;
   const primaryAttention = attentionItems[0];
   const estimateModeLabel =
-    hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
+    hasQaBlockers
+      ? "Estimator review"
+      : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
       ? "Draft"
       : defaultLaborCount > 0
         ? "Price review"
@@ -1097,6 +1170,7 @@ export default function EstimateSummary({
     { label: "Scope Review", value: scopeReadinessPct },
     { label: "Pricing", value: pricingReadinessPct },
     { label: "Labor Basis", value: laborReadinessPct },
+    { label: "Estimator QA", value: qaReadinessPct },
     { label: "Markup", value: markupReadinessPct },
     { label: "Proposal", value: proposalReadinessPct },
   ];
@@ -1117,6 +1191,8 @@ export default function EstimateSummary({
         }}
         currency={currency}
         costRegion={costRegion}
+        sheets={sheets}
+        qaAnomalies={qaAnomalies}
       />
     );
   }

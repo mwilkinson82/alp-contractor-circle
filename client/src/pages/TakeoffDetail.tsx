@@ -325,6 +325,154 @@ function normalizeAnomalyKey(value: unknown): string {
     .trim();
 }
 
+const GENERATED_REVIEW_COST = 1_000_000;
+const GENERATED_BLOCKER_COST = 2_500_000;
+const REPEATED_ASSUMPTION_COST = 5_000_000;
+
+function getAnomalyText(item: any): string {
+  return [
+    item?.description,
+    item?.notes,
+    item?.sourceNotes,
+    item?.category,
+    item?.unit,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function getItemExtendedCost(item: any): number {
+  const value = Number(item?.extendedCost || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getItemQuantityNumber(item: any): number {
+  const value = Number(String(item?.quantity ?? "").replace(/,/g, ""));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function hasGeneratedQuantitySignal(item: any): boolean {
+  const text = getAnomalyText(item);
+  return (
+    /\[(generated|enhanced|consolidated)/i.test(text) ||
+    /\bgenerated\b/.test(text) ||
+    /\bassum(?:e|ed|ption)\b/.test(text)
+  );
+}
+
+function relativeDifference(a: number, b: number): number {
+  const denominator = Math.max(Math.abs(a), Math.abs(b), 1);
+  return Math.abs(a - b) / denominator;
+}
+
+function getQuantityMathIssue(item: any): string | null {
+  const qty = getItemQuantityNumber(item);
+  const unit = String(item?.unit || "").toLowerCase();
+  const text = getAnomalyText(item);
+  const description = String(item?.description || "").toLowerCase();
+
+  if (qty > 0) {
+    const explicitQuantities = Array.from(
+      text.matchAll(/\b(?:quantity|qty)\s*=\s*([\d,]+(?:\.\d+)?)/gi)
+    )
+      .map(match => Number(match[1].replace(/,/g, "")))
+      .filter(value => Number.isFinite(value) && value > 0);
+
+    for (const expected of explicitQuantities) {
+      if (relativeDifference(qty, expected) > 0.08) {
+        return `Row quantity ${qty.toLocaleString()} differs from generated math ${expected.toLocaleString()}.`;
+      }
+    }
+
+    const calculatedQuantities = Array.from(
+      text.matchAll(/=\s*([\d,]+(?:\.\d+)?)\s*(sfca|sf|lf|ea|cy|ton)\b/gi)
+    )
+      .map(match => ({
+        value: Number(match[1].replace(/,/g, "")),
+        unit: match[2].toLowerCase(),
+      }))
+      .filter(match => Number.isFinite(match.value) && match.value > 0);
+
+    for (const calculated of calculatedQuantities) {
+      if (unit && calculated.unit && !unit.includes(calculated.unit)) continue;
+      if (relativeDifference(qty, calculated.value) > 0.08) {
+        return `Row quantity ${qty.toLocaleString()} differs from calculated ${calculated.value.toLocaleString()} ${calculated.unit.toUpperCase()}.`;
+      }
+    }
+  }
+
+  const mentionsSixInch =
+    /6\s*(?:\"|in\b|inch|inches)/i.test(description) ||
+    /six\s+inch/i.test(description);
+  const assumesFourInch =
+    /assum(?:e|ed|ing)[^.,;]{0,40}4\s*(?:\"|in\b|inch|inches)/i.test(text) ||
+    /0\.333\s*(?:'|ft|feet)/i.test(text);
+  if (mentionsSixInch && assumesFourInch) {
+    return "Description calls out 6 inch work, but the generated math appears to assume 4 inch thickness.";
+  }
+
+  return null;
+}
+
+function extractAssumptionKeys(item: any): string[] {
+  const text = getAnomalyText(item);
+  const keys = new Set<string>();
+
+  for (const match of Array.from(
+    text.matchAll(
+      /\b\d{2,4}(?:\.\d+)?\s*(?:'|ft)?\s*(?:x|×)\s*\d{2,4}(?:\.\d+)?\s*(?:'|ft)?/gi
+    )
+  )) {
+    keys.add(`footprint:${match[0].replace(/\s+/g, " ")}`);
+  }
+
+  for (const match of Array.from(
+    text.matchAll(/\b([\d,]{3,8}(?:\.\d+)?)\s*(sf|lf|ft)\b/gi)
+  )) {
+    const value = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(value) || value < 500) continue;
+    const rounded = Math.round(value / 250) * 250;
+    keys.add(`quantity:${rounded}:${match[2].toLowerCase()}`);
+  }
+
+  return Array.from(keys).slice(0, 4);
+}
+
+function getAssemblyDuplicateKey(item: any): string | null {
+  const text = getAnomalyText(item);
+  const unit = String(item?.unit || "").toLowerCase() || "unit";
+  const qty = getItemQuantityNumber(item);
+  const qtyBucket =
+    qty >= 1000
+      ? Math.round(qty / 500) * 500
+      : qty >= 100
+        ? Math.round(qty / 50) * 50
+        : Math.round(qty);
+
+  let family: string | null = null;
+  if (/roof/.test(text) && /(sheath|deck|framing|blocking)/.test(text)) {
+    family = "roof-framing-envelope";
+  } else if (/roof/.test(text) && /(insulation|r-30|r30|tapered)/.test(text)) {
+    family = "roof-insulation";
+  } else if (/(eifs|stucco|exterior wall finish)/.test(text)) {
+    family = "exterior-wall-finish";
+  } else if (/(rigid insulation|r-10|r10)/.test(text) && /wall/.test(text)) {
+    family = "wall-insulation";
+  } else if (/bond beam/.test(text)) {
+    family = "bond-beam";
+  } else if (/(cmu|masonry)/.test(text) && /(wall|reinforc|parapet)/.test(text)) {
+    family = "cmu-wall-system";
+  } else if (/formwork/.test(text) && /(footing|trench|wall|slab)/.test(text)) {
+    family = "formwork";
+  } else if (/(anchor|threaded rod|hss|steel)/.test(text)) {
+    family = "metal-connection";
+  }
+
+  if (!family || qty <= 0) return null;
+  return `${family}|${unit}|${qtyBucket}`;
+}
+
 function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
   const anomalies: TakeoffAnomaly[] = [];
   const accepted = items.filter(item => isScopeIncludedItem(item));
@@ -382,6 +530,52 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       description:
         "These items cannot be defended until the quantity is filled or verified from the drawing.",
       items: missingQuantity.slice(0, 12),
+    });
+  }
+
+  const generatedHighValue = sortByExtendedCostDesc(
+    openAccepted.filter(
+      item =>
+        hasGeneratedQuantitySignal(item) &&
+        getItemExtendedCost(item) >= GENERATED_REVIEW_COST
+    )
+  );
+  if (generatedHighValue.length > 0) {
+    const maxGeneratedCost = Math.max(
+      ...generatedHighValue.map(item => getItemExtendedCost(item))
+    );
+    anomalies.push({
+      id: "generated-high-value",
+      severity:
+        maxGeneratedCost >= GENERATED_BLOCKER_COST ? "blocker" : "review",
+      category: "Estimator Review",
+      title: "Generated high-value accepted rows",
+      description:
+        "ConstructLine generated or assumed quantities on accepted dollar-impact rows. An estimator should confirm the takeoff basis before packaging.",
+      amount: generatedHighValue.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      ),
+      items: generatedHighValue.slice(0, 12),
+    });
+  }
+
+  const quantityConflicts = sortByExtendedCostDesc(
+    openAccepted.filter(item => getQuantityMathIssue(item))
+  );
+  if (quantityConflicts.length > 0) {
+    anomalies.push({
+      id: "quantity-math-conflicts",
+      severity: "blocker",
+      category: "Quantity",
+      title: "Quantity math conflicts",
+      description:
+        "Generated quantity math appears to disagree with the accepted row quantity or the row description. Verify the source sheet before relying on these items.",
+      amount: quantityConflicts.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      ),
+      items: quantityConflicts.slice(0, 12),
     });
   }
 
@@ -450,6 +644,75 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: sortByExtendedCostDesc(duplicateItems).slice(0, 12),
+    });
+  }
+
+  const assemblyGroups = new Map<string, any[]>();
+  for (const item of openAccepted) {
+    const key = getAssemblyDuplicateKey(item);
+    if (!key) continue;
+    const group = assemblyGroups.get(key) || [];
+    group.push(item);
+    assemblyGroups.set(key, group);
+  }
+  const likelyDuplicateAssemblies = Array.from(assemblyGroups.values())
+    .filter(group => group.length > 1)
+    .flat();
+  if (likelyDuplicateAssemblies.length > 0) {
+    anomalies.push({
+      id: "assembly-duplicate-patterns",
+      severity: "risk",
+      category: "Duplicate Scope",
+      title: "Probable duplicate assembly pricing",
+      description:
+        "Accepted rows appear to price the same assembly or footprint more than once. Confirm each row has a unique scope basis before final review.",
+      amount: likelyDuplicateAssemblies.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      ),
+      items: sortByExtendedCostDesc(likelyDuplicateAssemblies).slice(0, 12),
+    });
+  }
+
+  const assumptionGroups = new Map<string, any[]>();
+  for (const item of openAccepted) {
+    if (!hasGeneratedQuantitySignal(item)) continue;
+    for (const key of extractAssumptionKeys(item)) {
+      const group = assumptionGroups.get(key) || [];
+      group.push(item);
+      assumptionGroups.set(key, group);
+    }
+  }
+  const repeatedAssumptionItems = Array.from(assumptionGroups.values())
+    .filter(group => {
+      const amount = group.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      );
+      return group.length >= 4 && amount >= REPEATED_ASSUMPTION_COST;
+    })
+    .flat();
+  if (repeatedAssumptionItems.length > 0) {
+    const uniqueItems = Array.from(
+      new Map(
+        repeatedAssumptionItems.map(item => [
+          String(item.id || `${item.description}-${item.unit}`),
+          item,
+        ])
+      ).values()
+    );
+    anomalies.push({
+      id: "repeated-generated-assumptions",
+      severity: "review",
+      category: "AI Evidence",
+      title: "Repeated generated assumptions",
+      description:
+        "Several accepted rows reuse the same broad footprint or quantity assumption. That can be valid, but it needs estimator confirmation so assemblies are not stacked twice.",
+      amount: uniqueItems.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      ),
+      items: sortByExtendedCostDesc(uniqueItems).slice(0, 12),
     });
   }
 
@@ -7045,6 +7308,7 @@ export default function TakeoffDetail() {
               reviewQueueCost={highImpactOpenBundleCost}
               excludedBoundaryCount={excludedItems.length}
               acceptedDirectCost={totalCost}
+              qaAnomalies={takeoffAnomalies}
               onOpenReview={() => setActiveTab("items")}
               onOpenSubmit={() => setActiveTab("submit")}
               onOpenSourceItem={item => setSelectedItem(item)}
@@ -7083,6 +7347,7 @@ export default function TakeoffDetail() {
               reviewQueueCost={highImpactOpenBundleCost}
               excludedBoundaryCount={excludedItems.length}
               acceptedDirectCost={totalCost}
+              qaAnomalies={takeoffAnomalies}
               onOpenReview={() => setActiveTab("items")}
               onOpenSourceItem={item => setSelectedItem(item)}
               submitOnly

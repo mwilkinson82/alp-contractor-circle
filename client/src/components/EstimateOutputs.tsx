@@ -85,6 +85,62 @@ function getSheetName(name: string): string {
   return name.replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Sheet";
 }
 
+type EstimateQaAnomaly = {
+  id?: string;
+  severity?: string;
+  category?: string;
+  title?: string;
+  description?: string;
+  amount?: number;
+  items?: any[];
+};
+
+function getEstimateItemKey(item: any): string {
+  return String(item?.id ?? item?.itemId ?? item?.description ?? "");
+}
+
+function buildQaFlagMap(anomalies: EstimateQaAnomaly[]): Map<string, string[]> {
+  const flags = new Map<string, string[]>();
+  for (const anomaly of anomalies) {
+    const label = `${String(anomaly.severity || "review").toUpperCase()}: ${anomaly.title || "ConstructLine QA"}`;
+    for (const item of anomaly.items || []) {
+      const key = getEstimateItemKey(item);
+      if (!key) continue;
+      const existing = flags.get(key) || [];
+      if (!existing.includes(label)) existing.push(label);
+      flags.set(key, existing);
+    }
+  }
+  return flags;
+}
+
+function getSourceSheetLabel(item: any, sheets: any[]): string {
+  const sheetId = item?.sheetId ?? item?.sourceSheetId;
+  const sheet = sheets.find(candidate => String(candidate?.id) === String(sheetId));
+  if (sheet) {
+    return (
+      [sheet.sheetNumber, sheet.sheetName || sheet.name]
+        .filter(Boolean)
+        .join(" - ") || `Sheet ${sheet.pageNumber || sheet.id}`
+    );
+  }
+  return (
+    item?.sheetName ||
+    item?.sheetNumber ||
+    (sheetId ? `Sheet ${sheetId}` : "")
+  );
+}
+
+function getScopeStatus(item: any): string {
+  const explicit = item?.scopeStatus || item?.scopeDecision || item?.status;
+  if (explicit) return String(explicit);
+  const notes = String(item?.notes || "").toLowerCase();
+  if (notes.includes("[scope: excluded]")) return "Excluded";
+  if (notes.includes("[scope: review]")) return "Review";
+  if (notes.includes("[scope: included]")) return "Accepted";
+  return "Accepted";
+}
+
 interface DivisionData {
   items: any[];
   materialTotal: number;
@@ -131,6 +187,8 @@ interface EstimateOutputsProps {
   };
   currency: string;
   costRegion?: string | null;
+  sheets?: any[];
+  qaAnomalies?: EstimateQaAnomaly[];
 }
 
 function pctDisplay(bps: number): string {
@@ -144,6 +202,8 @@ export default function EstimateOutputs({
   markups,
   currency,
   costRegion,
+  sheets = [],
+  qaAnomalies = [],
 }: EstimateOutputsProps) {
   const [generating, setGenerating] = useState<string | null>(null);
   const [showBranding, setShowBranding] = useState(true);
@@ -164,6 +224,13 @@ export default function EstimateOutputs({
     "Proposal is valid for 30 days. Changes to scope require written approval. Payment terms, retainage, and schedule requirements are subject to final contract agreement."
   );
   const [includeTerms, setIncludeTerms] = useState(false);
+  const qaFlagMap = buildQaFlagMap(qaAnomalies);
+  const qaBlockerCount = qaAnomalies.filter(
+    anomaly => anomaly.severity === "blocker"
+  ).length;
+  const qaReviewCount = qaAnomalies.filter(
+    anomaly => anomaly.severity && anomaly.severity !== "reference"
+  ).length;
 
   // ─── Company branding fields ──────────────────────────────────────
   const [companyName, setCompanyName] = useState("");
@@ -1086,6 +1153,9 @@ export default function EstimateOutputs({
           Description: row.item.description || "",
           Quantity: row.qty,
           Unit: row.item.unit || "",
+          "Scope Status": getScopeStatus(row.item),
+          "Estimator Reviewed": row.item.reviewed ? "Yes" : "No",
+          "Confidence %": Number(row.item.confidence || 0) || "",
           "Material Unit": fmtNum(getMaterialUnitCost(row.item)),
           "Material Total": fmtNum(row.materialTotal),
           "Labor Total": fmtNum(row.laborTotal),
@@ -1094,11 +1164,10 @@ export default function EstimateOutputs({
             ? `${row.labor.crewName}${row.labor.productivityPerCrewHr ? ` @ ${row.labor.productivityPerCrewHr} ${row.item.unit || "units"}/crew-hr` : ""}`
             : row.labor?.laborNote || "",
           Subtotal: fmtNum(row.subtotal),
-          "Source Sheet":
-            row.item.sheetName ||
-            row.item.sheetNumber ||
-            row.item.sheetId ||
-            "",
+          "Source Sheet": getSourceSheetLabel(row.item, sheets),
+          "QA Flags": (qaFlagMap.get(getEstimateItemKey(row.item)) || []).join(
+            " | "
+          ),
           "CSI Division": div,
           Category: row.item.category || "",
           Notes: row.item.notes || row.item.sourceNotes || "",
@@ -1107,6 +1176,9 @@ export default function EstimateOutputs({
           Description: "DIVISION TOTAL",
           Quantity: "",
           Unit: "",
+          "Scope Status": "",
+          "Estimator Reviewed": "",
+          "Confidence %": "",
           "Material Unit": "",
           "Material Total": fmtNum(data.materialTotal),
           "Labor Total": fmtNum(data.laborTotal),
@@ -1114,6 +1186,7 @@ export default function EstimateOutputs({
           "Crew / Productivity": "",
           Subtotal: fmtNum(data.materialTotal + data.laborTotal),
           "Source Sheet": "",
+          "QA Flags": "",
           "CSI Division": div,
           Category: "",
           Notes: "",
@@ -1122,17 +1195,55 @@ export default function EstimateOutputs({
           { wch: 46 },
           { wch: 12 },
           { wch: 10 },
+          { wch: 16 },
+          { wch: 18 },
+          { wch: 14 },
           { wch: 14 },
           { wch: 14 },
           { wch: 14 },
           { wch: 22 },
           { wch: 34 },
           { wch: 14 },
-          { wch: 16 },
+          { wch: 26 },
+          { wch: 42 },
           { wch: 12 },
           { wch: 20 },
           { wch: 36 },
         ]);
+      }
+
+      if (qaAnomalies.length > 0) {
+        writeWorkbookSheet(
+          wb,
+          "ConstructLine QA",
+          qaAnomalies.map(anomaly => ({
+            Severity: String(anomaly.severity || "review").toUpperCase(),
+            Category: anomaly.category || "",
+            Finding: anomaly.title || "",
+            "Rows Shown": anomaly.items?.length || 0,
+            "Value At Stake": anomaly.amount
+              ? fmtNum(Number(anomaly.amount))
+              : "",
+            "Estimator Action":
+              anomaly.severity === "blocker"
+                ? "Resolve before packaging"
+                : anomaly.severity === "risk"
+                  ? "Review before sending"
+                  : anomaly.severity === "reference"
+                    ? "Trace source if needed"
+                    : "Estimator review recommended",
+            Description: anomaly.description || "",
+          })),
+          [
+            { wch: 14 },
+            { wch: 18 },
+            { wch: 34 },
+            { wch: 12 },
+            { wch: 18 },
+            { wch: 28 },
+            { wch: 72 },
+          ]
+        );
       }
 
       if ((calculations.allowancesTotal || 0) > 0) {
@@ -1722,6 +1833,32 @@ export default function EstimateOutputs({
               estimate detail from the same accepted bid math.
             </p>
           </div>
+          {qaReviewCount > 0 && (
+            <div
+              className={`rounded-xl border p-4 shadow-[0_14px_36px_rgba(41,37,28,0.07)] ${
+                qaBlockerCount > 0
+                  ? "border-orange-300 bg-orange-50"
+                  : "border-[#d7b44d] bg-[#fff7da]"
+              }`}
+            >
+              <p
+                className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                  qaBlockerCount > 0 ? "text-orange-800" : "text-[#8a6510]"
+                }`}
+              >
+                Estimator QA
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[#171714]">
+                {qaBlockerCount > 0
+                  ? `${qaBlockerCount} blocker${qaBlockerCount !== 1 ? "s" : ""} before packaging`
+                  : `${qaReviewCount} review item${qaReviewCount !== 1 ? "s" : ""} in this estimate`}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[#716855]">
+                The full workbook includes a ConstructLine QA tab and per-row
+                QA flags.
+              </p>
+            </div>
+          )}
           {[
             {
               key: "proposal",
@@ -1746,7 +1883,7 @@ export default function EstimateOutputs({
               key: "full-excel",
               title: "Full Estimate Workbook",
               detail:
-                "Summary, markups, allowances, and one detailed tab per CSI division.",
+                "Summary, QA review, markups, allowances, and one detailed tab per CSI division.",
               icon: TableProperties,
               action: generateFullEstimateExcel,
               label: "Download Full Excel",
