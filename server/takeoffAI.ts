@@ -466,6 +466,28 @@ export function buildScaleCalibrationContext(
   ].join("\n");
 }
 
+function isRetryableLlmError(err: any): boolean {
+  const msg = err?.message || "";
+  const status = Number(err?.status);
+  return (
+    [408, 500, 502, 503, 504].includes(status) ||
+    /\b(408|500|502|503|504)\b/.test(msg) ||
+    msg.includes("Internal Server Error") ||
+    msg.includes("Bad Gateway") ||
+    msg.includes("Service Unavailable") ||
+    msg.includes("Gateway Timeout") ||
+    msg.includes("<!DOCTYPE") ||
+    msg.includes("<html") ||
+    msg.includes('code":13') ||
+    msg.includes("code:13") ||
+    msg.includes("bad response") ||
+    msg.includes("received bad") ||
+    msg.includes("token") ||
+    msg.includes("Unterminated") ||
+    msg.includes("JSON")
+  );
+}
+
 async function extractPass(
   imageUrl: string,
   scopeText?: string | null,
@@ -569,23 +591,15 @@ async function extractPass(
       if (!Array.isArray(result.items)) result.items = [];
       return result;
     } catch (err: any) {
-      // Detect any error that suggests the image was too large for the LLM:
-      // - HTTP 500 / Internal Server Error
+      // Detect errors that suggest either an oversized image/prompt or a
+      // transient provider gateway response:
+      // - HTTP 500/502/503/504
       // - gRPC code 13 ("received bad response")
+      // - HTML error pages returned by an upstream gateway
       // - JSON parse failures (LLM returned garbage due to overload)
       // - "bad response" or "token" mentions
       const msg = err?.message || "";
-      const isRetryable =
-        msg.includes("500") ||
-        msg.includes("Internal Server Error") ||
-        msg.includes('code":13') ||
-        msg.includes("code:13") ||
-        msg.includes("bad response") ||
-        msg.includes("received bad") ||
-        msg.includes("token") ||
-        msg.includes("Unterminated") ||
-        msg.includes("JSON") ||
-        err?.status === 500;
+      const isRetryable = isRetryableLlmError(err);
       if (detail === "high" && isRetryable) {
         console.log(
           `[Takeoff AI] Retryable error on high detail: ${msg.slice(0, 120)}`
@@ -698,17 +712,7 @@ async function verifyPass(
       return verified;
     } catch (err: any) {
       const msg = err?.message || "";
-      const isRetryable =
-        msg.includes("500") ||
-        msg.includes("Internal Server Error") ||
-        msg.includes('code":13') ||
-        msg.includes("code:13") ||
-        msg.includes("bad response") ||
-        msg.includes("received bad") ||
-        msg.includes("token") ||
-        msg.includes("Unterminated") ||
-        msg.includes("JSON") ||
-        err?.status === 500;
+      const isRetryable = isRetryableLlmError(err);
       if (detail === "high" && isRetryable) {
         console.log(
           `[Takeoff AI] Verify retryable error on high detail: ${msg.slice(0, 120)}`
@@ -843,15 +847,8 @@ export async function processDrawingSheet(
     );
     return result;
   } catch (error: any) {
-    // Auto-retry on transient 500/LLM errors before marking as error
-    const msg = error?.message || "";
-    const isTransient =
-      msg.includes("500") ||
-      msg.includes("Internal Server Error") ||
-      msg.includes('code":13') ||
-      msg.includes("code:13") ||
-      msg.includes("bad response") ||
-      msg.includes("received bad");
+    // Auto-retry on transient LLM/provider errors before marking as error.
+    const isTransient = isRetryableLlmError(error);
     if (isTransient && _retryAttempt < MAX_AUTO_RETRIES) {
       console.log(
         `[Takeoff AI] Transient error on sheet ${sheetId} — auto-retrying in 5s (attempt ${_retryAttempt + 1}/${MAX_AUTO_RETRIES})...`
