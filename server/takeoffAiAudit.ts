@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import {
-  invokeLLM,
+  invokeLLMWithTimeout,
   resolveLLMModel,
   resolveLLMProvider,
   type InvokeParams,
@@ -32,6 +32,37 @@ const PASS_MODEL_ENV: Record<TakeoffPassType, string[]> = {
   takeoff_verify: ["OPENAI_MODEL_TAKEOFF_VERIFY", "CONSTRUCTLINE_MODEL_VERIFY"],
   labor_task_group: ["OPENAI_MODEL_LABOR", "CONSTRUCTLINE_MODEL_LABOR"],
   labor_item_preview: ["OPENAI_MODEL_LABOR", "CONSTRUCTLINE_MODEL_LABOR"],
+};
+
+const PASS_TIMEOUT_ENV: Record<TakeoffPassType, string[]> = {
+  sheet_index: [
+    "CONSTRUCTLINE_LLM_TIMEOUT_SHEET_INDEX_MS",
+    "TAKEOFF_LLM_TIMEOUT_SHEET_INDEX_MS",
+  ],
+  takeoff_extract: [
+    "CONSTRUCTLINE_LLM_TIMEOUT_EXTRACT_MS",
+    "TAKEOFF_LLM_TIMEOUT_EXTRACT_MS",
+  ],
+  takeoff_verify: [
+    "CONSTRUCTLINE_LLM_TIMEOUT_VERIFY_MS",
+    "TAKEOFF_LLM_TIMEOUT_VERIFY_MS",
+  ],
+  labor_task_group: [
+    "CONSTRUCTLINE_LLM_TIMEOUT_LABOR_MS",
+    "TAKEOFF_LLM_TIMEOUT_LABOR_MS",
+  ],
+  labor_item_preview: [
+    "CONSTRUCTLINE_LLM_TIMEOUT_LABOR_MS",
+    "TAKEOFF_LLM_TIMEOUT_LABOR_MS",
+  ],
+};
+
+const DEFAULT_PASS_TIMEOUT_MS: Record<TakeoffPassType, number> = {
+  sheet_index: 150_000,
+  takeoff_extract: 300_000,
+  takeoff_verify: 240_000,
+  labor_task_group: 90_000,
+  labor_item_preview: 90_000,
 };
 
 export function resolveTakeoffModelForPass(passType: TakeoffPassType): string {
@@ -85,6 +116,25 @@ function numberFromEnv(names: string[]): number | null {
   return null;
 }
 
+function positiveNumberFromEnv(names: string[]): number | null {
+  for (const name of names) {
+    const value = Number(process.env[name]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+
+function resolveTakeoffLlmTimeoutMs(passType: TakeoffPassType): number {
+  return (
+    positiveNumberFromEnv([
+      ...(PASS_TIMEOUT_ENV[passType] || []),
+      "CONSTRUCTLINE_LLM_TIMEOUT_MS",
+      "TAKEOFF_LLM_TIMEOUT_MS",
+      "LLM_TIMEOUT_MS",
+    ]) || DEFAULT_PASS_TIMEOUT_MS[passType]
+  );
+}
+
 function estimateUsageCostCents(usage: InvokeResult["usage"]): number | null {
   if (!usage) return null;
   const inputPerMillionCents = numberFromEnv([
@@ -134,9 +184,17 @@ export async function invokeTrackedTakeoffLLM({
   const startedAt = new Date();
   const started = Date.now();
   const promptHash = hashPrompt(params);
+  const timeoutMs = resolveTakeoffLlmTimeoutMs(passType);
+  const attemptMetadata = {
+    ...(metadata || {}),
+    timeoutMs,
+  };
 
   try {
-    const response = await invokeLLM({ ...params, model });
+    const response = await invokeLLMWithTimeout(
+      { ...params, model },
+      timeoutMs
+    );
     const completedAt = new Date();
     const usage = response.usage;
     await createTakeoffLlmAttempt({
@@ -158,7 +216,7 @@ export async function invokeTrackedTakeoffLLM({
       completionTokens: usage?.completion_tokens || 0,
       totalTokens: usage?.total_tokens || 0,
       estimatedCostCents: estimateUsageCostCents(usage),
-      metadata: metadata || null,
+      metadata: attemptMetadata,
     } as any).catch(err => {
       console.warn("[Takeoff AI] Failed to record LLM attempt:", err);
     });
@@ -185,7 +243,7 @@ export async function invokeTrackedTakeoffLLM({
       totalTokens: 0,
       estimatedCostCents: null,
       errorMessage: error?.message || "Unknown LLM error",
-      metadata: metadata || null,
+      metadata: attemptMetadata,
     } as any).catch(err => {
       console.warn("[Takeoff AI] Failed to record errored LLM attempt:", err);
     });

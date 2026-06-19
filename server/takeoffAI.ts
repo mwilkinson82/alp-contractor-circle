@@ -55,6 +55,43 @@ import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
 const CSI_DIVISIONS_REFERENCE = ""; // No longer injected into prompts
+const DEFAULT_INDEX_PASS_TIMEOUT_MS = 12 * 60 * 1000;
+
+function positiveNumberFromEnv(names: string[]): number | null {
+  for (const name of names) {
+    const value = Number(process.env[name]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+
+function getIndexPassTimeoutMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_INDEX_PASS_TIMEOUT_MS",
+      "TAKEOFF_INDEX_PASS_TIMEOUT_MS",
+    ]) || DEFAULT_INDEX_PASS_TIMEOUT_MS
+  );
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)
+      );
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
 
 // ─── Pass 1: Extraction System Prompt ─────────────────────────────────────────
 
@@ -1158,7 +1195,11 @@ export async function processAllPendingSheets(
         console.log(
           `[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (${bidModeBehavior.label}) ===`
         );
-        const projectContext = await indexAllSheets(projectId, runId);
+        const projectContext = await withTimeout(
+          indexAllSheets(projectId, runId),
+          getIndexPassTimeoutMs(),
+          `Sheet indexing pass for project ${projectId}`
+        );
         projectContextSummary = projectContext.contextSummary;
         contextOnlySheetIds = new Set(
           projectContext.sheets

@@ -14,6 +14,44 @@ import {
   invokeTrackedTakeoffLLM,
 } from "./takeoffAiAudit";
 
+const DEFAULT_SHEET_INDEX_TIMEOUT_MS = 180_000;
+
+function positiveNumberFromEnv(names: string[]): number | null {
+  for (const name of names) {
+    const value = Number(process.env[name]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+
+function getSheetIndexTimeoutMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_SHEET_INDEX_TIMEOUT_MS",
+      "TAKEOFF_SHEET_INDEX_TIMEOUT_MS",
+    ]) || DEFAULT_SHEET_INDEX_TIMEOUT_MS
+  );
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)
+      );
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface SheetIndexEntry {
@@ -529,6 +567,7 @@ export async function indexAllSheets(
   // Process sheets in parallel batches of 6 for speed
   const CONCURRENCY = 6;
   const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
+  const sheetIndexTimeoutMs = getSheetIndexTimeoutMs();
   const skipped = sheets.length - sheetsWithImages.length;
   if (skipped > 0)
     console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);
@@ -548,12 +587,16 @@ export async function indexAllSheets(
         console.log(
           `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
         );
-        const indexResult = await indexSingleSheet(
-          sheet.imageUrl,
-          sheet.pageNumber,
-          projectId,
-          sheet.id,
-          runId
+        const indexResult = await withTimeout(
+          indexSingleSheet(
+            sheet.imageUrl,
+            sheet.pageNumber,
+            projectId,
+            sheet.id,
+            runId
+          ),
+          sheetIndexTimeoutMs,
+          `Sheet index page ${sheet.pageNumber}`
         );
         return { sheet, indexResult };
       })

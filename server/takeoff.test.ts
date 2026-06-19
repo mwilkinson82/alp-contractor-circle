@@ -25,7 +25,12 @@ vi.mock("drizzle-orm/mysql2", () => ({
 }));
 
 vi.mock("./storage", () => ({
-  storagePut: vi.fn().mockResolvedValue({ url: "https://cdn.example.com/test.png", key: "test-key" }),
+  storagePut: vi
+    .fn()
+    .mockResolvedValue({
+      url: "https://cdn.example.com/test.png",
+      key: "test-key",
+    }),
 }));
 
 // ─── Test the AI processing pipeline ──────────────────────────────────────────
@@ -61,23 +66,31 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should skip verification for high-confidence scaled extractions", async () => {
     const mod = await import("./takeoffAI");
-    const decision = mod.shouldVerifyExtraction({
-      sheetName: "A1.1 Floor Plan",
-      sheetType: "floor_plan",
-      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
-      items: [
-        {
-          csiDivision: "09",
-          csiCode: "09 29 00",
-          description: "Gypsum board partitions",
-          quantity: 1250,
-          unit: "SF",
-          unitCost: 1,
-          confidence: 92,
-          notes: "Measured with calibrated scale",
+    const decision = mod.shouldVerifyExtraction(
+      {
+        sheetName: "A1.1 Floor Plan",
+        sheetType: "floor_plan",
+        detectedScale: {
+          found: false,
+          notation: "",
+          drawingUnitsPerRealUnit: 0,
+          realUnit: "",
         },
-      ],
-    }, 24);
+        items: [
+          {
+            csiDivision: "09",
+            csiCode: "09 29 00",
+            description: "Gypsum board partitions",
+            quantity: 1250,
+            unit: "SF",
+            unitCost: 1,
+            confidence: 92,
+            notes: "Measured with calibrated scale",
+          },
+        ],
+      },
+      24
+    );
 
     expect(decision.shouldVerify).toBe(false);
     expect(decision.reason).toContain("scale context");
@@ -85,23 +98,31 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should require verification for risky measured extractions", async () => {
     const mod = await import("./takeoffAI");
-    const decision = mod.shouldVerifyExtraction({
-      sheetName: "S1.1 Foundation Plan",
-      sheetType: "structural",
-      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
-      items: [
-        {
-          csiDivision: "03",
-          csiCode: "03 30 00",
-          description: "Concrete slab",
-          quantity: 1,
-          unit: "LS",
-          unitCost: 1,
-          confidence: 91,
-          notes: "Placeholder",
+    const decision = mod.shouldVerifyExtraction(
+      {
+        sheetName: "S1.1 Foundation Plan",
+        sheetType: "structural",
+        detectedScale: {
+          found: false,
+          notation: "",
+          drawingUnitsPerRealUnit: 0,
+          realUnit: "",
         },
-      ],
-    }, null);
+        items: [
+          {
+            csiDivision: "03",
+            csiCode: "03 30 00",
+            description: "Concrete slab",
+            quantity: 1,
+            unit: "LS",
+            unitCost: 1,
+            confidence: 91,
+            notes: "Placeholder",
+          },
+        ],
+      },
+      null
+    );
 
     expect(decision.shouldVerify).toBe(true);
     expect(decision.reason).toContain("lump-sum");
@@ -109,23 +130,32 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should keep Fast Scope Check speed-first by skipping extra QA for usable reads", async () => {
     const mod = await import("./takeoffAI");
-    const decision = mod.shouldVerifyExtractionForBidMode({
-      sheetName: "A1.1 Floor Plan",
-      sheetType: "floor_plan",
-      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
-      items: [
-        {
-          csiDivision: "07",
-          csiCode: "07 13 00",
-          description: "Below-grade waterproofing membrane",
-          quantity: 1200,
-          unit: "SF",
-          unitCost: 1,
-          confidence: 76,
-          notes: "Measured from plan",
+    const decision = mod.shouldVerifyExtractionForBidMode(
+      {
+        sheetName: "A1.1 Floor Plan",
+        sheetType: "floor_plan",
+        detectedScale: {
+          found: false,
+          notation: "",
+          drawingUnitsPerRealUnit: 0,
+          realUnit: "",
         },
-      ],
-    }, "fast_scope_check", null);
+        items: [
+          {
+            csiDivision: "07",
+            csiCode: "07 13 00",
+            description: "Below-grade waterproofing membrane",
+            quantity: 1200,
+            unit: "SF",
+            unitCost: 1,
+            confidence: 76,
+            notes: "Measured from plan",
+          },
+        ],
+      },
+      "fast_scope_check",
+      null
+    );
 
     expect(decision.shouldVerify).toBe(false);
     expect(decision.reason).toContain("fast scope check");
@@ -133,23 +163,32 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should keep Trade Package Takeoff on the fast default path and skip per-sheet AI verification", async () => {
     const mod = await import("./takeoffAI");
-    const decision = mod.shouldVerifyExtractionForBidMode({
-      sheetName: "S1.1 Foundation Plan",
-      sheetType: "structural",
-      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
-      items: [
-        {
-          csiDivision: "03",
-          csiCode: "03 30 00",
-          description: "Concrete slab-on-grade",
-          quantity: 4323,
-          unit: "SF",
-          unitCost: 1,
-          confidence: 74,
-          notes: "Measured from foundation plan",
+    const decision = mod.shouldVerifyExtractionForBidMode(
+      {
+        sheetName: "S1.1 Foundation Plan",
+        sheetType: "structural",
+        detectedScale: {
+          found: false,
+          notation: "",
+          drawingUnitsPerRealUnit: 0,
+          realUnit: "",
         },
-      ],
-    }, "trade_package", null);
+        items: [
+          {
+            csiDivision: "03",
+            csiCode: "03 30 00",
+            description: "Concrete slab-on-grade",
+            quantity: 4323,
+            unit: "SF",
+            unitCost: 1,
+            confidence: 74,
+            notes: "Measured from foundation plan",
+          },
+        ],
+      },
+      "trade_package",
+      null
+    );
 
     expect(decision.shouldVerify).toBe(false);
     expect(decision.reason).toContain("fast default");
@@ -157,23 +196,32 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should still verify invalid Trade Package extraction results", async () => {
     const mod = await import("./takeoffAI");
-    const decision = mod.shouldVerifyExtractionForBidMode({
-      sheetName: "S1.1 Foundation Plan",
-      sheetType: "structural",
-      detectedScale: { found: false, notation: "", drawingUnitsPerRealUnit: 0, realUnit: "" },
-      items: [
-        {
-          csiDivision: "03",
-          csiCode: "03 30 00",
-          description: "Concrete slab-on-grade",
-          quantity: 0,
-          unit: "SF",
-          unitCost: 1,
-          confidence: 90,
-          notes: "Invalid quantity",
+    const decision = mod.shouldVerifyExtractionForBidMode(
+      {
+        sheetName: "S1.1 Foundation Plan",
+        sheetType: "structural",
+        detectedScale: {
+          found: false,
+          notation: "",
+          drawingUnitsPerRealUnit: 0,
+          realUnit: "",
         },
-      ],
-    }, "trade_package", null);
+        items: [
+          {
+            csiDivision: "03",
+            csiCode: "03 30 00",
+            description: "Concrete slab-on-grade",
+            quantity: 0,
+            unit: "SF",
+            unitCost: 1,
+            confidence: 90,
+            notes: "Invalid quantity",
+          },
+        ],
+      },
+      "trade_package",
+      null
+    );
 
     expect(decision.shouldVerify).toBe(true);
     expect(decision.reason).toContain("invalid quantity");
@@ -181,35 +229,47 @@ describe("Takeoff AI Pipeline", () => {
 
   it("should score scope-relevant sheets higher for Trade Package Takeoff", async () => {
     const mod = await import("./takeoffAI");
-    const waterproofingScore = mod.scoreSheetForBidMode({
-      sheetId: 1,
-      pageNumber: 5,
-      sheetName: "A5.1 Foundation Waterproofing Details",
-      sheetType: "detail",
-      discipline: "architectural",
-      dimensions: [],
-      elements: [
-        {
-          type: "waterproofing",
-          description: "Below-grade waterproofing membrane and protection board at foundation wall",
-          count: null,
-          dimensionRefs: [],
-          rebarCallouts: [],
-          concreteStrength: null,
-        },
-      ],
-      summary: "Waterproofing membrane, drainage board, and foundation drain details.",
-    }, "trade_package", "Below-grade waterproofing only. Include membrane and protection board.", ["07"]);
-    const electricalScore = mod.scoreSheetForBidMode({
-      sheetId: 2,
-      pageNumber: 20,
-      sheetName: "E2.1 Lighting Plan",
-      sheetType: "electrical_plan",
-      discipline: "electrical",
-      dimensions: [],
-      elements: [],
-      summary: "Lighting fixture layout and switching.",
-    }, "trade_package", "Below-grade waterproofing only. Include membrane and protection board.", ["07"]);
+    const waterproofingScore = mod.scoreSheetForBidMode(
+      {
+        sheetId: 1,
+        pageNumber: 5,
+        sheetName: "A5.1 Foundation Waterproofing Details",
+        sheetType: "detail",
+        discipline: "architectural",
+        dimensions: [],
+        elements: [
+          {
+            type: "waterproofing",
+            description:
+              "Below-grade waterproofing membrane and protection board at foundation wall",
+            count: null,
+            dimensionRefs: [],
+            rebarCallouts: [],
+            concreteStrength: null,
+          },
+        ],
+        summary:
+          "Waterproofing membrane, drainage board, and foundation drain details.",
+      },
+      "trade_package",
+      "Below-grade waterproofing only. Include membrane and protection board.",
+      ["07"]
+    );
+    const electricalScore = mod.scoreSheetForBidMode(
+      {
+        sheetId: 2,
+        pageNumber: 20,
+        sheetName: "E2.1 Lighting Plan",
+        sheetType: "electrical_plan",
+        discipline: "electrical",
+        dimensions: [],
+        elements: [],
+        summary: "Lighting fixture layout and switching.",
+      },
+      "trade_package",
+      "Below-grade waterproofing only. Include membrane and protection board.",
+      ["07"]
+    );
 
     expect(waterproofingScore).toBeGreaterThan(electricalScore);
   });
@@ -393,11 +453,11 @@ describe("Post-Processing Status Lifecycle", () => {
     // Verify the router code uses post_processing for manual consolidation
     const fs = await import("fs");
     const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
-    
+
     // Find the reprocessConsolidate section
     const startIdx = routerCode.indexOf("reprocessConsolidate:");
     const consolidateSection = routerCode.slice(startIdx, startIdx + 1000);
-    
+
     // It should set status to post_processing, NOT processing
     expect(consolidateSection).toContain('status: "post_processing"');
     expect(consolidateSection).not.toContain('status: "processing"');
@@ -406,15 +466,18 @@ describe("Post-Processing Status Lifecycle", () => {
   it("full analysis pipeline should also use post_processing before postProcessTakeoff", async () => {
     const fs = await import("fs");
     const aiCode = fs.readFileSync("server/takeoffAI.ts", "utf-8");
-    
+
     // The full pipeline should set post_processing before calling postProcessTakeoff
     expect(aiCode).toContain('status: "post_processing"');
   });
 
   it("ProcessingOverlay should map post_processing to consolidating phase", async () => {
     const fs = await import("fs");
-    const overlayCode = fs.readFileSync("client/src/components/ProcessingOverlay.tsx", "utf-8");
-    
+    const overlayCode = fs.readFileSync(
+      "client/src/components/ProcessingOverlay.tsx",
+      "utf-8"
+    );
+
     // The overlay should detect post_processing and show consolidation phase
     expect(overlayCode).toContain('"post_processing"');
     expect(overlayCode).toContain('"consolidating"');
@@ -422,13 +485,55 @@ describe("Post-Processing Status Lifecycle", () => {
 
   it("TakeoffDetail should poll during post_processing status", async () => {
     const fs = await import("fs");
-    const detailCode = fs.readFileSync("client/src/pages/TakeoffDetail.tsx", "utf-8");
-    
+    const detailCode = fs.readFileSync(
+      "client/src/pages/TakeoffDetail.tsx",
+      "utf-8"
+    );
+
     // Polling should be active for post_processing
     expect(detailCode).toContain('"post_processing"');
     // The refetchInterval should include post_processing
-    const refetchMatches = detailCode.match(/refetchInterval.*?post_processing/gs);
+    const refetchMatches = detailCode.match(
+      /refetchInterval.*?post_processing/gs
+    );
     expect(refetchMatches).not.toBeNull();
     expect(refetchMatches!.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── Test Long-Running Takeoff Guardrails ─────────────────────────────────────
+
+describe("Takeoff Processing Stall Guardrails", () => {
+  it("tracks takeoff LLM calls through the hard timeout wrapper", async () => {
+    const fs = await import("fs");
+    const auditCode = fs.readFileSync("server/takeoffAiAudit.ts", "utf-8");
+
+    expect(auditCode).toContain("invokeLLMWithTimeout");
+    expect(auditCode).toContain("resolveTakeoffLlmTimeoutMs");
+    expect(auditCode).toContain("CONSTRUCTLINE_LLM_TIMEOUT_MS");
+  });
+
+  it("time-boxes sheet indexing per sheet and for the full indexing pass", async () => {
+    const fs = await import("fs");
+    const sheetIndexCode = fs.readFileSync(
+      "server/takeoffSheetIndex.ts",
+      "utf-8"
+    );
+    const aiCode = fs.readFileSync("server/takeoffAI.ts", "utf-8");
+
+    expect(sheetIndexCode).toContain("CONSTRUCTLINE_SHEET_INDEX_TIMEOUT_MS");
+    expect(sheetIndexCode).toContain("Sheet index page");
+    expect(aiCode).toContain("CONSTRUCTLINE_INDEX_PASS_TIMEOUT_MS");
+    expect(aiCode).toContain("Sheet indexing pass for project");
+  });
+
+  it("releases stale zero-progress indexing jobs for retry", async () => {
+    const fs = await import("fs");
+    const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
+
+    expect(routerCode).toContain("CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS");
+    expect(routerCode).toContain("Indexing did not advance");
+    expect(routerCode).toContain('status: "error"');
+    expect(routerCode).toContain("pendingSheets.length > 0");
   });
 });

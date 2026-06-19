@@ -50,6 +50,7 @@ import { postProcessTakeoff } from "./takeoffPostProcess";
 import {
   getLatestTakeoffAnalysisRun,
   getTakeoffQaFindings,
+  updateTakeoffAnalysisRun,
 } from "./takeoffObservabilityDb";
 import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
 import { logActivity } from "./activityLogDb";
@@ -72,6 +73,24 @@ const takeoffBidModeSchema = z.enum([
   "trade_package",
   "fast_scope_check",
 ]);
+const DEFAULT_STALE_INDEXING_RELEASE_MS = 30 * 60 * 1000;
+
+function positiveNumberFromEnv(names: string[]): number | null {
+  for (const name of names) {
+    const value = Number(process.env[name]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+
+function getStaleIndexingReleaseMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS",
+      "TAKEOFF_STALE_INDEXING_RELEASE_MS",
+    ]) || DEFAULT_STALE_INDEXING_RELEASE_MS
+  );
+}
 
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
@@ -851,25 +870,26 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       const sheets = await getDrawingSheetsByProject(input.projectId);
-      const analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
+      let analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
       const completedSheets = sheets.filter(
         (s: any) => s.status === "completed"
       );
+      const pendingSheets = sheets.filter((s: any) => s.status === "pending");
       const processingSheets = sheets.filter(
         (s: any) => s.status === "processing"
       );
       const updatedAt = project.updatedAt
         ? new Date(project.updatedAt).getTime()
         : Date.now();
-      const postProcessingAgeMs = Date.now() - updatedAt;
+      const processingAgeMs = Date.now() - updatedAt;
       if (
         project.status === "post_processing" &&
         processingSheets.length === 0 &&
         completedSheets.length > 0 &&
-        postProcessingAgeMs > 6 * 60 * 1000
+        processingAgeMs > 6 * 60 * 1000
       ) {
         console.warn(
-          `[Takeoff] Project ${input.projectId} was stale in post_processing for ${Math.round(postProcessingAgeMs / 1000)}s; releasing extracted results.`
+          `[Takeoff] Project ${input.projectId} was stale in post_processing for ${Math.round(processingAgeMs / 1000)}s; releasing extracted results.`
         );
         await recalculateProjectTotal(input.projectId);
         await updateTakeoffProject(input.projectId, {
@@ -880,6 +900,35 @@ export const takeoffRouter = router({
         } as any);
         project.status = "completed";
         project.processedSheets = completedSheets.length;
+        project.processingTimedOut = true;
+      }
+      if (
+        project.status === "processing" &&
+        processingSheets.length === 0 &&
+        completedSheets.length === 0 &&
+        pendingSheets.length > 0 &&
+        (project.processedSheets || 0) === 0 &&
+        processingAgeMs > getStaleIndexingReleaseMs()
+      ) {
+        const message = `Indexing did not advance after ${Math.round(processingAgeMs / 1000)}s; released project for retry.`;
+        console.warn(`[Takeoff] Project ${input.projectId}: ${message}`);
+        await updateTakeoffProject(input.projectId, {
+          status: "error",
+          processingTimedOut: true,
+        } as any);
+        if (analysisRun?.id && analysisRun.status === "running") {
+          await updateTakeoffAnalysisRun(analysisRun.id, {
+            status: "error",
+            completedAt: new Date(),
+            errorMessage: message,
+          } as any);
+          analysisRun = {
+            ...analysisRun,
+            status: "error",
+            errorMessage: message,
+          };
+        }
+        project.status = "error";
         project.processingTimedOut = true;
       }
       return {
