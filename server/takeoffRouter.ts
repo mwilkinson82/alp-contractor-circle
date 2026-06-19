@@ -47,6 +47,11 @@ import {
 } from "./takeoffDb";
 import { processAllPendingSheets, processDrawingSheet } from "./takeoffAI";
 import { postProcessTakeoff } from "./takeoffPostProcess";
+import {
+  getLatestTakeoffAnalysisRun,
+  getTakeoffQaFindings,
+} from "./takeoffObservabilityDb";
+import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
 import { logActivity } from "./activityLogDb";
 import { ALL_TAKEOFF_DIVISION_CODES } from "../shared/csiDivisions";
 import { COST_REGIONS, getRegionMultiplier } from "../shared/costRegions";
@@ -838,6 +843,7 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       const sheets = await getDrawingSheetsByProject(input.projectId);
+      const analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
       const completedSheets = sheets.filter(
         (s: any) => s.status === "completed"
       );
@@ -873,6 +879,7 @@ export const takeoffRouter = router({
         totalSheets: project.totalSheets,
         processedSheets: project.processedSheets,
         totalEstimatedCost: project.totalEstimatedCost,
+        analysisRun,
         sheets: sheets.map((s: any) => ({
           id: s.id,
           pageNumber: s.pageNumber,
@@ -882,6 +889,31 @@ export const takeoffRouter = router({
           errorMessage: s.errorMessage,
         })),
       };
+    }),
+
+  /** Get persisted ConstructLine QA findings for a project */
+  getQaFindings: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      return getTakeoffQaFindings(input.projectId);
+    }),
+
+  /** Rebuild persisted ConstructLine QA findings from current takeoff rows */
+  refreshQaFindings: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      const findings = await refreshTakeoffQaFindings(input.projectId);
+      return { success: true, findings };
     }),
 
   /** Recalculate project status based on current sheet statuses */

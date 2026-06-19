@@ -20,7 +20,12 @@ export type FileContent = {
   type: "file_url";
   file_url: {
     url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4" ;
+    mime_type?:
+      | "audio/mpeg"
+      | "audio/wav"
+      | "application/pdf"
+      | "audio/mp4"
+      | "video/mp4";
   };
 };
 
@@ -57,6 +62,7 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
+  model?: string;
   messages: Message[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
@@ -252,13 +258,17 @@ const resolveApiUrl = () => {
 
 const resolveApiKey = () => ENV.openAiApiKey || ENV.forgeApiKey;
 
-const resolveModel = () => {
+export const resolveLLMProvider = () => (isOpenAiDirect() ? "openai" : "forge");
+
+export const resolveLLMModel = (modelOverride?: string | null) => {
+  if (modelOverride?.trim()) return modelOverride.trim();
   if (ENV.openAiModel) return ENV.openAiModel;
   return isOpenAiDirect() ? "gpt-5.5" : "gemini-2.5-flash";
 };
 
 const resolveMaxTokens = () => {
-  const raw = process.env.LLM_MAX_TOKENS || process.env.OPENAI_MAX_COMPLETION_TOKENS;
+  const raw =
+    process.env.LLM_MAX_TOKENS || process.env.OPENAI_MAX_COMPLETION_TOKENS;
   const parsed = raw ? Number.parseInt(raw, 10) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 32768;
 };
@@ -339,6 +349,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
   const {
+    model,
     messages,
     tools,
     toolChoice,
@@ -351,7 +362,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: resolveModel(),
+    model: resolveLLMModel(model),
     messages: messages.map(normalizeMessage),
   };
 
@@ -372,7 +383,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } else {
     payload.max_tokens = resolveMaxTokens();
     payload.thinking = {
-      "budget_tokens": Number.parseInt(process.env.LLM_THINKING_BUDGET_TOKENS || "128", 10),
+      budget_tokens: Number.parseInt(
+        process.env.LLM_THINKING_BUDGET_TOKENS || "128",
+        10
+      ),
     };
   }
 

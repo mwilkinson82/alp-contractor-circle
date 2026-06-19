@@ -6,7 +6,10 @@
  *   inferLaborForItemsPreview    — legacy item-level: runs LLM, returns assignments WITHOUT saving (for review panel)
  *   inferLaborForItems           — legacy: runs LLM AND saves to DB immediately
  */
-import { invokeLLM } from "./_core/llm";
+import {
+  TAKEOFF_PROMPT_VERSIONS,
+  invokeTrackedTakeoffLLM,
+} from "./takeoffAiAudit";
 import { getDb as _getDb } from "./db";
 import { activityProductivity } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -53,6 +56,11 @@ export interface TaskGroup {
   reasoning: string;
 }
 
+type LaborTraceContext = {
+  projectId: number;
+  runId?: number | null;
+};
+
 // ─── Task-based inference (new) ───────────────────────────────────────────────
 
 /**
@@ -62,12 +70,15 @@ export interface TaskGroup {
 export async function inferLaborByTasks(
   items: TakeoffItem[],
   crews: CrewDef[],
+  trace?: LaborTraceContext
 ): Promise<TaskGroup[]> {
   if (items.length === 0 || crews.length === 0) return [];
 
   const crewSummaries = crews.map(c => {
     const members = JSON.parse(c.crewMembers || "[]");
-    const memberDesc = members.map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`).join(", ");
+    const memberDesc = members
+      .map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`)
+      .join(", ");
     const primaryTrade = members.length > 0 ? members[0].tradeName : c.crewName;
     return {
       id: c.id,
@@ -84,14 +95,18 @@ AVAILABLE CREWS:
 ${JSON.stringify(crewSummaries, null, 2)}
 
 TAKEOFF ITEMS:
-${JSON.stringify(items.map((item, idx) => ({
-  index: idx,
-  description: item.description,
-  unit: item.unit,
-  quantity: item.quantity,
-  csiDivision: item.csiDivision,
-  notes: item.notes || "",
-})), null, 2)}
+${JSON.stringify(
+  items.map((item, idx) => ({
+    index: idx,
+    description: item.description,
+    unit: item.unit,
+    quantity: item.quantity,
+    csiDivision: item.csiDivision,
+    notes: item.notes || "",
+  })),
+  null,
+  2
+)}
 
 INSTRUCTIONS:
 1. Group related line items into logical installation tasks (e.g., "Concrete Slab on Grade", "Exterior Framing", "Drywall Installation").
@@ -105,55 +120,102 @@ INSTRUCTIONS:
 Return a JSON object with a "tasks" array.`;
 
   try {
-    const response = await invokeLLM({
-      messages: [
-        { role: "system", content: "You are a construction estimating expert. Return only valid JSON." },
-        { role: "user", content: prompt },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "task_groups",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              tasks: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    taskName: { type: "string", description: "Short name for this installation task" },
-                    taskDescription: { type: "string", description: "One-sentence description of the scope" },
-                    crewId: { type: ["integer", "null"], description: "ID of the assigned crew, or null if no match" },
-                    crewName: { type: "string", description: "Name of the assigned crew" },
-                    reasoning: { type: "string", description: "Why this crew was selected for this task" },
-                    items: {
-                      type: "array",
+    const response = await invokeTrackedTakeoffLLM({
+      projectId: trace?.projectId || 0,
+      runId: trace?.runId || null,
+      passType: "labor_task_group",
+      promptVersion: TAKEOFF_PROMPT_VERSIONS.labor_task_group,
+      metadata: {
+        itemCount: items.length,
+        crewCount: crews.length,
+      },
+      params: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a construction estimating expert. Return only valid JSON.",
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "task_groups",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                tasks: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      taskName: {
+                        type: "string",
+                        description: "Short name for this installation task",
+                      },
+                      taskDescription: {
+                        type: "string",
+                        description: "One-sentence description of the scope",
+                      },
+                      crewId: {
+                        type: ["integer", "null"],
+                        description:
+                          "ID of the assigned crew, or null if no match",
+                      },
+                      crewName: {
+                        type: "string",
+                        description: "Name of the assigned crew",
+                      },
+                      reasoning: {
+                        type: "string",
+                        description: "Why this crew was selected for this task",
+                      },
                       items: {
-                        type: "object",
-                        properties: {
-                          index: { type: "integer", description: "Index of the takeoff item from the input list" },
-                          productivityPerCrewHr: { type: "number", description: "Units of output per crew-hour for this specific item" },
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            index: {
+                              type: "integer",
+                              description:
+                                "Index of the takeoff item from the input list",
+                            },
+                            productivityPerCrewHr: {
+                              type: "number",
+                              description:
+                                "Units of output per crew-hour for this specific item",
+                            },
+                          },
+                          required: ["index", "productivityPerCrewHr"],
+                          additionalProperties: false,
                         },
-                        required: ["index", "productivityPerCrewHr"],
-                        additionalProperties: false,
                       },
                     },
+                    required: [
+                      "taskName",
+                      "taskDescription",
+                      "crewId",
+                      "crewName",
+                      "reasoning",
+                      "items",
+                    ],
+                    additionalProperties: false,
                   },
-                  required: ["taskName", "taskDescription", "crewId", "crewName", "reasoning", "items"],
-                  additionalProperties: false,
                 },
               },
+              required: ["tasks"],
+              additionalProperties: false,
             },
-            required: ["tasks"],
-            additionalProperties: false,
           },
         },
       },
     });
 
-    const content = response.choices?.[0]?.message?.content as string | undefined;
+    const content = response.choices?.[0]?.message?.content as
+      | string
+      | undefined;
     if (!content) return fallbackToItemLevel(items, crews);
 
     const parsed = JSON.parse(content);
@@ -162,7 +224,10 @@ Return a JSON object with a "tasks" array.`;
     const taskGroups: TaskGroup[] = [];
 
     for (const task of rawTasks) {
-      const validCrewId = task.crewId && crews.some(c => c.id === task.crewId) ? task.crewId : null;
+      const validCrewId =
+        task.crewId && crews.some(c => c.id === task.crewId)
+          ? task.crewId
+          : null;
       const crewName = validCrewId ? task.crewName : "unassigned";
 
       const taskItems = (task.items || [])
@@ -192,7 +257,9 @@ Return a JSON object with a "tasks" array.`;
     }
 
     // Safety: ensure all items are covered
-    const coveredDescs = new Set(taskGroups.flatMap(t => t.items.map(i => i.description)));
+    const coveredDescs = new Set(
+      taskGroups.flatMap(t => t.items.map(i => i.description))
+    );
     const uncovered = items.filter(item => !coveredDescs.has(item.description));
     if (uncovered.length > 0) {
       taskGroups.push({
@@ -219,19 +286,24 @@ Return a JSON object with a "tasks" array.`;
 }
 
 /** Fallback: create one task per item if task grouping fails */
-function fallbackToItemLevel(items: TakeoffItem[], _crews: CrewDef[]): TaskGroup[] {
+function fallbackToItemLevel(
+  items: TakeoffItem[],
+  _crews: CrewDef[]
+): TaskGroup[] {
   return items.map(item => ({
     taskName: item.description.slice(0, 60),
     taskDescription: "",
     crewId: null,
     crewName: "unassigned",
-    items: [{
-      description: item.description,
-      unit: item.unit,
-      csiDivision: item.csiDivision,
-      notes: item.notes || "",
-      productivityPerCrewHr: 1,
-    }],
+    items: [
+      {
+        description: item.description,
+        unit: item.unit,
+        csiDivision: item.csiDivision,
+        notes: item.notes || "",
+        productivityPerCrewHr: 1,
+      },
+    ],
     reasoning: "Task grouping failed — please assign a crew manually",
   }));
 }
@@ -245,12 +317,15 @@ function fallbackToItemLevel(items: TakeoffItem[], _crews: CrewDef[]): TaskGroup
 export async function inferLaborForItemsPreview(
   items: TakeoffItem[],
   crews: CrewDef[],
+  trace?: LaborTraceContext
 ): Promise<LaborAssignment[]> {
   if (items.length === 0 || crews.length === 0) return [];
 
   const crewSummaries = crews.map(c => {
     const members = JSON.parse(c.crewMembers || "[]");
-    const memberDesc = members.map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`).join(", ");
+    const memberDesc = members
+      .map((m: any) => `${m.count}x ${m.classification} (${m.tradeName})`)
+      .join(", ");
     const primaryTrade = members.length > 0 ? members[0].tradeName : c.crewName;
     return {
       id: c.id,
@@ -273,13 +348,17 @@ AVAILABLE CREWS:
 ${JSON.stringify(crewSummaries, null, 2)}
 
 TAKEOFF ITEMS TO ASSIGN:
-${JSON.stringify(batch.map((item, idx) => ({
-  index: idx,
-  description: item.description,
-  unit: item.unit,
-  quantity: item.quantity,
-  csiDivision: item.csiDivision,
-})), null, 2)}
+${JSON.stringify(
+  batch.map((item, idx) => ({
+    index: idx,
+    description: item.description,
+    unit: item.unit,
+    quantity: item.quantity,
+    csiDivision: item.csiDivision,
+  })),
+  null,
+  2
+)}
 
 RULES:
 - Match each item to the most appropriate crew based on trade, CSI division, and work type
@@ -293,43 +372,83 @@ RULES:
 Return a JSON array with one object per item, in the same order as the input.`;
 
     try {
-      const response = await invokeLLM({
-        messages: [
-          { role: "system", content: "You are a construction estimating expert. Return only valid JSON arrays." },
-          { role: "user", content: prompt },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "labor_assignments",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                assignments: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      index: { type: "integer", description: "Index of the takeoff item" },
-                      crewId: { type: ["integer", "null"], description: "ID of the assigned crew, or null if no match" },
-                      crewName: { type: "string", description: "Name of the assigned crew" },
-                      productivityPerCrewHr: { type: "number", description: "Units of output per crew-hour" },
-                      reasoning: { type: "string", description: "Brief explanation of the assignment" },
+      const response = await invokeTrackedTakeoffLLM({
+        projectId: trace?.projectId || 0,
+        runId: trace?.runId || null,
+        passType: "labor_item_preview",
+        promptVersion: TAKEOFF_PROMPT_VERSIONS.labor_item_preview,
+        metadata: {
+          itemCount: items.length,
+          batchStart: i,
+          batchSize: batch.length,
+          crewCount: crews.length,
+        },
+        params: {
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a construction estimating expert. Return only valid JSON arrays.",
+            },
+            { role: "user", content: prompt },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "labor_assignments",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  assignments: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        index: {
+                          type: "integer",
+                          description: "Index of the takeoff item",
+                        },
+                        crewId: {
+                          type: ["integer", "null"],
+                          description:
+                            "ID of the assigned crew, or null if no match",
+                        },
+                        crewName: {
+                          type: "string",
+                          description: "Name of the assigned crew",
+                        },
+                        productivityPerCrewHr: {
+                          type: "number",
+                          description: "Units of output per crew-hour",
+                        },
+                        reasoning: {
+                          type: "string",
+                          description: "Brief explanation of the assignment",
+                        },
+                      },
+                      required: [
+                        "index",
+                        "crewId",
+                        "crewName",
+                        "productivityPerCrewHr",
+                        "reasoning",
+                      ],
+                      additionalProperties: false,
                     },
-                    required: ["index", "crewId", "crewName", "productivityPerCrewHr", "reasoning"],
-                    additionalProperties: false,
                   },
                 },
+                required: ["assignments"],
+                additionalProperties: false,
               },
-              required: ["assignments"],
-              additionalProperties: false,
             },
           },
         },
       });
 
-      const content = response.choices?.[0]?.message?.content as string | undefined;
+      const content = response.choices?.[0]?.message?.content as
+        | string
+        | undefined;
       if (content) {
         const parsed = JSON.parse(content);
         const assignments = parsed.assignments || [];
@@ -338,7 +457,8 @@ Return a JSON array with one object per item, in the same order as the input.`;
           const item = batch[a.index];
           if (!item) continue;
 
-          const validCrewId = a.crewId && crews.some(c => c.id === a.crewId) ? a.crewId : null;
+          const validCrewId =
+            a.crewId && crews.some(c => c.id === a.crewId) ? a.crewId : null;
 
           allAssignments.push({
             description: item.description,
@@ -379,7 +499,7 @@ Return a JSON array with one object per item, in the same order as the input.`;
 export async function inferLaborForItems(
   memberId: number,
   items: TakeoffItem[],
-  crews: CrewDef[],
+  crews: CrewDef[]
 ): Promise<LaborAssignment[]> {
   const allAssignments = await inferLaborForItemsPreview(items, crews);
 
@@ -390,13 +510,15 @@ export async function inferLaborForItems(
   if (existingDescs.length > 0) {
     for (let i = 0; i < existingDescs.length; i += 50) {
       const batchDescs = existingDescs.slice(i, i + 50);
-      await db.delete(activityProductivity).where(
-        and(
-          eq(activityProductivity.memberId, memberId),
-          eq(activityProductivity.source, "ai_inferred"),
-          inArray(activityProductivity.description, batchDescs),
-        )
-      );
+      await db
+        .delete(activityProductivity)
+        .where(
+          and(
+            eq(activityProductivity.memberId, memberId),
+            eq(activityProductivity.source, "ai_inferred"),
+            inArray(activityProductivity.description, batchDescs)
+          )
+        );
     }
   }
 

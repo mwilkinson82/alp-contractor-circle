@@ -7,9 +7,12 @@
  * This solves the core accuracy problem: when analyzing a structural section,
  * the AI now KNOWS the building dimensions from the plan views.
  */
-import { invokeLLM } from "./_core/llm";
 import { getDrawingSheetsByProject, updateDrawingSheet } from "./takeoffDb";
 import { storageUrlToDataUrl } from "./storage";
+import {
+  TAKEOFF_PROMPT_VERSIONS,
+  invokeTrackedTakeoffLLM,
+} from "./takeoffAiAudit";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,17 +128,38 @@ const SHEET_INDEX_SCHEMA = {
         sheetType: {
           type: "string",
           enum: [
-            "floor_plan", "foundation_plan", "roof_plan", "site_plan",
-            "elevation", "section", "detail", "schedule",
-            "structural_plan", "structural_section", "structural_detail",
-            "mep_plan", "electrical_plan", "plumbing_plan",
-            "cover", "general_notes", "other",
+            "floor_plan",
+            "foundation_plan",
+            "roof_plan",
+            "site_plan",
+            "elevation",
+            "section",
+            "detail",
+            "schedule",
+            "structural_plan",
+            "structural_section",
+            "structural_detail",
+            "mep_plan",
+            "electrical_plan",
+            "plumbing_plan",
+            "cover",
+            "general_notes",
+            "other",
           ],
           description: "Specific type of drawing sheet",
         },
         discipline: {
           type: "string",
-          enum: ["architectural", "structural", "mechanical", "electrical", "plumbing", "civil", "landscape", "general"],
+          enum: [
+            "architectural",
+            "structural",
+            "mechanical",
+            "electrical",
+            "plumbing",
+            "civil",
+            "landscape",
+            "general",
+          ],
           description: "Engineering discipline of this sheet",
         },
         dimensions: {
@@ -145,30 +169,43 @@ const SHEET_INDEX_SCHEMA = {
             properties: {
               type: {
                 type: "string",
-                description: "Dimension category: building_footprint, footing_run, slab_thickness, pit_dimension, member_size, spacing, wall_height, beam_span, column_size, rebar_spacing, overall_length, overall_width, depth, etc.",
+                description:
+                  "Dimension category: building_footprint, footing_run, slab_thickness, pit_dimension, member_size, spacing, wall_height, beam_span, column_size, rebar_spacing, overall_length, overall_width, depth, etc.",
               },
               label: {
                 type: "string",
-                description: "Human-readable label, e.g. 'Building length along Grid A' or 'Continuous footing width'",
+                description:
+                  "Human-readable label, e.g. 'Building length along Grid A' or 'Continuous footing width'",
               },
               rawValue: {
                 type: "string",
-                description: "Raw dimension as shown on drawing, e.g. \"110'-4\\\"\" or \"24\\\"\"",
+                description:
+                  'Raw dimension as shown on drawing, e.g. "110\'-4\\"" or "24\\""',
               },
               valueFeet: {
                 type: "number",
-                description: "Primary dimension converted to decimal feet (e.g., 110'-4\" = 110.33)",
+                description:
+                  "Primary dimension converted to decimal feet (e.g., 110'-4\" = 110.33)",
               },
               secondaryValueFeet: {
                 type: ["number", "null"],
-                description: "Secondary dimension in feet if applicable (e.g., width for area calculation)",
+                description:
+                  "Secondary dimension in feet if applicable (e.g., width for area calculation)",
               },
               depthFeet: {
                 type: ["number", "null"],
-                description: "Depth in feet if applicable (for volume calculation)",
+                description:
+                  "Depth in feet if applicable (for volume calculation)",
               },
             },
-            required: ["type", "label", "rawValue", "valueFeet", "secondaryValueFeet", "depthFeet"],
+            required: [
+              "type",
+              "label",
+              "rawValue",
+              "valueFeet",
+              "secondaryValueFeet",
+              "depthFeet",
+            ],
             additionalProperties: false,
           },
         },
@@ -179,15 +216,18 @@ const SHEET_INDEX_SCHEMA = {
             properties: {
               type: {
                 type: "string",
-                description: "Element type: continuous_footing, spread_footing, pier, grade_beam, slab_on_grade, pit, trench, column, wall, beam, curb, enclosure_foundation, bollard_foundation, etc.",
+                description:
+                  "Element type: continuous_footing, spread_footing, pier, grade_beam, slab_on_grade, pit, trench, column, wall, beam, curb, enclosure_foundation, bollard_foundation, etc.",
               },
               description: {
                 type: "string",
-                description: "Detailed description including sizes, e.g. '24\"W x 12\"D continuous footing along building perimeter'",
+                description:
+                  "Detailed description including sizes, e.g. '24\"W x 12\"D continuous footing along building perimeter'",
               },
               count: {
                 type: ["integer", "null"],
-                description: "Number of this element if countable, null if linear/area",
+                description:
+                  "Number of this element if countable, null if linear/area",
               },
               dimensionRefs: {
                 type: "array",
@@ -197,23 +237,39 @@ const SHEET_INDEX_SCHEMA = {
               rebarCallouts: {
                 type: "array",
                 items: { type: "string" },
-                description: "Rebar specifications for this element, e.g. '#5 @ 12\" OC EW'",
+                description:
+                  "Rebar specifications for this element, e.g. '#5 @ 12\" OC EW'",
               },
               concreteStrength: {
                 type: ["string", "null"],
                 description: "Concrete strength if specified, e.g. '4000 PSI'",
               },
             },
-            required: ["type", "description", "count", "dimensionRefs", "rebarCallouts", "concreteStrength"],
+            required: [
+              "type",
+              "description",
+              "count",
+              "dimensionRefs",
+              "rebarCallouts",
+              "concreteStrength",
+            ],
             additionalProperties: false,
           },
         },
         summary: {
           type: "string",
-          description: "Brief 1-2 sentence summary of what this sheet shows and its key information",
+          description:
+            "Brief 1-2 sentence summary of what this sheet shows and its key information",
         },
       },
-      required: ["sheetName", "sheetType", "discipline", "dimensions", "elements", "summary"],
+      required: [
+        "sheetName",
+        "sheetType",
+        "discipline",
+        "dimensions",
+        "elements",
+        "summary",
+      ],
       additionalProperties: false,
     },
   },
@@ -224,26 +280,38 @@ const SHEET_INDEX_SCHEMA = {
 async function indexSingleSheet(
   imageUrl: string,
   pageNumber: number,
+  projectId: number,
+  sheetId: number,
+  runId?: number | null
 ): Promise<Omit<SheetIndexEntry, "sheetId" | "pageNumber">> {
   const llmImageUrl = (await storageUrlToDataUrl(imageUrl)) || imageUrl;
-  const response = await invokeLLM({
-    messages: [
-      { role: "system", content: SHEET_INDEX_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Quickly scan this construction drawing (page ${pageNumber}) and extract all dimensions, elements, and key information. Focus on MEASUREMENTS — every dimension line, callout, and notation matters. Return your index as JSON.`,
-          },
-          {
-            type: "image_url",
-            image_url: { url: llmImageUrl, detail: "high" },
-          },
-        ],
-      },
-    ],
-    response_format: SHEET_INDEX_SCHEMA,
+  const response = await invokeTrackedTakeoffLLM({
+    projectId,
+    sheetId,
+    runId,
+    passType: "sheet_index",
+    promptVersion: TAKEOFF_PROMPT_VERSIONS.sheet_index,
+    detail: "high",
+    metadata: { pageNumber },
+    params: {
+      messages: [
+        { role: "system", content: SHEET_INDEX_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Quickly scan this construction drawing (page ${pageNumber}) and extract all dimensions, elements, and key information. Focus on MEASUREMENTS — every dimension line, callout, and notation matters. Return your index as JSON.`,
+            },
+            {
+              type: "image_url",
+              image_url: { url: llmImageUrl, detail: "high" },
+            },
+          ],
+        },
+      ],
+      response_format: SHEET_INDEX_SCHEMA,
+    },
   });
 
   const content = response.choices[0]?.message?.content;
@@ -264,7 +332,10 @@ async function indexSingleSheet(
 
 // ─── Build Project Context ────────────────────────────────────────────────────
 
-function buildProjectContext(projectId: number, indexEntries: SheetIndexEntry[]): ProjectContext {
+function buildProjectContext(
+  projectId: number,
+  indexEntries: SheetIndexEntry[]
+): ProjectContext {
   // Aggregate all elements
   const allElements: ElementEntry[] = [];
   const dimensionsByType: Record<string, DimensionEntry[]> = {};
@@ -312,9 +383,17 @@ function buildProjectContext(projectId: number, indexEntries: SheetIndexEntry[])
   const perimeterLF = lengthFt && widthFt ? 2 * (lengthFt + widthFt) : null;
 
   // Build context summary text
-  const contextSummary = buildContextSummaryText(indexEntries, {
-    lengthFt, widthFt, areaSF, perimeterLF,
-  }, allElements, dimensionsByType);
+  const contextSummary = buildContextSummaryText(
+    indexEntries,
+    {
+      lengthFt,
+      widthFt,
+      areaSF,
+      perimeterLF,
+    },
+    allElements,
+    dimensionsByType
+  );
 
   return {
     projectId,
@@ -328,23 +407,36 @@ function buildProjectContext(projectId: number, indexEntries: SheetIndexEntry[])
 
 function buildContextSummaryText(
   sheets: SheetIndexEntry[],
-  footprint: { lengthFt: number | null; widthFt: number | null; areaSF: number | null; perimeterLF: number | null },
+  footprint: {
+    lengthFt: number | null;
+    widthFt: number | null;
+    areaSF: number | null;
+    perimeterLF: number | null;
+  },
   allElements: ElementEntry[],
-  dimensionsByType: Record<string, DimensionEntry[]>,
+  dimensionsByType: Record<string, DimensionEntry[]>
 ): string {
   const lines: string[] = [];
 
   lines.push("## PROJECT DIMENSIONS CONTEXT (from Pass 1 sheet indexing)");
-  lines.push("The following dimensions and elements were extracted from ALL drawing sheets in this project.");
-  lines.push("USE THESE DIMENSIONS when calculating quantities — do NOT guess or use lump sums when real measurements are available.\n");
+  lines.push(
+    "The following dimensions and elements were extracted from ALL drawing sheets in this project."
+  );
+  lines.push(
+    "USE THESE DIMENSIONS when calculating quantities — do NOT guess or use lump sums when real measurements are available.\n"
+  );
 
   // Building footprint
   if (footprint.lengthFt || footprint.widthFt) {
     lines.push("### BUILDING FOOTPRINT:");
-    if (footprint.lengthFt) lines.push(`  Length: ${footprint.lengthFt.toFixed(2)} ft`);
-    if (footprint.widthFt) lines.push(`  Width: ${footprint.widthFt.toFixed(2)} ft`);
-    if (footprint.areaSF) lines.push(`  Area: ${footprint.areaSF.toFixed(0)} SF`);
-    if (footprint.perimeterLF) lines.push(`  Perimeter: ${footprint.perimeterLF.toFixed(0)} LF`);
+    if (footprint.lengthFt)
+      lines.push(`  Length: ${footprint.lengthFt.toFixed(2)} ft`);
+    if (footprint.widthFt)
+      lines.push(`  Width: ${footprint.widthFt.toFixed(2)} ft`);
+    if (footprint.areaSF)
+      lines.push(`  Area: ${footprint.areaSF.toFixed(0)} SF`);
+    if (footprint.perimeterLF)
+      lines.push(`  Perimeter: ${footprint.perimeterLF.toFixed(0)} LF`);
     lines.push("");
   }
 
@@ -353,7 +445,8 @@ function buildContextSummaryText(
   for (const [type, dims] of Object.entries(dimensionsByType)) {
     for (const dim of dims) {
       let dimStr = `  ${dim.label}: ${dim.rawValue} (${dim.valueFeet.toFixed(2)} ft)`;
-      if (dim.secondaryValueFeet) dimStr += ` × ${dim.secondaryValueFeet.toFixed(2)} ft`;
+      if (dim.secondaryValueFeet)
+        dimStr += ` × ${dim.secondaryValueFeet.toFixed(2)} ft`;
       if (dim.depthFeet) dimStr += ` × ${dim.depthFeet.toFixed(2)} ft deep`;
       lines.push(dimStr);
     }
@@ -365,7 +458,8 @@ function buildContextSummaryText(
   for (const el of allElements) {
     let elStr = `  - ${el.description}`;
     if (el.count) elStr += ` (count: ${el.count})`;
-    if (el.rebarCallouts.length > 0) elStr += ` | Rebar: ${el.rebarCallouts.join(", ")}`;
+    if (el.rebarCallouts.length > 0)
+      elStr += ` | Rebar: ${el.rebarCallouts.join(", ")}`;
     if (el.concreteStrength) elStr += ` | Concrete: ${el.concreteStrength}`;
     lines.push(elStr);
   }
@@ -374,19 +468,37 @@ function buildContextSummaryText(
   // Sheet index
   lines.push("### SHEET INDEX:");
   for (const sheet of sheets) {
-    lines.push(`  Page ${sheet.pageNumber}: ${sheet.sheetName} (${sheet.sheetType}, ${sheet.discipline}) — ${sheet.summary}`);
+    lines.push(
+      `  Page ${sheet.pageNumber}: ${sheet.sheetName} (${sheet.sheetType}, ${sheet.discipline}) — ${sheet.summary}`
+    );
   }
   lines.push("");
 
   lines.push("### INSTRUCTIONS FOR USING THIS CONTEXT:");
-  lines.push("- When you see a footing section detail, use the PLAN DIMENSIONS above to calculate total LF");
-  lines.push("- When you see rebar callouts in a section, use the footing/slab LF from plans to calculate total rebar LF");
-  lines.push("- When calculating slab-on-grade, use the BUILDING FOOTPRINT area above");
-  lines.push("- When calculating formwork, use the dimensions above to compute contact area (SFCA)");
-  lines.push("- NEVER use Lump Sum when you can calculate from these dimensions");
-  lines.push("- SHOW YOUR MATH: reference which dimension you used (e.g., 'Building perimeter 384.5 LF x 2 footing depth = 769 SFCA')");
-  lines.push("- WARNING: WIRE MESH / WWR: Do NOT use mesh specs from this context block. Always read wire mesh specs from the SHEET you are currently analyzing. Context rebar callouts are for structural elements only.");
-  lines.push("- WARNING: EXPANSION JOINTS: Measure expansion joint LF from PLAN VIEWS only. Detail sheets show joint profiles/cross-sections, NOT lengths.");
+  lines.push(
+    "- When you see a footing section detail, use the PLAN DIMENSIONS above to calculate total LF"
+  );
+  lines.push(
+    "- When you see rebar callouts in a section, use the footing/slab LF from plans to calculate total rebar LF"
+  );
+  lines.push(
+    "- When calculating slab-on-grade, use the BUILDING FOOTPRINT area above"
+  );
+  lines.push(
+    "- When calculating formwork, use the dimensions above to compute contact area (SFCA)"
+  );
+  lines.push(
+    "- NEVER use Lump Sum when you can calculate from these dimensions"
+  );
+  lines.push(
+    "- SHOW YOUR MATH: reference which dimension you used (e.g., 'Building perimeter 384.5 LF x 2 footing depth = 769 SFCA')"
+  );
+  lines.push(
+    "- WARNING: WIRE MESH / WWR: Do NOT use mesh specs from this context block. Always read wire mesh specs from the SHEET you are currently analyzing. Context rebar callouts are for structural elements only."
+  );
+  lines.push(
+    "- WARNING: EXPANSION JOINTS: Measure expansion joint LF from PLAN VIEWS only. Detail sheets show joint profiles/cross-sections, NOT lengths."
+  );
 
   return lines.join("\n");
 }
@@ -398,7 +510,10 @@ function buildContextSummaryText(
  * This runs BEFORE the main extraction pass.
  * Returns a ProjectContext that gets injected into Pass 2 prompts.
  */
-export async function indexAllSheets(projectId: number): Promise<ProjectContext> {
+export async function indexAllSheets(
+  projectId: number,
+  runId?: number | null
+): Promise<ProjectContext> {
   const sheets = await getDrawingSheetsByProject(projectId);
 
   if (sheets.length === 0) {
@@ -407,22 +522,39 @@ export async function indexAllSheets(projectId: number): Promise<ProjectContext>
 
   const indexEntries: SheetIndexEntry[] = [];
 
-  console.log(`[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=6)...`);
+  console.log(
+    `[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=6)...`
+  );
 
   // Process sheets in parallel batches of 6 for speed
   const CONCURRENCY = 6;
   const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
   const skipped = sheets.length - sheetsWithImages.length;
-  if (skipped > 0) console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);
+  if (skipped > 0)
+    console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);
 
-  for (let batchStart = 0; batchStart < sheetsWithImages.length; batchStart += CONCURRENCY) {
+  for (
+    let batchStart = 0;
+    batchStart < sheetsWithImages.length;
+    batchStart += CONCURRENCY
+  ) {
     const batch = sheetsWithImages.slice(batchStart, batchStart + CONCURRENCY);
-    console.log(`[Sheet Index] Processing batch ${Math.floor(batchStart / CONCURRENCY) + 1}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`);
+    console.log(
+      `[Sheet Index] Processing batch ${Math.floor(batchStart / CONCURRENCY) + 1}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`
+    );
 
     const results = await Promise.allSettled(
       batch.map(async (sheet: any) => {
-        console.log(`[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`);
-        const indexResult = await indexSingleSheet(sheet.imageUrl, sheet.pageNumber);
+        console.log(
+          `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
+        );
+        const indexResult = await indexSingleSheet(
+          sheet.imageUrl,
+          sheet.pageNumber,
+          projectId,
+          sheet.id,
+          runId
+        );
         return { sheet, indexResult };
       })
     );
@@ -444,20 +576,31 @@ export async function indexAllSheets(projectId: number): Promise<ProjectContext>
             sheetType: dbSheetType as any,
           });
         }
-        console.log(`[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`);
+        console.log(
+          `[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`
+        );
       } else {
-        console.error(`[Sheet Index] Error indexing sheet in batch:`, result.reason?.message || result.reason);
+        console.error(
+          `[Sheet Index] Error indexing sheet in batch:`,
+          result.reason?.message || result.reason
+        );
       }
     }
   }
 
   const context = buildProjectContext(projectId, indexEntries);
 
-  console.log(`[Sheet Index] Pass 1 complete: ${indexEntries.length}/${sheets.length} sheets indexed`);
+  console.log(
+    `[Sheet Index] Pass 1 complete: ${indexEntries.length}/${sheets.length} sheets indexed`
+  );
   if (context.buildingFootprint.areaSF) {
-    console.log(`[Sheet Index] Building footprint: ${context.buildingFootprint.lengthFt?.toFixed(1)}' × ${context.buildingFootprint.widthFt?.toFixed(1)}' = ${context.buildingFootprint.areaSF?.toFixed(0)} SF`);
+    console.log(
+      `[Sheet Index] Building footprint: ${context.buildingFootprint.lengthFt?.toFixed(1)}' × ${context.buildingFootprint.widthFt?.toFixed(1)}' = ${context.buildingFootprint.areaSF?.toFixed(0)} SF`
+    );
   }
-  console.log(`[Sheet Index] Found ${context.allElements.length} elements, ${Object.keys(context.dimensionsByType).length} dimension types`);
+  console.log(
+    `[Sheet Index] Found ${context.allElements.length} elements, ${Object.keys(context.dimensionsByType).length} dimension types`
+  );
 
   return context;
 }
@@ -467,23 +610,23 @@ export async function indexAllSheets(projectId: number): Promise<ProjectContext>
  */
 function mapToDbSheetType(detailedType: string): string {
   const mapping: Record<string, string> = {
-    "floor_plan": "floor_plan",
-    "foundation_plan": "structural",
-    "roof_plan": "floor_plan",
-    "site_plan": "site_plan",
-    "elevation": "elevation",
-    "section": "section",
-    "detail": "detail",
-    "schedule": "schedule",
-    "structural_plan": "structural",
-    "structural_section": "section",
-    "structural_detail": "detail",
-    "mep_plan": "mep",
-    "electrical_plan": "electrical",
-    "plumbing_plan": "plumbing",
-    "cover": "cover",
-    "general_notes": "other",
-    "other": "other",
+    floor_plan: "floor_plan",
+    foundation_plan: "structural",
+    roof_plan: "floor_plan",
+    site_plan: "site_plan",
+    elevation: "elevation",
+    section: "section",
+    detail: "detail",
+    schedule: "schedule",
+    structural_plan: "structural",
+    structural_section: "section",
+    structural_detail: "detail",
+    mep_plan: "mep",
+    electrical_plan: "electrical",
+    plumbing_plan: "plumbing",
+    cover: "cover",
+    general_notes: "other",
+    other: "other",
   };
   return mapping[detailedType] || "other";
 }

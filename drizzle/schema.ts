@@ -1,4 +1,14 @@
-import { boolean, decimal, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  decimal,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing Manus auth flow.
@@ -46,9 +56,13 @@ export const members = mysqlTable("members", {
     "trialing",
     "incomplete",
     "none",
-  ]).default("none").notNull(),
+  ])
+    .default("none")
+    .notNull(),
   /** Member role within the circle */
-  memberRole: mysqlEnum("memberRole", ["member", "founding_member", "admin"]).default("member").notNull(),
+  memberRole: mysqlEnum("memberRole", ["member", "founding_member", "admin"])
+    .default("member")
+    .notNull(),
   /** Preferred currency for ConstructLine takeoffs */
   preferredCurrency: varchar("preferredCurrency", { length: 8 }),
   /** Company name — used in PDF headers/footers and profile */
@@ -92,9 +106,13 @@ export const replays = mysqlTable("replays", {
     "bootcamp",
     "masterclass",
     "q_and_a",
-  ]).default("weekly_calls").notNull(),
+  ])
+    .default("weekly_calls")
+    .notNull(),
   /** Video source: cloudflare (Cloudflare Stream) or zoom_clips (Zoom Clips embed) */
-  videoSource: mysqlEnum("videoSource", ["cloudflare", "zoom_clips"]).default("cloudflare").notNull(),
+  videoSource: mysqlEnum("videoSource", ["cloudflare", "zoom_clips"])
+    .default("cloudflare")
+    .notNull(),
   /**
    * Cloudflare Stream video ID (used when videoSource = 'cloudflare').
    * Embed URL: https://iframe.videodelivery.net/{cloudflareStreamId}
@@ -140,7 +158,9 @@ export const callQuestions = mysqlTable("call_questions", {
     "selected_for_bootcamp",
     "answered",
     "archived",
-  ]).default("pending").notNull(),
+  ])
+    .default("pending")
+    .notNull(),
   /** Admin notes (visible only to Marshall) */
   adminNotes: text("adminNotes"),
   /** Which call cycle this was submitted for (ISO date string of the call date) */
@@ -167,11 +187,9 @@ export const bootcampTopics = mysqlTable("bootcamp_topics", {
   /** Which bootcamp date this was submitted for (ISO date string) */
   bootcampDate: varchar("bootcampDate", { length: 32 }).notNull(),
   /** Status of the topic */
-  status: mysqlEnum("status", [
-    "submitted",
-    "selected",
-    "not_selected",
-  ]).default("submitted").notNull(),
+  status: mysqlEnum("status", ["submitted", "selected", "not_selected"])
+    .default("submitted")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -188,7 +206,9 @@ export const emailSubscribers = mysqlTable("email_subscribers", {
   /** Email address */
   email: varchar("email", { length: 320 }).notNull().unique(),
   /** Source of subscription (e.g., 'homepage_capture') */
-  source: varchar("source", { length: 64 }).default("homepage_capture").notNull(),
+  source: varchar("source", { length: 64 })
+    .default("homepage_capture")
+    .notNull(),
   /** Whether the email has been verified */
   verified: boolean("verified").default(false).notNull(),
   /** Timestamp when subscribed */
@@ -223,11 +243,15 @@ export const schedules = mysqlTable("schedules", {
   /** Default calendar for this schedule (references project_calendars.id) */
   defaultCalendarId: int("defaultCalendarId"),
   /** Status */
-  status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
+  status: mysqlEnum("status", ["active", "archived"])
+    .default("active")
+    .notNull(),
   /** Which template this was created from (null if blank) */
   templateId: varchar("templateId", { length: 64 }),
   /** Activity ID prefix (e.g. E for electrical, P for plumbing) */
-  activityIdPrefix: varchar("activityIdPrefix", { length: 10 }).default("A").notNull(),
+  activityIdPrefix: varchar("activityIdPrefix", { length: 10 })
+    .default("A")
+    .notNull(),
   /** Activity ID starting number (e.g. 1, 100, 1000) */
   activityIdStart: int("activityIdStart").default(1).notNull(),
   /** Activity ID interval/increment (e.g. 1, 5, 10) */
@@ -272,7 +296,9 @@ export const activities = mysqlTable("activities", {
   /** WBS path for grouping (e.g. "1.0", "1.1", "2.0") */
   wbs: varchar("wbs", { length: 64 }),
   /** Percent complete (0-100) */
-  percentComplete: decimal("percentComplete", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  percentComplete: decimal("percentComplete", { precision: 5, scale: 2 })
+    .default("0.00")
+    .notNull(),
   /** Actual start date (null if not started) */
   actualStart: timestamp("actualStart"),
   /** Actual finish date (null if not finished) */
@@ -301,9 +327,13 @@ export const activities = mysqlTable("activities", {
   /** WBS node ID (references schedule_wbs.id) */
   wbsId: int("wbsId"),
   /** Activity type: task (regular bar) or milestone (diamond, 0 duration) */
-  activityType: varchar("activityType", { length: 16 }).default("task").notNull(),
+  activityType: varchar("activityType", { length: 16 })
+    .default("task")
+    .notNull(),
   /** Constraint type for scheduling (e.g. ASAP, SNET, SNLT, FNET, FNLT, MSO, MFO) */
-  constraintType: varchar("constraintType", { length: 16 }).default("ASAP").notNull(),
+  constraintType: varchar("constraintType", { length: 16 })
+    .default("ASAP")
+    .notNull(),
   /** Constraint date (used with SNET, SNLT, FNET, FNLT, MSO, MFO) */
   constraintDate: timestamp("constraintDate"),
   /** Optional notes */
@@ -354,14 +384,17 @@ export const activityRelationships = mysqlTable("activity_relationships", {
   /** Successor activity ID (DB id) */
   successorId: int("successorId").notNull(),
   /** Relationship type */
-  relationshipType: mysqlEnum("relationshipType", ["FS", "SS", "FF", "SF"]).default("FS").notNull(),
+  relationshipType: mysqlEnum("relationshipType", ["FS", "SS", "FF", "SF"])
+    .default("FS")
+    .notNull(),
   /** Lag in work days (negative = lead) */
   lagDays: int("lagDays").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type ActivityRelationship = typeof activityRelationships.$inferSelect;
-export type InsertActivityRelationship = typeof activityRelationships.$inferInsert;
+export type InsertActivityRelationship =
+  typeof activityRelationships.$inferInsert;
 
 /**
  * Activity code categories — user-defined classification dimensions.
@@ -379,7 +412,8 @@ export const activityCodeCategories = mysqlTable("activity_code_categories", {
 });
 
 export type ActivityCodeCategory = typeof activityCodeCategories.$inferSelect;
-export type InsertActivityCodeCategory = typeof activityCodeCategories.$inferInsert;
+export type InsertActivityCodeCategory =
+  typeof activityCodeCategories.$inferInsert;
 
 /**
  * Activity code values — the individual values within a category.
@@ -414,8 +448,10 @@ export const activityCodeAssignments = mysqlTable("activity_code_assignments", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type ActivityCodeAssignment = typeof activityCodeAssignments.$inferSelect;
-export type InsertActivityCodeAssignment = typeof activityCodeAssignments.$inferInsert;
+export type ActivityCodeAssignment =
+  typeof activityCodeAssignments.$inferSelect;
+export type InsertActivityCodeAssignment =
+  typeof activityCodeAssignments.$inferInsert;
 
 /**
  * Schedule baselines / updates — snapshots of the schedule at a point in time.
@@ -430,7 +466,9 @@ export const scheduleBaselines = mysqlTable("schedule_baselines", {
   /** Snapshot name e.g. "Original Baseline", "Update 1", "Update 2" */
   name: varchar("name", { length: 256 }).notNull(),
   /** Type: baseline (original approved) or update (numbered schedule update) */
-  snapshotType: mysqlEnum("snapshotType", ["baseline", "update"]).default("baseline").notNull(),
+  snapshotType: mysqlEnum("snapshotType", ["baseline", "update"])
+    .default("baseline")
+    .notNull(),
   /** Update number (null for baselines, 1/2/3... for updates) */
   updateNumber: int("updateNumber"),
   /** Data date at the time this snapshot was taken */
@@ -483,7 +521,9 @@ export const calendarExceptions = mysqlTable("calendar_exceptions", {
   /** The exception date */
   exceptionDate: timestamp("exceptionDate").notNull(),
   /** Type: holiday (non-work) or workday (override to work) */
-  exceptionType: mysqlEnum("exceptionType", ["holiday", "workday"]).default("holiday").notNull(),
+  exceptionType: mysqlEnum("exceptionType", ["holiday", "workday"])
+    .default("holiday")
+    .notNull(),
   /** Description e.g. "Thanksgiving", "Weather Day", "Saturday OT" */
   description: varchar("description", { length: 256 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -519,7 +559,6 @@ export const templates = mysqlTable("templates", {
 export type Template = typeof templates.$inferSelect;
 export type InsertTemplate = typeof templates.$inferInsert;
 
-
 // ─── Lead Magnet Captures ──────────────────────────────────────────────────
 
 /**
@@ -540,7 +579,6 @@ export const leads = mysqlTable("leads", {
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
-
 
 // ─── Drip Campaign System ──────────────────────────────────────────────────
 
@@ -572,7 +610,9 @@ export const dripEnrollments = mysqlTable("drip_enrollments", {
     "paused",
     "unsubscribed",
     "converted",
-  ]).default("active").notNull(),
+  ])
+    .default("active")
+    .notNull(),
   /** When the enrollment started (used to calculate send dates) */
   enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
   /** When the next email should be sent */
@@ -603,7 +643,9 @@ export const dripSentEmails = mysqlTable("drip_sent_emails", {
   /** Resend email ID for tracking */
   resendId: varchar("resendId", { length: 128 }),
   /** Send status */
-  status: mysqlEnum("status", ["sent", "failed", "bounced"]).default("sent").notNull(),
+  status: mysqlEnum("status", ["sent", "failed", "bounced"])
+    .default("sent")
+    .notNull(),
   /** Error message if failed */
   errorMessage: text("errorMessage"),
   sentAt: timestamp("sentAt").defaultNow().notNull(),
@@ -633,7 +675,6 @@ export const scheduleLayouts = mysqlTable("schedule_layouts", {
 export type ScheduleLayout = typeof scheduleLayouts.$inferSelect;
 export type InsertScheduleLayout = typeof scheduleLayouts.$inferInsert;
 
-
 // ─── Resource & Cost Loading ──────────────────────────────────────────────
 
 /**
@@ -647,13 +688,22 @@ export const scheduleResources = mysqlTable("schedule_resources", {
   /** Resource name e.g. "Electrician", "Crane", "Concrete" */
   name: varchar("name", { length: 256 }).notNull(),
   /** Resource type */
-  resourceType: mysqlEnum("resourceType", ["labor", "equipment", "material", "subcontractor"]).default("labor").notNull(),
+  resourceType: mysqlEnum("resourceType", [
+    "labor",
+    "equipment",
+    "material",
+    "subcontractor",
+  ])
+    .default("labor")
+    .notNull(),
   /** Unit of measure e.g. "hr", "day", "cy", "ea", "ls" */
   unit: varchar("unit", { length: 32 }).default("hr").notNull(),
   /** Cost rate per unit (stored in cents to avoid floating point) */
   costRate: int("costRate").default(0).notNull(),
   /** Max units available per day (e.g., 8 hrs for labor, 1 for equipment) */
-  maxUnitsPerDay: decimal("maxUnitsPerDay", { precision: 10, scale: 2 }).default("8.00").notNull(),
+  maxUnitsPerDay: decimal("maxUnitsPerDay", { precision: 10, scale: 2 })
+    .default("8.00")
+    .notNull(),
   /** Notes/description */
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -676,7 +726,9 @@ export const activityResources = mysqlTable("activity_resources", {
   /** Resource being assigned */
   resourceId: int("resourceId").notNull(),
   /** Units per day (e.g., 8 hrs/day, 2 crews/day) */
-  unitsPerDay: decimal("unitsPerDay", { precision: 10, scale: 2 }).default("8.00").notNull(),
+  unitsPerDay: decimal("unitsPerDay", { precision: 10, scale: 2 })
+    .default("8.00")
+    .notNull(),
   /** Override cost rate for this assignment (null = use resource default) */
   costRateOverride: int("costRateOverride"),
   /** Total budgeted cost for this assignment (calculated: rate * units * duration) */
@@ -724,7 +776,11 @@ export const scheduleAnnotations = mysqlTable("schedule_annotations", {
   /** Parent schedule */
   scheduleId: int("scheduleId").notNull(),
   /** Annotation type: text, arrow, or shading */
-  annotationType: mysqlEnum("annotationType", ["text", "arrow", "shading"]).notNull(),
+  annotationType: mysqlEnum("annotationType", [
+    "text",
+    "arrow",
+    "shading",
+  ]).notNull(),
   /** Full annotation properties stored as JSON (position, color, size, pattern, label, etc.) */
   data: json("data").notNull(),
   /** Display order / z-index */
@@ -735,7 +791,6 @@ export const scheduleAnnotations = mysqlTable("schedule_annotations", {
 
 export type ScheduleAnnotation = typeof scheduleAnnotations.$inferSelect;
 export type InsertScheduleAnnotation = typeof scheduleAnnotations.$inferInsert;
-
 
 // ─── AI Quantity Takeoff ──────────────────────────────────────────────────────
 
@@ -759,7 +814,9 @@ export const takeoffProjects = mysqlTable("takeoff_projects", {
     "post_processing",
     "completed",
     "error",
-  ]).default("draft").notNull(),
+  ])
+    .default("draft")
+    .notNull(),
   /** Total number of sheets uploaded */
   totalSheets: int("totalSheets").default(0).notNull(),
   /** Number of sheets processed so far */
@@ -835,7 +892,9 @@ export const drawingSheets = mysqlTable("drawing_sheets", {
     "landscape",
     "cover",
     "other",
-  ]).default("other").notNull(),
+  ])
+    .default("other")
+    .notNull(),
   /** Processing status for this sheet */
   status: mysqlEnum("status", [
     "pending",
@@ -843,7 +902,9 @@ export const drawingSheets = mysqlTable("drawing_sheets", {
     "completed",
     "error",
     "skipped",
-  ]).default("pending").notNull(),
+  ])
+    .default("pending")
+    .notNull(),
   /** Error message if processing failed */
   errorMessage: text("errorMessage"),
   /** Raw AI response JSON (for debugging/reprocessing) */
@@ -872,7 +933,9 @@ export const takeoffItems = mysqlTable("takeoff_items", {
   /** Item description e.g. "8\" CMU Block Wall" */
   description: varchar("description", { length: 512 }).notNull(),
   /** Quantity value */
-  quantity: decimal("quantity", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 })
+    .default("0.00")
+    .notNull(),
   /** Unit of measure e.g. "SF", "LF", "CY", "EA", "LS" */
   unit: varchar("unit", { length: 16 }).default("EA").notNull(),
   /** Unit cost in cents (material + labor combined) */
@@ -897,6 +960,102 @@ export const takeoffItems = mysqlTable("takeoff_items", {
 
 export type TakeoffItem = typeof takeoffItems.$inferSelect;
 export type InsertTakeoffItem = typeof takeoffItems.$inferInsert;
+
+/**
+ * Takeoff Analysis Runs — one row per ConstructLine analysis/re-analysis.
+ * Gives us a durable audit trail for timing, model profile, usage, and QA output.
+ */
+export const takeoffAnalysisRuns = mysqlTable("takeoff_analysis_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  runType: varchar("runType", { length: 64 })
+    .default("full_analysis")
+    .notNull(),
+  status: mysqlEnum("status", [
+    "queued",
+    "running",
+    "completed",
+    "error",
+    "canceled",
+  ])
+    .default("queued")
+    .notNull(),
+  modelProfile: varchar("modelProfile", { length: 128 }),
+  sheetCount: int("sheetCount").default(0).notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  durationMs: int("durationMs"),
+  totalPromptTokens: int("totalPromptTokens").default(0).notNull(),
+  totalCompletionTokens: int("totalCompletionTokens").default(0).notNull(),
+  totalTokens: int("totalTokens").default(0).notNull(),
+  estimatedCostCents: int("estimatedCostCents"),
+  summary: json("summary"),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TakeoffAnalysisRun = typeof takeoffAnalysisRuns.$inferSelect;
+export type InsertTakeoffAnalysisRun = typeof takeoffAnalysisRuns.$inferInsert;
+
+/**
+ * Takeoff LLM Attempts — one row per model call.
+ * Stores prompt version/hash and usage without retaining raw drawing images.
+ */
+export const takeoffLlmAttempts = mysqlTable("takeoff_llm_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  runId: int("runId"),
+  sheetId: int("sheetId"),
+  passType: varchar("passType", { length: 64 }).notNull(),
+  status: mysqlEnum("status", ["success", "error"]).notNull(),
+  model: varchar("model", { length: 128 }).notNull(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  promptVersion: varchar("promptVersion", { length: 64 }),
+  promptHash: varchar("promptHash", { length: 64 }),
+  detail: varchar("detail", { length: 16 }),
+  retryAttempt: int("retryAttempt").default(0).notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  durationMs: int("durationMs"),
+  promptTokens: int("promptTokens").default(0).notNull(),
+  completionTokens: int("completionTokens").default(0).notNull(),
+  totalTokens: int("totalTokens").default(0).notNull(),
+  estimatedCostCents: int("estimatedCostCents"),
+  errorMessage: text("errorMessage"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TakeoffLlmAttempt = typeof takeoffLlmAttempts.$inferSelect;
+export type InsertTakeoffLlmAttempt = typeof takeoffLlmAttempts.$inferInsert;
+
+/**
+ * Takeoff QA Findings — persisted estimator review queue generated after analysis.
+ * The UI can still derive richer warnings, but these are durable run artifacts.
+ */
+export const takeoffQaFindings = mysqlTable("takeoff_qa_findings", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  runId: int("runId"),
+  findingKey: varchar("findingKey", { length: 128 }).notNull(),
+  severity: mysqlEnum("severity", ["blocker", "risk", "review", "reference"])
+    .default("review")
+    .notNull(),
+  category: varchar("category", { length: 128 }).notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  description: text("description"),
+  amountCents: int("amountCents").default(0).notNull(),
+  itemCount: int("itemCount").default(0).notNull(),
+  itemIds: json("itemIds"),
+  status: mysqlEnum("status", ["open", "resolved", "dismissed"])
+    .default("open")
+    .notNull(),
+  resolutionNote: text("resolutionNote"),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TakeoffQaFinding = typeof takeoffQaFindings.$inferSelect;
+export type InsertTakeoffQaFinding = typeof takeoffQaFindings.$inferInsert;
 
 /**
  * User Cost Library — member-uploaded unit cost data that overrides the default cost table.
@@ -940,7 +1099,9 @@ export const sheetMarkups = mysqlTable("sheet_markups", {
   /** JSON array of Shape objects */
   shapesJson: text("shapesJson").notNull(),
   /** Scale ratio: pixels per real-world unit (0 = not calibrated) */
-  scaleRatio: decimal("scaleRatio", { precision: 20, scale: 6 }).default("0").notNull(),
+  scaleRatio: decimal("scaleRatio", { precision: 20, scale: 6 })
+    .default("0")
+    .notNull(),
   /** Scale unit: "ft", "m", "in", "cm", "mm", "px" */
   scaleUnit: varchar("scaleUnit", { length: 8 }).default("px").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -991,8 +1152,18 @@ export const feedback = mysqlTable("feedback", {
   screenshotUrl: text("screenshotUrl"),
   page: varchar("page", { length: 512 }),
   userAgent: text("userAgent"),
-  category: mysqlEnum("category", ["bug", "feature", "general", "other"]).default("general").notNull(),
-  status: mysqlEnum("status", ["new", "reviewed", "in_progress", "resolved", "wont_fix"]).default("new").notNull(),
+  category: mysqlEnum("category", ["bug", "feature", "general", "other"])
+    .default("general")
+    .notNull(),
+  status: mysqlEnum("status", [
+    "new",
+    "reviewed",
+    "in_progress",
+    "resolved",
+    "wont_fix",
+  ])
+    .default("new")
+    .notNull(),
   adminNotes: text("adminNotes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -1012,7 +1183,15 @@ export const xerImportJobs = mysqlTable("xer_import_jobs", {
   /** User-provided schedule name override */
   scheduleName: varchar("scheduleName", { length: 256 }),
   /** Current status of the import */
-  status: mysqlEnum("status", ["pending", "parsing", "importing", "complete", "failed"]).default("pending").notNull(),
+  status: mysqlEnum("status", [
+    "pending",
+    "parsing",
+    "importing",
+    "complete",
+    "failed",
+  ])
+    .default("pending")
+    .notNull(),
   /** Progress message for the frontend */
   progressMessage: text("progressMessage"),
   /** Resulting schedule ID on success */
@@ -1048,7 +1227,6 @@ export const betaUsers = mysqlTable("beta_users", {
 });
 export type BetaUser = typeof betaUsers.$inferSelect;
 export type InsertBetaUser = typeof betaUsers.$inferInsert;
-
 
 // ─── Labor Library ────────────────────────────────────────────────────────────
 /**
@@ -1130,8 +1308,10 @@ export const companyEstimateDefaults = mysqlTable("company_estimate_defaults", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-export type CompanyEstimateDefault = typeof companyEstimateDefaults.$inferSelect;
-export type InsertCompanyEstimateDefault = typeof companyEstimateDefaults.$inferInsert;
+export type CompanyEstimateDefault =
+  typeof companyEstimateDefaults.$inferSelect;
+export type InsertCompanyEstimateDefault =
+  typeof companyEstimateDefaults.$inferInsert;
 
 // ─── Trade Rate Library ───────────────────────────────────────────────────────
 /**
@@ -1194,7 +1374,9 @@ export const burdenConfigs = mysqlTable("burden_configs", {
   /** General Liability Insurance — basis points */
   generalLiabilityPct: int("generalLiabilityPct").default(200).notNull(),
   /** Health Insurance — cents per hour (fixed cost, not percentage) */
-  healthInsuranceCentsPerHr: int("healthInsuranceCentsPerHr").default(850).notNull(),
+  healthInsuranceCentsPerHr: int("healthInsuranceCentsPerHr")
+    .default(850)
+    .notNull(),
   /** Pension / 401k — basis points of base wage */
   pensionPct: int("pensionPct").default(300).notNull(),
   /** Vacation / Holiday Pay — basis points of base wage */
@@ -1260,7 +1442,10 @@ export const activityProductivity = mysqlTable("activity_productivity", {
   /** Crew definition ID (links to crewDefinitions) */
   crewId: int("crewId"),
   /** Productivity: units of output per crew-hour (stored as decimal) */
-  productivityPerCrewHr: decimal("productivityPerCrewHr", { precision: 10, scale: 2 }).notNull(),
+  productivityPerCrewHr: decimal("productivityPerCrewHr", {
+    precision: 10,
+    scale: 2,
+  }).notNull(),
   /** Source: "rs_means", "user_historical", "subcontractor_quote" */
   source: varchar("source", { length: 32 }).default("rs_means"),
   /** Notes */
@@ -1269,7 +1454,8 @@ export const activityProductivity = mysqlTable("activity_productivity", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type ActivityProductivity = typeof activityProductivity.$inferSelect;
-export type InsertActivityProductivity = typeof activityProductivity.$inferInsert;
+export type InsertActivityProductivity =
+  typeof activityProductivity.$inferInsert;
 
 /**
  * Rate Profiles — named snapshots of labor rate configurations.
@@ -1298,7 +1484,6 @@ export const rateProfiles = mysqlTable("rate_profiles", {
 });
 export type RateProfile = typeof rateProfiles.$inferSelect;
 export type InsertRateProfile = typeof rateProfiles.$inferInsert;
-
 
 // ─── User Presence / Online Tracking ──────────────────────────────────────────
 export const userPresence = mysqlTable("user_presence", {
@@ -1372,7 +1557,8 @@ export const expandedCostLibrary = mysqlTable("expanded_cost_library", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type ExpandedCostLibraryItem = typeof expandedCostLibrary.$inferSelect;
-export type InsertExpandedCostLibraryItem = typeof expandedCostLibrary.$inferInsert;
+export type InsertExpandedCostLibraryItem =
+  typeof expandedCostLibrary.$inferInsert;
 
 // ─── Expanded Labor Library (Synonyms + Missing Items) ──────────────────────────
 export const expandedLaborLibrary = mysqlTable("expanded_labor_library", {
@@ -1402,7 +1588,8 @@ export const expandedLaborLibrary = mysqlTable("expanded_labor_library", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type ExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferSelect;
-export type InsertExpandedLaborLibraryItem = typeof expandedLaborLibrary.$inferInsert;
+export type InsertExpandedLaborLibraryItem =
+  typeof expandedLaborLibrary.$inferInsert;
 
 // ─── Webhook Events Log (for monitoring Stripe webhook reliability) ──────────
 export const webhookEvents = mysqlTable("webhook_events", {

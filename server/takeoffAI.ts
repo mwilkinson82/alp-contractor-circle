@@ -19,7 +19,6 @@
  *   - Rebar enhancement
  *   - RS Means / cost table pricing
  */
-import { invokeLLM } from "./_core/llm";
 import {
   updateDrawingSheet,
   createTakeoffItemsBatch,
@@ -41,6 +40,17 @@ import {
 import { TRADE_SPECIALTIES } from "../shared/tradeSpecialties";
 import { getBidModeBehavior } from "../shared/bidMode";
 import { storageUrlToDataUrl } from "./storage";
+import {
+  TAKEOFF_PROMPT_VERSIONS,
+  getTakeoffModelProfile,
+  invokeTrackedTakeoffLLM,
+} from "./takeoffAiAudit";
+import {
+  createTakeoffAnalysisRun,
+  summarizeTakeoffAnalysisRun,
+  updateTakeoffAnalysisRun,
+} from "./takeoffObservabilityDb";
+import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
 
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
@@ -253,6 +263,13 @@ interface TakeoffExtractionResult {
   items: TakeoffItem[];
   detectedScale?: DetectedScale;
 }
+
+type TakeoffTraceContext = {
+  projectId: number;
+  sheetId: number;
+  runId?: number | null;
+  retryAttempt?: number;
+};
 
 export function shouldVerifyExtraction(
   extracted: TakeoffExtractionResult,
@@ -496,7 +513,8 @@ async function extractPass(
   scaleUnit?: string | null,
   selectedDivisions?: string[] | null,
   specialtyIds?: string[] | null,
-  bidMode?: string | null
+  bidMode?: string | null,
+  trace?: TakeoffTraceContext
 ): Promise<TakeoffExtractionResult> {
   const behavior = getBidModeBehavior(bidMode);
   const scopeIntent = buildScopeIntent(
@@ -554,18 +572,34 @@ async function extractPass(
           `[Takeoff AI] Retrying extraction with detail:low (high detail exceeded token limit)`
         );
       }
-      const response = await invokeLLM({
-        messages: [
-          { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: EXTRACT_PROMPT },
-              { type: "image_url", image_url: { url: imageUrl, detail } },
-            ],
-          },
-        ],
-        response_format: RESPONSE_SCHEMA,
+      const response = await invokeTrackedTakeoffLLM({
+        projectId: trace?.projectId || 0,
+        sheetId: trace?.sheetId || null,
+        runId: trace?.runId || null,
+        passType: "takeoff_extract",
+        promptVersion: TAKEOFF_PROMPT_VERSIONS.takeoff_extract,
+        detail,
+        retryAttempt: trace?.retryAttempt || 0,
+        metadata: {
+          bidMode: behavior.bidMode,
+          selectedDivisionCount: selectedDivisions?.length || 0,
+          specialtyCount: specialtyIds?.length || 0,
+          hasScopeText: !!scopeText,
+          hasProjectContext: !!projectContext,
+        },
+        params: {
+          messages: [
+            { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: EXTRACT_PROMPT },
+                { type: "image_url", image_url: { url: imageUrl, detail } },
+              ],
+            },
+          ],
+          response_format: RESPONSE_SCHEMA,
+        },
       });
 
       const content = response.choices[0]?.message?.content;
@@ -621,7 +655,8 @@ async function verifyPass(
   imageUrl: string,
   extracted: TakeoffExtractionResult,
   scaleRatio?: number | null,
-  scaleUnit?: string | null
+  scaleUnit?: string | null,
+  trace?: TakeoffTraceContext
 ): Promise<TakeoffExtractionResult> {
   // Skip verification for cover sheets or empty extractions
   if (extracted.sheetType === "cover" || extracted.items.length === 0) {
@@ -645,24 +680,39 @@ async function verifyPass(
       if (detail === "low") {
         console.log(`[Takeoff AI] Retrying verification with detail:low`);
       }
-      const response = await invokeLLM({
-        messages: [
-          { role: "system", content: VERIFICATION_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})${scaleContext ? `\n\n${scaleContext}` : ""}\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
-              },
-              {
-                type: "image_url",
-                image_url: { url: imageUrl, detail },
-              },
-            ],
-          },
-        ],
-        response_format: RESPONSE_SCHEMA,
+      const response = await invokeTrackedTakeoffLLM({
+        projectId: trace?.projectId || 0,
+        sheetId: trace?.sheetId || null,
+        runId: trace?.runId || null,
+        passType: "takeoff_verify",
+        promptVersion: TAKEOFF_PROMPT_VERSIONS.takeoff_verify,
+        detail,
+        retryAttempt: trace?.retryAttempt || 0,
+        metadata: {
+          sheetName: extracted.sheetName,
+          sheetType: extracted.sheetType,
+          extractedItemCount: extracted.items.length,
+          hasScaleContext: !!scaleContext,
+        },
+        params: {
+          messages: [
+            { role: "system", content: VERIFICATION_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Sheet: ${extracted.sheetName} (${extracted.sheetType})${scaleContext ? `\n\n${scaleContext}` : ""}\n\nHere are the ${extracted.items.length} items extracted from this drawing:\n\n${compactSummary}\n\nCompare this list to the drawing. What's missing? What quantities are wrong? Return the full corrected takeoff as JSON.`,
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: imageUrl, detail },
+                },
+              ],
+            },
+          ],
+          response_format: RESPONSE_SCHEMA,
+        },
       });
 
       const content = response.choices[0]?.message?.content;
@@ -757,9 +807,16 @@ export async function processDrawingSheet(
   _workType?: string | null,
   _region?: string | null,
   _alreadyExtracted?: string | null,
-  _retryAttempt: number = 0
+  _retryAttempt: number = 0,
+  _runId?: number | null
 ): Promise<TakeoffExtractionResult | null> {
   const MAX_AUTO_RETRIES = 1; // Auto-retry once on transient 500 errors
+  const trace: TakeoffTraceContext = {
+    projectId,
+    sheetId,
+    runId: _runId || null,
+    retryAttempt: _retryAttempt,
+  };
   try {
     await updateDrawingSheet(sheetId, { status: "processing" as any });
     const llmImageUrl = (await storageUrlToDataUrl(imageUrl)) || imageUrl;
@@ -775,7 +832,8 @@ export async function processDrawingSheet(
       _scaleUnit,
       _selectedDivisions,
       _specialtyIds,
-      _bidMode
+      _bidMode,
+      trace
     );
     console.log(
       `[Takeoff AI] Pass 1 complete: ${extracted.items.length} items (type: ${extracted.sheetType})`
@@ -791,7 +849,13 @@ export async function processDrawingSheet(
       console.log(
         `[Takeoff AI] Pass 2 — Verifying sheet ${sheetId} (${verificationDecision.reason})...`
       );
-      result = await verifyPass(llmImageUrl, extracted, _scaleRatio, _scaleUnit);
+      result = await verifyPass(
+        llmImageUrl,
+        extracted,
+        _scaleRatio,
+        _scaleUnit,
+        trace
+      );
       console.log(
         `[Takeoff AI] Pass 2 complete: ${result.items.length} items final`
       );
@@ -870,7 +934,8 @@ export async function processDrawingSheet(
         _workType,
         _region,
         _alreadyExtracted,
-        _retryAttempt + 1
+        _retryAttempt + 1,
+        _runId || null
       );
     }
     console.error(
@@ -1071,293 +1136,337 @@ export async function processAllPendingSheets(
   const timings: Record<string, number> = {};
   const pendingSheets = await getPendingSheets(projectId);
   const pendingSheetIds = new Set(pendingSheets.map((sheet: any) => sheet.id));
+  const runId = await createTakeoffAnalysisRun({
+    projectId,
+    runType: "full_analysis",
+    status: "running",
+    modelProfile: getTakeoffModelProfile(),
+    sheetCount: pendingSheets.length,
+    startedAt: new Date(),
+  } as any);
 
-  // ─── PASS 1: Index All Sheets (classify types, detect cover sheets) ──────────
-  // We run indexing to classify sheet types, skip cover sheets, and provide
-  // compact project context to each sheet extraction.
-  let projectContextSummary: string | null = null;
-  let triagedSheetIds: Set<number> | null = null;
-  let contextOnlySheetIds = new Set<number>();
-  if (pendingSheets.length > 0) {
-    try {
-      const pass1Start = Date.now();
-      console.log(
-        `[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (${bidModeBehavior.label}) ===`
-      );
-      const projectContext = await indexAllSheets(projectId);
-      projectContextSummary = projectContext.contextSummary;
-      contextOnlySheetIds = new Set(
-        projectContext.sheets
-          .filter(
-            entry =>
-              entry.sheetType === "cover" || entry.sheetType === "general_notes"
-          )
-          .map(entry => entry.sheetId)
-      );
-      triagedSheetIds = selectSheetsForBidMode(
-        projectContext.sheets,
-        pendingSheetIds,
-        bidModeBehavior.bidMode,
-        project.scopeText || null,
-        selectedDivisions
-      );
-      if (triagedSheetIds) {
+  try {
+    // ─── PASS 1: Index All Sheets (classify types, detect cover sheets) ──────────
+    // We run indexing to classify sheet types, skip cover sheets, and provide
+    // compact project context to each sheet extraction.
+    let projectContextSummary: string | null = null;
+    let triagedSheetIds: Set<number> | null = null;
+    let contextOnlySheetIds = new Set<number>();
+    if (pendingSheets.length > 0) {
+      try {
+        const pass1Start = Date.now();
         console.log(
-          `[Takeoff AI] Sheet triage selected ${triagedSheetIds.size}/${pendingSheets.length} sheet(s) for deep extraction (${bidModeBehavior.sheetTriage}).`
+          `[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (${bidModeBehavior.label}) ===`
+        );
+        const projectContext = await indexAllSheets(projectId, runId);
+        projectContextSummary = projectContext.contextSummary;
+        contextOnlySheetIds = new Set(
+          projectContext.sheets
+            .filter(
+              entry =>
+                entry.sheetType === "cover" ||
+                entry.sheetType === "general_notes"
+            )
+            .map(entry => entry.sheetId)
+        );
+        triagedSheetIds = selectSheetsForBidMode(
+          projectContext.sheets,
+          pendingSheetIds,
+          bidModeBehavior.bidMode,
+          project.scopeText || null,
+          selectedDivisions
+        );
+        if (triagedSheetIds) {
+          console.log(
+            `[Takeoff AI] Sheet triage selected ${triagedSheetIds.size}/${pendingSheets.length} sheet(s) for deep extraction (${bidModeBehavior.sheetTriage}).`
+          );
+        }
+        timings.pass1_indexing_sec = Math.round(
+          (Date.now() - pass1Start) / 1000
+        );
+        console.log(
+          `[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`
+        );
+      } catch (indexError: any) {
+        timings.pass1_indexing_sec = Math.round(
+          (Date.now() - pipelineStart) / 1000
+        );
+        console.warn(
+          `[Takeoff AI] Pass 1 (indexing) failed — proceeding without sheet type classification:`,
+          indexError.message
         );
       }
-      timings.pass1_indexing_sec = Math.round((Date.now() - pass1Start) / 1000);
+    } else {
+      timings.pass1_indexing_sec = 0;
       console.log(
-        `[Takeoff AI] ⏱ Pass 1 (indexing): ${timings.pass1_indexing_sec}s`
-      );
-    } catch (indexError: any) {
-      timings.pass1_indexing_sec = Math.round(
-        (Date.now() - pipelineStart) / 1000
-      );
-      console.warn(
-        `[Takeoff AI] Pass 1 (indexing) failed — proceeding without sheet type classification:`,
-        indexError.message
+        `[Takeoff AI] No pending sheets for project ${projectId}; skipping indexing/extraction and running post-processing only.`
       );
     }
-  } else {
-    timings.pass1_indexing_sec = 0;
+
+    // ─── PASS 2: Extract (plus optional verification for standard QA modes) ──────
+    const pass2Start = Date.now();
     console.log(
-      `[Takeoff AI] No pending sheets for project ${projectId}; skipping indexing/extraction and running post-processing only.`
+      `[Takeoff AI] === PASS 2: Fast extraction for project ${projectId} (parallel, concurrency=6; verification=${bidModeBehavior.verification}) ===`
     );
-  }
 
-  // ─── PASS 2: Extract (plus optional verification for standard QA modes) ──────
-  const pass2Start = Date.now();
-  console.log(
-    `[Takeoff AI] === PASS 2: Fast extraction for project ${projectId} (parallel, concurrency=6; verification=${bidModeBehavior.verification}) ===`
-  );
+    let processedCount = project.processedSheets || 0;
+    let hasError = false;
+    const savedScalesBySheetId = new Map<
+      number,
+      { ratio: number; unit: string }
+    >();
+    if (project.memberId) {
+      try {
+        const markups = await getProjectMarkups(projectId, project.memberId);
+        for (const markup of markups) {
+          const ratio = parseFloat(markup.scaleRatio as unknown as string);
+          if (Number.isFinite(ratio) && ratio > 0) {
+            savedScalesBySheetId.set(markup.sheetId, {
+              ratio,
+              unit: markup.scaleUnit || "ft",
+            });
+          }
+        }
+        if (savedScalesBySheetId.size > 0) {
+          console.log(
+            `[Takeoff AI] Loaded saved scale calibration for ${savedScalesBySheetId.size} sheet(s).`
+          );
+        }
+      } catch (scaleError: any) {
+        console.warn(
+          `[Takeoff AI] Failed to load saved scale calibration — proceeding without it:`,
+          scaleError.message
+        );
+      }
+    }
 
-  let processedCount = project.processedSheets || 0;
-  let hasError = false;
-  const savedScalesBySheetId = new Map<
-    number,
-    { ratio: number; unit: string }
-  >();
-  if (project.memberId) {
-    try {
-      const markups = await getProjectMarkups(projectId, project.memberId);
-      for (const markup of markups) {
-        const ratio = parseFloat(markup.scaleRatio as unknown as string);
-        if (Number.isFinite(ratio) && ratio > 0) {
-          savedScalesBySheetId.set(markup.sheetId, {
-            ratio,
-            unit: markup.scaleUnit || "ft",
-          });
+    // Skip cover sheets — they have no measurable quantities
+    const CONTEXT_ONLY_SHEET_TYPES = new Set(["cover"]);
+
+    const sheetsToProcess = [];
+    for (const sheet of pendingSheets) {
+      if (!sheet.imageUrl) {
+        await updateDrawingSheet(sheet.id, {
+          status: "skipped" as any,
+          errorMessage: "No image URL available",
+        });
+        processedCount++;
+      } else if (
+        CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType) ||
+        contextOnlySheetIds.has(sheet.id)
+      ) {
+        console.log(
+          `[Takeoff AI] Skipping cover sheet ${sheet.id} (${sheet.sheetName}) — no measurable quantities`
+        );
+        await updateDrawingSheet(sheet.id, {
+          status: "completed" as any,
+          errorMessage: null,
+          aiRawResponse: JSON.stringify({
+            contextOnly: true,
+            reason: `Cover sheet — no measurable quantities.`,
+            items: [],
+          }),
+        });
+        processedCount++;
+        await updateTakeoffProject(projectId, {
+          processedSheets: processedCount,
+        });
+      } else if (triagedSheetIds && !triagedSheetIds.has(sheet.id)) {
+        console.log(
+          `[Takeoff AI] Holding sheet ${sheet.id} (${sheet.sheetName || sheet.pageNumber}) out of deep extraction for ${bidModeBehavior.label}`
+        );
+        await updateDrawingSheet(sheet.id, {
+          status: "skipped" as any,
+          errorMessage: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
+          aiRawResponse: JSON.stringify({
+            contextOnly: true,
+            reason: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
+            items: [],
+          }),
+        });
+        processedCount++;
+        await updateTakeoffProject(projectId, {
+          processedSheets: processedCount,
+        });
+      } else {
+        sheetsToProcess.push(sheet);
+      }
+    }
+
+    const skippedCount = pendingSheets.length - sheetsToProcess.length;
+    if (skippedCount > 0) {
+      console.log(
+        `[Takeoff AI] ${skippedCount} sheet(s) skipped. ${sheetsToProcess.length} sheets queued for extraction.`
+      );
+    }
+
+    // Process in parallel batches of 6
+    const EXTRACT_CONCURRENCY = 6;
+    for (
+      let batchStart = 0;
+      batchStart < sheetsToProcess.length;
+      batchStart += EXTRACT_CONCURRENCY
+    ) {
+      const batch = sheetsToProcess.slice(
+        batchStart,
+        batchStart + EXTRACT_CONCURRENCY
+      );
+      console.log(
+        `[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`
+      );
+
+      const results = await Promise.allSettled(
+        batch.map(sheet => {
+          const savedScale = savedScalesBySheetId.get(sheet.id);
+          return processDrawingSheet(
+            sheet.id,
+            sheet.imageUrl!,
+            projectId,
+            selectedDivisions,
+            null, // currency
+            project.scopeText || null, // scopeText — injected into extraction prompt
+            projectContextSummary,
+            selectedSpecialties,
+            savedScale?.ratio ?? null,
+            savedScale?.unit ?? null,
+            project.projectType || "commercial",
+            bidModeBehavior.bidMode,
+            null,
+            null,
+            null,
+            0,
+            runId
+          );
+        })
+      );
+
+      for (const result of results) {
+        processedCount++;
+        if (
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value)
+        ) {
+          hasError = true;
         }
       }
-      if (savedScalesBySheetId.size > 0) {
+
+      await updateTakeoffProject(projectId, {
+        processedSheets: processedCount,
+      });
+    }
+
+    timings.pass2_extraction_sec = Math.round((Date.now() - pass2Start) / 1000);
+    console.log(
+      `[Takeoff AI] ⏱ Pass 2 (extraction + optional verification): ${timings.pass2_extraction_sec}s`
+    );
+
+    // ─── Post-Processing Pipeline ─────────────────────────────────────────────────
+    const postProcStart = Date.now();
+    const allSheets = await getDrawingSheetsByProject(projectId);
+    const completedSheets = allSheets.filter(
+      (s: any) => s.status === "completed"
+    );
+    const errorSheets = allSheets.filter((s: any) => s.status === "error");
+
+    if (completedSheets.length > 0) {
+      try {
         console.log(
-          `[Takeoff AI] Loaded saved scale calibration for ${savedScalesBySheetId.size} sheet(s).`
+          `[Takeoff AI] Starting post-processing for project ${projectId}...`
         );
-      }
-    } catch (scaleError: any) {
-      console.warn(
-        `[Takeoff AI] Failed to load saved scale calibration — proceeding without it:`,
-        scaleError.message
-      );
-    }
-  }
-
-  // Skip cover sheets — they have no measurable quantities
-  const CONTEXT_ONLY_SHEET_TYPES = new Set(["cover"]);
-
-  const sheetsToProcess = [];
-  for (const sheet of pendingSheets) {
-    if (!sheet.imageUrl) {
-      await updateDrawingSheet(sheet.id, {
-        status: "skipped" as any,
-        errorMessage: "No image URL available",
-      });
-      processedCount++;
-    } else if (
-      CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType) ||
-      contextOnlySheetIds.has(sheet.id)
-    ) {
-      console.log(
-        `[Takeoff AI] Skipping cover sheet ${sheet.id} (${sheet.sheetName}) — no measurable quantities`
-      );
-      await updateDrawingSheet(sheet.id, {
-        status: "completed" as any,
-        errorMessage: null,
-        aiRawResponse: JSON.stringify({
-          contextOnly: true,
-          reason: `Cover sheet — no measurable quantities.`,
-          items: [],
-        }),
-      });
-      processedCount++;
-      await updateTakeoffProject(projectId, {
-        processedSheets: processedCount,
-      });
-    } else if (triagedSheetIds && !triagedSheetIds.has(sheet.id)) {
-      console.log(
-        `[Takeoff AI] Holding sheet ${sheet.id} (${sheet.sheetName || sheet.pageNumber}) out of deep extraction for ${bidModeBehavior.label}`
-      );
-      await updateDrawingSheet(sheet.id, {
-        status: "skipped" as any,
-        errorMessage: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
-        aiRawResponse: JSON.stringify({
-          contextOnly: true,
-          reason: `${bidModeBehavior.label}: sheet held out by relevance triage.`,
-          items: [],
-        }),
-      });
-      processedCount++;
-      await updateTakeoffProject(projectId, {
-        processedSheets: processedCount,
-      });
-    } else {
-      sheetsToProcess.push(sheet);
-    }
-  }
-
-  const skippedCount = pendingSheets.length - sheetsToProcess.length;
-  if (skippedCount > 0) {
-    console.log(
-      `[Takeoff AI] ${skippedCount} sheet(s) skipped. ${sheetsToProcess.length} sheets queued for extraction.`
-    );
-  }
-
-  // Process in parallel batches of 6
-  const EXTRACT_CONCURRENCY = 6;
-  for (
-    let batchStart = 0;
-    batchStart < sheetsToProcess.length;
-    batchStart += EXTRACT_CONCURRENCY
-  ) {
-    const batch = sheetsToProcess.slice(
-      batchStart,
-      batchStart + EXTRACT_CONCURRENCY
-    );
-    console.log(
-      `[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`
-    );
-
-    const results = await Promise.allSettled(
-      batch.map(sheet => {
-        const savedScale = savedScalesBySheetId.get(sheet.id);
-        return processDrawingSheet(
-          sheet.id,
-          sheet.imageUrl!,
-          projectId,
-          selectedDivisions,
-          null, // currency
-          project.scopeText || null, // scopeText — injected into extraction prompt
-          projectContextSummary,
-          selectedSpecialties,
-          savedScale?.ratio ?? null,
-          savedScale?.unit ?? null,
-          project.projectType || "commercial",
-          bidModeBehavior.bidMode
-        );
-      })
-    );
-
-    for (const result of results) {
-      processedCount++;
-      if (
-        result.status === "rejected" ||
-        (result.status === "fulfilled" && !result.value)
-      ) {
-        hasError = true;
-      }
-    }
-
-    await updateTakeoffProject(projectId, { processedSheets: processedCount });
-  }
-
-  timings.pass2_extraction_sec = Math.round((Date.now() - pass2Start) / 1000);
-  console.log(
-    `[Takeoff AI] ⏱ Pass 2 (extraction + optional verification): ${timings.pass2_extraction_sec}s`
-  );
-
-  // ─── Post-Processing Pipeline ─────────────────────────────────────────────────
-  const postProcStart = Date.now();
-  const allSheets = await getDrawingSheetsByProject(projectId);
-  const completedSheets = allSheets.filter(
-    (s: any) => s.status === "completed"
-  );
-  const errorSheets = allSheets.filter((s: any) => s.status === "error");
-
-  if (completedSheets.length > 0) {
-    try {
-      console.log(
-        `[Takeoff AI] Starting post-processing for project ${projectId}...`
-      );
-      await updateTakeoffProject(projectId, {
-        status: "post_processing" as any,
-      });
-
-      // Keep the estimator moving: final organization is useful, but extracted
-      // rows are already preserved and can be reviewed if this takes too long.
-      const PP_TIMEOUT_MS = 3 * 60 * 1000;
-      const ppTimeout = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Post-processing timed out after 3 minutes")),
-          PP_TIMEOUT_MS
-        )
-      );
-      const ppStats = await Promise.race([
-        postProcessTakeoff(projectId),
-        ppTimeout,
-      ]);
-      timings.pass3_postprocess_sec = Math.round(
-        (Date.now() - postProcStart) / 1000
-      );
-      console.log(
-        `[Takeoff AI] ⏱ Post-processing: ${timings.pass3_postprocess_sec}s`
-      );
-      console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
-    } catch (ppError: any) {
-      const isTimeout = ppError?.message?.includes("timed out");
-      console.error(
-        `[Takeoff AI] Post-processing ${isTimeout ? "timed out" : "failed"} (per-sheet items preserved):`,
-        ppError.message
-      );
-      await recalculateProjectTotal(projectId);
-      if (isTimeout) {
         await updateTakeoffProject(projectId, {
-          processingTimedOut: true,
-        } as any);
+          status: "post_processing" as any,
+        });
+
+        // Keep the estimator moving: final organization is useful, but extracted
+        // rows are already preserved and can be reviewed if this takes too long.
+        const PP_TIMEOUT_MS = 3 * 60 * 1000;
+        const ppTimeout = new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(new Error("Post-processing timed out after 3 minutes")),
+            PP_TIMEOUT_MS
+          )
+        );
+        const ppStats = await Promise.race([
+          postProcessTakeoff(projectId),
+          ppTimeout,
+        ]);
+        timings.pass3_postprocess_sec = Math.round(
+          (Date.now() - postProcStart) / 1000
+        );
+        console.log(
+          `[Takeoff AI] ⏱ Post-processing: ${timings.pass3_postprocess_sec}s`
+        );
+        console.log(`[Takeoff AI] Post-processing complete:`, ppStats);
+      } catch (ppError: any) {
+        const isTimeout = ppError?.message?.includes("timed out");
+        console.error(
+          `[Takeoff AI] Post-processing ${isTimeout ? "timed out" : "failed"} (per-sheet items preserved):`,
+          ppError.message
+        );
+        await recalculateProjectTotal(projectId);
+        if (isTimeout) {
+          await updateTakeoffProject(projectId, {
+            processingTimedOut: true,
+          } as any);
+        }
       }
+    } else {
+      await recalculateProjectTotal(projectId);
     }
-  } else {
-    await recalculateProjectTotal(projectId);
+
+    // ─── Timing Summary ───────────────────────────────────────────────────────────
+    timings.total_sec = Math.round((Date.now() - pipelineStart) / 1000);
+    const totalMin = (timings.total_sec / 60).toFixed(1);
+    console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
+    console.log(`[Takeoff AI] ⏱ TIMING SUMMARY for project ${projectId}:`);
+    console.log(
+      `[Takeoff AI]   Pass 1 (indexing):          ${timings.pass1_indexing_sec || 0}s`
+    );
+    console.log(
+      `[Takeoff AI]   Pass 2 (extract+verify):    ${timings.pass2_extraction_sec || 0}s`
+    );
+    console.log(
+      `[Takeoff AI]   Pass 3 (post-processing):   ${timings.pass3_postprocess_sec || 0}s`
+    );
+    console.log(
+      `[Takeoff AI]   TOTAL:                      ${timings.total_sec}s (${totalMin} min)`
+    );
+    console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
+
+    const finalStatus =
+      completedSheets.length > 0
+        ? "completed"
+        : errorSheets.length > 0
+          ? "error"
+          : "completed";
+    await updateTakeoffProject(projectId, {
+      status: finalStatus,
+      processedSheets: processedCount,
+      lastAnalyzedAt: new Date(),
+    } as any);
+    const qaFindings = await refreshTakeoffQaFindings(projectId, runId);
+    await updateTakeoffAnalysisRun(runId, {
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - pipelineStart,
+      summary: {
+        timings,
+        finalStatus,
+        processedSheets: processedCount,
+        qaFindingCount: qaFindings.length,
+      },
+    } as any);
+    await summarizeTakeoffAnalysisRun(runId);
+  } catch (error: any) {
+    await updateTakeoffAnalysisRun(runId, {
+      status: "error",
+      completedAt: new Date(),
+      durationMs: Date.now() - pipelineStart,
+      errorMessage: error?.message || "Unknown analysis error",
+      summary: { timings },
+    } as any);
+    await summarizeTakeoffAnalysisRun(runId);
+    throw error;
   }
-
-  // ─── Timing Summary ───────────────────────────────────────────────────────────
-  timings.total_sec = Math.round((Date.now() - pipelineStart) / 1000);
-  const totalMin = (timings.total_sec / 60).toFixed(1);
-  console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
-  console.log(`[Takeoff AI] ⏱ TIMING SUMMARY for project ${projectId}:`);
-  console.log(
-    `[Takeoff AI]   Pass 1 (indexing):          ${timings.pass1_indexing_sec || 0}s`
-  );
-  console.log(
-    `[Takeoff AI]   Pass 2 (extract+verify):    ${timings.pass2_extraction_sec || 0}s`
-  );
-  console.log(
-    `[Takeoff AI]   Pass 3 (post-processing):   ${timings.pass3_postprocess_sec || 0}s`
-  );
-  console.log(
-    `[Takeoff AI]   TOTAL:                      ${timings.total_sec}s (${totalMin} min)`
-  );
-  console.log(`[Takeoff AI] ═══════════════════════════════════════════════`);
-
-  const finalStatus =
-    completedSheets.length > 0
-      ? "completed"
-      : errorSheets.length > 0
-        ? "error"
-        : "completed";
-  await updateTakeoffProject(projectId, {
-    status: finalStatus,
-    processedSheets: processedCount,
-    lastAnalyzedAt: new Date(),
-  } as any);
 }

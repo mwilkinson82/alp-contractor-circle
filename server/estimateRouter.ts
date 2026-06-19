@@ -4,11 +4,19 @@
 import { router, publicProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getEstimateMarkup, upsertEstimateMarkup } from "./estimateDb";
-import { inferLaborForItemsPreview, inferLaborByTasks, type TaskGroup } from "./laborInference";
+import {
+  inferLaborForItemsPreview,
+  inferLaborByTasks,
+  type TaskGroup,
+} from "./laborInference";
 import { getDb as _getDb } from "./db";
 import { crewDefinitions, activityProductivity } from "../drizzle/schema";
 import { eq, inArray, and } from "drizzle-orm";
-import { parseMemberCookie, verifyMemberSession, getMemberById } from "./discord";
+import {
+  parseMemberCookie,
+  verifyMemberSession,
+  getMemberById,
+} from "./discord";
 import { getBetaUserFromRequest } from "./betaAuth";
 import type { Member } from "../drizzle/schema";
 import { logActivity } from "./activityLogDb";
@@ -58,7 +66,9 @@ async function requireMember(ctx: any) {
   if (WHITELISTED_MEMBER_IDS.has(member.id)) return member;
   // Everyone else must have an active subscription
   if (member.subscriptionStatus !== "active") {
-    throw new Error("An active Contractor Circle subscription is required to access this feature.");
+    throw new Error(
+      "An active Contractor Circle subscription is required to access this feature."
+    );
   }
   return member;
 }
@@ -69,27 +79,31 @@ export const estimateRouter = router({
     .query(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const markup = await getEstimateMarkup(input.projectId, member.id);
-      return markup || {
-        overheadPct: 1000,
-        profitPct: 1000,
-        contingencyPct: 500,
-        bondPct: 150,
-        taxPct: 0,
-        generalConditionsPct: 0,
-        customMarkups: null,
-      };
+      return (
+        markup || {
+          overheadPct: 1000,
+          profitPct: 1000,
+          contingencyPct: 500,
+          bondPct: 150,
+          taxPct: 0,
+          generalConditionsPct: 0,
+          customMarkups: null,
+        }
+      );
     }),
 
   saveMarkups: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      overheadPct: z.number().min(0).max(10000),
-      profitPct: z.number().min(0).max(10000),
-      contingencyPct: z.number().min(0).max(10000),
-      bondPct: z.number().min(0).max(10000),
-      taxPct: z.number().min(0).max(10000),
-      generalConditionsPct: z.number().min(0).max(10000),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        overheadPct: z.number().min(0).max(10000),
+        profitPct: z.number().min(0).max(10000),
+        contingencyPct: z.number().min(0).max(10000),
+        bondPct: z.number().min(0).max(10000),
+        taxPct: z.number().min(0).max(10000),
+        generalConditionsPct: z.number().min(0).max(10000),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const { projectId, ...markups } = input;
@@ -102,34 +116,48 @@ export const estimateRouter = router({
    * Does NOT save to database. User reviews, overrides if needed, then calls confirmLaborAssignments.
    */
   inferLabor: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      items: z.array(z.object({
-        description: z.string(),
-        unit: z.string(),
-        quantity: z.number(),
-        csiDivision: z.string(),
-        notes: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        items: z.array(
+          z.object({
+            description: z.string(),
+            unit: z.string(),
+            quantity: z.number(),
+            csiDivision: z.string(),
+            notes: z.string().optional(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const db = await _getDb();
       if (!db) throw new Error("Database not available");
-      const crews = await db.select().from(crewDefinitions).where(eq(crewDefinitions.memberId, member.id));
+      const crews = await db
+        .select()
+        .from(crewDefinitions)
+        .where(eq(crewDefinitions.memberId, member.id));
       if (crews.length === 0) {
         return {
           success: false,
-          message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
+          message:
+            "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
           assignments: [] as Array<{
-            description: string; unit: string; csiDivision: string;
-            crewId: number | null; crewName: string;
-            productivityPerCrewHr: number; reasoning: string;
+            description: string;
+            unit: string;
+            csiDivision: string;
+            crewId: number | null;
+            crewName: string;
+            productivityPerCrewHr: number;
+            reasoning: string;
           }>,
         };
       }
       // Returns assignments WITHOUT saving — user reviews first
-      const assignments = await inferLaborForItemsPreview(input.items, crews);
+      const assignments = await inferLaborForItemsPreview(input.items, crews, {
+        projectId: input.projectId,
+      });
       return {
         success: true,
         message: `AI analyzed ${assignments.length} items`,
@@ -142,32 +170,49 @@ export const estimateRouter = router({
    * Returns task groups for the review panel with inline crew editing.
    */
   inferLaborByTasks: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      items: z.array(z.object({
-        description: z.string(),
-        unit: z.string(),
-        quantity: z.number(),
-        csiDivision: z.string(),
-        notes: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        items: z.array(
+          z.object({
+            description: z.string(),
+            unit: z.string(),
+            quantity: z.number(),
+            csiDivision: z.string(),
+            notes: z.string().optional(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const db = await _getDb();
       if (!db) throw new Error("Database not available");
-      const crews = await db.select().from(crewDefinitions).where(eq(crewDefinitions.memberId, member.id));
+      const crews = await db
+        .select()
+        .from(crewDefinitions)
+        .where(eq(crewDefinitions.memberId, member.id));
       if (crews.length === 0) {
         return {
           success: false,
-          message: "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
+          message:
+            "No crew definitions found. Please set up your crews in the Trade Rate Library first.",
           tasks: [] as TaskGroup[],
         };
       }
-      const tasks = await inferLaborByTasks(input.items, crews);
+      const tasks = await inferLaborByTasks(input.items, crews, {
+        projectId: input.projectId,
+      });
       // Log activity
-      const displayName = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName, "labor_inferred", `ran labor AI on ${input.items.length} items`, `/portal/takeoff/${input.projectId}`);
+      const displayName =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName,
+        "labor_inferred",
+        `ran labor AI on ${input.items.length} items`,
+        `/portal/takeoff/${input.projectId}`
+      );
       return {
         success: true,
         message: `ConstructLine grouped ${input.items.length} items into ${tasks.length} installation tasks`,
@@ -179,19 +224,25 @@ export const estimateRouter = router({
    * confirmTaskAssignments — saves user-approved task-based assignments to activity_productivity.
    */
   confirmTaskAssignments: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      tasks: z.array(z.object({
-        crewId: z.number().nullable(),
-        items: z.array(z.object({
-          description: z.string(),
-          unit: z.string(),
-          csiDivision: z.string(),
-          productivityPerCrewHr: z.number(),
-        })),
-        reasoning: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        tasks: z.array(
+          z.object({
+            crewId: z.number().nullable(),
+            items: z.array(
+              z.object({
+                description: z.string(),
+                unit: z.string(),
+                csiDivision: z.string(),
+                productivityPerCrewHr: z.number(),
+              })
+            ),
+            reasoning: z.string().optional(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const db = await _getDb();
@@ -200,39 +251,52 @@ export const estimateRouter = router({
       // Flatten tasks into individual assignments (only tasks with a crew)
       const assignments = input.tasks
         .filter(t => t.crewId !== null)
-        .flatMap(t => t.items.map(item => ({
-          memberId: member.id,
-          csiDivision: item.csiDivision,
-          description: item.description,
-          unit: item.unit,
-          crewId: t.crewId as number,
-          productivityPerCrewHr: String(item.productivityPerCrewHr),
-          source: "ai_inferred" as const,
-          notes: t.reasoning || null,
-        })));
+        .flatMap(t =>
+          t.items.map(item => ({
+            memberId: member.id,
+            csiDivision: item.csiDivision,
+            description: item.description,
+            unit: item.unit,
+            crewId: t.crewId as number,
+            productivityPerCrewHr: String(item.productivityPerCrewHr),
+            source: "ai_inferred" as const,
+            notes: t.reasoning || null,
+          }))
+        );
 
       // Delete existing AI-inferred entries for these descriptions
       const descs = assignments.map(a => a.description);
       if (descs.length > 0) {
         for (let i = 0; i < descs.length; i += 50) {
           const batch = descs.slice(i, i + 50);
-          await db.delete(activityProductivity).where(
-            and(
-              eq(activityProductivity.memberId, member.id),
-              eq(activityProductivity.source, "ai_inferred"),
-              inArray(activityProductivity.description, batch)
-            )
-          );
+          await db
+            .delete(activityProductivity)
+            .where(
+              and(
+                eq(activityProductivity.memberId, member.id),
+                eq(activityProductivity.source, "ai_inferred"),
+                inArray(activityProductivity.description, batch)
+              )
+            );
         }
       }
 
       for (let i = 0; i < assignments.length; i += 50) {
-        await db.insert(activityProductivity).values(assignments.slice(i, i + 50));
+        await db
+          .insert(activityProductivity)
+          .values(assignments.slice(i, i + 50));
       }
 
       // Log activity
-      const displayName2 = member.discordDisplayName || member.discordUsername || "Unknown";
-      logActivity(member.id, displayName2, "estimate_confirmed", `confirmed ${assignments.length} labor assignments`, `/portal/takeoff/${input.projectId}`);
+      const displayName2 =
+        member.discordDisplayName || member.discordUsername || "Unknown";
+      logActivity(
+        member.id,
+        displayName2,
+        "estimate_confirmed",
+        `confirmed ${assignments.length} labor assignments`,
+        `/portal/takeoff/${input.projectId}`
+      );
       return {
         success: true,
         message: `Saved ${assignments.length} labor assignments from ${input.tasks.filter(t => t.crewId !== null).length} tasks`,
@@ -244,17 +308,21 @@ export const estimateRouter = router({
    * Called after user reviews and optionally overrides the AI suggestions.
    */
   confirmLaborAssignments: publicProcedure
-    .input(z.object({
-      projectId: z.number(),
-      assignments: z.array(z.object({
-        description: z.string(),
-        unit: z.string(),
-        csiDivision: z.string(),
-        crewId: z.number(),
-        productivityPerCrewHr: z.number(),
-        notes: z.string().optional(),
-      })),
-    }))
+    .input(
+      z.object({
+        projectId: z.number(),
+        assignments: z.array(
+          z.object({
+            description: z.string(),
+            unit: z.string(),
+            csiDivision: z.string(),
+            crewId: z.number(),
+            productivityPerCrewHr: z.number(),
+            notes: z.string().optional(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const member = await requireMember(ctx);
       const db = await _getDb();
@@ -265,13 +333,15 @@ export const estimateRouter = router({
       if (descs.length > 0) {
         for (let i = 0; i < descs.length; i += 50) {
           const batch = descs.slice(i, i + 50);
-          await db.delete(activityProductivity).where(
-            and(
-              eq(activityProductivity.memberId, member.id),
-              eq(activityProductivity.source, "ai_inferred"),
-              inArray(activityProductivity.description, batch)
-            )
-          );
+          await db
+            .delete(activityProductivity)
+            .where(
+              and(
+                eq(activityProductivity.memberId, member.id),
+                eq(activityProductivity.source, "ai_inferred"),
+                inArray(activityProductivity.description, batch)
+              )
+            );
         }
       }
 

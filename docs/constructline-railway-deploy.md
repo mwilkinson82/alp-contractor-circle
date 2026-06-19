@@ -68,6 +68,26 @@ STORAGE_LOCAL_DIR=/data/storage
 
 Use `OPENAI_MODEL=gpt-5.5` for the first production-quality test. Move down to a cheaper model only after comparing takeoff accuracy on representative drawings.
 
+## Optional Model Routing And Cost Tracking
+
+ConstructLine records each analysis run and each LLM call in MySQL. By default, every call uses `OPENAI_MODEL`. To test a cheaper/faster model ladder without changing code, set any of these optional overrides:
+
+```sh
+OPENAI_MODEL_SHEET_INDEX=<cheaper-fast-model>
+OPENAI_MODEL_TAKEOFF_EXTRACT=<primary-vision-model>
+OPENAI_MODEL_TAKEOFF_VERIFY=<review-model>
+OPENAI_MODEL_LABOR=<labor-basis-model>
+```
+
+If you want the analysis-run ledger to estimate spend, set token pricing in cents per 1M tokens:
+
+```sh
+OPENAI_INPUT_COST_PER_1M_TOKENS_CENTS=<input-cents>
+OPENAI_OUTPUT_COST_PER_1M_TOKENS_CENTS=<output-cents>
+```
+
+Leave these unset if you only need timing, model, and token-count observability.
+
 If a Railway volume is mounted somewhere other than `/data`, set `STORAGE_LOCAL_DIR` to that mounted path plus `/storage`.
 
 ## One-Time Database Setup
