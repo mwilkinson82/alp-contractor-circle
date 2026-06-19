@@ -14,7 +14,7 @@ import {
   invokeTrackedTakeoffLLM,
 } from "./takeoffAiAudit";
 
-const DEFAULT_SHEET_INDEX_TIMEOUT_MS = 180_000;
+const DEFAULT_SHEET_INDEX_TIMEOUT_MS = 90_000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {

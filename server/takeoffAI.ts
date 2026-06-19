@@ -55,7 +55,7 @@ import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
 const CSI_DIVISIONS_REFERENCE = ""; // No longer injected into prompts
-const DEFAULT_INDEX_PASS_TIMEOUT_MS = 12 * 60 * 1000;
+const DEFAULT_INDEX_PASS_TIMEOUT_MS = 6 * 60 * 1000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {

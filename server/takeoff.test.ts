@@ -25,12 +25,10 @@ vi.mock("drizzle-orm/mysql2", () => ({
 }));
 
 vi.mock("./storage", () => ({
-  storagePut: vi
-    .fn()
-    .mockResolvedValue({
-      url: "https://cdn.example.com/test.png",
-      key: "test-key",
-    }),
+  storagePut: vi.fn().mockResolvedValue({
+    url: "https://cdn.example.com/test.png",
+    key: "test-key",
+  }),
 }));
 
 // ─── Test the AI processing pipeline ──────────────────────────────────────────
@@ -533,7 +531,8 @@ describe("Takeoff Processing Stall Guardrails", () => {
 
     expect(routerCode).toContain("CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS");
     expect(routerCode).toContain("Indexing did not advance");
+    expect(routerCode).toContain("analysisRunStartedAt");
+    expect(routerCode).toContain('status: "pending"');
     expect(routerCode).toContain('status: "error"');
-    expect(routerCode).toContain("pendingSheets.length > 0");
   });
 });

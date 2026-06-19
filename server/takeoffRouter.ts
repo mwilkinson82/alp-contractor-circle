@@ -73,7 +73,7 @@ const takeoffBidModeSchema = z.enum([
   "trade_package",
   "fast_scope_check",
 ]);
-const DEFAULT_STALE_INDEXING_RELEASE_MS = 30 * 60 * 1000;
+const DEFAULT_STALE_INDEXING_RELEASE_MS = 15 * 60 * 1000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -90,6 +90,13 @@ function getStaleIndexingReleaseMs(): number {
       "TAKEOFF_STALE_INDEXING_RELEASE_MS",
     ]) || DEFAULT_STALE_INDEXING_RELEASE_MS
   );
+}
+
+function dateValueMs(value: unknown): number | null {
+  if (!value) return null;
+  const ms =
+    value instanceof Date ? value.getTime() : new Date(value as any).getTime();
+  return Number.isFinite(ms) ? ms : null;
 }
 
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
@@ -874,22 +881,26 @@ export const takeoffRouter = router({
       const completedSheets = sheets.filter(
         (s: any) => s.status === "completed"
       );
-      const pendingSheets = sheets.filter((s: any) => s.status === "pending");
       const processingSheets = sheets.filter(
         (s: any) => s.status === "processing"
       );
-      const updatedAt = project.updatedAt
-        ? new Date(project.updatedAt).getTime()
-        : Date.now();
-      const processingAgeMs = Date.now() - updatedAt;
+      const projectUpdatedAt = dateValueMs(project.updatedAt) ?? Date.now();
+      const projectUpdateAgeMs = Date.now() - projectUpdatedAt;
+      const analysisRunStartedAt =
+        dateValueMs((analysisRun as any)?.startedAt) ??
+        dateValueMs((analysisRun as any)?.createdAt);
+      const analysisRunAgeMs = analysisRunStartedAt
+        ? Date.now() - analysisRunStartedAt
+        : null;
+      const indexingAgeMs = analysisRunAgeMs ?? projectUpdateAgeMs;
       if (
         project.status === "post_processing" &&
         processingSheets.length === 0 &&
         completedSheets.length > 0 &&
-        processingAgeMs > 6 * 60 * 1000
+        projectUpdateAgeMs > 6 * 60 * 1000
       ) {
         console.warn(
-          `[Takeoff] Project ${input.projectId} was stale in post_processing for ${Math.round(processingAgeMs / 1000)}s; releasing extracted results.`
+          `[Takeoff] Project ${input.projectId} was stale in post_processing for ${Math.round(projectUpdateAgeMs / 1000)}s; releasing extracted results.`
         );
         await recalculateProjectTotal(input.projectId);
         await updateTakeoffProject(input.projectId, {
@@ -904,18 +915,29 @@ export const takeoffRouter = router({
       }
       if (
         project.status === "processing" &&
-        processingSheets.length === 0 &&
         completedSheets.length === 0 &&
-        pendingSheets.length > 0 &&
+        sheets.length > 0 &&
         (project.processedSheets || 0) === 0 &&
-        processingAgeMs > getStaleIndexingReleaseMs()
+        indexingAgeMs > getStaleIndexingReleaseMs()
       ) {
-        const message = `Indexing did not advance after ${Math.round(processingAgeMs / 1000)}s; released project for retry.`;
+        const ageSource =
+          analysisRunAgeMs !== null ? "analysis run" : "project";
+        const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (${ageSource} clock); released project for retry.`;
         console.warn(`[Takeoff] Project ${input.projectId}: ${message}`);
         await updateTakeoffProject(input.projectId, {
           status: "error",
           processingTimedOut: true,
         } as any);
+        if (processingSheets.length > 0) {
+          await Promise.all(
+            processingSheets.map((sheet: any) =>
+              updateDrawingSheet(sheet.id, {
+                status: "pending" as any,
+                errorMessage: message,
+              })
+            )
+          );
+        }
         if (analysisRun?.id && analysisRun.status === "running") {
           await updateTakeoffAnalysisRun(analysisRun.id, {
             status: "error",
