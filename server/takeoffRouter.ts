@@ -130,6 +130,56 @@ async function updateTakeoffAnalysisRunSafe(
   }
 }
 
+async function releaseProcessingFailure(
+  projectId: number,
+  message: string,
+  reason: string
+) {
+  try {
+    const [project, sheets, analysisRun] = await Promise.all([
+      getTakeoffProject(projectId),
+      getDrawingSheetsByProject(projectId),
+      getLatestTakeoffAnalysisRunSafe(projectId, reason),
+    ]);
+    if (!project) return;
+
+    console.warn(`[Takeoff] Project ${projectId}: ${message}`);
+    await updateTakeoffProject(projectId, {
+      status: "error",
+      processingTimedOut: true,
+    } as any);
+
+    const activeSheets = sheets.filter((sheet: any) =>
+      ["pending", "processing"].includes(sheet.status)
+    );
+    await Promise.all(
+      activeSheets.map((sheet: any) =>
+        updateDrawingSheet(sheet.id, {
+          status: "pending" as any,
+          errorMessage: message,
+        })
+      )
+    );
+
+    if (analysisRun?.id && analysisRun.status === "running") {
+      await updateTakeoffAnalysisRunSafe(
+        analysisRun.id,
+        {
+          status: "error",
+          completedAt: new Date(),
+          errorMessage: message,
+        } as any,
+        reason
+      );
+    }
+  } catch (releaseError: any) {
+    console.error(
+      `[Takeoff] Failed to release project ${projectId} after ${reason}:`,
+      releaseError?.message || releaseError
+    );
+  }
+}
+
 async function releaseStaleIndexingIfNeeded(
   project: any,
   sheets: any[],
@@ -149,16 +199,26 @@ async function releaseStaleIndexingIfNeeded(
   const analysisRunStartedAt =
     dateValueMs((analysisRun as any)?.startedAt) ??
     dateValueMs((analysisRun as any)?.createdAt);
+  const projectAnalysisStartedAt = dateValueMs(project.lastAnalyzedAt);
+  const projectAnalysisAgeMs = projectAnalysisStartedAt
+    ? Date.now() - projectAnalysisStartedAt
+    : null;
   const analysisRunAgeMs = analysisRunStartedAt
     ? Date.now() - analysisRunStartedAt
     : null;
-  const indexingAgeMs = analysisRunAgeMs ?? projectUpdateAgeMs;
+  const indexingAgeMs =
+    analysisRunAgeMs ?? projectAnalysisAgeMs ?? projectUpdateAgeMs;
 
   if (indexingAgeMs <= getStaleIndexingReleaseMs()) {
     return { released: false, analysisRun };
   }
 
-  const ageSource = analysisRunAgeMs !== null ? "analysis run" : "project";
+  const ageSource =
+    analysisRunAgeMs !== null
+      ? "analysis run"
+      : projectAnalysisAgeMs !== null
+        ? "project analysis"
+        : "project";
   const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (${reason}, ${ageSource} clock); released project for retry.`;
   console.warn(`[Takeoff] Project ${project.id}: ${message}`);
 
@@ -167,19 +227,19 @@ async function releaseStaleIndexingIfNeeded(
     processingTimedOut: true,
   } as any);
 
-  const processingSheets = sheets.filter(
-    (sheet: any) => sheet.status === "processing"
+  const activeSheets = sheets.filter((sheet: any) =>
+    ["pending", "processing"].includes(sheet.status)
   );
-  if (processingSheets.length > 0) {
+  if (activeSheets.length > 0) {
     await Promise.all(
-      processingSheets.map((sheet: any) =>
+      activeSheets.map((sheet: any) =>
         updateDrawingSheet(sheet.id, {
           status: "pending" as any,
           errorMessage: message,
         })
       )
     );
-    for (const sheet of processingSheets) {
+    for (const sheet of activeSheets) {
       sheet.status = "pending";
       sheet.errorMessage = message;
     }
@@ -694,6 +754,7 @@ export const takeoffRouter = router({
         status: "processing" as any,
         processedSheets: 0,
         processingTimedOut: false,
+        lastAnalyzedAt: new Date(),
       } as any);
 
       // Log activity
@@ -708,10 +769,16 @@ export const takeoffRouter = router({
       );
 
       // Start processing in background (don't await)
-      processAllPendingSheets(input.projectId).catch(err => {
+      processAllPendingSheets(input.projectId).catch(async err => {
+        const message = `ConstructLine analysis failed before it could finish: ${err?.message || "unknown error"}`;
         console.error(
           `[Takeoff] Background processing error for project ${input.projectId}:`,
           err
+        );
+        await releaseProcessingFailure(
+          input.projectId,
+          message,
+          "background processing failure"
         );
       });
       const staleIndexingWatchdog = setTimeout(async () => {
@@ -761,7 +828,9 @@ export const takeoffRouter = router({
 
       await Promise.all(
         sheets
-          .filter((sheet: any) => sheet.status === "processing")
+          .filter((sheet: any) =>
+            ["pending", "processing", "error"].includes(sheet.status)
+          )
           .map((sheet: any) =>
             updateDrawingSheet(sheet.id, {
               status: "pending" as any,

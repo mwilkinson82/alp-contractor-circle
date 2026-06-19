@@ -559,6 +559,7 @@ export async function indexAllSheets(
   }
 
   const indexEntries: SheetIndexEntry[] = [];
+  let failedIndexCount = 0;
 
   console.log(
     `[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=6)...`
@@ -582,29 +583,33 @@ export async function indexAllSheets(
       `[Sheet Index] Processing batch ${Math.floor(batchStart / CONCURRENCY) + 1}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`
     );
 
-    const results = await Promise.allSettled(
+    const results = await Promise.all(
       batch.map(async (sheet: any) => {
         console.log(
           `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
         );
-        const indexResult = await withTimeout(
-          indexSingleSheet(
-            sheet.imageUrl,
-            sheet.pageNumber,
-            projectId,
-            sheet.id,
-            runId
-          ),
-          sheetIndexTimeoutMs,
-          `Sheet index page ${sheet.pageNumber}`
-        );
-        return { sheet, indexResult };
+        try {
+          const indexResult = await withTimeout(
+            indexSingleSheet(
+              sheet.imageUrl,
+              sheet.pageNumber,
+              projectId,
+              sheet.id,
+              runId
+            ),
+            sheetIndexTimeoutMs,
+            `Sheet index page ${sheet.pageNumber}`
+          );
+          return { ok: true as const, sheet, indexResult };
+        } catch (error: any) {
+          return { ok: false as const, sheet, error };
+        }
       })
     );
 
     for (const result of results) {
-      if (result.status === "fulfilled") {
-        const { sheet, indexResult } = result.value;
+      if (result.ok) {
+        const { sheet, indexResult } = result;
         const entry: SheetIndexEntry = {
           sheetId: sheet.id,
           pageNumber: sheet.pageNumber,
@@ -623,18 +628,29 @@ export async function indexAllSheets(
           `[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`
         );
       } else {
+        failedIndexCount++;
+        const message = `Sheet index failed for page ${result.sheet.pageNumber}: ${result.error?.message || "unknown error"}`;
         console.error(
-          `[Sheet Index] Error indexing sheet in batch:`,
-          result.reason?.message || result.reason
+          `[Sheet Index] ${message}`,
+          result.error?.stack || result.error
         );
+        await updateDrawingSheet(result.sheet.id, {
+          errorMessage: message,
+        });
       }
     }
+  }
+
+  if (sheetsWithImages.length > 0 && indexEntries.length === 0) {
+    throw new Error(
+      `Sheet indexing failed for all ${sheetsWithImages.length} uploaded sheet image(s).`
+    );
   }
 
   const context = buildProjectContext(projectId, indexEntries);
 
   console.log(
-    `[Sheet Index] Pass 1 complete: ${indexEntries.length}/${sheets.length} sheets indexed`
+    `[Sheet Index] Pass 1 complete: ${indexEntries.length}/${sheets.length} sheets indexed${failedIndexCount > 0 ? ` (${failedIndexCount} failed)` : ""}`
   );
   if (context.buildingFootprint.areaSF) {
     console.log(

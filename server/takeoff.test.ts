@@ -581,9 +581,28 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(routerCode).toContain("server_watchdog");
     expect(routerCode).toContain("project_load");
     expect(routerCode).toContain("progress_poll");
+    expect(routerCode).toContain("releaseProcessingFailure");
+    expect(routerCode).toContain("background processing failure");
+    expect(routerCode).toContain("lastAnalyzedAt");
+    expect(routerCode).toContain('["pending", "processing"]');
     expect(routerCode).toContain("resetProcessing");
     expect(routerCode).toContain('status: "pending"');
     expect(routerCode).toContain('status: "error"');
+  });
+
+  it("fails loudly when every sheet indexing call fails", async () => {
+    const fs = await import("fs");
+    const sheetIndexCode = fs.readFileSync(
+      "server/takeoffSheetIndex.ts",
+      "utf-8"
+    );
+
+    expect(sheetIndexCode).toContain("failedIndexCount");
+    expect(sheetIndexCode).toContain("Sheet index failed for page");
+    expect(sheetIndexCode).toContain(
+      "Sheet indexing failed for all ${sheetsWithImages.length}"
+    );
+    expect(sheetIndexCode).toContain("updateDrawingSheet(result.sheet.id");
   });
 
   it("does not make draft project loads depend on analysis-run observability", async () => {

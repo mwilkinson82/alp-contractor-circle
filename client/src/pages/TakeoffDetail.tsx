@@ -2588,6 +2588,26 @@ export default function TakeoffDetail() {
     }
   }, [activeProcessingStatus]);
 
+  useEffect(() => {
+    if (!optimisticProcessing) return;
+    const timer = window.setTimeout(() => {
+      const serverConfirmedProcessing =
+        activeProcessingStatus === "processing" ||
+        activeProcessingStatus === "post_processing";
+      if (!serverConfirmedProcessing) {
+        setOptimisticProcessing(false);
+        refetchProgress();
+        refetchProject();
+      }
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeProcessingStatus,
+    optimisticProcessing,
+    refetchProgress,
+    refetchProject,
+  ]);
+
   // Auto-switch to items tab when processing completes & refetch items
   useEffect(() => {
     const currentStatus = activeProcessingStatus;
