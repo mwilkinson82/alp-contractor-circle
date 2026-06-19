@@ -204,7 +204,33 @@ type EstimateQaAnomaly = {
   description?: string;
   amount?: number;
   items?: any[];
+  itemReviews?: Record<string, EstimateQaItemReview>;
 };
+
+type EstimateQaItemReview = {
+  reason?: string;
+  action?: string;
+};
+
+function getEstimateItemKey(item: any): string {
+  return String(item?.id ?? item?.itemId ?? item?.description ?? "");
+}
+
+function getQaItemReview(
+  anomaly: EstimateQaAnomaly,
+  item: any
+): EstimateQaItemReview {
+  const key = getEstimateItemKey(item);
+  return (key && anomaly.itemReviews?.[key]) || {};
+}
+
+function getQaSampleNotes(anomaly: EstimateQaAnomaly): string {
+  return (anomaly.items || [])
+    .slice(0, 3)
+    .map(item => getQaItemReview(anomaly, item).reason)
+    .filter(Boolean)
+    .join(" | ");
+}
 
 interface EstimateSummaryProps {
   projectId: number;
@@ -614,7 +640,8 @@ export default function EstimateSummary({
       const members = JSON.parse(crew.crewMembers || "[]");
       for (const m of members) {
         const baseWage =
-          getResolvedBaseWage(m.tradeName, m.classification, lt, userRateMap) ?? 0;
+          getResolvedBaseWage(m.tradeName, m.classification, lt, userRateMap) ??
+          0;
         const burdened = Math.round(
           calculateBurdenedRate(baseWage, burden) * regionMultiplier
         );
@@ -967,6 +994,7 @@ export default function EstimateSummary({
                 ? "Trace source if needed"
                 : "Estimator review recommended",
         Description: anomaly.description || "",
+        "Sample Row Notes": getQaSampleNotes(anomaly),
       }));
       XLSX.utils.book_append_sheet(
         wb,
@@ -1049,12 +1077,12 @@ export default function EstimateSummary({
   const readinessDetail = hasQaBlockers
     ? `${qaBlockerCount} ConstructLine QA blocker${qaBlockerCount !== 1 ? "s need" : " needs"} estimator review.`
     : hasOpenScope
-    ? `${reviewQueueCount} scope package${reviewQueueCount !== 1 ? "s" : ""} still pending.`
-    : defaultLaborCount > 0
-      ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with library labor awaiting confirmation.`
-      : laborNeedsAttention > 0
-        ? `${laborNeedsAttention} labor decision${laborNeedsAttention !== 1 ? "s" : ""} still open.`
-        : "Accepted scope is priced and ready for submit prep.";
+      ? `${reviewQueueCount} scope package${reviewQueueCount !== 1 ? "s" : ""} still pending.`
+      : defaultLaborCount > 0
+        ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s are" : " is"} priced with library labor awaiting confirmation.`
+        : laborNeedsAttention > 0
+          ? `${laborNeedsAttention} labor decision${laborNeedsAttention !== 1 ? "s" : ""} still open.`
+          : "Accepted scope is priced and ready for submit prep.";
   const markupProfileLabel =
     markupPctTotal > 0
       ? `${pctToDisplay(overheadPct + profitPct)}% O/H + profit`
@@ -1158,10 +1186,9 @@ export default function EstimateSummary({
     action?: () => void;
   }>;
   const primaryAttention = attentionItems[0];
-  const estimateModeLabel =
-    hasQaBlockers
-      ? "Estimator review"
-      : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
+  const estimateModeLabel = hasQaBlockers
+    ? "Estimator review"
+    : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
       ? "Draft"
       : defaultLaborCount > 0
         ? "Price review"

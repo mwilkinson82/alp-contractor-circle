@@ -281,6 +281,11 @@ function getEstimatorCue(item: any): { label: string; className: string } {
 
 type TakeoffAnomalySeverity = "blocker" | "risk" | "review" | "reference";
 
+interface TakeoffAnomalyItemReview {
+  reason: string;
+  action?: string;
+}
+
 interface TakeoffAnomaly {
   id: string;
   severity: TakeoffAnomalySeverity;
@@ -289,6 +294,7 @@ interface TakeoffAnomaly {
   description: string;
   amount?: number;
   items: any[];
+  itemReviews?: Record<string, TakeoffAnomalyItemReview>;
 }
 
 const ANOMALY_SEVERITY_STYLE: Record<
@@ -350,6 +356,33 @@ function getItemExtendedCost(item: any): number {
 function getItemQuantityNumber(item: any): number {
   const value = Number(String(item?.quantity ?? "").replace(/,/g, ""));
   return Number.isFinite(value) ? value : 0;
+}
+
+function getTakeoffItemKey(item: any): string {
+  return String(item?.id ?? item?.itemId ?? item?.description ?? "");
+}
+
+function buildItemReviewMap(
+  items: any[],
+  getReview: (item: any) => TakeoffAnomalyItemReview
+): Record<string, TakeoffAnomalyItemReview> {
+  return items.reduce<Record<string, TakeoffAnomalyItemReview>>((map, item) => {
+    const key = getTakeoffItemKey(item);
+    if (key) map[key] = getReview(item);
+    return map;
+  }, {});
+}
+
+function getAnomalyItemReview(
+  anomaly: TakeoffAnomaly,
+  item: any
+): TakeoffAnomalyItemReview {
+  const key = getTakeoffItemKey(item);
+  return (
+    (key && anomaly.itemReviews?.[key]) || {
+      reason: anomaly.description,
+    }
+  );
 }
 
 function hasGeneratedQuantitySignal(item: any): boolean {
@@ -461,7 +494,10 @@ function getAssemblyDuplicateKey(item: any): string | null {
     family = "wall-insulation";
   } else if (/bond beam/.test(text)) {
     family = "bond-beam";
-  } else if (/(cmu|masonry)/.test(text) && /(wall|reinforc|parapet)/.test(text)) {
+  } else if (
+    /(cmu|masonry)/.test(text) &&
+    /(wall|reinforc|parapet)/.test(text)
+  ) {
     family = "cmu-wall-system";
   } else if (/formwork/.test(text) && /(footing|trench|wall|slab)/.test(text)) {
     family = "formwork";
@@ -471,6 +507,33 @@ function getAssemblyDuplicateKey(item: any): string | null {
 
   if (!family || qty <= 0) return null;
   return `${family}|${unit}|${qtyBucket}`;
+}
+
+function describeAssemblyDuplicateKey(key: string): string {
+  const [family, unit, qtyBucket] = key.split("|");
+  const familyLabel =
+    {
+      "roof-framing-envelope": "roof framing/sheathing envelope",
+      "roof-insulation": "roof insulation",
+      "exterior-wall-finish": "exterior wall finish",
+      "wall-insulation": "wall insulation",
+      "bond-beam": "bond beam",
+      "cmu-wall-system": "CMU or masonry wall system",
+      formwork: "formwork",
+      "metal-connection": "metal connection",
+    }[family] || "similar assembly";
+  return `${familyLabel} using about ${qtyBucket} ${String(unit || "units").toUpperCase()}`;
+}
+
+function describeAssumptionKey(key: string): string {
+  if (key.startsWith("footprint:")) {
+    return `repeated footprint assumption ${key.replace("footprint:", "")}`;
+  }
+  if (key.startsWith("quantity:")) {
+    const [, quantity, unit] = key.split(":");
+    return `repeated rounded quantity near ${quantity} ${String(unit || "units").toUpperCase()}`;
+  }
+  return "repeated generated assumption";
 }
 
 function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
@@ -515,6 +578,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       description:
         "Accepted rows are counted as bid scope but have no cost impact. Confirm quantity, unit cost, or labor basis.",
       items: zeroAccepted.slice(0, 12),
+      itemReviews: buildItemReviewMap(zeroAccepted.slice(0, 12), () => ({
+        reason:
+          "This accepted row is counted as bid scope, but its subtotal is $0.",
+        action:
+          "Add the missing quantity, unit pricing, or labor basis, or move it out of accepted scope.",
+      })),
     });
   }
 
@@ -530,6 +599,12 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       description:
         "These items cannot be defended until the quantity is filled or verified from the drawing.",
       items: missingQuantity.slice(0, 12),
+      itemReviews: buildItemReviewMap(missingQuantity.slice(0, 12), () => ({
+        reason:
+          "The row is accepted, but its quantity is blank or zero, so the cost cannot be defended.",
+        action:
+          "Enter a measured quantity from the source drawing, or exclude the row if it should not be priced.",
+      })),
     });
   }
 
@@ -546,17 +621,27 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
     );
     anomalies.push({
       id: "generated-high-value",
-      severity:
-        maxGeneratedCost >= GENERATED_BLOCKER_COST ? "blocker" : "review",
+      severity: "review",
       category: "Estimator Review",
-      title: "Generated high-value accepted rows",
+      title: "High-value AI-generated assumptions",
       description:
-        "ConstructLine generated or assumed quantities on accepted dollar-impact rows. An estimator should confirm the takeoff basis before packaging.",
+        "ConstructLine generated or assumed quantities on accepted dollar-impact rows. Treat these as estimator checkpoints; they only become blockers when another QA rule also flags quantity, pricing, or duplicate scope.",
       amount: generatedHighValue.reduce(
         (sum, item) => sum + getItemExtendedCost(item),
         0
       ),
       items: generatedHighValue.slice(0, 12),
+      itemReviews: buildItemReviewMap(
+        generatedHighValue.slice(0, 12),
+        item => ({
+          reason:
+            maxGeneratedCost >= GENERATED_BLOCKER_COST
+              ? "This is a high-dollar accepted row built from generated or assumed quantity notes."
+              : "This accepted row was generated or assumed by ConstructLine and should be checked before sending.",
+          action:
+            "Confirm the source drawing and takeoff basis; mark reviewed if it is supported, otherwise revise or exclude it.",
+        })
+      ),
     });
   }
 
@@ -576,6 +661,13 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: quantityConflicts.slice(0, 12),
+      itemReviews: buildItemReviewMap(quantityConflicts.slice(0, 12), item => ({
+        reason:
+          getQuantityMathIssue(item) ||
+          "Generated quantity math does not line up cleanly with the accepted row.",
+        action:
+          "Open the source drawing, verify the takeoff basis, then revise the quantity or mark it reviewed.",
+      })),
     });
   }
 
@@ -595,6 +687,11 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: highValueExcluded.slice(0, 12),
+      itemReviews: buildItemReviewMap(highValueExcluded.slice(0, 12), () => ({
+        reason: "This large-dollar row is outside the accepted bid scope.",
+        action:
+          "Confirm the exclusion is intentional, or include it before packaging the bid.",
+      })),
     });
   }
 
@@ -617,6 +714,11 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: lowConfidence.slice(0, 12),
+      itemReviews: buildItemReviewMap(lowConfidence.slice(0, 12), item => ({
+        reason: `ConstructLine confidence is ${Number(item.confidence || 0)}%, below the estimator review threshold.`,
+        action:
+          "Check the source sheet and evidence before relying on this row in the bid total.",
+      })),
     });
   }
 
@@ -644,6 +746,15 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: sortByExtendedCostDesc(duplicateItems).slice(0, 12),
+      itemReviews: buildItemReviewMap(
+        sortByExtendedCostDesc(duplicateItems).slice(0, 12),
+        () => ({
+          reason:
+            "Another accepted row has the same normalized description and unit.",
+          action:
+            "Confirm these are distinct pieces of work, or exclude the duplicate before packaging.",
+        })
+      ),
     });
   }
 
@@ -655,10 +766,30 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
     group.push(item);
     assemblyGroups.set(key, group);
   }
-  const likelyDuplicateAssemblies = Array.from(assemblyGroups.values())
-    .filter(group => group.length > 1)
-    .flat();
+  const duplicateAssemblyReviews: Record<string, TakeoffAnomalyItemReview> = {};
+  const likelyDuplicateAssemblies = Array.from(assemblyGroups.entries())
+    .filter(([, group]) => group.length > 1)
+    .flatMap(([key, group]) => {
+      const groupAmount = group.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      );
+      const reason = `${group.length} accepted rows look like the same ${describeAssemblyDuplicateKey(key)}. Combined value is ${formatCurrency(groupAmount)}.`;
+      for (const item of group) {
+        const itemKey = getTakeoffItemKey(item);
+        if (!itemKey) continue;
+        duplicateAssemblyReviews[itemKey] = {
+          reason,
+          action:
+            "Confirm each row prices a separate assembly layer. Exclude or revise any stacked duplicate.",
+        };
+      }
+      return group;
+    });
   if (likelyDuplicateAssemblies.length > 0) {
+    const duplicateAssemblyItems = sortByExtendedCostDesc(
+      likelyDuplicateAssemblies
+    ).slice(0, 12);
     anomalies.push({
       id: "assembly-duplicate-patterns",
       severity: "risk",
@@ -670,7 +801,16 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         (sum, item) => sum + getItemExtendedCost(item),
         0
       ),
-      items: sortByExtendedCostDesc(likelyDuplicateAssemblies).slice(0, 12),
+      items: duplicateAssemblyItems,
+      itemReviews: duplicateAssemblyItems.reduce<
+        Record<string, TakeoffAnomalyItemReview>
+      >((map, item) => {
+        const key = getTakeoffItemKey(item);
+        if (key && duplicateAssemblyReviews[key]) {
+          map[key] = duplicateAssemblyReviews[key];
+        }
+        return map;
+      }, {}),
     });
   }
 
@@ -683,15 +823,33 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
       assumptionGroups.set(key, group);
     }
   }
-  const repeatedAssumptionItems = Array.from(assumptionGroups.values())
-    .filter(group => {
+  const repeatedAssumptionReviews: Record<string, TakeoffAnomalyItemReview> =
+    {};
+  const repeatedAssumptionItems = Array.from(assumptionGroups.entries())
+    .filter(([, group]) => {
       const amount = group.reduce(
         (sum, item) => sum + getItemExtendedCost(item),
         0
       );
       return group.length >= 4 && amount >= REPEATED_ASSUMPTION_COST;
     })
-    .flat();
+    .flatMap(([key, group]) => {
+      const groupAmount = group.reduce(
+        (sum, item) => sum + getItemExtendedCost(item),
+        0
+      );
+      const reason = `${group.length} accepted rows reuse ${describeAssumptionKey(key)}. Combined value is ${formatCurrency(groupAmount)}.`;
+      for (const item of group) {
+        const itemKey = getTakeoffItemKey(item);
+        if (!itemKey || repeatedAssumptionReviews[itemKey]) continue;
+        repeatedAssumptionReviews[itemKey] = {
+          reason,
+          action:
+            "Confirm the shared assumption is valid for this row and not counted again elsewhere.",
+        };
+      }
+      return group;
+    });
   if (repeatedAssumptionItems.length > 0) {
     const uniqueItems = Array.from(
       new Map(
@@ -713,6 +871,15 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: sortByExtendedCostDesc(uniqueItems).slice(0, 12),
+      itemReviews: sortByExtendedCostDesc(uniqueItems)
+        .slice(0, 12)
+        .reduce<Record<string, TakeoffAnomalyItemReview>>((map, item) => {
+          const key = getTakeoffItemKey(item);
+          if (key && repeatedAssumptionReviews[key]) {
+            map[key] = repeatedAssumptionReviews[key];
+          }
+          return map;
+        }, {}),
     });
   }
 
@@ -730,6 +897,15 @@ function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
         0
       ),
       items: sortByExtendedCostDesc(unlinkedAccepted).slice(0, 12),
+      itemReviews: buildItemReviewMap(
+        sortByExtendedCostDesc(unlinkedAccepted).slice(0, 12),
+        () => ({
+          reason:
+            "This accepted row does not have a linked drawing sheet for source evidence.",
+          action:
+            "Attach or confirm the source sheet before treating the row as fully traceable.",
+        })
+      ),
     });
   }
 
@@ -1970,6 +2146,10 @@ function AnomalyCenterDialog({
                         const cue = getEstimatorCue(item);
                         const scopeStatus = getScopeReviewStatus(item);
                         const hasQuantity = Number(item.quantity || 0) > 0;
+                        const itemReview = getAnomalyItemReview(
+                          activeAnomaly,
+                          item
+                        );
                         const description =
                           item.description ||
                           String(item.notes || "")
@@ -2002,6 +2182,17 @@ function AnomalyCenterDialog({
                                   {item.csiCode || item.csiDivision || "No CSI"}
                                 </span>
                               </div>
+                              {itemReview.reason && (
+                                <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[#716855]">
+                                  <Info className="mr-1 inline h-3 w-3 align-[-2px] text-[#8a6510]" />
+                                  {itemReview.reason}
+                                </p>
+                              )}
+                              {itemReview.action && (
+                                <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-4 text-[#5d5546]">
+                                  Next: {itemReview.action}
+                                </p>
+                              )}
                             </button>
                             <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
                               {item.quantity || "—"} {item.unit || ""}

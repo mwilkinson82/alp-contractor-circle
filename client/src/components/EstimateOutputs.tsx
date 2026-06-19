@@ -93,10 +93,24 @@ type EstimateQaAnomaly = {
   description?: string;
   amount?: number;
   items?: any[];
+  itemReviews?: Record<string, EstimateQaItemReview>;
+};
+
+type EstimateQaItemReview = {
+  reason?: string;
+  action?: string;
 };
 
 function getEstimateItemKey(item: any): string {
   return String(item?.id ?? item?.itemId ?? item?.description ?? "");
+}
+
+function getQaItemReview(
+  anomaly: EstimateQaAnomaly,
+  item: any
+): EstimateQaItemReview {
+  const key = getEstimateItemKey(item);
+  return (key && anomaly.itemReviews?.[key]) || {};
 }
 
 function buildQaFlagMap(anomalies: EstimateQaAnomaly[]): Map<string, string[]> {
@@ -114,9 +128,39 @@ function buildQaFlagMap(anomalies: EstimateQaAnomaly[]): Map<string, string[]> {
   return flags;
 }
 
+function buildQaDetailMap(
+  anomalies: EstimateQaAnomaly[],
+  field: keyof EstimateQaItemReview
+): Map<string, string[]> {
+  const details = new Map<string, string[]>();
+  for (const anomaly of anomalies) {
+    for (const item of anomaly.items || []) {
+      const key = getEstimateItemKey(item);
+      if (!key) continue;
+      const review = getQaItemReview(anomaly, item);
+      const value = review[field] || "";
+      if (!value) continue;
+      const existing = details.get(key) || [];
+      if (!existing.includes(value)) existing.push(value);
+      details.set(key, existing);
+    }
+  }
+  return details;
+}
+
+function getQaSampleNotes(anomaly: EstimateQaAnomaly): string {
+  return (anomaly.items || [])
+    .slice(0, 3)
+    .map(item => getQaItemReview(anomaly, item).reason)
+    .filter(Boolean)
+    .join(" | ");
+}
+
 function getSourceSheetLabel(item: any, sheets: any[]): string {
   const sheetId = item?.sheetId ?? item?.sourceSheetId;
-  const sheet = sheets.find(candidate => String(candidate?.id) === String(sheetId));
+  const sheet = sheets.find(
+    candidate => String(candidate?.id) === String(sheetId)
+  );
   if (sheet) {
     return (
       [sheet.sheetNumber, sheet.sheetName || sheet.name]
@@ -125,9 +169,7 @@ function getSourceSheetLabel(item: any, sheets: any[]): string {
     );
   }
   return (
-    item?.sheetName ||
-    item?.sheetNumber ||
-    (sheetId ? `Sheet ${sheetId}` : "")
+    item?.sheetName || item?.sheetNumber || (sheetId ? `Sheet ${sheetId}` : "")
   );
 }
 
@@ -225,6 +267,8 @@ export default function EstimateOutputs({
   );
   const [includeTerms, setIncludeTerms] = useState(false);
   const qaFlagMap = buildQaFlagMap(qaAnomalies);
+  const qaReasonMap = buildQaDetailMap(qaAnomalies, "reason");
+  const qaActionMap = buildQaDetailMap(qaAnomalies, "action");
   const qaBlockerCount = qaAnomalies.filter(
     anomaly => anomaly.severity === "blocker"
   ).length;
@@ -1168,6 +1212,12 @@ export default function EstimateOutputs({
           "QA Flags": (qaFlagMap.get(getEstimateItemKey(row.item)) || []).join(
             " | "
           ),
+          "QA Reasons": (
+            qaReasonMap.get(getEstimateItemKey(row.item)) || []
+          ).join(" | "),
+          "QA Recommended Actions": (
+            qaActionMap.get(getEstimateItemKey(row.item)) || []
+          ).join(" | "),
           "CSI Division": div,
           Category: row.item.category || "",
           Notes: row.item.notes || row.item.sourceNotes || "",
@@ -1187,6 +1237,8 @@ export default function EstimateOutputs({
           Subtotal: fmtNum(data.materialTotal + data.laborTotal),
           "Source Sheet": "",
           "QA Flags": "",
+          "QA Reasons": "",
+          "QA Recommended Actions": "",
           "CSI Division": div,
           Category: "",
           Notes: "",
@@ -1206,6 +1258,8 @@ export default function EstimateOutputs({
           { wch: 14 },
           { wch: 26 },
           { wch: 42 },
+          { wch: 64 },
+          { wch: 58 },
           { wch: 12 },
           { wch: 20 },
           { wch: 36 },
@@ -1233,6 +1287,7 @@ export default function EstimateOutputs({
                     ? "Trace source if needed"
                     : "Estimator review recommended",
             Description: anomaly.description || "",
+            "Sample Row Notes": getQaSampleNotes(anomaly),
           })),
           [
             { wch: 14 },
@@ -1242,6 +1297,7 @@ export default function EstimateOutputs({
             { wch: 18 },
             { wch: 28 },
             { wch: 72 },
+            { wch: 90 },
           ]
         );
       }
@@ -1854,8 +1910,8 @@ export default function EstimateOutputs({
                   : `${qaReviewCount} review item${qaReviewCount !== 1 ? "s" : ""} in this estimate`}
               </p>
               <p className="mt-1 text-xs leading-5 text-[#716855]">
-                The full workbook includes a ConstructLine QA tab and per-row
-                QA flags.
+                The full workbook includes a ConstructLine QA tab and per-row QA
+                flags.
               </p>
             </div>
           )}
