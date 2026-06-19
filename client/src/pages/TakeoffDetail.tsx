@@ -2381,6 +2381,7 @@ export default function TakeoffDetail() {
     total: number;
   } | null>(null);
   const [showPreAnalysis, setShowPreAnalysis] = useState(false);
+  const [optimisticProcessing, setOptimisticProcessing] = useState(false);
   const [showMarkup, setShowMarkup] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRollup, setShowRollup] = useState(false);
@@ -2556,6 +2557,14 @@ export default function TakeoffDetail() {
         },
       }
     );
+  const progressStatus = progress?.status;
+  const projectStatus = project?.status;
+  const activeProcessingStatus =
+    progressStatus === "post_processing" || projectStatus === "post_processing"
+      ? "post_processing"
+      : progressStatus === "processing" || projectStatus === "processing"
+        ? "processing"
+        : progressStatus || projectStatus;
 
   // Track previous processing status to detect completion transition
   const prevStatusRef = useRef<string | null>(null);
@@ -2569,9 +2578,20 @@ export default function TakeoffDetail() {
     }
   }, [project]);
 
+  useEffect(() => {
+    if (
+      activeProcessingStatus === "processing" ||
+      activeProcessingStatus === "post_processing" ||
+      activeProcessingStatus === "completed" ||
+      activeProcessingStatus === "error"
+    ) {
+      setOptimisticProcessing(false);
+    }
+  }, [activeProcessingStatus]);
+
   // Auto-switch to items tab when processing completes & refetch items
   useEffect(() => {
-    const currentStatus = progress?.status || project?.status;
+    const currentStatus = activeProcessingStatus;
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = currentStatus || null;
 
@@ -2599,7 +2619,7 @@ export default function TakeoffDetail() {
         });
       }
     }
-  }, [progress?.status, project?.status, refetchItems]);
+  }, [activeProcessingStatus, refetchItems]);
 
   // Force-refetch when user returns to the tab during processing
   // This ensures completion is detected immediately even if the background poll
@@ -2607,7 +2627,7 @@ export default function TakeoffDetail() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        const currentStatus = progress?.status || project?.status;
+        const currentStatus = activeProcessingStatus;
         if (
           currentStatus === "processing" ||
           currentStatus === "post_processing"
@@ -2621,7 +2641,7 @@ export default function TakeoffDetail() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [progress?.status, project?.status, refetchProgress, refetchProject]);
+  }, [activeProcessingStatus, refetchProgress, refetchProject]);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 
@@ -2634,6 +2654,10 @@ export default function TakeoffDetail() {
   });
 
   const processMutation = trpc.takeoff.startProcessing.useMutation({
+    onMutate: () => {
+      setActiveTab("sheets");
+      setOptimisticProcessing(true);
+    },
     onSuccess: () => {
       toast.success(
         "ConstructLine takeoff started! This may take a few minutes..."
@@ -2641,7 +2665,10 @@ export default function TakeoffDetail() {
       refetchProject();
       refetchProgress();
     },
-    onError: err => toast.error(err.message),
+    onError: err => {
+      setOptimisticProcessing(false);
+      toast.error(err.message);
+    },
   });
 
   const reprocessMutation = trpc.takeoff.reprocessSheet.useMutation({
@@ -4118,7 +4145,27 @@ export default function TakeoffDetail() {
 
   const sheets = project.sheets || [];
   const isProcessing =
-    progress?.status === "processing" || progress?.status === "post_processing";
+    optimisticProcessing ||
+    activeProcessingStatus === "processing" ||
+    activeProcessingStatus === "post_processing";
+  const overlayTotalSheets = Math.max(
+    sheets.length,
+    Number(progress?.totalSheets ?? project.totalSheets ?? 0)
+  );
+  const overlayProcessedSheets =
+    progressStatus === "processing" || progressStatus === "post_processing"
+      ? Number(progress?.processedSheets ?? 0)
+      : Number(project.processedSheets ?? 0);
+  const processingOverlayProgress = isProcessing
+    ? {
+        totalSheets: overlayTotalSheets,
+        processedSheets: overlayProcessedSheets,
+        status:
+          activeProcessingStatus === "post_processing"
+            ? "post_processing"
+            : "processing",
+      }
+    : null;
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
   // Parse project allowances
   const projectAllowances = parseProjectAllowances(project.allowances);
@@ -4690,12 +4737,12 @@ export default function TakeoffDetail() {
             />
 
             {/* Processing Overlay — animated construction-themed progress */}
-            {isProcessing && progress && (
+            {processingOverlayProgress && (
               <div className="mb-6">
                 <ProcessingOverlay
-                  totalSheets={progress.totalSheets}
-                  processedSheets={progress.processedSheets}
-                  projectStatus={progress.status}
+                  totalSheets={processingOverlayProgress.totalSheets}
+                  processedSheets={processingOverlayProgress.processedSheets}
+                  projectStatus={processingOverlayProgress.status}
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,

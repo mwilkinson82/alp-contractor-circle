@@ -536,6 +536,14 @@ export const takeoffRouter = router({
         await updateTakeoffProject(input.projectId, updates);
       }
 
+      // Put the project into processing before the long-running background job
+      // starts so the client can show the indexing overlay immediately.
+      await updateTakeoffProject(input.projectId, {
+        status: "processing" as any,
+        processedSheets: 0,
+        processingTimedOut: false,
+      } as any);
+
       // Log activity
       const displayName =
         member.discordDisplayName || member.discordUsername || "Unknown";
