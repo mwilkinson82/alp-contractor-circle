@@ -497,6 +497,18 @@ describe("Post-Processing Status Lifecycle", () => {
     expect(refetchMatches).not.toBeNull();
     expect(refetchMatches!.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("TakeoffDetail should let progress status override stale project cache", async () => {
+    const fs = await import("fs");
+    const detailCode = fs.readFileSync(
+      "client/src/pages/TakeoffDetail.tsx",
+      "utf-8"
+    );
+
+    expect(detailCode).toContain(
+      "const activeProcessingStatus = progressStatus ?? projectStatus;"
+    );
+  });
 });
 
 // ─── Test Long-Running Takeoff Guardrails ─────────────────────────────────────
@@ -532,6 +544,8 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(routerCode).toContain("CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS");
     expect(routerCode).toContain("Indexing did not advance");
     expect(routerCode).toContain("analysisRunStartedAt");
+    expect(routerCode).toContain("staleIndexingWatchdog");
+    expect(routerCode).toContain("server watchdog");
     expect(routerCode).toContain('status: "pending"');
     expect(routerCode).toContain('status: "error"');
   });

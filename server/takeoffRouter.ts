@@ -588,6 +588,63 @@ export const takeoffRouter = router({
           err
         );
       });
+      const staleIndexingWatchdog = setTimeout(async () => {
+        try {
+          const currentProject = await getTakeoffProject(input.projectId);
+          if (
+            !currentProject ||
+            currentProject.status !== "processing" ||
+            (currentProject.processedSheets || 0) > 0
+          ) {
+            return;
+          }
+          const currentSheets = await getDrawingSheetsByProject(
+            input.projectId
+          );
+          if (currentSheets.length === 0) return;
+          const currentRun = await getLatestTakeoffAnalysisRun(input.projectId);
+          const runStartedAt =
+            dateValueMs((currentRun as any)?.startedAt) ??
+            dateValueMs((currentRun as any)?.createdAt);
+          const projectUpdatedAt =
+            dateValueMs(currentProject.updatedAt) ?? Date.now();
+          const indexingAgeMs = runStartedAt
+            ? Date.now() - runStartedAt
+            : Date.now() - projectUpdatedAt;
+          if (indexingAgeMs < getStaleIndexingReleaseMs()) return;
+          const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (server watchdog); released project for retry.`;
+          console.warn(`[Takeoff] Project ${input.projectId}: ${message}`);
+          await updateTakeoffProject(input.projectId, {
+            status: "error",
+            processingTimedOut: true,
+          } as any);
+          await Promise.all(
+            currentSheets
+              .filter((sheet: any) => sheet.status === "processing")
+              .map((sheet: any) =>
+                updateDrawingSheet(sheet.id, {
+                  status: "pending" as any,
+                  errorMessage: message,
+                })
+              )
+          );
+          if (currentRun?.id && currentRun.status === "running") {
+            await updateTakeoffAnalysisRun(currentRun.id, {
+              status: "error",
+              completedAt: new Date(),
+              errorMessage: message,
+            } as any);
+          }
+        } catch (watchdogError: any) {
+          console.error(
+            `[Takeoff] Stale indexing watchdog failed for project ${input.projectId}:`,
+            watchdogError?.message || watchdogError
+          );
+        }
+      }, getStaleIndexingReleaseMs() + 30_000);
+      if (typeof (staleIndexingWatchdog as any).unref === "function") {
+        (staleIndexingWatchdog as any).unref();
+      }
 
       return { success: true, message: "Processing started" };
     }),
@@ -915,7 +972,6 @@ export const takeoffRouter = router({
       }
       if (
         project.status === "processing" &&
-        completedSheets.length === 0 &&
         sheets.length > 0 &&
         (project.processedSheets || 0) === 0 &&
         indexingAgeMs > getStaleIndexingReleaseMs()

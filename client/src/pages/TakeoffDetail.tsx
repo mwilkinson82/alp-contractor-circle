@@ -2559,12 +2559,7 @@ export default function TakeoffDetail() {
     );
   const progressStatus = progress?.status;
   const projectStatus = project?.status;
-  const activeProcessingStatus =
-    progressStatus === "post_processing" || projectStatus === "post_processing"
-      ? "post_processing"
-      : progressStatus === "processing" || projectStatus === "processing"
-        ? "processing"
-        : progressStatus || projectStatus;
+  const activeProcessingStatus = progressStatus ?? projectStatus;
 
   // Track previous processing status to detect completion transition
   const prevStatusRef = useRef<string | null>(null);
@@ -2619,7 +2614,20 @@ export default function TakeoffDetail() {
         });
       }
     }
-  }, [activeProcessingStatus, refetchItems]);
+    if (
+      prevStatus &&
+      (prevStatus === "processing" || prevStatus === "post_processing") &&
+      currentStatus === "error"
+    ) {
+      processingStartRef.current = null;
+      refetchProject();
+      toast.error("ConstructLine analysis stopped before extraction", {
+        description:
+          "The run took too long without progress. Refresh the drawing set and retry when you are ready.",
+        duration: 9000,
+      });
+    }
+  }, [activeProcessingStatus, refetchItems, refetchProject]);
 
   // Force-refetch when user returns to the tab during processing
   // This ensures completion is detected immediately even if the background poll
