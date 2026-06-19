@@ -99,12 +99,51 @@ function dateValueMs(value: unknown): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
+async function getLatestTakeoffAnalysisRunSafe(
+  projectId: number,
+  reason: string
+) {
+  try {
+    return await getLatestTakeoffAnalysisRun(projectId);
+  } catch (error: any) {
+    console.warn(
+      `[Takeoff] Project ${projectId}: failed to load latest analysis run during ${reason}; continuing without observability data.`,
+      error?.message || error
+    );
+    return null;
+  }
+}
+
+async function updateTakeoffAnalysisRunSafe(
+  analysisRunId: number | null | undefined,
+  data: any,
+  reason: string
+) {
+  if (!analysisRunId) return;
+  try {
+    await updateTakeoffAnalysisRun(analysisRunId, data);
+  } catch (error: any) {
+    console.warn(
+      `[Takeoff] Analysis run ${analysisRunId}: failed to update during ${reason}; continuing.`,
+      error?.message || error
+    );
+  }
+}
+
 async function releaseStaleIndexingIfNeeded(
   project: any,
   sheets: any[],
   reason: "project_load" | "progress_poll" | "server_watchdog"
 ): Promise<{ released: boolean; analysisRun: any | null }> {
-  let analysisRun = await getLatestTakeoffAnalysisRun(project.id);
+  if (
+    project.status !== "processing" ||
+    sheets.length === 0 ||
+    (project.processedSheets || 0) > 0
+  ) {
+    return { released: false, analysisRun: null };
+  }
+
+  let analysisRun = await getLatestTakeoffAnalysisRunSafe(project.id, reason);
   const projectUpdatedAt = dateValueMs(project.updatedAt) ?? Date.now();
   const projectUpdateAgeMs = Date.now() - projectUpdatedAt;
   const analysisRunStartedAt =
@@ -115,12 +154,7 @@ async function releaseStaleIndexingIfNeeded(
     : null;
   const indexingAgeMs = analysisRunAgeMs ?? projectUpdateAgeMs;
 
-  if (
-    project.status !== "processing" ||
-    sheets.length === 0 ||
-    (project.processedSheets || 0) > 0 ||
-    indexingAgeMs <= getStaleIndexingReleaseMs()
-  ) {
+  if (indexingAgeMs <= getStaleIndexingReleaseMs()) {
     return { released: false, analysisRun };
   }
 
@@ -152,11 +186,15 @@ async function releaseStaleIndexingIfNeeded(
   }
 
   if (analysisRun?.id && analysisRun.status === "running") {
-    await updateTakeoffAnalysisRun(analysisRun.id, {
-      status: "error",
-      completedAt: new Date(),
-      errorMessage: message,
-    } as any);
+    await updateTakeoffAnalysisRunSafe(
+      analysisRun.id,
+      {
+        status: "error",
+        completedAt: new Date(),
+        errorMessage: message,
+      } as any,
+      "stale indexing release"
+    );
     analysisRun = {
       ...analysisRun,
       status: "error",
@@ -333,6 +371,21 @@ export const takeoffRouter = router({
         costRegion,
         costMultiplier,
       });
+      const createdId = Number(id);
+      if (!Number.isFinite(createdId) || createdId <= 0) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Project was created but the database did not return a usable project id.",
+        });
+      }
+      const createdProject = await getTakeoffProject(createdId);
+      if (!createdProject || createdProject.memberId !== member.id) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Project was created but could not be loaded back.",
+        });
+      }
       // Log activity
       const displayName =
         member.discordDisplayName || member.discordUsername || "Unknown";
@@ -341,9 +394,9 @@ export const takeoffRouter = router({
         displayName,
         "takeoff_created",
         `created takeoff "${input.name}"`,
-        `/portal/takeoff/${id}`
+        `/portal/takeoff/${createdId}`
       );
-      return { id };
+      return { id: createdId };
     }),
 
   /** Update project name/description/divisions/region */
@@ -717,13 +770,20 @@ export const takeoffRouter = router({
           )
       );
 
-      const analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
+      const analysisRun = await getLatestTakeoffAnalysisRunSafe(
+        input.projectId,
+        "manual reset"
+      );
       if (analysisRun?.id && analysisRun.status === "running") {
-        await updateTakeoffAnalysisRun(analysisRun.id, {
-          status: "canceled",
-          completedAt: new Date(),
-          errorMessage: resetMessage,
-        } as any);
+        await updateTakeoffAnalysisRunSafe(
+          analysisRun.id,
+          {
+            status: "canceled",
+            completedAt: new Date(),
+            errorMessage: resetMessage,
+          } as any,
+          "manual reset"
+        );
       }
 
       return {
@@ -1017,7 +1077,10 @@ export const takeoffRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       const sheets = await getDrawingSheetsByProject(input.projectId);
-      let analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
+      let analysisRun = await getLatestTakeoffAnalysisRunSafe(
+        input.projectId,
+        "progress poll"
+      );
       const completedSheets = sheets.filter(
         (s: any) => s.status === "completed"
       );

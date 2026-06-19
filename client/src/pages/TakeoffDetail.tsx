@@ -2331,8 +2331,11 @@ function AnomalyCenterDialog({
 
 export default function TakeoffDetail() {
   const [location, navigate] = useLocation();
-  const [, params] = useRoute("/takeoff/:id");
-  const projectId = params?.id ? parseInt(params.id, 10) : 0;
+  const [, directParams] = useRoute("/takeoff/:id");
+  const [, portalParams] = useRoute("/portal/takeoff/:id");
+  const routeProjectId = directParams?.id ?? portalParams?.id;
+  const projectId = routeProjectId ? Number.parseInt(routeProjectId, 10) : 0;
+  const hasValidProjectId = Number.isFinite(projectId) && projectId > 0;
   const initialTab =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("tab")
@@ -2450,11 +2453,12 @@ export default function TakeoffDetail() {
   const {
     data: project,
     isLoading,
+    error: projectError,
     refetch: refetchProject,
   } = trpc.takeoff.getProject.useQuery(
     { id: projectId },
     {
-      enabled: projectId > 0,
+      enabled: hasValidProjectId,
       // Keep polling even when tab is in background (user walks away from computer)
       refetchIntervalInBackground: true,
       refetchInterval: query => {
@@ -4142,6 +4146,51 @@ export default function TakeoffDetail() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasValidProjectId) {
+    return (
+      <div className="mx-auto flex min-h-[55vh] max-w-lg flex-col items-center justify-center px-6 py-20 text-center">
+        <AlertCircle className="mb-4 h-8 w-8 text-amber-600" />
+        <h2 className="text-xl font-semibold text-[#29251c]">
+          Invalid project link
+        </h2>
+        <p className="mt-2 text-sm text-[#716855]">
+          Basis could not read a valid project id from this page URL.
+        </p>
+        <Button
+          variant="outline"
+          className={`mt-5 ${LIGHT_OUTLINE_BUTTON_CLASS}`}
+          onClick={() => navigate("/portal/takeoff")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
+        </Button>
+      </div>
+    );
+  }
+
+  if (projectError) {
+    return (
+      <div className="mx-auto flex min-h-[55vh] max-w-lg flex-col items-center justify-center px-6 py-20 text-center">
+        <AlertCircle className="mb-4 h-8 w-8 text-orange-600" />
+        <h2 className="text-xl font-semibold text-[#29251c]">
+          Basis could not load this project
+        </h2>
+        <p className="mt-2 text-sm text-[#716855]">{projectError.message}</p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Button
+            variant="outline"
+            className={LIGHT_OUTLINE_BUTTON_CLASS}
+            onClick={() => navigate("/portal/takeoff")}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
+          </Button>
+          <Button onClick={() => refetchProject()}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Retry
+          </Button>
+        </div>
       </div>
     );
   }

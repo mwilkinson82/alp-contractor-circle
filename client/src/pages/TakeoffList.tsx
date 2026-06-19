@@ -125,6 +125,7 @@ function formatCurrency(cents: number, currencyCode: string = "USD"): string {
 
 export default function TakeoffList() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -148,11 +149,20 @@ export default function TakeoffList() {
   } = trpc.takeoff.listProjects.useQuery();
   const createMutation = trpc.takeoff.createProject.useMutation({
     onSuccess: result => {
+      const createdId = Number(result?.id);
+      void utils.takeoff.listProjects.invalidate();
       toast.success("Project created! Upload your drawings and click Analyze.");
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
-      navigate(`/takeoff/${result.id}`);
+      if (!Number.isFinite(createdId) || createdId <= 0) {
+        toast.error(
+          "Basis created the project, but could not open it automatically. Refresh the project list and open it again."
+        );
+        navigate("/portal/takeoff");
+        return;
+      }
+      navigate(`/takeoff/${createdId}`);
     },
     onError: err => toast.error(err.message),
   });

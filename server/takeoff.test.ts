@@ -527,6 +527,21 @@ describe("Post-Processing Status Lifecycle", () => {
     expect(overlayCode).toContain("Reset stuck analysis");
     expect(overlayCode).toContain("showIndexingReset");
   });
+
+  it("TakeoffDetail should show real project load errors instead of only Project not found", async () => {
+    const fs = await import("fs");
+    const detailCode = fs.readFileSync(
+      "client/src/pages/TakeoffDetail.tsx",
+      "utf-8"
+    );
+
+    expect(detailCode).toContain('useRoute("/portal/takeoff/:id")');
+    expect(detailCode).toContain("hasValidProjectId");
+    expect(detailCode).toContain("error: projectError");
+    expect(detailCode).toContain("Basis could not load this project");
+    expect(detailCode).toContain("projectError.message");
+    expect(detailCode).toContain("Invalid project link");
+  });
 });
 
 // ─── Test Long-Running Takeoff Guardrails ─────────────────────────────────────
@@ -569,5 +584,42 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(routerCode).toContain("resetProcessing");
     expect(routerCode).toContain('status: "pending"');
     expect(routerCode).toContain('status: "error"');
+  });
+
+  it("does not make draft project loads depend on analysis-run observability", async () => {
+    const fs = await import("fs");
+    const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
+    const startIdx = routerCode.indexOf(
+      "async function releaseStaleIndexingIfNeeded"
+    );
+    const section = routerCode.slice(startIdx, startIdx + 2200);
+
+    const draftGuardIdx = section.indexOf('project.status !== "processing"');
+    const analysisLookupIdx = section.indexOf(
+      "getLatestTakeoffAnalysisRunSafe"
+    );
+
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(draftGuardIdx).toBeGreaterThanOrEqual(0);
+    expect(analysisLookupIdx).toBeGreaterThanOrEqual(0);
+    expect(draftGuardIdx).toBeLessThan(analysisLookupIdx);
+    expect(section).toContain("sheets.length === 0");
+    expect(routerCode).toContain("continuing without observability data");
+  });
+
+  it("guards new-project navigation against unusable database ids", async () => {
+    const fs = await import("fs");
+    const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
+    const listCode = fs.readFileSync(
+      "client/src/pages/TakeoffList.tsx",
+      "utf-8"
+    );
+
+    expect(routerCode).toContain("const createdId = Number(id)");
+    expect(routerCode).toContain("database did not return a usable project id");
+    expect(routerCode).toContain("could not be loaded back");
+    expect(listCode).toContain("const createdId = Number(result?.id)");
+    expect(listCode).toContain("Basis created the project");
+    expect(listCode).toContain("utils.takeoff.listProjects.invalidate()");
   });
 });
