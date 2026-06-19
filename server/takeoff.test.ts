@@ -556,6 +556,20 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(auditCode).toContain("CONSTRUCTLINE_LLM_TIMEOUT_MS");
   });
 
+  it("keeps observability inserts from blocking the estimator", async () => {
+    const fs = await import("fs");
+    const observabilityCode = fs.readFileSync(
+      "server/takeoffObservabilityDb.ts",
+      "utf-8"
+    );
+
+    expect(observabilityCode).toContain("logObservabilityFailure");
+    expect(observabilityCode).toContain("continuing without audit data");
+    expect(observabilityCode).toContain("create analysis run");
+    expect(observabilityCode).toContain("return null");
+    expect(observabilityCode).toContain("replace QA findings");
+  });
+
   it("time-boxes sheet indexing per sheet and for the full indexing pass", async () => {
     const fs = await import("fs");
     const sheetIndexCode = fs.readFileSync(
