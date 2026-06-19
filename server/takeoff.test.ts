@@ -316,6 +316,7 @@ describe("Takeoff Router", () => {
       "uploadSheet",
       "uploadSheetsBatch",
       "startProcessing",
+      "resetProcessing",
       "reprocessSheet",
       "getItems",
       "updateItem",
@@ -509,6 +510,23 @@ describe("Post-Processing Status Lifecycle", () => {
       "const activeProcessingStatus = progressStatus ?? projectStatus;"
     );
   });
+
+  it("TakeoffDetail should expose a reset control for stuck analysis", async () => {
+    const fs = await import("fs");
+    const detailCode = fs.readFileSync(
+      "client/src/pages/TakeoffDetail.tsx",
+      "utf-8"
+    );
+    const overlayCode = fs.readFileSync(
+      "client/src/components/ProcessingOverlay.tsx",
+      "utf-8"
+    );
+
+    expect(detailCode).toContain("resetProcessingMutation");
+    expect(detailCode).toContain("resetProcessing");
+    expect(overlayCode).toContain("Reset stuck analysis");
+    expect(overlayCode).toContain("showIndexingReset");
+  });
 });
 
 // ─── Test Long-Running Takeoff Guardrails ─────────────────────────────────────
@@ -545,7 +563,10 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(routerCode).toContain("Indexing did not advance");
     expect(routerCode).toContain("analysisRunStartedAt");
     expect(routerCode).toContain("staleIndexingWatchdog");
-    expect(routerCode).toContain("server watchdog");
+    expect(routerCode).toContain("server_watchdog");
+    expect(routerCode).toContain("project_load");
+    expect(routerCode).toContain("progress_poll");
+    expect(routerCode).toContain("resetProcessing");
     expect(routerCode).toContain('status: "pending"');
     expect(routerCode).toContain('status: "error"');
   });

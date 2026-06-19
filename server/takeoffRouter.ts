@@ -99,6 +99,78 @@ function dateValueMs(value: unknown): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
+async function releaseStaleIndexingIfNeeded(
+  project: any,
+  sheets: any[],
+  reason: "project_load" | "progress_poll" | "server_watchdog"
+): Promise<{ released: boolean; analysisRun: any | null }> {
+  let analysisRun = await getLatestTakeoffAnalysisRun(project.id);
+  const projectUpdatedAt = dateValueMs(project.updatedAt) ?? Date.now();
+  const projectUpdateAgeMs = Date.now() - projectUpdatedAt;
+  const analysisRunStartedAt =
+    dateValueMs((analysisRun as any)?.startedAt) ??
+    dateValueMs((analysisRun as any)?.createdAt);
+  const analysisRunAgeMs = analysisRunStartedAt
+    ? Date.now() - analysisRunStartedAt
+    : null;
+  const indexingAgeMs = analysisRunAgeMs ?? projectUpdateAgeMs;
+
+  if (
+    project.status !== "processing" ||
+    sheets.length === 0 ||
+    (project.processedSheets || 0) > 0 ||
+    indexingAgeMs <= getStaleIndexingReleaseMs()
+  ) {
+    return { released: false, analysisRun };
+  }
+
+  const ageSource = analysisRunAgeMs !== null ? "analysis run" : "project";
+  const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (${reason}, ${ageSource} clock); released project for retry.`;
+  console.warn(`[Takeoff] Project ${project.id}: ${message}`);
+
+  await updateTakeoffProject(project.id, {
+    status: "error",
+    processingTimedOut: true,
+  } as any);
+
+  const processingSheets = sheets.filter(
+    (sheet: any) => sheet.status === "processing"
+  );
+  if (processingSheets.length > 0) {
+    await Promise.all(
+      processingSheets.map((sheet: any) =>
+        updateDrawingSheet(sheet.id, {
+          status: "pending" as any,
+          errorMessage: message,
+        })
+      )
+    );
+    for (const sheet of processingSheets) {
+      sheet.status = "pending";
+      sheet.errorMessage = message;
+    }
+  }
+
+  if (analysisRun?.id && analysisRun.status === "running") {
+    await updateTakeoffAnalysisRun(analysisRun.id, {
+      status: "error",
+      completedAt: new Date(),
+      errorMessage: message,
+    } as any);
+    analysisRun = {
+      ...analysisRun,
+      status: "error",
+      completedAt: new Date(),
+      errorMessage: message,
+    };
+  }
+
+  project.status = "error";
+  project.processingTimedOut = true;
+
+  return { released: true, analysisRun };
+}
+
 /** Virtual member ID offset for beta users — keeps their data isolated from Discord members */
 const BETA_MEMBER_OFFSET = 10_000_000;
 
@@ -199,6 +271,7 @@ export const takeoffRouter = router({
         });
       }
       const sheets = await getDrawingSheetsByProject(input.id);
+      await releaseStaleIndexingIfNeeded(project, sheets, "project_load");
       return { ...project, sheets };
     }),
 
@@ -591,50 +664,15 @@ export const takeoffRouter = router({
       const staleIndexingWatchdog = setTimeout(async () => {
         try {
           const currentProject = await getTakeoffProject(input.projectId);
-          if (
-            !currentProject ||
-            currentProject.status !== "processing" ||
-            (currentProject.processedSheets || 0) > 0
-          ) {
-            return;
-          }
+          if (!currentProject) return;
           const currentSheets = await getDrawingSheetsByProject(
             input.projectId
           );
-          if (currentSheets.length === 0) return;
-          const currentRun = await getLatestTakeoffAnalysisRun(input.projectId);
-          const runStartedAt =
-            dateValueMs((currentRun as any)?.startedAt) ??
-            dateValueMs((currentRun as any)?.createdAt);
-          const projectUpdatedAt =
-            dateValueMs(currentProject.updatedAt) ?? Date.now();
-          const indexingAgeMs = runStartedAt
-            ? Date.now() - runStartedAt
-            : Date.now() - projectUpdatedAt;
-          if (indexingAgeMs < getStaleIndexingReleaseMs()) return;
-          const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (server watchdog); released project for retry.`;
-          console.warn(`[Takeoff] Project ${input.projectId}: ${message}`);
-          await updateTakeoffProject(input.projectId, {
-            status: "error",
-            processingTimedOut: true,
-          } as any);
-          await Promise.all(
-            currentSheets
-              .filter((sheet: any) => sheet.status === "processing")
-              .map((sheet: any) =>
-                updateDrawingSheet(sheet.id, {
-                  status: "pending" as any,
-                  errorMessage: message,
-                })
-              )
+          await releaseStaleIndexingIfNeeded(
+            currentProject,
+            currentSheets,
+            "server_watchdog"
           );
-          if (currentRun?.id && currentRun.status === "running") {
-            await updateTakeoffAnalysisRun(currentRun.id, {
-              status: "error",
-              completedAt: new Date(),
-              errorMessage: message,
-            } as any);
-          }
         } catch (watchdogError: any) {
           console.error(
             `[Takeoff] Stale indexing watchdog failed for project ${input.projectId}:`,
@@ -647,6 +685,51 @@ export const takeoffRouter = router({
       }
 
       return { success: true, message: "Processing started" };
+    }),
+
+  /** Release a stalled analysis so the estimator can retry without recreating the project */
+  resetProcessing: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await requireAdminMember(ctx.req);
+      const project = await getTakeoffProject(input.projectId);
+      if (!project || project.memberId !== member.id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const resetMessage =
+        "Analysis reset by user; drawings are ready to retry.";
+      const sheets = await getDrawingSheetsByProject(input.projectId);
+      await updateTakeoffProject(input.projectId, {
+        status: "draft",
+        processedSheets: 0,
+        processingTimedOut: true,
+      } as any);
+
+      await Promise.all(
+        sheets
+          .filter((sheet: any) => sheet.status === "processing")
+          .map((sheet: any) =>
+            updateDrawingSheet(sheet.id, {
+              status: "pending" as any,
+              errorMessage: resetMessage,
+            })
+          )
+      );
+
+      const analysisRun = await getLatestTakeoffAnalysisRun(input.projectId);
+      if (analysisRun?.id && analysisRun.status === "running") {
+        await updateTakeoffAnalysisRun(analysisRun.id, {
+          status: "canceled",
+          completedAt: new Date(),
+          errorMessage: resetMessage,
+        } as any);
+      }
+
+      return {
+        success: true,
+        message: "Analysis reset. You can retry from Drawing Sheets.",
+      };
     }),
 
   /** Reprocess a single sheet */
@@ -943,13 +1026,6 @@ export const takeoffRouter = router({
       );
       const projectUpdatedAt = dateValueMs(project.updatedAt) ?? Date.now();
       const projectUpdateAgeMs = Date.now() - projectUpdatedAt;
-      const analysisRunStartedAt =
-        dateValueMs((analysisRun as any)?.startedAt) ??
-        dateValueMs((analysisRun as any)?.createdAt);
-      const analysisRunAgeMs = analysisRunStartedAt
-        ? Date.now() - analysisRunStartedAt
-        : null;
-      const indexingAgeMs = analysisRunAgeMs ?? projectUpdateAgeMs;
       if (
         project.status === "post_processing" &&
         processingSheets.length === 0 &&
@@ -970,44 +1046,13 @@ export const takeoffRouter = router({
         project.processedSheets = completedSheets.length;
         project.processingTimedOut = true;
       }
-      if (
-        project.status === "processing" &&
-        sheets.length > 0 &&
-        (project.processedSheets || 0) === 0 &&
-        indexingAgeMs > getStaleIndexingReleaseMs()
-      ) {
-        const ageSource =
-          analysisRunAgeMs !== null ? "analysis run" : "project";
-        const message = `Indexing did not advance after ${Math.round(indexingAgeMs / 1000)}s (${ageSource} clock); released project for retry.`;
-        console.warn(`[Takeoff] Project ${input.projectId}: ${message}`);
-        await updateTakeoffProject(input.projectId, {
-          status: "error",
-          processingTimedOut: true,
-        } as any);
-        if (processingSheets.length > 0) {
-          await Promise.all(
-            processingSheets.map((sheet: any) =>
-              updateDrawingSheet(sheet.id, {
-                status: "pending" as any,
-                errorMessage: message,
-              })
-            )
-          );
-        }
-        if (analysisRun?.id && analysisRun.status === "running") {
-          await updateTakeoffAnalysisRun(analysisRun.id, {
-            status: "error",
-            completedAt: new Date(),
-            errorMessage: message,
-          } as any);
-          analysisRun = {
-            ...analysisRun,
-            status: "error",
-            errorMessage: message,
-          };
-        }
-        project.status = "error";
-        project.processingTimedOut = true;
+      const indexingRelease = await releaseStaleIndexingIfNeeded(
+        project,
+        sheets,
+        "progress_poll"
+      );
+      if (indexingRelease.released) {
+        analysisRun = indexingRelease.analysisRun;
       }
       return {
         status: project.status,

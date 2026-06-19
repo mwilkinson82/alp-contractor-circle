@@ -240,6 +240,8 @@ interface ProcessingOverlayProps {
   }>;
   projectStatus?: string;
   onRetrySheet?: (sheetId: number) => void;
+  onResetAnalysis?: () => void;
+  resetAnalysisPending?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -451,6 +453,8 @@ export default function ProcessingOverlay({
   sheets,
   projectStatus,
   onRetrySheet,
+  onResetAnalysis,
+  resetAnalysisPending = false,
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -628,6 +632,7 @@ export default function ProcessingOverlay({
     consolidationElapsed < CONSOLIDATION_TIMER_CUTOFF_MS &&
     (stableEtaMs ?? rawEtaMs) > 0;
   const displayEtaMs = stableEtaMs ?? rawEtaMs;
+  const showIndexingReset = currentPhase === "indexing";
 
   // ─── Splash Phase ────────────────────────────────────────────────────────
   if (showSplash) {
@@ -873,6 +878,19 @@ export default function ProcessingOverlay({
                     ? "Extraction continues in the background. Come back when you are ready to review scope and build the estimate."
                     : "Once the set is indexed, the page can keep working while you move elsewhere in ConstructLine."}
                 </p>
+                {!canNavigateAway && showIndexingReset && onResetAnalysis && (
+                  <button
+                    type="button"
+                    onClick={onResetAnalysis}
+                    disabled={resetAnalysisPending}
+                    className="mt-3 inline-flex items-center gap-2 rounded-md border border-[#f1b51d]/35 bg-[#f1b51d]/10 px-3 py-1.5 text-xs font-semibold text-[#f8d66b] transition hover:bg-[#f1b51d]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${resetAnalysisPending ? "animate-spin" : ""}`}
+                    />
+                    Reset stuck analysis
+                  </button>
+                )}
               </div>
             </div>
             <div className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-3 py-2 md:w-[320px]">

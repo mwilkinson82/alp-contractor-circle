@@ -2688,6 +2688,16 @@ export default function TakeoffDetail() {
     onError: err => toast.error(err.message),
   });
 
+  const resetProcessingMutation = trpc.takeoff.resetProcessing.useMutation({
+    onSuccess: result => {
+      setOptimisticProcessing(false);
+      toast.success(result.message || "Analysis reset");
+      refetchProject();
+      refetchProgress();
+    },
+    onError: err => toast.error(err.message),
+  });
+
   const updateItemMutation = trpc.takeoff.updateItem.useMutation({
     onSuccess: (_result, variables: any) => {
       const isScopeDecision = String(variables?.notes || "").startsWith(
@@ -4760,6 +4770,10 @@ export default function TakeoffDetail() {
                   onRetrySheet={sheetId =>
                     reprocessMutation.mutate({ sheetId, projectId })
                   }
+                  onResetAnalysis={() =>
+                    resetProcessingMutation.mutate({ projectId })
+                  }
+                  resetAnalysisPending={resetProcessingMutation.isPending}
                 />
               </div>
             )}
@@ -4939,6 +4953,10 @@ export default function TakeoffDetail() {
                   onRetrySheet={sheetId =>
                     reprocessMutation.mutate({ sheetId, projectId })
                   }
+                  onResetAnalysis={() =>
+                    resetProcessingMutation.mutate({ projectId })
+                  }
+                  resetAnalysisPending={resetProcessingMutation.isPending}
                 />
               </div>
             )}
