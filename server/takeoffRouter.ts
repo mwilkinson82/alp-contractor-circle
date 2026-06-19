@@ -61,6 +61,12 @@ import {
   DEFAULT_NEW_TAKEOFF_BID_MODE,
   normalizeTakeoffBidMode,
 } from "../shared/bidMode";
+import {
+  clearTakeoffLiveProgress,
+  finishTakeoffLiveProgress,
+  getTakeoffLiveProgress,
+  getTakeoffLiveProgressHeartbeatAgeMs,
+} from "./takeoffProgress";
 
 const takeoffProjectTypeSchema = z.enum([
   "commercial",
@@ -172,6 +178,10 @@ async function releaseProcessingFailure(
         reason
       );
     }
+    finishTakeoffLiveProgress(projectId, "error", message, {
+      totalSheets: sheets.length,
+      failedSheets: activeSheets.length,
+    });
   } catch (releaseError: any) {
     console.error(
       `[Takeoff] Failed to release project ${projectId} after ${reason}:`,
@@ -200,14 +210,32 @@ async function releaseStaleIndexingIfNeeded(
     dateValueMs((analysisRun as any)?.startedAt) ??
     dateValueMs((analysisRun as any)?.createdAt);
   const projectAnalysisStartedAt = dateValueMs(project.lastAnalyzedAt);
+  const nowMs = Date.now();
   const projectAnalysisAgeMs = projectAnalysisStartedAt
-    ? Date.now() - projectAnalysisStartedAt
+    ? nowMs - projectAnalysisStartedAt
     : null;
   const analysisRunAgeMs = analysisRunStartedAt
-    ? Date.now() - analysisRunStartedAt
+    ? nowMs - analysisRunStartedAt
     : null;
+  const liveHeartbeatAgeMs = getTakeoffLiveProgressHeartbeatAgeMs(project.id);
+  if (
+    liveHeartbeatAgeMs !== null &&
+    liveHeartbeatAgeMs >= 0 &&
+    liveHeartbeatAgeMs <= getStaleIndexingReleaseMs()
+  ) {
+    return { released: false, analysisRun };
+  }
+
+  const ageCandidates = [
+    analysisRunAgeMs,
+    projectAnalysisAgeMs,
+    projectUpdateAgeMs,
+  ].filter(
+    (age): age is number =>
+      typeof age === "number" && Number.isFinite(age) && age >= 0
+  );
   const indexingAgeMs =
-    analysisRunAgeMs ?? projectAnalysisAgeMs ?? projectUpdateAgeMs;
+    ageCandidates.length > 0 ? Math.max(...ageCandidates) : projectUpdateAgeMs;
 
   if (indexingAgeMs <= getStaleIndexingReleaseMs()) {
     return { released: false, analysisRun };
@@ -262,6 +290,10 @@ async function releaseStaleIndexingIfNeeded(
       errorMessage: message,
     };
   }
+  finishTakeoffLiveProgress(project.id, "error", message, {
+    totalSheets: sheets.length,
+    failedSheets: activeSheets.length,
+  });
 
   project.status = "error";
   project.processingTimedOut = true;
@@ -825,6 +857,7 @@ export const takeoffRouter = router({
         processedSheets: 0,
         processingTimedOut: true,
       } as any);
+      clearTakeoffLiveProgress(input.projectId);
 
       await Promise.all(
         sheets
@@ -1191,6 +1224,7 @@ export const takeoffRouter = router({
         totalSheets: project.totalSheets,
         processedSheets: project.processedSheets,
         totalEstimatedCost: project.totalEstimatedCost,
+        liveProgress: getTakeoffLiveProgress(input.projectId),
         analysisRun,
         sheets: sheets.map((s: any) => ({
           id: s.id,

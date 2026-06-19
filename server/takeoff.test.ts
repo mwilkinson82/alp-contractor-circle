@@ -591,6 +591,9 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(routerCode).toContain("CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS");
     expect(routerCode).toContain("Indexing did not advance");
     expect(routerCode).toContain("analysisRunStartedAt");
+    expect(routerCode).toContain("getTakeoffLiveProgressHeartbeatAgeMs");
+    expect(routerCode).toContain("ageCandidates");
+    expect(routerCode).toContain("Math.max(...ageCandidates)");
     expect(routerCode).toContain("staleIndexingWatchdog");
     expect(routerCode).toContain("server_watchdog");
     expect(routerCode).toContain("project_load");
@@ -654,5 +657,37 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(listCode).toContain("const createdId = Number(result?.id)");
     expect(listCode).toContain("Basis created the project");
     expect(listCode).toContain("utils.takeoff.listProjects.invalidate()");
+  });
+
+  it("surfaces live ConstructLine progress heartbeats to the processing overlay", async () => {
+    const fs = await import("fs");
+    const aiCode = fs.readFileSync("server/takeoffAI.ts", "utf-8");
+    const sheetIndexCode = fs.readFileSync(
+      "server/takeoffSheetIndex.ts",
+      "utf-8"
+    );
+    const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
+    const detailCode = fs.readFileSync(
+      "client/src/pages/TakeoffDetail.tsx",
+      "utf-8"
+    );
+    const overlayCode = fs.readFileSync(
+      "client/src/components/ProcessingOverlay.tsx",
+      "utf-8"
+    );
+
+    expect(aiCode).toContain("startTakeoffLiveProgress");
+    expect(aiCode).toContain("updateTakeoffLiveProgress");
+    expect(aiCode).toContain("finishTakeoffLiveProgress");
+    expect(sheetIndexCode).toContain("SheetIndexProgress");
+    expect(sheetIndexCode).toContain("onProgress");
+    expect(routerCode).toContain("liveProgress: getTakeoffLiveProgress");
+    expect(routerCode).toContain("clearTakeoffLiveProgress(input.projectId)");
+    expect(detailCode).toContain(
+      "liveProgress={processingOverlayProgress.liveProgress}"
+    );
+    expect(overlayCode).toContain("Last backend update");
+    expect(overlayCode).toContain("No backend heartbeat");
+    expect(overlayCode).toContain("Reset stuck analysis");
   });
 });

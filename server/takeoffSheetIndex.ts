@@ -68,6 +68,22 @@ export interface SheetIndexEntry {
   summary: string;
 }
 
+export interface SheetIndexProgress {
+  totalSheets: number;
+  completedSheets: number;
+  failedSheets: number;
+  skippedSheets: number;
+  currentBatch: number;
+  totalBatches: number;
+  currentPage?: number | null;
+  currentSheetName?: string | null;
+  statusText: string;
+}
+
+type SheetIndexProgressCallback = (
+  progress: SheetIndexProgress
+) => void | Promise<void>;
+
 export interface DimensionEntry {
   /** What is being measured: "building_footprint", "footing_run", "slab_area", "pit", "wall_height", etc. */
   type: string;
@@ -550,7 +566,8 @@ function buildContextSummaryText(
  */
 export async function indexAllSheets(
   projectId: number,
-  runId?: number | null
+  runId?: number | null,
+  onProgress?: SheetIndexProgressCallback
 ): Promise<ProjectContext> {
   const sheets = await getDrawingSheetsByProject(projectId);
 
@@ -570,8 +587,34 @@ export async function indexAllSheets(
   const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
   const sheetIndexTimeoutMs = getSheetIndexTimeoutMs();
   const skipped = sheets.length - sheetsWithImages.length;
+  const totalBatches = Math.max(
+    1,
+    Math.ceil(sheetsWithImages.length / CONCURRENCY)
+  );
+  const emitProgress = async (patch: Partial<SheetIndexProgress>) => {
+    if (!onProgress) return;
+    await onProgress({
+      totalSheets: sheets.length,
+      completedSheets: indexEntries.length + failedIndexCount + skipped,
+      failedSheets: failedIndexCount,
+      skippedSheets: skipped,
+      currentBatch: 1,
+      totalBatches,
+      statusText: "Preparing sheet index...",
+      ...patch,
+    });
+  };
+
   if (skipped > 0)
     console.log(`[Sheet Index] Skipping ${skipped} sheets without images`);
+
+  await emitProgress({
+    completedSheets: skipped,
+    statusText:
+      sheetsWithImages.length > 0
+        ? `Preparing to index ${sheetsWithImages.length} sheet image(s)...`
+        : "No sheet images available to index.",
+  });
 
   for (
     let batchStart = 0;
@@ -579,15 +622,29 @@ export async function indexAllSheets(
     batchStart += CONCURRENCY
   ) {
     const batch = sheetsWithImages.slice(batchStart, batchStart + CONCURRENCY);
+    const currentBatch = Math.floor(batchStart / CONCURRENCY) + 1;
+    const batchPages = batch.map((s: any) => s.pageNumber).join(", ");
     console.log(
-      `[Sheet Index] Processing batch ${Math.floor(batchStart / CONCURRENCY) + 1}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`
+      `[Sheet Index] Processing batch ${currentBatch}: pages ${batchPages}`
     );
+    await emitProgress({
+      currentBatch,
+      currentPage: batch[0]?.pageNumber ?? null,
+      currentSheetName: batch[0]?.sheetName ?? null,
+      statusText: `Indexing batch ${currentBatch} of ${totalBatches}: pages ${batchPages}`,
+    });
 
     const results = await Promise.all(
       batch.map(async (sheet: any) => {
         console.log(
           `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
         );
+        await emitProgress({
+          currentBatch,
+          currentPage: sheet.pageNumber,
+          currentSheetName: sheet.sheetName || null,
+          statusText: `Indexing page ${sheet.pageNumber}${sheet.sheetName ? ` — ${sheet.sheetName}` : ""}`,
+        });
         try {
           const indexResult = await withTimeout(
             indexSingleSheet(
@@ -627,6 +684,12 @@ export async function indexAllSheets(
         console.log(
           `[Sheet Index] Page ${sheet.pageNumber}: ${indexResult.sheetName} (${indexResult.sheetType}) — ${indexResult.dimensions.length} dims, ${indexResult.elements.length} elements`
         );
+        await emitProgress({
+          currentBatch,
+          currentPage: sheet.pageNumber,
+          currentSheetName: indexResult.sheetName || sheet.sheetName || null,
+          statusText: `Indexed page ${sheet.pageNumber}: ${indexResult.sheetName}`,
+        });
       } else {
         failedIndexCount++;
         const message = `Sheet index failed for page ${result.sheet.pageNumber}: ${result.error?.message || "unknown error"}`;
@@ -636,6 +699,12 @@ export async function indexAllSheets(
         );
         await updateDrawingSheet(result.sheet.id, {
           errorMessage: message,
+        });
+        await emitProgress({
+          currentBatch,
+          currentPage: result.sheet.pageNumber,
+          currentSheetName: result.sheet.sheetName || null,
+          statusText: `Indexing failed for page ${result.sheet.pageNumber}; continuing with the rest of the set.`,
         });
       }
     }
@@ -652,6 +721,13 @@ export async function indexAllSheets(
   console.log(
     `[Sheet Index] Pass 1 complete: ${indexEntries.length}/${sheets.length} sheets indexed${failedIndexCount > 0 ? ` (${failedIndexCount} failed)` : ""}`
   );
+  await emitProgress({
+    completedSheets: sheets.length,
+    currentBatch: totalBatches,
+    currentPage: null,
+    currentSheetName: null,
+    statusText: `Sheet index complete: ${indexEntries.length}/${sheets.length} indexed${failedIndexCount > 0 ? `, ${failedIndexCount} failed` : ""}.`,
+  });
   if (context.buildingFootprint.areaSF) {
     console.log(
       `[Sheet Index] Building footprint: ${context.buildingFootprint.lengthFt?.toFixed(1)}' × ${context.buildingFootprint.widthFt?.toFixed(1)}' = ${context.buildingFootprint.areaSF?.toFixed(0)} SF`

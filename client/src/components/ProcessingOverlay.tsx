@@ -83,6 +83,22 @@ const PHASE2_MESSAGES = [
 
 type AnalysisPhase = "indexing" | "extracting" | "consolidating";
 
+interface TakeoffLiveProgress {
+  phase?: "indexing" | "extracting" | "post_processing" | "completed" | "error";
+  statusText?: string | null;
+  detailText?: string | null;
+  totalSheets?: number | null;
+  completedSheets?: number | null;
+  failedSheets?: number | null;
+  skippedSheets?: number | null;
+  currentBatch?: number | null;
+  totalBatches?: number | null;
+  currentPage?: number | null;
+  currentSheetName?: string | null;
+  startedAt?: string | null;
+  lastHeartbeatAt?: string | null;
+}
+
 const PHASE3_MESSAGES = [
   { icon: Layers, text: "Consolidating duplicate items across all sheets..." },
   { icon: Calculator, text: "Converting lump sums to measured quantities..." },
@@ -242,6 +258,7 @@ interface ProcessingOverlayProps {
   onRetrySheet?: (sheetId: number) => void;
   onResetAnalysis?: () => void;
   resetAnalysisPending?: boolean;
+  liveProgress?: TakeoffLiveProgress | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -256,6 +273,28 @@ function formatTime(ms: number): string {
     return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function parseTimeMs(value?: string | null): number | null {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function formatRelativeAge(ms: number): string {
+  if (ms < 0) return "just now";
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m ago`;
+}
+
+function clampCount(value: number, total: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(0, value), Math.max(0, total));
 }
 
 // ─── SVG Circular Progress Ring ──────────────────────────────────────────────
@@ -455,6 +494,7 @@ export default function ProcessingOverlay({
   onRetrySheet,
   onResetAnalysis,
   resetAnalysisPending = false,
+  liveProgress,
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -466,11 +506,42 @@ export default function ProcessingOverlay({
   const extractionStartProcessedRef = useRef(processedSheets);
   const [stableEtaMs, setStableEtaMs] = useState<number | null>(null);
 
+  const livePhase = liveProgress?.phase;
   const currentPhase: AnalysisPhase = useMemo(() => {
-    if (projectStatus === "post_processing") return "consolidating";
+    if (projectStatus === "post_processing" || livePhase === "post_processing")
+      return "consolidating";
+    if (livePhase === "extracting") return "extracting";
+    if (livePhase === "indexing") return "indexing";
     if (processedSheets > 0) return "extracting";
     return "indexing";
-  }, [projectStatus, processedSheets]);
+  }, [projectStatus, processedSheets, livePhase]);
+
+  const effectiveTotalSheets = Math.max(
+    0,
+    Number(liveProgress?.totalSheets ?? totalSheets ?? 0)
+  );
+  const effectiveProcessedSheets = clampCount(
+    Number(liveProgress?.completedSheets ?? processedSheets ?? 0),
+    effectiveTotalSheets
+  );
+  const liveFailedSheets = Math.max(0, Number(liveProgress?.failedSheets ?? 0));
+  const liveSkippedSheets = Math.max(
+    0,
+    Number(liveProgress?.skippedSheets ?? 0)
+  );
+  const liveHeartbeatMs = parseTimeMs(liveProgress?.lastHeartbeatAt);
+  const liveStartedMs = parseTimeMs(liveProgress?.startedAt);
+  const renderNowMs = Date.now();
+  const liveHeartbeatAgeMs =
+    liveHeartbeatMs !== null ? renderNowMs - liveHeartbeatMs : null;
+  const liveElapsedMs =
+    liveStartedMs !== null ? renderNowMs - liveStartedMs : phaseElapsed;
+  const heartbeatIsStale =
+    liveHeartbeatAgeMs !== null && liveHeartbeatAgeMs > 2 * 60 * 1000;
+  const hasLiveProgressCounts =
+    Boolean(liveProgress) &&
+    effectiveTotalSheets > 0 &&
+    currentPhase === "indexing";
 
   useEffect(() => {
     if (currentPhase === "consolidating") {
@@ -509,7 +580,7 @@ export default function ProcessingOverlay({
 
   useEffect(() => {
     phaseStartRef.current = Date.now();
-    extractionStartProcessedRef.current = processedSheets;
+    extractionStartProcessedRef.current = effectiveProcessedSheets;
     setPhaseElapsed(0);
     setMessageIndex(0);
     setEducationIndex(0);
@@ -530,7 +601,9 @@ export default function ProcessingOverlay({
   }, []);
 
   const percentage =
-    totalSheets > 0 ? Math.round((processedSheets / totalSheets) * 100) : 0;
+    effectiveTotalSheets > 0
+      ? Math.round((effectiveProcessedSheets / effectiveTotalSheets) * 100)
+      : 0;
   const currentMessage = phaseMessages[messageIndex % phaseMessages.length];
   const CurrentIcon = currentMessage.icon;
 
@@ -554,11 +627,11 @@ export default function ProcessingOverlay({
     if (currentPhase === "consolidating") {
       return Math.max(0, CONSOLIDATION_ESTIMATE_MS - consolidationElapsed);
     }
-    const remaining = totalSheets - processedSheets;
+    const remaining = effectiveTotalSheets - effectiveProcessedSheets;
     if (remaining <= 0) return 15000; // Almost done — show minimal time
     const processedSincePhaseStart = Math.max(
       0,
-      processedSheets - extractionStartProcessedRef.current
+      effectiveProcessedSheets - extractionStartProcessedRef.current
     );
     const observedMsPerSheet =
       processedSincePhaseStart > 0 && phaseElapsed > 10000
@@ -571,8 +644,8 @@ export default function ProcessingOverlay({
     return Math.max(30000, remaining * blendedMsPerSheet);
   }, [
     currentPhase,
-    totalSheets,
-    processedSheets,
+    effectiveTotalSheets,
+    effectiveProcessedSheets,
     phaseElapsed,
     consolidationElapsed,
   ]);
@@ -617,7 +690,7 @@ export default function ProcessingOverlay({
     EDUCATION_CARDS[educationIndex % EDUCATION_CARDS.length];
   const canNavigateAway = currentPhase !== "indexing";
 
-  const isIndeterminate = currentPhase === "indexing";
+  const isIndeterminate = currentPhase === "indexing" && !hasLiveProgressCounts;
   const consolidationPercentage =
     currentPhase === "consolidating"
       ? Math.min(
@@ -719,6 +792,15 @@ export default function ProcessingOverlay({
                     />
                     <span className="text-[11px] font-medium text-white/58">
                       Indexing
+                    </span>
+                  </>
+                ) : currentPhase === "indexing" ? (
+                  <>
+                    <span className="text-3xl font-bold leading-none tracking-normal text-white sm:text-4xl">
+                      {effectiveProcessedSheets}/{effectiveTotalSheets}
+                    </span>
+                    <span className="mt-1.5 text-[11px] font-medium text-white/58">
+                      indexed
                     </span>
                   </>
                 ) : currentPhase === "consolidating" ? (
@@ -871,13 +953,69 @@ export default function ProcessingOverlay({
                 <p className="text-sm font-semibold text-white">
                   {canNavigateAway
                     ? "Indexing is complete. You can navigate away."
-                    : "Stay here while ConstructLine indexes the drawing set."}
+                    : "ConstructLine is indexing the drawing set."}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/58">
                   {canNavigateAway
                     ? "Extraction continues in the background. Come back when you are ready to review scope and build the estimate."
-                    : "Once the set is indexed, the page can keep working while you move elsewhere in ConstructLine."}
+                    : "You can keep working in other tabs. This screen now reports the backend heartbeat so a stuck job is visible instead of silent."}
                 </p>
+                {liveProgress?.statusText && (
+                  <p className="mt-3 text-xs font-semibold leading-5 text-white/78">
+                    {liveProgress.statusText}
+                  </p>
+                )}
+                {liveProgress?.detailText && (
+                  <p className="mt-1 text-[11px] leading-5 text-white/45">
+                    {liveProgress.detailText}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] leading-5 text-white/45">
+                  {effectiveTotalSheets > 0 && (
+                    <span>
+                      {effectiveProcessedSheets}/{effectiveTotalSheets} sheets
+                      {currentPhase === "indexing" ? " indexed" : " processed"}
+                    </span>
+                  )}
+                  {liveProgress?.currentBatch && liveProgress?.totalBatches && (
+                    <span>
+                      Batch {liveProgress.currentBatch}/
+                      {liveProgress.totalBatches}
+                    </span>
+                  )}
+                  {liveProgress?.currentPage && (
+                    <span>
+                      Page {liveProgress.currentPage}
+                      {liveProgress.currentSheetName
+                        ? ` — ${liveProgress.currentSheetName}`
+                        : ""}
+                    </span>
+                  )}
+                  {liveFailedSheets > 0 && (
+                    <span className="text-red-200">
+                      {liveFailedSheets} failed
+                    </span>
+                  )}
+                  {liveSkippedSheets > 0 && (
+                    <span>{liveSkippedSheets} skipped</span>
+                  )}
+                  {liveHeartbeatAgeMs !== null && (
+                    <span>
+                      Last backend update{" "}
+                      {formatRelativeAge(liveHeartbeatAgeMs)}
+                    </span>
+                  )}
+                  {liveStartedMs !== null && (
+                    <span>Elapsed {formatTime(liveElapsedMs)}</span>
+                  )}
+                </div>
+                {heartbeatIsStale && (
+                  <p className="mt-2 rounded-md border border-red-300/25 bg-red-400/10 px-3 py-2 text-[11px] font-semibold leading-5 text-red-100">
+                    No backend heartbeat for{" "}
+                    {formatRelativeAge(liveHeartbeatAgeMs || 0)}. This run may
+                    be stale; reset it before trying the same drawings again.
+                  </p>
+                )}
                 {!canNavigateAway && showIndexingReset && onResetAnalysis && (
                   <button
                     type="button"
@@ -1018,24 +1156,26 @@ export default function ProcessingOverlay({
           </p>
         </div>
 
-        {/* Sheet progress bar (extraction phase only) */}
-        {currentPhase === "extracting" && (
+        {/* Sheet progress bar */}
+        {(currentPhase === "extracting" ||
+          (currentPhase === "indexing" && hasLiveProgressCounts)) && (
           <div className="max-w-md mx-auto mb-6">
             <div className="flex items-center justify-between mb-2">
               <span
                 className="text-xs font-medium"
                 style={{ color: "rgba(255,255,255,0.55)" }}
               >
-                {processedSheets} of {totalSheets} sheets
+                {effectiveProcessedSheets} of {effectiveTotalSheets} sheets{" "}
+                {currentPhase === "indexing" ? "indexed" : "processed"}
               </span>
             </div>
             <div
               className="flex gap-0.5 h-2 rounded-full overflow-hidden"
               style={{ backgroundColor: COLORS.pending }}
             >
-              {Array.from({ length: totalSheets }, (_, i) => {
-                const isDone = i < processedSheets;
-                const isActive = i === processedSheets;
+              {Array.from({ length: effectiveTotalSheets }, (_, i) => {
+                const isDone = i < effectiveProcessedSheets;
+                const isActive = i === effectiveProcessedSheets;
                 return (
                   <div
                     key={i}

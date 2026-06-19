@@ -51,6 +51,11 @@ import {
   updateTakeoffAnalysisRun,
 } from "./takeoffObservabilityDb";
 import { refreshTakeoffQaFindings } from "./takeoffQaFindings";
+import {
+  finishTakeoffLiveProgress,
+  startTakeoffLiveProgress,
+  updateTakeoffLiveProgress,
+} from "./takeoffProgress";
 
 // CSI Division Reference removed from prompts — V2 pricing engine assigns CSI codes programmatically.
 // Keeping a minimal reference for the schema only.
@@ -1181,6 +1186,17 @@ export async function processAllPendingSheets(
     sheetCount: pendingSheets.length,
     startedAt: new Date(),
   } as any);
+  startTakeoffLiveProgress(projectId, {
+    phase: "indexing",
+    totalSheets: pendingSheets.length,
+    completedSheets: 0,
+    failedSheets: 0,
+    skippedSheets: 0,
+    statusText:
+      pendingSheets.length > 0
+        ? `Preparing to index ${pendingSheets.length} drawing sheet(s)...`
+        : "No pending sheets; preparing final review.",
+  });
 
   try {
     // ─── PASS 1: Index All Sheets (classify types, detect cover sheets) ──────────
@@ -1196,7 +1212,20 @@ export async function processAllPendingSheets(
           `[Takeoff AI] === PASS 1: Indexing sheets for project ${projectId} (${bidModeBehavior.label}) ===`
         );
         const projectContext = await withTimeout(
-          indexAllSheets(projectId, runId),
+          indexAllSheets(projectId, runId, progress => {
+            updateTakeoffLiveProgress(projectId, {
+              phase: "indexing",
+              totalSheets: progress.totalSheets,
+              completedSheets: progress.completedSheets,
+              failedSheets: progress.failedSheets,
+              skippedSheets: progress.skippedSheets,
+              currentBatch: progress.currentBatch,
+              totalBatches: progress.totalBatches,
+              currentPage: progress.currentPage ?? null,
+              currentSheetName: progress.currentSheetName ?? null,
+              statusText: progress.statusText,
+            });
+          }),
           getIndexPassTimeoutMs(),
           `Sheet indexing pass for project ${projectId}`
         );
@@ -1236,6 +1265,14 @@ export async function processAllPendingSheets(
           `[Takeoff AI] Pass 1 (indexing) failed — proceeding without sheet type classification:`,
           indexError.message
         );
+        updateTakeoffLiveProgress(projectId, {
+          phase: "extracting",
+          totalSheets: pendingSheets.length,
+          failedSheets: pendingSheets.length,
+          statusText:
+            "Sheet indexing hit a timeout or error; continuing with extraction using available drawing data.",
+          detailText: indexError?.message || null,
+        });
       }
     } else {
       timings.pass1_indexing_sec = 0;
@@ -1251,7 +1288,7 @@ export async function processAllPendingSheets(
     );
 
     let processedCount = project.processedSheets || 0;
-    let hasError = false;
+    let failedExtractionCount = 0;
     const savedScalesBySheetId = new Map<
       number,
       { ratio: number; unit: string }
@@ -1283,6 +1320,19 @@ export async function processAllPendingSheets(
 
     // Skip cover sheets — they have no measurable quantities
     const CONTEXT_ONLY_SHEET_TYPES = new Set(["cover"]);
+    updateTakeoffLiveProgress(projectId, {
+      phase: "extracting",
+      totalSheets: pendingSheets.length,
+      completedSheets: processedCount,
+      failedSheets: 0,
+      skippedSheets: 0,
+      currentBatch: null,
+      totalBatches: null,
+      currentPage: null,
+      currentSheetName: null,
+      statusText: "Preparing extraction queue...",
+      detailText: null,
+    });
 
     const sheetsToProcess = [];
     for (const sheet of pendingSheets) {
@@ -1292,6 +1342,12 @@ export async function processAllPendingSheets(
           errorMessage: "No image URL available",
         });
         processedCount++;
+        updateTakeoffLiveProgress(projectId, {
+          phase: "extracting",
+          completedSheets: processedCount,
+          skippedSheets: Math.max(0, processedCount - sheetsToProcess.length),
+          statusText: `Skipped page ${sheet.pageNumber}; no image URL was available.`,
+        });
       } else if (
         CONTEXT_ONLY_SHEET_TYPES.has(sheet.sheetType) ||
         contextOnlySheetIds.has(sheet.id)
@@ -1312,6 +1368,11 @@ export async function processAllPendingSheets(
         await updateTakeoffProject(projectId, {
           processedSheets: processedCount,
         });
+        updateTakeoffLiveProgress(projectId, {
+          phase: "extracting",
+          completedSheets: processedCount,
+          statusText: `Marked page ${sheet.pageNumber} as context-only; no quantities needed.`,
+        });
       } else if (triagedSheetIds && !triagedSheetIds.has(sheet.id)) {
         console.log(
           `[Takeoff AI] Holding sheet ${sheet.id} (${sheet.sheetName || sheet.pageNumber}) out of deep extraction for ${bidModeBehavior.label}`
@@ -1329,6 +1390,11 @@ export async function processAllPendingSheets(
         await updateTakeoffProject(projectId, {
           processedSheets: processedCount,
         });
+        updateTakeoffLiveProgress(projectId, {
+          phase: "extracting",
+          completedSheets: processedCount,
+          statusText: `Held page ${sheet.pageNumber} out of deep extraction for ${bidModeBehavior.label}.`,
+        });
       } else {
         sheetsToProcess.push(sheet);
       }
@@ -1343,6 +1409,10 @@ export async function processAllPendingSheets(
 
     // Process in parallel batches of 6
     const EXTRACT_CONCURRENCY = 6;
+    const totalExtractionBatches = Math.max(
+      1,
+      Math.ceil(sheetsToProcess.length / EXTRACT_CONCURRENCY)
+    );
     for (
       let batchStart = 0;
       batchStart < sheetsToProcess.length;
@@ -1352,9 +1422,18 @@ export async function processAllPendingSheets(
         batchStart,
         batchStart + EXTRACT_CONCURRENCY
       );
+      const currentBatch = Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1;
       console.log(
-        `[Takeoff AI] Extraction batch ${Math.floor(batchStart / EXTRACT_CONCURRENCY) + 1}: sheets ${batch.map(s => s.id).join(", ")}`
+        `[Takeoff AI] Extraction batch ${currentBatch}: sheets ${batch.map(s => s.id).join(", ")}`
       );
+      updateTakeoffLiveProgress(projectId, {
+        phase: "extracting",
+        currentBatch,
+        totalBatches: totalExtractionBatches,
+        currentPage: batch[0]?.pageNumber ?? null,
+        currentSheetName: batch[0]?.sheetName ?? null,
+        statusText: `Extracting batch ${currentBatch} of ${totalExtractionBatches}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`,
+      });
 
       const results = await Promise.allSettled(
         batch.map(sheet => {
@@ -1387,8 +1466,14 @@ export async function processAllPendingSheets(
           result.status === "rejected" ||
           (result.status === "fulfilled" && !result.value)
         ) {
-          hasError = true;
+          failedExtractionCount++;
         }
+        updateTakeoffLiveProgress(projectId, {
+          phase: "extracting",
+          completedSheets: processedCount,
+          failedSheets: failedExtractionCount,
+          statusText: `Extraction progress: ${processedCount}/${pendingSheets.length} sheet(s) complete.`,
+        });
       }
 
       await updateTakeoffProject(projectId, {
@@ -1416,6 +1501,17 @@ export async function processAllPendingSheets(
         );
         await updateTakeoffProject(projectId, {
           status: "post_processing" as any,
+        });
+        updateTakeoffLiveProgress(projectId, {
+          phase: "post_processing",
+          completedSheets: processedCount,
+          totalSheets: pendingSheets.length,
+          currentBatch: null,
+          totalBatches: null,
+          currentPage: null,
+          currentSheetName: null,
+          statusText:
+            "Consolidating takeoff rows, pricing scope, and building estimator QA checks...",
         });
 
         // Keep the estimator moving: final organization is useful, but extracted
@@ -1486,6 +1582,18 @@ export async function processAllPendingSheets(
       processedSheets: processedCount,
       lastAnalyzedAt: new Date(),
     } as any);
+    finishTakeoffLiveProgress(
+      projectId,
+      finalStatus === "error" ? "error" : "completed",
+      finalStatus === "error"
+        ? "Analysis finished with sheet errors. Review the drawing set before retrying."
+        : `Analysis complete: ${processedCount}/${pendingSheets.length} sheet(s) processed.`,
+      {
+        totalSheets: pendingSheets.length,
+        completedSheets: processedCount,
+        failedSheets: errorSheets.length,
+      }
+    );
     const qaFindings = await refreshTakeoffQaFindings(projectId, runId);
     await updateTakeoffAnalysisRun(runId, {
       status: "completed",
@@ -1508,6 +1616,15 @@ export async function processAllPendingSheets(
       summary: { timings },
     } as any);
     await summarizeTakeoffAnalysisRun(runId);
+    finishTakeoffLiveProgress(
+      projectId,
+      "error",
+      `Analysis failed: ${error?.message || "Unknown error"}`,
+      {
+        totalSheets: pendingSheets.length,
+        completedSheets: project.processedSheets || 0,
+      }
+    );
     throw error;
   }
 }

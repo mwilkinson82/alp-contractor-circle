@@ -4237,11 +4237,20 @@ export default function TakeoffDetail() {
     activeProcessingStatus === "post_processing";
   const overlayTotalSheets = Math.max(
     sheets.length,
-    Number(progress?.totalSheets ?? project.totalSheets ?? 0)
+    Number(
+      progress?.liveProgress?.totalSheets ??
+        progress?.totalSheets ??
+        project.totalSheets ??
+        0
+    )
   );
   const overlayProcessedSheets =
     progressStatus === "processing" || progressStatus === "post_processing"
-      ? Number(progress?.processedSheets ?? 0)
+      ? Number(
+          progress?.liveProgress?.completedSheets ??
+            progress?.processedSheets ??
+            0
+        )
       : Number(project.processedSheets ?? 0);
   const processingOverlayProgress = isProcessing
     ? {
@@ -4251,6 +4260,7 @@ export default function TakeoffDetail() {
           activeProcessingStatus === "post_processing"
             ? "post_processing"
             : "processing",
+        liveProgress: progress?.liveProgress ?? null,
       }
     : null;
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
@@ -4830,6 +4840,7 @@ export default function TakeoffDetail() {
                   totalSheets={processingOverlayProgress.totalSheets}
                   processedSheets={processingOverlayProgress.processedSheets}
                   projectStatus={processingOverlayProgress.status}
+                  liveProgress={processingOverlayProgress.liveProgress}
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,
@@ -5013,6 +5024,7 @@ export default function TakeoffDetail() {
                   totalSheets={progress.totalSheets}
                   processedSheets={progress.processedSheets}
                   projectStatus={progress.status}
+                  liveProgress={progress.liveProgress ?? null}
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,
