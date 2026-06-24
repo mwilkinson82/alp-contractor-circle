@@ -1228,6 +1228,22 @@ export const betaUsers = mysqlTable("beta_users", {
 export type BetaUser = typeof betaUsers.$inferSelect;
 export type InsertBetaUser = typeof betaUsers.$inferInsert;
 
+export const betaPasswordResetTokens = mysqlTable(
+  "beta_password_reset_tokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    betaUserId: int("betaUserId").notNull(),
+    tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    usedAt: timestamp("usedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  }
+);
+export type BetaPasswordResetToken =
+  typeof betaPasswordResetTokens.$inferSelect;
+export type InsertBetaPasswordResetToken =
+  typeof betaPasswordResetTokens.$inferInsert;
+
 // ─── Labor Library ────────────────────────────────────────────────────────────
 /**
  * User Labor Library — per-member labor rate data by CSI code.

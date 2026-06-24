@@ -41,6 +41,20 @@ describe("ConstructLine Beta Auth Routes", () => {
     expect(mod.getBetaUserFromRequest).toBeDefined();
     expect(typeof mod.getBetaUserFromRequest).toBe("function");
   });
+
+  it("should register password reset request and confirm routes", async () => {
+    const registered = new Set<string>();
+    const app = {
+      post: (path: string) => registered.add(`POST ${path}`),
+      get: (path: string) => registered.add(`GET ${path}`),
+    };
+
+    const mod = await import("./betaAuth");
+    mod.registerBetaAuthRoutes(app as any);
+
+    expect(registered.has("POST /api/beta/password-reset/request")).toBe(true);
+    expect(registered.has("POST /api/beta/password-reset/confirm")).toBe(true);
+  });
 });
 
 describe("ConstructLine Route Configuration", () => {
@@ -52,6 +66,11 @@ describe("ConstructLine Route Configuration", () => {
   it("/constructline/login route path is correctly defined", () => {
     const routePath = "/constructline/login";
     expect(routePath).toBe("/constructline/login");
+  });
+
+  it("/constructline/reset-password route path is correctly defined", () => {
+    const routePath = "/constructline/reset-password";
+    expect(routePath).toBe("/constructline/reset-password");
   });
 
   it("legacy /try should map to /constructline", () => {

@@ -3,16 +3,20 @@ import { Resend } from "resend";
 const resendApiKey = process.env.RESEND_API_KEY;
 
 if (!resendApiKey) {
-  console.warn("[Email] RESEND_API_KEY not set — email features will be unavailable");
+  console.warn(
+    "[Email] RESEND_API_KEY not set — email features will be unavailable"
+  );
 }
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const FROM_ADDRESS = "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
+const FROM_ADDRESS =
+  "Marshall Wilkinson | ALP <welcome@notifications.marshallwilkinson.com>";
 const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
 const DISCORD_INVITE = "https://discord.gg/rsK5HZcF";
-const ZOOM_URL = "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
+const ZOOM_URL =
+  "https://us06web.zoom.us/j/83215167292?pwd=Mtt970HFCPStqSw62btyyta2Wxo0Pr.1";
 
 // ─── Add-to-Calendar links for recurring Sunday 5 PM ET bi-weekly meeting ────────
 // Anchor: Sunday March 30, 2025 at 5 PM ET = 21:00 UTC
@@ -35,12 +39,19 @@ function fmtCal(d: Date): string {
 function buildGoogleCalUrl(): string {
   const nc = getNextCallDateForEmail();
   const end = new Date(nc.getTime() + 90 * 60 * 1000);
-  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+  return (
+    "https://calendar.google.com/calendar/render?action=TEMPLATE" +
     "&text=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-    "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" + encodeURIComponent(ZOOM_URL) +
-    "&location=" + encodeURIComponent(ZOOM_URL) +
+    "&details=Bi-weekly+group+call+with+Marshall+Wilkinson.+Join+here%3A+" +
+    encodeURIComponent(ZOOM_URL) +
+    "&location=" +
+    encodeURIComponent(ZOOM_URL) +
     "&recur=RRULE:FREQ%3DWEEKLY%3BINTERVAL%3D2%3BBYDAY%3DSU" +
-    "&dates=" + fmtCal(nc) + "/" + fmtCal(end);
+    "&dates=" +
+    fmtCal(nc) +
+    "/" +
+    fmtCal(end)
+  );
 }
 
 const APPLE_CALENDAR_URL =
@@ -49,11 +60,22 @@ const APPLE_CALENDAR_URL =
 function buildOutlookCalUrl(): string {
   const nc = getNextCallDateForEmail();
   const end = new Date(nc.getTime() + 90 * 60 * 1000);
-  return "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
+  return (
+    "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
     "&subject=The+Contractor+Circle+%E2%80%94+Bi-Weekly+Call+with+Marshall" +
-    "&body=" + encodeURIComponent("Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " + ZOOM_URL) +
-    "&location=" + encodeURIComponent(ZOOM_URL) +
-    "&startdt=" + nc.toISOString().split(".")[0] + "Z&enddt=" + end.toISOString().split(".")[0] + "Z";
+    "&body=" +
+    encodeURIComponent(
+      "Bi-weekly Sunday group call with Marshall Wilkinson.\n\nJoin Zoom: " +
+        ZOOM_URL
+    ) +
+    "&location=" +
+    encodeURIComponent(ZOOM_URL) +
+    "&startdt=" +
+    nc.toISOString().split(".")[0] +
+    "Z&enddt=" +
+    end.toISOString().split(".")[0] +
+    "Z"
+  );
 }
 
 // Backward-compatible constants for existing code that references them
@@ -551,7 +573,9 @@ export async function sendFoundingMemberEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping founding member email");
+    console.warn(
+      "[Email] Resend not configured — skipping founding member email"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -559,7 +583,8 @@ export async function sendFoundingMemberEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "You're a Founding Member of The Contractor Circle — What That Means",
+      subject:
+        "You're a Founding Member of The Contractor Circle — What That Means",
       html: buildFoundingMemberEmailHtml({ name: params.name }),
       text: buildFoundingMemberEmailText({ name: params.name }),
     });
@@ -569,17 +594,27 @@ export async function sendFoundingMemberEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Founding member email sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Founding member email sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending founding member email:", err);
+    console.error(
+      "[Email] Unexpected error sending founding member email:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
 // ─── Question Notification Email to Marshall ─────────────────────────────────
 
-function buildQuestionNotificationHtml(params: { memberName: string; question: string; context?: string; callCycle?: string }) {
+function buildQuestionNotificationHtml(params: {
+  memberName: string;
+  question: string;
+  context?: string;
+  callCycle?: string;
+}) {
   return `
 <!DOCTYPE html>
 <html>
@@ -592,13 +627,17 @@ function buildQuestionNotificationHtml(params: { memberName: string; question: s
     <div style="background:linear-gradient(135deg,rgba(196,120,62,0.08),transparent);border:1px solid rgba(196,120,62,0.2);border-radius:16px;padding:32px;margin-bottom:24px;">
       <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:0 0 8px;">From</p>
       <p style="font-size:18px;font-weight:700;color:#f5f0e8;margin:0 0 24px;">${params.memberName}</p>
-      ${params.callCycle ? `<p style="font-size:12px;color:rgba(245,240,232,0.4);margin:0 0 16px;">Call Cycle: ${params.callCycle}</p>` : ''}
+      ${params.callCycle ? `<p style="font-size:12px;color:rgba(245,240,232,0.4);margin:0 0 16px;">Call Cycle: ${params.callCycle}</p>` : ""}
       <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:0 0 8px;">Question</p>
       <p style="font-size:16px;color:#f5f0e8;line-height:1.7;margin:0 0 16px;">${params.question}</p>
-      ${params.context ? `
+      ${
+        params.context
+          ? `
       <p style="font-size:14px;color:rgba(245,240,232,0.5);margin:16px 0 8px;">Additional Context</p>
       <p style="font-size:14px;color:rgba(245,240,232,0.7);line-height:1.6;margin:0;">${params.context}</p>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
     <div style="text-align:center;">
       <a href="${PORTAL_URL}" style="display:inline-block;padding:12px 32px;background:#c4783e;color:#0a0a0f;font-weight:700;font-size:14px;text-decoration:none;border-radius:8px;">View in Admin Panel</a>
@@ -616,7 +655,9 @@ export async function sendQuestionNotification(params: {
   callCycle?: string;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping question notification");
+    console.warn(
+      "[Email] Resend not configured — skipping question notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -626,7 +667,7 @@ export async function sendQuestionNotification(params: {
       to: "marshall@marshallwilkinson.com",
       subject: `New Question from ${params.memberName} — Contractor Circle`,
       html: buildQuestionNotificationHtml(params),
-      text: `New question from ${params.memberName}:\n\n${params.question}${params.context ? `\n\nContext: ${params.context}` : ''}${params.callCycle ? `\n\nCall Cycle: ${params.callCycle}` : ''}`,
+      text: `New question from ${params.memberName}:\n\n${params.question}${params.context ? `\n\nContext: ${params.context}` : ""}${params.callCycle ? `\n\nCall Cycle: ${params.callCycle}` : ""}`,
     });
 
     if (error) {
@@ -634,17 +675,28 @@ export async function sendQuestionNotification(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Question notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    console.log(
+      `[Email] Question notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending question notification:", err);
+    console.error(
+      "[Email] Unexpected error sending question notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
 // ─── Purchase Notification Email to Marshall ────────────────────────────────
 
-function buildPurchaseNotificationHtml(params: { memberName: string; memberEmail: string; amount: string; product: string; sessionId: string }) {
+function buildPurchaseNotificationHtml(params: {
+  memberName: string;
+  memberEmail: string;
+  amount: string;
+  product: string;
+  sessionId: string;
+}) {
   return `
 <!DOCTYPE html>
 <html>
@@ -703,7 +755,9 @@ export async function sendPurchaseNotification(params: {
   sessionId: string;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping purchase notification");
+    console.warn(
+      "[Email] Resend not configured — skipping purchase notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -721,10 +775,15 @@ export async function sendPurchaseNotification(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Purchase notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    console.log(
+      `[Email] Purchase notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending purchase notification:", err);
+    console.error(
+      "[Email] Unexpected error sending purchase notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
@@ -793,7 +852,9 @@ export async function sendNewMemberSignupNotification(params: {
   discordUsername: string;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping new member signup notification");
+    console.warn(
+      "[Email] Resend not configured — skipping new member signup notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -823,14 +884,22 @@ export async function sendNewMemberSignupNotification(params: {
     });
 
     if (error) {
-      console.error("[Email] Failed to send new member signup notification:", error);
+      console.error(
+        "[Email] Failed to send new member signup notification:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] New member signup notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    console.log(
+      `[Email] New member signup notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending new member signup notification:", err);
+    console.error(
+      "[Email] Unexpected error sending new member signup notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
@@ -844,12 +913,14 @@ export async function sendSubscriberNotification(params: {
   isNew: boolean;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping subscriber notification");
+    console.warn(
+      "[Email] Resend not configured — skipping subscriber notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
   try {
-    const subject = params.isNew 
+    const subject = params.isNew
       ? `New Email Subscriber — ${params.email}`
       : `Email Already Subscribed — ${params.email}`;
 
@@ -875,7 +946,7 @@ export async function sendSubscriberNotification(params: {
           
           <tr>
             <td align="center" style="color:#EDE6DB;font-size:24px;font-weight:700;">
-              ${params.isNew ? '✓ New Subscriber' : '→ Already Subscribed'}
+              ${params.isNew ? "✓ New Subscriber" : "→ Already Subscribed"}
             </td>
           </tr>
           <tr><td style="height:16px;"></td></tr>
@@ -886,9 +957,11 @@ export async function sendSubscriberNotification(params: {
                 <strong style="color:#D4915C;">Email:</strong> ${params.email}
               </p>
               <p style="margin:16px 0 0 0;color:rgba(237,230,219,0.6);font-size:13px;">
-                ${params.isNew 
-                  ? 'This email was just added to your subscriber list from the homepage email capture form.' 
-                  : 'This email was already in your subscriber list.'}
+                ${
+                  params.isNew
+                    ? "This email was just added to your subscriber list from the homepage email capture form."
+                    : "This email was already in your subscriber list."
+                }
               </p>
             </td>
           </tr>
@@ -909,7 +982,7 @@ export async function sendSubscriberNotification(params: {
 </body>
 </html>
       `,
-      text: `${subject}\n\nEmail: ${params.email}\n\n${params.isNew ? 'New subscriber from homepage email capture.' : 'Email was already subscribed.'}`,
+      text: `${subject}\n\nEmail: ${params.email}\n\n${params.isNew ? "New subscriber from homepage email capture." : "Email was already subscribed."}`,
     });
 
     if (error) {
@@ -917,10 +990,15 @@ export async function sendSubscriberNotification(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Subscriber notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    console.log(
+      `[Email] Subscriber notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending subscriber notification:", err);
+    console.error(
+      "[Email] Unexpected error sending subscriber notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
@@ -933,7 +1011,9 @@ export async function sendLeadMagnetNotification(params: {
   source: string;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping lead magnet notification");
+    console.warn(
+      "[Email] Resend not configured — skipping lead magnet notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -942,8 +1022,9 @@ export async function sendLeadMagnetNotification(params: {
       "q1-q2-framework": "Q1\u2013Q2 Scaling Framework",
       "estimating-checklist": "The Estimator's Checklist",
     };
-    const sourceLabel = sourceLabels[params.source] 
-      || params.source.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const sourceLabel =
+      sourceLabels[params.source] ||
+      params.source.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
     const subject = `New Lead Magnet Download — ${sourceLabel}`;
 
@@ -1015,10 +1096,15 @@ export async function sendLeadMagnetNotification(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Lead magnet notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`);
+    console.log(
+      `[Email] Lead magnet notification sent to marshall@marshallwilkinson.com — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending lead magnet notification:", err);
+    console.error(
+      "[Email] Unexpected error sending lead magnet notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
@@ -1208,7 +1294,9 @@ export async function sendEosDeckAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping EOS deck announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping EOS deck announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -1226,17 +1314,22 @@ export async function sendEosDeckAnnouncementEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] EOS deck announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] EOS deck announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending EOS deck announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending EOS deck announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
-
 // ─── Q2 Framework Lead Magnet Delivery Email ─────────────────────────────────
-const Q2_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle_8578e990.pdf";
+const Q2_PDF_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Q1_Q2_Framework_ALP_Contractor_Circle_8578e990.pdf";
 
 function buildQ2FrameworkEmailHtml(params: { firstName: string }): string {
   return `
@@ -1454,7 +1547,9 @@ export async function sendQ2FrameworkEmail(params: {
   firstName: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping Q2 framework delivery");
+    console.warn(
+      "[Email] Resend not configured — skipping Q2 framework delivery"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -1480,10 +1575,11 @@ export async function sendQ2FrameworkEmail(params: {
   }
 }
 
-
 // ─── Estimating Checklist Announcement Email ─────────────────────────────────
 
-function buildEstimatingChecklistAnnouncementHtml(params: { name: string }): string {
+function buildEstimatingChecklistAnnouncementHtml(params: {
+  name: string;
+}): string {
   const firstName = params.name.split(" ")[0] || "there";
   const TEMPLATE_URL = "https://app.alpcontractorcircle.com/login";
 
@@ -1624,7 +1720,9 @@ function buildEstimatingChecklistAnnouncementHtml(params: { name: string }): str
   `.trim();
 }
 
-function buildEstimatingChecklistAnnouncementText(params: { name: string }): string {
+function buildEstimatingChecklistAnnouncementText(params: {
+  name: string;
+}): string {
   const firstName = params.name.split(" ")[0] || "there";
   return `
 NEW TEMPLATE AVAILABLE
@@ -1670,7 +1768,9 @@ export async function sendEstimatingChecklistAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping estimating checklist announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping estimating checklist announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -1684,23 +1784,33 @@ export async function sendEstimatingChecklistAnnouncementEmail(params: {
     });
 
     if (error) {
-      console.error("[Email] Failed to send estimating checklist announcement:", error);
+      console.error(
+        "[Email] Failed to send estimating checklist announcement:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Estimating checklist announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Estimating checklist announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending estimating checklist announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending estimating checklist announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
-
 // ─── Estimating Checklist Lead Magnet Delivery Email ─────────────────────────
-const ESTIMATING_PDF_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_8888fab8.pdf";
+const ESTIMATING_PDF_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/Construction_Estimating_Checklist_8888fab8.pdf";
 
-function buildEstimatingChecklistEmailHtml(params: { firstName: string }): string {
+function buildEstimatingChecklistEmailHtml(params: {
+  firstName: string;
+}): string {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -1871,7 +1981,9 @@ function buildEstimatingChecklistEmailHtml(params: { firstName: string }): strin
 </html>`.trim();
 }
 
-function buildEstimatingChecklistEmailText(params: { firstName: string }): string {
+function buildEstimatingChecklistEmailText(params: {
+  firstName: string;
+}): string {
   return `
 ${params.firstName}, here's your checklist.
 
@@ -1920,7 +2032,9 @@ export async function sendEstimatingChecklistEmail(params: {
   firstName: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping estimating checklist delivery");
+    console.warn(
+      "[Email] Resend not configured — skipping estimating checklist delivery"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -1938,17 +2052,22 @@ export async function sendEstimatingChecklistEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Estimating checklist sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Estimating checklist sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending estimating checklist:", err);
+    console.error(
+      "[Email] Unexpected error sending estimating checklist:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
-
 // ─── ALP EOS Playbook Announcement Email ─────────────────────────────────────
-const EOS_PLAYBOOK_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Playbook_65c0ba61.pdf";
+const EOS_PLAYBOOK_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/ALP_EOS_Playbook_65c0ba61.pdf";
 
 function buildEosPlaybookAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
@@ -2145,7 +2264,9 @@ export async function sendEosPlaybookAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping EOS playbook announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping EOS playbook announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -2153,7 +2274,8 @@ export async function sendEosPlaybookAnnouncementEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "New in the Portal — ALP/EOS Operating System Playbook (Download Now)",
+      subject:
+        "New in the Portal — ALP/EOS Operating System Playbook (Download Now)",
       html: buildEosPlaybookAnnouncementHtml({ name: params.name }),
       text: buildEosPlaybookAnnouncementText({ name: params.name }),
     });
@@ -2163,14 +2285,18 @@ export async function sendEosPlaybookAnnouncementEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] EOS playbook announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] EOS playbook announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending EOS playbook announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending EOS playbook announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── EOS Scorecard Guidelines Announcement ──────────────────────────────────
 
@@ -2365,7 +2491,9 @@ export async function sendEosScorecardAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping EOS scorecard announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping EOS scorecard announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -2373,29 +2501,38 @@ export async function sendEosScorecardAnnouncementEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "New in the Portal — ALP/EOS Scorecard Guidelines (Download Now)",
+      subject:
+        "New in the Portal — ALP/EOS Scorecard Guidelines (Download Now)",
       html: buildEosScorecardAnnouncementHtml({ name: params.name }),
       text: buildEosScorecardAnnouncementText({ name: params.name }),
     });
 
     if (error) {
-      console.error("[Email] Failed to send EOS scorecard announcement:", error);
+      console.error(
+        "[Email] Failed to send EOS scorecard announcement:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] EOS scorecard announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] EOS scorecard announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending EOS scorecard announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending EOS scorecard announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
-
 // ─── Discord Invite Email ────────────────────────────────────────────────────
 function buildDiscordInviteHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
-  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+  const LOGO_URL =
+    "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
 
   return `
 <!DOCTYPE html>
@@ -2518,7 +2655,9 @@ export async function sendDiscordInviteEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping Discord invite email");
+    console.warn(
+      "[Email] Resend not configured — skipping Discord invite email"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -2536,20 +2675,25 @@ export async function sendDiscordInviteEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Discord invite email sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Discord invite email sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending Discord invite email:", err);
+    console.error(
+      "[Email] Unexpected error sending Discord invite email:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── Monthly Bootcamp Announcement Email ─────────────────────────────────────
 function buildBootcampAnnouncementHtml(params: { name: string }): string {
   const firstName = params.name.split(" ")[0] || "there";
   const PORTAL_URL = "https://app.alpcontractorcircle.com/login";
-  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+  const LOGO_URL =
+    "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
 
   return `
 <!DOCTYPE html>
@@ -2805,7 +2949,9 @@ export async function sendBootcampAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping bootcamp announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping bootcamp announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -2813,7 +2959,8 @@ export async function sendBootcampAnnouncementEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "Contractor Circle Monthly Bootcamp — Submit Your Topic (April 26)",
+      subject:
+        "Contractor Circle Monthly Bootcamp — Submit Your Topic (April 26)",
       html: buildBootcampAnnouncementHtml({ name: params.name }),
       text: buildBootcampAnnouncementText({ name: params.name }),
     });
@@ -2823,14 +2970,18 @@ export async function sendBootcampAnnouncementEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Bootcamp announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Bootcamp announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending bootcamp announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending bootcamp announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── Bootcamp Topic Submission Notification (to Marshall) ─────────────────────
 export async function sendBootcampTopicNotification(params: {
@@ -2840,7 +2991,9 @@ export async function sendBootcampTopicNotification(params: {
   bootcampDate: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping bootcamp topic notification");
+    console.warn(
+      "[Email] Resend not configured — skipping bootcamp topic notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -2880,10 +3033,14 @@ export async function sendBootcampTopicNotification(params: {
         <tr><td style="background-color:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
           <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px 0;font-weight:600;">Topic</p>
           <p style="color:#EDE6DB;font-size:16px;font-weight:600;margin:0 0 16px 0;line-height:1.5;">${params.topic}</p>
-          ${params.reason ? `
+          ${
+            params.reason
+              ? `
           <p style="color:#D4915C;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px 0;font-weight:600;">Why This Matters</p>
           <p style="color:rgba(237,230,219,0.7);font-size:14px;margin:0;line-height:1.6;">${params.reason}</p>
-          ` : ""}
+          `
+              : ""
+          }
         </td></tr>
         <tr><td style="height:24px;"></td></tr>
         <tr><td align="center">
@@ -2902,18 +3059,23 @@ export async function sendBootcampTopicNotification(params: {
     });
 
     if (error) {
-      console.error("[Email] Failed to send bootcamp topic notification:", error);
+      console.error(
+        "[Email] Failed to send bootcamp topic notification:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
     console.log(`[Email] Bootcamp topic notification sent — id: ${data?.id}`);
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending bootcamp topic notification:", err);
+    console.error(
+      "[Email] Unexpected error sending bootcamp topic notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── Topic Selected Notification Email ──────────────────────────────────────
 
@@ -3036,18 +3198,25 @@ export async function sendTopicSelectedEmail(params: {
     });
 
     if (error) {
-      console.error("[Email] Failed to send topic selected notification:", error);
+      console.error(
+        "[Email] Failed to send topic selected notification:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Topic selected notification sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Topic selected notification sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending topic selected notification:", err);
+    console.error(
+      "[Email] Unexpected error sending topic selected notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── Feedback Notification ──────────────────────────────────────────────────
 
@@ -3059,7 +3228,9 @@ export async function sendFeedbackNotification(params: {
   hasScreenshot: boolean;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping feedback notification");
+    console.warn(
+      "[Email] Resend not configured — skipping feedback notification"
+    );
     return { success: false, error: "Resend not configured" };
   }
   try {
@@ -3122,7 +3293,7 @@ export async function sendFeedbackNotification(params: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
             <tr><td style="padding:20px 24px;">
               <p style="margin:0 0 6px 0;font-size:10px;font-weight:700;color:#B8A99A;letter-spacing:1.5px;text-transform:uppercase;">MESSAGE</p>
-              <p style="margin:0;font-size:14px;color:#F5F0E8;line-height:1.6;">${params.message.replace(/\n/g, '<br>')}</p>
+              <p style="margin:0;font-size:14px;color:#F5F0E8;line-height:1.6;">${params.message.replace(/\n/g, "<br>")}</p>
             </td></tr>
           </table>
         </td></tr>
@@ -3138,7 +3309,7 @@ export async function sendFeedbackNotification(params: {
                 </tr>
                 <tr>
                   <td style="font-size:12px;color:#B8A99A;padding:3px 0;" width="100">Screenshot</td>
-                  <td style="font-size:12px;color:#F5F0E8;padding:3px 0;">${params.hasScreenshot ? 'Yes — view in admin portal' : 'None attached'}</td>
+                  <td style="font-size:12px;color:#F5F0E8;padding:3px 0;">${params.hasScreenshot ? "Yes — view in admin portal" : "None attached"}</td>
                 </tr>
               </table>
             </td></tr>
@@ -3166,7 +3337,7 @@ export async function sendFeedbackNotification(params: {
 </body>
 </html>
       `.trim(),
-      text: `New feedback from ${params.memberName}\n\nCategory: ${categoryLabel}\nPage: ${params.page}\nScreenshot: ${params.hasScreenshot ? 'Yes' : 'No'}\n\nMessage:\n${params.message}\n\nView in admin portal: https://app.alpcontractorcircle.com/login`,
+      text: `New feedback from ${params.memberName}\n\nCategory: ${categoryLabel}\nPage: ${params.page}\nScreenshot: ${params.hasScreenshot ? "Yes" : "No"}\n\nMessage:\n${params.message}\n\nView in admin portal: https://app.alpcontractorcircle.com/login`,
     });
 
     if (error) {
@@ -3177,11 +3348,13 @@ export async function sendFeedbackNotification(params: {
     console.log(`[Email] Feedback notification sent — id: ${data?.id}`);
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending feedback notification:", err);
+    console.error(
+      "[Email] Unexpected error sending feedback notification:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── ConstructLine Suite Announcement Email ──────────────────────────────────
 
@@ -3190,7 +3363,9 @@ export async function sendConstructLineAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping ConstructLine announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping ConstructLine announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -3200,7 +3375,8 @@ export async function sendConstructLineAnnouncementEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "You Now Have Access to ConstructLine — Proprietary Tools for Contractors",
+      subject:
+        "You Now Have Access to ConstructLine — Proprietary Tools for Contractors",
       html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -3348,18 +3524,25 @@ export async function sendConstructLineAnnouncementEmail(params: {
     });
 
     if (error) {
-      console.error("[Email] Failed to send ConstructLine announcement:", error);
+      console.error(
+        "[Email] Failed to send ConstructLine announcement:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] ConstructLine announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] ConstructLine announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending ConstructLine announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending ConstructLine announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── ConstructLine Welcome Email (Free Access Signup) ────────────────────────
 export async function sendConstructLineWelcomeEmail(params: {
@@ -3369,7 +3552,9 @@ export async function sendConstructLineWelcomeEmail(params: {
   password: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping ConstructLine welcome email");
+    console.warn(
+      "[Email] Resend not configured — skipping ConstructLine welcome email"
+    );
     return { success: false, error: "Resend not configured" };
   }
   const firstName = params.name.split(" ")[0] || params.name;
@@ -3454,21 +3639,102 @@ export async function sendConstructLineWelcomeEmail(params: {
       text: `Hi ${firstName},\n\nYou now have access to ConstructLine — Contractor Circle's proprietary construction software, powered by ALP.\n\nProfessional-grade construction tools built by construction professionals.\n\nYOUR LOGIN CREDENTIALS\nEmail: ${params.email}\nPassword: ${params.password}\n\nSave these credentials — you'll need them to sign in.\n\nWHAT'S INCLUDED:\n📐 Quantity Takeoff — AI-powered material estimates from construction drawings\n📊 CPM Scheduler — Critical path scheduling and professional Gantt charts\n\nAccess ConstructLine: ${PORTAL_URL}\n\nBEST ON DESKTOP: ConstructLine tools are built for desktop or laptop. You can sign up and browse on mobile, but for the full experience with takeoffs and scheduling, hop on a computer.\n\nThese tools are part of what makes Contractor Circle different. You're not just getting coaching — you're getting the actual systems and software that professional contractors use to run at scale.\n\nLet's build,\nMarshall Wilkinson\nFounder & CEO, ALP`,
     });
     if (error) {
-      console.error("[Email] Failed to send ConstructLine welcome email:", error);
+      console.error(
+        "[Email] Failed to send ConstructLine welcome email:",
+        error
+      );
       return { success: false, error: error.message };
     }
-    console.log(`[Email] ConstructLine welcome email sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] ConstructLine welcome email sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending ConstructLine welcome email:", err);
+    console.error(
+      "[Email] Unexpected error sending ConstructLine welcome email:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
 
+// ─── ConstructLine Password Reset Email ──────────────────────────────────────
+export async function sendConstructLinePasswordResetEmail(params: {
+  to: string;
+  name: string;
+  resetUrl: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) {
+    console.warn(
+      "[Email] Resend not configured — skipping ConstructLine password reset email"
+    );
+    return { success: false, error: "Resend not configured" };
+  }
 
+  const firstName = params.name.split(" ")[0] || params.name;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Reset your ConstructLine password",
+      html: `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0A0F1E;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0F1E;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111827;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+        <tr><td style="background:linear-gradient(135deg,#1a2035 0%,#0f1729 100%);padding:36px 40px;border-bottom:1px solid rgba(255,255,255,0.08);">
+          <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F59E0B;">CONSTRUCTLINE</p>
+          <h1 style="margin:0;font-size:28px;font-weight:800;color:#F5F0E8;line-height:1.2;">Password Reset</h1>
+          <p style="margin:6px 0 0 0;font-size:12px;color:rgba(245,240,232,0.5);letter-spacing:1px;text-transform:uppercase;">Powered by ALP</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px;">
+          <p style="margin:0 0 20px 0;font-size:17px;color:#F5F0E8;line-height:1.6;">Hi ${firstName},</p>
+          <p style="margin:0 0 20px 0;font-size:15px;color:rgba(245,240,232,0.75);line-height:1.7;">Use the button below to reset your ConstructLine password. This link expires in 60 minutes.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+            <tr><td align="center">
+              <a href="${params.resetUrl}" style="display:inline-block;background:#D95F2B;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Reset Password</a>
+            </td></tr>
+          </table>
+          <p style="margin:20px 0 0 0;font-size:13px;color:rgba(245,240,232,0.5);line-height:1.6;">If you did not request this, you can ignore this email. Your current password will keep working.</p>
+        </td></tr>
+        <tr><td style="padding:20px 40px;border-top:1px solid rgba(255,255,255,0.06);">
+          <p style="margin:0;font-size:12px;color:rgba(245,240,232,0.3);text-align:center;">ALP Contractor Circle</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+      text: `Hi ${firstName},\n\nUse this link to reset your ConstructLine password. It expires in 60 minutes:\n\n${params.resetUrl}\n\nIf you did not request this, you can ignore this email. Your current password will keep working.\n\nMarshall Wilkinson\nALP Contractor Circle`,
+    });
+
+    if (error) {
+      console.error(
+        "[Email] Failed to send ConstructLine password reset email:",
+        error
+      );
+      return { success: false, error: error.message };
+    }
+
+    console.log(
+      `[Email] ConstructLine password reset email sent to ${params.to} — id: ${data?.id}`
+    );
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error(
+      "[Email] Unexpected error sending ConstructLine password reset email:",
+      err
+    );
+    return { success: false, error: err.message || "Unknown error" };
+  }
+}
 
 // ─── Three Silos Framework Lead Magnet Delivery Email ────────────────────────
-const THREE_SILOS_PDF_URL = "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_fixed_1add3fd9.pdf";
+const THREE_SILOS_PDF_URL =
+  "https://alpcontractorcircle.com/manus-storage/ALP_Three_Silos_Framework_v3_fixed_1add3fd9.pdf";
 
 function buildThreeSilosEmailHtml(params: { firstName: string }): string {
   return `
@@ -3646,7 +3912,9 @@ export async function sendThreeSilosEmail(params: {
   firstName: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping Three Silos delivery");
+    console.warn(
+      "[Email] Resend not configured — skipping Three Silos delivery"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -3664,14 +3932,15 @@ export async function sendThreeSilosEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Three Silos Framework sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Three Silos Framework sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
     console.error("[Email] Unexpected error sending Three Silos email:", err);
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── New Templates Announcement (Three Silos + EOS Connection Map) ────────────
 
@@ -3908,7 +4177,9 @@ export async function sendNewTemplatesAnnouncementEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping new templates announcement");
+    console.warn(
+      "[Email] Resend not configured — skipping new templates announcement"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -3916,20 +4187,29 @@ export async function sendNewTemplatesAnnouncementEmail(params: {
     const { data, error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: params.to,
-      subject: "2 New Templates in the Portal — Three Silos Framework + EOS Connection Map",
+      subject:
+        "2 New Templates in the Portal — Three Silos Framework + EOS Connection Map",
       html: buildNewTemplatesAnnouncementHtml({ name: params.name }),
       text: buildNewTemplatesAnnouncementText({ name: params.name }),
     });
 
     if (error) {
-      console.error("[Email] Failed to send new templates announcement:", error);
+      console.error(
+        "[Email] Failed to send new templates announcement:",
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] New templates announcement sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] New templates announcement sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] Unexpected error sending new templates announcement:", err);
+    console.error(
+      "[Email] Unexpected error sending new templates announcement:",
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
@@ -4037,7 +4317,9 @@ export async function sendFailedPaymentEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Payment failure email sent to ${params.to} \u2014 id: ${data?.id}`);
+    console.log(
+      `[Email] Payment failure email sent to ${params.to} \u2014 id: ${data?.id}`
+    );
     return { success: true };
   } catch (err: any) {
     console.error("[Email] Failed to send payment failure email:", err);
@@ -4047,26 +4329,37 @@ export async function sendFailedPaymentEmail(params: {
 
 // ─── Bootcamp Reminder Emails (escalating urgency) ──────────────────────────
 
-type ReminderUrgency = "morning" | "afternoon" | "two_hours" | "one_hour" | "thirty_min" | "ten_min";
+type ReminderUrgency =
+  | "morning"
+  | "afternoon"
+  | "two_hours"
+  | "one_hour"
+  | "thirty_min"
+  | "ten_min";
 
-const REMINDER_CONFIG: Record<ReminderUrgency, {
-  badge: string;
-  badgeBg: string;
-  headline: string;
-  subtext: string;
-  bodyText: (firstName: string) => string;
-  ctaText: string;
-  closingQuote: string;
-  subject: string;
-}> = {
+const REMINDER_CONFIG: Record<
+  ReminderUrgency,
+  {
+    badge: string;
+    badgeBg: string;
+    headline: string;
+    subtext: string;
+    bodyText: (firstName: string) => string;
+    ctaText: string;
+    closingQuote: string;
+    subject: string;
+  }
+> = {
   morning: {
     badge: "TODAY",
     badgeBg: "#D4915C",
     headline: "Bootcamp Is Today",
     subtext: "5:00 PM Eastern — Be There",
-    bodyText: (name) => `${name}, today's the day. The Contractor Circle Monthly Bootcamp is happening this afternoon at 5 PM ET. Block it off, clear your schedule, and come ready to work. This isn't a webinar — it's a working session.`,
+    bodyText: name =>
+      `${name}, today's the day. The Contractor Circle Monthly Bootcamp is happening this afternoon at 5 PM ET. Block it off, clear your schedule, and come ready to work. This isn't a webinar — it's a working session.`,
     ctaText: "Open Portal → Join Zoom at 5 PM",
-    closingQuote: "Block the time. Show up prepared. That's how you get the most out of this.",
+    closingQuote:
+      "Block the time. Show up prepared. That's how you get the most out of this.",
     subject: "🔥 Bootcamp Is Today — 5 PM ET",
   },
   afternoon: {
@@ -4074,9 +4367,11 @@ const REMINDER_CONFIG: Record<ReminderUrgency, {
     badgeBg: "#B8451C",
     headline: "Bootcamp in 4 Hours",
     subtext: "5:00 PM Eastern — Lock It In",
-    bodyText: (name) => `${name}, just a heads up — the Monthly Bootcamp kicks off in 4 hours. If you haven't already, grab your pen and paper, get your coffee ready, and make sure you've got the Zoom link saved. This is going to be a deep one.`,
+    bodyText: name =>
+      `${name}, just a heads up — the Monthly Bootcamp kicks off in 4 hours. If you haven't already, grab your pen and paper, get your coffee ready, and make sure you've got the Zoom link saved. This is going to be a deep one.`,
     ctaText: "Get Your Zoom Link Ready",
-    closingQuote: "Four hours. That's it. Get your head right and show up ready to execute.",
+    closingQuote:
+      "Four hours. That's it. Get your head right and show up ready to execute.",
     subject: "⏰ 4 Hours Until Bootcamp — 5 PM ET",
   },
   two_hours: {
@@ -4084,9 +4379,11 @@ const REMINDER_CONFIG: Record<ReminderUrgency, {
     badgeBg: "#B8451C",
     headline: "2 Hours Out",
     subtext: "5:00 PM Eastern — Final Prep",
-    bodyText: (name) => `${name}, we're two hours out from the Monthly Bootcamp. Wrap up what you're doing. Get your workspace set up. Water, coffee, pen and paper. This is a 90+ minute deep dive — you want to be locked in from minute one.`,
+    bodyText: name =>
+      `${name}, we're two hours out from the Monthly Bootcamp. Wrap up what you're doing. Get your workspace set up. Water, coffee, pen and paper. This is a 90+ minute deep dive — you want to be locked in from minute one.`,
     ctaText: "Get Your Zoom Link",
-    closingQuote: "Two hours. Finish what you're doing and get ready to go deep.",
+    closingQuote:
+      "Two hours. Finish what you're doing and get ready to go deep.",
     subject: "🔥 2 Hours Until Bootcamp — Get Ready",
   },
   one_hour: {
@@ -4094,7 +4391,8 @@ const REMINDER_CONFIG: Record<ReminderUrgency, {
     badgeBg: "#CC3300",
     headline: "One Hour Warning",
     subtext: "5:00 PM Eastern — Almost Time",
-    bodyText: (name) => `${name}, one hour. That's all that's between you and the Bootcamp. Test your Zoom. Get your setup dialed. When we go live, we're going straight into it — no warm-up, no filler.`,
+    bodyText: name =>
+      `${name}, one hour. That's all that's between you and the Bootcamp. Test your Zoom. Get your setup dialed. When we go live, we're going straight into it — no warm-up, no filler.`,
     ctaText: "Test Your Zoom Now",
     closingQuote: "One hour. Be early. Be ready. Let's go.",
     subject: "⚡ 1 Hour Until Bootcamp — Test Your Zoom",
@@ -4104,7 +4402,8 @@ const REMINDER_CONFIG: Record<ReminderUrgency, {
     badgeBg: "#CC3300",
     headline: "30 Minutes",
     subtext: "We Go Live at 5:00 PM ET",
-    bodyText: (name) => `${name}, thirty minutes. Open Zoom. Get settled. Have your questions ready. We're going deep today and I want everyone locked in from the jump.`,
+    bodyText: name =>
+      `${name}, thirty minutes. Open Zoom. Get settled. Have your questions ready. We're going deep today and I want everyone locked in from the jump.`,
     ctaText: "Open Zoom Now",
     closingQuote: "30 minutes. Open Zoom. Get settled. See you in there.",
     subject: "🚨 30 Minutes Until Bootcamp — Open Zoom",
@@ -4114,22 +4413,30 @@ const REMINDER_CONFIG: Record<ReminderUrgency, {
     badgeBg: "#FF0000",
     headline: "We're Live in 10",
     subtext: "Join Now — Don't Be Late",
-    bodyText: (name) => `${name}, we're going live in 10 minutes. Click the button below and join the Zoom room now. If you're not in the room when we start, you're behind.`,
+    bodyText: name =>
+      `${name}, we're going live in 10 minutes. Click the button below and join the Zoom room now. If you're not in the room when we start, you're behind.`,
     ctaText: "JOIN ZOOM NOW →",
     closingQuote: "10 minutes. Join now. Don't be the one who shows up late.",
     subject: "🔴 LIVE IN 10 MINUTES — Join Zoom NOW",
   },
 };
 
-const BOOTCAMP_ZOOM_LINK = "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
+const BOOTCAMP_ZOOM_LINK =
+  "https://us06web.zoom.us/j/87028206220?pwd=k2YtkNdLz7y1nnkZt0HFSe0obntSnl.1";
 
-function buildBootcampReminderHtml(params: { name: string; urgency: ReminderUrgency }): string {
+function buildBootcampReminderHtml(params: {
+  name: string;
+  urgency: ReminderUrgency;
+}): string {
   const firstName = params.name.split(" ")[0] || "there";
   const config = REMINDER_CONFIG[params.urgency];
-  const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
+  const LOGO_URL =
+    "https://d2xsxph8kpxj0f.cloudfront.net/310519663332724241/JYLdJEaFQZebZwtiasWNpQ/favicon-192x192_f43344e4.png";
 
   // For the last two urgency levels, CTA goes directly to Zoom
-  const ctaUrl = ["thirty_min", "ten_min"].includes(params.urgency) ? BOOTCAMP_ZOOM_LINK : PORTAL_URL;
+  const ctaUrl = ["thirty_min", "ten_min"].includes(params.urgency)
+    ? BOOTCAMP_ZOOM_LINK
+    : PORTAL_URL;
 
   return `
 <!DOCTYPE html>
@@ -4281,7 +4588,10 @@ function buildBootcampReminderHtml(params: { name: string; urgency: ReminderUrge
   `.trim();
 }
 
-function buildBootcampReminderText(params: { name: string; urgency: ReminderUrgency }): string {
+function buildBootcampReminderText(params: {
+  name: string;
+  urgency: ReminderUrgency;
+}): string {
   const firstName = params.name.split(" ")[0] || "there";
   const config = REMINDER_CONFIG[params.urgency];
   return `
@@ -4324,23 +4634,36 @@ export async function sendBootcampReminderEmail(params: {
       from: FROM_ADDRESS,
       to: params.to,
       subject: config.subject,
-      html: buildBootcampReminderHtml({ name: params.name, urgency: params.urgency }),
-      text: buildBootcampReminderText({ name: params.name, urgency: params.urgency }),
+      html: buildBootcampReminderHtml({
+        name: params.name,
+        urgency: params.urgency,
+      }),
+      text: buildBootcampReminderText({
+        name: params.name,
+        urgency: params.urgency,
+      }),
     });
 
     if (error) {
-      console.error(`[Email] Failed to send bootcamp reminder (${params.urgency}):`, error);
+      console.error(
+        `[Email] Failed to send bootcamp reminder (${params.urgency}):`,
+        error
+      );
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Bootcamp reminder (${params.urgency}) sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Bootcamp reminder (${params.urgency}) sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
-    console.error(`[Email] Unexpected error sending bootcamp reminder (${params.urgency}):`, err);
+    console.error(
+      `[Email] Unexpected error sending bootcamp reminder (${params.urgency}):`,
+      err
+    );
     return { success: false, error: err.message || "Unknown error" };
   }
 }
-
 
 // ─── Discord Intro Email — "Join Discord & Introduce Yourself" ───────────────
 // Sent to new members after purchase to get them into the Discord community.
@@ -4488,7 +4811,9 @@ export async function sendDiscordIntroEmail(params: {
   name: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!resend) {
-    console.warn("[Email] Resend not configured — skipping Discord intro email");
+    console.warn(
+      "[Email] Resend not configured — skipping Discord intro email"
+    );
     return { success: false, error: "Resend not configured" };
   }
 
@@ -4508,7 +4833,9 @@ export async function sendDiscordIntroEmail(params: {
       return { success: false, error: error.message };
     }
 
-    console.log(`[Email] Discord intro email sent to ${params.to} — id: ${data?.id}`);
+    console.log(
+      `[Email] Discord intro email sent to ${params.to} — id: ${data?.id}`
+    );
     return { success: true, id: data?.id };
   } catch (err: any) {
     console.error("[Email] Unexpected error sending Discord intro email:", err);

@@ -33,7 +33,7 @@ export default function BetaLogin() {
       const res = await fetch("/api/beta/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, email: formData.email.trim() }),
       });
 
       if (!res.ok) {
@@ -57,7 +57,9 @@ export default function BetaLogin() {
           <div className="w-8 h-8 rounded-lg bg-ember/15 flex items-center justify-center">
             <Crown className="w-4 h-4 text-ember" />
           </div>
-          <span className="font-heading text-sm font-semibold text-cream">ALP Contractor Circle</span>
+          <span className="font-heading text-sm font-semibold text-cream">
+            ALP Contractor Circle
+          </span>
         </div>
         <a
           href="/"
@@ -89,7 +91,10 @@ export default function BetaLogin() {
             )}
 
             <div>
-              <Label htmlFor="email" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="email"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Email Address
               </Label>
               <Input
@@ -105,9 +110,21 @@ export default function BetaLogin() {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-cream text-sm font-medium mb-2 block">
-                Password
-              </Label>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="password"
+                  className="text-cream text-sm font-medium block"
+                >
+                  Password
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/constructline/reset-password")}
+                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 id="password"
                 name="password"

@@ -33,6 +33,7 @@ import LaborLibrary from "./pages/LaborLibrary";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import AdminFeedback from "./pages/AdminFeedback";
 import BetaLogin from "./pages/BetaLogin";
+import BetaPasswordReset from "./pages/BetaPasswordReset";
 import ConstructLineLanding from "./pages/ConstructLineLanding";
 import ConstructLineHub from "./pages/ConstructLineHub";
 import JoinPage from "./pages/JoinPage";
@@ -63,11 +64,25 @@ function Router() {
       <Route path={"/silos/thank-you"} component={ThreeSilosThankYou} />
 
       {/* ConstructLine landing page + beta signup/login (public) */}
+      <Route
+        path={"/constructline/reset-password"}
+        component={BetaPasswordReset}
+      />
       <Route path={"/constructline"} component={ConstructLineLanding} />
       <Route path={"/constructline/login"} component={BetaLogin} />
       {/* Legacy /try redirects */}
-      <Route path={"/try"}>{() => { window.location.href = "/constructline"; return null; }}</Route>
-      <Route path={"/try/login"}>{() => { window.location.href = "/constructline/login"; return null; }}</Route>
+      <Route path={"/try"}>
+        {() => {
+          window.location.href = "/constructline";
+          return null;
+        }}
+      </Route>
+      <Route path={"/try/login"}>
+        {() => {
+          window.location.href = "/constructline/login";
+          return null;
+        }}
+      </Route>
 
       {/* Member portal (Discord auth) */}
       <Route path="/portal">

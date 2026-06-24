@@ -11,15 +11,25 @@ import type { Express, Request, Response } from "express";
 import { hashSync, compareSync } from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { parse as parseCookieHeader } from "cookie";
-import { eq } from "drizzle-orm";
+import { createHash, randomBytes } from "node:crypto";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import axios from "axios";
-import { betaUsers, type BetaUser } from "../drizzle/schema";
-import { sendConstructLineWelcomeEmail } from "./email";
+import {
+  betaPasswordResetTokens,
+  betaUsers,
+  type BetaUser,
+} from "../drizzle/schema";
+import {
+  sendConstructLinePasswordResetEmail,
+  sendConstructLineWelcomeEmail,
+} from "./email";
 import { RUNTIME_FLAGS, resolveAllowedOrigin } from "./_core/runtimeFlags";
 
 const BETA_COOKIE_NAME = "beta_session";
 const BETA_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
+const PASSWORD_RESET_TOKEN_BYTES = 32;
+const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 60; // 60 minutes
 
 // ─── Discord constants ────────────────────────────────────────────────────────
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -42,14 +52,19 @@ async function ensureConstructLineRole(): Promise<string | null> {
 
   try {
     // Fetch existing roles
-    const rolesRes = await axios.get(`${DISCORD_API_BASE}/guilds/${GUILD_ID}/roles`, {
-      headers: { Authorization: `Bot ${BOT_TOKEN}` },
-    });
+    const rolesRes = await axios.get(
+      `${DISCORD_API_BASE}/guilds/${GUILD_ID}/roles`,
+      {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+      }
+    );
     const roles: Array<{ id: string; name: string }> = rolesRes.data;
     const existing = roles.find(r => r.name === "ConstructLine");
     if (existing) {
       CONSTRUCTLINE_ROLE_ID = existing.id;
-      console.log(`[BetaDiscord] Found existing ConstructLine role: ${existing.id}`);
+      console.log(
+        `[BetaDiscord] Found existing ConstructLine role: ${existing.id}`
+      );
       return existing.id;
     }
 
@@ -62,13 +77,23 @@ async function ensureConstructLineRole(): Promise<string | null> {
         hoist: false,
         mentionable: false,
       },
-      { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
+      {
+        headers: {
+          Authorization: `Bot ${BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
     CONSTRUCTLINE_ROLE_ID = createRes.data.id;
-    console.log(`[BetaDiscord] Created ConstructLine role: ${CONSTRUCTLINE_ROLE_ID}`);
+    console.log(
+      `[BetaDiscord] Created ConstructLine role: ${CONSTRUCTLINE_ROLE_ID}`
+    );
     return CONSTRUCTLINE_ROLE_ID;
   } catch (err: any) {
-    console.warn("[BetaDiscord] Failed to ensure ConstructLine role:", err?.message);
+    console.warn(
+      "[BetaDiscord] Failed to ensure ConstructLine role:",
+      err?.message
+    );
     return null;
   }
 }
@@ -85,6 +110,7 @@ function getSessionSecret() {
 
 // Reuse shared drizzle connection pattern from db.ts
 let _db: ReturnType<typeof drizzle> | null = null;
+let _passwordResetTableReady: Promise<void> | null = null;
 function db() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -101,6 +127,33 @@ function requireDb() {
   const d = db();
   if (!d) throw new Error("Database not available");
   return d;
+}
+
+async function ensurePasswordResetTable() {
+  if (!_passwordResetTableReady) {
+    _passwordResetTableReady = requireDb()
+      .execute(
+        sql.raw(`
+        CREATE TABLE IF NOT EXISTS \`beta_password_reset_tokens\` (
+          \`id\` int AUTO_INCREMENT NOT NULL,
+          \`betaUserId\` int NOT NULL,
+          \`tokenHash\` varchar(128) NOT NULL,
+          \`expiresAt\` timestamp NOT NULL,
+          \`usedAt\` timestamp NULL,
+          \`createdAt\` timestamp NOT NULL DEFAULT (now()),
+          CONSTRAINT \`beta_password_reset_tokens_id\` PRIMARY KEY(\`id\`),
+          CONSTRAINT \`beta_password_reset_tokens_tokenHash_unique\` UNIQUE(\`tokenHash\`)
+        )
+      `)
+      )
+      .then(() => undefined)
+      .catch(err => {
+        _passwordResetTableReady = null;
+        throw err;
+      });
+  }
+
+  return _passwordResetTableReady;
 }
 
 // ─── Session helpers ─────────────────────────────────────────────────────────
@@ -124,7 +177,9 @@ export async function verifyBetaSession(
   if (!cookieValue) return null;
   try {
     const secret = getSessionSecret();
-    const { payload } = await jwtVerify(cookieValue, secret, { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(cookieValue, secret, {
+      algorithms: ["HS256"],
+    });
     const { betaUserId, email, type } = payload as Record<string, unknown>;
     if (type !== "beta" || typeof email !== "string") return null;
     return { betaUserId: Number(betaUserId), email };
@@ -143,11 +198,17 @@ export function parseBetaCookie(req: Request): string | undefined {
 export async function getBetaUserById(id: number): Promise<BetaUser | null> {
   const d = db();
   if (!d) return null;
-  const rows = await d.select().from(betaUsers).where(eq(betaUsers.id, id)).limit(1);
+  const rows = await d
+    .select()
+    .from(betaUsers)
+    .where(eq(betaUsers.id, id))
+    .limit(1);
   return rows[0] || null;
 }
 
-export async function getBetaUserFromRequest(req: Request): Promise<BetaUser | null> {
+export async function getBetaUserFromRequest(
+  req: Request
+): Promise<BetaUser | null> {
   const cookie = parseBetaCookie(req);
   const session = await verifyBetaSession(cookie);
   if (!session) return null;
@@ -185,6 +246,37 @@ function getSignupAccessError(inviteCode: unknown): string | null {
   return null;
 }
 
+function hashPasswordResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function normalizeBaseUrl(value: string | undefined | null): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+function getConstructLineBaseUrl(req: Request): string {
+  const configured =
+    normalizeBaseUrl(process.env.PUBLIC_APP_URL) ||
+    normalizeBaseUrl(process.env.APP_URL) ||
+    normalizeBaseUrl(process.env.ALLOWED_ORIGINS?.split(",")[0]);
+
+  if (configured) return configured;
+
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(
+    ","
+  )[0];
+  const protocol = forwardedProto || req.protocol || "https";
+  const host = String(
+    req.headers["x-forwarded-host"] || req.headers.host || ""
+  ).split(",")[0];
+  return `${protocol}://${host}`.replace(/\/+$/, "");
+}
+
 /** Add a Discord user to the guild and assign ConstructLine role */
 async function addToGuildAndAssignRole(
   discordUserId: string,
@@ -195,16 +287,23 @@ async function addToGuildAndAssignRole(
   const roleId = await ensureConstructLineRole();
 
   // Add to guild (PUT /guilds/:id/members/:userId — requires guilds.join scope)
-  await axios.put(
-    `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUserId}`,
-    { access_token: accessToken },
-    { headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" } }
-  ).catch((e: any) => {
-    // 204 = already a member, that's fine
-    if (e?.response?.status !== 204) {
-      console.warn("[BetaDiscord] addToGuild warning:", e?.message);
-    }
-  });
+  await axios
+    .put(
+      `${DISCORD_API_BASE}/guilds/${GUILD_ID}/members/${discordUserId}`,
+      { access_token: accessToken },
+      {
+        headers: {
+          Authorization: `Bot ${BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    )
+    .catch((e: any) => {
+      // 204 = already a member, that's fine
+      if (e?.response?.status !== 204) {
+        console.warn("[BetaDiscord] addToGuild warning:", e?.message);
+      }
+    });
 
   // Assign ConstructLine role
   if (roleId) {
@@ -213,7 +312,9 @@ async function addToGuildAndAssignRole(
       {},
       { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
     );
-    console.log(`[BetaDiscord] Assigned ConstructLine role to Discord user ${discordUserId}`);
+    console.log(
+      `[BetaDiscord] Assigned ConstructLine role to Discord user ${discordUserId}`
+    );
   }
 }
 
@@ -234,11 +335,15 @@ export function registerBetaAuthRoutes(app: Express) {
       const { email, password, name, companyName, inviteCode } = req.body;
 
       if (!email || !password || !name) {
-        return res.status(400).json({ error: "Email, password, and name are required." });
+        return res
+          .status(400)
+          .json({ error: "Email, password, and name are required." });
       }
 
       if (typeof password !== "string" || password.length < 6) {
-        return res.status(400).json({ error: "Password must be at least 6 characters." });
+        return res
+          .status(400)
+          .json({ error: "Password must be at least 6 characters." });
       }
 
       const signupAccessError = getSignupAccessError(inviteCode);
@@ -256,17 +361,23 @@ export function registerBetaAuthRoutes(app: Express) {
         .limit(1);
 
       if (existing.length > 0) {
-        return res.status(409).json({ error: "An account with this email already exists. Please log in." });
+        return res
+          .status(409)
+          .json({
+            error: "An account with this email already exists. Please log in.",
+          });
       }
 
       // Hash password and create user
       const passwordHash = hashSync(password, 10);
-      const result = await requireDb().insert(betaUsers).values({
-        email: normalizedEmail,
-        passwordHash,
-        name: name.trim(),
-        companyName: companyName?.trim() || null,
-      });
+      const result = await requireDb()
+        .insert(betaUsers)
+        .values({
+          email: normalizedEmail,
+          passwordHash,
+          name: name.trim(),
+          companyName: companyName?.trim() || null,
+        });
 
       const insertId = (result as any)[0]?.insertId;
       const newUser = await getBetaUserById(insertId);
@@ -284,7 +395,9 @@ export function registerBetaAuthRoutes(app: Express) {
         name: newUser.name,
         email: newUser.email,
         password: password, // plain text password before hashing is still in scope
-      }).catch((err) => console.error("[Beta Signup] Welcome email failed:", err));
+      }).catch(err =>
+        console.error("[Beta Signup] Welcome email failed:", err)
+      );
 
       return res.json({
         success: true,
@@ -298,9 +411,166 @@ export function registerBetaAuthRoutes(app: Express) {
       });
     } catch (err: any) {
       console.error("[Beta Signup] Error:", err);
-      return res.status(500).json({ error: "Something went wrong. Please try again." });
+      return res
+        .status(500)
+        .json({ error: "Something went wrong. Please try again." });
     }
   });
+
+  // POST /api/beta/password-reset/request
+  app.post(
+    "/api/beta/password-reset/request",
+    async (req: Request, res: Response) => {
+      const response = {
+        success: true,
+        message:
+          "If that email has a ConstructLine account, a password reset link is on the way.",
+      };
+
+      try {
+        const { email } = req.body;
+        if (!email || typeof email !== "string") {
+          return res.status(400).json({ error: "Email is required." });
+        }
+        await ensurePasswordResetTable();
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const rows = await requireDb()
+          .select()
+          .from(betaUsers)
+          .where(eq(betaUsers.email, normalizedEmail))
+          .limit(1);
+
+        const user = rows[0];
+        if (!user || !user.active) {
+          return res.json(response);
+        }
+
+        await requireDb()
+          .update(betaPasswordResetTokens)
+          .set({ usedAt: new Date() })
+          .where(eq(betaPasswordResetTokens.betaUserId, user.id));
+
+        const rawToken = randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString(
+          "base64url"
+        );
+        const tokenHash = hashPasswordResetToken(rawToken);
+        const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
+
+        await requireDb().insert(betaPasswordResetTokens).values({
+          betaUserId: user.id,
+          tokenHash,
+          expiresAt,
+        });
+
+        const resetUrl = `${getConstructLineBaseUrl(req)}/constructline/reset-password?token=${encodeURIComponent(rawToken)}`;
+        sendConstructLinePasswordResetEmail({
+          to: user.email,
+          name: user.name,
+          resetUrl,
+        }).catch(err =>
+          console.error("[Beta Password Reset] Email failed:", err)
+        );
+
+        return res.json(response);
+      } catch (err: any) {
+        console.error("[Beta Password Reset] Request error:", err);
+        return res.json(response);
+      }
+    }
+  );
+
+  // POST /api/beta/password-reset/confirm
+  app.post(
+    "/api/beta/password-reset/confirm",
+    async (req: Request, res: Response) => {
+      try {
+        const { token, password } = req.body;
+        if (
+          !token ||
+          typeof token !== "string" ||
+          !password ||
+          typeof password !== "string"
+        ) {
+          return res
+            .status(400)
+            .json({ error: "Reset token and new password are required." });
+        }
+        await ensurePasswordResetTable();
+
+        if (password.length < 6) {
+          return res
+            .status(400)
+            .json({ error: "Password must be at least 6 characters." });
+        }
+
+        const tokenHash = hashPasswordResetToken(token);
+        const tokenRows = await requireDb()
+          .select()
+          .from(betaPasswordResetTokens)
+          .where(eq(betaPasswordResetTokens.tokenHash, tokenHash))
+          .limit(1);
+
+        const resetToken = tokenRows[0];
+        if (
+          !resetToken ||
+          resetToken.usedAt ||
+          new Date(resetToken.expiresAt).getTime() <= Date.now()
+        ) {
+          return res
+            .status(400)
+            .json({ error: "This reset link is invalid or expired." });
+        }
+
+        const user = await getBetaUserById(resetToken.betaUserId);
+        if (!user || !user.active) {
+          return res
+            .status(400)
+            .json({ error: "This reset link is invalid or expired." });
+        }
+
+        await requireDb()
+          .update(betaUsers)
+          .set({
+            passwordHash: hashSync(password, 10),
+            updatedAt: new Date(),
+            lastSignedIn: new Date(),
+          })
+          .where(eq(betaUsers.id, user.id));
+
+        await requireDb()
+          .update(betaPasswordResetTokens)
+          .set({ usedAt: new Date() })
+          .where(eq(betaPasswordResetTokens.id, resetToken.id));
+
+        const refreshedUser = await getBetaUserById(user.id);
+        if (!refreshedUser) {
+          return res
+            .status(500)
+            .json({ error: "Password was reset, but sign-in failed." });
+        }
+
+        const sessionToken = await createBetaToken(refreshedUser);
+        res.cookie(BETA_COOKIE_NAME, sessionToken, cookieOptions);
+
+        return res.json({
+          success: true,
+          user: {
+            id: refreshedUser.id,
+            email: refreshedUser.email,
+            name: refreshedUser.name,
+            companyName: refreshedUser.companyName,
+            discordConnected: !!refreshedUser.discordId,
+          },
+        });
+      } catch (err: any) {
+        console.error("[Beta Password Reset] Confirm error:", err);
+        return res
+          .status(500)
+          .json({ error: "Something went wrong. Please try again." });
+      }
+    }
+  );
 
   // POST /api/beta/login
   app.post("/api/beta/login", async (req: Request, res: Response) => {
@@ -308,7 +578,9 @@ export function registerBetaAuthRoutes(app: Express) {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required." });
+        return res
+          .status(400)
+          .json({ error: "Email and password are required." });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -349,7 +621,9 @@ export function registerBetaAuthRoutes(app: Express) {
       });
     } catch (err: any) {
       console.error("[Beta Login] Error:", err);
-      return res.status(500).json({ error: "Something went wrong. Please try again." });
+      return res
+        .status(500)
+        .json({ error: "Something went wrong. Please try again." });
     }
   });
 
@@ -386,7 +660,9 @@ export function registerBetaAuthRoutes(app: Express) {
   app.get("/api/beta/discord/connect", async (req: Request, res: Response) => {
     const user = await getBetaUserFromRequest(req);
     if (!user) {
-      return res.status(401).json({ error: "You must be logged in to connect Discord." });
+      return res
+        .status(401)
+        .json({ error: "You must be logged in to connect Discord." });
     }
 
     const rawOrigin = (req.query.origin as string) || req.headers.origin || "";
@@ -422,7 +698,9 @@ export function registerBetaAuthRoutes(app: Express) {
     const stateParam = req.query.state as string;
 
     if (!code || !stateParam) {
-      return res.status(400).send("Missing code or state. Please try connecting Discord again.");
+      return res
+        .status(400)
+        .send("Missing code or state. Please try connecting Discord again.");
     }
 
     let origin = PRODUCTION_ORIGIN;
@@ -430,7 +708,9 @@ export function registerBetaAuthRoutes(app: Express) {
     let betaUserId: number | null = null;
 
     try {
-      const stateData = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+      const stateData = JSON.parse(
+        Buffer.from(stateParam, "base64url").toString()
+      );
       const rawOrigin = stateData.origin || "";
       origin = resolveAllowedOrigin(rawOrigin);
       returnPath = stateData.returnPath || "/portal";
@@ -477,19 +757,30 @@ export function registerBetaAuthRoutes(app: Express) {
         .where(eq(betaUsers.id, betaUserId));
 
       // Add to guild and assign ConstructLine role (fire and forget — non-blocking)
-      addToGuildAndAssignRole(discordUser.id, tokenData.access_token).catch((e: any) =>
-        console.warn("[BetaDiscord] Guild/role assignment failed:", e?.message)
+      addToGuildAndAssignRole(discordUser.id, tokenData.access_token).catch(
+        (e: any) =>
+          console.warn(
+            "[BetaDiscord] Guild/role assignment failed:",
+            e?.message
+          )
       );
 
-      console.log(`[BetaDiscord] Beta user ${betaUserId} connected Discord: ${discordUser.username}`);
+      console.log(
+        `[BetaDiscord] Beta user ${betaUserId} connected Discord: ${discordUser.username}`
+      );
 
       // Redirect back to portal with success flag
       res.redirect(`${origin}${returnPath}?discord_connected=1`);
     } catch (err: any) {
-      console.error("[BetaDiscord] Callback error:", err?.response?.data || err?.message);
+      console.error(
+        "[BetaDiscord] Callback error:",
+        err?.response?.data || err?.message
+      );
       res.redirect(`${origin}${returnPath}?discord_error=oauth_failed`);
     }
   });
 
-  console.log("[Beta Auth] Routes registered: /api/beta/signup, /api/beta/login, /api/beta/logout, /api/beta/me, /api/beta/discord/connect, /api/beta/discord/callback");
+  console.log(
+    "[Beta Auth] Routes registered: /api/beta/signup, /api/beta/password-reset/request, /api/beta/password-reset/confirm, /api/beta/login, /api/beta/logout, /api/beta/me, /api/beta/discord/connect, /api/beta/discord/callback"
+  );
 }
