@@ -94,6 +94,7 @@ type EstimateQaAnomaly = {
   description?: string;
   amount?: number;
   items?: any[];
+  guidance?: string[];
   itemReviews?: Record<string, EstimateQaItemReview>;
 };
 
@@ -150,11 +151,13 @@ function buildQaDetailMap(
 }
 
 function getQaSampleNotes(anomaly: EstimateQaAnomaly): string {
-  return (anomaly.items || [])
+  const rowNotes = (anomaly.items || [])
     .slice(0, 3)
     .map(item => getQaItemReview(anomaly, item).reason)
     .filter(Boolean)
     .join(" | ");
+  if (rowNotes) return rowNotes;
+  return (anomaly.guidance || []).slice(0, 3).join(" | ");
 }
 
 function getSourceSheetLabel(item: any, sheets: any[]): string {
@@ -1278,9 +1281,7 @@ export default function EstimateOutputs({
           {
             Check: "Pricing and quantities",
             Status:
-              materialNeedsAttention > 0
-                ? "Resolve before packaging"
-                : "Clear",
+              materialNeedsAttention > 0 ? "Resolve before packaging" : "Clear",
             Count: materialNeedsAttention,
             Detail:
               materialNeedsAttention > 0
@@ -1378,7 +1379,7 @@ export default function EstimateOutputs({
       if (qaAnomalies.length > 0) {
         writeWorkbookSheet(
           wb,
-          "ConstructLine QA",
+          "Estimator Intelligence",
           qaAnomalies.map(anomaly => ({
             Severity: String(anomaly.severity || "review").toUpperCase(),
             Category: anomaly.category || "",
@@ -1750,9 +1751,9 @@ export default function EstimateOutputs({
                 </p>
               </div>
               <p className="mt-1 text-xs leading-5 text-orange-900/80">
-                Full Excel and PDF exports are still available as review
-                drafts. Proposal, bid summary, and SOV packaging unlock after
-                the blocking QA, pricing, quantity, and labor basis items are
+                Full Excel and PDF exports are still available as review drafts.
+                Proposal, bid summary, and SOV packaging unlock after the
+                blocking QA, pricing, quantity, and labor basis items are
                 cleared.
               </p>
             </div>

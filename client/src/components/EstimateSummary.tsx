@@ -204,6 +204,7 @@ type EstimateQaAnomaly = {
   description?: string;
   amount?: number;
   items?: any[];
+  guidance?: string[];
   itemReviews?: Record<string, EstimateQaItemReview>;
 };
 
@@ -225,11 +226,13 @@ function getQaItemReview(
 }
 
 function getQaSampleNotes(anomaly: EstimateQaAnomaly): string {
-  return (anomaly.items || [])
+  const rowNotes = (anomaly.items || [])
     .slice(0, 3)
     .map(item => getQaItemReview(anomaly, item).reason)
     .filter(Boolean)
     .join(" | ");
+  if (rowNotes) return rowNotes;
+  return (anomaly.guidance || []).slice(0, 3).join(" | ");
 }
 
 interface EstimateSummaryProps {
@@ -999,7 +1002,7 @@ export default function EstimateSummary({
       XLSX.utils.book_append_sheet(
         wb,
         XLSX.utils.json_to_sheet(qaRows),
-        "ConstructLine QA"
+        "Estimator Intelligence"
       );
     }
     XLSX.writeFile(wb, `estimate-summary-project-${projectId}.xlsx`);
@@ -1213,10 +1216,10 @@ export default function EstimateSummary({
     : qaReviewCount > 0
       ? "Review draft"
       : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
-      ? "Draft"
-      : defaultLaborCount > 0
-        ? "Price review"
-        : "Bid-ready";
+        ? "Draft"
+        : defaultLaborCount > 0
+          ? "Price review"
+          : "Bid-ready";
   const readinessChecks = [
     { label: "Scope Review", value: scopeReadinessPct },
     { label: "Pricing", value: pricingReadinessPct },

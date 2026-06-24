@@ -162,6 +162,7 @@ import {
   sumScopeIncludedLaborCost,
   sumScopeIncludedMaterialCost,
 } from "../../../shared/scopeCost";
+import { buildEstimateIntelligenceFindings } from "../../../shared/estimateIntelligence";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -294,6 +295,7 @@ interface TakeoffAnomaly {
   description: string;
   amount?: number;
   items: any[];
+  guidance?: string[];
   itemReviews?: Record<string, TakeoffAnomalyItemReview>;
 }
 
@@ -536,13 +538,47 @@ function describeAssumptionKey(key: string): string {
   return "repeated generated assumption";
 }
 
-function buildTakeoffAnomalies(items: any[] = []): TakeoffAnomaly[] {
+function buildTakeoffAnomalies(
+  items: any[] = [],
+  project?: any,
+  sheets: any[] = []
+): TakeoffAnomaly[] {
   const anomalies: TakeoffAnomaly[] = [];
   const accepted = items.filter(item => isScopeIncludedItem(item));
   const excluded = items.filter(item => isScopeExcludedItem(item));
   const openItems = items.filter(item => !item.reviewed);
   const openAccepted = accepted.filter(item => !item.reviewed);
   const openExcluded = excluded.filter(item => !item.reviewed);
+  const itemLookup = new Map(
+    items.map(item => [String(item?.id ?? item?.itemId ?? ""), item])
+  );
+
+  for (const finding of buildEstimateIntelligenceFindings({
+    project,
+    sheets,
+    items,
+  })) {
+    const findingItems = finding.itemIds
+      .map(id => itemLookup.get(String(id)))
+      .filter(Boolean);
+    anomalies.push({
+      id: finding.id,
+      severity: finding.severity,
+      category: finding.category,
+      title: finding.title,
+      description: finding.description,
+      amount: finding.amountCents,
+      items: sortByExtendedCostDesc(findingItems).slice(0, 12),
+      guidance: finding.guidance,
+      itemReviews: buildItemReviewMap(
+        sortByExtendedCostDesc(findingItems).slice(0, 12),
+        () => ({
+          reason: finding.guidance[0] || finding.description,
+          action: finding.guidance[1],
+        })
+      ),
+    });
+  }
 
   const scopeConflicts = openItems.filter(item => {
     const notes = String(item.notes || "").toLowerCase();
@@ -1993,12 +2029,12 @@ function AnomalyCenterDialog({
           <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
             <div>
               <DialogTitle className="text-2xl text-[#171714]">
-                Discrepancy Review
+                Estimator Intelligence Review
               </DialogTitle>
               <DialogDescription className="text-[#716855]">
-                Find duplicate scope, zero-value accepted rows, high-value
-                exclusions, low confidence, and traceability gaps before the bid
-                is packaged.
+                ConstructLine has done the takeoff. Review project-specific
+                gaps, assumptions, thin coverage, and traceability risks before
+                the bid is packaged.
               </DialogDescription>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -2023,10 +2059,9 @@ function AnomalyCenterDialog({
                 <div>
                   <p className="font-semibold">No obvious anomalies found</p>
                   <p className="mt-1 text-sm text-emerald-900/75">
-                    ConstructLine did not detect zero-value accepted scope,
-                    high-value exclusions, duplicate accepted rows,
-                    low-confidence rows, or source-link gaps in this project
-                    snapshot.
+                    ConstructLine did not detect obvious pricing, quantity,
+                    scope coverage, duplicate accepted row, low-confidence, or
+                    source-link gaps in this project snapshot.
                   </p>
                 </div>
               </div>
@@ -2075,8 +2110,9 @@ function AnomalyCenterDialog({
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                         <span className="font-semibold text-[#5d5546]">
-                          {anomaly.items.length} row
-                          {anomaly.items.length !== 1 ? "s" : ""}
+                          {anomaly.items.length > 0
+                            ? `${anomaly.items.length} row${anomaly.items.length !== 1 ? "s" : ""}`
+                            : `${anomaly.guidance?.length || 1} checkpoint${(anomaly.guidance?.length || 1) !== 1 ? "s" : ""}`}
                         </span>
                         {typeof anomaly.amount === "number" &&
                           anomaly.amount > 0 && (
@@ -2133,190 +2169,226 @@ function AnomalyCenterDialog({
                     </div>
                   </div>
 
-                  <div className="mt-4 overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4]">
-                    <div className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
-                      <span>Description</span>
-                      <span className="text-right">Qty</span>
-                      <span className="text-right">Confidence</span>
-                      <span className="text-right">Value</span>
-                      <span className="text-right">Actions</span>
-                    </div>
-                    <div className="max-h-[430px] overflow-y-auto">
-                      {activeAnomaly.items.map(item => {
-                        const cue = getEstimatorCue(item);
-                        const scopeStatus = getScopeReviewStatus(item);
-                        const hasQuantity = Number(item.quantity || 0) > 0;
-                        const itemReview = getAnomalyItemReview(
-                          activeAnomaly,
-                          item
-                        );
-                        const description =
-                          item.description ||
-                          String(item.notes || "")
-                            .replace(
-                              /\[Scope:\s*(?:included|review|excluded)\]\s*/gi,
-                              ""
-                            )
-                            .trim() ||
-                          "Untitled takeoff row";
-                        return (
+                  {activeAnomaly.guidance?.length ? (
+                    <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-[#fffdf7] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                        Estimator checkpoints
+                      </p>
+                      <div className="mt-3 grid gap-2">
+                        {activeAnomaly.guidance.map((step, index) => (
                           <div
-                            key={`${activeAnomaly.id}-${item.id}`}
-                            className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3"
+                            key={`${activeAnomaly.id}-guidance-${index}`}
+                            className="flex gap-3 rounded-lg border border-[#eadfc9] bg-white px-3 py-2 text-sm leading-5 text-[#5d5546]"
                           >
-                            <button
-                              type="button"
-                              onClick={() => onOpenItem(item)}
-                              className="min-w-0 text-left"
-                            >
-                              <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#171714]">
-                                {description}
-                              </p>
-                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                <Badge
-                                  className={`${cue.className} border text-[10px]`}
-                                >
-                                  {cue.label}
-                                </Badge>
-                                <span className="whitespace-nowrap text-[11px] text-[#716855]">
-                                  {item.csiCode || item.csiDivision || "No CSI"}
-                                </span>
-                              </div>
-                              {itemReview.reason && (
-                                <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[#716855]">
-                                  <Info className="mr-1 inline h-3 w-3 align-[-2px] text-[#8a6510]" />
-                                  {itemReview.reason}
-                                </p>
-                              )}
-                              {itemReview.action && (
-                                <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-4 text-[#5d5546]">
-                                  Next: {itemReview.action}
-                                </p>
-                              )}
-                            </button>
-                            <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
-                              {item.quantity || "—"} {item.unit || ""}
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#171714] text-[10px] font-semibold text-white">
+                              {index + 1}
                             </span>
-                            <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
-                              {item.confidence ? `${item.confidence}%` : "—"}
-                            </span>
-                            <span className="whitespace-nowrap text-right font-mono text-xs font-semibold text-[#8a6510]">
-                              {formatCurrency(
-                                Number(item.extendedCost || 0),
-                                currency
-                              )}
-                            </span>
-                            <div className="flex flex-wrap items-center justify-end gap-1.5 text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 border-blue-200 bg-blue-50 px-2 text-xs text-[#244c91] hover:!bg-blue-100 hover:!text-[#1f3f78]"
-                                onClick={() => onOpenSource(item)}
-                                disabled={!item.sheetId}
-                                title={
-                                  item.sheetId
-                                    ? "Open source drawing"
-                                    : "No source drawing linked"
-                                }
-                              >
-                                <FileImage className="mr-1 h-3 w-3" />
-                                Source
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
-                                onClick={() => onOpenItem(item)}
-                                title="Open item evidence and pricing detail"
-                              >
-                                <Eye className="mr-1 h-3 w-3" />
-                                Evidence
-                              </Button>
-                              {scopeStatus !== "review" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 border-[#d7b44d] bg-[#fff7da] px-2 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
-                                  onClick={() =>
-                                    onApplyScopeDecision(item, "review", false)
-                                  }
-                                  disabled={isPending}
-                                  title="Move to review queue without counting it"
-                                >
-                                  <Flag className="mr-1 h-3 w-3" />
-                                  Review
-                                </Button>
-                              )}
-                              {scopeStatus !== "included" && (
-                                <Button
-                                  size="sm"
-                                  className="h-7 bg-emerald-600 px-2 text-xs text-white hover:bg-emerald-700"
-                                  onClick={() =>
-                                    onApplyScopeDecision(item, "included")
-                                  }
-                                  disabled={isPending}
-                                  title="Include in active bid total"
-                                >
-                                  <Check className="mr-1 h-3 w-3" />
-                                  Include
-                                </Button>
-                              )}
-                              {scopeStatus !== "excluded" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
-                                  onClick={() =>
-                                    onApplyScopeDecision(item, "excluded")
-                                  }
-                                  disabled={isPending}
-                                  title="Exclude from active bid total"
-                                >
-                                  <X className="mr-1 h-3 w-3" />
-                                  Exclude
-                                </Button>
-                              )}
-                              {hasQuantity ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 border-emerald-300 bg-emerald-50 px-2 text-xs text-emerald-800 hover:!bg-emerald-100 hover:!text-emerald-900"
-                                  onClick={() => onConfirmQuantity(item)}
-                                  disabled={isPending}
-                                  title="Mark quantity as confirmed"
-                                >
-                                  <CheckSquare className="mr-1 h-3 w-3" />
-                                  Confirm
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
-                                  onClick={() => onOpenItem(item)}
-                                  title="Open detail to enter quantity"
-                                >
-                                  <Ruler className="mr-1 h-3 w-3" />
-                                  Qty
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs text-[#716855] hover:bg-[#f1eee6] hover:text-[#171714]"
-                                onClick={() => onDismissItem(item)}
-                                disabled={isPending}
-                                title="Mark this anomaly reviewed"
-                              >
-                                <CheckCircle2 className="mr-1 h-3 w-3" />
-                                Dismiss
-                              </Button>
-                            </div>
+                            <span>{step}</span>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
+
+                  {activeAnomaly.items.length > 0 ? (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-[#d7c7aa] bg-[#f4efe4]">
+                      <div className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] border-b border-[#d7c7aa] bg-[#eee4d2] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#716855]">
+                        <span>Description</span>
+                        <span className="text-right">Qty</span>
+                        <span className="text-right">Confidence</span>
+                        <span className="text-right">Value</span>
+                        <span className="text-right">Actions</span>
+                      </div>
+                      <div className="max-h-[430px] overflow-y-auto">
+                        {activeAnomaly.items.map(item => {
+                          const cue = getEstimatorCue(item);
+                          const scopeStatus = getScopeReviewStatus(item);
+                          const hasQuantity = Number(item.quantity || 0) > 0;
+                          const itemReview = getAnomalyItemReview(
+                            activeAnomaly,
+                            item
+                          );
+                          const description =
+                            item.description ||
+                            String(item.notes || "")
+                              .replace(
+                                /\[Scope:\s*(?:included|review|excluded)\]\s*/gi,
+                                ""
+                              )
+                              .trim() ||
+                            "Untitled takeoff row";
+                          return (
+                            <div
+                              key={`${activeAnomaly.id}-${item.id}`}
+                              className="grid grid-cols-[minmax(360px,1fr)_90px_98px_106px_380px] items-center gap-3 border-b border-[#d7c7aa]/70 bg-white/70 px-4 py-3"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => onOpenItem(item)}
+                                className="min-w-0 text-left"
+                              >
+                                <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#171714]">
+                                  {description}
+                                </p>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                  <Badge
+                                    className={`${cue.className} border text-[10px]`}
+                                  >
+                                    {cue.label}
+                                  </Badge>
+                                  <span className="whitespace-nowrap text-[11px] text-[#716855]">
+                                    {item.csiCode ||
+                                      item.csiDivision ||
+                                      "No CSI"}
+                                  </span>
+                                </div>
+                                {itemReview.reason && (
+                                  <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-[#716855]">
+                                    <Info className="mr-1 inline h-3 w-3 align-[-2px] text-[#8a6510]" />
+                                    {itemReview.reason}
+                                  </p>
+                                )}
+                                {itemReview.action && (
+                                  <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-4 text-[#5d5546]">
+                                    Next: {itemReview.action}
+                                  </p>
+                                )}
+                              </button>
+                              <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
+                                {item.quantity || "—"} {item.unit || ""}
+                              </span>
+                              <span className="whitespace-nowrap text-right font-mono text-xs text-[#5d5546]">
+                                {item.confidence ? `${item.confidence}%` : "—"}
+                              </span>
+                              <span className="whitespace-nowrap text-right font-mono text-xs font-semibold text-[#8a6510]">
+                                {formatCurrency(
+                                  Number(item.extendedCost || 0),
+                                  currency
+                                )}
+                              </span>
+                              <div className="flex flex-wrap items-center justify-end gap-1.5 text-right">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 border-blue-200 bg-blue-50 px-2 text-xs text-[#244c91] hover:!bg-blue-100 hover:!text-[#1f3f78]"
+                                  onClick={() => onOpenSource(item)}
+                                  disabled={!item.sheetId}
+                                  title={
+                                    item.sheetId
+                                      ? "Open source drawing"
+                                      : "No source drawing linked"
+                                  }
+                                >
+                                  <FileImage className="mr-1 h-3 w-3" />
+                                  Source
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-[#716855] hover:bg-[#fff4cb] hover:text-[#8a6510]"
+                                  onClick={() => onOpenItem(item)}
+                                  title="Open item evidence and pricing detail"
+                                >
+                                  <Eye className="mr-1 h-3 w-3" />
+                                  Evidence
+                                </Button>
+                                {scopeStatus !== "review" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 border-[#d7b44d] bg-[#fff7da] px-2 text-xs text-[#8a6510] hover:!bg-[#fff4cb] hover:!text-[#171714]"
+                                    onClick={() =>
+                                      onApplyScopeDecision(
+                                        item,
+                                        "review",
+                                        false
+                                      )
+                                    }
+                                    disabled={isPending}
+                                    title="Move to review queue without counting it"
+                                  >
+                                    <Flag className="mr-1 h-3 w-3" />
+                                    Review
+                                  </Button>
+                                )}
+                                {scopeStatus !== "included" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-7 bg-emerald-600 px-2 text-xs text-white hover:bg-emerald-700"
+                                    onClick={() =>
+                                      onApplyScopeDecision(item, "included")
+                                    }
+                                    disabled={isPending}
+                                    title="Include in active bid total"
+                                  >
+                                    <Check className="mr-1 h-3 w-3" />
+                                    Include
+                                  </Button>
+                                )}
+                                {scopeStatus !== "excluded" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
+                                    onClick={() =>
+                                      onApplyScopeDecision(item, "excluded")
+                                    }
+                                    disabled={isPending}
+                                    title="Exclude from active bid total"
+                                  >
+                                    <X className="mr-1 h-3 w-3" />
+                                    Exclude
+                                  </Button>
+                                )}
+                                {hasQuantity ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 border-emerald-300 bg-emerald-50 px-2 text-xs text-emerald-800 hover:!bg-emerald-100 hover:!text-emerald-900"
+                                    onClick={() => onConfirmQuantity(item)}
+                                    disabled={isPending}
+                                    title="Mark quantity as confirmed"
+                                  >
+                                    <CheckSquare className="mr-1 h-3 w-3" />
+                                    Confirm
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 border-orange-300 bg-orange-50 px-2 text-xs text-orange-800 hover:!bg-orange-100 hover:!text-orange-900"
+                                    onClick={() => onOpenItem(item)}
+                                    title="Open detail to enter quantity"
+                                  >
+                                    <Ruler className="mr-1 h-3 w-3" />
+                                    Qty
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-[#716855] hover:bg-[#f1eee6] hover:text-[#171714]"
+                                  onClick={() => onDismissItem(item)}
+                                  disabled={isPending}
+                                  title="Mark this anomaly reviewed"
+                                >
+                                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                                  Dismiss
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border border-[#d7c7aa] bg-white p-5 text-sm leading-6 text-[#716855]">
+                      No individual row is directly tied to this finding yet.
+                      Treat it as a project-level estimator checkpoint: confirm
+                      the scope is quoted, excluded, or carried as an allowance
+                      before the bid leaves review.
+                    </div>
+                  )}
                 </>
               )}
             </main>
@@ -3968,8 +4040,8 @@ export default function TakeoffDetail() {
     [items]
   );
   const takeoffAnomalies = useMemo(
-    () => buildTakeoffAnomalies(items || []),
-    [items]
+    () => buildTakeoffAnomalies(items || [], project, project?.sheets || []),
+    [items, project]
   );
   const scopeReviewCount = reviewItems.length;
   const reviewItemsCost = useMemo(

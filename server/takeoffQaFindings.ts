@@ -1,10 +1,24 @@
-import { getTakeoffItemsByProject } from "./takeoffDb";
+import {
+  getDrawingSheetsByProject,
+  getTakeoffItemsByProject,
+  getTakeoffProject,
+} from "./takeoffDb";
 import { replaceOpenTakeoffQaFindings } from "./takeoffObservabilityDb";
 import type { InsertTakeoffQaFinding } from "../drizzle/schema";
 import { isScopeIncludedItem } from "../shared/scopeCost";
+import {
+  buildEstimateIntelligenceFindings,
+  type EstimateIntelligenceFinding,
+  type EstimateIntelligenceProject,
+  type EstimateIntelligenceSheet,
+} from "../shared/estimateIntelligence";
 
 type TakeoffItemRow = Awaited<
   ReturnType<typeof getTakeoffItemsByProject>
+>[number];
+type TakeoffProjectRow = Awaited<ReturnType<typeof getTakeoffProject>>;
+type DrawingSheetRow = Awaited<
+  ReturnType<typeof getDrawingSheetsByProject>
 >[number];
 
 type FindingDraft = Omit<
@@ -79,13 +93,57 @@ function buildFinding(
   } as any;
 }
 
+function buildIntelligenceFinding(
+  projectId: number,
+  runId: number | null | undefined,
+  finding: EstimateIntelligenceFinding,
+  itemLookup: Map<string, TakeoffItemRow>
+): FindingDraft {
+  const linkedItems = finding.itemIds
+    .map(id => itemLookup.get(String(id)))
+    .filter((item): item is TakeoffItemRow => Boolean(item));
+
+  return {
+    projectId,
+    runId: runId || null,
+    findingKey: finding.id,
+    severity: finding.severity,
+    category: finding.category,
+    title: finding.title,
+    description: [
+      finding.description,
+      ...finding.guidance.map(step => `Next: ${step}`),
+    ].join("\n"),
+    amountCents: finding.amountCents,
+    itemCount: linkedItems.length,
+    itemIds: linkedItems.map(item => item.id),
+    status: "open",
+  } as any;
+}
+
 export function buildTakeoffQaFindings(
   projectId: number,
   runId: number | null | undefined,
-  items: TakeoffItemRow[]
+  items: TakeoffItemRow[],
+  context: {
+    project?: TakeoffProjectRow | null;
+    sheets?: DrawingSheetRow[];
+  } = {}
 ): FindingDraft[] {
   const accepted = items.filter(item => isScopeIncludedItem(item as any));
   const findings: FindingDraft[] = [];
+  const itemLookup = new Map(items.map(item => [String(item.id), item]));
+
+  const intelligenceFindings = buildEstimateIntelligenceFindings({
+    project: context.project as EstimateIntelligenceProject | null | undefined,
+    sheets: (context.sheets || []) as EstimateIntelligenceSheet[],
+    items: items as any,
+  });
+  for (const finding of intelligenceFindings) {
+    findings.push(
+      buildIntelligenceFinding(projectId, runId, finding, itemLookup)
+    );
+  }
 
   const zeroAccepted = accepted.filter(
     item => itemQuantity(item) <= 0 || itemCostCents(item) <= 0
@@ -212,8 +270,15 @@ export async function refreshTakeoffQaFindings(
   projectId: number,
   runId?: number | null
 ): Promise<FindingDraft[]> {
-  const items = await getTakeoffItemsByProject(projectId);
-  const findings = buildTakeoffQaFindings(projectId, runId, items);
+  const [project, items, sheets] = await Promise.all([
+    getTakeoffProject(projectId),
+    getTakeoffItemsByProject(projectId),
+    getDrawingSheetsByProject(projectId),
+  ]);
+  const findings = buildTakeoffQaFindings(projectId, runId, items, {
+    project,
+    sheets,
+  });
   await replaceOpenTakeoffQaFindings(projectId, runId || null, findings as any);
   return findings;
 }
