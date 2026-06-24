@@ -10,6 +10,11 @@ export const ENV = {
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   openAiBaseUrl: process.env.OPENAI_BASE_URL ?? "",
   openAiModel: process.env.OPENAI_MODEL ?? "",
+  perplexityApiKey:
+    process.env.PERPLEXITY_API_KEY ?? process.env.PPLX_API_KEY ?? "",
+  perplexityBaseUrl:
+    process.env.PERPLEXITY_BASE_URL ?? "https://api.perplexity.ai",
+  perplexityModel: process.env.PERPLEXITY_MODEL ?? "",
   // Discord OAuth
   discordClientId: process.env.DISCORD_CLIENT_ID ?? "",
   discordClientSecret: process.env.DISCORD_CLIENT_SECRET ?? "",

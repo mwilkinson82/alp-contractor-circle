@@ -137,6 +137,11 @@ function resolveTakeoffLlmTimeoutMs(passType: TakeoffPassType): number {
 
 function estimateUsageCostCents(usage: InvokeResult["usage"]): number | null {
   if (!usage) return null;
+  const reportedTotalCost = usage.cost?.total_cost;
+  if (Number.isFinite(reportedTotalCost)) {
+    return Math.round((reportedTotalCost as number) * 100);
+  }
+
   const inputPerMillionCents = numberFromEnv([
     "OPENAI_INPUT_COST_PER_1M_TOKENS_CENTS",
     "LLM_INPUT_COST_PER_1M_TOKENS_CENTS",
@@ -180,7 +185,7 @@ export async function invokeTrackedTakeoffLLM({
   metadata,
 }: TrackedInvokeArgs): Promise<InvokeResult> {
   const model = resolveTakeoffModelForPass(passType);
-  const provider = resolveLLMProvider();
+  const provider = resolveLLMProvider(model);
   const startedAt = new Date();
   const started = Date.now();
   const promptHash = hashPrompt(params);

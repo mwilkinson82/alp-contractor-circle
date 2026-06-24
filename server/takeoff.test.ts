@@ -44,6 +44,13 @@ describe("Takeoff AI Pipeline", () => {
     expect(typeof mod.processAllPendingSheets).toBe("function");
   });
 
+  it("routes provider-prefixed Perplexity models without changing the model id", async () => {
+    const mod = await import("./_core/llm");
+
+    expect(mod.resolveLLMProvider("perplexity/sonar-pro")).toBe("perplexity");
+    expect(mod.resolveLLMModel("perplexity/sonar-pro")).toBe("sonar-pro");
+  });
+
   it("should build scale calibration context for AI extraction", async () => {
     const mod = await import("./takeoffAI");
     const context = mod.buildScaleCalibrationContext(24.567, "ft");

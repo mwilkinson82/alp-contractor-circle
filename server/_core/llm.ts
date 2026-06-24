@@ -103,6 +103,9 @@ export type InvokeResult = {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
+    cost?: {
+      total_cost?: number;
+    };
   };
 };
 
@@ -243,10 +246,48 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
+export type LLMProvider = "openai" | "perplexity" | "forge";
+
+const PROVIDER_PREFIXES: Array<`${LLMProvider}/`> = [
+  "openai/",
+  "perplexity/",
+  "forge/",
+];
+
+function stripProviderPrefix(model: string): string {
+  for (const prefix of PROVIDER_PREFIXES) {
+    if (model.startsWith(prefix)) return model.slice(prefix.length);
+  }
+  return model;
+}
+
+function resolveProviderFromModel(
+  modelOverride?: string | null
+): LLMProvider | null {
+  const value = modelOverride?.trim();
+  if (!value) return null;
+  if (value.startsWith("openai/")) return "openai";
+  if (value.startsWith("perplexity/")) return "perplexity";
+  if (value.startsWith("forge/")) return "forge";
+  return null;
+}
+
 const isOpenAiDirect = () => ENV.openAiApiKey.trim().length > 0;
 
-const resolveApiUrl = () => {
-  if (isOpenAiDirect()) {
+const resolveProvider = (modelOverride?: string | null): LLMProvider => {
+  const providerFromModel = resolveProviderFromModel(modelOverride);
+  if (providerFromModel) return providerFromModel;
+  return isOpenAiDirect() ? "openai" : "forge";
+};
+
+const resolveApiUrl = (modelOverride?: string | null) => {
+  const provider = resolveProvider(modelOverride);
+
+  if (provider === "perplexity") {
+    return `${ENV.perplexityBaseUrl.replace(/\/$/, "")}/chat/completions`;
+  }
+
+  if (provider === "openai") {
     const baseUrl = ENV.openAiBaseUrl || "https://api.openai.com/v1";
     return `${baseUrl.replace(/\/$/, "")}/chat/completions`;
   }
@@ -256,13 +297,20 @@ const resolveApiUrl = () => {
     : "https://forge.manus.im/v1/chat/completions";
 };
 
-const resolveApiKey = () => ENV.openAiApiKey || ENV.forgeApiKey;
+const resolveApiKey = (modelOverride?: string | null) => {
+  const provider = resolveProvider(modelOverride);
+  if (provider === "perplexity") return ENV.perplexityApiKey;
+  if (provider === "openai") return ENV.openAiApiKey;
+  return ENV.forgeApiKey;
+};
 
-export const resolveLLMProvider = () => (isOpenAiDirect() ? "openai" : "forge");
+export const resolveLLMProvider = (modelOverride?: string | null) =>
+  resolveProvider(modelOverride);
 
 export const resolveLLMModel = (modelOverride?: string | null) => {
-  if (modelOverride?.trim()) return modelOverride.trim();
+  if (modelOverride?.trim()) return stripProviderPrefix(modelOverride.trim());
   if (ENV.openAiModel) return ENV.openAiModel;
+  if (ENV.perplexityModel) return stripProviderPrefix(ENV.perplexityModel);
   return isOpenAiDirect() ? "gpt-5.5" : "gemini-2.5-flash";
 };
 
@@ -273,10 +321,13 @@ const resolveMaxTokens = () => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 32768;
 };
 
-const assertApiKey = () => {
-  if (!resolveApiKey()) {
+const assertApiKey = (modelOverride?: string | null) => {
+  const provider = resolveProvider(modelOverride);
+  if (!resolveApiKey(modelOverride)) {
     throw new Error(
-      "No LLM API key configured. Set OPENAI_API_KEY for direct OpenAI billing, or BUILT_IN_FORGE_API_KEY for the legacy Manus-compatible provider."
+      provider === "perplexity"
+        ? "No Perplexity API key configured. Set PERPLEXITY_API_KEY before using a perplexity/... model."
+        : "No LLM API key configured. Set OPENAI_API_KEY for direct OpenAI billing, or BUILT_IN_FORGE_API_KEY for the legacy Manus-compatible provider."
     );
   }
 };
@@ -346,8 +397,6 @@ export async function invokeLLMWithTimeout(
 }
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
-
   const {
     model,
     messages,
@@ -361,8 +410,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     signal,
   } = params;
 
+  assertApiKey(model);
+  const provider = resolveProvider(model);
+  const resolvedModel = resolveLLMModel(model);
+
   const payload: Record<string, unknown> = {
-    model: resolveLLMModel(model),
+    model: resolvedModel,
     messages: messages.map(normalizeMessage),
   };
 
@@ -378,10 +431,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  if (isOpenAiDirect()) {
+  if (provider === "openai") {
     payload.max_completion_tokens = resolveMaxTokens();
   } else {
     payload.max_tokens = resolveMaxTokens();
+  }
+
+  if (provider === "forge") {
     payload.thinking = {
       budget_tokens: Number.parseInt(
         process.env.LLM_THINKING_BUDGET_TOKENS || "128",
@@ -401,11 +457,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(resolveApiUrl(model), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${resolveApiKey()}`,
+      authorization: `Bearer ${resolveApiKey(model)}`,
     },
     body: JSON.stringify(payload),
     ...(signal ? { signal } : {}),
