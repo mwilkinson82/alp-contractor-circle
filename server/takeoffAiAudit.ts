@@ -6,7 +6,10 @@ import {
   type InvokeParams,
   type InvokeResult,
 } from "./_core/llm";
-import { createTakeoffLlmAttempt } from "./takeoffObservabilityDb";
+import {
+  createTakeoffLlmAttempt,
+  getTakeoffLlmRunUsage,
+} from "./takeoffObservabilityDb";
 
 export type TakeoffPassType =
   | "sheet_index"
@@ -33,6 +36,12 @@ const PASS_MODEL_ENV: Record<TakeoffPassType, string[]> = {
   labor_task_group: ["OPENAI_MODEL_LABOR", "CONSTRUCTLINE_MODEL_LABOR"],
   labor_item_preview: ["OPENAI_MODEL_LABOR", "CONSTRUCTLINE_MODEL_LABOR"],
 };
+
+const GLOBAL_TAKEOFF_MODEL_ENV = [
+  "CONSTRUCTLINE_TAKEOFF_MODEL",
+  "TAKEOFF_LLM_MODEL",
+  "CONSTRUCTLINE_MODEL",
+];
 
 const PASS_TIMEOUT_ENV: Record<TakeoffPassType, string[]> = {
   sheet_index: [
@@ -65,11 +74,27 @@ const DEFAULT_PASS_TIMEOUT_MS: Record<TakeoffPassType, number> = {
   labor_item_preview: 90_000,
 };
 
+function withProviderPrefix(model: string, provider: string): string {
+  const value = model.trim();
+  if (!value) return value;
+  if (/^(openai|perplexity|forge)\//.test(value)) return value;
+  return `${provider}/${value}`;
+}
+
 export function resolveTakeoffModelForPass(passType: TakeoffPassType): string {
   for (const envName of PASS_MODEL_ENV[passType] || []) {
     const value = process.env[envName]?.trim();
     if (value) return value;
   }
+
+  for (const envName of GLOBAL_TAKEOFF_MODEL_ENV) {
+    const value = process.env[envName]?.trim();
+    if (value) return value;
+  }
+
+  const perplexityModel = process.env.PERPLEXITY_MODEL?.trim();
+  if (perplexityModel) return withProviderPrefix(perplexityModel, "perplexity");
+
   return resolveLLMModel();
 }
 
@@ -135,7 +160,61 @@ function resolveTakeoffLlmTimeoutMs(passType: TakeoffPassType): number {
   );
 }
 
-function estimateUsageCostCents(usage: InvokeResult["usage"]): number | null {
+type ModelPricing = {
+  inputCentsPerMillion: number;
+  outputCentsPerMillion: number;
+  requestCents?: number;
+};
+
+const PERPLEXITY_MODEL_PRICING: Record<string, ModelPricing> = {
+  sonar: {
+    inputCentsPerMillion: 100,
+    outputCentsPerMillion: 100,
+    requestCents: 0.6,
+  },
+  "sonar-pro": {
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    requestCents: 0.6,
+  },
+  "sonar-reasoning-pro": {
+    inputCentsPerMillion: 200,
+    outputCentsPerMillion: 800,
+    requestCents: 0.6,
+  },
+  "sonar-deep-research": {
+    inputCentsPerMillion: 200,
+    outputCentsPerMillion: 800,
+    requestCents: 0.6,
+  },
+};
+
+function normalizeModelForPricing(model?: string | null): string {
+  return (model || "")
+    .trim()
+    .replace(/^(openai|perplexity|forge)\//, "")
+    .replace(/\s*\(.+?\)\s*$/, "")
+    .toLowerCase();
+}
+
+function estimateByTokenPricing(
+  usage: InvokeResult["usage"],
+  pricing: ModelPricing
+): number | null {
+  if (!usage) return null;
+  const inputCost =
+    ((usage.prompt_tokens || 0) * pricing.inputCentsPerMillion) / 1_000_000;
+  const outputCost =
+    ((usage.completion_tokens || 0) * pricing.outputCentsPerMillion) /
+    1_000_000;
+  return Math.round(inputCost + outputCost + (pricing.requestCents || 0));
+}
+
+export function estimateTakeoffUsageCostCents(
+  usage: InvokeResult["usage"],
+  provider?: string | null,
+  model?: string | null
+): number | null {
   if (!usage) return null;
   const reportedTotalCost = usage.cost?.total_cost;
   if (Number.isFinite(reportedTotalCost)) {
@@ -151,6 +230,12 @@ function estimateUsageCostCents(usage: InvokeResult["usage"]): number | null {
     "LLM_OUTPUT_COST_PER_1M_TOKENS_CENTS",
   ]);
   if (inputPerMillionCents === null && outputPerMillionCents === null) {
+    if (provider === "perplexity") {
+      const pricing =
+        PERPLEXITY_MODEL_PRICING[normalizeModelForPricing(model)] ||
+        PERPLEXITY_MODEL_PRICING.sonar;
+      return estimateByTokenPricing(usage, pricing);
+    }
     return null;
   }
 
@@ -159,6 +244,27 @@ function estimateUsageCostCents(usage: InvokeResult["usage"]): number | null {
   const outputCost =
     ((usage.completion_tokens || 0) * (outputPerMillionCents || 0)) / 1_000_000;
   return Math.round(inputCost + outputCost);
+}
+
+export function resolveTakeoffRunCostLimitCents(): number | null {
+  return positiveNumberFromEnv([
+    "CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS",
+    "TAKEOFF_MAX_RUN_LLM_COST_CENTS",
+    "LLM_MAX_RUN_COST_CENTS",
+  ]);
+}
+
+async function assertRunWithinBudget(
+  runId: number | null | undefined
+): Promise<void> {
+  const limitCents = resolveTakeoffRunCostLimitCents();
+  if (!limitCents || !runId) return;
+  const usage = await getTakeoffLlmRunUsage(runId);
+  if (!usage || usage.estimatedCostCents < limitCents) return;
+
+  throw new Error(
+    `ConstructLine AI budget limit reached for this run ($${(usage.estimatedCostCents / 100).toFixed(2)} used of $${(limitCents / 100).toFixed(2)} cap). Increase CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS or retry with a cheaper model.`
+  );
 }
 
 type TrackedInvokeArgs = {
@@ -196,6 +302,7 @@ export async function invokeTrackedTakeoffLLM({
   };
 
   try {
+    await assertRunWithinBudget(runId);
     const response = await invokeLLMWithTimeout(
       { ...params, model },
       timeoutMs
@@ -220,7 +327,11 @@ export async function invokeTrackedTakeoffLLM({
       promptTokens: usage?.prompt_tokens || 0,
       completionTokens: usage?.completion_tokens || 0,
       totalTokens: usage?.total_tokens || 0,
-      estimatedCostCents: estimateUsageCostCents(usage),
+      estimatedCostCents: estimateTakeoffUsageCostCents(
+        usage,
+        provider,
+        response.model || model
+      ),
       metadata: attemptMetadata,
     } as any).catch(err => {
       console.warn("[Takeoff AI] Failed to record LLM attempt:", err);

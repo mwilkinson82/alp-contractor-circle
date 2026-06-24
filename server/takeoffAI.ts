@@ -62,6 +62,8 @@ import {
 const CSI_DIVISIONS_REFERENCE = ""; // No longer injected into prompts
 const DEFAULT_INDEX_PASS_TIMEOUT_MS = 6 * 60 * 1000;
 const DEFAULT_TAKEOFF_PROGRESS_HEARTBEAT_MS = 30_000;
+const DEFAULT_EXTRACT_CONCURRENCY = 3;
+type ImageDetail = "auto" | "low" | "high" | "original";
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -87,6 +89,32 @@ function getTakeoffProgressHeartbeatMs(): number {
       "TAKEOFF_PROGRESS_HEARTBEAT_MS",
     ]) || DEFAULT_TAKEOFF_PROGRESS_HEARTBEAT_MS
   );
+}
+
+function getExtractionConcurrency(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_EXTRACT_CONCURRENCY",
+      "TAKEOFF_EXTRACT_CONCURRENCY",
+    ]) || DEFAULT_EXTRACT_CONCURRENCY
+  );
+}
+
+function getImageDetailFromEnv(names: string[]): ImageDetail | null {
+  const allowed = new Set<ImageDetail>(["auto", "low", "high", "original"]);
+  for (const name of names) {
+    const value = process.env[name]?.trim().toLowerCase() as ImageDetail;
+    if (allowed.has(value)) return value;
+  }
+  return null;
+}
+
+function getImageDetailSequence(
+  names: string[],
+  fallback: ImageDetail[]
+): ImageDetail[] {
+  const detail = getImageDetailFromEnv(names);
+  return detail ? [detail] : fallback;
 }
 
 function withTimeout<T>(
@@ -648,8 +676,13 @@ async function extractPass(
     EXTRACT_PROMPT += `\n\n${scaleContext}`;
   }
 
-  // Try high detail first, fall back to low detail on 500 (token limit exceeded)
-  for (const detail of ["high", "low"] as const) {
+  const detailSequence = getImageDetailSequence(
+    ["CONSTRUCTLINE_EXTRACT_IMAGE_DETAIL", "TAKEOFF_EXTRACT_IMAGE_DETAIL"],
+    ["high", "low"]
+  );
+
+  // Try the configured detail first, then fall back when the default sequence allows it.
+  for (const detail of detailSequence) {
     try {
       if (detail === "low") {
         console.log(
@@ -718,7 +751,7 @@ async function extractPass(
       // - "bad response" or "token" mentions
       const msg = err?.message || "";
       const isRetryable = isRetryableLlmError(err);
-      if (detail === "high" && isRetryable) {
+      if (detail === "high" && isRetryable && detailSequence.includes("low")) {
         console.log(
           `[Takeoff AI] Retryable error on high detail: ${msg.slice(0, 120)}`
         );
@@ -758,8 +791,13 @@ async function verifyPass(
     .join("\n");
   const scaleContext = buildScaleCalibrationContext(scaleRatio, scaleUnit);
 
-  // Try high detail first, fall back to low detail on 500/token errors
-  for (const detail of ["high", "low"] as const) {
+  const detailSequence = getImageDetailSequence(
+    ["CONSTRUCTLINE_VERIFY_IMAGE_DETAIL", "TAKEOFF_VERIFY_IMAGE_DETAIL"],
+    ["high", "low"]
+  );
+
+  // Try the configured detail first, then fall back when the default sequence allows it.
+  for (const detail of detailSequence) {
     try {
       if (detail === "low") {
         console.log(`[Takeoff AI] Retrying verification with detail:low`);
@@ -818,7 +856,7 @@ async function verifyPass(
         const repaired = repairTruncatedJSON(content);
         if (repaired && Array.isArray(repaired.items)) {
           verified = repaired as TakeoffExtractionResult;
-        } else if (detail === "high") {
+        } else if (detail === "high" && detailSequence.includes("low")) {
           // Try low detail next
           continue;
         } else {
@@ -847,7 +885,7 @@ async function verifyPass(
     } catch (err: any) {
       const msg = err?.message || "";
       const isRetryable = isRetryableLlmError(err);
-      if (detail === "high" && isRetryable) {
+      if (detail === "high" && isRetryable && detailSequence.includes("low")) {
         console.log(
           `[Takeoff AI] Verify retryable error on high detail: ${msg.slice(0, 120)}`
         );
@@ -1449,8 +1487,7 @@ export async function processAllPendingSheets(
       );
     }
 
-    // Process in parallel batches of 6
-    const EXTRACT_CONCURRENCY = 6;
+    const EXTRACT_CONCURRENCY = getExtractionConcurrency();
     const totalExtractionBatches = Math.max(
       1,
       Math.ceil(sheetsToProcess.length / EXTRACT_CONCURRENCY)

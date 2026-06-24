@@ -16,6 +16,8 @@ import {
 
 const DEFAULT_SHEET_INDEX_TIMEOUT_MS = 90_000;
 const DEFAULT_SHEET_INDEX_HEARTBEAT_MS = 30_000;
+const DEFAULT_SHEET_INDEX_CONCURRENCY = 3;
+type ImageDetail = "auto" | "low" | "high" | "original";
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -40,6 +42,37 @@ function getSheetIndexHeartbeatMs(): number {
       "CONSTRUCTLINE_SHEET_INDEX_HEARTBEAT_MS",
       "TAKEOFF_SHEET_INDEX_HEARTBEAT_MS",
     ]) || DEFAULT_SHEET_INDEX_HEARTBEAT_MS
+  );
+}
+
+function getSheetIndexConcurrency(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_SHEET_INDEX_CONCURRENCY",
+      "TAKEOFF_SHEET_INDEX_CONCURRENCY",
+    ]) || DEFAULT_SHEET_INDEX_CONCURRENCY
+  );
+}
+
+function getImageDetailFromEnv(
+  names: string[],
+  fallback: ImageDetail
+): ImageDetail {
+  const allowed = new Set<ImageDetail>(["auto", "low", "high", "original"]);
+  for (const name of names) {
+    const value = process.env[name]?.trim().toLowerCase() as ImageDetail;
+    if (allowed.has(value)) return value;
+  }
+  return fallback;
+}
+
+function getSheetIndexImageDetail(): ImageDetail {
+  return getImageDetailFromEnv(
+    [
+      "CONSTRUCTLINE_SHEET_INDEX_IMAGE_DETAIL",
+      "TAKEOFF_SHEET_INDEX_IMAGE_DETAIL",
+    ],
+    "high"
   );
 }
 
@@ -381,13 +414,14 @@ async function indexSingleSheet(
   runId?: number | null
 ): Promise<Omit<SheetIndexEntry, "sheetId" | "pageNumber">> {
   const llmImageUrl = (await storageUrlToDataUrl(imageUrl)) || imageUrl;
+  const imageDetail = getSheetIndexImageDetail();
   const response = await invokeTrackedTakeoffLLM({
     projectId,
     sheetId,
     runId,
     passType: "sheet_index",
     promptVersion: TAKEOFF_PROMPT_VERSIONS.sheet_index,
-    detail: "high",
+    detail: imageDetail,
     metadata: { pageNumber },
     params: {
       messages: [
@@ -401,7 +435,7 @@ async function indexSingleSheet(
             },
             {
               type: "image_url",
-              image_url: { url: llmImageUrl, detail: "high" },
+              image_url: { url: llmImageUrl, detail: imageDetail },
             },
           ],
         },
@@ -621,11 +655,10 @@ export async function indexAllSheets(
   let failedIndexCount = 0;
 
   console.log(
-    `[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=6)...`
+    `[Sheet Index] Pass 1: Indexing ${sheets.length} sheets for project ${projectId} (parallel, concurrency=${getSheetIndexConcurrency()})...`
   );
 
-  // Process sheets in parallel batches of 6 for speed
-  const CONCURRENCY = 6;
+  const CONCURRENCY = getSheetIndexConcurrency();
   const sheetsWithImages = sheets.filter((s: any) => s.imageUrl);
   const sheetIndexTimeoutMs = getSheetIndexTimeoutMs();
   const skipped = sheets.length - sheetsWithImages.length;

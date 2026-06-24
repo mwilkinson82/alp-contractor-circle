@@ -69,6 +69,69 @@ describe("Takeoff AI Pipeline", () => {
     }
   });
 
+  it("routes bare PERPLEXITY_MODEL values through the Perplexity provider for takeoff passes", async () => {
+    const keysToSave = [
+      "CONSTRUCTLINE_MODEL_SHEET_INDEX",
+      "OPENAI_MODEL_SHEET_INDEX",
+      "CONSTRUCTLINE_MODEL_EXTRACT",
+      "OPENAI_MODEL_TAKEOFF_EXTRACT",
+      "CONSTRUCTLINE_TAKEOFF_MODEL",
+      "TAKEOFF_LLM_MODEL",
+      "CONSTRUCTLINE_MODEL",
+      "PERPLEXITY_MODEL",
+    ];
+    const previous = new Map(keysToSave.map(key => [key, process.env[key]]));
+    for (const key of keysToSave) delete process.env[key];
+    process.env.PERPLEXITY_MODEL = "sonar";
+
+    try {
+      const mod = await import("./takeoffAiAudit");
+      expect(mod.resolveTakeoffModelForPass("takeoff_extract")).toBe(
+        "perplexity/sonar"
+      );
+    } finally {
+      for (const [key, value] of previous) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    }
+  });
+
+  it("estimates Perplexity sonar-pro usage cost from token usage", async () => {
+    const mod = await import("./takeoffAiAudit");
+
+    const costCents = mod.estimateTakeoffUsageCostCents(
+      {
+        prompt_tokens: 2_120_340,
+        completion_tokens: 77_267,
+        total_tokens: 2_197_607,
+      },
+      "perplexity",
+      "sonar-pro (97WC)"
+    );
+
+    expect(costCents).toBe(753);
+  });
+
+  it("reads a ConstructLine run-level LLM cost cap from env", async () => {
+    const previous = process.env.CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS;
+    process.env.CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS = "300";
+
+    try {
+      const mod = await import("./takeoffAiAudit");
+      expect(mod.resolveTakeoffRunCostLimitCents()).toBe(300);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS;
+      } else {
+        process.env.CONSTRUCTLINE_MAX_RUN_LLM_COST_CENTS = previous;
+      }
+    }
+  });
+
   it("should build scale calibration context for AI extraction", async () => {
     const mod = await import("./takeoffAI");
     const context = mod.buildScaleCalibrationContext(24.567, "ft");

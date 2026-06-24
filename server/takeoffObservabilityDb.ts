@@ -92,6 +92,48 @@ export async function createTakeoffLlmAttempt(
   }
 }
 
+export async function getTakeoffLlmRunUsage(
+  runId: number | null | undefined
+): Promise<{
+  estimatedCostCents: number;
+  totalTokens: number;
+  attemptCount: number;
+} | null> {
+  if (!runId) return null;
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const attempts = await db
+      .select({
+        estimatedCostCents: takeoffLlmAttempts.estimatedCostCents,
+        totalTokens: takeoffLlmAttempts.totalTokens,
+      })
+      .from(takeoffLlmAttempts)
+      .where(eq(takeoffLlmAttempts.runId, runId));
+
+    return attempts.reduce<{
+      estimatedCostCents: number;
+      totalTokens: number;
+      attemptCount: number;
+    }>(
+      (acc, attempt) => {
+        acc.estimatedCostCents += attempt.estimatedCostCents || 0;
+        acc.totalTokens += attempt.totalTokens || 0;
+        acc.attemptCount += 1;
+        return acc;
+      },
+      {
+        estimatedCostCents: 0,
+        totalTokens: 0,
+        attemptCount: 0,
+      }
+    );
+  } catch (error) {
+    logObservabilityFailure("load LLM run usage", error);
+    return null;
+  }
+}
+
 export async function summarizeTakeoffAnalysisRun(
   runId: number | null | undefined
 ): Promise<void> {
