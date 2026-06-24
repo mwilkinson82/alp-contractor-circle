@@ -1106,12 +1106,34 @@ export default function EstimateSummary({
   const proposalReadinessPct =
     hasOpenScope ||
     hasQaBlockers ||
+    qaReviewCount > 0 ||
     materialNeedsAttention > 0 ||
     laborNeedsAttention > 0 ||
     defaultLaborCount > 0 ||
     markupPctTotal === 0
       ? 0
       : 100;
+  const clientPackageBlockers = [
+    hasOpenScope
+      ? `${reviewQueueCount} scope decision${reviewQueueCount !== 1 ? "s" : ""} still open`
+      : null,
+    qaReviewCount > 0
+      ? hasQaBlockers
+        ? `${qaBlockerCount} QA blocker${qaBlockerCount !== 1 ? "s" : ""} must be resolved`
+        : `${qaReviewCount} QA review finding${qaReviewCount !== 1 ? "s" : ""} need estimator disposition`
+      : null,
+    materialNeedsAttention > 0
+      ? `${materialNeedsAttention} accepted item${materialNeedsAttention !== 1 ? "s need" : " needs"} pricing or quantity cleanup`
+      : null,
+    laborNeedsAttention > 0
+      ? `${laborNeedsAttention} labor decision${laborNeedsAttention !== 1 ? "s" : ""} still open`
+      : null,
+    defaultLaborCount > 0
+      ? `${defaultLaborCount} row${defaultLaborCount !== 1 ? "s use" : " uses"} library labor and need confirmation`
+      : null,
+    markupPctTotal === 0 ? "Markup profile is empty" : null,
+  ].filter(Boolean) as string[];
+  const isClientPackageLocked = clientPackageBlockers.length > 0;
   const attentionItems = [
     hasOpenScope
       ? {
@@ -1188,7 +1210,9 @@ export default function EstimateSummary({
   const primaryAttention = attentionItems[0];
   const estimateModeLabel = hasQaBlockers
     ? "Estimator review"
-    : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
+    : qaReviewCount > 0
+      ? "Review draft"
+      : hasOpenScope || materialNeedsAttention > 0 || laborNeedsAttention > 0
       ? "Draft"
       : defaultLaborCount > 0
         ? "Price review"
@@ -1248,7 +1272,7 @@ export default function EstimateSummary({
                 className={`${LIGHT_OUTLINE_BUTTON_CLASS} gap-1.5`}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
-                Export
+                {isClientPackageLocked ? "Export Review Draft" : "Export"}
               </Button>
             </div>
           </div>
@@ -1312,7 +1336,7 @@ export default function EstimateSummary({
                   />
                   <CommandMetric
                     label="Labor Basis"
-                    value={`${laborBasisConfirmed} of ${calculations.totalItems} confirmed`}
+                    value={`${laborBasisConfirmed} / ${calculations.totalItems} confirmed`}
                     tone="blue"
                   />
                 </div>
@@ -1386,6 +1410,40 @@ export default function EstimateSummary({
               </div>
             </div>
 
+            {isClientPackageLocked && (
+              <div className="mt-5 rounded-xl border border-orange-300 bg-orange-50 p-4 text-orange-950 shadow-[0_14px_34px_rgba(154,83,0,0.08)]">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-700" />
+                      <p className="text-sm font-semibold">
+                        Client package locked for estimator review
+                      </p>
+                    </div>
+                    <p className="mt-1 max-w-3xl text-xs leading-5 text-orange-900/80">
+                      Internal exports remain available, but proposal and
+                      owner-facing packaging should wait until these items are
+                      cleared.
+                    </p>
+                  </div>
+                  <Badge className="w-fit border-orange-300 bg-white text-orange-800">
+                    Review draft
+                  </Badge>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {clientPackageBlockers.slice(0, 4).map(blocker => (
+                    <div
+                      key={blocker}
+                      className="flex items-start gap-2 rounded-lg border border-orange-200 bg-white/70 px-3 py-2 text-xs text-orange-950"
+                    >
+                      <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700" />
+                      <span>{blocker}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
               <PipelineStep
                 label="Scope Review"
@@ -1416,10 +1474,12 @@ export default function EstimateSummary({
               <PipelineStep
                 label="Proposal"
                 value={
-                  attentionItems.length > 0 ? "Not ready" : "Ready to package"
+                  isClientPackageLocked
+                    ? "Locked for review"
+                    : "Ready to package"
                 }
-                active={attentionItems.length === 0}
-                complete={attentionItems.length === 0}
+                active={!isClientPackageLocked}
+                complete={!isClientPackageLocked}
                 tone="green"
               />
             </div>
@@ -1557,7 +1617,7 @@ export default function EstimateSummary({
                 }}
                 className="border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] text-xs"
               >
-                Discard
+                Close Review
               </Button>
               <Button
                 size="sm"
@@ -1744,7 +1804,7 @@ export default function EstimateSummary({
                 }}
                 className="border-[#c8b895] bg-white text-[#5d5546] hover:bg-[#faf8f2] hover:text-[#171714] text-xs"
               >
-                Discard
+                Close Review
               </Button>
               <Button
                 size="sm"
@@ -2606,7 +2666,9 @@ function CommandMetric({
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
         {label}
       </p>
-      <p className="mt-1 truncate font-mono text-lg font-semibold">{value}</p>
+      <p className="mt-1 break-words font-mono text-base font-semibold leading-tight">
+        {value}
+      </p>
     </div>
   );
 }

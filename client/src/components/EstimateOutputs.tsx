@@ -24,6 +24,7 @@ import {
   Send,
   BadgeCheck,
   TableProperties,
+  AlertTriangle,
 } from "lucide-react";
 
 const CSI_DIVISION_NAMES: Record<string, string> = {
@@ -275,6 +276,40 @@ export default function EstimateOutputs({
   const qaReviewCount = qaAnomalies.filter(
     anomaly => anomaly.severity && anomaly.severity !== "reference"
   ).length;
+  const getCalcCount = (key: string) =>
+    Number((calculations as any)?.[key] || 0);
+  const totalAcceptedRows = getCalcCount("totalItems");
+  const laborNeedsAttention =
+    getCalcCount("laborItemsHeldForReview") +
+    getCalcCount("laborItemsWithoutLabor");
+  const defaultLaborCount = getCalcCount("laborItemsDefaulted");
+  const laborBasisOpen = laborNeedsAttention + defaultLaborCount;
+  const laborBasisConfirmed = Math.max(0, totalAcceptedRows - laborBasisOpen);
+  const materialNeedsAttention =
+    getCalcCount("materialItemsMissing") + getCalcCount("quantityItemsMissing");
+  const clientPackageIssues = [
+    qaReviewCount > 0
+      ? qaBlockerCount > 0
+        ? `${qaBlockerCount} QA blocker${qaBlockerCount !== 1 ? "s" : ""} before packaging`
+        : `${qaReviewCount} QA finding${qaReviewCount !== 1 ? "s" : ""} need estimator disposition`
+      : null,
+    materialNeedsAttention > 0
+      ? `${materialNeedsAttention} pricing or quantity issue${materialNeedsAttention !== 1 ? "s" : ""}`
+      : null,
+    laborNeedsAttention > 0
+      ? `${laborNeedsAttention} open labor decision${laborNeedsAttention !== 1 ? "s" : ""}`
+      : null,
+    defaultLaborCount > 0
+      ? `${defaultLaborCount} library labor row${defaultLaborCount !== 1 ? "s" : ""} need confirmation`
+      : null,
+  ].filter(Boolean) as string[];
+  const clientPackageLocked = clientPackageIssues.length > 0;
+  const reviewDraftActive = clientPackageLocked || qaReviewCount > 0;
+  const showClientPackageLockedToast = () => {
+    toast.error(
+      `Client package locked: ${clientPackageIssues[0] || "estimator review required"}`
+    );
+  };
 
   // ─── Company branding fields ──────────────────────────────────────
   const [companyName, setCompanyName] = useState("");
@@ -355,6 +390,10 @@ export default function EstimateOutputs({
 
   // ─── Bid Summary PDF ────────────────────────────────────────────────
   const generateBidSummary = () => {
+    if (clientPackageLocked) {
+      showClientPackageLockedToast();
+      return;
+    }
     setGenerating("bid");
     try {
       const doc = new jsPDF();
@@ -533,6 +572,10 @@ export default function EstimateOutputs({
 
   // ─── Proposal PDF ──────────────────────────────────────────────────
   const generateProposal = () => {
+    if (clientPackageLocked) {
+      showClientPackageLockedToast();
+      return;
+    }
     setGenerating("proposal");
     try {
       const doc = new jsPDF();
@@ -877,6 +920,10 @@ export default function EstimateOutputs({
 
   // ─── AIA G702/G703 SOV Excel ──────────────────────────────────────
   const generateSOVExcel = () => {
+    if (clientPackageLocked) {
+      showClientPackageLockedToast();
+      return;
+    }
     setGenerating("sov");
     try {
       const wb = XLSX.utils.book_new();
@@ -1188,6 +1235,68 @@ export default function EstimateOutputs({
         { wch: 14 },
       ]);
 
+      writeWorkbookSheet(
+        wb,
+        "Readiness Audit",
+        [
+          {
+            Check: "Client package status",
+            Status: clientPackageLocked
+              ? "LOCKED - ESTIMATOR REVIEW REQUIRED"
+              : "READY",
+            Count: clientPackageIssues.length,
+            Detail: clientPackageLocked
+              ? clientPackageIssues.join(" | ")
+              : "No blocking QA, pricing, quantity, or labor basis issues detected.",
+          },
+          {
+            Check: "QA findings",
+            Status:
+              qaReviewCount > 0
+                ? qaBlockerCount > 0
+                  ? "Resolve blockers before packaging"
+                  : "Review before sending"
+                : "Clear",
+            Count: qaReviewCount,
+            Detail:
+              qaReviewCount > 0
+                ? `${qaBlockerCount} blocker(s); ${qaReviewCount} total non-reference finding(s).`
+                : "No ConstructLine QA findings requiring action.",
+          },
+          {
+            Check: "Labor basis",
+            Status:
+              laborBasisOpen > 0
+                ? "Confirm labor basis before packaging"
+                : "Clear",
+            Count: laborBasisOpen,
+            Detail:
+              totalAcceptedRows > 0
+                ? `${laborBasisConfirmed} of ${totalAcceptedRows} accepted rows confirmed.`
+                : "No accepted rows found.",
+          },
+          {
+            Check: "Pricing and quantities",
+            Status:
+              materialNeedsAttention > 0
+                ? "Resolve before packaging"
+                : "Clear",
+            Count: materialNeedsAttention,
+            Detail:
+              materialNeedsAttention > 0
+                ? "Accepted rows still need material pricing or defensible quantities."
+                : "Accepted rows have pricing and quantity values.",
+          },
+          {
+            Check: "Draft bid total",
+            Status: "Reference",
+            Count: "",
+            Detail: fmtCurrency(calculations.grandTotal, currency),
+          },
+        ],
+        [{ wch: 28 }, { wch: 36 }, { wch: 12 }, { wch: 90 }]
+      );
+
       for (const div of calculations.divisionOrder) {
         const data = calculations.byDivision[div];
         const divName = CSI_DIVISION_NAMES[div] || `Division ${div}`;
@@ -1402,6 +1511,22 @@ export default function EstimateOutputs({
       );
 
       let y = 52;
+      if (reviewDraftActive) {
+        const auditText =
+          clientPackageIssues.slice(0, 2).join(" | ") ||
+          `${qaReviewCount} QA finding${qaReviewCount !== 1 ? "s" : ""} require estimator review.`;
+        doc.setFillColor(255, 247, 218);
+        doc.setDrawColor(249, 115, 22);
+        doc.rect(14, 46, pageW - 28, 24, "FD");
+        doc.setTextColor(154, 83, 0);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("DRAFT - ESTIMATOR REVIEW REQUIRED", 18, 55);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.text(doc.splitTextToSize(auditText, pageW - 36), 18, 62);
+        y = 78;
+      }
       autoTable(doc, {
         startY: y,
         head: [["Division", "Rows", "Material", "Labor", "Subtotal"]],
@@ -1613,6 +1738,37 @@ export default function EstimateOutputs({
           </div>
         </div>
       </div>
+
+      {clientPackageLocked && (
+        <div className="border-b border-orange-200 bg-orange-50 px-5 py-4 text-orange-950 lg:px-7">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-700" />
+                <p className="text-sm font-semibold">
+                  Client-facing outputs are locked for estimator review
+                </p>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-orange-900/80">
+                Full Excel and PDF exports are still available as review
+                drafts. Proposal, bid summary, and SOV packaging unlock after
+                the blocking QA, pricing, quantity, and labor basis items are
+                cleared.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[420px]">
+              {clientPackageIssues.slice(0, 4).map(issue => (
+                <div
+                  key={issue}
+                  className="rounded-lg border border-orange-200 bg-white/75 px-3 py-2 text-xs"
+                >
+                  {issue}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 p-5 lg:p-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
@@ -1925,6 +2081,7 @@ export default function EstimateOutputs({
               icon: ClipboardList,
               action: generateProposal,
               label: "Generate Proposal",
+              requiresClientReady: true,
             },
             {
               key: "bid",
@@ -1934,6 +2091,7 @@ export default function EstimateOutputs({
               icon: FileText,
               action: generateBidSummary,
               label: "Generate Summary",
+              requiresClientReady: true,
             },
             {
               key: "full-excel",
@@ -1943,6 +2101,7 @@ export default function EstimateOutputs({
               icon: TableProperties,
               action: generateFullEstimateExcel,
               label: "Download Full Excel",
+              requiresClientReady: false,
             },
             {
               key: "full-pdf",
@@ -1952,6 +2111,7 @@ export default function EstimateOutputs({
               icon: FileText,
               action: generateFullEstimatePdf,
               label: "Download Full PDF",
+              requiresClientReady: false,
             },
             {
               key: "sov",
@@ -1960,6 +2120,7 @@ export default function EstimateOutputs({
               icon: FileSpreadsheet,
               action: generateSOVExcel,
               label: "Generate SOV",
+              requiresClientReady: true,
             },
           ].map(output => {
             const OutputIcon = output.icon;
@@ -1977,7 +2138,13 @@ export default function EstimateOutputs({
                       <p className="font-semibold text-[#171714]">
                         {output.title}
                       </p>
-                      <BadgeCheck className="h-3.5 w-3.5 text-emerald-700" />
+                      {output.requiresClientReady && clientPackageLocked ? (
+                        <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-orange-800">
+                          Locked
+                        </span>
+                      ) : (
+                        <BadgeCheck className="h-3.5 w-3.5 text-emerald-700" />
+                      )}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-[#716855]">
                       {output.detail}
@@ -1986,7 +2153,11 @@ export default function EstimateOutputs({
                 </div>
                 <Button
                   size="sm"
-                  onClick={output.action}
+                  onClick={
+                    output.requiresClientReady && clientPackageLocked
+                      ? showClientPackageLockedToast
+                      : output.action
+                  }
                   disabled={generating === output.key}
                   className="mt-4 h-10 w-full bg-[#171714] text-white hover:bg-[#29251c]"
                 >
