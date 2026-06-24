@@ -335,20 +335,24 @@ export function registerBetaAuthRoutes(app: Express) {
       const { email, password, name, companyName, inviteCode } = req.body;
 
       if (!email || !password || !name) {
-        return res
-          .status(400)
-          .json({ error: "Email, password, and name are required." });
+        return res.status(400).json({
+          code: "MISSING_REQUIRED_FIELDS",
+          error: "Email, password, and name are required.",
+        });
       }
 
       if (typeof password !== "string" || password.length < 6) {
-        return res
-          .status(400)
-          .json({ error: "Password must be at least 6 characters." });
+        return res.status(400).json({
+          code: "WEAK_PASSWORD",
+          error: "Password must be at least 6 characters.",
+        });
       }
 
       const signupAccessError = getSignupAccessError(inviteCode);
       if (signupAccessError) {
-        return res.status(403).json({ error: signupAccessError });
+        return res
+          .status(403)
+          .json({ code: "INVITE_CODE_REQUIRED", error: signupAccessError });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -361,11 +365,10 @@ export function registerBetaAuthRoutes(app: Express) {
         .limit(1);
 
       if (existing.length > 0) {
-        return res
-          .status(409)
-          .json({
-            error: "An account with this email already exists. Please log in.",
-          });
+        return res.status(409).json({
+          code: "ACCOUNT_EXISTS",
+          error: "An account with this email already exists. Please log in.",
+        });
       }
 
       // Hash password and create user
@@ -424,7 +427,7 @@ export function registerBetaAuthRoutes(app: Express) {
       const response = {
         success: true,
         message:
-          "If that email has a ConstructLine account, a password reset link is on the way.",
+          "If that email has a ConstructLine account, a password reset link is on the way. Check spam if it does not show up in a minute or two.",
       };
 
       try {
@@ -464,13 +467,19 @@ export function registerBetaAuthRoutes(app: Express) {
         });
 
         const resetUrl = `${getConstructLineBaseUrl(req)}/constructline/reset-password?token=${encodeURIComponent(rawToken)}`;
-        sendConstructLinePasswordResetEmail({
+        const emailResult = await sendConstructLinePasswordResetEmail({
           to: user.email,
           name: user.name,
           resetUrl,
-        }).catch(err =>
-          console.error("[Beta Password Reset] Email failed:", err)
-        );
+        });
+
+        if (!emailResult.success) {
+          console.error("[Beta Password Reset] Email failed:", {
+            userId: user.id,
+            email: user.email,
+            error: emailResult.error,
+          });
+        }
 
         return res.json(response);
       } catch (err: any) {
@@ -578,9 +587,10 @@ export function registerBetaAuthRoutes(app: Express) {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res
-          .status(400)
-          .json({ error: "Email and password are required." });
+        return res.status(400).json({
+          code: "MISSING_CREDENTIALS",
+          error: "Email and password are required.",
+        });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -592,11 +602,17 @@ export function registerBetaAuthRoutes(app: Express) {
 
       const user = rows[0];
       if (!user || !user.active) {
-        return res.status(401).json({ error: "Invalid email or password." });
+        return res.status(401).json({
+          code: "INVALID_CREDENTIALS",
+          error: "Invalid email or password.",
+        });
       }
 
       if (!compareSync(password, user.passwordHash)) {
-        return res.status(401).json({ error: "Invalid email or password." });
+        return res.status(401).json({
+          code: "INVALID_CREDENTIALS",
+          error: "Invalid email or password.",
+        });
       }
 
       // Update last signed in

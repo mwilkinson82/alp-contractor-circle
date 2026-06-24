@@ -5,7 +5,14 @@
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Crown, ArrowRight, Gauge, Layers, CheckCircle2, HardHat } from "lucide-react";
+import {
+  Crown,
+  ArrowRight,
+  Gauge,
+  Layers,
+  CheckCircle2,
+  HardHat,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +21,7 @@ export default function ConstructLineSignup() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -32,6 +40,7 @@ export default function ConstructLineSignup() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setErrorCode(null);
 
     try {
       const res = await fetch("/api/beta/signup", {
@@ -42,6 +51,7 @@ export default function ConstructLineSignup() {
 
       if (!res.ok) {
         const data = await res.json();
+        setErrorCode(data.code || null);
         throw new Error(data.error || "Signup failed");
       }
 
@@ -62,8 +72,12 @@ export default function ConstructLineSignup() {
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
           </div>
-          <h2 className="font-heading text-2xl font-bold text-cream mb-2">You're in.</h2>
-          <p className="text-cream-muted text-sm">Taking you to ConstructLine now…</p>
+          <h2 className="font-heading text-2xl font-bold text-cream mb-2">
+            You're in.
+          </h2>
+          <p className="text-cream-muted text-sm">
+            Taking you to ConstructLine now…
+          </p>
         </div>
       </div>
     );
@@ -81,7 +95,10 @@ export default function ConstructLineSignup() {
             Construct<span className="text-amber-400">Line</span>
           </span>
         </div>
-        <a href="/" className="text-cream-muted hover:text-cream text-sm transition-colors">
+        <a
+          href="/"
+          className="text-cream-muted hover:text-cream text-sm transition-colors"
+        >
           Learn More
         </a>
       </header>
@@ -89,7 +106,6 @@ export default function ConstructLineSignup() {
       {/* Main Content */}
       <div className="flex-1 flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-md">
-
           {/* Hero */}
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
@@ -102,7 +118,8 @@ export default function ConstructLineSignup() {
               Access ConstructLine
             </h1>
             <p className="text-cream-muted text-base leading-relaxed">
-              Contractor Circle's proprietary construction software, powered by ALP. Professional-grade tools built by construction professionals.
+              Contractor Circle's proprietary construction software, powered by
+              ALP. Professional-grade tools built by construction professionals.
             </p>
           </div>
 
@@ -110,13 +127,19 @@ export default function ConstructLineSignup() {
           <div className="grid grid-cols-2 gap-3 mb-7">
             <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
               <Gauge className="w-4.5 h-4.5 text-amber-400 mb-2" />
-              <p className="text-sm font-semibold text-cream">Quantity Takeoff</p>
-              <p className="text-xs text-cream-muted mt-0.5">AI-powered material estimates from drawings</p>
+              <p className="text-sm font-semibold text-cream">
+                Quantity Takeoff
+              </p>
+              <p className="text-xs text-cream-muted mt-0.5">
+                AI-powered material estimates from drawings
+              </p>
             </div>
             <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
               <Layers className="w-4.5 h-4.5 text-amber-400 mb-2" />
               <p className="text-sm font-semibold text-cream">CPM Scheduler</p>
-              <p className="text-xs text-cream-muted mt-0.5">Critical path scheduling & Gantt charts</p>
+              <p className="text-xs text-cream-muted mt-0.5">
+                Critical path scheduling & Gantt charts
+              </p>
             </div>
           </div>
 
@@ -125,12 +148,40 @@ export default function ConstructLineSignup() {
             {error && (
               <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20">
                 <p className="text-sm text-red-400">{error}</p>
+                {errorCode === "ACCOUNT_EXISTS" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLocation("/constructline/login")}
+                      className="rounded-md border border-red-400/25 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/10"
+                    >
+                      Sign in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const email = formData.email.trim();
+                        setLocation(
+                          email
+                            ? `/constructline/reset-password?email=${encodeURIComponent(email)}`
+                            : "/constructline/reset-password"
+                        );
+                      }}
+                      className="rounded-md border border-red-400/25 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/10"
+                    >
+                      Reset password
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name" className="text-cream text-sm font-medium mb-1.5 block">
+                <Label
+                  htmlFor="name"
+                  className="text-cream text-sm font-medium mb-1.5 block"
+                >
                   Full Name <span className="text-red-400">*</span>
                 </Label>
                 <Input
@@ -146,7 +197,10 @@ export default function ConstructLineSignup() {
                 />
               </div>
               <div>
-                <Label htmlFor="companyName" className="text-cream text-sm font-medium mb-1.5 block">
+                <Label
+                  htmlFor="companyName"
+                  className="text-cream text-sm font-medium mb-1.5 block"
+                >
                   Company
                 </Label>
                 <Input
@@ -163,7 +217,10 @@ export default function ConstructLineSignup() {
             </div>
 
             <div>
-              <Label htmlFor="email" className="text-cream text-sm font-medium mb-1.5 block">
+              <Label
+                htmlFor="email"
+                className="text-cream text-sm font-medium mb-1.5 block"
+              >
                 Email Address <span className="text-red-400">*</span>
               </Label>
               <Input
@@ -180,7 +237,10 @@ export default function ConstructLineSignup() {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-cream text-sm font-medium mb-1.5 block">
+              <Label
+                htmlFor="password"
+                className="text-cream text-sm font-medium mb-1.5 block"
+              >
                 Password <span className="text-red-400">*</span>
               </Label>
               <Input
@@ -195,11 +255,16 @@ export default function ConstructLineSignup() {
                 autoComplete="new-password"
                 className="bg-white/5 border-white/10 text-cream placeholder:text-cream-muted/50 h-11"
               />
-              <p className="text-xs text-cream-muted/60 mt-1">You'll receive your login credentials by email.</p>
+              <p className="text-xs text-cream-muted/60 mt-1">
+                You'll receive your login credentials by email.
+              </p>
             </div>
 
             <div>
-              <Label htmlFor="inviteCode" className="text-cream text-sm font-medium mb-1.5 block">
+              <Label
+                htmlFor="inviteCode"
+                className="text-cream text-sm font-medium mb-1.5 block"
+              >
                 Invite Code
               </Label>
               <Input
@@ -219,7 +284,9 @@ export default function ConstructLineSignup() {
               disabled={loading}
               className="w-full bg-ember hover:bg-ember/90 text-white font-semibold h-12 rounded-xl transition-all flex items-center justify-center gap-2 text-base mt-2"
             >
-              {loading ? "Creating your account…" : "Get Access to ConstructLine"}
+              {loading
+                ? "Creating your account…"
+                : "Get Access to ConstructLine"}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
@@ -240,13 +307,16 @@ export default function ConstructLineSignup() {
           {/* Footer note */}
           <div className="mt-6 p-4 rounded-xl bg-white/3 border border-white/8">
             <p className="text-xs text-cream-muted/70 leading-relaxed text-center">
-              ConstructLine is part of the Contractor Circle membership by ALP. Free access includes Quantity Takeoff and CPM Scheduler.{" "}
-              <a href="/" className="text-amber-400/80 hover:text-amber-400 underline underline-offset-2">
+              ConstructLine is part of the Contractor Circle membership by ALP.
+              Free access includes Quantity Takeoff and CPM Scheduler.{" "}
+              <a
+                href="/"
+                className="text-amber-400/80 hover:text-amber-400 underline underline-offset-2"
+              >
                 Learn about full membership →
               </a>
             </p>
           </div>
-
         </div>
       </div>
     </div>

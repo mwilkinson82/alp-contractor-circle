@@ -11,13 +11,15 @@ import { Label } from "@/components/ui/label";
 
 export default function BetaPasswordReset() {
   const [, setLocation] = useLocation();
-  const token = useMemo(
-    () => new URLSearchParams(window.location.search).get("token") || "",
+  const searchParams = useMemo(
+    () => new URLSearchParams(window.location.search),
     []
   );
+  const token = searchParams.get("token") || "";
+  const emailParam = searchParams.get("email") || "";
   const isConfirming = Boolean(token);
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,8 @@ export default function BetaPasswordReset() {
       }
 
       setSuccess(
-        data.message || "If that account exists, a reset link is on the way."
+        data.message ||
+          "If that account exists, a reset link is on the way. Check spam if it does not show up in a minute or two."
       );
     } catch (err: any) {
       setError(err.message || "Something went wrong.");

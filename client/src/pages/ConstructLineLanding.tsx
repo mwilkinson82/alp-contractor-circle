@@ -47,14 +47,19 @@ const SCREENSHOTS = {
   reportsHistogram: "/manus-storage/cl-reports-histogram_dab3be41.webp",
   scheduleHealth: "/manus-storage/cl-schedule-health_21b851b9.webp",
   // Quantity Takeoff screenshots
-  takeoffDrawingSheets: "/manus-storage/cl-takeoff-drawing-sheets_9ec0b1b2.webp",
-  takeoffDrawingViewer: "/manus-storage/cl-takeoff-drawing-viewer_61066ed5.webp",
+  takeoffDrawingSheets:
+    "/manus-storage/cl-takeoff-drawing-sheets_9ec0b1b2.webp",
+  takeoffDrawingViewer:
+    "/manus-storage/cl-takeoff-drawing-viewer_61066ed5.webp",
   takeoffLineItems: "/manus-storage/cl-takeoff-line-items_5f13cf37.webp",
-  takeoffBidCalculator: "/manus-storage/cl-takeoff-bid-calculator_f23d2c65.webp",
+  takeoffBidCalculator:
+    "/manus-storage/cl-takeoff-bid-calculator_f23d2c65.webp",
   takeoffItemDetail: "/manus-storage/cl-takeoff-item-detail_39ddf76d.webp",
   takeoffMeasurements: "/manus-storage/cl-takeoff-measurements_7548a1df.webp",
-  takeoffItemMeasurements: "/manus-storage/cl-takeoff-item-measurements_c25f7b29.webp",
-  takeoffConsolidateWorking: "/manus-storage/cl-takeoff-consolidate-working_6325e99f.webp",
+  takeoffItemMeasurements:
+    "/manus-storage/cl-takeoff-item-measurements_c25f7b29.webp",
+  takeoffConsolidateWorking:
+    "/manus-storage/cl-takeoff-consolidate-working_6325e99f.webp",
   // Annotation screenshot
   schedulerAnnotations: "/manus-storage/annotation-screenshot_36eb9503.webp",
 };
@@ -83,6 +88,7 @@ export default function ConstructLineLanding() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -103,13 +109,14 @@ export default function ConstructLineLanding() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setErrorCode(null);
 
     try {
       const res = await fetch("/api/beta/signup", {
@@ -120,6 +127,7 @@ export default function ConstructLineLanding() {
 
       if (!res.ok) {
         const data = await res.json();
+        setErrorCode(data.code || null);
         throw new Error(data.error || "Signup failed");
       }
 
@@ -138,9 +146,15 @@ export default function ConstructLineLanding() {
   return (
     <div className="min-h-screen bg-navy-deep text-cream">
       {/* ─── HERO ─── */}
-      <section ref={heroRef} className="relative min-h-[100svh] sm:min-h-[90vh] flex flex-col overflow-hidden">
+      <section
+        ref={heroRef}
+        className="relative min-h-[100svh] sm:min-h-[90vh] flex flex-col overflow-hidden"
+      >
         {/* Parallax background */}
-        <motion.div className="absolute inset-0 z-0" style={{ scale: imageScale, y: imageY }}>
+        <motion.div
+          className="absolute inset-0 z-0"
+          style={{ scale: imageScale, y: imageY }}
+        >
           <img
             src={HERO_IMAGE}
             alt="Marshall Wilkinson"
@@ -179,7 +193,11 @@ export default function ConstructLineLanding() {
               ALP
             </span>
             <span className="text-cream/25 text-sm hidden sm:inline">|</span>
-            <ConstructLineWordmark size="sm" showSubtitle={true} className="flex" />
+            <ConstructLineWordmark
+              size="sm"
+              showSubtitle={true}
+              className="flex"
+            />
           </div>
           <div className="flex items-center gap-4">
             <a
@@ -246,7 +264,8 @@ export default function ConstructLineLanding() {
             transition={{ duration: 1.3, delay: 0.8, ease: easeOutCubic }}
             className="w-28 h-[2px] mx-auto mb-8"
             style={{
-              background: "linear-gradient(90deg, transparent, oklch(0.72 0.12 55), transparent)",
+              background:
+                "linear-gradient(90deg, transparent, oklch(0.72 0.12 55), transparent)",
               transformOrigin: "center",
             }}
           />
@@ -260,7 +279,8 @@ export default function ConstructLineLanding() {
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             Professional construction-grade tools developed by{" "}
-            <span className="text-cream font-semibold">ALP</span> for construction professionals
+            <span className="text-cream font-semibold">ALP</span> for
+            construction professionals
           </motion.p>
 
           <motion.p
@@ -320,7 +340,11 @@ export default function ConstructLineLanding() {
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.7, delay: i * 0.15, ease: easeOutCubic }}
+                transition={{
+                  duration: 0.7,
+                  delay: i * 0.15,
+                  ease: easeOutCubic,
+                }}
                 className="text-center sm:text-left"
               >
                 <div className="w-12 h-12 rounded-xl bg-ember/10 flex items-center justify-center mb-5 mx-auto sm:mx-0">
@@ -332,7 +356,10 @@ export default function ConstructLineLanding() {
                 >
                   {prop.title}
                 </h3>
-                <p className="text-cream/55 text-sm leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <p
+                  className="text-cream/55 text-sm leading-relaxed"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
                   {prop.text}
                 </p>
               </motion.div>
@@ -366,7 +393,12 @@ export default function ConstructLineLanding() {
                   ConstructLine
                 </span>
               </div>
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
+              <span
+                className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Powered by ALP
+              </span>
             </div>
             <h2
               className="text-3xl sm:text-5xl font-bold text-cream mb-3 sm:mb-4 leading-tight"
@@ -378,7 +410,9 @@ export default function ConstructLineLanding() {
               className="text-base sm:text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed px-2 sm:px-0"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Critical Path Method scheduling built for the field. The same methodology used on billion-dollar projects — now accessible to every contractor.
+              Critical Path Method scheduling built for the field. The same
+              methodology used on billion-dollar projects — now accessible to
+              every contractor.
             </p>
           </motion.div>
 
@@ -398,8 +432,12 @@ export default function ConstructLineLanding() {
                 className="w-full h-auto"
               />
             </div>
-            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Full CPM schedule with Gantt chart, WBS hierarchy, and critical path highlighting
+            <p
+              className="text-center text-cream/30 text-xs mt-4"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Full CPM schedule with Gantt chart, WBS hierarchy, and critical
+              path highlighting
             </p>
           </motion.div>
 
@@ -422,11 +460,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Link2 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Activity Details & Dependencies
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Edit every property — duration, WBS, constraints, bar color. Link predecessors and successors with FS, SS, FF, SF relationships and lag.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Edit every property — duration, WBS, constraints, bar color.
+                    Link predecessors and successors with FS, SS, FF, SF
+                    relationships and lag.
                   </p>
                 </div>
               </div>
@@ -449,11 +495,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Filter className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Advanced Filtering
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Filter by activity ID, name, WBS, critical path, float range, date range, and activity codes. Isolate exactly what you need for any meeting.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Filter by activity ID, name, WBS, critical path, float
+                    range, date range, and activity codes. Isolate exactly what
+                    you need for any meeting.
                   </p>
                 </div>
               </div>
@@ -476,8 +530,12 @@ export default function ConstructLineLanding() {
                 className="w-full h-auto"
               />
             </div>
-            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Residential project with submittals, fabrication, and procurement tracking — from contract signing to final completion
+            <p
+              className="text-center text-cream/30 text-xs mt-4"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Residential project with submittals, fabrication, and procurement
+              tracking — from contract signing to final completion
             </p>
           </motion.div>
 
@@ -497,8 +555,13 @@ export default function ConstructLineLanding() {
                 className="w-full h-auto"
               />
             </div>
-            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Annotate your schedule with text boxes, arrows, and shading — highlight delays, flag issues, and export annotated PDFs for owner meetings
+            <p
+              className="text-center text-cream/30 text-xs mt-4"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Annotate your schedule with text boxes, arrows, and shading —
+              highlight delays, flag issues, and export annotated PDFs for owner
+              meetings
             </p>
           </motion.div>
 
@@ -520,11 +583,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <DollarSign className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Resources & Cost Loading
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Define labor, equipment, materials, and subcontractors with cost rates. Track budgeted vs. actual costs across your entire project.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Define labor, equipment, materials, and subcontractors with
+                    cost rates. Track budgeted vs. actual costs across your
+                    entire project.
                   </p>
                 </div>
               </div>
@@ -546,11 +617,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Users className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Resource Assignments
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Assign resources to activities with units/day. See budgeted costs calculated automatically. Track actual costs as work progresses.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Assign resources to activities with units/day. See budgeted
+                    costs calculated automatically. Track actual costs as work
+                    progresses.
                   </p>
                 </div>
               </div>
@@ -568,7 +647,10 @@ export default function ConstructLineLanding() {
             <div className="text-center mb-10">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/8 border border-ember/20 mb-4">
                 <BarChart3 className="w-3.5 h-3.5 text-ember" />
-                <span className="text-xs font-semibold text-ember uppercase tracking-wider" style={{ fontFamily: "'Sora', sans-serif" }}>
+                <span
+                  className="text-xs font-semibold text-ember uppercase tracking-wider"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
                   Built-In Reports
                 </span>
               </div>
@@ -578,8 +660,12 @@ export default function ConstructLineLanding() {
               >
                 Professional Reports — Ready to Print
               </h3>
-              <p className="text-cream/50 text-sm max-w-xl mx-auto" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                Generate the reports owners and GCs actually ask for. Export to CSV or print directly.
+              <p
+                className="text-cream/50 text-sm max-w-xl mx-auto"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Generate the reports owners and GCs actually ask for. Export to
+                CSV or print directly.
               </p>
             </div>
           </motion.div>
@@ -602,11 +688,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <FileText className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Total Float Report
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Activity-level float analysis. See total float, free float, critical path status, and early/late dates for every activity.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Activity-level float analysis. See total float, free float,
+                    critical path status, and early/late dates for every
+                    activity.
                   </p>
                 </div>
               </div>
@@ -629,11 +723,18 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <TrendingUp className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Cash Flow S-Curve
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Visualize project cash flow over time. Track budgeted vs. actual spending with weekly detail breakdowns.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Visualize project cash flow over time. Track budgeted vs.
+                    actual spending with weekly detail breakdowns.
                   </p>
                 </div>
               </div>
@@ -656,11 +757,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <BarChart3 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Resource Histogram
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    See weekly resource loading by trade. Plan manpower, identify overallocation, and level resources before you hit the field.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    See weekly resource loading by trade. Plan manpower,
+                    identify overallocation, and level resources before you hit
+                    the field.
                   </p>
                 </div>
               </div>
@@ -683,11 +792,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Activity className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Schedule Health Score
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Automated schedule quality assessment. Grades your schedule on float distribution, critical path integrity, logic density, resource balance, and progress.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Automated schedule quality assessment. Grades your schedule
+                    on float distribution, critical path integrity, logic
+                    density, resource balance, and progress.
                   </p>
                 </div>
               </div>
@@ -717,7 +834,10 @@ export default function ConstructLineLanding() {
               ].map((feat, j) => (
                 <div key={j} className="flex items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />
-                  <span className="text-sm text-cream/60" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <span
+                    className="text-sm text-cream/60"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
                     {feat}
                   </span>
                 </div>
@@ -752,7 +872,12 @@ export default function ConstructLineLanding() {
                   ConstructLine
                 </span>
               </div>
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
+              <span
+                className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                Powered by ALP
+              </span>
             </div>
             <h2
               className="text-3xl sm:text-5xl font-bold text-cream mb-3 sm:mb-4 leading-tight"
@@ -764,7 +889,9 @@ export default function ConstructLineLanding() {
               className="text-base sm:text-lg text-cream/60 max-w-2xl mx-auto leading-relaxed px-2 sm:px-0"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              AI-powered quantity estimating. Upload your blueprints and get a full CSI-coded estimate with 851+ line items — in minutes, not days.
+              AI-powered quantity estimating. Upload your blueprints and get a
+              full CSI-coded estimate with 851+ line items — in minutes, not
+              days.
             </p>
           </motion.div>
 
@@ -784,8 +911,12 @@ export default function ConstructLineLanding() {
                 className="w-full h-auto"
               />
             </div>
-            <p className="text-center text-cream/30 text-xs mt-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Upload construction drawings — ConstructLine indexes, classifies, and analyzes every sheet automatically
+            <p
+              className="text-center text-cream/30 text-xs mt-4"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Upload construction drawings — ConstructLine indexes, classifies,
+              and analyzes every sheet automatically
             </p>
           </motion.div>
 
@@ -808,11 +939,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <DollarSign className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     851 Line Items, 18 CSI Divisions
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Every item coded to CSI MasterFormat with quantities, units, unit costs, extended costs, and confidence scores. Review and verify each one.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Every item coded to CSI MasterFormat with quantities, units,
+                    unit costs, extended costs, and confidence scores. Review
+                    and verify each one.
                   </p>
                 </div>
               </div>
@@ -835,11 +974,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Target className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Bid Markup Calculator
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Add Labor, Overhead, Profit, Bonds, and Contingency percentages on top of your material takeoff total. Build your full bid number in one click.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Add Labor, Overhead, Profit, Bonds, and Contingency
+                    percentages on top of your material takeoff total. Build
+                    your full bid number in one click.
                   </p>
                 </div>
               </div>
@@ -862,11 +1009,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <FileText className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Full Item Detail & Drawing Reference
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Click any line item to see the source drawing, your notes, QTY, unit, cost, and confidence score. Mark items as reviewed or edit inline.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Click any line item to see the source drawing, your notes,
+                    QTY, unit, cost, and confidence score. Mark items as
+                    reviewed or edit inline.
                   </p>
                 </div>
               </div>
@@ -889,11 +1044,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Ruler className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     On-Plan Measurements
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Draw lines, rectangles, and counts directly on the blueprint. Scaled measurements with color-coded layers. Export to CSV or apply to line items.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Draw lines, rectangles, and counts directly on the
+                    blueprint. Scaled measurements with color-coded layers.
+                    Export to CSV or apply to line items.
                   </p>
                 </div>
               </div>
@@ -916,11 +1079,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Link2 className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Measurements Linked to Line Items
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    Your on-plan measurements save directly to each line item. Apply measured quantities or use ConstructLine-suggested values. Full audit trail.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Your on-plan measurements save directly to each line item.
+                    Apply measured quantities or use ConstructLine-suggested
+                    values. Full audit trail.
                   </p>
                 </div>
               </div>
@@ -943,11 +1114,19 @@ export default function ConstructLineLanding() {
               <div className="flex items-start gap-3">
                 <Zap className="w-5 h-5 text-ember mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cream mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+                  <h4
+                    className="text-sm font-bold text-cream mb-1"
+                    style={{ fontFamily: "'Sora', sans-serif" }}
+                  >
                     Consolidate & Enhance
                   </h4>
-                  <p className="text-xs text-cream/50 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    After initial extraction, ConstructLine merges duplicate items, refines quantities, and recalculates costs across all sheets. One click to enhance your entire estimate.
+                  <p
+                    className="text-xs text-cream/50 leading-relaxed"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    After initial extraction, ConstructLine merges duplicate
+                    items, refines quantities, and recalculates costs across all
+                    sheets. One click to enhance your entire estimate.
                   </p>
                 </div>
               </div>
@@ -975,7 +1154,10 @@ export default function ConstructLineLanding() {
               ].map((feat, j) => (
                 <div key={j} className="flex items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />
-                  <span className="text-sm text-cream/60" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <span
+                    className="text-sm text-cream/60"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
                     {feat}
                   </span>
                 </div>
@@ -1011,7 +1193,12 @@ export default function ConstructLineLanding() {
                     ConstructLine
                   </span>
                 </div>
-                <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500 ml-[52px]" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</span>
+                <span
+                  className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-gray-500 ml-[52px]"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  Powered by ALP
+                </span>
               </div>
               <h2
                 className="text-3xl sm:text-4xl font-bold text-cream mb-3 leading-tight"
@@ -1029,7 +1216,9 @@ export default function ConstructLineLanding() {
                 className="text-cream/50 text-sm leading-relaxed mb-8"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
-                Build and maintain a centralized cost library with your real-world pricing data. Reference it during takeoffs and estimates to produce accurate bids faster.
+                Build and maintain a centralized cost library with your
+                real-world pricing data. Reference it during takeoffs and
+                estimates to produce accurate bids faster.
               </p>
               <ul className="space-y-3">
                 {[
@@ -1061,10 +1250,16 @@ export default function ConstructLineLanding() {
                 className="relative rounded-xl overflow-hidden border border-cream/10 bg-midnight-card p-12 flex flex-col items-center justify-center min-h-[400px]"
               >
                 <Database className="w-20 h-20 text-ember/20 mb-6" />
-                <p className="text-cream/50 text-lg font-semibold mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
+                <p
+                  className="text-cream/50 text-lg font-semibold mb-2"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
                   Cost Library
                 </p>
-                <p className="text-cream/30 text-sm text-center max-w-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <p
+                  className="text-cream/30 text-sm text-center max-w-xs"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
                   Centralized pricing database for your construction business.
                 </p>
               </motion.div>
@@ -1084,26 +1279,44 @@ export default function ConstructLineLanding() {
           </p>
           <div className="grid grid-cols-3 gap-4 sm:gap-6">
             <div>
-              <p className="text-3xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
+              <p
+                className="text-3xl font-bold text-ember"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
                 $2.5B+
               </p>
-              <p className="text-cream/40 text-sm mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              <p
+                className="text-cream/40 text-sm mt-1"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
                 In construction experience
               </p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
+              <p
+                className="text-3xl font-bold text-ember"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
                 100%
               </p>
-              <p className="text-cream/40 text-sm mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              <p
+                className="text-cream/40 text-sm mt-1"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
                 Built for contractors
               </p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-ember" style={{ fontFamily: "'Sora', sans-serif" }}>
+              <p
+                className="text-3xl font-bold text-ember"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
                 Free
               </p>
-              <p className="text-cream/40 text-sm mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              <p
+                className="text-cream/40 text-sm mt-1"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
                 To try — no credit card
               </p>
             </div>
@@ -1112,7 +1325,11 @@ export default function ConstructLineLanding() {
       </section>
 
       {/* ─── SIGNUP SECTION ─── */}
-      <section ref={signupRef} id="signup" className="py-16 sm:py-28 px-4 sm:px-6">
+      <section
+        ref={signupRef}
+        id="signup"
+        className="py-16 sm:py-28 px-4 sm:px-6"
+      >
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ember/10 border border-ember/20 mb-6">
@@ -1130,12 +1347,18 @@ export default function ConstructLineLanding() {
             >
               Try Construct<span className="text-amber-400">Line</span> Today
             </h2>
-            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-500 -mt-2 mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>Powered by ALP</p>
+            <p
+              className="text-[9px] uppercase tracking-[0.2em] text-gray-500 -mt-2 mb-2"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              Powered by ALP
+            </p>
             <p
               className="text-cream/55 text-base leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Create your free account and start using professional construction tools in under 60 seconds.
+              Create your free account and start using professional construction
+              tools in under 60 seconds.
             </p>
           </div>
 
@@ -1144,11 +1367,39 @@ export default function ConstructLineLanding() {
             {error && (
               <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
                 <p className="text-sm text-red-400">{error}</p>
+                {errorCode === "ACCOUNT_EXISTS" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLocation("/constructline/login")}
+                      className="rounded-md border border-red-400/25 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/10"
+                    >
+                      Sign in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const email = formData.email.trim();
+                        setLocation(
+                          email
+                            ? `/constructline/reset-password?email=${encodeURIComponent(email)}`
+                            : "/constructline/reset-password"
+                        );
+                      }}
+                      className="rounded-md border border-red-400/25 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/10"
+                    >
+                      Reset password
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             <div>
-              <Label htmlFor="name" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="name"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Full Name
               </Label>
               <Input
@@ -1164,7 +1415,10 @@ export default function ConstructLineLanding() {
             </div>
 
             <div>
-              <Label htmlFor="companyName" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="companyName"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Company <span className="text-cream/30">(Optional)</span>
               </Label>
               <Input
@@ -1179,7 +1433,10 @@ export default function ConstructLineLanding() {
             </div>
 
             <div>
-              <Label htmlFor="email" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="email"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Email Address
               </Label>
               <Input
@@ -1195,7 +1452,10 @@ export default function ConstructLineLanding() {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="password"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Create Password
               </Label>
               <Input
@@ -1212,7 +1472,10 @@ export default function ConstructLineLanding() {
             </div>
 
             <div>
-              <Label htmlFor="inviteCode" className="text-cream text-sm font-medium mb-2 block">
+              <Label
+                htmlFor="inviteCode"
+                className="text-cream text-sm font-medium mb-2 block"
+              >
                 Invite Code
               </Label>
               <Input
@@ -1240,7 +1503,10 @@ export default function ConstructLineLanding() {
 
           {/* Login Link */}
           <div className="text-center mb-10">
-            <p className="text-cream/40 text-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <p
+              className="text-cream/40 text-sm"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
               Already have an account?{" "}
               <button
                 onClick={() => setLocation("/constructline/login")}
@@ -1269,7 +1535,10 @@ export default function ConstructLineLanding() {
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-ember shrink-0" />
-                  <span className="text-sm text-cream/60" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <span
+                    className="text-sm text-cream/60"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
                     {item}
                   </span>
                 </li>
@@ -1305,7 +1574,9 @@ export default function ConstructLineLanding() {
             className="text-cream/50 text-base leading-relaxed mb-8 max-w-xl mx-auto"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            ConstructLine is part of the ALP Contractor Circle — live coaching, battle-tested templates, replay library, and the full ConstructLine suite. Everything you need to scale your construction business.
+            ConstructLine is part of the ALP Contractor Circle — live coaching,
+            battle-tested templates, replay library, and the full ConstructLine
+            suite. Everything you need to scale your construction business.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <a
@@ -1331,11 +1602,17 @@ export default function ConstructLineLanding() {
               ALP
             </span>
             <span className="text-cream/15 text-xs">|</span>
-            <span className="text-cream/40 text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <span
+              className="text-cream/40 text-xs"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
               ConstructLine — Powered by ALP
             </span>
           </div>
-          <p className="text-cream/25 text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <p
+            className="text-cream/25 text-xs"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
             &copy; {new Date().getFullYear()} ALP. All rights reserved.
           </p>
         </div>

@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Crown, ArrowRight } from "lucide-react";
+import { Crown, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,10 @@ import { Label } from "@/components/ui/label";
 export default function BetaLogin() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
+  const [canResetPassword, setCanResetPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,6 +31,8 @@ export default function BetaLogin() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setResetNotice(null);
+    setCanResetPassword(false);
 
     try {
       const res = await fetch("/api/beta/login", {
@@ -38,6 +43,12 @@ export default function BetaLogin() {
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.code === "INVALID_CREDENTIALS") {
+          setCanResetPassword(true);
+          throw new Error(
+            "That email and password did not match. Try again or send yourself a reset link."
+          );
+        }
         throw new Error(data.error || "Login failed");
       }
 
@@ -47,6 +58,48 @@ export default function BetaLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const requestResetLink = async () => {
+    const email = formData.email.trim();
+    if (!email) {
+      setError("Enter your email first, then send a reset link.");
+      return;
+    }
+
+    setResetLoading(true);
+    setError(null);
+    setResetNotice(null);
+
+    try {
+      const res = await fetch("/api/beta/password-reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to send reset link.");
+      }
+      setResetNotice(
+        data.message ||
+          "If that email has a ConstructLine account, a reset link is on the way."
+      );
+      setCanResetPassword(false);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const goToReset = () => {
+    const email = formData.email.trim();
+    setLocation(
+      email
+        ? `/constructline/reset-password?email=${encodeURIComponent(email)}`
+        : "/constructline/reset-password"
+    );
   };
 
   return (
@@ -87,6 +140,25 @@ export default function BetaLogin() {
             {error && (
               <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
                 <p className="text-sm text-red-400">{error}</p>
+                {canResetPassword && (
+                  <button
+                    type="button"
+                    onClick={requestResetLink}
+                    disabled={resetLoading}
+                    className="mt-3 inline-flex items-center gap-2 rounded-md border border-red-400/25 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/10 disabled:opacity-60"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    {resetLoading
+                      ? "Sending reset link..."
+                      : "Email reset link"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {resetNotice && (
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-sm text-emerald-300">{resetNotice}</p>
               </div>
             )}
 
@@ -119,7 +191,7 @@ export default function BetaLogin() {
                 </Label>
                 <button
                   type="button"
-                  onClick={() => setLocation("/constructline/reset-password")}
+                  onClick={goToReset}
                   className="text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
                 >
                   Forgot password?
