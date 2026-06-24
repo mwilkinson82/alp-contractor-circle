@@ -4261,6 +4261,7 @@ export default function TakeoffDetail() {
             ? "post_processing"
             : "processing",
         liveProgress: progress?.liveProgress ?? null,
+        processingDiagnostics: progress?.processingDiagnostics ?? null,
       }
     : null;
   const hasPendingSheets = sheets.some((s: any) => s.status === "pending");
@@ -4841,6 +4842,9 @@ export default function TakeoffDetail() {
                   processedSheets={processingOverlayProgress.processedSheets}
                   projectStatus={processingOverlayProgress.status}
                   liveProgress={processingOverlayProgress.liveProgress}
+                  processingDiagnostics={
+                    processingOverlayProgress.processingDiagnostics
+                  }
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,
@@ -5025,6 +5029,7 @@ export default function TakeoffDetail() {
                   processedSheets={progress.processedSheets}
                   projectStatus={progress.status}
                   liveProgress={progress.liveProgress ?? null}
+                  processingDiagnostics={progress.processingDiagnostics ?? null}
                   sheets={sheets.map((s: any) => ({
                     id: s.id,
                     sheetName: s.sheetName,

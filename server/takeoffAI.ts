@@ -61,6 +61,7 @@ import {
 // Keeping a minimal reference for the schema only.
 const CSI_DIVISIONS_REFERENCE = ""; // No longer injected into prompts
 const DEFAULT_INDEX_PASS_TIMEOUT_MS = 6 * 60 * 1000;
+const DEFAULT_TAKEOFF_PROGRESS_HEARTBEAT_MS = 30_000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -76,6 +77,15 @@ function getIndexPassTimeoutMs(): number {
       "CONSTRUCTLINE_INDEX_PASS_TIMEOUT_MS",
       "TAKEOFF_INDEX_PASS_TIMEOUT_MS",
     ]) || DEFAULT_INDEX_PASS_TIMEOUT_MS
+  );
+}
+
+function getTakeoffProgressHeartbeatMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_TAKEOFF_PROGRESS_HEARTBEAT_MS",
+      "TAKEOFF_PROGRESS_HEARTBEAT_MS",
+    ]) || DEFAULT_TAKEOFF_PROGRESS_HEARTBEAT_MS
   );
 }
 
@@ -96,6 +106,38 @@ function withTimeout<T>(
   return Promise.race([promise, timeout]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId);
   });
+}
+
+async function withProgressHeartbeat<T>(
+  promise: Promise<T>,
+  heartbeat: () => void | Promise<void>,
+  intervalMs: number,
+  label: string
+): Promise<T> {
+  let heartbeatInFlight = false;
+  const timer = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    Promise.resolve(heartbeat())
+      .catch(error => {
+        console.warn(
+          `[Takeoff AI] Progress heartbeat failed during ${label}:`,
+          error?.message || error
+        );
+      })
+      .finally(() => {
+        heartbeatInFlight = false;
+      });
+  }, intervalMs);
+  if (typeof (timer as any).unref === "function") {
+    (timer as any).unref();
+  }
+
+  try {
+    return await promise;
+  } finally {
+    clearInterval(timer);
+  }
 }
 
 // ─── Pass 1: Extraction System Prompt ─────────────────────────────────────────
@@ -1426,38 +1468,55 @@ export async function processAllPendingSheets(
       console.log(
         `[Takeoff AI] Extraction batch ${currentBatch}: sheets ${batch.map(s => s.id).join(", ")}`
       );
+      const batchPages = batch.map((s: any) => s.pageNumber).join(", ");
       updateTakeoffLiveProgress(projectId, {
         phase: "extracting",
         currentBatch,
         totalBatches: totalExtractionBatches,
         currentPage: batch[0]?.pageNumber ?? null,
         currentSheetName: batch[0]?.sheetName ?? null,
-        statusText: `Extracting batch ${currentBatch} of ${totalExtractionBatches}: pages ${batch.map((s: any) => s.pageNumber).join(", ")}`,
+        statusText: `Extracting batch ${currentBatch} of ${totalExtractionBatches}: pages ${batchPages}`,
       });
 
-      const results = await Promise.allSettled(
-        batch.map(sheet => {
-          const savedScale = savedScalesBySheetId.get(sheet.id);
-          return processDrawingSheet(
-            sheet.id,
-            sheet.imageUrl!,
-            projectId,
-            selectedDivisions,
-            null, // currency
-            project.scopeText || null, // scopeText — injected into extraction prompt
-            projectContextSummary,
-            selectedSpecialties,
-            savedScale?.ratio ?? null,
-            savedScale?.unit ?? null,
-            project.projectType || "commercial",
-            bidModeBehavior.bidMode,
-            null,
-            null,
-            null,
-            0,
-            runId
-          );
-        })
+      const results = await withProgressHeartbeat(
+        Promise.allSettled(
+          batch.map(sheet => {
+            const savedScale = savedScalesBySheetId.get(sheet.id);
+            return processDrawingSheet(
+              sheet.id,
+              sheet.imageUrl!,
+              projectId,
+              selectedDivisions,
+              null, // currency
+              project.scopeText || null, // scopeText — injected into extraction prompt
+              projectContextSummary,
+              selectedSpecialties,
+              savedScale?.ratio ?? null,
+              savedScale?.unit ?? null,
+              project.projectType || "commercial",
+              bidModeBehavior.bidMode,
+              null,
+              null,
+              null,
+              0,
+              runId
+            );
+          })
+        ),
+        () =>
+          updateTakeoffLiveProgress(projectId, {
+            phase: "extracting",
+            totalSheets: pendingSheets.length,
+            completedSheets: processedCount,
+            failedSheets: failedExtractionCount,
+            currentBatch,
+            totalBatches: totalExtractionBatches,
+            currentPage: batch[0]?.pageNumber ?? null,
+            currentSheetName: batch[0]?.sheetName ?? null,
+            statusText: `Still extracting batch ${currentBatch} of ${totalExtractionBatches}: pages ${batchPages}`,
+          }),
+        getTakeoffProgressHeartbeatMs(),
+        `extraction batch ${currentBatch}`
       );
 
       for (const result of results) {
@@ -1524,10 +1583,19 @@ export async function processAllPendingSheets(
             PP_TIMEOUT_MS
           )
         );
-        const ppStats = await Promise.race([
-          postProcessTakeoff(projectId),
-          ppTimeout,
-        ]);
+        const ppStats = await withProgressHeartbeat(
+          Promise.race([postProcessTakeoff(projectId), ppTimeout]),
+          () =>
+            updateTakeoffLiveProgress(projectId, {
+              phase: "post_processing",
+              completedSheets: processedCount,
+              totalSheets: pendingSheets.length,
+              statusText:
+                "Still consolidating takeoff rows, pricing scope, and building estimator QA checks...",
+            }),
+          getTakeoffProgressHeartbeatMs(),
+          `post-processing project ${projectId}`
+        );
         timings.pass3_postprocess_sec = Math.round(
           (Date.now() - postProcStart) / 1000
         );

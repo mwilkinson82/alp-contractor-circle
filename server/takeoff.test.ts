@@ -579,9 +579,13 @@ describe("Takeoff Processing Stall Guardrails", () => {
     const aiCode = fs.readFileSync("server/takeoffAI.ts", "utf-8");
 
     expect(sheetIndexCode).toContain("CONSTRUCTLINE_SHEET_INDEX_TIMEOUT_MS");
+    expect(sheetIndexCode).toContain("CONSTRUCTLINE_SHEET_INDEX_HEARTBEAT_MS");
     expect(sheetIndexCode).toContain("Sheet index page");
+    expect(sheetIndexCode).toContain("Still indexing batch");
     expect(aiCode).toContain("CONSTRUCTLINE_INDEX_PASS_TIMEOUT_MS");
+    expect(aiCode).toContain("CONSTRUCTLINE_TAKEOFF_PROGRESS_HEARTBEAT_MS");
     expect(aiCode).toContain("Sheet indexing pass for project");
+    expect(aiCode).toContain("Still extracting batch");
   });
 
   it("releases stale zero-progress indexing jobs for retry", async () => {
@@ -589,9 +593,13 @@ describe("Takeoff Processing Stall Guardrails", () => {
     const routerCode = fs.readFileSync("server/takeoffRouter.ts", "utf-8");
 
     expect(routerCode).toContain("CONSTRUCTLINE_STALE_INDEXING_RELEASE_MS");
+    expect(routerCode).toContain("CONSTRUCTLINE_STALE_PROGRESS_WARNING_MS");
     expect(routerCode).toContain("Indexing did not advance");
     expect(routerCode).toContain("analysisRunStartedAt");
     expect(routerCode).toContain("getTakeoffLiveProgressHeartbeatAgeMs");
+    expect(routerCode).toContain("buildProcessingDiagnostics");
+    expect(routerCode).toContain("processingDiagnostics");
+    expect(routerCode).toContain("livePhaseIsIndexing");
     expect(routerCode).toContain("ageCandidates");
     expect(routerCode).toContain("Math.max(...ageCandidates)");
     expect(routerCode).toContain("staleIndexingWatchdog");
@@ -681,11 +689,16 @@ describe("Takeoff Processing Stall Guardrails", () => {
     expect(aiCode).toContain("finishTakeoffLiveProgress");
     expect(sheetIndexCode).toContain("SheetIndexProgress");
     expect(sheetIndexCode).toContain("onProgress");
-    expect(routerCode).toContain("liveProgress: getTakeoffLiveProgress");
+    expect(routerCode).toContain("const liveProgress = getTakeoffLiveProgress");
+    expect(routerCode).toContain("processingDiagnostics");
     expect(routerCode).toContain("clearTakeoffLiveProgress(input.projectId)");
     expect(detailCode).toContain(
       "liveProgress={processingOverlayProgress.liveProgress}"
     );
+    expect(detailCode).toContain(
+      "processingOverlayProgress.processingDiagnostics"
+    );
+    expect(overlayCode).toContain("processingDiagnostics");
     expect(overlayCode).toContain("Last backend update");
     expect(overlayCode).toContain("No backend heartbeat");
     expect(overlayCode).toContain("Reset stuck analysis");

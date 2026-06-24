@@ -15,6 +15,7 @@ import {
 } from "./takeoffAiAudit";
 
 const DEFAULT_SHEET_INDEX_TIMEOUT_MS = 90_000;
+const DEFAULT_SHEET_INDEX_HEARTBEAT_MS = 30_000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -30,6 +31,15 @@ function getSheetIndexTimeoutMs(): number {
       "CONSTRUCTLINE_SHEET_INDEX_TIMEOUT_MS",
       "TAKEOFF_SHEET_INDEX_TIMEOUT_MS",
     ]) || DEFAULT_SHEET_INDEX_TIMEOUT_MS
+  );
+}
+
+function getSheetIndexHeartbeatMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_SHEET_INDEX_HEARTBEAT_MS",
+      "TAKEOFF_SHEET_INDEX_HEARTBEAT_MS",
+    ]) || DEFAULT_SHEET_INDEX_HEARTBEAT_MS
   );
 }
 
@@ -50,6 +60,38 @@ function withTimeout<T>(
   return Promise.race([promise, timeout]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId);
   });
+}
+
+async function withProgressHeartbeat<T>(
+  promise: Promise<T>,
+  heartbeat: () => void | Promise<void>,
+  intervalMs: number,
+  label: string
+): Promise<T> {
+  let heartbeatInFlight = false;
+  const timer = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    Promise.resolve(heartbeat())
+      .catch(error => {
+        console.warn(
+          `[Sheet Index] Progress heartbeat failed during ${label}:`,
+          error?.message || error
+        );
+      })
+      .finally(() => {
+        heartbeatInFlight = false;
+      });
+  }, intervalMs);
+  if (typeof (timer as any).unref === "function") {
+    (timer as any).unref();
+  }
+
+  try {
+    return await promise;
+  } finally {
+    clearInterval(timer);
+  }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -634,34 +676,45 @@ export async function indexAllSheets(
       statusText: `Indexing batch ${currentBatch} of ${totalBatches}: pages ${batchPages}`,
     });
 
-    const results = await Promise.all(
-      batch.map(async (sheet: any) => {
-        console.log(
-          `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
-        );
-        await emitProgress({
-          currentBatch,
-          currentPage: sheet.pageNumber,
-          currentSheetName: sheet.sheetName || null,
-          statusText: `Indexing page ${sheet.pageNumber}${sheet.sheetName ? ` — ${sheet.sheetName}` : ""}`,
-        });
-        try {
-          const indexResult = await withTimeout(
-            indexSingleSheet(
-              sheet.imageUrl,
-              sheet.pageNumber,
-              projectId,
-              sheet.id,
-              runId
-            ),
-            sheetIndexTimeoutMs,
-            `Sheet index page ${sheet.pageNumber}`
+    const results = await withProgressHeartbeat(
+      Promise.all(
+        batch.map(async (sheet: any) => {
+          console.log(
+            `[Sheet Index] Indexing page ${sheet.pageNumber} (sheet ${sheet.id})...`
           );
-          return { ok: true as const, sheet, indexResult };
-        } catch (error: any) {
-          return { ok: false as const, sheet, error };
-        }
-      })
+          await emitProgress({
+            currentBatch,
+            currentPage: sheet.pageNumber,
+            currentSheetName: sheet.sheetName || null,
+            statusText: `Indexing page ${sheet.pageNumber}${sheet.sheetName ? ` — ${sheet.sheetName}` : ""}`,
+          });
+          try {
+            const indexResult = await withTimeout(
+              indexSingleSheet(
+                sheet.imageUrl,
+                sheet.pageNumber,
+                projectId,
+                sheet.id,
+                runId
+              ),
+              sheetIndexTimeoutMs,
+              `Sheet index page ${sheet.pageNumber}`
+            );
+            return { ok: true as const, sheet, indexResult };
+          } catch (error: any) {
+            return { ok: false as const, sheet, error };
+          }
+        })
+      ),
+      () =>
+        emitProgress({
+          currentBatch,
+          currentPage: batch[0]?.pageNumber ?? null,
+          currentSheetName: batch[0]?.sheetName ?? null,
+          statusText: `Still indexing batch ${currentBatch} of ${totalBatches}: pages ${batchPages}`,
+        }),
+      getSheetIndexHeartbeatMs(),
+      `batch ${currentBatch}`
     );
 
     for (const result of results) {

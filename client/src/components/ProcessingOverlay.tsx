@@ -99,6 +99,19 @@ interface TakeoffLiveProgress {
   lastHeartbeatAt?: string | null;
 }
 
+interface ProcessingDiagnostics {
+  isProcessing?: boolean;
+  phase?: string | null;
+  isStale?: boolean;
+  staleReason?: string | null;
+  heartbeatAgeMs?: number | null;
+  elapsedMs?: number | null;
+  staleAfterMs?: number | null;
+  releaseAfterMs?: number | null;
+  canReset?: boolean;
+  sheetCounts?: Record<string, number>;
+}
+
 const PHASE3_MESSAGES = [
   { icon: Layers, text: "Consolidating duplicate items across all sheets..." },
   { icon: Calculator, text: "Converting lump sums to measured quantities..." },
@@ -259,6 +272,7 @@ interface ProcessingOverlayProps {
   onResetAnalysis?: () => void;
   resetAnalysisPending?: boolean;
   liveProgress?: TakeoffLiveProgress | null;
+  processingDiagnostics?: ProcessingDiagnostics | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -495,6 +509,7 @@ export default function ProcessingOverlay({
   onResetAnalysis,
   resetAnalysisPending = false,
   liveProgress,
+  processingDiagnostics,
 }: ProcessingOverlayProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -536,8 +551,26 @@ export default function ProcessingOverlay({
     liveHeartbeatMs !== null ? renderNowMs - liveHeartbeatMs : null;
   const liveElapsedMs =
     liveStartedMs !== null ? renderNowMs - liveStartedMs : phaseElapsed;
+  const diagnosticsHeartbeatAgeMs =
+    typeof processingDiagnostics?.heartbeatAgeMs === "number"
+      ? processingDiagnostics.heartbeatAgeMs
+      : null;
+  const diagnosticsElapsedMs =
+    typeof processingDiagnostics?.elapsedMs === "number"
+      ? processingDiagnostics.elapsedMs
+      : null;
+  const staleAfterMs =
+    typeof processingDiagnostics?.staleAfterMs === "number"
+      ? Math.max(30_000, processingDiagnostics.staleAfterMs)
+      : 2 * 60 * 1000;
+  const backendHeartbeatAgeMs = liveHeartbeatAgeMs ?? diagnosticsHeartbeatAgeMs;
+  const backendElapsedMs =
+    liveStartedMs !== null
+      ? liveElapsedMs
+      : (diagnosticsElapsedMs ?? liveElapsedMs);
   const heartbeatIsStale =
-    liveHeartbeatAgeMs !== null && liveHeartbeatAgeMs > 2 * 60 * 1000;
+    Boolean(processingDiagnostics?.isStale) ||
+    (backendHeartbeatAgeMs !== null && backendHeartbeatAgeMs > staleAfterMs);
   const hasLiveProgressCounts =
     Boolean(liveProgress) &&
     effectiveTotalSheets > 0 &&
@@ -999,21 +1032,30 @@ export default function ProcessingOverlay({
                   {liveSkippedSheets > 0 && (
                     <span>{liveSkippedSheets} skipped</span>
                   )}
-                  {liveHeartbeatAgeMs !== null && (
+                  {backendHeartbeatAgeMs !== null && (
                     <span>
                       Last backend update{" "}
-                      {formatRelativeAge(liveHeartbeatAgeMs)}
+                      {formatRelativeAge(backendHeartbeatAgeMs)}
                     </span>
                   )}
-                  {liveStartedMs !== null && (
-                    <span>Elapsed {formatTime(liveElapsedMs)}</span>
+                  {!liveProgress &&
+                    backendHeartbeatAgeMs === null &&
+                    diagnosticsElapsedMs !== null && (
+                      <span>No backend heartbeat recorded</span>
+                    )}
+                  {backendElapsedMs !== null && (
+                    <span>Elapsed {formatTime(backendElapsedMs)}</span>
                   )}
                 </div>
                 {heartbeatIsStale && (
                   <p className="mt-2 rounded-md border border-red-300/25 bg-red-400/10 px-3 py-2 text-[11px] font-semibold leading-5 text-red-100">
-                    No backend heartbeat for{" "}
-                    {formatRelativeAge(liveHeartbeatAgeMs || 0)}. This run may
-                    be stale; reset it before trying the same drawings again.
+                    {processingDiagnostics?.staleReason === "missing_heartbeat"
+                      ? "No backend heartbeat has been recorded for this run."
+                      : `No backend heartbeat for ${formatRelativeAge(
+                          backendHeartbeatAgeMs || 0
+                        )}.`}{" "}
+                    This run may be stale; reset it before trying the same
+                    drawings again.
                   </p>
                 )}
                 {!canNavigateAway && showIndexingReset && onResetAnalysis && (

@@ -79,7 +79,8 @@ const takeoffBidModeSchema = z.enum([
   "trade_package",
   "fast_scope_check",
 ]);
-const DEFAULT_STALE_INDEXING_RELEASE_MS = 15 * 60 * 1000;
+const DEFAULT_STALE_INDEXING_RELEASE_MS = 8 * 60 * 1000;
+const DEFAULT_STALE_PROGRESS_WARNING_MS = 2 * 60 * 1000;
 
 function positiveNumberFromEnv(names: string[]): number | null {
   for (const name of names) {
@@ -98,11 +99,82 @@ function getStaleIndexingReleaseMs(): number {
   );
 }
 
+function getStaleProgressWarningMs(): number {
+  return (
+    positiveNumberFromEnv([
+      "CONSTRUCTLINE_STALE_PROGRESS_WARNING_MS",
+      "TAKEOFF_STALE_PROGRESS_WARNING_MS",
+    ]) || DEFAULT_STALE_PROGRESS_WARNING_MS
+  );
+}
+
 function dateValueMs(value: unknown): number | null {
   if (!value) return null;
   const ms =
     value instanceof Date ? value.getTime() : new Date(value as any).getTime();
   return Number.isFinite(ms) ? ms : null;
+}
+
+function buildProcessingDiagnostics(
+  project: any,
+  sheets: any[],
+  analysisRun: any | null
+) {
+  const liveProgress = getTakeoffLiveProgress(project.id);
+  const liveHeartbeatAgeMs = getTakeoffLiveProgressHeartbeatAgeMs(project.id);
+  const nowMs = Date.now();
+  const analysisRunStartedAt =
+    dateValueMs((analysisRun as any)?.startedAt) ??
+    dateValueMs((analysisRun as any)?.createdAt);
+  const projectAnalysisStartedAt = dateValueMs(project.lastAnalyzedAt);
+  const projectUpdatedAt = dateValueMs(project.updatedAt);
+  const startedAtMs =
+    dateValueMs(liveProgress?.startedAt) ??
+    analysisRunStartedAt ??
+    projectAnalysisStartedAt ??
+    projectUpdatedAt;
+  const elapsedMs = startedAtMs ? Math.max(0, nowMs - startedAtMs) : null;
+  const staleAfterMs = getStaleProgressWarningMs();
+  const isProcessing =
+    project.status === "processing" || project.status === "post_processing";
+  const missingHeartbeat =
+    isProcessing &&
+    !liveProgress &&
+    elapsedMs !== null &&
+    elapsedMs > staleAfterMs;
+  const staleHeartbeat =
+    isProcessing &&
+    liveHeartbeatAgeMs !== null &&
+    liveHeartbeatAgeMs > staleAfterMs;
+  const sheetCounts = sheets.reduce(
+    (counts: Record<string, number>, sheet: any) => {
+      const status = String(sheet.status || "unknown");
+      counts[status] = (counts[status] || 0) + 1;
+      return counts;
+    },
+    {}
+  );
+
+  return {
+    isProcessing,
+    phase: liveProgress?.phase ?? project.status,
+    isStale: missingHeartbeat || staleHeartbeat,
+    staleReason: staleHeartbeat
+      ? "stale_heartbeat"
+      : missingHeartbeat
+        ? "missing_heartbeat"
+        : null,
+    heartbeatAgeMs: liveHeartbeatAgeMs,
+    elapsedMs,
+    staleAfterMs,
+    releaseAfterMs: getStaleIndexingReleaseMs(),
+    canReset:
+      isProcessing ||
+      Boolean(sheetCounts.pending) ||
+      Boolean(sheetCounts.processing) ||
+      Boolean(sheetCounts.error),
+    sheetCounts,
+  };
 }
 
 async function getLatestTakeoffAnalysisRunSafe(
@@ -195,10 +267,13 @@ async function releaseStaleIndexingIfNeeded(
   sheets: any[],
   reason: "project_load" | "progress_poll" | "server_watchdog"
 ): Promise<{ released: boolean; analysisRun: any | null }> {
+  const liveProgress = getTakeoffLiveProgress(project.id);
+  const livePhaseIsIndexing = liveProgress?.phase === "indexing";
+  const projectHasAdvanced = (project.processedSheets || 0) > 0;
   if (
     project.status !== "processing" ||
     sheets.length === 0 ||
-    (project.processedSheets || 0) > 0
+    (projectHasAdvanced && !livePhaseIsIndexing)
   ) {
     return { released: false, analysisRun: null };
   }
@@ -1219,12 +1294,19 @@ export const takeoffRouter = router({
       if (indexingRelease.released) {
         analysisRun = indexingRelease.analysisRun;
       }
+      const liveProgress = getTakeoffLiveProgress(input.projectId);
+      const processingDiagnostics = buildProcessingDiagnostics(
+        project,
+        sheets,
+        analysisRun
+      );
       return {
         status: project.status,
         totalSheets: project.totalSheets,
         processedSheets: project.processedSheets,
         totalEstimatedCost: project.totalEstimatedCost,
-        liveProgress: getTakeoffLiveProgress(input.projectId),
+        liveProgress,
+        processingDiagnostics,
         analysisRun,
         sheets: sheets.map((s: any) => ({
           id: s.id,
