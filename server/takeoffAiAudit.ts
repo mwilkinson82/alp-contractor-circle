@@ -68,7 +68,7 @@ const DEFAULT_PASS_TIMEOUT_MS: Record<TakeoffPassType, number> = {
 export function resolveTakeoffModelForPass(passType: TakeoffPassType): string {
   for (const envName of PASS_MODEL_ENV[passType] || []) {
     const value = process.env[envName]?.trim();
-    if (value) return resolveLLMModel(value);
+    if (value) return value;
   }
   return resolveLLMModel();
 }

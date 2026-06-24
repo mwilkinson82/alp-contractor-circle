@@ -51,6 +51,24 @@ describe("Takeoff AI Pipeline", () => {
     expect(mod.resolveLLMModel("perplexity/sonar-pro")).toBe("sonar-pro");
   });
 
+  it("preserves provider prefixes in ConstructLine pass model routing", async () => {
+    const previous = process.env.CONSTRUCTLINE_MODEL_SHEET_INDEX;
+    process.env.CONSTRUCTLINE_MODEL_SHEET_INDEX = "perplexity/sonar-pro";
+
+    try {
+      const mod = await import("./takeoffAiAudit");
+      expect(mod.resolveTakeoffModelForPass("sheet_index")).toBe(
+        "perplexity/sonar-pro"
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CONSTRUCTLINE_MODEL_SHEET_INDEX;
+      } else {
+        process.env.CONSTRUCTLINE_MODEL_SHEET_INDEX = previous;
+      }
+    }
+  });
+
   it("should build scale calibration context for AI extraction", async () => {
     const mod = await import("./takeoffAI");
     const context = mod.buildScaleCalibrationContext(24.567, "ft");
